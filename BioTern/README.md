@@ -1,16 +1,16 @@
-# Duralux - CRM Admin & Dashboard HTML Template
+# BioTern - CRM Admin & Dashboard HTML Template
 #### Preview
 
- - [Demo](https://themewagon.github.io/Duralux-admin/)
+ - [Demo](https://themewagon.github.io/BioTern-admin/)
 
 #### Download
- - [Download from ThemeWagon](https://themewagon.com/themes/Duralux-admin/)
+ - [Download from ThemeWagon](https://themewagon.com/themes/BioTern-admin/)
 
 ## Getting Started
 
 1. Clone Repository
 ```
-git clone https://github.com/themewagon/Duralux-admin.git
+git clone https://github.com/themewagon/BioTern-admin.git
 ```
 2. Install Dependencies
 ```
