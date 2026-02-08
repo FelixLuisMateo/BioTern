@@ -1,6 +1,21 @@
 <!DOCTYPE html>
 <html lang="zxx">
-
+<style>
+    .progress-bar div {
+        background-color: #FF4757;  /* Red - weak password */
+        height: 3px;
+        border-radius: 2px;
+        margin-right: 4px;
+    }
+    
+    .progress-bar div.active {
+        background-color: #FFA502;  /* Orange - medium */
+    }
+    
+    .progress-bar div.active.strong {
+        background-color: #2ED573;  /* Green - strong */
+    }
+</style>
 <head>
     <meta charset="utf-8">
     <meta http-equiv="x-ua-compatible" content="IE=edge">
@@ -10,7 +25,7 @@
     <meta name="author" content="theme_ocean">
     <!--! The above 6 meta tags *must* come first in the head; any other head content must come *after* these tags !-->
     <!--! BEGIN: Apps Title-->
-    <title>Duralux || Register Minimal</title>
+    <title>BioTern || Register Minimal</title>
     <!--! END:  Apps Title-->
     <!--! BEGIN: Favicon-->
     <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
@@ -24,6 +39,16 @@
     <!--! BEGIN: Custom CSS-->
     <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css">
     <!--! END: Custom CSS-->
+    <style>
+        /* Ensure select text and option text are visible (black) */
+        select.form-control {
+            color: #000 !important;
+            background-color: #fff !important;
+        }
+        select.form-control option {
+            color: #000 !important;
+        }
+    </style>
     <!--! HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries !-->
     <!--! WARNING: Respond.js doesn"t work if you view the page via file: !-->
     <!--[if lt IE 9]>
@@ -39,87 +64,120 @@
     <main class="auth-minimal-wrapper">
         <div class="auth-minimal-inner">
             <div class="minimal-card-wrapper">
-                <div class="card mb-4 mt-5 mx-4 mx-sm-0 position-relative">
+                <div class="card mb-4 mt-5 mx-2 mx-sm-0 position-relative" style="width: 140%; max-width: 2200px; margin-left: auto; margin-right: auto;">
                     <div class="wd-50 bg-white p-2 rounded-circle shadow-lg position-absolute translate-middle top-0 start-50">
                         <img src="assets/images/logo-abbr.png" alt="" class="img-fluid">
                     </div>
-                    <div class="card-body p-sm-5">
+                    <div class="card-body p-sm-5" style="padding: 40px !important; min-height: auto;">
                         <h2 class="fs-20 fw-bolder mb-4">Register</h2>
-                        <h4 class="fs-13 fw-bold mb-2">Manage all your Duralux crm</h4>
-                        <p class="fs-12 fw-medium text-muted">Let's get you all setup, so you can verify your personal account and begine setting up your profile.</p>
+                        <h4 class="fs-13 fw-bold mb-2">Manage your Intership account in one place.</h4>
+                        <p class="fs-12 fw-medium text-muted">Let's get you all setup, so you can verify your personal account and begin setting up your profile.</p>
                         <form action="index.html" class="w-100 mt-4 pt-2">
+                            <!-- Personal Information Section -->
                             <div class="mb-4">
-                                <input type="text" class="form-control" placeholder="ID Number" required>
-                            </div>
-                            <div class="mb-4">
-                                <input type="text" class="form-control" placeholder="Last Name" required>
-                            </div>
-                            <div class="mb-4">
-                                <input type="text" class="form-control" placeholder="First Name" required>
-                            </div>
-                            <div class="mb-4">
-                                <input type="text" class="form-control" placeholder="Middle Name" required>
-                            </div>
-                            <div class="mb-4">
-                                <input type="text" class="form-control" placeholder="Address" required>
-                            </div>
-                            <div class="mb-4">
-                                <input type="email" class="form-control" placeholder="Email" required>
+                                <h5 class="fs-14 fw-bold mb-3">Personal Information</h5>
+                                <div class="row g-3">
+                                    <div class="col-6 mb-2">
+                                        <input type="text" class="form-control" placeholder="School ID Number" required>
+                                    </div>
+                                    <div class="col-6 mb-2">
+                                        <input type="text" style="padding: 12px 16px;"class="form-control" placeholder="Your first name" required>
+                                    </div>
+                                </div>
+                                <div class="row g-3">
+                                    <div class="col-6 mb-2">
+                                        <input type="text" class="form-control" placeholder="Your middle name" required>
+                                    </div>
+                                    <div class="col-6 mb-2">
+                                       
+                                        <input type="text" class="form-control" placeholder="Your last name" required>
+                                    </div>
+                                </div>
+                                <div class="row g-3">
+                                    <div class="col-6 mb-2">
+                                        <input type="text" class="form-control" placeholder="Your address" required>
+                                    </div>
+                                    <div class="col-6 mb-2">
+                                        <input type="email" class="form-control" placeholder="Email Address" required>
+                                    </div>
+                                </div>
                             </div>
 
-                                <!--! dropbox to select courses !-->
+                            <!-- Academic Information Section -->
                             <div class="mb-4">
-                                <input type="tel" class="form-control" placeholder="Course" required>
-                            </div>
-                            <div class="mb-4">
-                                <input type="tel" class="form-control" placeholder="Section" required>
-                            </div>
-                            <!--! dropbox to select departments !-->
-                            <div class="mb-4">
-                                <input type="tel" class="form-control" placeholder="Department" required>
-                            </div>
-                            <!--! dropbox to select departments !-->
-                            <div class="row">
-                                <div class="col-lg-4 mb-4">
-                                    <label class="form-label">Student Type</label>
-                                        <select class="form-control" data-select2-selector="status">
-                                            <option value="regular">Regular</option>
-                                            <option value="irregular">Irregular</option>
+                                <h5 class="fs-14 fw-bold mb-3">Academic Information</h5>
+                                <div class="row g-3">
+                                    <div class="col-4 mb-2">
+                                        <label class="form-label fs-12">Course</label>
+                                        <select class="form-control" required>
+                                            <option value="" disabled selected>Select Course</option>
+                                            <option value="course1">ACT</option>
+                                            <option value="course2">CT</option>
+                                            <option value="course3">BSOA</option>
+                                            <option value="course4">HRS</option>
+                                            <option value="course5">HT</option>
                                         </select>
-                                    </label>
+                                    </div>
+                                    <div class="col-4 mb-2">
+                                        <label class="form-label fs-12">Department</label>
+                                        <select class="form-control" required>
+                                            <option value="" disabled selected>Select Department</option>
+                                            <option value="dept1">Department 1</option>
+                                            <option value="dept2">Department 2</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-4 mb-2">
+                                        <label class="form-label fs-12">Section</label>
+                                        <select class="form-control" required>
+                                            <option value="" disabled selected>Select Section</option>
+                                            <option value="sec1">Section 1</option>
+                                            <option value="sec2">Section 2</option>
+                                        </select>
+                                    </div>
                                 </div>
-                            <div class="mb-4">
-                                <input type="tel" class="form-control" placeholder="Username" required>
                             </div>
-                            <div class="mb-4 generate-pass">
-                                <div class="input-group field">
-                                    <input type="password" class="form-control password" id="newPassword" placeholder="Password Confirm">
-                                    <div class="input-group-text c-pointer gen-pass" data-bs-toggle="tooltip" title="Generate Password"><i class="feather-hash"></i></div>
-                                    <div class="input-group-text border-start bg-gray-2 c-pointer show-pass" data-bs-toggle="tooltip" title="Show/Hide Password"><i></i></div>
-                                </div>
-                                <div class="progress-bar mt-2">
-                                    <div></div>
-                                    <div></div>
-                                    <div></div>
-                                    <div></div>
-                                </div>
-                            </div>
+
+                            <!-- Account Information Section -->
                             <div class="mb-4">
-                                <input type="password" class="form-control" placeholder="Password again" required>
+                                <h5 class="fs-14 fw-bold mb-3">Account Information</h5>
+                                <div class="row g-3">
+                                    <div class="col-6 mb-2">
+                                        <input type="text" class="form-control" placeholder="Username" required>
+                                    </div>
+                                    <div class="col-6 mb-2">
+                                        <input type="email" class="form-control" placeholder="Email Address" required>
+                                    </div>
+                                </div>
+                                <div class="row g-3">
+                                    <div class="col-6 mb-2">
+                                        <div class="input-group field">
+                                            <input type="password" class="form-control password" id="newPassword" placeholder="Password">
+                                            <div class="input-group-text border-start bg-gray-2 c-pointer show-pass" data-bs-toggle="tooltip" title="Show/Hide Password"><i></i></div>
+                                        </div>
+                                        <!-- password strength indicator removed -->
+                                    </div>
+                                    <div class="col-6 mb-2">
+                                        <input type="password" class="form-control" placeholder="Confirm password" required>
+                                    </div>
+                                </div>
                             </div>
                             <div class="mt-4">
                                 <div class="custom-control custom-checkbox mb-2">
                                     <input type="checkbox" class="custom-control-input" id="receiveMial" required>
-                                    <label class="custom-control-label c-pointer text-muted" for="receiveMial" style="font-weight: 400 !important">Yes, I wnat to receive Duralux community emails</label>
+                                    <label class="custom-control-label c-pointer text-muted" for="receiveMial" style="font-weight: 400 !important">Yes, I wnat to receive BioTern community emails</label>
                                 </div>
                                 <div class="custom-control custom-checkbox">
                                     <input type="checkbox" class="custom-control-input" id="termsCondition" required>
-                                    <label class="custom-control-label c-pointer text-muted" for="termsCondition" style="font-weight: 400 !important">I agree to all the <a href="">Terms &amp; Conditions</a> and <a href="">Fees</a>.</label>
+                                    <label class="custom-control-label c-pointer text-muted" for="termsCondition" style="font-weight: 400 !important">I agree to all the <a href="">Terms &amp; Conditions.</a></label>
                                 </div>
                             </div>
                             <div class="mt-5">
                                 <button type="submit" class="btn btn-lg btn-primary w-100">Create Account</button>
                             </div>
+                                                    <div class="mt-5 text-muted">
+                            <span>Already have an account?</span>
+                            <a href="auth-login-minimal.html" class="fw-bold">Login</a>
+                        </div>
                         </form>
                         <div class="mt-5 text-muted">
                             <span>Already have an account?</span>
