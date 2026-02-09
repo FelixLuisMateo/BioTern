@@ -1,3 +1,124 @@
+<?php
+// Database Connection
+$host = 'localhost';
+$db_user = 'root';
+$db_password = '';
+$db_name = 'biotern_db';
+
+try {
+    $conn = new mysqli($host, $db_user, $db_password, $db_name);
+    if ($conn->connect_error) {
+        die("Connection failed: " . $conn->connect_error);
+    }
+} catch (Exception $e) {
+    die("Database Error: " . $e->getMessage());
+}
+
+// Fetch Attendance Statistics
+$stats_query = "
+    SELECT 
+        SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as approved_count,
+        SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending_count,
+        SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) as rejected_count,
+        COUNT(*) as total_count
+    FROM attendances
+";
+$stats_result = $conn->query($stats_query);
+$stats = $stats_result->fetch_assoc();
+
+// Fetch Attendance Records with Student Info
+$attendance_query = "
+    SELECT 
+        a.id,
+        a.attendance_date,
+        a.morning_time_in,
+        a.morning_time_out,
+        a.break_time_in,
+        a.break_time_out,
+        a.afternoon_time_in,
+        a.afternoon_time_out,
+        a.status,
+        a.approved_by,
+        a.approved_at,
+        a.remarks,
+        s.id as student_id,
+        s.student_id as student_number,
+        s.first_name,
+        s.last_name,
+        s.email,
+        c.name as course_name,
+        u.name as approver_name
+    FROM attendances a
+    LEFT JOIN students s ON a.student_id = s.id
+    LEFT JOIN courses c ON s.course_id = c.id
+    LEFT JOIN users u ON a.approved_by = u.id
+    ORDER BY a.attendance_date DESC
+    LIMIT 100
+";
+$attendance_result = $conn->query($attendance_query);
+$attendances = [];
+if ($attendance_result->num_rows > 0) {
+    while ($row = $attendance_result->fetch_assoc()) {
+        $attendances[] = $row;
+    }
+}
+
+// Helper function to format time
+function formatTime($time) {
+    if ($time) {
+        return date('h:i A', strtotime($time));
+    }
+    return '-';
+}
+
+// Helper function to get status badge
+function getStatusBadge($status) {
+    switch($status) {
+        case 'approved':
+            return '<span class="badge bg-soft-success text-success">Approved</span>';
+        case 'rejected':
+            return '<span class="badge bg-soft-danger text-danger">Rejected</span>';
+        case 'pending':
+            return '<span class="badge bg-soft-warning text-warning">Pending</span>';
+        default:
+            return '<span class="badge bg-soft-secondary text-secondary">Unknown</span>';
+    }
+}
+
+// Helper function to calculate total hours
+function calculateTotalHours($morning_in, $morning_out, $afternoon_in, $afternoon_out) {
+    $total = 0;
+    
+    if ($morning_in && $morning_out) {
+        $morning_time = strtotime($morning_out) - strtotime($morning_in);
+        $total += $morning_time / 3600;
+    }
+    
+    if ($afternoon_in && $afternoon_out) {
+        $afternoon_time = strtotime($afternoon_out) - strtotime($afternoon_in);
+        $total += $afternoon_time / 3600;
+    }
+    
+    return round($total, 2);
+}
+
+// Determine attendance status based on morning_time_in
+function getAttendanceStatus($morning_time_in) {
+    if (!$morning_time_in) {
+        return 'absent';
+    }
+    
+    $time = strtotime($morning_time_in);
+    $expected_time = strtotime('08:00 AM');
+    
+    if ($time <= $expected_time) {
+        return 'present';
+    } else {
+        return 'late';
+    }
+}
+?>
+
 <!DOCTYPE html>
 <html lang="zxx">
 
@@ -98,7 +219,8 @@
                             <li class="nxl-item"><a class="nxl-link" href="students.html">Students</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="students-view.html">Students View</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="students-create.html">Students Create</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="attendance.html">Attendance DTR</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="attendance.php">Attendance DTR</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="demo-biometric.php">Demo Biometric</a></li>
                         </ul>
                     </li>
                     <li class="nxl-item nxl-hasmenu">
@@ -512,13 +634,13 @@
                                                 <i class="feather-check-circle"></i>
                                             </div>
                                             <a href="javascript:void(0);" class="fw-bold d-block">
-                                                <span class="text-truncate-1-line">Total Present</span>
-                                                <span class="fs-24 fw-bolder d-block">845</span>
+                                                <span class="text-truncate-1-line">Total Approved</span>
+                                                <span class="fs-24 fw-bolder d-block"><?php echo $stats['approved_count'] ?? 0; ?></span>
                                             </a>
                                         </div>
                                         <div class="badge bg-soft-success text-success">
                                             <i class="feather-arrow-up fs-10 me-1"></i>
-                                            <span>12.5%</span>
+                                            <span><?php echo $stats['total_count'] > 0 ? round(($stats['approved_count'] / $stats['total_count']) * 100, 1) : 0; ?>%</span>
                                         </div>
                                     </div>
                                 </div>
@@ -534,12 +656,12 @@
                                             </div>
                                             <a href="javascript:void(0);" class="fw-bold d-block">
                                                 <span class="text-truncate-1-line">Pending Approval</span>
-                                                <span class="fs-24 fw-bolder d-block">123</span>
+                                                <span class="fs-24 fw-bolder d-block"><?php echo $stats['pending_count'] ?? 0; ?></span>
                                             </a>
                                         </div>
                                         <div class="badge bg-soft-warning text-warning">
                                             <i class="feather-arrow-up fs-10 me-1"></i>
-                                            <span>5.2%</span>
+                                            <span><?php echo $stats['total_count'] > 0 ? round(($stats['pending_count'] / $stats['total_count']) * 100, 1) : 0; ?>%</span>
                                         </div>
                                     </div>
                                 </div>
@@ -554,13 +676,13 @@
                                                 <i class="feather-x-circle"></i>
                                             </div>
                                             <a href="javascript:void(0);" class="fw-bold d-block">
-                                                <span class="text-truncate-1-line">Absent</span>
-                                                <span class="fs-24 fw-bolder d-block">45</span>
+                                                <span class="text-truncate-1-line">Rejected</span>
+                                                <span class="fs-24 fw-bolder d-block"><?php echo $stats['rejected_count'] ?? 0; ?></span>
                                             </a>
                                         </div>
                                         <div class="badge bg-soft-danger text-danger">
                                             <i class="feather-arrow-down fs-10 me-1"></i>
-                                            <span>2.3%</span>
+                                            <span><?php echo $stats['total_count'] > 0 ? round(($stats['rejected_count'] / $stats['total_count']) * 100, 1) : 0; ?>%</span>
                                         </div>
                                     </div>
                                 </div>
@@ -575,13 +697,13 @@
                                                 <i class="feather-alert-circle"></i>
                                             </div>
                                             <a href="javascript:void(0);" class="fw-bold d-block">
-                                                <span class="text-truncate-1-line">Late</span>
-                                                <span class="fs-24 fw-bolder d-block">67</span>
+                                                <span class="text-truncate-1-line">Total Records</span>
+                                                <span class="fs-24 fw-bolder d-block"><?php echo $stats['total_count'] ?? 0; ?></span>
                                             </a>
                                         </div>
-                                        <div class="badge bg-soft-danger text-danger">
-                                            <i class="feather-arrow-down fs-10 me-1"></i>
-                                            <span>3.1%</span>
+                                        <div class="badge bg-soft-info text-info">
+                                            <i class="feather-info fs-10 me-1"></i>
+                                            <span>100%</span>
                                         </div>
                                     </div>
                                 </div>
@@ -617,283 +739,120 @@
                                                 <th>Break In</th>
                                                 <th>Break Out</th>
                                                 <th>Afternoon Out</th>
+                                                <th>Total Hours</th>
                                                 <th>Status</th>
                                                 <th>Approval Status</th>
                                                 <th class="text-end">Actions</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <!-- Morning In & Out, Break In & Out, Afternoon In & Out -->
-                                            <tr class="single-item">
-                                                <td>
-                                                    <div class="item-checkbox ms-1">
-                                                        <div class="custom-control custom-checkbox">
-                                                            <input type="checkbox" class="custom-control-input checkbox" id="checkBox_1">
-                                                            <label class="custom-control-label" for="checkBox_1"></label>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <a href="students-view.html" class="hstack gap-3">
-                                                        <div class="avatar-image avatar-md">
-                                                            <img src="assets/images/avatar/1.png" alt="" class="img-fluid">
-                                                        </div>
-                                                        <div>
-                                                            <span class="text-truncate-1-line">Felix Luis Mateo</span>
-                                                        </div>
-                                                    </a>
-                                                </td>
-                                                <td><span class="badge bg-soft-primary text-primary">2026-02-09</span></td>
-                                                <td><span class="badge bg-soft-success text-success">08:00 AM</span></td>
-                                                <td><span class="badge bg-soft-info text-info">12:00 PM</span></td>
-                                                <td><span class="badge bg-soft-info text-info">01:00 PM</span></td>
-                                                <td><span class="badge bg-soft-warning text-warning">05:30 PM</span></td>
-                                                <td>
-                                                    <select class="form-control" data-select2-selector="status">
-                                                        <option value="present" data-bg="bg-success" selected>Present</option>
-                                                        <option value="late" data-bg="bg-warning">Late</option>
-                                                        <option value="absent" data-bg="bg-danger">Absent</option>
-                                                    </select>
-                                                </td>
-                                                <td>
-                                                    <select class="form-control" data-select2-selector="approval">
-                                                        <option value="pending" data-bg="bg-warning">Pending</option>
-                                                        <option value="approved" data-bg="bg-success">Approved</option>
-                                                        <option value="rejected" data-bg="bg-danger">Rejected</option>
-                                                    </select>
-                                                </td>
-                                                <td>
-                                                    <div class="hstack gap-2 justify-content-end">
-                                                        <a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="tooltip" title="View Details">
-                                                            <i class="feather feather-eye"></i>
-                                                        </a>
-                                                        <div class="dropdown">
-                                                            <a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="dropdown" data-bs-offset="0,21">
-                                                                <i class="feather feather-more-horizontal"></i>
+                                            <?php if (!empty($attendances)): ?>
+                                                <?php foreach ($attendances as $index => $attendance): ?>
+                                                    <tr class="single-item">
+                                                        <td>
+                                                            <div class="item-checkbox ms-1">
+                                                                <div class="custom-control custom-checkbox">
+                                                                    <input type="checkbox" class="custom-control-input checkbox" id="checkBox_<?php echo $attendance['id']; ?>">
+                                                                    <label class="custom-control-label" for="checkBox_<?php echo $attendance['id']; ?>"></label>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <a href="students-view.html?id=<?php echo $attendance['student_id']; ?>" class="hstack gap-3">
+                                                                <div class="avatar-image avatar-md">
+                                                                    <div class="avatar-text avatar-md bg-light-primary rounded">
+                                                                        <?php echo strtoupper(substr($attendance['first_name'] ?? 'N', 0, 1) . substr($attendance['last_name'] ?? 'A', 0, 1)); ?>
+                                                                    </div>
+                                                                </div>
+                                                                <div>
+                                                                    <span class="text-truncate-1-line fw-bold"><?php echo ($attendance['first_name'] ?? 'N/A') . ' ' . ($attendance['last_name'] ?? 'N/A'); ?></span>
+                                                                    <span class="fs-12 text-muted d-block"><?php echo $attendance['student_number'] ?? 'N/A'; ?></span>
+                                                                </div>
                                                             </a>
-                                                            <ul class="dropdown-menu">
-                                                                <li>
-                                                                    <a class="dropdown-item" href="javascript:void(0)">
-                                                                        <i class="feather feather-check-circle me-3"></i>
-                                                                        <span>Approve</span>
+                                                        </td>
+                                                        <td><span class="badge bg-soft-primary text-primary"><?php echo date('Y-m-d', strtotime($attendance['attendance_date'])); ?></span></td>
+                                                        <td><span class="badge bg-soft-success text-success"><?php echo formatTime($attendance['morning_time_in']); ?></span></td>
+                                                        <td><span class="badge bg-soft-info text-info"><?php echo formatTime($attendance['break_time_in']); ?></span></td>
+                                                        <td><span class="badge bg-soft-info text-info"><?php echo formatTime($attendance['break_time_out']); ?></span></td>
+                                                        <td><span class="badge bg-soft-warning text-warning"><?php echo formatTime($attendance['afternoon_time_out']); ?></span></td>
+                                                        <td>
+                                                            <span class="badge bg-soft-secondary text-secondary">
+                                                                <?php echo calculateTotalHours($attendance['morning_time_in'], $attendance['morning_time_out'], $attendance['afternoon_time_in'], $attendance['afternoon_time_out']); ?>h
+                                                            </span>
+                                                        </td>
+                                                        <td>
+                                                            <?php
+                                                                $att_status = getAttendanceStatus($attendance['morning_time_in']);
+                                                                if ($att_status === 'present') {
+                                                                    echo '<span class="badge bg-soft-success text-success">Present</span>';
+                                                                } elseif ($att_status === 'late') {
+                                                                    echo '<span class="badge bg-soft-warning text-warning">Late</span>';
+                                                                } else {
+                                                                    echo '<span class="badge bg-soft-danger text-danger">Absent</span>';
+                                                                }
+                                                            ?>
+                                                        </td>
+                                                        <td><?php echo getStatusBadge($attendance['status']); ?></td>
+                                                        <td>
+                                                            <div class="hstack gap-2 justify-content-end">
+                                                                <a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="tooltip" title="View Details" onclick="viewDetails(<?php echo $attendance['id']; ?>)">
+                                                                    <i class="feather feather-eye"></i>
+                                                                </a>
+                                                                <div class="dropdown">
+                                                                    <a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="dropdown" data-bs-offset="0,21">
+                                                                        <i class="feather feather-more-horizontal"></i>
                                                                     </a>
-                                                                </li>
-                                                                <li>
-                                                                    <a class="dropdown-item" href="javascript:void(0)">
-                                                                        <i class="feather feather-x-circle me-3"></i>
-                                                                        <span>Reject</span>
-                                                                    </a>
-                                                                </li>
-                                                                <li>
-                                                                    <a class="dropdown-item" href="javascript:void(0)">
-                                                                        <i class="feather feather-edit-3 me-3"></i>
-                                                                        <span>Edit</span>
-                                                                    </a>
-                                                                </li>
-                                                                <li>
-                                                                    <a class="dropdown-item printBTN" href="javascript:void(0)">
-                                                                        <i class="feather feather-printer me-3"></i>
-                                                                        <span>Print</span>
-                                                                    </a>
-                                                                </li>
-                                                                <li>
-                                                                    <a class="dropdown-item" href="javascript:void(0)">
-                                                                        <i class="feather feather-mail me-3"></i>
-                                                                        <span>Send Notification</span>
-                                                                    </a>
-                                                                </li>
-                                                                <li class="dropdown-divider"></li>
-                                                                <li>
-                                                                    <a class="dropdown-item" href="javascript:void(0)">
-                                                                        <i class="feather feather-trash-2 me-3"></i>
-                                                                        <span>Delete</span>
-                                                                    </a>
-                                                                </li>
-                                                            </ul>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                            <tr class="single-item">
-                                                <td>
-                                                    <div class="item-checkbox ms-1">
-                                                        <div class="custom-control custom-checkbox">
-                                                            <input type="checkbox" class="custom-control-input checkbox" id="checkBox_2">
-                                                            <label class="custom-control-label" for="checkBox_2"></label>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <a href="students-view.html" class="hstack gap-3">
-                                                        <div class="avatar-image avatar-md">
-                                                            <img src="assets/images/avatar/2.png" alt="" class="img-fluid">
-                                                        </div>
-                                                        <div>
-                                                            <span class="text-truncate-1-line">Maria Santos</span>
-                                                        </div>
-                                                    </a>
-                                                </td>
-                                                <td><span class="badge bg-soft-primary text-primary">2026-02-09</span></td>
-                                                <td><span class="badge bg-soft-success text-success">07:55 AM</span></td>
-                                                <td><span class="badge bg-soft-info text-info">12:05 PM</span></td>
-                                                <td><span class="badge bg-soft-info text-info">01:00 PM</span></td>
-                                                <td><span class="badge bg-soft-success text-success">05:00 PM</span></td>
-                                                <td>
-                                                    <select class="form-control" data-select2-selector="status">
-                                                        <option value="present" data-bg="bg-success" selected>Present</option>
-                                                        <option value="late" data-bg="bg-warning">Late</option>
-                                                        <option value="absent" data-bg="bg-danger">Absent</option>
-                                                    </select>
-                                                </td>
-                                                <td>
-                                                    <select class="form-control" data-select2-selector="approval">
-                                                        <option value="pending" data-bg="bg-warning">Pending</option>
-                                                        <option value="approved" data-bg="bg-success">Approved</option>
-                                                        <option value="rejected" data-bg="bg-danger">Rejected</option>
-                                                    </select>
-                                                </td>
-                                                <td>
-                                                    <div class="hstack gap-2 justify-content-end">
-                                                        <a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="tooltip" title="View Details">
-                                                            <i class="feather feather-eye"></i>
-                                                        </a>
-                                                        <div class="dropdown">
-                                                            <a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="dropdown" data-bs-offset="0,21">
-                                                                <i class="feather feather-more-horizontal"></i>
-                                                            </a>
-                                                            <ul class="dropdown-menu">
-                                                                <li>
-                                                                    <a class="dropdown-item" href="javascript:void(0)">
-                                                                        <i class="feather feather-check-circle me-3"></i>
-                                                                        <span>Approve</span>
-                                                                    </a>
-                                                                </li>
-                                                                <li>
-                                                                    <a class="dropdown-item" href="javascript:void(0)">
-                                                                        <i class="feather feather-x-circle me-3"></i>
-                                                                        <span>Reject</span>
-                                                                    </a>
-                                                                </li>
-                                                                <li>
-                                                                    <a class="dropdown-item" href="javascript:void(0)">
-                                                                        <i class="feather feather-edit-3 me-3"></i>
-                                                                        <span>Edit</span>
-                                                                    </a>
-                                                                </li>
-                                                                <li>
-                                                                    <a class="dropdown-item printBTN" href="javascript:void(0)">
-                                                                        <i class="feather feather-printer me-3"></i>
-                                                                        <span>Print</span>
-                                                                    </a>
-                                                                </li>
-                                                                <li>
-                                                                    <a class="dropdown-item" href="javascript:void(0)">
-                                                                        <i class="feather feather-mail me-3"></i>
-                                                                        <span>Send Notification</span>
-                                                                    </a>
-                                                                </li>
-                                                                <li class="dropdown-divider"></li>
-                                                                <li>
-                                                                    <a class="dropdown-item" href="javascript:void(0)">
-                                                                        <i class="feather feather-trash-2 me-3"></i>
-                                                                        <span>Delete</span>
-                                                                    </a>
-                                                                </li>
-                                                            </ul>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                            <tr class="single-item">
-                                                <td>
-                                                    <div class="item-checkbox ms-1">
-                                                        <div class="custom-control custom-checkbox">
-                                                            <input type="checkbox" class="custom-control-input checkbox" id="checkBox_3">
-                                                            <label class="custom-control-label" for="checkBox_3"></label>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <a href="students-view.html" class="hstack gap-3">
-                                                        <div class="avatar-image avatar-md">
-                                                            <img src="assets/images/avatar/3.png" alt="" class="img-fluid">
-                                                        </div>
-                                                        <div>
-                                                            <span class="text-truncate-1-line">Juan Dela Cruz</span>
-                                                        </div>
-                                                    </a>
-                                                </td>
-                                                <td><span class="badge bg-soft-primary text-primary">2026-02-08</span></td>
-                                                <td><span class="badge bg-soft-danger text-danger">08:45 AM</span></td>
-                                                <td><span>-</span></td>
-                                                <td><span>-</span></td>
-                                                <td><span>-</span></td>
-                                                <td>
-                                                    <select class="form-control" data-select2-selector="status">
-                                                        <option value="present" data-bg="bg-success">Present</option>
-                                                        <option value="late" data-bg="bg-warning" selected>Late</option>
-                                                        <option value="absent" data-bg="bg-danger">Absent</option>
-                                                    </select>
-                                                </td>
-                                                <td>
-                                                    <select class="form-control" data-select2-selector="approval">
-                                                        <option value="pending" data-bg="bg-warning" selected>Pending</option>
-                                                        <option value="approved" data-bg="bg-success">Approved</option>
-                                                        <option value="rejected" data-bg="bg-danger">Rejected</option>
-                                                    </select>
-                                                </td>
-                                                <td>
-                                                    <div class="hstack gap-2 justify-content-end">
-                                                        <a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="tooltip" title="View Details">
-                                                            <i class="feather feather-eye"></i>
-                                                        </a>
-                                                        <div class="dropdown">
-                                                            <a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="dropdown" data-bs-offset="0,21">
-                                                                <i class="feather feather-more-horizontal"></i>
-                                                            </a>
-                                                            <ul class="dropdown-menu">
-                                                                <li>
-                                                                    <a class="dropdown-item" href="javascript:void(0)">
-                                                                        <i class="feather feather-check-circle me-3"></i>
-                                                                        <span>Approve</span>
-                                                                    </a>
-                                                                </li>
-                                                                <li>
-                                                                    <a class="dropdown-item" href="javascript:void(0)">
-                                                                        <i class="feather feather-x-circle me-3"></i>
-                                                                        <span>Reject</span>
-                                                                    </a>
-                                                                </li>
-                                                                <li>
-                                                                    <a class="dropdown-item" href="javascript:void(0)">
-                                                                        <i class="feather feather-edit-3 me-3"></i>
-                                                                        <span>Edit</span>
-                                                                    </a>
-                                                                </li>
-                                                                <li>
-                                                                    <a class="dropdown-item printBTN" href="javascript:void(0)">
-                                                                        <i class="feather feather-printer me-3"></i>
-                                                                        <span>Print</span>
-                                                                    </a>
-                                                                </li>
-                                                                <li>
-                                                                    <a class="dropdown-item" href="javascript:void(0)">
-                                                                        <i class="feather feather-mail me-3"></i>
-                                                                        <span>Send Notification</span>
-                                                                    </a>
-                                                                </li>
-                                                                <li class="dropdown-divider"></li>
-                                                                <li>
-                                                                    <a class="dropdown-item" href="javascript:void(0)">
-                                                                        <i class="feather feather-trash-2 me-3"></i>
-                                                                        <span>Delete</span>
-                                                                    </a>
-                                                                </li>
-                                                            </ul>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                            </tr>
+                                                                    <ul class="dropdown-menu">
+                                                                        <li>
+                                                                            <a class="dropdown-item" href="javascript:void(0)" onclick="approveAttendance(<?php echo $attendance['id']; ?>)">
+                                                                                <i class="feather feather-check-circle me-3"></i>
+                                                                                <span>Approve</span>
+                                                                            </a>
+                                                                        </li>
+                                                                        <li>
+                                                                            <a class="dropdown-item" href="javascript:void(0)" onclick="rejectAttendance(<?php echo $attendance['id']; ?>)">
+                                                                                <i class="feather feather-x-circle me-3"></i>
+                                                                                <span>Reject</span>
+                                                                            </a>
+                                                                        </li>
+                                                                        <li>
+                                                                            <a class="dropdown-item" href="javascript:void(0)" onclick="editAttendance(<?php echo $attendance['id']; ?>)">
+                                                                                <i class="feather feather-edit-3 me-3"></i>
+                                                                                <span>Edit</span>
+                                                                            </a>
+                                                                        </li>
+                                                                        <li>
+                                                                            <a class="dropdown-item printBTN" href="javascript:void(0)" onclick="printAttendance(<?php echo $attendance['id']; ?>)">
+                                                                                <i class="feather feather-printer me-3"></i>
+                                                                                <span>Print</span>
+                                                                            </a>
+                                                                        </li>
+                                                                        <li>
+                                                                            <a class="dropdown-item" href="javascript:void(0)" onclick="sendNotification(<?php echo $attendance['id']; ?>)">
+                                                                                <i class="feather feather-mail me-3"></i>
+                                                                                <span>Send Notification</span>
+                                                                            </a>
+                                                                        </li>
+                                                                        <li class="dropdown-divider"></li>
+                                                                        <li>
+                                                                            <a class="dropdown-item" href="javascript:void(0)" onclick="deleteAttendance(<?php echo $attendance['id']; ?>)">
+                                                                                <i class="feather feather-trash-2 me-3"></i>
+                                                                                <span>Delete</span>
+                                                                            </a>
+                                                                        </li>
+                                                                    </ul>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                <?php endforeach; ?>
+                                            <?php else: ?>
+                                                <tr>
+                                                    <td colspan="11" class="text-center py-5">
+                                                        <p class="text-muted">No attendance records found</p>
+                                                    </td>
+                                                </tr>
+                                            <?php endif; ?>
                                         </tbody>
                                     </table>
                                 </div>
@@ -921,6 +880,7 @@
         </footer>
         <!-- [ Footer ] end -->
     </main>
+
     <!--! ================================================================ !-->
     <!--! [End] Main Content !-->
 
@@ -964,6 +924,127 @@
     <!--! BEGIN: Theme Customizer  !-->
     <script src="assets/js/theme-customizer-init.min.js"></script>
     <!--! END: Theme Customizer !-->
-</body>
 
-</html>
+    <script>
+        // Initialize DataTable
+        $(document).ready(function() {
+            $('#attendanceList').DataTable({
+                "pageLength": 10,
+                "ordering": true,
+                "searching": true,
+                "bLengthChange": true,
+                "info": true,
+                "paging": true
+            });
+
+            // Initialize Select2
+            $('[data-select2-selector]').select2();
+
+            // Handle Check All
+            $('#checkAllAttendance').on('change', function() {
+                $('.checkbox').prop('checked', this.checked);
+            });
+
+            // Initialize tooltips
+            $('[data-bs-toggle="tooltip"]').each(function() {
+                new bootstrap.Tooltip(this);
+            });
+        });
+
+        // View Details function
+        function viewDetails(id) {
+            alert('View Details for Attendance ID: ' + id);
+            // You can implement a modal or redirect to detail page
+        }
+
+        // Approve attendance function
+        function approveAttendance(id) {
+            if (confirm('Are you sure you want to approve this attendance?')) {
+                var form = document.createElement('form');
+                form.method = 'POST';
+                form.action = 'process_attendance.php';
+                
+                var input1 = document.createElement('input');
+                input1.type = 'hidden';
+                input1.name = 'action';
+                input1.value = 'approve';
+                
+                var input2 = document.createElement('input');
+                input2.type = 'hidden';
+                input2.name = 'id';
+                input2.value = id;
+                
+                form.appendChild(input1);
+                form.appendChild(input2);
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+
+        // Reject attendance function
+        function rejectAttendance(id) {
+            var remarks = prompt('Enter rejection reason:');
+            if (remarks !== null && remarks.trim() !== '') {
+                var form = document.createElement('form');
+                form.method = 'POST';
+                form.action = 'process_attendance.php';
+                
+                var input1 = document.createElement('input');
+                input1.type = 'hidden';
+                input1.name = 'action';
+                input1.value = 'reject';
+                
+                var input2 = document.createElement('input');
+                input2.type = 'hidden';
+                input2.name = 'id';
+                input2.value = id;
+                
+                var input3 = document.createElement('input');
+                input3.type = 'hidden';
+                input3.name = 'remarks';
+                input3.value = remarks;
+                
+                form.appendChild(input1);
+                form.appendChild(input2);
+                form.appendChild(input3);
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+
+        // Edit attendance function
+        function editAttendance(id) {
+            window.location.href = 'edit_attendance.php?id=' + id;
+        }
+
+        // Print attendance function
+        function printAttendance(id) {
+            window.open('print_attendance.php?id=' + id, 'Print', 'height=600,width=800');
+        }
+
+        // Send notification function
+        function sendNotification(id) {
+            alert('Sending notification for Attendance ID: ' + id);
+            // Implement your notification logic here
+        }
+
+        // Delete attendance function
+        function deleteAttendance(id) {
+            if (confirm('Are you sure you want to delete this attendance record? This action cannot be undone.')) {
+                var form = document.createElement('form');
+                form.method = 'POST';
+                form.action = 'process_attendance.php';
+                
+                var input1 = document.createElement('input');
+                input1.type = 'hidden';
+                input1.name = 'action';
+                input1.value = 'delete';
+                
+                var input2 = document.createElement('input');
+                input2.type = 'hidden';
+                input2.name = 'id';
+                input2.value = id;
+                
+                form.appendChild(input1);
+                form.appendChild(input2);
+                document.body.appendChild(form);
