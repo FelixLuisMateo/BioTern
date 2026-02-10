@@ -634,6 +634,7 @@
                                                 <th>Student ID</th>
                                                 <th>Course</th>
                                                 <th>Supervisor</th>
+                                                <th>Coordinator</th>
                                                 <th>Last Logged</th>
                                                 <th>Status</th>
                                                 <th class="text-end">Actions</th>
