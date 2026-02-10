@@ -736,8 +736,10 @@ function getAttendanceStatus($morning_time_in) {
                                                 <th>Student Name</th>
                                                 <th>Attendance Date</th>
                                                 <th>Morning In</th>
+                                                <th>Morning Out</th>
                                                 <th>Break In</th>
                                                 <th>Break Out</th>
+                                                <th>Afternoon In</th>
                                                 <th>Afternoon Out</th>
                                                 <th>Total Hours</th>
                                                 <th>Status</th>
@@ -772,8 +774,10 @@ function getAttendanceStatus($morning_time_in) {
                                                         </td>
                                                         <td><span class="badge bg-soft-primary text-primary"><?php echo date('Y-m-d', strtotime($attendance['attendance_date'])); ?></span></td>
                                                         <td><span class="badge bg-soft-success text-success"><?php echo formatTime($attendance['morning_time_in']); ?></span></td>
+                                                        <td><span class="badge bg-soft-success text-success"><?php echo formatTime($attendance['morning_time_out']); ?></span></td>
                                                         <td><span class="badge bg-soft-info text-info"><?php echo formatTime($attendance['break_time_in']); ?></span></td>
                                                         <td><span class="badge bg-soft-info text-info"><?php echo formatTime($attendance['break_time_out']); ?></span></td>
+                                                        <td><span class="badge bg-soft-warning text-warning"><?php echo formatTime($attendance['afternoon_time_in']); ?></span></td>
                                                         <td><span class="badge bg-soft-warning text-warning"><?php echo formatTime($attendance['afternoon_time_out']); ?></span></td>
                                                         <td>
                                                             <span class="badge bg-soft-secondary text-secondary">
