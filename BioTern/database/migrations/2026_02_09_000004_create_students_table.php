@@ -12,6 +12,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
             $table->foreignId('course_id')->constrained('courses')->onDelete('restrict');
+            $table->foreignId('section_id')->nullable()->constrained('sections')->onDelete('restrict');
             $table->string('student_id')->unique();
             $table->string('first_name');
             $table->string('last_name');
