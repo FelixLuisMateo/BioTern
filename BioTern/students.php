@@ -1,3 +1,84 @@
+<?php
+// Database Connection
+$host = 'localhost';
+$db_user = 'root';
+$db_password = '';
+$db_name = 'biotern_db';
+
+try {
+    $conn = new mysqli($host, $db_user, $db_password, $db_name);
+    if ($conn->connect_error) {
+        die("Connection failed: " . $conn->connect_error);
+    }
+} catch (Exception $e) {
+    die("Database Error: " . $e->getMessage());
+}
+
+// Fetch Students Statistics
+$stats_query = "
+    SELECT 
+        COUNT(*) as total_students,
+        SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) as active_students,
+        SUM(CASE WHEN status = 0 THEN 1 ELSE 0 END) as inactive_students,
+        SUM(CASE WHEN biometric_registered = 1 THEN 1 ELSE 0 END) as biometric_registered
+    FROM students
+";
+$stats_result = $conn->query($stats_query);
+$stats = $stats_result->fetch_assoc();
+
+// Fetch Students with Related Information
+$students_query = "
+    SELECT 
+        s.id,
+        s.student_id,
+        s.first_name,
+        s.last_name,
+        s.email,
+        s.phone,
+        s.status,
+        s.biometric_registered,
+        s.created_at,
+        c.name as course_name,
+        c.id as course_id,
+        i.supervisor_id,
+        i.coordinator_id,
+        u_supervisor.name as supervisor_name,
+        u_coordinator.name as coordinator_name
+    FROM students s
+    LEFT JOIN courses c ON s.course_id = c.id
+    LEFT JOIN internships i ON s.id = i.student_id AND i.status = 'ongoing'
+    LEFT JOIN users u_supervisor ON i.supervisor_id = u_supervisor.id
+    LEFT JOIN users u_coordinator ON i.coordinator_id = u_coordinator.id
+    ORDER BY s.first_name ASC
+    LIMIT 100
+";
+$students_result = $conn->query($students_query);
+$students = [];
+if ($students_result->num_rows > 0) {
+    while ($row = $students_result->fetch_assoc()) {
+        $students[] = $row;
+    }
+}
+
+// Helper function to get status badge
+function getStatusBadge($status) {
+    if ($status == 1) {
+        return '<span class="badge bg-soft-success text-success">Active</span>';
+    } else {
+        return '<span class="badge bg-soft-danger text-danger">Inactive</span>';
+    }
+}
+
+// Helper function to format date
+function formatDate($date) {
+    if ($date) {
+        return date('M d, Y h:i A', strtotime($date));
+    }
+    return '-';
+}
+
+?>
+
 <!DOCTYPE html>
 <html lang="zxx">
 
@@ -8,42 +89,22 @@
     <meta name="description" content="">
     <meta name="keyword" content="">
     <meta name="author" content="ACT 2A Group 5">
-    <!--! The above 6 meta tags *must* come first in the head; any other head content must come *after* these tags !-->
-    <!--! BEGIN: Apps Title-->
     <title>BioTern || Students</title>
-    <!--! END:  Apps Title-->
-    <!--! BEGIN: Favicon-->
     <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
-    <!--! END: Favicon-->
-    <!--! BEGIN: Bootstrap CSS-->
     <link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css">
-    <!--! END: Bootstrap CSS-->
-    <!--! BEGIN: Vendors CSS-->
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/vendors.min.css">
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/dataTables.bs5.min.css">
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2.min.css">
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2-theme.min.css">
-    <!--! END: Vendors CSS-->
-    <!--! BEGIN: Custom CSS-->
     <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css">
-    <!--! END: Custom CSS-->
-    <!--! HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries !-->
-    <!--! WARNING: Respond.js doesn"t work if you view the page via file: !-->
-    <!--[if lt IE 9]>
-			<script src="https:oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
-			<script src="https:oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
-		<![endif]-->
 </head>
 
 <body>
-    <!--! ================================================================ !-->
-    <!--! [Start] Navigation Manu !-->
-    <!--! ================================================================ !-->
+    <!--! Navigation !-->
     <nav class="nxl-navigation">
         <div class="navbar-wrapper">
             <div class="m-header">
                 <a href="index.html" class="b-brand">
-                    <!-- ========   change your logo hear   ============ -->
                     <img src="assets/images/logo-full.png" alt="" class="logo logo-lg">
                     <img src="assets/images/logo-abbr.png" alt="" class="logo logo-sm">
                 </a>
@@ -89,16 +150,14 @@
                             <li class="nxl-item"><a class="nxl-link" href="apps-calendar.html">Calendar</a></li>
                         </ul>
                     </li>
-                    
-                    
                     <li class="nxl-item nxl-hasmenu">
                         <a href="javascript:void(0);" class="nxl-link">
                             <span class="nxl-micon"><i class="feather-users"></i></span>
                             <span class="nxl-mtext">Students</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="students.html">Students</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="students-view.html">Students View</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="students.php">Students</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="students-view.php">Students View</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="students-create.html">Students Create</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="attendance.php">Attendance DTR</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="demo-biometric.php">Demo Biometric</a></li>
@@ -115,7 +174,6 @@
                             <li class="nxl-item"><a class="nxl-link" href="leads-create.html">Leads Create</a></li>
                         </ul>
                     </li>
-                    
                     <li class="nxl-item nxl-hasmenu">
                         <a href="javascript:void(0);" class="nxl-link">
                             <span class="nxl-micon"><i class="feather-layout"></i></span>
@@ -142,11 +200,7 @@
                             <li class="nxl-item"><a class="nxl-link" href="settings-tasks.html">Tasks</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="settings-leads.html">Leads</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="settings-support.html">Support</a></li>
-                            
-                            
-                            <li class="nxl-item"><a class="nxl-link" href="settings-students.html">Students</a></li>
-
-                            
+                            <li class="nxl-item"><a class="nxl-link" href="settings-students.php">Students</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="settings-miscellaneous.html">Miscellaneous</a></li>
                         </ul>
                     </li>
@@ -218,21 +272,14 @@
                         </ul>
                     </li>
                 </ul>
-                
             </div>
         </div>
     </nav>
-    <!--! ================================================================ !-->
-    <!--! [End]  Navigation Manu !-->
-    <!--! ================================================================ !-->
-    <!--! ================================================================ !-->
-    <!--! [Start] Header !-->
-    <!--! ================================================================ !-->
+
+    <!--! Header !-->
     <header class="nxl-header">
         <div class="header-wrapper">
-            <!--! [Start] Header Left !-->
             <div class="header-left d-flex align-items-center gap-4">
-                <!--! [Start] nxl-head-mobile-toggler !-->
                 <a href="javascript:void(0);" class="nxl-head-mobile-toggler" id="mobile-collapse">
                     <div class="hamburger hamburger--arrowturn">
                         <div class="hamburger-box">
@@ -240,8 +287,6 @@
                         </div>
                     </div>
                 </a>
-                <!--! [Start] nxl-head-mobile-toggler !-->
-                <!--! [Start] nxl-navigation-toggle !-->
                 <div class="nxl-navigation-toggle">
                     <a href="javascript:void(0);" id="menu-mini-button">
                         <i class="feather-align-left"></i>
@@ -250,15 +295,11 @@
                         <i class="feather-arrow-right"></i>
                     </a>
                 </div>
-                <!--! [End] nxl-navigation-toggle !-->
-                <!--! [Start] nxl-lavel-mega-menu-toggle !-->
                 <div class="nxl-lavel-mega-menu-toggle d-flex d-lg-none">
                     <a href="javascript:void(0);" id="nxl-lavel-mega-menu-open">
                         <i class="feather-align-left"></i>
                     </a>
                 </div>
-                <!--! [End] nxl-lavel-mega-menu-toggle !-->
-                <!--! [Start] nxl-lavel-mega-menu !-->
                 <div class="nxl-drp-link nxl-lavel-mega-menu">
                     <div class="nxl-lavel-mega-menu-toggle d-flex d-lg-none">
                         <a href="javascript:void(0)" id="nxl-lavel-mega-menu-hide">
@@ -267,10 +308,7 @@
                         </a>
                     </div>
                 </div>
-                <!--! [End] nxl-lavel-mega-menu !-->
             </div>
-            <!--! [End] Header Left !-->
-            <!--! [Start] Header Right !-->
             <div class="header-right ms-auto">
                 <div class="d-flex align-items-center">
                     <div class="dropdown nxl-h-item nxl-header-search">
@@ -287,8 +325,6 @@
                                     <button type="button" class="btn-close"></button>
                                 </span>
                             </div>
-                            <div class="dropdown-divider mt-0"></div>
-                            <!--! search coding for database !-->
                         </div>
                     </div>
                     <div class="nxl-h-item d-none d-sm-flex">
@@ -315,28 +351,6 @@
                         <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-notifications-menu">
                             <div class="d-flex justify-content-between align-items-center notifications-head">
                                 <h6 class="fw-bold text-dark mb-0">Notifications</h6>
-                                <a href="javascript:void(0);" class="fs-11 text-success text-end ms-auto" data-bs-toggle="tooltip" title="Make as Read">
-                                    <i class="feather-check"></i>
-                                    <span>Make as Read</span>
-                                </a>
-                            </div>
-                            <div class="notifications-item">
-                                <img src="assets/images/avatar/2.png" alt="" class="rounded me-3 border">
-                                <div class="notifications-desc">
-                                    <a href="javascript:void(0);" class="font-body text-truncate-2-line"> <span class="fw-semibold text-dark">Malanie Hanvey</span> We should talk about that at lunch!</a>
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <div class="notifications-date text-muted border-bottom border-bottom-dashed">2 minutes ago</div>
-                                        <div class="d-flex align-items-center float-end gap-2">
-                                            <a href="javascript:void(0);" class="d-block wd-8 ht-8 rounded-circle bg-gray-300" data-bs-toggle="tooltip" title="Make as Read"></a>
-                                            <a href="javascript:void(0);" class="text-danger" data-bs-toggle="tooltip" title="Remove">
-                                                <i class="feather-x fs-12"></i>
-                                            </a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="text-center notifications-footer">
-                                <a href="javascript:void(0);" class="fs-13 fw-semibold text-dark">All Notifications</a>
                             </div>
                         </div>
                     </div>
@@ -349,47 +363,12 @@
                                 <div class="d-flex align-items-center">
                                     <img src="assets/images/avatar/1.png" alt="user-image" class="img-fluid user-avtar">
                                     <div>
-                                        <h6 class="text-dark mb-0">Felix Luis Mateo <span class="badge bg-soft-success text-success ms-1">PRO</span></h6>
+                                        <h6 class="text-dark mb-0">Felix Luis Mateo</h6>
                                         <span class="fs-12 fw-medium text-muted">felixluismateo@example.com</span>
                                     </div>
                                 </div>
                             </div>
-                            <div class="dropdown">
-                                <a href="javascript:void(0);" class="dropdown-item" data-bs-toggle="dropdown">
-                                    <span class="hstack">
-                                        <i class="wd-10 ht-10 border border-2 border-gray-1 bg-success rounded-circle me-2"></i>
-                                        <span>Active</span>
-                                    </span>
-                                    <i class="feather-chevron-right ms-auto me-0"></i>
-                                </a>
-                                <div class="dropdown-menu">
-                                    <a href="javascript:void(0);" class="dropdown-item">
-                                        <span class="hstack">
-                                            <i class="wd-10 ht-10 border border-2 border-gray-1 bg-warning rounded-circle me-2"></i>
-                                            <span>Always</span>
-                                        </span>
-                                    </a>
-                                    <a href="javascript:void(0);" class="dropdown-item">
-                                        <span class="hstack">
-                                            <i class="wd-10 ht-10 border border-2 border-gray-1 bg-success rounded-circle me-2"></i>
-                                            <span>Active</span>
-                                        </span>
-                                    </a>
-                                </div>
-                            </div>
                             <div class="dropdown-divider"></div>
-                            <a href="javascript:void(0);" class="dropdown-item">
-                                <i class="feather-user"></i>
-                                <span>Profile Details</span>
-                            </a>
-                            <a href="javascript:void(0);" class="dropdown-item">
-                                <i class="feather-activity"></i>
-                                <span>Activity Feed</span>
-                            </a>
-                            <a href="javascript:void(0);" class="dropdown-item">
-                                <i class="feather-bell"></i>
-                                <span>Notifications</span>
-                            </a>
                             <a href="javascript:void(0);" class="dropdown-item">
                                 <i class="feather-settings"></i>
                                 <span>Account Settings</span>
@@ -403,18 +382,13 @@
                     </div>
                 </div>
             </div>
-            <!--! [End] Header Right !-->
         </div>
     </header>
-    <!--! ================================================================ !-->
-    <!--! [End] Header !-->
-    <!--! ================================================================ !-->
-    <!--! ================================================================ !-->
-    <!--! [Start] Main Content !-->
-    <!--! ================================================================ !-->
+
+    <!--! Main Content !-->
     <main class="nxl-container">
         <div class="nxl-content">
-            <!-- [ page-header ] start -->
+            <!-- Page Header -->
             <div class="page-header">
                 <div class="page-header-left d-flex align-items-center">
                     <div class="page-header-title">
@@ -445,22 +419,6 @@
                                     <a href="javascript:void(0);" class="dropdown-item">
                                         <i class="feather-eye me-3"></i>
                                         <span>All</span>
-                                    </a>
-                                    <a href="javascript:void(0);" class="dropdown-item">
-                                        <i class="feather-users me-3"></i>
-                                        <span>ACT</span>
-                                    </a>
-                                    <a href="javascript:void(0);" class="dropdown-item">
-                                        <i class="feather-flag me-3"></i>
-                                        <span>CT</span>
-                                    </a>
-                                    <a href="javascript:void(0);" class="dropdown-item">
-                                        <i class="feather-dollar-sign me-3"></i>
-                                        <span>BSOA</span>
-                                    </a>
-                                    <a href="javascript:void(0);" class="dropdown-item">
-                                        <i class="feather-briefcase me-3"></i>
-                                        <span>HM</span>
                                     </a>
                                     <a href="javascript:void(0);" class="dropdown-item">
                                         <i class="feather-user-check me-3"></i>
@@ -518,7 +476,7 @@
                 </div>
             </div>
 
-            <!--! total of students statistics database !-->
+            <!--! Statistics !-->
             <div id="collapseOne" class="accordion-collapse collapse page-header-collapse">
                 <div class="accordion-body pb-2">
                     <div class="row">
@@ -532,12 +490,8 @@
                                             </div>
                                             <a href="javascript:void(0);" class="fw-bold d-block">
                                                 <span class="text-truncate-1-line">Total Students</span>
-                                                <span class="fs-24 fw-bolder d-block">26,595</span>
+                                                <span class="fs-24 fw-bolder d-block"><?php echo $stats['total_students'] ? $stats['total_students'] : '0'; ?></span>
                                             </a>
-                                        </div>
-                                        <div class="badge bg-soft-success text-success">
-                                            <i class="feather-arrow-up fs-10 me-1"></i>
-                                            <span>36.85%</span>
                                         </div>
                                     </div>
                                 </div>
@@ -553,33 +507,8 @@
                                             </div>
                                             <a href="javascript:void(0);" class="fw-bold d-block">
                                                 <span class="text-truncate-1-line">Active Students</span>
-                                                <span class="fs-24 fw-bolder d-block">2,245</span>
+                                                <span class="fs-24 fw-bolder d-block"><?php echo $stats['active_students'] ? $stats['active_students'] : '0'; ?></span>
                                             </a>
-                                        </div>
-                                        <div class="badge bg-soft-danger text-danger">
-                                            <i class="feather-arrow-down fs-10 me-1"></i>
-                                            <span>24.56%</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-xxl-3 col-md-6">
-                            <div class="card stretch stretch-full">
-                                <div class="card-body">
-                                    <div class="d-flex align-items-center justify-content-between">
-                                        <div class="d-flex align-items-center gap-3">
-                                            <div class="avatar-text avatar-xl rounded">
-                                                <i class="feather-user-plus"></i>
-                                            </div>
-                                            <a href="javascript:void(0);" class="fw-bold d-block">
-                                                <span class="text-truncate-1-line">New Students</span>
-                                                <span class="fs-24 fw-bolder d-block">1,254</span>
-                                            </a>
-                                        </div>
-                                        <div class="badge bg-soft-success text-success">
-                                            <i class="feather-arrow-up fs-10 me-1"></i>
-                                            <span>33.29%</span>
                                         </div>
                                     </div>
                                 </div>
@@ -595,12 +524,25 @@
                                             </div>
                                             <a href="javascript:void(0);" class="fw-bold d-block">
                                                 <span class="text-truncate-1-line">Inactive Students</span>
-                                                <span class="fs-24 fw-bolder d-block">4,586</span>
+                                                <span class="fs-24 fw-bolder d-block"><?php echo $stats['inactive_students'] ? $stats['inactive_students'] : '0'; ?></span>
                                             </a>
                                         </div>
-                                        <div class="badge bg-soft-danger text-danger">
-                                            <i class="feather-arrow-down fs-10 me-1"></i>
-                                            <span>42.47%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-xxl-3 col-md-6">
+                            <div class="card stretch stretch-full">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <div class="d-flex align-items-center gap-3">
+                                            <div class="avatar-text avatar-xl rounded">
+                                                <i class="feather-check-circle"></i>
+                                            </div>
+                                            <a href="javascript:void(0);" class="fw-bold d-block">
+                                                <span class="text-truncate-1-line">Biometric Registered</span>
+                                                <span class="fs-24 fw-bolder d-block"><?php echo $stats['biometric_registered'] ? $stats['biometric_registered'] : '0'; ?></span>
+                                            </a>
                                         </div>
                                     </div>
                                 </div>
@@ -609,10 +551,8 @@
                     </div>
                 </div>
             </div>
-            <!--! end of total of students statistics database !-->
 
-            <!-- [ page-header ] end -->
-            <!-- [ Main Content ] start -->
+            <!-- Main Content -->
             <div class="main-content">
                 <div class="row">
                     <div class="col-lg-12">
@@ -625,8 +565,8 @@
                                                 <th class="wd-30">
                                                     <div class="btn-group mb-1">
                                                         <div class="custom-control custom-checkbox ms-1">
-                                                            <input type="checkbox" class="custom-control-input" id="checkAllCustomer">
-                                                            <label class="custom-control-label" for="checkAllCustomer"></label>
+                                                            <input type="checkbox" class="custom-control-input" id="checkAllStudent">
+                                                            <label class="custom-control-label" for="checkAllStudent"></label>
                                                         </div>
                                                     </div>
                                                 </th>
@@ -641,89 +581,94 @@
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <tr class="single-item">
-                                                <td>
-                                                    <div class="item-checkbox ms-1">
-                                                        <div class="custom-control custom-checkbox">
-                                                            <input type="checkbox" class="custom-control-input checkbox" id="checkBox_1">
-                                                            <label class="custom-control-label" for="checkBox_1"></label>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <a href="students-view.html" class="hstack gap-3">
-                                                        <div class="avatar-image avatar-md">
-                                                            <img src="assets/images/avatar/1.png" alt="" class="img-fluid">
-                                                        </div>
-                                                        <div>
-                                                            <span class="text-truncate-1-line">Felix Luis Mateo</span>
-                                                        </div>
-                                                    </a>
-                                                </td>
-                                                <td><a>05-1234</a></td>
-                                                <td><a>ACT</a></td>
-                                                <td><a href="tel:">+1 (375) 9632 548</a></td>
-                                                <td>2026-02-08, 10:05PM</td>
-                                                <td>
-                                                    <select class="form-control" data-select2-selector="status">
-                                                        <option value="success" data-bg="bg-success" selected>Active</option>
-                                                        <option value="warning" data-bg="bg-warning">Inactive</option>
-                                                        <option value="danger" data-bg="bg-danger">Declined</option>
-                                                    </select>
-                                                </td>
-                                                <td>
-                                                    <div class="hstack gap-2 justify-content-end">
-                                                        <a href="students-view.html" class="avatar-text avatar-md">
-                                                            <i class="feather feather-eye"></i>
-                                                        </a>
-                                                        <div class="dropdown">
-                                                            <a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="dropdown" data-bs-offset="0,21">
-                                                                <i class="feather feather-more-horizontal"></i>
+                                            <?php if (count($students) > 0): ?>
+                                                <?php foreach ($students as $index => $student): ?>
+                                                    <tr class="single-item">
+                                                        <td>
+                                                            <div class="item-checkbox ms-1">
+                                                                <div class="custom-control custom-checkbox">
+                                                                    <input type="checkbox" class="custom-control-input checkbox" id="checkBox_<?php echo $student['id']; ?>">
+                                                                    <label class="custom-control-label" for="checkBox_<?php echo $student['id']; ?>"></label>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <a href="students-view.php?id=<?php echo $student['id']; ?>" class="hstack gap-3">
+                                                                <div class="avatar-image avatar-md">
+                                                                    <img src="assets/images/avatar/<?php echo ($index % 5) + 1; ?>.png" alt="" class="img-fluid">
+                                                                </div>
+                                                                <div>
+                                                                    <span class="text-truncate-1-line"><?php echo htmlspecialchars($student['first_name'] . ' ' . $student['last_name']); ?></span>
+                                                                </div>
                                                             </a>
-                                                            <ul class="dropdown-menu">
-                                                                <li>
-                                                                    <a class="dropdown-item" href="javascript:void(0)">
-                                                                        <i class="feather feather-edit-3 me-3"></i>
-                                                                        <span>Edit</span>
+                                                        </td>
+                                                        <td><a href="students-view.php?id=<?php echo $student['id']; ?>"><?php echo htmlspecialchars($student['student_id']); ?></a></td>
+                                                        <td><a href="javascript:void(0);"><?php echo htmlspecialchars($student['course_name'] ?? 'N/A'); ?></a></td>
+                                                        <td><a href="javascript:void(0);"><?php echo htmlspecialchars($student['supervisor_name'] ?? '-'); ?></a></td>
+                                                        <td><a href="javascript:void(0);"><?php echo htmlspecialchars($student['coordinator_name'] ?? '-'); ?></a></td>
+                                                        <td><?php echo formatDate($student['created_at']); ?></td>
+                                                        <td><?php echo getStatusBadge($student['status']); ?></td>
+                                                        <td>
+                                                            <div class="hstack gap-2 justify-content-end">
+                                                                <a href="students-view.php?id=<?php echo $student['id']; ?>" class="avatar-text avatar-md" title="View">
+                                                                    <i class="feather feather-eye"></i>
+                                                                </a>
+                                                                <div class="dropdown">
+                                                                    <a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="dropdown" data-bs-offset="0,21">
+                                                                        <i class="feather feather-more-horizontal"></i>
                                                                     </a>
-                                                                </li>
-                                                                <li>
-                                                                    <a class="dropdown-item printBTN" href="javascript:void(0)">
-                                                                        <i class="feather feather-printer me-3"></i>
-                                                                        <span>Print</span>
-                                                                    </a>
-                                                                </li>
-                                                                <li>
-                                                                    <a class="dropdown-item" href="javascript:void(0)">
-                                                                        <i class="feather feather-clock me-3"></i>
-                                                                        <span>Remind</span>
-                                                                    </a>
-                                                                </li>
-                                                                <li class="dropdown-divider"></li>
-                                                                <li>
-                                                                    <a class="dropdown-item" href="javascript:void(0)">
-                                                                        <i class="feather feather-archive me-3"></i>
-                                                                        <span>Archive</span>
-                                                                    </a>
-                                                                </li>
-                                                                <li>
-                                                                    <a class="dropdown-item" href="javascript:void(0)">
-                                                                        <i class="feather feather-alert-octagon me-3"></i>
-                                                                        <span>Report Spam</span>
-                                                                    </a>
-                                                                </li>
-                                                                <li class="dropdown-divider"></li>
-                                                                <li>
-                                                                    <a class="dropdown-item" href="javascript:void(0)">
-                                                                        <i class="feather feather-trash-2 me-3"></i>
-                                                                        <span>Delete</span>
-                                                                    </a>
-                                                                </li>
-                                                            </ul>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                            </tr>
+                                                                    <ul class="dropdown-menu">
+                                                                        <li>
+                                                                            <a class="dropdown-item" href="javascript:void(0)">
+                                                                                <i class="feather feather-edit-3 me-3"></i>
+                                                                                <span>Edit</span>
+                                                                            </a>
+                                                                        </li>
+                                                                        <li>
+                                                                            <a class="dropdown-item printBTN" href="javascript:void(0)">
+                                                                                <i class="feather feather-printer me-3"></i>
+                                                                                <span>Print</span>
+                                                                            </a>
+                                                                        </li>
+                                                                        <li>
+                                                                            <a class="dropdown-item" href="javascript:void(0)">
+                                                                                <i class="feather feather-clock me-3"></i>
+                                                                                <span>Remind</span>
+                                                                            </a>
+                                                                        </li>
+                                                                        <li class="dropdown-divider"></li>
+                                                                        <li>
+                                                                            <a class="dropdown-item" href="javascript:void(0)">
+                                                                                <i class="feather feather-archive me-3"></i>
+                                                                                <span>Archive</span>
+                                                                            </a>
+                                                                        </li>
+                                                                        <li>
+                                                                            <a class="dropdown-item" href="javascript:void(0)">
+                                                                                <i class="feather feather-alert-octagon me-3"></i>
+                                                                                <span>Report Spam</span>
+                                                                            </a>
+                                                                        </li>
+                                                                        <li class="dropdown-divider"></li>
+                                                                        <li>
+                                                                            <a class="dropdown-item" href="javascript:void(0)">
+                                                                                <i class="feather feather-trash-2 me-3"></i>
+                                                                                <span>Delete</span>
+                                                                            </a>
+                                                                        </li>
+                                                                    </ul>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                <?php endforeach; ?>
+                                            <?php else: ?>
+                                                <tr>
+                                                    <td colspan="9" class="text-center py-5">
+                                                        <p class="text-muted">No students found in database</p>
+                                                    </td>
+                                                </tr>
+                                            <?php endif; ?>
                                         </tbody>
                                     </table>
                                 </div>
@@ -732,9 +677,9 @@
                     </div>
                 </div>
             </div>
-            <!-- [ Main Content ] end -->
         </div>
-        <!-- [ Footer ] start -->
+
+        <!-- Footer -->
         <footer class="footer">
             <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
                 <span>Copyright ©</span>
@@ -742,60 +687,24 @@
                     document.write(new Date().getFullYear());
                 </script>
             </p>
-            <p><span>By: <a target="_blank" href="" target="_blank">ACT 2A</a></span> • <span>Distributed by: <a target="_blank" href="" target="_blank">Group 5</a></span></p>
+            <p><span>By: <a target="_blank" href="">ACT 2A</a></span> • <span>Distributed by: <a target="_blank" href="">Group 5</a></span></p>
             <div class="d-flex align-items-center gap-4">
                 <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Help</a>
                 <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Terms</a>
                 <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Privacy</a>
             </div>
         </footer>
-        <!-- [ Footer ] end -->
     </main>
-    <!--! ================================================================ !-->
-    <!--! [End] Main Content !-->
 
-    <!--! ================================================================ !-->
- 
-    <!--! ================================================================ !-->
-    <!--! BEGIN: Downloading Toast !-->
-    <!--! ================================================================ !-->
-    <div class="position-fixed" style="right: 5px; bottom: 5px; z-index: 999999">
-        <div id="toast" class="toast bg-black hide" data-bs-delay="3000" role="alert" aria-live="assertive" aria-atomic="true">
-            <div class="toast-header px-3 bg-transparent d-flex align-items-center justify-content-between border-bottom border-light border-opacity-10">
-                <div class="text-white mb-0 mr-auto">Downloading...</div>
-                <a href="javascript:void(0)" class="ms-2 mb-1 close fw-normal" data-bs-dismiss="toast" aria-label="Close">
-                    <span class="text-white">&times;</span>
-                </a>
-            </div>
-            <div class="toast-body p-3 text-white">
-                <h6 class="fs-13 text-white">Project.zip</h6>
-                <span class="text-light fs-11">4.2mb of 5.5mb</span>
-            </div>
-            <div class="toast-footer p-3 pt-0 border-top border-light border-opacity-10">
-                <div class="progress mt-3" style="height: 5px">
-                    <div class="progress-bar progress-bar-striped progress-bar-animated w-75 bg-dark" role="progressbar" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <!--! ================================================================ !-->
-    <!--! Footer Script !-->
-    <!--! ================================================================ !-->
-    <!--! BEGIN: Vendors JS !-->
+    <!-- Scripts -->
     <script src="assets/vendors/js/vendors.min.js"></script>
-    <!-- vendors.min.js {always must need to be top} -->
     <script src="assets/vendors/js/dataTables.min.js"></script>
     <script src="assets/vendors/js/dataTables.bs5.min.js"></script>
     <script src="assets/vendors/js/select2.min.js"></script>
     <script src="assets/vendors/js/select2-active.min.js"></script>
-    <!--! END: Vendors JS !-->
-    <!--! BEGIN: Apps Init  !-->
     <script src="assets/js/common-init.min.js"></script>
     <script src="assets/js/customers-init.min.js"></script>
-    <!--! END: Apps Init !-->
-    <!--! BEGIN: Theme Customizer  !-->
     <script src="assets/js/theme-customizer-init.min.js"></script>
-    <!--! END: Theme Customizer !-->
 </body>
 
 </html>

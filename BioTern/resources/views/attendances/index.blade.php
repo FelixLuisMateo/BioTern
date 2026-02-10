@@ -72,7 +72,7 @@
                         </a>
                         <ul class="nxl-submenu">
                             <li class="nxl-item"><a class="nxl-link" href="{{ route('students.index') }}">Students</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="students-view.html">Students View</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="students-view.php">Students View</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="students-create.html">Students Create</a></li>
                         </ul>
                     </li>

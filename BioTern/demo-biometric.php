@@ -457,8 +457,8 @@ if ($attendance_today->num_rows > 0) {
                             <span class="nxl-mtext">Students</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="students.html">Students</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="students-view.html">Students View</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="students.php">Students</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="students-view.php">Students View</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="students-create.html">Students Create</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="demo-biometric.php">Demo Biometric</a></li>
                         </ul>
@@ -503,7 +503,7 @@ if ($attendance_today->num_rows > 0) {
                             <li class="nxl-item"><a class="nxl-link" href="settings-support.html">Support</a></li>
                             
                             
-                            <li class="nxl-item"><a class="nxl-link" href="settings-students.html">Students</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="settings-students.php">Students</a></li>
 
                             
                             <li class="nxl-item"><a class="nxl-link" href="settings-miscellaneous.html">Miscellaneous</a></li>

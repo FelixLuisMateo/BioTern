@@ -216,8 +216,8 @@ function getAttendanceStatus($morning_time_in) {
                             <span class="nxl-mtext">Students</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="students.html">Students</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="students-view.html">Students View</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="students.php">Students</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="students-view.php">Students View</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="students-create.html">Students Create</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="attendance.php">Attendance DTR</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="demo-biometric.php">Demo Biometric</a></li>
@@ -262,7 +262,7 @@ function getAttendanceStatus($morning_time_in) {
                             <li class="nxl-item"><a class="nxl-link" href="settings-support.html">Support</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="settings-finance.html">Finance</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="settings-gateways.html">Gateways</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-students.html">Students</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="settings-students.php">Students</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="settings-localization.html">Localization</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="settings-recaptcha.html">reCAPTCHA</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="settings-miscellaneous.html">Miscellaneous</a></li>
@@ -539,7 +539,7 @@ function getAttendanceStatus($morning_time_in) {
                     </div>
                     <ul class="breadcrumb">
                         <li class="breadcrumb-item"><a href="index.html">Home</a></li>
-                        <li class="breadcrumb-item"><a href="students.html">Students</a></li>
+                        <li class="breadcrumb-item"><a href="students.php">Students</a></li>
                         <li class="breadcrumb-item">Attendance DTR</li>
                     </ul>
                 </div>
@@ -760,7 +760,7 @@ function getAttendanceStatus($morning_time_in) {
                                                             </div>
                                                         </td>
                                                         <td>
-                                                            <a href="students-view.html?id=<?php echo $attendance['student_id']; ?>" class="hstack gap-3">
+                                                            <a href="students-view.php?id=<?php echo $attendance['student_id']; ?>" class="hstack gap-3">
                                                                 <div class="avatar-image avatar-md">
                                                                     <div class="avatar-text avatar-md bg-light-primary rounded">
                                                                         <?php echo strtoupper(substr($attendance['first_name'] ?? 'N', 0, 1) . substr($attendance['last_name'] ?? 'A', 0, 1)); ?>

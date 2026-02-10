@@ -16,7 +16,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
-        'is_active',
+        'status',
     ];
 
     protected $hidden = [
@@ -68,7 +68,7 @@ class User extends Authenticatable
 
     public function scopeActive($query)
     {
-        return $query->where('is_active', true);
+        return $query->where('status', true);
     }
 
     // Helpers

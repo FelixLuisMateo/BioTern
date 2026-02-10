@@ -25,13 +25,13 @@ class Student extends Model
         'emergency_contact',
         'biometric_registered',
         'biometric_registered_at',
-        'is_active',
+        'status',
     ];
 
     protected $casts = [
         'biometric_registered' => 'boolean',
         'biometric_registered_at' => 'datetime',
-        'is_active' => 'boolean',
+        'status' => 'boolean',
     ];
 
     // Relationships
@@ -89,7 +89,7 @@ class Student extends Model
     // Scopes
     public function scopeActive($query)
     {
-        return $query->where('is_active', true);
+        return $query->where('status', true);
     }
 
     public function scopeByCourse($query, $courseId)

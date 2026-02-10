@@ -25,7 +25,7 @@ return new class extends Migration
             $table->string('emergency_contact')->nullable();
             $table->boolean('biometric_registered')->default(false);
             $table->timestamp('biometric_registered_at')->nullable();
-            $table->boolean('is_active')->default(true);
+            $table->boolean('status')->default(true);
             $table->timestamps();
             $table->softDeletes();
         });

@@ -16,7 +16,7 @@ return new class extends Migration
             $table->integer('internal_ojt_hours')->default(300);
             $table->integer('external_ojt_hours')->default(300);
             $table->integer('total_ojt_hours')->default(600);
-            $table->boolean('is_active')->default(true);
+            $table->boolean('status')->default(true);
             $table->timestamps();
             $table->softDeletes();
         });
