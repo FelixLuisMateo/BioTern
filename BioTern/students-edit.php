@@ -141,7 +141,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     gender = ?,
                     address = ?,
                     emergency_contact = ?,
-                    course_id = ?,
+                    course_id = NULLIF(?, 0),
                     status = ?,
                     supervisor_name = ?,
                     coordinator_name = ?,
@@ -226,13 +226,16 @@ function formatDateTime($date) {
     <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css">
     
     <style>
-        /* Fix Select2 dropdown positioning */
+        /* Select2 styling adjustments - avoid overriding position computed by plugin */
         .select2-container--default .select2-selection--single {
             height: 40px;
             padding: 6px 12px;
             border-radius: 4px;
             display: flex;
             align-items: center;
+            border: 1px solid #d3d3d3;
+            background-color: #fff;
+            color: #333;
         }
 
         .select2-container--default.select2-container--open .select2-selection--single {
@@ -246,31 +249,22 @@ function formatDateTime($date) {
             display: flex;
         }
 
-        .select2-dropdown {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            width: 100%;
-            z-index: 9999;
-            border-top: none;
-            border-radius: 0 0 4px 4px;
-        }
-
+        /* Let Select2 calculate dropdown position. Only ensure visuals and stacking. */
         .select2-container--default .select2-dropdown {
             border: 1px solid #dddddd;
-            margin-top: -1px;
+            border-radius: 0 0 4px 4px;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.08);
+            max-height: 300px;
+            overflow-y: auto;
         }
 
         .select2-container {
-            width: 100%;
+            width: 100% !important;
         }
 
-        .select2-container--open .select2-dropdown {
-            display: block;
-        }
-
-        .select2-dropdown--below {
-            border-top: none;
+        /* Ensure dropdown appears above other content */
+        .select2-container--open {
+            z-index: 99999 !important;
         }
 
         .form-control.select2-hidden-accessible {
@@ -285,31 +279,59 @@ function formatDateTime($date) {
             border-width: 0;
         }
 
-        /* Ensure dropdown appears above other content */
-        .select2-container--open {
-            z-index: 9999;
-        }
-
-        .select2-results {
-            max-height: 300px;
-            overflow-y: auto;
-        }
-
-        /* Fix class for form control Select2 styling */
-        .form-control-select2 {
-            width: 100%;
-        }
-
+        /* Small tweak for arrow height and layout */
         .select2-container--default .select2-selection--single {
-            border: 1px solid #d3d3d3;
-            background-color: #fff;
-            color: #333;
+            position: relative;
         }
 
         .select2-container--default .select2-selection--single .select2-selection__arrow {
             height: 28px;
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
         }
-    </style></head>
+
+        /* Clear (×) button styling */
+        .select2-selection__clear {
+            position: absolute;
+            right: 36px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 22px;
+            height: 22px;
+            border-radius: 3px;
+            border: 1px solid #e0e0e0;
+            background: #fff;
+            color: #333;
+            box-shadow: none;
+            font-size: 12px;
+        }
+
+        /* Truncate selected text so it doesn't overflow under icons */
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            display: inline-block;
+            vertical-align: middle;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: calc(100% - 80px);
+        }
+
+        /* Make dropdown match the width of the select box and sit above content */
+        .select2-container--open {
+            z-index: 99999 !important;
+        }
+
+        .select2-container--default .select2-dropdown {
+            min-width: 100% !important;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
 
 <body>
     <!--! Navigation !-->
@@ -871,12 +893,17 @@ function formatDateTime($date) {
         // Initialize form elements
         document.addEventListener('DOMContentLoaded', function() {
             // Initialize select2 for dropdowns
-            $('#course_id, #status, #gender, #supervisor_id, #coordinator_id').select2({
-                allowClear: true,
-                width: '100%',
-                dropdownParent: $('body'),
-                dropdownAutoWidth: false,
-                containerCssClass: 'form-control-select2'
+            $('#course_id, #status, #gender, #supervisor_id, #coordinator_id').each(function() {
+                $(this).select2({
+                    allowClear: true,
+                    // let Select2 resolve width from the element's style so dropdown aligns to the control
+                    width: 'resolve',
+                    // attach dropdown to the form so it positions within the form area and not full page
+                    dropdownParent: $('#editStudentForm'),
+                    dropdownAutoWidth: false,
+                    // use default theme; classic theme can look bulky in this UI
+                    theme: 'default'
+                });
             });
 
             // Initialize datepicker for date fields

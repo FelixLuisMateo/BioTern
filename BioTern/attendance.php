@@ -25,8 +25,74 @@ $stats_query = "
 ";
 $stats_result = $conn->query($stats_query);
 $stats = $stats_result->fetch_assoc();
+// Prepare filter inputs (defaults: today's date)
+$filter_date = isset($_GET['date']) && $_GET['date'] !== '' ? $_GET['date'] : '';
+$start_date = isset($_GET['start_date']) && $_GET['start_date'] !== '' ? $_GET['start_date'] : '';
+$end_date = isset($_GET['end_date']) && $_GET['end_date'] !== '' ? $_GET['end_date'] : '';
+$filter_course = isset($_GET['course_id']) ? intval($_GET['course_id']) : 0;
+$filter_department = isset($_GET['department_id']) ? intval($_GET['department_id']) : 0;
+$filter_supervisor = isset($_GET['supervisor']) ? trim($_GET['supervisor']) : '';
+$filter_coordinator = isset($_GET['coordinator']) ? trim($_GET['coordinator']) : '';
+$filter_status = isset($_GET['status']) ? trim($_GET['status']) : '';
 
-// Fetch Attendance Records with Student Info
+// default to today when no date filters provided
+if (empty($filter_date) && empty($start_date) && empty($end_date) && empty($filter_status)) {
+    $filter_date = date('Y-m-d');
+}
+
+// Fetch dropdown lists
+$courses = [];
+$courses_res = $conn->query("SELECT id, name FROM courses WHERE is_active = 1 ORDER BY name ASC");
+if ($courses_res && $courses_res->num_rows) {
+    while ($r = $courses_res->fetch_assoc()) $courses[] = $r;
+}
+
+$departments = [];
+$dept_res = $conn->query("SELECT id, name FROM departments ORDER BY name ASC");
+if ($dept_res && $dept_res->num_rows) {
+    while ($r = $dept_res->fetch_assoc()) $departments[] = $r;
+}
+
+$supervisors = [];
+$sup_res = $conn->query("SELECT DISTINCT supervisor_name FROM students WHERE supervisor_name IS NOT NULL AND supervisor_name <> '' ORDER BY supervisor_name ASC");
+if ($sup_res && $sup_res->num_rows) {
+    while ($r = $sup_res->fetch_assoc()) $supervisors[] = $r['supervisor_name'];
+}
+
+$coordinators = [];
+$coor_res = $conn->query("SELECT DISTINCT coordinator_name FROM students WHERE coordinator_name IS NOT NULL AND coordinator_name <> '' ORDER BY coordinator_name ASC");
+if ($coor_res && $coor_res->num_rows) {
+    while ($r = $coor_res->fetch_assoc()) $coordinators[] = $r['coordinator_name'];
+}
+
+// Build attendance query filtered by provided inputs. Default shows today's records.
+// Build WHERE clauses depending on provided filters
+$where = [];
+if (!empty($start_date) && !empty($end_date)) {
+    $where[] = "a.attendance_date BETWEEN '" . $conn->real_escape_string($start_date) . "' AND '" . $conn->real_escape_string($end_date) . "'";
+} elseif (!empty($filter_date)) {
+    $where[] = "a.attendance_date = '" . $conn->real_escape_string($filter_date) . "'";
+}
+if (!empty($filter_status)) {
+    $allowed = ['approved','pending','rejected'];
+    if (in_array($filter_status, $allowed)) {
+        $where[] = "a.status = '" . $conn->real_escape_string($filter_status) . "'";
+    }
+}
+if ($filter_course > 0) {
+    $where[] = "s.course_id = " . intval($filter_course);
+}
+if ($filter_department > 0) {
+    // join internships table to filter by department assignment
+    $where[] = "i.department_id = " . intval($filter_department);
+}
+if (!empty($filter_supervisor)) {
+    $where[] = "(s.supervisor_name LIKE '%" . $conn->real_escape_string($filter_supervisor) . "%' OR i.supervisor_id IN (SELECT id FROM users WHERE name LIKE '%" . $conn->real_escape_string($filter_supervisor) . "%'))";
+}
+if (!empty($filter_coordinator)) {
+    $where[] = "(s.coordinator_name LIKE '%" . $conn->real_escape_string($filter_coordinator) . "%' OR i.coordinator_id IN (SELECT id FROM users WHERE name LIKE '%" . $conn->real_escape_string($filter_coordinator) . "%'))";
+}
+
 $attendance_query = "
     SELECT 
         a.id,
@@ -46,21 +112,65 @@ $attendance_query = "
         s.first_name,
         s.last_name,
         s.email,
+        s.supervisor_name,
+        s.coordinator_name,
         c.name as course_name,
+        d.name as department_name,
         u.name as approver_name
     FROM attendances a
     LEFT JOIN students s ON a.student_id = s.id
     LEFT JOIN courses c ON s.course_id = c.id
+    LEFT JOIN internships i ON s.id = i.student_id AND i.status = 'ongoing'
+    LEFT JOIN departments d ON i.department_id = d.id
     LEFT JOIN users u ON a.approved_by = u.id
-    ORDER BY a.attendance_date DESC
+    WHERE " . implode(' AND ', $where) . "
+    ORDER BY a.attendance_date DESC, s.last_name ASC
     LIMIT 100
 ";
+
 $attendance_result = $conn->query($attendance_query);
 $attendances = [];
-if ($attendance_result->num_rows > 0) {
+if ($attendance_result && $attendance_result->num_rows > 0) {
     while ($row = $attendance_result->fetch_assoc()) {
         $attendances[] = $row;
     }
+}
+
+// If requested via AJAX, return only the table rows HTML so frontend can replace tbody
+if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
+    if (!empty($attendances)) {
+        foreach ($attendances as $attendance) {
+            echo '<tr class="single-item">';
+            echo '<td><div class="item-checkbox ms-1"><div class="custom-control custom-checkbox"><input type="checkbox" class="custom-control-input checkbox" id="checkBox_' . $attendance['id'] . '"><label class="custom-control-label" for="checkBox_' . $attendance['id'] . '"></label></div></div></td>';
+            echo '<td><a href="students-view.php?id=' . $attendance['student_id'] . '" class="hstack gap-3"><div class="avatar-image avatar-md"><div class="avatar-text avatar-md bg-light-primary rounded">' . strtoupper(substr($attendance['first_name'] ?? 'N', 0, 1) . substr($attendance['last_name'] ?? 'A', 0, 1)) . '</div></div><div><div class="fw-bold">' . htmlspecialchars(($attendance['first_name'] ?? '') . ' ' . ($attendance['last_name'] ?? '')) . '</div><small class="text-muted">' . htmlspecialchars($attendance['student_number'] ?? '') . '</small></div></a></td>';
+            echo '<td><span class="badge bg-soft-primary text-primary">' . date('Y-m-d', strtotime($attendance['attendance_date'])) . '</span></td>';
+            echo '<td><span class="badge bg-soft-success text-success">' . ( $attendance['morning_time_in'] ? date('h:i A', strtotime($attendance['morning_time_in'])) : '-' ) . '</span></td>';
+            echo '<td><span class="badge bg-soft-success text-success">' . ( $attendance['morning_time_out'] ? date('h:i A', strtotime($attendance['morning_time_out'])) : '-' ) . '</span></td>';
+            echo '<td><span class="badge bg-soft-info text-info">' . ( $attendance['break_time_in'] ? date('h:i A', strtotime($attendance['break_time_in'])) : '-' ) . '</span></td>';
+            echo '<td><span class="badge bg-soft-info text-info">' . ( $attendance['break_time_out'] ? date('h:i A', strtotime($attendance['break_time_out'])) : '-' ) . '</span></td>';
+            echo '<td><span class="badge bg-soft-warning text-warning">' . ( $attendance['afternoon_time_in'] ? date('h:i A', strtotime($attendance['afternoon_time_in'])) : '-' ) . '</span></td>';
+            echo '<td><span class="badge bg-soft-warning text-warning">' . ( $attendance['afternoon_time_out'] ? date('h:i A', strtotime($attendance['afternoon_time_out'])) : '-' ) . '</span></td>';
+            $total_hours = calculateTotalHours($attendance['morning_time_in'], $attendance['morning_time_out'], $attendance['afternoon_time_in'], $attendance['afternoon_time_out']);
+            echo '<td><span class="badge bg-soft-secondary text-secondary">' . $total_hours . 'h</span></td>';
+            // attendance status
+            $att_status = getAttendanceStatus($attendance['morning_time_in']);
+            if ($att_status === 'present') {
+                $status_html = '<span class="badge bg-soft-success text-success">Present</span>';
+            } elseif ($att_status === 'late') {
+                $status_html = '<span class="badge bg-soft-warning text-warning">Late</span>';
+            } else {
+                $status_html = '<span class="badge bg-soft-danger text-danger">Absent</span>';
+            }
+            echo '<td>' . $status_html . '</td>';
+            echo '<td>' . getStatusBadge($attendance['status']) . '</td>';
+            // actions (keep minimal for AJAX)
+            echo '<td><div class="hstack gap-2 justify-content-end"><a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="tooltip" title="View Details" onclick="viewDetails(' . $attendance['id'] . ')"><i class="feather feather-eye"></i></a><div class="dropdown"><a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="dropdown" data-bs-offset="0,21"><i class="feather feather-more-horizontal"></i></a><ul class="dropdown-menu"><li><a class="dropdown-item" href="javascript:void(0)" onclick="approveAttendance(' . $attendance['id'] . ')"><i class="feather feather-check-circle me-3"></i><span>Approve</span></a></li><li><a class="dropdown-item" href="javascript:void(0)" onclick="rejectAttendance(' . $attendance['id'] . ')"><i class="feather feather-x-circle me-3"></i><span>Reject</span></a></li><li><a class="dropdown-item" href="javascript:void(0)" onclick="editAttendance(' . $attendance['id'] . ')"><i class="feather feather-edit-3 me-3"></i><span>Edit</span></a></li><li><a class="dropdown-item printBTN" href="javascript:void(0)" onclick="printAttendance(' . $attendance['id'] . ')"><i class="feather feather-printer me-3"></i><span>Print</span></a></li><li><a class="dropdown-item" href="javascript:void(0)" onclick="sendNotification(' . $attendance['id'] . ')"><i class="feather feather-mail me-3"></i><span>Send Notification</span></a></li><li class="dropdown-divider"></li><li><a class="dropdown-item" href="javascript:void(0)" onclick="deleteAttendance(' . $attendance['id'] . ')"><i class="feather feather-trash-2 me-3"></i><span>Delete</span></a></li></ul></div></div></td>';
+            echo '</tr>';
+        }
+    } else {
+        echo '<tr><td colspan="13" class="text-center py-5"><p class="text-muted">No attendance records found</p></td></tr>';
+    }
+    exit;
 }
 
 // Helper function to format time
@@ -560,28 +670,28 @@ function getAttendanceStatus($morning_time_in) {
                                     <i class="feather-filter"></i>
                                 </a>
                                 <div class="dropdown-menu dropdown-menu-end">
-                                    <a href="javascript:void(0);" class="dropdown-item">
+                                    <a href="javascript:void(0);" class="dropdown-item attendance-filter" data-type="period" data-value="today">
                                         <i class="feather-calendar me-3"></i>
                                         <span>Today</span>
                                     </a>
-                                    <a href="javascript:void(0);" class="dropdown-item">
+                                    <a href="javascript:void(0);" class="dropdown-item attendance-filter" data-type="period" data-value="week">
                                         <i class="feather-calendar me-3"></i>
                                         <span>This Week</span>
                                     </a>
-                                    <a href="javascript:void(0);" class="dropdown-item">
+                                    <a href="javascript:void(0);" class="dropdown-item attendance-filter" data-type="period" data-value="month">
                                         <i class="feather-calendar me-3"></i>
                                         <span>This Month</span>
                                     </a>
                                     <div class="dropdown-divider"></div>
-                                    <a href="javascript:void(0);" class="dropdown-item">
+                                    <a href="javascript:void(0);" class="dropdown-item attendance-filter" data-type="status" data-value="approved">
                                         <i class="feather-check-circle me-3"></i>
                                         <span>Approved</span>
                                     </a>
-                                    <a href="javascript:void(0);" class="dropdown-item">
+                                    <a href="javascript:void(0);" class="dropdown-item attendance-filter" data-type="status" data-value="pending">
                                         <i class="feather-clock me-3"></i>
                                         <span>Pending</span>
                                     </a>
-                                    <a href="javascript:void(0);" class="dropdown-item">
+                                    <a href="javascript:void(0);" class="dropdown-item attendance-filter" data-type="status" data-value="rejected">
                                         <i class="feather-x-circle me-3"></i>
                                         <span>Rejected</span>
                                     </a>
@@ -716,6 +826,57 @@ function getAttendanceStatus($morning_time_in) {
 
             <!-- [ page-header ] end -->
             <!-- [ Main Content ] start -->
+            <!-- Filters -->
+            <div class="row mb-3 px-3">
+                <div class="col-12">
+                    <form method="GET" class="row g-2 align-items-end">
+                        <div class="col-sm-2">
+                            <label class="form-label">Date</label>
+                            <input type="date" name="date" class="form-control" value="<?php echo htmlspecialchars($filter_date); ?>">
+                        </div>
+                        <div class="col-sm-2">
+                            <label class="form-label">Course</label>
+                            <select name="course_id" class="form-control">
+                                <option value="0">-- All Courses --</option>
+                                <?php foreach ($courses as $course): ?>
+                                    <option value="<?php echo $course['id']; ?>" <?php echo $filter_course == $course['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($course['name']); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-sm-2">
+                            <label class="form-label">Department</label>
+                            <select name="department_id" class="form-control">
+                                <option value="0">-- All Departments --</option>
+                                <?php foreach ($departments as $dept): ?>
+                                    <option value="<?php echo $dept['id']; ?>" <?php echo $filter_department == $dept['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($dept['name']); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-sm-2">
+                            <label class="form-label">Supervisor</label>
+                            <select name="supervisor" class="form-control">
+                                <option value="">-- Any Supervisor --</option>
+                                <?php foreach ($supervisors as $sup): ?>
+                                    <option value="<?php echo htmlspecialchars($sup); ?>" <?php echo $filter_supervisor == $sup ? 'selected' : ''; ?>><?php echo htmlspecialchars($sup); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-sm-2">
+                            <label class="form-label">Coordinator</label>
+                            <select name="coordinator" class="form-control">
+                                <option value="">-- Any Coordinator --</option>
+                                <?php foreach ($coordinators as $coor): ?>
+                                    <option value="<?php echo htmlspecialchars($coor); ?>" <?php echo $filter_coordinator == $coor ? 'selected' : ''; ?>><?php echo htmlspecialchars($coor); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-sm-2 d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">Filter</button>
+                            <a href="attendance.php" class="btn btn-outline-secondary">Reset</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
             <div class="main-content">
                 <div class="row">
                     <div class="col-lg-12">
@@ -916,6 +1077,16 @@ function getAttendanceStatus($morning_time_in) {
     <!--! BEGIN: Vendors JS !-->
     <script src="assets/vendors/js/vendors.min.js"></script>
     <!-- vendors.min.js {always must need to be top} -->
+    <style>
+        /* Ensure header dropdowns are visible above other elements */
+        .page-header .dropdown-menu,
+        .page-header-right .dropdown-menu {
+            z-index: 99999 !important;
+        }
+        /* Allow dropdowns to overflow parent containers */
+        .page-header, .page-header-right { overflow: visible !important; }
+    </style>
+
     <script src="assets/vendors/js/dataTables.min.js"></script>
     <script src="assets/vendors/js/dataTables.bs5.min.js"></script>
     <script src="assets/vendors/js/select2.min.js"></script>
@@ -942,7 +1113,93 @@ function getAttendanceStatus($morning_time_in) {
             });
 
             // Initialize Select2
-            $('[data-select2-selector]').select2();
+            // Initialize Select2 for filter selects
+            $('select[name="course_id"], select[name="department_id"], select[name="supervisor"], select[name="coordinator"]').select2({
+                width: 'resolve',
+                theme: 'bootstrap-5'
+            });
+
+            // Header quick-filters (Today / This Week / This Month / status)
+            // Use delegated binding so dynamically shown menu items are caught
+            $(document).on('click', '.attendance-filter', function(e) {
+                e.preventDefault();
+                var type = $(this).data('type');
+                var value = $(this).data('value');
+                var params = new URLSearchParams(window.location.search);
+
+                // Remove pagination or unrelated params
+                params.delete('page');
+
+                if (type === 'period') {
+                    var today = new Date();
+                    var yyyy = today.getFullYear();
+                    var mm = String(today.getMonth() + 1).padStart(2, '0');
+                    var dd = String(today.getDate()).padStart(2, '0');
+                    if (value === 'today') {
+                        params.set('date', yyyy + '-' + mm + '-' + dd);
+                        params.delete('start_date');
+                        params.delete('end_date');
+                        params.delete('status');
+                    } else if (value === 'week') {
+                        // start of week (Monday)
+                        var curr = new Date();
+                        var first = new Date(curr.setDate(curr.getDate() - (curr.getDay() || 7) + 1));
+                        var last = new Date();
+                        var s_yyyy = first.getFullYear();
+                        var s_mm = String(first.getMonth() + 1).padStart(2, '0');
+                        var s_dd = String(first.getDate()).padStart(2, '0');
+                        var e_yyyy = last.getFullYear();
+                        var e_mm = String(last.getMonth() + 1).padStart(2, '0');
+                        var e_dd = String(last.getDate()).padStart(2, '0');
+                        params.set('start_date', s_yyyy + '-' + s_mm + '-' + s_dd);
+                        params.set('end_date', e_yyyy + '-' + e_mm + '-' + e_dd);
+                        params.delete('date');
+                        params.delete('status');
+                    } else if (value === 'month') {
+                        var now = new Date();
+                        var s_yyyy = now.getFullYear();
+                        var s_mm = String(now.getMonth() + 1).padStart(2, '0');
+                        params.set('start_date', s_yyyy + '-' + s_mm + '-01');
+                        // last day of month
+                        var lastDay = new Date(now.getFullYear(), now.getMonth()+1, 0);
+                        var e_yyyy = lastDay.getFullYear();
+                        var e_mm = String(lastDay.getMonth() + 1).padStart(2, '0');
+                        var e_dd = String(lastDay.getDate()).padStart(2, '0');
+                        params.set('end_date', e_yyyy + '-' + e_mm + '-' + e_dd);
+                        params.delete('date');
+                        params.delete('status');
+                    }
+                } else if (type === 'status') {
+                    params.set('status', value);
+                    // clear specific date range so status can apply broadly
+                    params.delete('date');
+                    params.delete('start_date');
+                    params.delete('end_date');
+                }
+
+                // navigate via AJAX: fetch rows and replace table body without full reload
+                var qs = params.toString();
+                var fetchUrl = window.location.pathname + (qs ? ('?' + qs) : '') + (qs ? '&ajax=1' : '?ajax=1');
+                // request rows
+                $.get(fetchUrl, function(html) {
+                    // destroy and reinit DataTable while replacing rows
+                    if ($.fn.DataTable.isDataTable('#attendanceList')) {
+                        $('#attendanceList').DataTable().clear().destroy();
+                    }
+                    $('#attendanceList tbody').html(html);
+                    // re-init DataTable
+                    $('#attendanceList').DataTable({
+                        "pageLength": 10,
+                        "ordering": true,
+                        "searching": true
+                    });
+                    // re-init tooltips
+                    $('[data-bs-toggle="tooltip"]').each(function() { new bootstrap.Tooltip(this); });
+                }).fail(function() {
+                    // fallback to full reload on error
+                    window.location.href = window.location.pathname + (qs ? ('?' + qs) : '');
+                });
+            });
 
             // Handle Check All
             $('#checkAllAttendance').on('change', function() {
