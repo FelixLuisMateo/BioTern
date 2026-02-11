@@ -587,7 +587,7 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                                         <i class="feather-trash-2 me-2"></i>
                                         <span>Delete</span>
                                     </a>
-                                    <a href="javascript:void(0);" class="w-50 btn btn-primary">
+                                    <a href="students-edit.php?id=<?php echo $student['id']; ?>" class="w-50 btn btn-primary">
                                         <i class="feather-edit me-2"></i>
                                         <span>Edit Profile</span>
                                     </a>
@@ -618,7 +618,7 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                                     <div class="profile-details mb-5">
                                         <div class="mb-4 d-flex align-items-center justify-content-between">
                                             <h5 class="fw-bold mb-0">Profile Details:</h5>
-                                            <a href="javascript:void(0);" class="btn btn-sm btn-light-brand">Edit Profile</a>
+                                            <a href="students-edit.php?id=<?php echo $student['id']; ?>" class="btn btn-sm btn-light-brand">Edit Profile</a>
                                         </div>
                                         <div class="row g-0 mb-4">
                                             <div class="col-sm-6 text-muted">First Name:</div>
@@ -897,3 +897,7 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
 </body>
 
 </html>
+
+<?php
+$conn->close();
+?>

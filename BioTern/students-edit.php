@@ -1,3 +1,180 @@
+<?php
+// Database Connection
+$host = 'localhost';
+$db_user = 'root';
+$db_password = '';
+$db_name = 'biotern_db';
+
+try {
+    $conn = new mysqli($host, $db_user, $db_password, $db_name);
+    if ($conn->connect_error) {
+        die("Connection failed: " . $conn->connect_error);
+    }
+} catch (Exception $e) {
+    die("Database Error: " . $e->getMessage());
+}
+
+// Get student ID from URL parameter
+$student_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
+
+if ($student_id == 0) {
+    die("Invalid student ID");
+}
+
+// Fetch Student Details
+$student_query = "
+    SELECT 
+        s.id,
+        s.student_id,
+        s.first_name,
+        s.last_name,
+        s.middle_name,
+        s.email,
+        s.phone,
+        s.date_of_birth,
+        s.gender,
+        s.address,
+        s.emergency_contact,
+        s.status,
+        s.biometric_registered,
+        s.biometric_registered_at,
+        s.created_at,
+        c.name as course_name,
+        c.id as course_id
+    FROM students s
+    LEFT JOIN courses c ON s.course_id = c.id
+    WHERE s.id = ?
+    LIMIT 1
+";
+
+$stmt = $conn->prepare($student_query);
+$stmt->bind_param("i", $student_id);
+$stmt->execute();
+$result = $stmt->get_result();
+
+if ($result->num_rows == 0) {
+    die("Student not found");
+}
+
+$student = $result->fetch_assoc();
+
+// Fetch all courses for dropdown
+$courses_query = "SELECT id, name FROM courses WHERE is_active = 1 ORDER BY name ASC";
+$courses_result = $conn->query($courses_query);
+$courses = [];
+if ($courses_result->num_rows > 0) {
+    while ($row = $courses_result->fetch_assoc()) {
+        $courses[] = $row;
+    }
+}
+
+// Handle form submission
+$success_message = '';
+$error_message = '';
+
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    // Sanitize and validate inputs
+    $first_name = isset($_POST['first_name']) ? trim($_POST['first_name']) : '';
+    $last_name = isset($_POST['last_name']) ? trim($_POST['last_name']) : '';
+    $middle_name = isset($_POST['middle_name']) ? trim($_POST['middle_name']) : '';
+    $email = isset($_POST['email']) ? trim($_POST['email']) : '';
+    $phone = isset($_POST['phone']) ? trim($_POST['phone']) : '';
+    $date_of_birth = isset($_POST['date_of_birth']) ? trim($_POST['date_of_birth']) : '';
+    $gender = isset($_POST['gender']) ? trim($_POST['gender']) : '';
+    $address = isset($_POST['address']) ? trim($_POST['address']) : '';
+    $emergency_contact = isset($_POST['emergency_contact']) ? trim($_POST['emergency_contact']) : '';
+    $course_id = isset($_POST['course_id']) ? intval($_POST['course_id']) : 0;
+    $status = isset($_POST['status']) ? intval($_POST['status']) : 1;
+
+    // Validation
+    if (empty($first_name) || empty($last_name) || empty($email)) {
+        $error_message = "First Name, Last Name, and Email are required fields!";
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $error_message = "Invalid email format!";
+    } else {
+        // Check if email already exists (excluding current student)
+        $email_check = $conn->prepare("SELECT id FROM students WHERE email = ? AND id != ?");
+        $email_check->bind_param("si", $email, $student_id);
+        $email_check->execute();
+        $email_result = $email_check->get_result();
+
+        if ($email_result->num_rows > 0) {
+            $error_message = "Email address already exists!";
+        } else {
+            // Update student in database
+            $update_query = "
+                UPDATE students 
+                SET 
+                    first_name = ?,
+                    last_name = ?,
+                    middle_name = ?,
+                    email = ?,
+                    phone = ?,
+                    date_of_birth = ?,
+                    gender = ?,
+                    address = ?,
+                    emergency_contact = ?,
+                    course_id = ?,
+                    status = ?,
+                    updated_at = NOW()
+                WHERE id = ?
+            ";
+
+            $update_stmt = $conn->prepare($update_query);
+            if (!$update_stmt) {
+                $error_message = "Prepare failed: " . $conn->error;
+            } else {
+                $update_stmt->bind_param(
+                    "ssssssssssii",
+                    $first_name,
+                    $last_name,
+                    $middle_name,
+                    $email,
+                    $phone,
+                    $date_of_birth,
+                    $gender,
+                    $address,
+                    $emergency_contact,
+                    $course_id,
+                    $status,
+                    $student_id
+                );
+
+                if ($update_stmt->execute()) {
+                    $success_message = "✓ Student information updated successfully!";
+                    // Refresh student data
+                    $stmt = $conn->prepare($student_query);
+                    $stmt->bind_param("i", $student_id);
+                    $stmt->execute();
+                    $result = $stmt->get_result();
+                    $student = $result->fetch_assoc();
+                } else {
+                    $error_message = "Error updating student: " . $update_stmt->error;
+                }
+
+                $update_stmt->close();
+            }
+        }
+    }
+}
+
+// Helper functions
+function formatDate($date) {
+    if ($date) {
+        return date('Y-m-d', strtotime($date));
+    }
+    return '';
+}
+
+function formatDateTime($date) {
+    if ($date) {
+        return date('M d, Y h:i A', strtotime($date));
+    }
+    return 'N/A';
+}
+
+?>
+
 <!DOCTYPE html>
 <html lang="zxx">
 
@@ -8,42 +185,22 @@
     <meta name="description" content="">
     <meta name="keyword" content="">
     <meta name="author" content="ACT 2A Group 5">
-    <!--! The above 6 meta tags *must* come first in the head; any other head content must come *after* these tags !-->
-    <!--! BEGIN: Apps Title-->
-    <title>BioTern || Students Create</title>
-    <!--! END:  Apps Title-->
-    <!--! BEGIN: Favicon-->
+    <title>BioTern || Edit Student - <?php echo htmlspecialchars($student['first_name'] . ' ' . $student['last_name']); ?></title>
     <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
-    <!--! END: Favicon-->
-    <!--! BEGIN: Bootstrap CSS-->
     <link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css">
-    <!--! END: Bootstrap CSS-->
-    <!--! BEGIN: Vendors CSS-->
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/vendors.min.css">
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2.min.css">
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2-theme.min.css">
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/datepicker.min.css">
-    <!--! END: Vendors CSS-->
-    <!--! BEGIN: Custom CSS-->
     <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css">
-    <!--! END: Custom CSS-->
-    <!--! HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries !-->
-    <!--! WARNING: Respond.js doesn"t work if you view the page via file: !-->
-    <!--[if lt IE 9]>
-			<script src="https:oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
-			<script src="https:oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
-		<![endif]-->
 </head>
 
 <body>
-    <!--! ================================================================ !-->
-    <!--! [Start] Navigation Manu !-->
-    <!--! ================================================================ !-->
+    <!--! Navigation !-->
     <nav class="nxl-navigation">
         <div class="navbar-wrapper">
             <div class="m-header">
                 <a href="index.html" class="b-brand">
-                    <!-- ========   change your logo hear   ============ -->
                     <img src="assets/images/logo-full.png" alt="" class="logo logo-lg">
                     <img src="assets/images/logo-abbr.png" alt="" class="logo logo-sm">
                 </a>
@@ -65,34 +222,6 @@
                     </li>
                     <li class="nxl-item nxl-hasmenu">
                         <a href="javascript:void(0);" class="nxl-link">
-                            <span class="nxl-micon"><i class="feather-cast"></i></span>
-                            <span class="nxl-mtext">Reports</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                        </a>
-                        <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="reports-sales.html">Sales Report</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="reports-leads.html">Leads Report</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="reports-project.html">Project Report</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="reports-timesheets.html">Timesheets Report</a></li>
-                        </ul>
-                    </li>
-                    <li class="nxl-item nxl-hasmenu">
-                        <a href="javascript:void(0);" class="nxl-link">
-                            <span class="nxl-micon"><i class="feather-send"></i></span>
-                            <span class="nxl-mtext">Applications</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                        </a>
-                        <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="apps-chat.html">Chat</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="apps-email.html">Email</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="apps-tasks.html">Tasks</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="apps-notes.html">Notes</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="apps-storage.html">Storage</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="apps-calendar.html">Calendar</a></li>
-                        </ul>
-                    </li>
-                    
-                    
-                    <li class="nxl-item nxl-hasmenu">
-                        <a href="javascript:void(0);" class="nxl-link">
                             <span class="nxl-micon"><i class="feather-users"></i></span>
                             <span class="nxl-mtext">Students</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
@@ -100,31 +229,8 @@
                             <li class="nxl-item"><a class="nxl-link" href="students.php">Students</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="students-view.php">Students View</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="students-create.html">Students Create</a></li>
-                        </ul>
-                    </li>
-                    <li class="nxl-item nxl-hasmenu">
-                        <a href="javascript:void(0);" class="nxl-link">
-                            <span class="nxl-micon"><i class="feather-alert-circle"></i></span>
-                            <span class="nxl-mtext">Leads</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                        </a>
-                        <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="leads.html">Leads</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="leads-view.html">Leads View</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="leads-create.html">Leads Create</a></li>
-                        </ul>
-                    </li>
-                    
-                    <li class="nxl-item nxl-hasmenu">
-                        <a href="javascript:void(0);" class="nxl-link">
-                            <span class="nxl-micon"><i class="feather-layout"></i></span>
-                            <span class="nxl-mtext">Widgets</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                        </a>
-                        <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="widgets-lists.html">Lists</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="widgets-tables.html">Tables</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="widgets-charts.html">Charts</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="widgets-statistics.html">Statistics</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="widgets-miscellaneous.html">Miscellaneous</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="attendance.php">Attendance DTR</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="demo-biometric.php">Demo Biometric</a></li>
                         </ul>
                     </li>
                     <li class="nxl-item nxl-hasmenu">
@@ -134,74 +240,7 @@
                         </a>
                         <ul class="nxl-submenu">
                             <li class="nxl-item"><a class="nxl-link" href="settings-general.html">General</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-seo.html">SEO</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-tags.html">Tags</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-email.html">Email</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-tasks.html">Tasks</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-leads.html">Leads</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-support.html">Support</a></li>
-                            
-                            
                             <li class="nxl-item"><a class="nxl-link" href="settings-students.php">Students</a></li>
-
-                            
-                            <li class="nxl-item"><a class="nxl-link" href="settings-miscellaneous.html">Miscellaneous</a></li>
-                        </ul>
-                    </li>
-                    <li class="nxl-item nxl-hasmenu">
-                        <a href="javascript:void(0);" class="nxl-link">
-                            <span class="nxl-micon"><i class="feather-power"></i></span>
-                            <span class="nxl-mtext">Authentication</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                        </a>
-                        <ul class="nxl-submenu">
-                            <li class="nxl-item nxl-hasmenu">
-                                <a href="javascript:void(0);" class="nxl-link">
-                                    <span class="nxl-mtext">Login</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                                </a>
-                                <ul class="nxl-submenu">
-                                    <li class="nxl-item"><a class="nxl-link" href="auth-login-cover.html">Cover</a></li>
-                                </ul>
-                            </li>
-                            <li class="nxl-item nxl-hasmenu">
-                                <a href="javascript:void(0);" class="nxl-link">
-                                    <span class="nxl-mtext">Register</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                                </a>
-                                <ul class="nxl-submenu">
-                                    <li class="nxl-item"><a class="nxl-link" href="auth-register-creative.html">Creative</a></li>
-                                </ul>
-                            </li>
-                            <li class="nxl-item nxl-hasmenu">
-                                <a href="javascript:void(0);" class="nxl-link">
-                                    <span class="nxl-mtext">Error-404</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                                </a>
-                                <ul class="nxl-submenu">
-                                    <li class="nxl-item"><a class="nxl-link" href="auth-404-minimal.html">Minimal</a></li>
-                                </ul>
-                            </li>
-                            <li class="nxl-item nxl-hasmenu">
-                                <a href="javascript:void(0);" class="nxl-link">
-                                    <span class="nxl-mtext">Reset Pass</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                                </a>
-                                <ul class="nxl-submenu">
-                                    <li class="nxl-item"><a class="nxl-link" href="auth-reset-cover.html">Cover</a></li>
-                                </ul>
-                            </li>
-                            <li class="nxl-item nxl-hasmenu">
-                                <a href="javascript:void(0);" class="nxl-link">
-                                    <span class="nxl-mtext">Verify OTP</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                                </a>
-                                <ul class="nxl-submenu">
-                                    <li class="nxl-item"><a class="nxl-link" href="auth-verify-cover.html">Cover</a></li>
-                                </ul>
-                            </li>
-                            <li class="nxl-item nxl-hasmenu">
-                                <a href="javascript:void(0);" class="nxl-link">
-                                    <span class="nxl-mtext">Maintenance</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                                </a>
-                                <ul class="nxl-submenu">
-                                    <li class="nxl-item"><a class="nxl-link" href="auth-maintenance-cover.html">Cover</a></li>
-                                </ul>
-                            </li>
                         </ul>
                     </li>
                     <li class="nxl-item nxl-hasmenu">
@@ -212,25 +251,17 @@
                         <ul class="nxl-submenu">
                             <li class="nxl-item"><a class="nxl-link" href="#!">Support</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="help-knowledgebase.html">KnowledgeBase</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="/docs/documentations">Documentations</a></li>
                         </ul>
                     </li>
                 </ul>
-                
             </div>
         </div>
     </nav>
-    <!--! ================================================================ !-->
-    <!--! [End]  Navigation Manu !-->
-    <!--! ================================================================ !-->
-    <!--! ================================================================ !-->
-    <!--! [Start] Header !-->
-    <!--! ================================================================ !-->
+
+    <!--! Header !-->
     <header class="nxl-header">
         <div class="header-wrapper">
-            <!--! [Start] Header Left !-->
             <div class="header-left d-flex align-items-center gap-4">
-                <!--! [Start] nxl-head-mobile-toggler !-->
                 <a href="javascript:void(0);" class="nxl-head-mobile-toggler" id="mobile-collapse">
                     <div class="hamburger hamburger--arrowturn">
                         <div class="hamburger-box">
@@ -238,8 +269,6 @@
                         </div>
                     </div>
                 </a>
-                <!--! [Start] nxl-head-mobile-toggler !-->
-                <!--! [Start] nxl-navigation-toggle !-->
                 <div class="nxl-navigation-toggle">
                     <a href="javascript:void(0);" id="menu-mini-button">
                         <i class="feather-align-left"></i>
@@ -248,10 +277,7 @@
                         <i class="feather-arrow-right"></i>
                     </a>
                 </div>
-                <!--! [End] nxl-navigation-toggle !-->
             </div>
-            <!--! [End] Header Left !-->
-            <!--! [Start] Header Right !-->
             <div class="header-right ms-auto">
                 <div class="d-flex align-items-center">
                     <div class="dropdown nxl-h-item nxl-header-search">
@@ -264,80 +290,6 @@
                                     <i class="feather-search fs-6 text-muted"></i>
                                 </span>
                                 <input type="text" class="form-control search-input-field" placeholder="Search....">
-                                <span class="input-group-text">
-                                    <button type="button" class="btn-close"></button>
-                                </span>
-                            </div>
-                            <div class="dropdown-divider mt-0"></div>
-                            <!--! search coding for database !-->
-                        </div>
-                    </div>
-                    <div class="nxl-h-item d-none d-sm-flex">
-                        <div class="full-screen-switcher">
-                            <a href="javascript:void(0);" class="nxl-head-link me-0" onclick="$('body').fullScreenHelper('toggle');">
-                                <i class="feather-maximize maximize"></i>
-                                <i class="feather-minimize minimize"></i>
-                            </a>
-                        </div>
-                    </div>
-                    <div class="nxl-h-item dark-light-theme">
-                        <a href="javascript:void(0);" class="nxl-head-link me-0 dark-button">
-                            <i class="feather-moon"></i>
-                        </a>
-                        <a href="javascript:void(0);" class="nxl-head-link me-0 light-button" style="display: none">
-                            <i class="feather-sun"></i>
-                        </a>
-                    </div>
-                    <div class="dropdown nxl-h-item">
-                        <a href="javascript:void(0);" class="nxl-head-link me-0" data-bs-toggle="dropdown" role="button" data-bs-auto-close="outside">
-                            <i class="feather-clock"></i>
-                            <span class="badge bg-success nxl-h-badge">2</span>
-                        </a>
-                        <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-timesheets-menu">
-                            <div class="d-flex justify-content-between align-items-center timesheets-head">
-                                <h6 class="fw-bold text-dark mb-0">Timesheets</h6>
-                                <a href="javascript:void(0);" class="fs-11 text-success text-end ms-auto" data-bs-toggle="tooltip" title="Upcomming Timers">
-                                    <i class="feather-clock"></i>
-                                    <span>3 Upcomming</span>
-                                </a>
-                            </div>
-                            <div class="d-flex justify-content-between align-items-center flex-column timesheets-body">
-                                <i class="feather-clock fs-1 mb-4"></i>
-                                <p class="text-muted">No started timers found yes!</p>
-                                <a href="javascript:void(0);" class="btn btn-sm btn-primary">Started Timer</a>
-                            </div>
-                            <div class="text-center timesheets-footer">
-                                <a href="javascript:void(0);" class="fs-13 fw-semibold text-dark">Alls Timesheets</a>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="dropdown nxl-h-item">
-                        <a class="nxl-head-link me-3" data-bs-toggle="dropdown" href="#" role="button" data-bs-auto-close="outside">
-                            <i class="feather-bell"></i>
-                            <span class="badge bg-danger nxl-h-badge">3</span>
-                        </a>
-                        <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-notifications-menu">
-                            <div class="d-flex justify-content-between align-items-center notifications-head">
-                                <h6 class="fw-bold text-dark mb-0">Notifications</h6>
-                                <a href="javascript:void(0);" class="fs-11 text-success text-end ms-auto" data-bs-toggle="tooltip" title="Make as Read">
-                                    <i class="feather-check"></i>
-                                    <span>Make as Read</span>
-                                </a>
-                            </div>
-                            <div class="notifications-item">
-                                <img src="assets/images/avatar/2.png" alt="" class="rounded me-3 border">
-                                <div class="notifications-desc">
-                                    <a href="javascript:void(0);" class="font-body text-truncate-2-line"> <span class="fw-semibold text-dark">Malanie Hanvey</span> We should talk about that at lunch!</a>
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <div class="notifications-date text-muted border-bottom border-bottom-dashed">2 minutes ago</div>
-                                        <div class="d-flex align-items-center float-end gap-2">
-                                            <a href="javascript:void(0);" class="d-block wd-8 ht-8 rounded-circle bg-gray-300" data-bs-toggle="tooltip" title="Make as Read"></a>
-                                            <a href="javascript:void(0);" class="text-danger" data-bs-toggle="tooltip" title="Remove">
-                                                <i class="feather-x fs-12"></i>
-                                            </a>
-                                        </div>
-                                    </div>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -350,53 +302,11 @@
                                 <div class="d-flex align-items-center">
                                     <img src="assets/images/avatar/1.png" alt="user-image" class="img-fluid user-avtar">
                                     <div>
-                                        <h6 class="text-dark mb-0">Felix Luis Mateo <span class="badge bg-soft-success text-success ms-1">PRO</span></h6>
+                                        <h6 class="text-dark mb-0">Felix Luis Mateo</h6>
                                         <span class="fs-12 fw-medium text-muted">felixluismateo@example.com</span>
                                     </div>
                                 </div>
                             </div>
-                            <div class="dropdown">
-                                <a href="javascript:void(0);" class="dropdown-item" data-bs-toggle="dropdown">
-                                    <span class="hstack">
-                                        <i class="wd-10 ht-10 border border-2 border-gray-1 bg-success rounded-circle me-2"></i>
-                                        <span>Active</span>
-                                    </span>
-                                    <i class="feather-chevron-right ms-auto me-0"></i>
-                                </a>
-                                <div class="dropdown-menu">
-                                    <a href="javascript:void(0);" class="dropdown-item">
-                                        <span class="hstack">
-                                            <i class="wd-10 ht-10 border border-2 border-gray-1 bg-warning rounded-circle me-2"></i>
-                                            <span>Always</span>
-                                        </span>
-                                    </a>
-                                    <a href="javascript:void(0);" class="dropdown-item">
-                                        <span class="hstack">
-                                            <i class="wd-10 ht-10 border border-2 border-gray-1 bg-success rounded-circle me-2"></i>
-                                            <span>Active</span>
-                                        </span>
-                                    </a>
-                                </div>
-                            </div>
-                            <div class="dropdown-divider"></div>
-
-                            <div class="dropdown-divider"></div>
-                            <a href="javascript:void(0);" class="dropdown-item">
-                                <i class="feather-user"></i>
-                                <span>Profile Details</span>
-                            </a>
-                            <a href="javascript:void(0);" class="dropdown-item">
-                                <i class="feather-activity"></i>
-                                <span>Activity Feed</span>
-                            </a>
-                            <a href="javascript:void(0);" class="dropdown-item">
-                                <i class="feather-bell"></i>
-                                <span>Notifications</span>
-                            </a>
-                            <a href="javascript:void(0);" class="dropdown-item">
-                                <i class="feather-settings"></i>
-                                <span>Account Settings</span>
-                            </a>
                             <div class="dropdown-divider"></div>
                             <a href="./auth-login-minimal.html" class="dropdown-item">
                                 <i class="feather-log-out"></i>
@@ -406,673 +316,221 @@
                     </div>
                 </div>
             </div>
-            <!--! [End] Header Right !-->
         </div>
     </header>
-    <!--! ================================================================ !-->
-    <!--! [End] Header !-->
-    <!--! ================================================================ !-->
-    <!--! ================================================================ !-->
-    <!--! [Start] Main Content !-->
-    <!--! ================================================================ !-->
+
+    <!--! Main Content !-->
     <main class="nxl-container">
         <div class="nxl-content">
-            <!-- [ page-header ] start -->
+            <!-- Page Header -->
             <div class="page-header">
                 <div class="page-header-left d-flex align-items-center">
                     <div class="page-header-title">
-                        <h5 class="m-b-10">Students</h5>
+                        <h5 class="m-b-10">Edit Student</h5>
                     </div>
                     <ul class="breadcrumb">
                         <li class="breadcrumb-item"><a href="index.html">Home</a></li>
-                        <li class="breadcrumb-item">Create</li>
+                        <li class="breadcrumb-item"><a href="students.php">Students</a></li>
+                        <li class="breadcrumb-item"><a href="students-view.php?id=<?php echo $student['id']; ?>">View</a></li>
+                        <li class="breadcrumb-item">Edit</li>
                     </ul>
                 </div>
                 <div class="page-header-right ms-auto">
                     <div class="page-header-right-items">
-                        <div class="d-flex d-md-none">
-                            <a href="javascript:void(0)" class="page-header-right-close-toggle">
-                                <i class="feather-arrow-left me-2"></i>
-                                <span>Back</span>
-                            </a>
-                        </div>
                         <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
-                            <a href="javascript:void(0);" class="btn btn-light-brand successAlertMessage">
-                                <i class="feather-layers me-2"></i>
-                                <span>Save as Draft</span>
+                            <a href="students-view.php?id=<?php echo $student['id']; ?>" class="btn btn-light-brand">
+                                <i class="feather-arrow-left me-2"></i>
+                                <span>Back to View</span>
                             </a>
-                            <a href="javascript:void(0);" class="btn btn-primary successAlertMessage">
-                                <i class="feather-user-plus me-2"></i>
-                                <span>Create Student</span>
+                            <a href="students.php" class="btn btn-primary">
+                                <i class="feather-list me-2"></i>
+                                <span>Back to List</span>
                             </a>
                         </div>
-                    </div>
-                    <div class="d-md-none d-flex align-items-center">
-                        <a href="javascript:void(0)" class="page-header-right-open-toggle">
-                            <i class="feather-align-right fs-20"></i>
-                        </a>
                     </div>
                 </div>
             </div>
-            <!-- [ page-header ] end -->
-            <!-- [ Main Content ] start -->
+
+            <!-- Main Content -->
             <div class="main-content">
                 <div class="row">
                     <div class="col-lg-12">
-                        <div class="card border-top-0">
-                            <div class="card-header p-0">
-                                <!-- Nav tabs -->
-                                <ul class="nav nav-tabs flex-wrap w-100 text-center customers-nav-tabs" id="myTab" role="tablist">
-                                    <li class="nav-item flex-fill border-top" role="presentation">
-                                        <a href="javascript:void(0);" class="nav-link active" data-bs-toggle="tab" data-bs-target="#profileTab" role="tab">Profile</a>
-                                    </li>
-                                    <li class="nav-item flex-fill border-top" role="presentation">
-                                        <a href="javascript:void(0);" class="nav-link" data-bs-toggle="tab" data-bs-target="#passwordTab" role="tab">Password</a>
-                                    </li>
-                                    <li class="nav-item flex-fill border-top" role="presentation">
-                                        <a href="javascript:void(0);" class="nav-link" data-bs-toggle="tab" data-bs-target="#notificationsTab" role="tab">Notifications</a>
-                                    </li>
-                                </ul>
+                        <div class="card stretch stretch-full">
+                            <div class="card-header">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <h5 class="card-title mb-0">Edit Student Information</h5>
+                                    <small class="text-muted">Student ID: <?php echo htmlspecialchars($student['student_id']); ?></small>
+                                </div>
                             </div>
-                            <div class="tab-content">
-                                <div class="tab-pane fade show active" id="profileTab" role="tabpanel">
-                                    <div class="card-body personal-info">
-                                        <div class="mb-4 d-flex align-items-center justify-content-between">
-                                            <h5 class="fw-bold mb-0 me-4">
-                                                <span class="d-block mb-2">Personal Information:</span>
-                                                <span class="fs-12 fw-normal text-muted text-truncate-1-line">Following information is publicly displayed, be careful! </span>
-                                            </h5>
-                                            <a href="javascript:void(0);" class="btn btn-sm btn-light-brand">Add New</a>
-                                        </div>
-                                        <div class="row mb-4 align-items-center">
-                                            <div class="col-lg-4">
-                                                <label class="fw-semibold">Avatar: </label>
-                                            </div>
-                                            <div class="col-lg-8">
-                                                <div class="mb-4 mb-md-0 d-flex gap-4 your-brand">
-                                                    <div class="wd-100 ht-100 position-relative overflow-hidden border border-gray-2 rounded">
-                                                        <img src="assets/images/avatar/1.png" class="upload-pic img-fluid rounded h-100 w-100" alt="">
-                                                        <div class="position-absolute start-50 top-50 end-0 bottom-0 translate-middle h-100 w-100 hstack align-items-center justify-content-center c-pointer upload-button">
-                                                            <i class="feather feather-camera" aria-hidden="true"></i>
-                                                        </div>
-                                                        <input class="file-upload" type="file" accept="image/*">
-                                                    </div>
-                                                    <div class="d-flex flex-column gap-1">
-                                                        <div class="fs-11 text-gray-500 mt-2"># Upload your prifile</div>
-                                                        <div class="fs-11 text-gray-500"># Avatar size 150x150</div>
-                                                        <div class="fs-11 text-gray-500"># Max upload size 2mb</div>
-                                                        <div class="fs-11 text-gray-500"># Allowed file types: png, jpg, jpeg</div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="row mb-4 align-items-center">
-                                            <div class="col-lg-4">
-                                                <label for="fullnameInput" class="fw-semibold">Name: </label>
-                                            </div>
-                                            <div class="col-lg-8">
-                                                <div class="input-group">
-                                                    <div class="input-group-text"><i class="feather-user"></i></div>
-                                                    <input type="text" class="form-control" id="fullnameInput" placeholder="Name">
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="row mb-4 align-items-center">
-                                            <div class="col-lg-4">
-                                                <label for="mailInput" class="fw-semibold">Email: </label>
-                                            </div>
-                                            <div class="col-lg-8">
-                                                <div class="input-group">
-                                                    <div class="input-group-text"><i class="feather-mail"></i></div>
-                                                    <input type="text" class="form-control" id="mailInput" placeholder="Email">
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="row mb-4 align-items-center">
-                                            <div class="col-lg-4">
-                                                <label for="usernameInput" class="fw-semibold">Username: </label>
-                                            </div>
-                                            <div class="col-lg-8">
-                                                <div class="input-group">
-                                                    <div class="input-group-text"><i class="feather-link-2"></i></div>
-                                                    <input type="text" class="form-control" id="usernameInput" placeholder="Username">
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="row mb-4 align-items-center">
-                                            <div class="col-lg-4">
-                                                <label for="phoneInput" class="fw-semibold">Phone: </label>
-                                            </div>
-                                            <div class="col-lg-8">
-                                                <div class="input-group">
-                                                    <div class="input-group-text"><i class="feather-phone"></i></div>
-                                                    <input type="text" class="form-control" id="phoneInput" placeholder="Phone">
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="row mb-4 align-items-center">
-                                            <div class="col-lg-4">
-                                                <label for="companyInput" class="fw-semibold">Company: </label>
-                                            </div>
-                                            <div class="col-lg-8">
-                                                <div class="input-group">
-                                                    <div class="input-group-text"><i class="feather-compass"></i></div>
-                                                    <input type="text" class="form-control" id="companyInput" placeholder="Company">
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="row mb-4 align-items-center">
-                                            <div class="col-lg-4">
-                                                <label for="designationInput" class="fw-semibold">Designation: </label>
-                                            </div>
-                                            <div class="col-lg-8">
-                                                <div class="input-group">
-                                                    <div class="input-group-text"><i class="feather-briefcase"></i></div>
-                                                    <input type="text" class="form-control" id="designationInput" placeholder="Designation">
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="row mb-4 align-items-center">
-                                            <div class="col-lg-4">
-                                                <label for="websiteInput" class="fw-semibold">Website: </label>
-                                            </div>
-                                            <div class="col-lg-8">
-                                                <div class="input-group">
-                                                    <div class="input-group-text"><i class="feather-link"></i></div>
-                                                    <input type="text" class="form-control" id="websiteInput" placeholder="Website">
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="row mb-4 align-items-center">
-                                            <div class="col-lg-4">
-                                                <label for="addressInput_2" class="fw-semibold">Address: </label>
-                                            </div>
-                                            <div class="col-lg-8">
-                                                <div class="input-group">
-                                                    <div class="input-group-text"><i class="feather-map-pin"></i></div>
-                                                    <textarea class="form-control" id="addressInput_2" cols="30" rows="3" placeholder="Address"></textarea>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="row mb-4 align-items-center">
-                                            <div class="col-lg-4">
-                                                <label for="aboutInput" class="fw-semibold">About: </label>
-                                            </div>
-                                            <div class="col-lg-8">
-                                                <div class="input-group">
-                                                    <div class="input-group-text"><i class="feather-type"></i></div>
-                                                    <textarea class="form-control" id="aboutInput" cols="30" rows="5" placeholder="About"></textarea>
-                                                </div>
-                                            </div>
-                                        </div>
+                            <div class="card-body">
+                                <!-- Alert Messages -->
+                                <?php if (!empty($success_message)): ?>
+                                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                                        <i class="feather-check-circle me-2"></i>
+                                        <?php echo $success_message; ?>
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                                     </div>
-                                    <hr class="my-0">
-                                    <div class="card-body additional-info">
-                                        <div class="mb-4 d-flex align-items-center justify-content-between">
-                                            <h5 class="fw-bold mb-0 me-4">
-                                                <span class="d-block mb-2">Additional Information:</span>
-                                                <span class="fs-12 fw-normal text-muted text-truncate-1-line">Communication details in case we want to connect with you.</span>
-                                            </h5>
-                                            <a href="javascript:void(0);" class="btn btn-sm btn-light-brand">Add New</a>
+                                <?php endif; ?>
+
+                                <?php if (!empty($error_message)): ?>
+                                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                        <i class="feather-alert-circle me-2"></i>
+                                        <?php echo $error_message; ?>
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    </div>
+                                <?php endif; ?>
+
+                                <!-- Edit Form -->
+                                <form method="POST" action="" id="editStudentForm">
+                                    <!-- Personal Information Section -->
+                                    <div class="mb-5">
+                                        <h6 class="fw-bold mb-4">
+                                            <i class="feather-user me-2"></i>Personal Information
+                                        </h6>
+
+                                        <div class="row">
+                                            <div class="col-md-4 mb-4">
+                                                <label for="first_name" class="form-label fw-semibold">First Name <span class="text-danger">*</span></label>
+                                                <input type="text" class="form-control" id="first_name" name="first_name" 
+                                                       value="<?php echo htmlspecialchars($student['first_name']); ?>" required>
+                                            </div>
+                                            <div class="col-md-4 mb-4">
+                                                <label for="middle_name" class="form-label fw-semibold">Middle Name</label>
+                                                <input type="text" class="form-control" id="middle_name" name="middle_name" 
+                                                       value="<?php echo htmlspecialchars($student['middle_name'] ?? ''); ?>">
+                                            </div>
+                                            <div class="col-md-4 mb-4">
+                                                <label for="last_name" class="form-label fw-semibold">Last Name <span class="text-danger">*</span></label>
+                                                <input type="text" class="form-control" id="last_name" name="last_name" 
+                                                       value="<?php echo htmlspecialchars($student['last_name']); ?>" required>
+                                            </div>
                                         </div>
-                                        <div class="row mb-4 align-items-center">
-                                            <div class="col-lg-4">
-                                                <label for="dateofBirth" class="fw-semibold">Date of Birth: </label>
+
+                                        <div class="row">
+                                            <div class="col-md-6 mb-4">
+                                                <label for="email" class="form-label fw-semibold">Email Address <span class="text-danger">*</span></label>
+                                                <input type="email" class="form-control" id="email" name="email" 
+                                                       value="<?php echo htmlspecialchars($student['email']); ?>" required>
                                             </div>
-                                            <div class="col-lg-8">
-                                                <div class="input-group">
-                                                    <div class="input-group-text"><i class="feather-calendar"></i></div>
-                                                    <input class="form-control" id="dateofBirth" placeholder="Pick date of birth">
-                                                </div>
+                                            <div class="col-md-6 mb-4">
+                                                <label for="phone" class="form-label fw-semibold">Phone Number</label>
+                                                <input type="tel" class="form-control" id="phone" name="phone" 
+                                                       value="<?php echo htmlspecialchars($student['phone'] ?? ''); ?>">
                                             </div>
                                         </div>
-                                        <div class="row mb-4 align-items-center">
-                                            <div class="col-lg-4">
-                                                <label class="fw-semibold">Status: </label>
+
+                                        <div class="row">
+                                            <div class="col-md-6 mb-4">
+                                                <label for="date_of_birth" class="form-label fw-semibold">Date of Birth</label>
+                                                <input type="date" class="form-control" id="date_of_birth" name="date_of_birth" 
+                                                       value="<?php echo formatDate($student['date_of_birth']); ?>">
                                             </div>
-                                            <div class="col-lg-8">
-                                                <select class="form-control" data-select2-selector="status">
-                                                    <option value="success" data-bg="bg-success" selected>Active</option>
-                                                    <option value="warning" data-bg="bg-warning">Inactive</option>
-                                                    <option value="danger" data-bg="bg-danger">Declined</option>
+                                            <div class="col-md-6 mb-4">
+                                                <label for="gender" class="form-label fw-semibold">Gender</label>
+                                                <select class="form-control" id="gender" name="gender">
+                                                    <option value="">-- Select Gender --</option>
+                                                    <option value="male" <?php echo $student['gender'] === 'male' ? 'selected' : ''; ?>>Male</option>
+                                                    <option value="female" <?php echo $student['gender'] === 'female' ? 'selected' : ''; ?>>Female</option>
+                                                    <option value="other" <?php echo $student['gender'] === 'other' ? 'selected' : ''; ?>>Other</option>
                                                 </select>
                                             </div>
                                         </div>
-                                        <div class="row mb-0 align-items-center">
-                                            <div class="col-lg-4">
-                                                <label class="fw-semibold">Privacy: </label>
+
+                                        <div class="mb-4">
+                                            <label for="address" class="form-label fw-semibold">Home Address</label>
+                                            <textarea class="form-control" id="address" name="address" rows="3"><?php echo htmlspecialchars($student['address'] ?? ''); ?></textarea>
+                                        </div>
+
+                                        <div class="mb-4">
+                                            <label for="emergency_contact" class="form-label fw-semibold">Emergency Contact</label>
+                                            <input type="text" class="form-control" id="emergency_contact" name="emergency_contact" 
+                                                   value="<?php echo htmlspecialchars($student['emergency_contact'] ?? ''); ?>"
+                                                   placeholder="Name and phone number">
+                                        </div>
+                                    </div>
+
+                                    <hr>
+
+                                    <!-- Academic Information Section -->
+                                    <div class="mb-5">
+                                        <h6 class="fw-bold mb-4">
+                                            <i class="feather-book me-2"></i>Academic Information
+                                        </h6>
+
+                                        <div class="row">
+                                            <div class="col-md-6 mb-4">
+                                                <label for="course_id" class="form-label fw-semibold">Course</label>
+                                                <select class="form-control" id="course_id" name="course_id">
+                                                    <option value="0">-- Select Course --</option>
+                                                    <?php foreach ($courses as $course): ?>
+                                                        <option value="<?php echo $course['id']; ?>" 
+                                                            <?php echo $student['course_id'] == $course['id'] ? 'selected' : ''; ?>>
+                                                            <?php echo htmlspecialchars($course['name']); ?>
+                                                        </option>
+                                                    <?php endforeach; ?>
+                                                </select>
                                             </div>
-                                            <div class="col-lg-8">
-                                                <select class="form-control" data-select2-selector="privacy">
-                                                    <option value="onlyme" data-icon="feather-lock">Only Me</option>
-                                                    <option value="everyone" data-icon="feather-globe" selected>Everyone</option>
-                                                    <option value="anonymous" data-icon="feather-users">Anonymous</option>
-                                                    <option value="ifollow" data-icon="feather-user-check">People I Follow</option>
-                                                    <option value="followme" data-icon="feather-eye">People Follow Me</option>
-                                                    <option value="customselectever" data-icon="feather-settings">Custom Select Ever</option>
+                                            <div class="col-md-6 mb-4">
+                                                <label for="status" class="form-label fw-semibold">Status</label>
+                                                <select class="form-control" id="status" name="status">
+                                                    <option value="1" <?php echo $student['status'] == 1 ? 'selected' : ''; ?>>Active</option>
+                                                    <option value="0" <?php echo $student['status'] == 0 ? 'selected' : ''; ?>>Inactive</option>
                                                 </select>
                                             </div>
                                         </div>
-                                    </div>
-                                </div>
-                                <div class="tab-pane fade" id="passwordTab" role="tabpanel">
-                                    <div class="card-body pass-info">
-                                        <div class="mb-4 d-flex align-items-center justify-content-between">
-                                            <h5 class="fw-bold mb-0 me-4">
-                                                <span class="d-block mb-2">Password Information:</span>
-                                                <span class="fs-12 fw-normal text-muted text-truncate-1-line">You can only change your password twice within 24 hours! </span>
-                                            </h5>
-                                            <a href="javascript:void(0);" class="btn btn-sm btn-light-brand">Reset</a>
-                                        </div>
-                                        <div class="row mb-4 align-items-center">
-                                            <div class="col-lg-4">
-                                                <label for="Input" class="fw-semibold">Password: </label>
-                                            </div>
-                                            <div class="col-lg-8">
-                                                <div class="input-group">
-                                                    <div class="input-group-text"><i class="feather-key"></i></div>
-                                                    <input type="password" class="form-control" id="Input" placeholder="Password">
+
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-semibold text-muted">Biometric Status</label>
+                                                <div class="form-text">
+                                                    <?php if ($student['biometric_registered']): ?>
+                                                        <span class="badge bg-success">
+                                                            <i class="feather-check me-1"></i>Registered
+                                                        </span>
+                                                        <small class="d-block mt-2 text-muted">
+                                                            Registered on: <?php echo formatDateTime($student['biometric_registered_at']); ?>
+                                                        </small>
+                                                    <?php else: ?>
+                                                        <span class="badge bg-warning">
+                                                            <i class="feather-alert-circle me-1"></i>Not Registered
+                                                        </span>
+                                                    <?php endif; ?>
                                                 </div>
                                             </div>
-                                        </div>
-                                        <div class="row mb-4 align-items-center">
-                                            <div class="col-lg-4">
-                                                <label for="Input" class="fw-semibold">Password Confirm: </label>
-                                            </div>
-                                            <div class="col-lg-8 generate-pass">
-                                                <div class="input-group field">
-                                                    <div class="input-group-text"><i class="feather-key"></i></div>
-                                                    <input type="password" class="form-control password" id="newPassword" placeholder="Password Confirm">
-                                                    <div class="input-group-text c-pointer gen-pass"><i class="feather-hash"></i></div>
-                                                    <div class="input-group-text border-start bg-gray-2 c-pointer show-pass"><i></i></div>
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-semibold text-muted">Registration Date</label>
+                                                <div class="form-text">
+                                                    <small class="text-muted">
+                                                        Registered: <?php echo formatDateTime($student['created_at']); ?>
+                                                    </small>
                                                 </div>
-                                                <div class="progress-bar mt-2">
-                                                    <div></div>
-                                                    <div></div>
-                                                    <div></div>
-                                                    <div></div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="pass-hint">
-                                            <p class="fw-bold">Password Requirements:</p>
-                                            <ul class="fs-12 ps-1 ms-2 text-muted">
-                                                <li class="mb-1">At least one lowercase character</li>
-                                                <li class="mb-1">Minimum 8 characters long - the more, the better</li>
-                                                <li>At least one number, symbol, or whitespace character</li>
-                                            </ul>
-                                        </div>
-                                    </div>
-                                    <hr class="my-0">
-                                    <div class="card-body pass-security">
-                                        <div class="mb-4 d-flex align-items-center justify-content-between">
-                                            <h5 class="fw-bold mb-0 me-4">
-                                                <span class="d-block mb-2">Security preferences:</span>
-                                                <span class="fs-12 fw-normal text-muted text-truncate-1-line">Keep your account more secure with following preferences. </span>
-                                            </h5>
-                                            <a href="javascript:void(0);" class="btn btn-sm btn-light-brand">Check Auth</a>
-                                        </div>
-                                        <div class="hstack justify-content-between p-4 mb-3 border border-dashed border-gray-3 rounded-1">
-                                            <div class="hstack me-4">
-                                                <div class="avatar-text">
-                                                    <i class="feather-eye"></i>
-                                                </div>
-                                                <div class="ms-4">
-                                                    <a href="javascript:void(0);" class="fw-bold mb-1 text-truncate-1-line">Enable 2-step authentication</a>
-                                                    <div class="fs-12 text-muted text-truncate-1-line">Protects you against password theft by requesting an authentication code via SMS on every login.</div>
-                                                </div>
-                                            </div>
-                                            <div class="form-check form-switch form-switch-sm">
-                                                <label class="form-check-label fw-500 text-dark c-pointer" for="formSwitch2FA"></label>
-                                                <input class="form-check-input c-pointer" type="checkbox" id="formSwitch2FA">
-                                            </div>
-                                        </div>
-                                        <div class="hstack justify-content-between p-4 mb-3 border border-dashed border-gray-3 rounded-1">
-                                            <div class="hstack me-4">
-                                                <div class="avatar-text">
-                                                    <i class="feather-shield"></i>
-                                                </div>
-                                                <div class="ms-4">
-                                                    <a href="javascript:void(0);" class="fw-bold mb-1 text-truncate-1-line">Ask to change password on every 6 months</a>
-                                                    <div class="fs-12 text-muted text-truncate-1-line">A simple but an effective way to be protected against data leaks and password theft.</div>
-                                                </div>
-                                            </div>
-                                            <div class="form-check form-switch form-switch-sm">
-                                                <label class="form-check-label fw-500 text-dark c-pointer" for="formSwitchPassChange"></label>
-                                                <input class="form-check-input c-pointer" type="checkbox" id="formSwitchPassChange">
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                                <div class="tab-pane fade" id="notificationsTab" role="tabpanel">
-                                    <div class="table-responsive">
-                                        <table class="table mb-0">
-                                            <thead>
-                                                <tr>
-                                                    <th>Description</th>
-                                                    <th class="wd-250 text-end">Actions</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <tr>
-                                                    <td>
-                                                        <div class="fw-bold text-dark">Successful payments</div>
-                                                        <small class="fs-12 text-muted">Receive a notification for every successful payment.</small>
-                                                    </td>
-                                                    <td class="text-end">
-                                                        <div class="form-group select-wd-lg">
-                                                            <select class="form-control" data-select2-selector="icon">
-                                                                <option value="SMS" data-icon="feather-smartphone">SMS</option>
-                                                                <option value="Push" data-icon="feather-bell">Push</option>
-                                                                <option value="Email" data-icon="feather-mail" selected>Email</option>
-                                                                <option value="Repeat" data-icon="feather-repeat">Repeat</option>
-                                                                <option value="Deactivate" data-icon="feather-bell-off">Deactivate</option>
-                                                                <option value="SMS+Push" data-icon="feather-smartphone">SMS + Push</option>
-                                                                <option value="Email+Push" data-icon="feather-mail">Email + Push</option>
-                                                                <option value="SMS+Email" data-icon="feather-smartphone">SMS + Email</option>
-                                                                <option value="SMS+Push+Email" data-icon="feather-smartphone">SMS + Push + Email</option>
-                                                            </select>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                                <tr>
-                                                    <td>
-                                                        <div class="fw-bold text-dark">Customer payment dispute</div>
-                                                        <small class="fs-12 text-muted">Receive a notification if a payment is disputed by a customer and for dispute purposes. </small>
-                                                    </td>
-                                                    <td class="text-end">
-                                                        <div class="form-group select-wd-lg">
-                                                            <select class="form-control" data-select2-selector="icon">
-                                                                <option value="SMS" data-icon="feather-smartphone">SMS</option>
-                                                                <option value="Push" data-icon="feather-bell">Push</option>
-                                                                <option value="Email" data-icon="feather-mail">Email</option>
-                                                                <option value="Repeat" data-icon="feather-repeat">Repeat</option>
-                                                                <option value="Deactivate" data-icon="feather-bell-off" selected>Deactivate</option>
-                                                                <option value="SMS+Push" data-icon="feather-smartphone">SMS + Push</option>
-                                                                <option value="Email+Push" data-icon="feather-mail">Email + Push</option>
-                                                                <option value="SMS+Email" data-icon="feather-smartphone">SMS + Email</option>
-                                                                <option value="SMS+Push+Email" data-icon="feather-smartphone">SMS + Push + Email</option>
-                                                            </select>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                                <tr>
-                                                    <td>
-                                                        <div class="fw-bold text-dark">Refund alerts</div>
-                                                        <small class="fs-12 text-muted">Receive a notification if a payment is stated as risk by the Finance Department. </small>
-                                                    </td>
-                                                    <td class="text-end">
-                                                        <div class="form-group select-wd-lg">
-                                                            <select class="form-control" data-select2-selector="icon">
-                                                                <option value="SMS" data-icon="feather-smartphone">SMS</option>
-                                                                <option value="Push" data-icon="feather-bell" selected>Push</option>
-                                                                <option value="Email" data-icon="feather-mail">Email</option>
-                                                                <option value="Repeat" data-icon="feather-repeat">Repeat</option>
-                                                                <option value="Deactivate" data-icon="feather-bell-off">Deactivate</option>
-                                                                <option value="SMS+Push" data-icon="feather-smartphone">SMS + Push</option>
-                                                                <option value="Email+Push" data-icon="feather-mail">Email + Push</option>
-                                                                <option value="SMS+Email" data-icon="feather-smartphone">SMS + Email</option>
-                                                                <option value="SMS+Push+Email" data-icon="feather-smartphone">SMS + Push + Email</option>
-                                                            </select>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                                <tr>
-                                                    <td>
-                                                        <div class="fw-bold text-dark">Invoice payments</div>
-                                                        <small class="fs-12 text-muted">Receive a notification if a customer sends an incorrect amount to pay their invoice. </small>
-                                                    </td>
-                                                    <td class="text-end">
-                                                        <div class="form-group select-wd-lg">
-                                                            <select class="form-control" data-select2-selector="icon">
-                                                                <option value="SMS" data-icon="feather-smartphone">SMS</option>
-                                                                <option value="Push" data-icon="feather-bell">Push</option>
-                                                                <option value="Email" data-icon="feather-mail" selected>Email</option>
-                                                                <option value="Repeat" data-icon="feather-repeat">Repeat</option>
-                                                                <option value="Deactivate" data-icon="feather-bell-off">Deactivate</option>
-                                                                <option value="SMS+Push" data-icon="feather-smartphone">SMS + Push</option>
-                                                                <option value="Email+Push" data-icon="feather-mail">Email + Push</option>
-                                                                <option value="SMS+Email" data-icon="feather-smartphone">SMS + Email</option>
-                                                                <option value="SMS+Push+Email" data-icon="feather-smartphone">SMS + Push + Email</option>
-                                                            </select>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                                <tr>
-                                                    <td>
-                                                        <div class="fw-bold text-dark">Rating reminders</div>
-                                                        <small class="fs-12 text-muted">Send an email reminding me to rate an item a week after purchase </small>
-                                                    </td>
-                                                    <td class="text-end">
-                                                        <div class="form-group select-wd-lg">
-                                                            <select class="form-control" data-select2-selector="icon">
-                                                                <option value="SMS" data-icon="feather-smartphone">SMS</option>
-                                                                <option value="Push" data-icon="feather-bell">Push</option>
-                                                                <option value="Email" data-icon="feather-mail">Email</option>
-                                                                <option value="Repeat" data-icon="feather-repeat">Repeat</option>
-                                                                <option value="Deactivate" data-icon="feather-bell-off" selected>Deactivate</option>
-                                                                <option value="SMS+Push" data-icon="feather-smartphone">SMS + Push</option>
-                                                                <option value="Email+Push" data-icon="feather-mail">Email + Push</option>
-                                                                <option value="SMS+Email" data-icon="feather-smartphone">SMS + Email</option>
-                                                                <option value="SMS+Push+Email" data-icon="feather-smartphone">SMS + Push + Email</option>
-                                                            </select>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                                <tr>
-                                                    <td>
-                                                        <div class="fw-bold text-dark">Item update notifications</div>
-                                                        <small class="fs-12 text-muted">Send an email when an item I've purchased is updated </small>
-                                                    </td>
-                                                    <td class="text-end">
-                                                        <div class="form-group select-wd-lg">
-                                                            <select class="form-control" data-select2-selector="icon">
-                                                                <option value="SMS" data-icon="feather-smartphone" selected>SMS</option>
-                                                                <option value="Push" data-icon="feather-bell">Push</option>
-                                                                <option value="Email" data-icon="feather-mail">Email</option>
-                                                                <option value="Repeat" data-icon="feather-repeat">Repeat</option>
-                                                                <option value="Deactivate" data-icon="feather-bell-off">Deactivate</option>
-                                                                <option value="SMS+Push" data-icon="feather-smartphone">SMS + Push</option>
-                                                                <option value="Email+Push" data-icon="feather-mail">Email + Push</option>
-                                                                <option value="SMS+Email" data-icon="feather-smartphone">SMS + Email</option>
-                                                                <option value="SMS+Push+Email" data-icon="feather-smartphone">SMS + Push + Email</option>
-                                                            </select>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                                <tr>
-                                                    <td>
-                                                        <div class="fw-bold text-dark">Item comment notifications</div>
-                                                        <small class="fs-12 text-muted">Send me an email when someone comments on one of my items </small>
-                                                    </td>
-                                                    <td class="text-end">
-                                                        <div class="form-group select-wd-lg">
-                                                            <select class="form-control" data-select2-selector="icon">
-                                                                <option value="SMS" data-icon="feather-smartphone">SMS</option>
-                                                                <option value="Push" data-icon="feather-bell" selected>Push</option>
-                                                                <option value="Email" data-icon="feather-mail">Email</option>
-                                                                <option value="Repeat" data-icon="feather-repeat">Repeat</option>
-                                                                <option value="Deactivate" data-icon="feather-bell-off">Deactivate</option>
-                                                                <option value="SMS+Push" data-icon="feather-smartphone">SMS + Push</option>
-                                                                <option value="Email+Push" data-icon="feather-mail">Email + Push</option>
-                                                                <option value="SMS+Email" data-icon="feather-smartphone">SMS + Email</option>
-                                                                <option value="SMS+Push+Email" data-icon="feather-smartphone">SMS + Push + Email</option>
-                                                            </select>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                                <tr>
-                                                    <td>
-                                                        <div class="fw-bold text-dark">Team comment notifications</div>
-                                                        <small class="fs-12 text-muted">Send me an email when someone comments on one of my team items </small>
-                                                    </td>
-                                                    <td class="text-end">
-                                                        <div class="form-group select-wd-lg">
-                                                            <select class="form-control" data-select2-selector="icon">
-                                                                <option value="SMS" data-icon="feather-smartphone">SMS</option>
-                                                                <option value="Push" data-icon="feather-bell">Push</option>
-                                                                <option value="Email" data-icon="feather-mail">Email</option>
-                                                                <option value="Repeat" data-icon="feather-repeat" selected>Repeat</option>
-                                                                <option value="Deactivate" data-icon="feather-bell-off">Deactivate</option>
-                                                                <option value="SMS+Push" data-icon="feather-smartphone">SMS + Push</option>
-                                                                <option value="Email+Push" data-icon="feather-mail">Email + Push</option>
-                                                                <option value="SMS+Email" data-icon="feather-smartphone">SMS + Email</option>
-                                                                <option value="SMS+Push+Email" data-icon="feather-smartphone">SMS + Push + Email</option>
-                                                            </select>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                                <tr>
-                                                    <td>
-                                                        <div class="fw-bold text-dark">Item review notifications</div>
-                                                        <small class="fs-12 text-muted">Send me an email when my items are approved or rejected </small>
-                                                    </td>
-                                                    <td class="text-end">
-                                                        <div class="form-group select-wd-lg">
-                                                            <select class="form-control" data-select2-selector="icon">
-                                                                <option value="SMS" data-icon="feather-smartphone">SMS</option>
-                                                                <option value="Push" data-icon="feather-bell">Push</option>
-                                                                <option value="Email" data-icon="feather-mail">Email</option>
-                                                                <option value="Repeat" data-icon="feather-repeat">Repeat</option>
-                                                                <option value="Deactivate" data-icon="feather-bell-off" selected>Deactivate</option>
-                                                                <option value="SMS+Push" data-icon="feather-smartphone">SMS + Push</option>
-                                                                <option value="Email+Push" data-icon="feather-mail">Email + Push</option>
-                                                                <option value="SMS+Email" data-icon="feather-smartphone">SMS + Email</option>
-                                                                <option value="SMS+Push+Email" data-icon="feather-smartphone">SMS + Push + Email</option>
-                                                            </select>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                                <tr>
-                                                    <td>
-                                                        <div class="fw-bold text-dark">Buyer review notifications</div>
-                                                        <small class="fs-12 text-muted">Send me an email when someone leaves a review with their rating </small>
-                                                    </td>
-                                                    <td class="text-end">
-                                                        <div class="form-group select-wd-lg">
-                                                            <select class="form-control" data-select2-selector="icon">
-                                                                <option value="SMS" data-icon="feather-smartphone">SMS</option>
-                                                                <option value="Push" data-icon="feather-bell">Push</option>
-                                                                <option value="Email" data-icon="feather-mail">Email</option>
-                                                                <option value="Repeat" data-icon="feather-repeat">Repeat</option>
-                                                                <option value="Deactivate" data-icon="feather-bell-off" selected>Deactivate</option>
-                                                                <option value="SMS+Push" data-icon="feather-smartphone">SMS + Push</option>
-                                                                <option value="Email+Push" data-icon="feather-mail">Email + Push</option>
-                                                                <option value="SMS+Email" data-icon="feather-smartphone">SMS + Email</option>
-                                                                <option value="SMS+Push+Email" data-icon="feather-smartphone">SMS + Push + Email</option>
-                                                            </select>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                                <tr>
-                                                    <td>
-                                                        <div class="fw-bold text-dark">Expiring support notifications</div>
-                                                        <small class="fs-12 text-muted">Send me emails showing my soon to expire support entitlements </small>
-                                                    </td>
-                                                    <td class="text-end">
-                                                        <div class="form-group select-wd-lg">
-                                                            <select class="form-control" data-select2-selector="icon">
-                                                                <option value="SMS" data-icon="feather-smartphone">SMS</option>
-                                                                <option value="Push" data-icon="feather-bell">Push</option>
-                                                                <option value="Email" data-icon="feather-mail" selected>Email</option>
-                                                                <option value="Repeat" data-icon="feather-repeat">Repeat</option>
-                                                                <option value="Deactivate" data-icon="feather-bell-off">Deactivate</option>
-                                                                <option value="SMS+Push" data-icon="feather-smartphone">SMS + Push</option>
-                                                                <option value="Email+Push" data-icon="feather-mail">Email + Push</option>
-                                                                <option value="SMS+Email" data-icon="feather-smartphone">SMS + Email</option>
-                                                                <option value="SMS+Push+Email" data-icon="feather-smartphone">SMS + Push + Email</option>
-                                                            </select>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                                <tr>
-                                                    <td>
-                                                        <div class="fw-bold text-dark">Daily summary emails</div>
-                                                        <small class="fs-12 text-muted">Send me a daily summary of all items approved or rejected </small>
-                                                    </td>
-                                                    <td class="text-end">
-                                                        <div class="form-group select-wd-lg">
-                                                            <select class="form-control" data-select2-selector="icon">
-                                                                <option value="SMS" data-icon="feather-smartphone">SMS</option>
-                                                                <option value="Push" data-icon="feather-bell" selected>Push</option>
-                                                                <option value="Email" data-icon="feather-mail">Email</option>
-                                                                <option value="Repeat" data-icon="feather-repeat">Repeat</option>
-                                                                <option value="Deactivate" data-icon="feather-bell-off">Deactivate</option>
-                                                                <option value="SMS+Push" data-icon="feather-smartphone">SMS + Push</option>
-                                                                <option value="Email+Push" data-icon="feather-mail">Email + Push</option>
-                                                                <option value="SMS+Email" data-icon="feather-smartphone">SMS + Email</option>
-                                                                <option value="SMS+Push+Email" data-icon="feather-smartphone">SMS + Push + Email</option>
-                                                            </select>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
+
+                                    <hr>
+
+                                    <!-- Form Actions -->
+                                    <div class="d-flex gap-2 justify-content-end pt-4">
+                                        <a href="students-view.php?id=<?php echo $student['id']; ?>" class="btn btn-light-brand">
+                                            <i class="feather-x me-2"></i>Cancel
+                                        </a>
+                                        <button type="reset" class="btn btn-outline-secondary">
+                                            <i class="feather-refresh-cw me-2"></i>Reset
+                                        </button>
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="feather-save me-2"></i>Save Changes
+                                        </button>
                                     </div>
-                                    <hr class="my-0">
-                                    <div class="card-body notify-activity-section">
-                                        <div class="mb-4 d-flex align-items-center justify-content-between">
-                                            <h5 class="fw-bold mb-0 me-4">
-                                                <span class="d-block mb-2">Account Activity:</span>
-                                                <span class="fs-12 fw-normal text-muted text-truncate-1-line">Lookup you account activity checkup.</span>
-                                            </h5>
-                                            <a href="javascript:void(0);" class="btn btn-sm btn-light-brand">View Activity</a>
-                                        </div>
-                                        <div class="hstack justify-content-between p-4 mb-3 border border-dashed border-gray-3 rounded-1">
-                                            <div class="hstack me-4">
-                                                <div class="avatar-text">
-                                                    <i class="feather-message-square"></i>
-                                                </div>
-                                                <div class="ms-4">
-                                                    <a href="javascript:void(0);" class="fw-bold mb-1 text-truncate-1-line">Someone comments on one of my items</a>
-                                                    <div class="fs-12 text-muted text-truncate-1-line">If someone comments on one of your items, it's important to respond in a timely and appropriate manner.</div>
-                                                </div>
-                                            </div>
-                                            <div class="form-check form-switch form-switch-sm">
-                                                <label class="form-check-label fw-500 text-dark c-pointer" for="formSwitchComment"></label>
-                                                <input class="form-check-input c-pointer" type="checkbox" id="formSwitchComment">
-                                            </div>
-                                        </div>
-                                        <div class="hstack justify-content-between p-4 mb-3 border border-dashed border-gray-3 rounded-1">
-                                            <div class="hstack me-4">
-                                                <div class="avatar-text">
-                                                    <i class="feather-briefcase"></i>
-                                                </div>
-                                                <div class="ms-4">
-                                                    <a href="javascript:void(0);" class="fw-bold mb-1 text-truncate-1-line">Someone replies to my job posting</a>
-                                                    <div class="fs-12 text-muted text-truncate-1-line">Great! It's always exciting to hear from someone who's interested in a job posting you've put out.</div>
-                                                </div>
-                                            </div>
-                                            <div class="form-check form-switch form-switch-sm">
-                                                <label class="form-check-label fw-500 text-dark c-pointer" for="formSwitchReplie"></label>
-                                                <input class="form-check-input c-pointer" type="checkbox" id="formSwitchReplie">
-                                            </div>
-                                        </div>
-                                        <div class="hstack justify-content-between p-4 mb-3 border border-dashed border-gray-3 rounded-1">
-                                            <div class="hstack me-4">
-                                                <div class="avatar-text">
-                                                    <i class="feather-briefcase"></i>
-                                                </div>
-                                                <div class="ms-4">
-                                                    <a href="javascript:void(0);" class="fw-bold mb-1 text-truncate-1-line">Someone mentions or follows me</a>
-                                                    <div class="fs-12 text-muted text-truncate-1-line">If you received a notification that someone mentioned or followed you, take a moment to read it and understand what it means.</div>
-                                                </div>
-                                            </div>
-                                            <div class="form-check form-switch form-switch-sm">
-                                                <label class="form-check-label fw-500 text-dark c-pointer" for="formSwitchFollow"></label>
-                                                <input class="form-check-input c-pointer" type="checkbox" id="formSwitchFollow">
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+                                </form>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-            <!-- [ Main Content ] end -->
         </div>
-        <!-- [ Footer ] start -->
+
+        <!-- Footer -->
         <footer class="footer">
             <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
                 <span>Copyright ©</span>
@@ -1080,208 +538,77 @@
                     document.write(new Date().getFullYear());
                 </script>
             </p>
-            <p><span>By: <a target="_blank" href="" target="_blank">ACT 2A</a></span> • <span>Distributed by: <a target="_blank" href="" target="_blank">Group 5</a></span></p>
+            <p><span>By: <a target="_blank" href="">ACT 2A</a></span> • <span>Distributed by: <a target="_blank" href="">Group 5</a></span></p>
             <div class="d-flex align-items-center gap-4">
                 <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Help</a>
                 <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Terms</a>
                 <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Privacy</a>
             </div>
         </footer>
-        <!-- [ Footer ] end -->
     </main>
-    <!--! ================================================================ !-->
-    <!--! [End] Main Content !-->
-    <!--! ================================================================ !-->
-    <!--! ================================================================ !-->
-    <!--! BEGIN: Theme Customizer !-->
-    <!--! ================================================================ !-->
-    <div class="theme-customizer">
-        <div class="customizer-handle">
-            <a href="javascript:void(0);" class="cutomizer-open-trigger bg-primary">
-                <i class="feather-settings"></i>
-            </a>
-        </div>
-        <div class="customizer-sidebar-wrapper">
-            <div class="customizer-sidebar-header px-4 ht-80 border-bottom d-flex align-items-center justify-content-between">
-                <h5 class="mb-0">Theme Settings</h5>
-                <a href="javascript:void(0);" class="cutomizer-close-trigger d-flex">
-                    <i class="feather-x"></i>
-                </a>
-            </div>
-            <div class="customizer-sidebar-body position-relative p-4" data-scrollbar-target="#psScrollbarInit">
-                <!--! BEGIN: [Navigation] !-->
-                <div class="position-relative px-3 pb-3 pt-4 mt-3 mb-5 border border-gray-2 theme-options-set">
-                    <label class="py-1 px-2 fs-8 fw-bold text-uppercase text-muted text-spacing-2 bg-white border border-gray-2 position-absolute rounded-2 options-label" style="top: -12px">Navigation</label>
-                    <div class="row g-2 theme-options-items app-navigation" id="appNavigationList">
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-navigation-light" name="app-navigation" value="1" data-app-navigation="app-navigation-light" checked>
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-navigation-light">Light</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-navigation-dark" name="app-navigation" value="2" data-app-navigation="app-navigation-dark">
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-navigation-dark">Dark</label>
-                        </div>
-                    </div>
-                </div>
-                <!--! END: [Navigation] !-->
-                <!--! BEGIN: [Header] !-->
-                <div class="position-relative px-3 pb-3 pt-4 mt-3 mb-5 border border-gray-2 theme-options-set mt-5">
-                    <label class="py-1 px-2 fs-8 fw-bold text-uppercase text-muted text-spacing-2 bg-white border border-gray-2 position-absolute rounded-2 options-label" style="top: -12px">Header</label>
-                    <div class="row g-2 theme-options-items app-header" id="appHeaderList">
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-header-light" name="app-header" value="1" data-app-header="app-header-light" checked>
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-header-light">Light</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-header-dark" name="app-header" value="2" data-app-header="app-header-dark">
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-header-dark">Dark</label>
-                        </div>
-                    </div>
-                </div>
-                <!--! END: [Header] !-->
-                <!--! BEGIN: [Skins] !-->
-                <div class="position-relative px-3 pb-3 pt-4 mt-3 mb-5 border border-gray-2 theme-options-set">
-                    <label class="py-1 px-2 fs-8 fw-bold text-uppercase text-muted text-spacing-2 bg-white border border-gray-2 position-absolute rounded-2 options-label" style="top: -12px">Skins</label>
-                    <div class="row g-2 theme-options-items app-skin" id="appSkinList">
-                        <div class="col-6 text-center position-relative single-option light-button active">
-                            <input type="radio" class="btn-check" id="app-skin-light" name="app-skin" value="1" data-app-skin="app-skin-light">
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-skin-light">Light</label>
-                        </div>
-                        <div class="col-6 text-center position-relative single-option dark-button">
-                            <input type="radio" class="btn-check" id="app-skin-dark" name="app-skin" value="2" data-app-skin="app-skin-dark">
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-skin-dark">Dark</label>
-                        </div>
-                    </div>
-                </div>
-                <!--! END: [Skins] !-->
-                <!--! BEGIN: [Typography] !-->
-                <div class="position-relative px-3 pb-3 pt-4 mt-3 mb-0 border border-gray-2 theme-options-set">
-                    <label class="py-1 px-2 fs-8 fw-bold text-uppercase text-muted text-spacing-2 bg-white border border-gray-2 position-absolute rounded-2 options-label" style="top: -12px">Typography</label>
-                    <div class="row g-2 theme-options-items font-family" id="fontFamilyList">
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-lato" name="font-family" value="1" data-font-family="app-font-family-lato">
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-lato">Lato</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-rubik" name="font-family" value="2" data-font-family="app-font-family-rubik">
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-rubik">Rubik</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-inter" name="font-family" value="3" data-font-family="app-font-family-inter" checked>
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-inter">Inter</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-cinzel" name="font-family" value="4" data-font-family="app-font-family-cinzel">
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-cinzel">Cinzel</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-nunito" name="font-family" value="6" data-font-family="app-font-family-nunito">
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-nunito">Nunito</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-roboto" name="font-family" value="7" data-font-family="app-font-family-roboto">
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-roboto">Roboto</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-ubuntu" name="font-family" value="8" data-font-family="app-font-family-ubuntu">
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-ubuntu">Ubuntu</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-poppins" name="font-family" value="9" data-font-family="app-font-family-poppins">
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-poppins">Poppins</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-raleway" name="font-family" value="10" data-font-family="app-font-family-raleway">
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-raleway">Raleway</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-system-ui" name="font-family" value="11" data-font-family="app-font-family-system-ui">
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-system-ui">System UI</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-noto-sans" name="font-family" value="12" data-font-family="app-font-family-noto-sans">
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-noto-sans">Noto Sans</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-fira-sans" name="font-family" value="13" data-font-family="app-font-family-fira-sans">
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-fira-sans">Fira Sans</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-work-sans" name="font-family" value="14" data-font-family="app-font-family-work-sans">
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-work-sans">Work Sans</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-open-sans" name="font-family" value="15" data-font-family="app-font-family-open-sans">
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-open-sans">Open Sans</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-maven-pro" name="font-family" value="16" data-font-family="app-font-family-maven-pro">
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-maven-pro">Maven Pro</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-quicksand" name="font-family" value="17" data-font-family="app-font-family-quicksand">
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-quicksand">Quicksand</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-montserrat" name="font-family" value="18" data-font-family="app-font-family-montserrat">
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-montserrat">Montserrat</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-josefin-sans" name="font-family" value="19" data-font-family="app-font-family-josefin-sans">
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-josefin-sans">Josefin Sans</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-ibm-plex-sans" name="font-family" value="20" data-font-family="app-font-family-ibm-plex-sans">
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-ibm-plex-sans">IBM Plex Sans</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-source-sans-pro" name="font-family" value="5" data-font-family="app-font-family-source-sans-pro">
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-source-sans-pro">Source Sans Pro</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-montserrat-alt" name="font-family" value="21" data-font-family="app-font-family-montserrat-alt">
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-montserrat-alt">Montserrat Alt</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-roboto-slab" name="font-family" value="22" data-font-family="app-font-family-roboto-slab">
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-roboto-slab">Roboto Slab</label>
-                        </div>
-                    </div>
-                </div>
-                <!--! END: [Typography] !-->
-            </div>
-            <div class="customizer-sidebar-footer px-4 ht-60 border-top d-flex align-items-center gap-2">
-                <div class="flex-fill w-50">
-                    <a href="javascript:void(0);" class="btn btn-danger" data-style="reset-all-common-style">Reset</a>
-                </div>
-                <div class="flex-fill w-50">
-                    <a href="https://www.themewagon.com/themes/BioTern-admin" target="_blank" class="btn btn-primary">Download</a>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <!--! ================================================================ !-->
-    <!--! [End] Theme Customizer !-->
-    <!--! ================================================================ !-->
-    <!--! ================================================================ !-->
-    <!--! Footer Script !-->
-    <!--! ================================================================ !-->
-    <!--! BEGIN: Vendors JS !-->
+    <!-- Scripts -->
     <script src="assets/vendors/js/vendors.min.js"></script>
-    <!-- vendors.min.js {always must need to be top} -->
     <script src="assets/vendors/js/select2.min.js"></script>
     <script src="assets/vendors/js/select2-active.min.js"></script>
     <script src="assets/vendors/js/datepicker.min.js"></script>
-    <script src="assets/vendors/js/lslstrength.min.js"></script>
-    <!--! END: Vendors JS !-->
-    <!--! BEGIN: Apps Init  !-->
     <script src="assets/js/common-init.min.js"></script>
-    <script src="assets/js/customers-create-init.min.js"></script>
-    <!--! END: Apps Init !-->
-    <!--! BEGIN: Theme Customizer  !-->
     <script src="assets/js/theme-customizer-init.min.js"></script>
-    <!--! END: Theme Customizer !-->
+
+    <script>
+        // Initialize form elements
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize select2 for dropdowns
+            $('#course_id, #status, #gender').select2({
+                allowClear: true,
+                width: '100%'
+            });
+
+            // Initialize datepicker for date fields
+            $('#date_of_birth').datepicker({
+                format: 'yyyy-mm-dd',
+                autoclose: true
+            });
+
+            // Form validation
+            document.getElementById('editStudentForm').addEventListener('submit', function(e) {
+                var firstName = document.getElementById('first_name').value.trim();
+                var lastName = document.getElementById('last_name').value.trim();
+                var email = document.getElementById('email').value.trim();
+
+                if (!firstName || !lastName || !email) {
+                    e.preventDefault();
+                    alert('Please fill in all required fields!');
+                    return false;
+                }
+
+                // Email validation
+                var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(email)) {
+                    e.preventDefault();
+                    alert('Please enter a valid email address!');
+                    return false;
+                }
+
+                return true;
+            });
+        });
+
+        // Auto-hide alerts after 5 seconds
+        document.addEventListener('DOMContentLoaded', function() {
+            var alerts = document.querySelectorAll('.alert');
+            alerts.forEach(function(alert) {
+                setTimeout(function() {
+                    var bsAlert = new bootstrap.Alert(alert);
+                    bsAlert.close();
+                }, 5000);
+            });
+        });
+    </script>
 </body>
 
 </html>
+
+<?php
+$conn->close();
+?>
