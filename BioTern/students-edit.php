@@ -39,10 +39,16 @@ $student_query = "
         s.biometric_registered,
         s.biometric_registered_at,
         s.created_at,
+        s.supervisor_name,
+        s.coordinator_name,
         c.name as course_name,
-        c.id as course_id
+        c.id as course_id,
+        i.id as internship_id,
+        i.supervisor_id,
+        i.coordinator_id
     FROM students s
     LEFT JOIN courses c ON s.course_id = c.id
+    LEFT JOIN internships i ON s.id = i.student_id AND i.status = 'ongoing'
     WHERE s.id = ?
     LIMIT 1
 ";
@@ -68,6 +74,25 @@ if ($courses_result->num_rows > 0) {
     }
 }
 
+// Fetch all supervisors and coordinators for dropdowns
+$supervisors_query = "SELECT DISTINCT supervisor_name FROM students WHERE supervisor_name IS NOT NULL ORDER BY supervisor_name ASC";
+$supervisors_result = $conn->query($supervisors_query);
+$supervisors = [];
+if ($supervisors_result->num_rows > 0) {
+    while ($row = $supervisors_result->fetch_assoc()) {
+        $supervisors[] = ['name' => $row['supervisor_name']];
+    }
+}
+
+$coordinators_query = "SELECT DISTINCT coordinator_name FROM students WHERE coordinator_name IS NOT NULL ORDER BY coordinator_name ASC";
+$coordinators_result = $conn->query($coordinators_query);
+$coordinators = [];
+if ($coordinators_result->num_rows > 0) {
+    while ($row = $coordinators_result->fetch_assoc()) {
+        $coordinators[] = ['name' => $row['coordinator_name']];
+    }
+}
+
 // Handle form submission
 $success_message = '';
 $error_message = '';
@@ -85,6 +110,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $emergency_contact = isset($_POST['emergency_contact']) ? trim($_POST['emergency_contact']) : '';
     $course_id = isset($_POST['course_id']) ? intval($_POST['course_id']) : 0;
     $status = isset($_POST['status']) ? intval($_POST['status']) : 1;
+    $supervisor_id = isset($_POST['supervisor_id']) ? trim($_POST['supervisor_id']) : '';
+    $coordinator_id = isset($_POST['coordinator_id']) ? trim($_POST['coordinator_id']) : '';
 
     // Validation
     if (empty($first_name) || empty($last_name) || empty($email)) {
@@ -116,6 +143,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     emergency_contact = ?,
                     course_id = ?,
                     status = ?,
+                    supervisor_name = ?,
+                    coordinator_name = ?,
                     updated_at = NOW()
                 WHERE id = ?
             ";
@@ -125,7 +154,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $error_message = "Prepare failed: " . $conn->error;
             } else {
                 $update_stmt->bind_param(
-                    "ssssssssssii",
+                    "sssssssssssssi",
                     $first_name,
                     $last_name,
                     $middle_name,
@@ -137,6 +166,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $emergency_contact,
                     $course_id,
                     $status,
+                    $supervisor_id,
+                    $coordinator_id,
                     $student_id
                 );
 
@@ -193,7 +224,92 @@ function formatDateTime($date) {
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2-theme.min.css">
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/datepicker.min.css">
     <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css">
-</head>
+    
+    <style>
+        /* Fix Select2 dropdown positioning */
+        .select2-container--default .select2-selection--single {
+            height: 40px;
+            padding: 6px 12px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+        }
+
+        .select2-container--default.select2-container--open .select2-selection--single {
+            border-bottom-left-radius: 0;
+            border-bottom-right-radius: 0;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            padding-left: 0;
+            align-items: center;
+            display: flex;
+        }
+
+        .select2-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 100%;
+            z-index: 9999;
+            border-top: none;
+            border-radius: 0 0 4px 4px;
+        }
+
+        .select2-container--default .select2-dropdown {
+            border: 1px solid #dddddd;
+            margin-top: -1px;
+        }
+
+        .select2-container {
+            width: 100%;
+        }
+
+        .select2-container--open .select2-dropdown {
+            display: block;
+        }
+
+        .select2-dropdown--below {
+            border-top: none;
+        }
+
+        .form-control.select2-hidden-accessible {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+        }
+
+        /* Ensure dropdown appears above other content */
+        .select2-container--open {
+            z-index: 9999;
+        }
+
+        .select2-results {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        /* Fix class for form control Select2 styling */
+        .form-control-select2 {
+            width: 100%;
+        }
+
+        .select2-container--default .select2-selection--single {
+            border: 1px solid #d3d3d3;
+            background-color: #fff;
+            color: #333;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 28px;
+        }
+    </style></head>
 
 <body>
     <!--! Navigation !-->
@@ -222,6 +338,32 @@ function formatDateTime($date) {
                     </li>
                     <li class="nxl-item nxl-hasmenu">
                         <a href="javascript:void(0);" class="nxl-link">
+                            <span class="nxl-micon"><i class="feather-cast"></i></span>
+                            <span class="nxl-mtext">Reports</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                        </a>
+                        <ul class="nxl-submenu">
+                            <li class="nxl-item"><a class="nxl-link" href="reports-sales.html">Sales Report</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="reports-leads.html">Leads Report</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="reports-project.html">Project Report</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="reports-timesheets.html">Timesheets Report</a></li>
+                        </ul>
+                    </li>
+                    <li class="nxl-item nxl-hasmenu">
+                        <a href="javascript:void(0);" class="nxl-link">
+                            <span class="nxl-micon"><i class="feather-send"></i></span>
+                            <span class="nxl-mtext">Applications</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                        </a>
+                        <ul class="nxl-submenu">
+                            <li class="nxl-item"><a class="nxl-link" href="apps-chat.html">Chat</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="apps-email.html">Email</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="apps-tasks.html">Tasks</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="apps-notes.html">Notes</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="apps-storage.html">Storage</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="apps-calendar.html">Calendar</a></li>
+                        </ul>
+                    </li>
+                    <li class="nxl-item nxl-hasmenu">
+                        <a href="javascript:void(0);" class="nxl-link">
                             <span class="nxl-micon"><i class="feather-users"></i></span>
                             <span class="nxl-mtext">Students</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
@@ -229,8 +371,30 @@ function formatDateTime($date) {
                             <li class="nxl-item"><a class="nxl-link" href="students.php">Students</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="students-view.php">Students View</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="students-create.html">Students Create</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="attendance.php">Attendance DTR</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="demo-biometric.php">Demo Biometric</a></li>
+                        </ul>
+                    </li>
+                    <li class="nxl-item nxl-hasmenu">
+                        <a href="javascript:void(0);" class="nxl-link">
+                            <span class="nxl-micon"><i class="feather-alert-circle"></i></span>
+                            <span class="nxl-mtext">Leads</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                        </a>
+                        <ul class="nxl-submenu">
+                            <li class="nxl-item"><a class="nxl-link" href="leads.html">Leads</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="leads-view.html">Leads View</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="leads-create.html">Leads Create</a></li>
+                        </ul>
+                    </li>
+                    <li class="nxl-item nxl-hasmenu">
+                        <a href="javascript:void(0);" class="nxl-link">
+                            <span class="nxl-micon"><i class="feather-layout"></i></span>
+                            <span class="nxl-mtext">Widgets</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                        </a>
+                        <ul class="nxl-submenu">
+                            <li class="nxl-item"><a class="nxl-link" href="widgets-lists.html">Lists</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="widgets-tables.html">Tables</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="widgets-charts.html">Charts</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="widgets-statistics.html">Statistics</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="widgets-miscellaneous.html">Miscellaneous</a></li>
                         </ul>
                     </li>
                     <li class="nxl-item nxl-hasmenu">
@@ -240,7 +404,70 @@ function formatDateTime($date) {
                         </a>
                         <ul class="nxl-submenu">
                             <li class="nxl-item"><a class="nxl-link" href="settings-general.html">General</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="settings-seo.html">SEO</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="settings-tags.html">Tags</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="settings-email.html">Email</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="settings-tasks.html">Tasks</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="settings-leads.html">Leads</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="settings-support.html">Support</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="settings-students.php">Students</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="settings-miscellaneous.html">Miscellaneous</a></li>
+                        </ul>
+                    </li>
+                    <li class="nxl-item nxl-hasmenu">
+                        <a href="javascript:void(0);" class="nxl-link">
+                            <span class="nxl-micon"><i class="feather-power"></i></span>
+                            <span class="nxl-mtext">Authentication</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                        </a>
+                        <ul class="nxl-submenu">
+                            <li class="nxl-item nxl-hasmenu">
+                                <a href="javascript:void(0);" class="nxl-link">
+                                    <span class="nxl-mtext">Login</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                                </a>
+                                <ul class="nxl-submenu">
+                                    <li class="nxl-item"><a class="nxl-link" href="auth-login-cover.html">Cover</a></li>
+                                </ul>
+                            </li>
+                            <li class="nxl-item nxl-hasmenu">
+                                <a href="javascript:void(0);" class="nxl-link">
+                                    <span class="nxl-mtext">Register</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                                </a>
+                                <ul class="nxl-submenu">
+                                    <li class="nxl-item"><a class="nxl-link" href="auth-register-creative.html">Creative</a></li>
+                                </ul>
+                            </li>
+                            <li class="nxl-item nxl-hasmenu">
+                                <a href="javascript:void(0);" class="nxl-link">
+                                    <span class="nxl-mtext">Error-404</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                                </a>
+                                <ul class="nxl-submenu">
+                                    <li class="nxl-item"><a class="nxl-link" href="auth-404-minimal.html">Minimal</a></li>
+                                </ul>
+                            </li>
+                            <li class="nxl-item nxl-hasmenu">
+                                <a href="javascript:void(0);" class="nxl-link">
+                                    <span class="nxl-mtext">Reset Pass</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                                </a>
+                                <ul class="nxl-submenu">
+                                    <li class="nxl-item"><a class="nxl-link" href="auth-reset-cover.html">Cover</a></li>
+                                </ul>
+                            </li>
+                            <li class="nxl-item nxl-hasmenu">
+                                <a href="javascript:void(0);" class="nxl-link">
+                                    <span class="nxl-mtext">Verify OTP</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                                </a>
+                                <ul class="nxl-submenu">
+                                    <li class="nxl-item"><a class="nxl-link" href="auth-verify-cover.html">Cover</a></li>
+                                </ul>
+                            </li>
+                            <li class="nxl-item nxl-hasmenu">
+                                <a href="javascript:void(0);" class="nxl-link">
+                                    <span class="nxl-mtext">Maintenance</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                                </a>
+                                <ul class="nxl-submenu">
+                                    <li class="nxl-item"><a class="nxl-link" href="auth-maintenance-cover.html">Cover</a></li>
+                                </ul>
+                            </li>
                         </ul>
                     </li>
                     <li class="nxl-item nxl-hasmenu">
@@ -251,6 +478,7 @@ function formatDateTime($date) {
                         <ul class="nxl-submenu">
                             <li class="nxl-item"><a class="nxl-link" href="#!">Support</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="help-knowledgebase.html">KnowledgeBase</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="/docs/documentations">Documentations</a></li>
                         </ul>
                     </li>
                 </ul>
@@ -290,6 +518,36 @@ function formatDateTime($date) {
                                     <i class="feather-search fs-6 text-muted"></i>
                                 </span>
                                 <input type="text" class="form-control search-input-field" placeholder="Search....">
+                                <span class="input-group-text">
+                                    <button type="button" class="btn-close"></button>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="nxl-h-item d-none d-sm-flex">
+                        <div class="full-screen-switcher">
+                            <a href="javascript:void(0);" class="nxl-head-link me-0" onclick="$('body').fullScreenHelper('toggle');">
+                                <i class="feather-maximize maximize"></i>
+                                <i class="feather-minimize minimize"></i>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="nxl-h-item dark-light-theme">
+                        <a href="javascript:void(0);" class="nxl-head-link me-0 dark-button">
+                            <i class="feather-moon"></i>
+                        </a>
+                        <a href="javascript:void(0);" class="nxl-head-link me-0 light-button" style="display: none">
+                            <i class="feather-sun"></i>
+                        </a>
+                    </div>
+                    <div class="dropdown nxl-h-item">
+                        <a class="nxl-head-link me-3" data-bs-toggle="dropdown" href="#" role="button" data-bs-auto-close="outside">
+                            <i class="feather-bell"></i>
+                            <span class="badge bg-danger nxl-h-badge">3</span>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-notifications-menu">
+                            <div class="d-flex justify-content-between align-items-center notifications-head">
+                                <h6 class="fw-bold text-dark mb-0">Notifications</h6>
                             </div>
                         </div>
                     </div>
@@ -307,6 +565,11 @@ function formatDateTime($date) {
                                     </div>
                                 </div>
                             </div>
+                            <div class="dropdown-divider"></div>
+                            <a href="javascript:void(0);" class="dropdown-item">
+                                <i class="feather-settings"></i>
+                                <span>Account Settings</span>
+                            </a>
                             <div class="dropdown-divider"></div>
                             <a href="./auth-login-minimal.html" class="dropdown-item">
                                 <i class="feather-log-out"></i>
@@ -442,14 +705,63 @@ function formatDateTime($date) {
                                         </div>
 
                                         <div class="mb-4">
-                                            <label for="emergency_contact" class="form-label fw-semibold">Emergency Contact</label>
+                                            <label for="emergency_contact" class="form-label fw-semibold">Emergency Contact Number</label>
                                             <input type="text" class="form-control" id="emergency_contact" name="emergency_contact" 
                                                    value="<?php echo htmlspecialchars($student['emergency_contact'] ?? ''); ?>"
-                                                   placeholder="Name and phone number">
+                                                   placeholder="Phone number">
+                                        </div>
+
+                                        <div class="row">
+                                            <div class="col-md-6 mb-4">
+                                                <label for="student_id" class="form-label fw-semibold">Student ID</label>
+                                                <input type="text" class="form-control" id="student_id" name="student_id" 
+                                                       value="<?php echo htmlspecialchars($student['student_id'] ?? ''); ?>"
+                                                       readonly>
+                                                <small class="form-text text-muted">Auto-generated and cannot be changed</small>
+                                            </div>
+                                            <div class="col-md-6 mb-4">
+                                                <label for="profile_picture" class="form-label fw-semibold">Profile Picture</label>
+                                                <input type="file" class="form-control" id="profile_picture" name="profile_picture" 
+                                                       accept="image/*">
+                                                <small class="form-text text-muted">JPG, PNG, GIF (Max 5MB)</small>
+                                            </div>
                                         </div>
                                     </div>
 
                                     <hr>
+
+                                    <!-- Internship Information Section -->
+                                    <div class="mb-5">
+                                        <h6 class="fw-bold mb-4">
+                                            <i class="feather-briefcase me-2"></i>Internship Information
+                                        </h6>
+
+                                        <div class="row">
+                                            <div class="col-md-6 mb-4">
+                                                <label for="supervisor_id" class="form-label fw-semibold">Supervisor</label>
+                                                <select class="form-control" id="supervisor_id" name="supervisor_id">
+                                                    <option value="">-- Select Supervisor --</option>
+                                                    <?php foreach ($supervisors as $supervisor): ?>
+                                                        <option value="<?php echo htmlspecialchars($supervisor['name']); ?>" 
+                                                            <?php echo (isset($student['supervisor_name']) && $student['supervisor_name'] == $supervisor['name']) ? 'selected' : ''; ?>>
+                                                            <?php echo htmlspecialchars($supervisor['name']); ?>
+                                                        </option>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-6 mb-4">
+                                                <label for="coordinator_id" class="form-label fw-semibold">Coordinator</label>
+                                                <select class="form-control" id="coordinator_id" name="coordinator_id">
+                                                    <option value="">-- Select Coordinator --</option>
+                                                    <?php foreach ($coordinators as $coordinator): ?>
+                                                        <option value="<?php echo htmlspecialchars($coordinator['name']); ?>" 
+                                                            <?php echo (isset($student['coordinator_name']) && $student['coordinator_name'] == $coordinator['name']) ? 'selected' : ''; ?>>
+                                                            <?php echo htmlspecialchars($coordinator['name']); ?>
+                                                        </option>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                            </div>
+                                        </div>
 
                                     <!-- Academic Information Section -->
                                     <div class="mb-5">
@@ -559,9 +871,12 @@ function formatDateTime($date) {
         // Initialize form elements
         document.addEventListener('DOMContentLoaded', function() {
             // Initialize select2 for dropdowns
-            $('#course_id, #status, #gender').select2({
+            $('#course_id, #status, #gender, #supervisor_id, #coordinator_id').select2({
                 allowClear: true,
-                width: '100%'
+                width: '100%',
+                dropdownParent: $('body'),
+                dropdownAutoWidth: false,
+                containerCssClass: 'form-control-select2'
             });
 
             // Initialize datepicker for date fields

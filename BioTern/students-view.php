@@ -39,6 +39,9 @@ $student_query = "
         s.biometric_registered,
         s.biometric_registered_at,
         s.created_at,
+        s.total_hours,
+        s.supervisor_name,
+        s.coordinator_name,
         c.name as course_name,
         c.id as course_id,
         i.id as internship_id,
@@ -46,14 +49,10 @@ $student_query = "
         i.coordinator_id,
         i.rendered_hours,
         i.required_hours,
-        i.status as internship_status,
-        u_supervisor.name as supervisor_name,
-        u_coordinator.name as coordinator_name
+        i.status as internship_status
     FROM students s
     LEFT JOIN courses c ON s.course_id = c.id
     LEFT JOIN internships i ON s.id = i.student_id AND i.status = 'ongoing'
-    LEFT JOIN users u_supervisor ON i.supervisor_id = u_supervisor.id
-    LEFT JOIN users u_coordinator ON i.coordinator_id = u_coordinator.id
     WHERE s.id = ?
     LIMIT 1
 ";
@@ -83,11 +82,45 @@ $active_result = $stmt_active->get_result();
 $active_row = $active_result->fetch_assoc();
 $is_active_today = $active_row['count'] > 0 ? true : false;
 
+// Check if student is currently clocked in (has morning_time_in but no morning_time_out)
+$clocked_in_query = "
+    SELECT 
+        id,
+        morning_time_in,
+        morning_time_out,
+        afternoon_time_in,
+        afternoon_time_out
+    FROM attendances 
+    WHERE student_id = ? AND attendance_date = ?
+    LIMIT 1
+";
+$stmt_clock = $conn->prepare($clocked_in_query);
+$stmt_clock->bind_param("is", $student_id, $today);
+$stmt_clock->execute();
+$clock_result = $stmt_clock->get_result();
+$attendance_record = $clock_result->fetch_assoc();
+
+// Determine if student is currently clocked in
+$is_clocked_in = false;
+if ($attendance_record) {
+    $morning_in = $attendance_record['morning_time_in'];
+    $morning_out = $attendance_record['morning_time_out'];
+    $afternoon_in = $attendance_record['afternoon_time_in'];
+    $afternoon_out = $attendance_record['afternoon_time_out'];
+    
+    // Student is clocked in if:
+    // - Morning clock in exists but no clock out, OR
+    // - Afternoon clock in exists but no afternoon clock out
+    if (($morning_in && !$morning_out) || ($afternoon_in && !$afternoon_out)) {
+        $is_clocked_in = true;
+    }
+}
+
 // Calculate hours remaining and completion percentage
 $hours_rendered = $student['rendered_hours'] ?? 0;
-$required_hours = $student['required_hours'] ?? 600;
-$hours_remaining = max(0, $required_hours - $hours_rendered);
-$completion_percentage = ($hours_rendered / $required_hours) * 100;
+$total_hours = $student['total_hours'] ?? 600;
+$hours_remaining = max(0, $total_hours - $hours_rendered);
+$completion_percentage = ($hours_rendered / $total_hours) * 100;
 
 // Fetch Attendance Records for activity
 $activity_query = "
@@ -548,7 +581,7 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                                             <p class="fs-12 text-muted mb-0">Hours Remaining</p>
                                         </div>
                                         <div class="flex-fill py-3 px-4 rounded-1 d-none d-sm-block border border-dashed border-gray-5">
-                                            <h6 class="fs-15 fw-bolder"><?php echo intval($hours_rendered); ?>/<?php echo intval($required_hours); ?></h6>
+                                            <h6 class="fs-15 fw-bolder"><?php echo intval($hours_rendered); ?>/<?php echo intval($total_hours); ?></h6>
                                             <p class="fs-12 text-muted mb-0">Hours Total</p>
                                         </div>
                                         <div class="flex-fill py-3 px-4 rounded-1 d-none d-sm-block border border-dashed border-gray-5">
@@ -796,6 +829,7 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
         function initializeTimer() {
             const studentId = <?php echo $student['id']; ?>;
             const isActiveToday = <?php echo $is_active_today ? 'true' : 'false'; ?>;
+            const isClockedIn = <?php echo $is_clocked_in ? 'true' : 'false'; ?>;
             const hoursRemaining = <?php echo $hours_remaining; ?>;
             const timerElement = document.getElementById('hoursRemaining');
             const storageKey = `student_timer_${studentId}`;
@@ -804,6 +838,12 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
             // Check if student is active today
             if (!isActiveToday) {
                 timerElement.textContent = 'Student not active today';
+                return;
+            }
+            
+            // Check if student is clocked in
+            if (!isClockedIn) {
+                timerElement.textContent = 'Student not clocked in';
                 return;
             }
             
@@ -848,6 +888,23 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                 }
             }
             
+            // Check if student is still clocked in (every 30 seconds)
+            function checkClockInStatus() {
+                fetch('get_clock_status.php?student_id=' + studentId)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (!data.is_clocked_in) {
+                            // Student has clocked out, stop timer
+                            timerElement.textContent = 'Student clocked out';
+                            clearInterval(timerInterval);
+                        }
+                    })
+                    .catch(error => {
+                        // Silently fail on network errors
+                        console.log('Clock status check failed');
+                    });
+            }
+            
             // Save timer state to localStorage
             function saveTimerState(seconds, key) {
                 const data = {
@@ -880,6 +937,9 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
             
             // Update every second
             const timerInterval = setInterval(updateTimer, 1000);
+            
+            // Check clock in status every 30 seconds
+            const clockCheckInterval = setInterval(checkClockInStatus, 30000);
             
             // Clear on page unload
             window.addEventListener('beforeunload', function() {
