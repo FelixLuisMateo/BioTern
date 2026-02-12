@@ -51,6 +51,12 @@ Route::get('register_submit', function () {
     return view('register_submit');
 })->name('register_submit');
 
+// Accept form POSTs from the frontend registration form and render
+// the `register_submit` view which contains the processing logic.
+use App\Http\Controllers\RegisterSubmitController;
+
+Route::post('register_submit', [RegisterSubmitController::class, 'handle'])->name('register_submit.post');
+
 // Dashboard Routes
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [HomeController::class, 'index'])->name('dashboard');
