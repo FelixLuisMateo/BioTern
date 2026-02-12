@@ -20,7 +20,7 @@ function getPost($key) {
 
 $role = getPost('role');
 if (!$role) {
-    header('Location: auth-register-creative.html');
+    header('Location: auth-register-creative.php');
     exit;
 }
 
@@ -51,25 +51,58 @@ if ($role === 'student') {
     $address = getPost('address');
     $email = getPost('email');
     $course_id = getPost('course_id');
-    $department_id = getPost('department_id');
     $section = getPost('section');
+    $username = getPost('username');
     $account_email = getPost('account_email');
+    $password = getPost('password');
 
     // Use account_email if provided, otherwise use email
     $final_email = $account_email ?: $email;
     $course_id = (int)$course_id;
-    $user_id = null;  // Explicitly set to NULL so students don't require a users row
-
-    // Insert directly into `students` table (do not create a `users` row).
-    // user_id is set to NULL (ensure db_adjustments.sql has been run to allow this).
-    $stmt = $mysqli->prepare("INSERT INTO students (user_id, student_id, first_name, last_name, middle_name, email, address, course_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())");
-    if ($stmt) {
-        $stmt->bind_param('issssssi', $user_id, $student_id, $first_name, $last_name, $middle_name, $final_email, $address, $course_id);
-        $stmt->execute();
-        $stmt->close();
+    $section_id = is_numeric($section) ? (int)$section : 0;
+    
+    // Ensure username is not empty
+    if (!$username) {
+        $username = $first_name . '.' . $last_name;
     }
 
-    header('Location: auth-register-creative.html?registered=student');
+    // Hash password
+    $pwdHash = password_hash($password ?: bin2hex(random_bytes(4)), PASSWORD_DEFAULT);
+
+    // Create a users record first (required for FK constraint)
+    $stmt_user = $mysqli->prepare("INSERT INTO users (name, username, email, password, role, is_active, created_at) VALUES (?, ?, ?, ?, 'student', 1, NOW())");
+    $user_id = null;
+    if ($stmt_user) {
+        $full_name = $first_name . ' ' . $last_name;
+        $stmt_user->bind_param('ssss', $full_name, $username, $final_email, $pwdHash);
+        if ($stmt_user->execute()) {
+            $user_id = $mysqli->insert_id;
+        } else {
+            // Check if it's a duplicate email error
+            $error = $stmt_user->error;
+            $stmt_user->close();
+            header('Location: auth-register-creative.php?registered=error&msg=' . urlencode($error));
+            exit;
+        }
+        $stmt_user->close();
+    }
+
+    // Now insert into students table using the user_id
+    if ($user_id) {
+        $stmt = $mysqli->prepare("INSERT INTO students (user_id, course_id, student_id, first_name, last_name, middle_name, username, password, email, section_id, address, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())");
+        if ($stmt) {
+            $stmt->bind_param('iisssssssis', $user_id, $course_id, $student_id, $first_name, $last_name, $middle_name, $username, $pwdHash, $final_email, $section_id, $address);
+            if (!$stmt->execute()) {
+                $error = $stmt->error;
+                $stmt->close();
+                header('Location: auth-register-creative.php?registered=error&msg=' . urlencode($error));
+                exit;
+            }
+            $stmt->close();
+        }
+    }
+
+    header('Location: auth-register-creative.php?registered=student');
     exit;
 }
 
@@ -95,7 +128,7 @@ if ($role === 'coordinator') {
         $stmt->close();
     }
 
-    header('Location: auth-register-creative.html?registered=coordinator');
+    header('Location: auth-register-creative.php?registered=coordinator');
     exit;
 }
 
@@ -123,7 +156,7 @@ if ($role === 'supervisor') {
         $stmt->close();
     }
 
-    header('Location: auth-register-creative.html?registered=supervisor');
+    header('Location: auth-register-creative.php?registered=supervisor');
     exit;
 }
 
@@ -143,10 +176,10 @@ if ($role === 'admin') {
 
     // Admins are usually stored in users + roles; additional admin metadata can be stored in an admins table if present.
 
-    header('Location: auth-register-creative.html?registered=admin');
+    header('Location: auth-register-creative.php?registered=admin');
     exit;
 }
 
 // fallback
-header('Location: auth-register-creative.html');
+header('Location: auth-register-creative.php');
 exit;
