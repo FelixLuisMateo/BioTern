@@ -51,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $clock_time = $conn->real_escape_string($clock_time);
 
             // Check if attendance record exists for this date
-            $date_check = $conn->query("SELECT id FROM attendances WHERE student_id = $student_id AND attendance_date = '$clock_date'");
+            $date_check = $conn->query("SELECT id, $db_column FROM attendances WHERE student_id = $student_id AND attendance_date = '$clock_date'");
             
             if ($date_check->num_rows == 0) {
                 // Create new attendance record
@@ -65,15 +65,24 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $message_type = "danger";
                 }
             } else {
-                // Update existing attendance record
-                $update_query = "UPDATE attendances SET $db_column = '$clock_time', updated_at = NOW() 
-                                WHERE student_id = $student_id AND attendance_date = '$clock_date'";
-                if ($conn->query($update_query)) {
-                    $message = "✓ " . ucfirst(str_replace('_', ' ', $clock_type)) . " updated at " . date('h:i A', strtotime($clock_time));
-                    $message_type = "success";
+                // Attendance record exists. Check if this specific time field is already filled
+                $record = $date_check->fetch_assoc();
+                
+                // If the time field is already set, prevent duplicate clock-in
+                if (!empty($record[$db_column])) {
+                    $message = "✗ " . ucfirst(str_replace('_', ' ', $clock_type)) . " has already been recorded. Cannot clock in twice.";
+                    $message_type = "warning";
                 } else {
-                    $message = "Error updating time: " . $conn->error;
-                    $message_type = "danger";
+                    // Update existing attendance record with this new time
+                    $update_query = "UPDATE attendances SET $db_column = '$clock_time', updated_at = NOW() 
+                                    WHERE student_id = $student_id AND attendance_date = '$clock_date'";
+                    if ($conn->query($update_query)) {
+                        $message = "✓ " . ucfirst(str_replace('_', ' ', $clock_type)) . " recorded at " . date('h:i A', strtotime($clock_time));
+                        $message_type = "success";
+                    } else {
+                        $message = "Error recording time: " . $conn->error;
+                        $message_type = "danger";
+                    }
                 }
             }
         }
