@@ -404,8 +404,8 @@ if ($attendance_today->num_rows > 0) {
             <div class="m-header">
                 <a href="{{ url('/') }}" class="b-brand">
                     <!-- ========   change your logo hear   ============ -->
-                    <img src="{{ asset('frontend/assets/images/logo-full.png') }}" alt="" class="logo logo-lg">
-                    <img src="{{ asset('frontend/assets/images/logo-abbr.png') }}" alt="" class="logo logo-sm">
+                    <img src="/frontend/assets/images/logo-full.png" alt="" class="logo logo-lg" />
+                    <img src="/frontend/assets/images/logo-abbr.png" alt="" class="logo logo-sm" />
                 </a>
             </div>
             <div class="navbar-content">
@@ -420,7 +420,7 @@ if ($attendance_today->num_rows > 0) {
                         </a>
                         <ul class="nxl-submenu">
                             <li class="nxl-item"><a class="nxl-link" href="{{ url('/') }}">CRM</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="analytics.html">Analytics</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/analytics') }}">Analytics</a></li>
                         </ul>
                     </li>
                     <li class="nxl-item nxl-hasmenu">
@@ -429,10 +429,10 @@ if ($attendance_today->num_rows > 0) {
                             <span class="nxl-mtext">Reports</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="reports-sales.html">Sales Report</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="reports-leads.html">Leads Report</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="reports-project.html">Project Report</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="reports-timesheets.html">Timesheets Report</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/reports/sales') }}">Sales Report</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/reports/leads') }}">Leads Report</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/reports/project') }}">Project Report</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/reports/timesheets') }}">Timesheets Report</a></li>
                         </ul>
                     </li>
                     <li class="nxl-item nxl-hasmenu">
@@ -441,26 +441,24 @@ if ($attendance_today->num_rows > 0) {
                             <span class="nxl-mtext">Applications</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="apps-chat.html">Chat</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="apps-email.html">Email</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="apps-tasks.html">Tasks</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="apps-notes.html">Notes</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="apps-storage.html">Storage</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="apps-calendar.html">Calendar</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/apps-chat') }}">Chat</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/apps-email') }}">Email</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/apps-tasks') }}">Tasks</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/apps-notes') }}">Notes</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/apps-storage') }}">Storage</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/apps-calendar') }}">Calendar</a></li>
                         </ul>
                     </li>
-
-
                     <li class="nxl-item nxl-hasmenu">
                         <a href="javascript:void(0);" class="nxl-link">
                             <span class="nxl-micon"><i class="feather-users"></i></span>
                             <span class="nxl-mtext">Students</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="students.php">Students</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="students-view.php">Students View</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="students-create.html">Students Create</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="demo-biometric.php">Demo Biometric</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/students') }}">Students</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/students/view') }}">Students View</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/students/create') }}">Students Create</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/demo-biometric') }}">Demo Biometric</a></li>
                         </ul>
                     </li>
                     <li class="nxl-item nxl-hasmenu">
@@ -469,23 +467,22 @@ if ($attendance_today->num_rows > 0) {
                             <span class="nxl-mtext">Leads</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="leads.html">Leads</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="leads-view.html">Leads View</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="leads-create.html">Leads Create</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/leads') }}">Leads</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/leads/view') }}">Leads View</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/leads/create') }}">Leads Create</a></li>
                         </ul>
                     </li>
-
                     <li class="nxl-item nxl-hasmenu">
                         <a href="javascript:void(0);" class="nxl-link">
                             <span class="nxl-micon"><i class="feather-layout"></i></span>
                             <span class="nxl-mtext">Widgets</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="widgets-lists.html">Lists</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="widgets-tables.html">Tables</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="widgets-charts.html">Charts</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="widgets-statistics.html">Statistics</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="widgets-miscellaneous.html">Miscellaneous</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/widgets-lists') }}">Lists</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/widgets-tables') }}">Tables</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/widgets-charts') }}">Charts</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/widgets-statistics') }}">Statistics</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/widgets-miscellaneous') }}">Miscellaneous</a></li>
                         </ul>
                     </li>
                     <li class="nxl-item nxl-hasmenu">
@@ -494,19 +491,15 @@ if ($attendance_today->num_rows > 0) {
                             <span class="nxl-mtext">Settings</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="settings-general.html">General</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-seo.html">SEO</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-tags.html">Tags</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-email.html">Email</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-tasks.html">Tasks</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-leads.html">Leads</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-support.html">Support</a></li>
-
-
-                            <li class="nxl-item"><a class="nxl-link" href="settings-students.php">Students</a></li>
-
-
-                            <li class="nxl-item"><a class="nxl-link" href="settings-miscellaneous.html">Miscellaneous</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings/general') }}">General</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings/seo') }}">SEO</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings/tags') }}">Tags</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings/email') }}">Email</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings/tasks') }}">Tasks</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings/leads') }}">Leads</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings/support') }}">Support</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings/students') }}">Students</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings/miscellaneous') }}">Miscellaneous</a></li>
                         </ul>
                     </li>
                     <li class="nxl-item nxl-hasmenu">
@@ -520,7 +513,7 @@ if ($attendance_today->num_rows > 0) {
                                     <span class="nxl-mtext">Login</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                                 </a>
                                 <ul class="nxl-submenu">
-                                    <li class="nxl-item"><a class="nxl-link" href="auth-login-cover.html">Cover</a></li>
+                                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/auth/login') }}">Cover</a></li>
                                 </ul>
                             </li>
                             <li class="nxl-item nxl-hasmenu">
@@ -528,7 +521,7 @@ if ($attendance_today->num_rows > 0) {
                                     <span class="nxl-mtext">Register</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                                 </a>
                                 <ul class="nxl-submenu">
-                                    <li class="nxl-item"><a class="nxl-link" href="auth-register-creative.html">Creative</a></li>
+                                    <li class="nxl-item"><a class="nxl-link" href="{{ url('/auth/register') }}">Creative</a></li>
                                 </ul>
                             </li>
                             <li class="nxl-item nxl-hasmenu">
@@ -571,13 +564,12 @@ if ($attendance_today->num_rows > 0) {
                             <span class="nxl-mtext">Help Center</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="#!">Support</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="help-knowledgebase.html">KnowledgeBase</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="/docs/documentations">Documentations</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/help/support') }}">Support</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/help-knowledgebase') }}">KnowledgeBase</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/docs/documentations') }}">Documentations</a></li>
                         </ul>
                     </li>
                 </ul>
-
             </div>
         </div>
     </nav>

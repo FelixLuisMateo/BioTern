@@ -30,7 +30,19 @@ Route::get('/students/create', function () {
     return view('students');
 });
 
-// Attendance view route
+Route::get('students/attendance', function () {
+    return view('attendance');
+});
+
+Route::get('students/demo-biometric', function () {
+    return view('demo-biometric');
+});
+
+// Convenience routes matching navigation
+Route::get('/demo-biometric', function () {
+    return view('demo-biometric');
+});
+
 Route::get('/attendance', function () {
     return view('attendance');
 });
