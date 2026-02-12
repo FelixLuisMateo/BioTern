@@ -236,12 +236,12 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
     <meta name="keyword" content="">
     <meta name="author" content="ACT 2A Group 5">
     <title>BioTern || Student Profile - <?php echo htmlspecialchars($student['first_name'] . ' ' . $student['last_name']); ?></title>
-    <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
-    <link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css">
-    <link rel="stylesheet" type="text/css" href="assets/vendors/css/vendors.min.css">
-    <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2.min.css">
-    <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2-theme.min.css">
-    <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css">
+    <link rel="shortcut icon" type="image/x-icon" href="{{ asset('frontend/assets/images/favicon.ico') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('frontend/assets/css/bootstrap.min.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('frontend/assets/vendors/css/vendors.min.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('frontend/assets/vendors/css/select2.min.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('frontend/assets/vendors/css/select2-theme.min.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('frontend/assets/css/theme.min.css') }}">
 </head>
 
 <body>
@@ -249,9 +249,9 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
     <nav class="nxl-navigation">
         <div class="navbar-wrapper">
             <div class="m-header">
-                <a href="index.html" class="b-brand">
-                    <img src="assets/images/logo-full.png" alt="" class="logo logo-lg">
-                    <img src="assets/images/logo-abbr.png" alt="" class="logo logo-sm">
+                <a href="{{ url('/') }}" class="b-brand">
+                    <img src="{{ asset('frontend/assets/images/logo-full.png') }}" alt="" class="logo logo-lg">
+                    <img src="{{ asset('frontend/assets/images/logo-abbr.png') }}" alt="" class="logo logo-sm">
                 </a>
             </div>
             <div class="navbar-content">
@@ -265,7 +265,7 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                             <span class="nxl-mtext">Dashboards</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="index.html">CRM</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/') }}">CRM</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="analytics.html">Analytics</a></li>
                         </ul>
                     </li>
@@ -486,12 +486,12 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                     </div>
                     <div class="dropdown nxl-h-item">
                         <a href="javascript:void(0);" data-bs-toggle="dropdown" role="button" data-bs-auto-close="outside">
-                            <img src="assets/images/avatar/1.png" alt="user-image" class="img-fluid user-avtar me-0">
+                            <img src="{{ asset('frontend/assets/images/avatar/1.png') }}" alt="user-image" class="img-fluid user-avtar me-0">
                         </a>
                         <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-user-dropdown">
                             <div class="dropdown-header">
                                 <div class="d-flex align-items-center">
-                                    <img src="assets/images/avatar/1.png" alt="user-image" class="img-fluid user-avtar">
+                                    <img src="{{ asset('frontend/assets/images/avatar/1.png') }}" alt="user-image" class="img-fluid user-avtar">
                                     <div>
                                         <h6 class="text-dark mb-0">Felix Luis Mateo</h6>
                                         <span class="fs-12 fw-medium text-muted">felixluismateo@example.com</span>
@@ -524,11 +524,11 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                     <div class="page-header-title">
                         <h5 class="m-b-10">Student Profile</h5>
                     </div>
-                    <ul class="breadcrumb">
-                        <li class="breadcrumb-item"><a href="index.html">Home</a></li>
-                        <li class="breadcrumb-item"><a href="students.php">Students</a></li>
-                        <li class="breadcrumb-item">View</li>
-                    </ul>
+                        <ul class="breadcrumb">
+                            <li class="breadcrumb-item"><a href="{{ url('/') }}">Home</a></li>
+                            <li class="breadcrumb-item"><a href="students.php">Students</a></li>
+                            <li class="breadcrumb-item">View</li>
+                        </ul>
                 </div>
                 <div class="page-header-right ms-auto">
                     <div class="page-header-right-items">
@@ -559,7 +559,7 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                                 <div class="mb-4 text-center">
                                     <div class="wd-150 ht-150 mx-auto mb-3 position-relative">
                                         <div class="avatar-image wd-150 ht-150 border border-5 border-gray-3">
-                                            <img src="assets/images/avatar/<?php echo ($student['id'] % 5) + 1; ?>.png" alt="" class="img-fluid">
+                                            <img src="<?php echo asset('frontend/assets/images/avatar/' . (($student['id'] % 5) + 1) . '.png'); ?>" alt="" class="img-fluid">
                                         </div>
                                         <div class="wd-10 ht-10 text-success rounded-circle position-absolute translate-middle" style="top: 76%; right: 10px">
                                             <i class="bi bi-patch-check-fill"></i>
@@ -818,11 +818,11 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
     </main>
 
     <!-- Scripts -->
-    <script src="assets/vendors/js/vendors.min.js"></script>
-    <script src="assets/vendors/js/select2.min.js"></script>
-    <script src="assets/vendors/js/select2-active.min.js"></script>
-    <script src="assets/js/common-init.min.js"></script>
-    <script src="assets/js/theme-customizer-init.min.js"></script>
+    <script src="{{ asset('frontend/assets/vendors/js/vendors.min.js') }}"></script>
+    <script src="{{ asset('frontend/assets/vendors/js/select2.min.js') }}"></script>
+    <script src="{{ asset('frontend/assets/vendors/js/select2-active.min.js') }}"></script>
+    <script src="{{ asset('frontend/assets/js/common-init.min.js') }}"></script>
+    <script src="{{ asset('frontend/assets/js/theme-customizer-init.min.js') }}"></script>
 
     <script>
         // Timer with localStorage persistence

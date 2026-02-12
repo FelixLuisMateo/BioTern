@@ -23,7 +23,7 @@ if ($student_id == 0) {
 
 // Fetch Student Details
 $student_query = "
-    SELECT 
+    SELECT
         s.id,
         s.student_id,
         s.first_name,
@@ -130,8 +130,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         } else {
             // Update student in database
             $update_query = "
-                UPDATE students 
-                SET 
+                UPDATE students
+                SET
                     first_name = ?,
                     last_name = ?,
                     middle_name = ?,
@@ -217,14 +217,14 @@ function formatDateTime($date) {
     <meta name="keyword" content="">
     <meta name="author" content="ACT 2A Group 5">
     <title>BioTern || Edit Student - <?php echo htmlspecialchars($student['first_name'] . ' ' . $student['last_name']); ?></title>
-    <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
-    <link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css">
-    <link rel="stylesheet" type="text/css" href="assets/vendors/css/vendors.min.css">
-    <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2.min.css">
-    <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2-theme.min.css">
-    <link rel="stylesheet" type="text/css" href="assets/vendors/css/datepicker.min.css">
-    <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css">
-    
+    <link rel="shortcut icon" type="image/x-icon" href="{{ asset('frontend/assets/images/favicon.ico') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('frontend/assets/css/bootstrap.min.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('frontend/assets/vendors/css/vendors.min.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('frontend/assets/vendors/css/select2.min.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('frontend/assets/vendors/css/select2-theme.min.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('frontend/assets/vendors/css/datepicker.min.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('frontend/assets/css/theme.min.css') }}">
+
     <style>
         /* Select2 styling adjustments - avoid overriding position computed by plugin */
         .select2-container--default .select2-selection--single {
@@ -338,9 +338,9 @@ function formatDateTime($date) {
     <nav class="nxl-navigation">
         <div class="navbar-wrapper">
             <div class="m-header">
-                <a href="index.html" class="b-brand">
-                    <img src="assets/images/logo-full.png" alt="" class="logo logo-lg">
-                    <img src="assets/images/logo-abbr.png" alt="" class="logo logo-sm">
+                <a href="{{ url('/') }}" class="b-brand">
+                    <img src="{{ asset('frontend/assets/images/logo-full.png') }}" alt="" class="logo logo-lg">
+                    <img src="{{ asset('frontend/assets/images/logo-abbr.png') }}" alt="" class="logo logo-sm">
                 </a>
             </div>
             <div class="navbar-content">
@@ -354,7 +354,7 @@ function formatDateTime($date) {
                             <span class="nxl-mtext">Dashboards</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="index.html">CRM</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/') }}">CRM</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="analytics.html">Analytics</a></li>
                         </ul>
                     </li>
@@ -575,12 +575,12 @@ function formatDateTime($date) {
                     </div>
                     <div class="dropdown nxl-h-item">
                         <a href="javascript:void(0);" data-bs-toggle="dropdown" role="button" data-bs-auto-close="outside">
-                            <img src="assets/images/avatar/1.png" alt="user-image" class="img-fluid user-avtar me-0">
+                            <img src="{{ asset('frontend/assets/images/avatar/1.png') }}" alt="user-image" class="img-fluid user-avtar me-0">
                         </a>
                         <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-user-dropdown">
                             <div class="dropdown-header">
                                 <div class="d-flex align-items-center">
-                                    <img src="assets/images/avatar/1.png" alt="user-image" class="img-fluid user-avtar">
+                                    <img src="{{ asset('frontend/assets/images/avatar/1.png') }}" alt="user-image" class="img-fluid user-avtar">
                                     <div>
                                         <h6 class="text-dark mb-0">Felix Luis Mateo</h6>
                                         <span class="fs-12 fw-medium text-muted">felixluismateo@example.com</span>
@@ -614,7 +614,7 @@ function formatDateTime($date) {
                         <h5 class="m-b-10">Edit Student</h5>
                     </div>
                     <ul class="breadcrumb">
-                        <li class="breadcrumb-item"><a href="index.html">Home</a></li>
+                        <li class="breadcrumb-item"><a href="{{ url('/') }}">Home</a></li>
                         <li class="breadcrumb-item"><a href="students.php">Students</a></li>
                         <li class="breadcrumb-item"><a href="students-view.php?id=<?php echo $student['id']; ?>">View</a></li>
                         <li class="breadcrumb-item">Edit</li>
@@ -676,17 +676,17 @@ function formatDateTime($date) {
                                         <div class="row">
                                             <div class="col-md-4 mb-4">
                                                 <label for="first_name" class="form-label fw-semibold">First Name <span class="text-danger">*</span></label>
-                                                <input type="text" class="form-control" id="first_name" name="first_name" 
+                                                <input type="text" class="form-control" id="first_name" name="first_name"
                                                        value="<?php echo htmlspecialchars($student['first_name']); ?>" required>
                                             </div>
                                             <div class="col-md-4 mb-4">
                                                 <label for="middle_name" class="form-label fw-semibold">Middle Name</label>
-                                                <input type="text" class="form-control" id="middle_name" name="middle_name" 
+                                                <input type="text" class="form-control" id="middle_name" name="middle_name"
                                                        value="<?php echo htmlspecialchars($student['middle_name'] ?? ''); ?>">
                                             </div>
                                             <div class="col-md-4 mb-4">
                                                 <label for="last_name" class="form-label fw-semibold">Last Name <span class="text-danger">*</span></label>
-                                                <input type="text" class="form-control" id="last_name" name="last_name" 
+                                                <input type="text" class="form-control" id="last_name" name="last_name"
                                                        value="<?php echo htmlspecialchars($student['last_name']); ?>" required>
                                             </div>
                                         </div>
@@ -694,12 +694,12 @@ function formatDateTime($date) {
                                         <div class="row">
                                             <div class="col-md-6 mb-4">
                                                 <label for="email" class="form-label fw-semibold">Email Address <span class="text-danger">*</span></label>
-                                                <input type="email" class="form-control" id="email" name="email" 
+                                                <input type="email" class="form-control" id="email" name="email"
                                                        value="<?php echo htmlspecialchars($student['email']); ?>" required>
                                             </div>
                                             <div class="col-md-6 mb-4">
                                                 <label for="phone" class="form-label fw-semibold">Phone Number</label>
-                                                <input type="tel" class="form-control" id="phone" name="phone" 
+                                                <input type="tel" class="form-control" id="phone" name="phone"
                                                        value="<?php echo htmlspecialchars($student['phone'] ?? ''); ?>">
                                             </div>
                                         </div>
@@ -707,7 +707,7 @@ function formatDateTime($date) {
                                         <div class="row">
                                             <div class="col-md-6 mb-4">
                                                 <label for="date_of_birth" class="form-label fw-semibold">Date of Birth</label>
-                                                <input type="date" class="form-control" id="date_of_birth" name="date_of_birth" 
+                                                <input type="date" class="form-control" id="date_of_birth" name="date_of_birth"
                                                        value="<?php echo formatDate($student['date_of_birth']); ?>">
                                             </div>
                                             <div class="col-md-6 mb-4">
@@ -728,7 +728,7 @@ function formatDateTime($date) {
 
                                         <div class="mb-4">
                                             <label for="emergency_contact" class="form-label fw-semibold">Emergency Contact Number</label>
-                                            <input type="text" class="form-control" id="emergency_contact" name="emergency_contact" 
+                                            <input type="text" class="form-control" id="emergency_contact" name="emergency_contact"
                                                    value="<?php echo htmlspecialchars($student['emergency_contact'] ?? ''); ?>"
                                                    placeholder="Phone number">
                                         </div>
@@ -736,14 +736,14 @@ function formatDateTime($date) {
                                         <div class="row">
                                             <div class="col-md-6 mb-4">
                                                 <label for="student_id" class="form-label fw-semibold">Student ID</label>
-                                                <input type="text" class="form-control" id="student_id" name="student_id" 
+                                                <input type="text" class="form-control" id="student_id" name="student_id"
                                                        value="<?php echo htmlspecialchars($student['student_id'] ?? ''); ?>"
                                                        readonly>
                                                 <small class="form-text text-muted">Auto-generated and cannot be changed</small>
                                             </div>
                                             <div class="col-md-6 mb-4">
                                                 <label for="profile_picture" class="form-label fw-semibold">Profile Picture</label>
-                                                <input type="file" class="form-control" id="profile_picture" name="profile_picture" 
+                                                <input type="file" class="form-control" id="profile_picture" name="profile_picture"
                                                        accept="image/*">
                                                 <small class="form-text text-muted">JPG, PNG, GIF (Max 5MB)</small>
                                             </div>
@@ -764,7 +764,7 @@ function formatDateTime($date) {
                                                 <select class="form-control" id="supervisor_id" name="supervisor_id">
                                                     <option value="">-- Select Supervisor --</option>
                                                     <?php foreach ($supervisors as $supervisor): ?>
-                                                        <option value="<?php echo htmlspecialchars($supervisor['name']); ?>" 
+                                                        <option value="<?php echo htmlspecialchars($supervisor['name']); ?>"
                                                             <?php echo (isset($student['supervisor_name']) && $student['supervisor_name'] == $supervisor['name']) ? 'selected' : ''; ?>>
                                                             <?php echo htmlspecialchars($supervisor['name']); ?>
                                                         </option>
@@ -776,7 +776,7 @@ function formatDateTime($date) {
                                                 <select class="form-control" id="coordinator_id" name="coordinator_id">
                                                     <option value="">-- Select Coordinator --</option>
                                                     <?php foreach ($coordinators as $coordinator): ?>
-                                                        <option value="<?php echo htmlspecialchars($coordinator['name']); ?>" 
+                                                        <option value="<?php echo htmlspecialchars($coordinator['name']); ?>"
                                                             <?php echo (isset($student['coordinator_name']) && $student['coordinator_name'] == $coordinator['name']) ? 'selected' : ''; ?>>
                                                             <?php echo htmlspecialchars($coordinator['name']); ?>
                                                         </option>
@@ -797,7 +797,7 @@ function formatDateTime($date) {
                                                 <select class="form-control" id="course_id" name="course_id">
                                                     <option value="0">-- Select Course --</option>
                                                     <?php foreach ($courses as $course): ?>
-                                                        <option value="<?php echo $course['id']; ?>" 
+                                                        <option value="<?php echo $course['id']; ?>"
                                                             <?php echo $student['course_id'] == $course['id'] ? 'selected' : ''; ?>>
                                                             <?php echo htmlspecialchars($course['name']); ?>
                                                         </option>
@@ -882,12 +882,12 @@ function formatDateTime($date) {
     </main>
 
     <!-- Scripts -->
-    <script src="assets/vendors/js/vendors.min.js"></script>
-    <script src="assets/vendors/js/select2.min.js"></script>
-    <script src="assets/vendors/js/select2-active.min.js"></script>
-    <script src="assets/vendors/js/datepicker.min.js"></script>
-    <script src="assets/js/common-init.min.js"></script>
-    <script src="assets/js/theme-customizer-init.min.js"></script>
+    <script src="{{ asset('frontend/assets/vendors/js/vendors.min.js') }}"></script>
+    <script src="{{ asset('frontend/assets/vendors/js/select2.min.js') }}"></script>
+    <script src="{{ asset('frontend/assets/vendors/js/select2-active.min.js') }}"></script>
+    <script src="{{ asset('frontend/assets/vendors/js/datepicker.min.js') }}"></script>
+    <script src="{{ asset('frontend/assets/js/common-init.min.js') }}"></script>
+    <script src="{{ asset('frontend/assets/js/theme-customizer-init.min.js') }}"></script>
 
     <script>
         // Initialize form elements

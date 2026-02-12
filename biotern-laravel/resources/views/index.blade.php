@@ -40,7 +40,7 @@
     <nav class="nxl-navigation">
         <div class="navbar-wrapper">
             <div class="m-header">
-                <a href="index.html" class="b-brand">
+                <a href="{{ url('/') }}" class="b-brand">
                     <!-- ========   change your logo hear   ============ -->
                     <img src="/frontend/assets/images/logo-full.png" alt="" class="logo logo-lg" />
                     <img src="/frontend/assets/images/logo-abbr.png" alt="" class="logo logo-sm" />
@@ -57,7 +57,7 @@
                             <span class="nxl-mtext">Dashboards</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="index.html">CRM</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/') }}">CRM</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="analytics.html">Analytics</a></li>
                         </ul>
                     </li>
@@ -2140,14 +2140,14 @@
                         <h5 class="m-b-10">Dashboard</h5>
                     </div>
                     <ul class="breadcrumb">
-                        <li class="breadcrumb-item"><a href="index.html">Home</a></li>
+                        <li class="breadcrumb-item"><a href="{{ url('/') }}">Home</a></li>
                         <li class="breadcrumb-item">Dashboard</li>
                     </ul>
                 </div>
                 <div class="page-header-right ms-auto">
                     <div class="page-header-right-items">
                         <div class="d-flex d-md-none">
-                            <a href="javascript:void(0)" class="page-header-right-close-toggle">
+                            <a href="javascript:history.back()" class="page-header-right-close-toggle">
                                 <i class="feather-arrow-left me-2"></i>
                                 <span>Back</span>
                             </a>
@@ -2206,7 +2206,7 @@
                         </div>
                     </div>
                     <div class="d-md-none d-flex align-items-center">
-                        <a href="javascript:void(0)" class="page-header-right-open-toggle">
+                        <a href="javascript:history.back()" class="page-header-right-open-toggle">
                             <i class="feather-align-right fs-20"></i>
                         </a>
                     </div>

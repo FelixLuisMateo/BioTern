@@ -116,10 +116,10 @@ if ($attendance_today->num_rows > 0) {
     <meta name="keyword" content="">
     <meta name="author" content="ACT 2A Group 5">
     <title>BioTern || Biometric Demo</title>
-    <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
-    <link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css">
-    <link rel="stylesheet" type="text/css" href="assets/vendors/css/vendors.min.css">
-    <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css">
+    <link rel="shortcut icon" type="image/x-icon" href="{{ asset('frontend/assets/images/favicon.ico') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('frontend/assets/css/bootstrap.min.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('frontend/assets/vendors/css/vendors.min.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('frontend/assets/css/theme.min.css') }}">
     <style>
         .biometric-container {
             max-width: 900px;
@@ -402,10 +402,10 @@ if ($attendance_today->num_rows > 0) {
     <nav class="nxl-navigation">
         <div class="navbar-wrapper">
             <div class="m-header">
-                <a href="index.html" class="b-brand">
+                <a href="{{ url('/') }}" class="b-brand">
                     <!-- ========   change your logo hear   ============ -->
-                    <img src="assets/images/logo-full.png" alt="" class="logo logo-lg">
-                    <img src="assets/images/logo-abbr.png" alt="" class="logo logo-sm">
+                    <img src="{{ asset('frontend/assets/images/logo-full.png') }}" alt="" class="logo logo-lg">
+                    <img src="{{ asset('frontend/assets/images/logo-abbr.png') }}" alt="" class="logo logo-sm">
                 </a>
             </div>
             <div class="navbar-content">
@@ -419,7 +419,7 @@ if ($attendance_today->num_rows > 0) {
                             <span class="nxl-mtext">Dashboards</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="index.html">CRM</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/') }}">CRM</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="analytics.html">Analytics</a></li>
                         </ul>
                     </li>
@@ -620,7 +620,7 @@ if ($attendance_today->num_rows > 0) {
                 <!--! [Start] nxl-lavel-mega-menu !-->
                 <div class="nxl-drp-link nxl-lavel-mega-menu">
                     <div class="nxl-lavel-mega-menu-toggle d-flex d-lg-none">
-                        <a href="javascript:void(0)" id="nxl-lavel-mega-menu-hide">
+                        <a href="javascript:history.back()" id="nxl-lavel-mega-menu-hide">
                             <i class="feather-arrow-left me-2"></i>
                             <span>Back</span>
                         </a>
@@ -680,7 +680,7 @@ if ($attendance_today->num_rows > 0) {
                                 </a>
                             </div>
                             <div class="notifications-item">
-                                <img src="assets/images/avatar/2.png" alt="" class="rounded me-3 border">
+                                <img src="{{ asset('frontend/assets/images/avatar/2.png') }}" alt="" class="rounded me-3 border">
                                 <div class="notifications-desc">
                                     <a href="javascript:void(0);" class="font-body text-truncate-2-line"> <span class="fw-semibold text-dark">Malanie Hanvey</span> We should talk about that at lunch!</a>
                                     <div class="d-flex justify-content-between align-items-center">
@@ -701,12 +701,12 @@ if ($attendance_today->num_rows > 0) {
                     </div>
                     <div class="dropdown nxl-h-item">
                         <a href="javascript:void(0);" data-bs-toggle="dropdown" role="button" data-bs-auto-close="outside">
-                            <img src="assets/images/avatar/1.png" alt="user-image" class="img-fluid user-avtar me-0">
+                                <img src="{{ asset('frontend/assets/images/avatar/1.png') }}" alt="user-image" class="img-fluid user-avtar me-0">
                         </a>
                         <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-user-dropdown">
                             <div class="dropdown-header">
                                 <div class="d-flex align-items-center">
-                                    <img src="assets/images/avatar/1.png" alt="user-image" class="img-fluid user-avtar">
+                                    <img src="{{ asset('frontend/assets/images/avatar/1.png') }}" alt="user-image" class="img-fluid user-avtar">
                                     <div>
                                         <h6 class="text-dark mb-0">Felix Luis Mateo <span class="badge bg-soft-success text-success ms-1">PRO</span></h6>
                                         <span class="fs-12 fw-medium text-muted">felixluismateo@example.com</span>
@@ -986,8 +986,8 @@ if ($attendance_today->num_rows > 0) {
     </main>
 
     <!-- Scripts -->
-    <script src="assets/vendors/js/vendors.min.js"></script>
-    <script src="assets/js/common-init.min.js"></script>
+    <script src="{{ asset('frontend/assets/vendors/js/vendors.min.js') }}"></script>
+    <script src="{{ asset('frontend/assets/js/common-init.min.js') }}"></script>
 
     <script>
         // Update current time every second
@@ -1041,19 +1041,19 @@ if ($attendance_today->num_rows > 0) {
         });
     </script>
     <!--! BEGIN: Vendors JS !-->
-    <script src="assets/vendors/js/vendors.min.js"></script>
+    <script src="{{ asset('frontend/assets/vendors/js/vendors.min.js') }}"></script>
     <!-- vendors.min.js {always must need to be top} -->
-    <script src="assets/vendors/js/dataTables.min.js"></script>
-    <script src="assets/vendors/js/dataTables.bs5.min.js"></script>
-    <script src="assets/vendors/js/select2.min.js"></script>
-    <script src="assets/vendors/js/select2-active.min.js"></script>
+    <script src="{{ asset('frontend/assets/vendors/js/dataTables.min.js') }}"></script>
+    <script src="{{ asset('frontend/assets/vendors/js/dataTables.bs5.min.js') }}"></script>
+    <script src="{{ asset('frontend/assets/vendors/js/select2.min.js') }}"></script>
+    <script src="{{ asset('frontend/assets/vendors/js/select2-active.min.js') }}"></script>
     <!--! END: Vendors JS !-->
     <!--! BEGIN: Apps Init  !-->
-    <script src="assets/js/common-init.min.js"></script>
-    <script src="assets/js/customers-init.min.js"></script>
+    <script src="{{ asset('frontend/assets/js/common-init.min.js') }}"></script>
+    <script src="{{ asset('frontend/assets/js/customers-init.min.js') }}"></script>
     <!--! END: Apps Init !-->
     <!--! BEGIN: Theme Customizer  !-->
-    <script src="assets/js/theme-customizer-init.min.js"></script>
+    <script src="{{ asset('frontend/assets/js/theme-customizer-init.min.js') }}"></script>
     <!--! END: Theme Customizer !-->
 </body>
 </body>
