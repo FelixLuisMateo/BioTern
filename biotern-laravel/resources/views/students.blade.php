@@ -156,11 +156,10 @@ function formatDate($date) {
                             <span class="nxl-mtext">Students</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="students.php">Students</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="students-view.php">Students View</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="students-create.html">Students Create</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="attendance.php">Attendance DTR</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="demo-biometric.php">Demo Biometric</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/students') }}">Students</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/students/view') }}">Students View</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/students/create') }}">Students Create</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/demo-biometric') }}">Demo Biometric</a></li>
                         </ul>
                     </li>
                     <li class="nxl-item nxl-hasmenu">

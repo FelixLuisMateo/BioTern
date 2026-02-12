@@ -58,7 +58,7 @@
                         </a>
                         <ul class="nxl-submenu">
                             <li class="nxl-item"><a class="nxl-link" href="{{ url('/') }}">CRM</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="analytics.html">Analytics</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/analytics') }}">Analytics</a></li>
                         </ul>
                     </li>
                     <li class="nxl-item nxl-hasmenu">
@@ -79,9 +79,9 @@
                             <span class="nxl-mtext">Applications</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="apps-chat.html">Chat</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="apps-email.html">Email</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="apps-tasks.html">Tasks</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/apps-chat') }}">Chat</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/apps-email') }}">Email</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/apps-tasks') }}">Tasks</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="apps-notes.html">Notes</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="apps-storage.html">Storage</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="apps-calendar.html">Calendar</a></li>
@@ -96,6 +96,7 @@
                             <li class="nxl-item"><a class="nxl-link" href="{{ url('/students') }}">Students</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="{{ url('/students/view') }}">Students View</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="{{ url('/students/create') }}">Students Create</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/demo-biometric') }}">Demo Biometric</a></li>
                         </ul>
                     </li>
                     <li class="nxl-item nxl-hasmenu">
@@ -104,9 +105,9 @@
                             <span class="nxl-mtext">Leads</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="leads.html">Leads</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="leads-view.html">Leads View</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="leads-create.html">Leads Create</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/leads') }}">Leads</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/leads/view') }}">Leads View</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/leads/create') }}">Leads Create</a></li>
                         </ul>
                     </li>
                     <li class="nxl-item nxl-hasmenu">
@@ -152,7 +153,7 @@
                                     <span class="nxl-mtext">Login</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                                 </a>
                                 <ul class="nxl-submenu">
-                                    <li class="nxl-item"><a class="nxl-link" href="auth-login-cover.html">Cover</a></li>
+                                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/auth/login') }}">Cover</a></li>
                                 </ul>
                             </li>
                             <li class="nxl-item nxl-hasmenu">
@@ -160,7 +161,7 @@
                                     <span class="nxl-mtext">Register</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                                 </a>
                                 <ul class="nxl-submenu">
-                                    <li class="nxl-item"><a class="nxl-link" href="auth-register-creative.html">Creative</a></li>
+                                    <li class="nxl-item"><a class="nxl-link" href="{{ url('/auth/register') }}">Creative</a></li>
                                 </ul>
                             </li>
                             <li class="nxl-item nxl-hasmenu">
