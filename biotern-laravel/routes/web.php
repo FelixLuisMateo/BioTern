@@ -50,3 +50,27 @@ Route::get('/attendance', function () {
 Route::get('register_submit', function () {
     return view('register_submit');
 })->name('register_submit');
+
+// Dashboard Routes
+Route::middleware('auth')->group(function () {
+    Route::get('/dashboard', [HomeController::class, 'index'])->name('dashboard');
+    });
+    // Admin Routes
+    Route::middleware('admin')->prefix('admin')->group(function () {
+        require 'admin.php';
+    });
+
+    // Coordinator Routes
+    Route::middleware('coordinator')->prefix('coordinator')->group(function () {
+        require 'coordinator.php';
+    });
+
+    // Supervisor Routes
+    Route::middleware('supervisor')->prefix('supervisor')->group(function () {
+        require 'supervisor.php';
+    });
+
+    // Student Routes
+    Route::middleware('student')->prefix('student')->group(function () {
+        require 'student.php';
+    });
