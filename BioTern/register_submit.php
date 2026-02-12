@@ -44,6 +44,14 @@ function createUser($mysqli, $username, $email, $password, $role) {
 }
 
 if ($role === 'student') {
+    // Validate password matches confirm_password
+    $password = getPost('password');
+    $confirm_password = getPost('confirm_password');
+    if ($password !== $confirm_password) {
+        header('Location: auth-register-creative.html?registered=error&msg=' . urlencode('Passwords do not match'));
+        exit;
+    }
+    
     $student_id = getPost('student_id');
     $first_name = getPost('first_name');
     $middle_name = getPost('middle_name');
@@ -54,12 +62,21 @@ if ($role === 'student') {
     $section = getPost('section');
     $username = getPost('username');
     $account_email = getPost('account_email');
-    $password = getPost('password');
+    
+    // New fields - now accepting IDs
+    $phone = getPost('phone');
+    $date_of_birth = getPost('date_of_birth');
+    $gender = getPost('gender');
+    $supervisor_id = getPost('supervisor_id') ? (int)getPost('supervisor_id') : null;
+    $coordinator_id = getPost('coordinator_id') ? (int)getPost('coordinator_id') : null;
+    $total_hours = getPost('total_hours');
+    $emergency_contact = getPost('emergency_contact');
 
     // Use account_email if provided, otherwise use email
     $final_email = $account_email ?: $email;
     $course_id = (int)$course_id;
     $section_id = is_numeric($section) ? (int)$section : 0;
+    $total_hours = $total_hours ? (int)$total_hours : null;
     
     // Ensure username is not empty
     if (!$username) {
@@ -81,32 +98,66 @@ if ($role === 'student') {
             // Check if it's a duplicate email error
             $error = $stmt_user->error;
             $stmt_user->close();
-            header('Location: auth-register-creative.php?registered=error&msg=' . urlencode($error));
+            header('Location: auth-register-creative.html?registered=error&msg=' . urlencode($error));
             exit;
         }
         $stmt_user->close();
     }
 
+    // Look up supervisor and coordinator names from their IDs
+    $supervisor_name = null;
+    $coordinator_name = null;
+    
+    if ($supervisor_id) {
+        $stmt_sup = $mysqli->prepare("SELECT CONCAT(first_name, ' ', last_name) FROM supervisors WHERE id = ? LIMIT 1");
+        if ($stmt_sup) {
+            $stmt_sup->bind_param('i', $supervisor_id);
+            $stmt_sup->execute();
+            $stmt_sup->bind_result($supervisor_name);
+            $stmt_sup->fetch();
+            $stmt_sup->close();
+        }
+    }
+    
+    if ($coordinator_id) {
+        $stmt_coord = $mysqli->prepare("SELECT CONCAT(first_name, ' ', last_name) FROM coordinators WHERE id = ? LIMIT 1");
+        if ($stmt_coord) {
+            $stmt_coord->bind_param('i', $coordinator_id);
+            $stmt_coord->execute();
+            $stmt_coord->bind_result($coordinator_name);
+            $stmt_coord->fetch();
+            $stmt_coord->close();
+        }
+    }
+
     // Now insert into students table using the user_id
     if ($user_id) {
-        $stmt = $mysqli->prepare("INSERT INTO students (user_id, course_id, student_id, first_name, last_name, middle_name, username, password, email, section_id, address, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())");
+        $stmt = $mysqli->prepare("INSERT INTO students (user_id, course_id, student_id, first_name, last_name, middle_name, username, password, email, section_id, address, phone, date_of_birth, gender, supervisor_name, coordinator_name, total_hours, emergency_contact, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())");
         if ($stmt) {
-            $stmt->bind_param('iisssssssis', $user_id, $course_id, $student_id, $first_name, $last_name, $middle_name, $username, $pwdHash, $final_email, $section_id, $address);
+            $stmt->bind_param('iisssssssissssssi', $user_id, $course_id, $student_id, $first_name, $last_name, $middle_name, $username, $pwdHash, $final_email, $section_id, $address, $phone, $date_of_birth, $gender, $supervisor_name, $coordinator_name, $total_hours, $emergency_contact);
             if (!$stmt->execute()) {
                 $error = $stmt->error;
                 $stmt->close();
-                header('Location: auth-register-creative.php?registered=error&msg=' . urlencode($error));
+                header('Location: auth-register-creative.html?registered=error&msg=' . urlencode($error));
                 exit;
             }
             $stmt->close();
         }
     }
 
-    header('Location: auth-register-creative.php?registered=student');
+    header('Location: auth-register-creative.html?registered=student');
     exit;
 }
 
 if ($role === 'coordinator') {
+    // Validate password matches confirm_password
+    $password = getPost('password');
+    $confirm_password = getPost('confirm_password');
+    if ($password !== $confirm_password) {
+        header('Location: auth-register-creative.html?registered=error&msg=' . urlencode('Passwords do not match'));
+        exit;
+    }
+    
     $first_name = getPost('first_name');
     $last_name = getPost('last_name');
     $email = getPost('email');
@@ -116,23 +167,31 @@ if ($role === 'coordinator') {
     $position = getPost('position');
     $username = getPost('username');
     $account_email = getPost('account_email');
-    $password = getPost('password');
 
-    $userId = createUser($mysqli, $username ?: ($first_name . ' ' . $last_name), $account_email ?: $email, $password ?: bin2hex(random_bytes(4)), 'coordinator');
+    $final_email = $account_email ?: $email;
+    $userId = createUser($mysqli, $username ?: ($first_name . ' ' . $last_name), $final_email, $password ?: bin2hex(random_bytes(4)), 'coordinator');
 
     $stmt = $mysqli->prepare("INSERT INTO coordinators (user_id, first_name, last_name, middle_name, email, phone, department_id, office_location, bio, profile_picture, is_active, created_at) VALUES (?, ?, ?, NULL, ?, ?, ?, ?, NULL, NULL, 1, NOW())");
     if ($stmt) {
         $u = $userId ?: null;
-        $stmt->bind_param('isssiss', $u, $first_name, $last_name, $account_email ?: $email, $phone, $department_id, $office_location);
+        $stmt->bind_param('isssiss', $u, $first_name, $last_name, $final_email, $phone, $department_id, $office_location);
         $stmt->execute();
         $stmt->close();
     }
 
-    header('Location: auth-register-creative.php?registered=coordinator');
+    header('Location: auth-register-creative.html?registered=coordinator');
     exit;
 }
 
 if ($role === 'supervisor') {
+    // Validate password matches confirm_password
+    $password = getPost('password');
+    $confirm_password = getPost('confirm_password');
+    if ($password !== $confirm_password) {
+        header('Location: auth-register-creative.html?registered=error&msg=' . urlencode('Passwords do not match'));
+        exit;
+    }
+    
     $first_name = getPost('first_name');
     $last_name = getPost('last_name');
     $email = getPost('email');
@@ -144,23 +203,31 @@ if ($role === 'supervisor') {
     $company_address = getPost('company_address');
     $username = getPost('username');
     $account_email = getPost('account_email');
-    $password = getPost('password');
 
-    $userId = createUser($mysqli, $username ?: ($first_name . ' ' . $last_name), $account_email ?: $email, $password ?: bin2hex(random_bytes(4)), 'supervisor');
+    $final_email = $account_email ?: $email;
+    $userId = createUser($mysqli, $username ?: ($first_name . ' ' . $last_name), $final_email, $password ?: bin2hex(random_bytes(4)), 'supervisor');
 
     $stmt = $mysqli->prepare("INSERT INTO supervisors (user_id, first_name, last_name, middle_name, email, phone, department_id, specialization, bio, profile_picture, is_active, created_at) VALUES (?, ?, ?, NULL, ?, ?, NULL, ?, NULL, NULL, 1, NOW())");
     if ($stmt) {
         $u = $userId ?: null;
-        $stmt->bind_param('isssss', $u, $first_name, $last_name, $account_email ?: $email, $phone, $specialization);
+        $stmt->bind_param('isssss', $u, $first_name, $last_name, $final_email, $phone, $specialization);
         $stmt->execute();
         $stmt->close();
     }
 
-    header('Location: auth-register-creative.php?registered=supervisor');
+    header('Location: auth-register-creative.html?registered=supervisor');
     exit;
 }
 
 if ($role === 'admin') {
+    // Validate password matches confirm_password
+    $password = getPost('password');
+    $confirm_password = getPost('confirm_password');
+    if ($password !== $confirm_password) {
+        header('Location: auth-register-creative.html?registered=error&msg=' . urlencode('Passwords do not match'));
+        exit;
+    }
+    
     $first_name = getPost('first_name');
     $last_name = getPost('last_name');
     $email = getPost('email');
@@ -170,13 +237,12 @@ if ($role === 'admin') {
     $position = getPost('position');
     $username = getPost('username');
     $account_email = getPost('account_email');
-    $password = getPost('password');
 
     $userId = createUser($mysqli, $username ?: ($first_name . ' ' . $last_name), $account_email ?: $email, $password ?: bin2hex(random_bytes(4)), 'admin');
 
     // Admins are usually stored in users + roles; additional admin metadata can be stored in an admins table if present.
 
-    header('Location: auth-register-creative.php?registered=admin');
+    header('Location: auth-register-creative.html?registered=admin');
     exit;
 }
 
