@@ -60,7 +60,7 @@ if ($role === 'student') {
     $final_email = $account_email ?: $email;
     $course_id = (int)$course_id;
     $section_id = is_numeric($section) ? (int)$section : 0;
-    
+
     // Ensure username is not empty
     if (!$username) {
         $username = $first_name . '.' . $last_name;

@@ -46,3 +46,7 @@ Route::get('/demo-biometric', function () {
 Route::get('/attendance', function () {
     return view('attendance');
 });
+
+Route::get('register_submit', function () {
+    return view('register_submit');
+})->name('register_submit');
