@@ -14,5 +14,35 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/', function () {
-    return view('welcome');
+    return view('index');
+});
+
+// Students routes (simple closures returning the existing `students` view)
+Route::get('/students', function () {
+    return view('students');
+})->name('students.index');
+
+Route::get('/students/view', function () {
+    return view('students');
+});
+
+Route::get('/students/create', function () {
+    return view('students');
+});
+
+Route::get('students/attendance', function () {
+    return view('attendance');
+});
+
+Route::get('students/demo-biometric', function () {
+    return view('demo-biometric');
+});
+
+// Convenience routes matching navigation
+Route::get('/demo-biometric', function () {
+    return view('demo-biometric');
+});
+
+Route::get('/attendance', function () {
+    return view('attendance');
 });
