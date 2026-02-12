@@ -20,7 +20,7 @@ function getPost($key) {
 
 $role = getPost('role');
 if (!$role) {
-    header('Location: auth-register-creative.php');
+    header('Location: register_submit.php');
     exit;
 }
 
@@ -98,7 +98,7 @@ if ($role === 'student') {
             // Check if it's a duplicate email error
             $error = $stmt_user->error;
             $stmt_user->close();
-            header('Location: auth-register-creative.html?registered=error&msg=' . urlencode($error));
+            header('Location: auth-register-creative.php?registered=error&msg=' . urlencode($error));
             exit;
         }
         $stmt_user->close();
@@ -138,14 +138,14 @@ if ($role === 'student') {
             if (!$stmt->execute()) {
                 $error = $stmt->error;
                 $stmt->close();
-                header('Location: auth-register-creative.html?registered=error&msg=' . urlencode($error));
+                header('Location: auth-register-creative.php?registered=error&msg=' . urlencode($error));
                 exit;
             }
             $stmt->close();
         }
     }
 
-    header('Location: auth-register-creative.html?registered=student');
+    header('Location: auth-register-creative.php?registered=student');
     exit;
 }
 
@@ -179,7 +179,7 @@ if ($role === 'coordinator') {
         $stmt->close();
     }
 
-    header('Location: auth-register-creative.html?registered=coordinator');
+    header('Location: auth-register-creative.php?registered=coordinator');
     exit;
 }
 
@@ -215,7 +215,7 @@ if ($role === 'supervisor') {
         $stmt->close();
     }
 
-    header('Location: auth-register-creative.html?registered=supervisor');
+    header('Location: auth-register-creative.php?registered=supervisor');
     exit;
 }
 
@@ -242,10 +242,10 @@ if ($role === 'admin') {
 
     // Admins are usually stored in users + roles; additional admin metadata can be stored in an admins table if present.
 
-    header('Location: auth-register-creative.html?registered=admin');
+    header('Location: auth-register-creative.php?registered=admin');
     exit;
 }
 
 // fallback
-header('Location: auth-register-creative.php');
+header('Location: register_submit.php');
 exit;
