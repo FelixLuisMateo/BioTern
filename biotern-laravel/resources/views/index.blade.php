@@ -93,9 +93,9 @@
                             <span class="nxl-mtext">Students</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="students.php">Students</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="students-view.php">Students View</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="students-create.html">Students Create</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/students') }}">Students</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/students/view') }}">Students View</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/students/create') }}">Students Create</a></li>
                         </ul>
                     </li>
                     <li class="nxl-item nxl-hasmenu">
@@ -135,7 +135,7 @@
                             <li class="nxl-item"><a class="nxl-link" href="settings-tasks.html">Tasks</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="settings-leads.html">Leads</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="settings-support.html">Support</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-students.php">Students</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings/students') }}">Students</a></li>
 
 
                             <li class="nxl-item"><a class="nxl-link" href="settings-miscellaneous.html">Miscellaneous</a></li>
@@ -386,15 +386,15 @@
                                         <i class="feather-chevron-right ms-auto me-0"></i>
                                     </a>
                                     <div class="dropdown-menu nxl-h-dropdown">
-                                        <a href="students.php" class="dropdown-item">
+                                        <a href="{{ url('/students') }}" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Students</span>
                                         </a>
-                                        <a href="students-view.php" class="dropdown-item">
+                                        <a href="{{ url('/students/view') }}" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Students View</span>
                                         </a>
-                                        <a href="students-create.html" class="dropdown-item">
+                                        <a href="{{ url('/students/create') }}" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Students Create</span>
                                         </a>

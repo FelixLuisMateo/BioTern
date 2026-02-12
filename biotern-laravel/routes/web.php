@@ -16,3 +16,16 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return view('index');
 });
+
+// Students routes (simple closures returning the existing `students` view)
+Route::get('/students', function () {
+    return view('students');
+})->name('students.index');
+
+Route::get('/students/view', function () {
+    return view('students');
+});
+
+Route::get('/students/create', function () {
+    return view('students');
+});

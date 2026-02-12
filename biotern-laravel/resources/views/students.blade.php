@@ -90,13 +90,13 @@ function formatDate($date) {
     <meta name="keyword" content="">
     <meta name="author" content="ACT 2A Group 5">
     <title>BioTern || Students</title>
-    <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
-    <link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css">
-    <link rel="stylesheet" type="text/css" href="assets/vendors/css/vendors.min.css">
-    <link rel="stylesheet" type="text/css" href="assets/vendors/css/dataTables.bs5.min.css">
-    <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2.min.css">
-    <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2-theme.min.css">
-    <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css">
+    <link rel="shortcut icon" type="image/x-icon" href="{{ asset('frontend/assets/images/favicon.ico') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('frontend/assets/css/bootstrap.min.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('frontend/assets/vendors/css/vendors.min.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('frontend/assets/vendors/css/dataTables.bs5.min.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('frontend/assets/vendors/css/select2.min.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('frontend/assets/vendors/css/select2-theme.min.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('frontend/assets/css/theme.min.css') }}">
 </head>
 
 <body>
@@ -105,8 +105,8 @@ function formatDate($date) {
         <div class="navbar-wrapper">
             <div class="m-header">
                 <a href="index.html" class="b-brand">
-                    <img src="assets/images/logo-full.png" alt="" class="logo logo-lg">
-                    <img src="assets/images/logo-abbr.png" alt="" class="logo logo-sm">
+                    <img src="{{ asset('frontend/assets/images/logo-full.png') }}" alt="" class="logo logo-lg">
+                    <img src="{{ asset('frontend/assets/images/logo-abbr.png') }}" alt="" class="logo logo-sm">
                 </a>
             </div>
             <div class="navbar-content">
@@ -356,12 +356,12 @@ function formatDate($date) {
                     </div>
                     <div class="dropdown nxl-h-item">
                         <a href="javascript:void(0);" data-bs-toggle="dropdown" role="button" data-bs-auto-close="outside">
-                            <img src="assets/images/avatar/1.png" alt="user-image" class="img-fluid user-avtar me-0">
+                            <img src="{{ asset('frontend/assets/images/avatar/1.png') }}" alt="user-image" class="img-fluid user-avtar me-0">
                         </a>
                         <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-user-dropdown">
                             <div class="dropdown-header">
                                 <div class="d-flex align-items-center">
-                                    <img src="assets/images/avatar/1.png" alt="user-image" class="img-fluid user-avtar">
+                                    <img src="{{ asset('frontend/assets/images/avatar/1.png') }}" alt="user-image" class="img-fluid user-avtar">
                                     <div>
                                         <h6 class="text-dark mb-0">Felix Luis Mateo</h6>
                                         <span class="fs-12 fw-medium text-muted">felixluismateo@example.com</span>
@@ -595,7 +595,7 @@ function formatDate($date) {
                                                         <td>
                                                             <a href="students-view.php?id=<?php echo $student['id']; ?>" class="hstack gap-3">
                                                                 <div class="avatar-image avatar-md">
-                                                                    <img src="assets/images/avatar/<?php echo ($index % 5) + 1; ?>.png" alt="" class="img-fluid">
+                                                                    <img src="<?php echo asset('frontend/assets/images/avatar/' . (($index % 5) + 1) . '.png'); ?>" alt="" class="img-fluid">
                                                                 </div>
                                                                 <div>
                                                                     <span class="text-truncate-1-line"><?php echo htmlspecialchars($student['first_name'] . ' ' . $student['last_name']); ?></span>
@@ -697,14 +697,14 @@ function formatDate($date) {
     </main>
 
     <!-- Scripts -->
-    <script src="assets/vendors/js/vendors.min.js"></script>
-    <script src="assets/vendors/js/dataTables.min.js"></script>
-    <script src="assets/vendors/js/dataTables.bs5.min.js"></script>
-    <script src="assets/vendors/js/select2.min.js"></script>
-    <script src="assets/vendors/js/select2-active.min.js"></script>
-    <script src="assets/js/common-init.min.js"></script>
-    <script src="assets/js/customers-init.min.js"></script>
-    <script src="assets/js/theme-customizer-init.min.js"></script>
+    <script src="{{ asset('frontend/assets/vendors/js/vendors.min.js') }}"></script>
+    <script src="{{ asset('frontend/assets/vendors/js/dataTables.min.js') }}"></script>
+    <script src="{{ asset('frontend/assets/vendors/js/dataTables.bs5.min.js') }}"></script>
+    <script src="{{ asset('frontend/assets/vendors/js/select2.min.js') }}"></script>
+    <script src="{{ asset('frontend/assets/vendors/js/select2-active.min.js') }}"></script>
+    <script src="{{ asset('frontend/assets/js/common-init.min.js') }}"></script>
+    <script src="{{ asset('frontend/assets/js/customers-init.min.js') }}"></script>
+    <script src="{{ asset('frontend/assets/js/theme-customizer-init.min.js') }}"></script>
 </body>
 
 </html>
