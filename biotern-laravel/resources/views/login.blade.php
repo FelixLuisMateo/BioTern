@@ -53,12 +53,13 @@
                     <h2 class="fs-25 fw-bolder mb-4">Login</h2>
                     <h4 class="fs-15 fw-bold mb-2">Log in to your Clark College of Science and Technology internship account.</h4>
 
-                    <form action="{{ url('/') }}" class="w-100 mt-4 pt-2">
+                    <form method="POST" action="/login" class="w-100 mt-4 pt-2">
+                        {{ csrf_field() }}
                         <div class="mb-4">
-                            <input type="email" class="form-control" placeholder="Email or Username" value="" required>
+                            <input name="login" type="text" class="form-control" placeholder="Email or Username" value="" required>
                         </div>
                         <div class="mb-3">
-                            <input type="password" class="form-control" placeholder="Password" value="" required>
+                            <input name="password" type="password" class="form-control" placeholder="Password" value="" required>
                         </div>
                         <div class="d-flex align-items-center justify-content-between">
                             <div>

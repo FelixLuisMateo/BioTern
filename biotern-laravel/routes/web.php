@@ -43,6 +43,13 @@ Route::get('/demo-biometric', function () {
     return view('demo-biometric');
 });
 
+// Accept POST submissions from the demo-biometric form (view contains inline
+// processing logic). This lets the same view handle POSTed data without a
+// MethodNotAllowed exception during quick local testing.
+Route::post('/demo-biometric', function () {
+    return view('demo-biometric');
+});
+
 Route::get('/attendance', function () {
     return view('attendance');
 });
@@ -56,6 +63,33 @@ Route::get('register_submit', function () {
 use App\Http\Controllers\RegisterSubmitController;
 
 Route::post('register_submit', [RegisterSubmitController::class, 'handle'])->name('register_submit.post');
+
+use App\Http\Controllers\AuthController;
+
+// Login routes
+Route::get('/login', [AuthController::class, 'showLogin'])->name('login.show');
+Route::post('/login', [AuthController::class, 'login'])->name('login.post');
+Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+// Local-only helper to create an admin user if none exists.
+Route::get('/setup-admin', function () {
+    if (!app()->environment('local')) {
+        abort(403, 'Forbidden');
+    }
+    $email = 'admin@biotern.com';
+    $exists = \Illuminate\Support\Facades\DB::table('users')->where('email', $email)->exists();
+    if ($exists) {
+        return 'Admin already exists';
+    }
+    $id = \Illuminate\Support\Facades\DB::table('users')->insertGetId([
+        'name' => 'Admin User',
+        'email' => $email,
+        'password' => \Illuminate\Support\Facades\Hash::make('password'),
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+    return "Created admin id={$id} with password 'password' (local only).";
+});
 
 // Dashboard Routes
 Route::middleware('auth')->group(function () {

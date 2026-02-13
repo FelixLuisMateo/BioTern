@@ -5,7 +5,9 @@ use App\Http\Controllers\Admin\CourseController;
 use App\Http\Controllers\Admin\DepartmentController;
 use App\Http\Controllers\Admin\SystemSettingsController;
 
-Route::get('/dashboard', [DashboardController::class, 'index'])->name('admin.dashboard');
+Route::get('/dashboard', function () {
+    return view('dashboard_admin');
+})->name('admin.dashboard');
 
 Route::resource('courses', CourseController::class, ['as' => 'admin']);
 Route::resource('departments', DepartmentController::class, ['as' => 'admin']);
