@@ -26,6 +26,56 @@ $stats_query = "
 $stats_result = $conn->query($stats_query);
 $stats = $stats_result->fetch_assoc();
 
+// Prepare filter inputs
+$filter_course = isset($_GET['course_id']) ? intval($_GET['course_id']) : 0;
+$filter_department = isset($_GET['department_id']) ? intval($_GET['department_id']) : 0;
+$filter_supervisor = isset($_GET['supervisor']) ? trim($_GET['supervisor']) : '';
+$filter_coordinator = isset($_GET['coordinator']) ? trim($_GET['coordinator']) : '';
+$filter_status = isset($_GET['status']) ? intval($_GET['status']) : -1;
+
+// Fetch dropdown lists
+$courses = [];
+$courses_res = $conn->query("SELECT id, name FROM courses WHERE is_active = 1 ORDER BY name ASC");
+if ($courses_res && $courses_res->num_rows) {
+    while ($r = $courses_res->fetch_assoc()) $courses[] = $r;
+}
+
+$departments = [];
+$dept_res = $conn->query("SELECT id, name FROM departments ORDER BY name ASC");
+if ($dept_res && $dept_res->num_rows) {
+    while ($r = $dept_res->fetch_assoc()) $departments[] = $r;
+}
+
+$supervisors = [];
+$sup_res = $conn->query("SELECT DISTINCT supervisor_name FROM students WHERE supervisor_name IS NOT NULL AND supervisor_name <> '' ORDER BY supervisor_name ASC");
+if ($sup_res && $sup_res->num_rows) {
+    while ($r = $sup_res->fetch_assoc()) $supervisors[] = $r['supervisor_name'];
+}
+
+$coordinators = [];
+$coor_res = $conn->query("SELECT DISTINCT coordinator_name FROM students WHERE coordinator_name IS NOT NULL AND coordinator_name <> '' ORDER BY coordinator_name ASC");
+if ($coor_res && $coor_res->num_rows) {
+    while ($r = $coor_res->fetch_assoc()) $coordinators[] = $r['coordinator_name'];
+}
+
+// Build WHERE clauses depending on provided filters
+$where = [];
+if ($filter_course > 0) {
+    $where[] = "s.course_id = " . intval($filter_course);
+}
+if ($filter_department > 0) {
+    $where[] = "i.department_id = " . intval($filter_department);
+}
+if (!empty($filter_supervisor)) {
+    $where[] = "(s.supervisor_name LIKE '%" . $conn->real_escape_string($filter_supervisor) . "%' OR i.supervisor_id IN (SELECT id FROM users WHERE name LIKE '%" . $conn->real_escape_string($filter_supervisor) . "%'))";
+}
+if (!empty($filter_coordinator)) {
+    $where[] = "(s.coordinator_name LIKE '%" . $conn->real_escape_string($filter_coordinator) . "%' OR i.coordinator_id IN (SELECT id FROM users WHERE name LIKE '%" . $conn->real_escape_string($filter_coordinator) . "%'))";
+}
+if ($filter_status >= 0) {
+    $where[] = "s.status = " . intval($filter_status);
+}
+
 // Fetch Students with Related Information
 $students_query = "
     SELECT 
@@ -36,8 +86,11 @@ $students_query = "
         s.email,
         s.phone,
         s.status,
+        s.supervisor_name,
+        s.coordinator_name,
         s.biometric_registered,
         s.created_at,
+        s.profile_picture,
         c.name as course_name,
         c.id as course_id,
         i.supervisor_id,
@@ -49,6 +102,7 @@ $students_query = "
     LEFT JOIN internships i ON s.id = i.student_id AND i.status = 'ongoing'
     LEFT JOIN users u_supervisor ON i.supervisor_id = u_supervisor.id
     LEFT JOIN users u_coordinator ON i.coordinator_id = u_coordinator.id
+    " . (count($where) > 0 ? "WHERE " . implode(' AND ', $where) : "") . "
     ORDER BY s.first_name ASC
     LIMIT 100
 ";
@@ -97,6 +151,79 @@ function formatDate($date) {
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2.min.css">
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2-theme.min.css">
     <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css">
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        main.nxl-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        div.nxl-content {
+            flex: 1;
+        }
+        footer.footer {
+            margin-top: auto;
+        }
+        
+        /* Dark mode select and Select2 styling */
+        select.form-control,
+        select.form-select,
+        .select2-container--default .select2-selection--single,
+        .select2-container--default .select2-selection--multiple {
+            color: #333;
+            background-color: #ffffff;
+        }
+        
+        /* Dark mode support for Select2 - using app-skin-dark class */
+        html.app-skin-dark .select2-container--default .select2-selection--single,
+        html.app-skin-dark .select2-container--default .select2-selection--multiple {
+            color: #f0f0f0 !important;
+            background-color: #2d3748 !important;
+            border-color: #4a5568 !important;
+        }
+        
+        html.app-skin-dark .select2-container--default .select2-selection--single .select2-selection__rendered {
+            color: #f0f0f0 !important;
+        }
+        
+        /* Dark mode dropdown menu */
+        html.app-skin-dark .select2-container--default.select2-container--open .select2-dropdown {
+            background-color: #2d3748 !important;
+            border-color: #4a5568 !important;
+        }
+        
+        html.app-skin-dark .select2-results__option {
+            color: #f0f0f0 !important;
+            background-color: #2d3748 !important;
+        }
+        
+        html.app-skin-dark .select2-results__option--highlighted[aria-selected] {
+            background-color: #667eea !important;
+            color: #ffffff !important;
+        }
+        
+        html.app-skin-dark select.form-control,
+        html.app-skin-dark select.form-select {
+            color: #f0f0f0 !important;
+            background-color: #2d3748 !important;
+            border-color: #4a5568 !important;
+        }
+        
+        html.app-skin-dark select.form-control option,
+        html.app-skin-dark select.form-select option {
+            color: #f0f0f0 !important;
+            background-color: #2d3748 !important;
+        }
+    </style>
 </head>
 
 <body>
@@ -476,6 +603,54 @@ function formatDate($date) {
                 </div>
             </div>
 
+            <!-- Filters -->
+            <div class="row mb-3 px-3">
+                <div class="col-12">
+                    <form method="GET" class="row g-2">
+                        <div class="col-sm-2">
+                            <label class="form-label">Course</label>
+                            <select name="course_id" class="form-control">
+                                <option value="0">-- All Courses --</option>
+                                <?php foreach ($courses as $course): ?>
+                                    <option value="<?php echo $course['id']; ?>" <?php echo $filter_course == $course['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($course['name']); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-sm-2">
+                            <label class="form-label">Department</label>
+                            <select name="department_id" class="form-control">
+                                <option value="0">-- All Departments --</option>
+                                <?php foreach ($departments as $dept): ?>
+                                    <option value="<?php echo $dept['id']; ?>" <?php echo $filter_department == $dept['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($dept['name']); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-sm-2">
+                            <label class="form-label">Supervisor</label>
+                            <select name="supervisor" class="form-control">
+                                <option value="">-- Any Supervisor --</option>
+                                <?php foreach ($supervisors as $sup): ?>
+                                    <option value="<?php echo htmlspecialchars($sup); ?>" <?php echo $filter_supervisor == $sup ? 'selected' : ''; ?>><?php echo htmlspecialchars($sup); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-sm-2">
+                            <label class="form-label">Coordinator</label>
+                            <select name="coordinator" class="form-control">
+                                <option value="">-- Any Coordinator --</option>
+                                <?php foreach ($coordinators as $coor): ?>
+                                    <option value="<?php echo htmlspecialchars($coor); ?>" <?php echo $filter_coordinator == $coor ? 'selected' : ''; ?>><?php echo htmlspecialchars($coor); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-sm-2 d-flex gap-1" style="align-items: flex-end;">
+                            <button type="submit" class="btn btn-primary btn-sm px-3 py-1" style="font-size: 0.85rem;">Filter</button>
+                            <a href="students.php" class="btn btn-outline-secondary btn-sm px-3 py-1" style="font-size: 0.85rem;">Reset</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
             <!--! Statistics !-->
             <div id="collapseOne" class="accordion-collapse collapse page-header-collapse">
                 <div class="accordion-body pb-2">
@@ -595,7 +770,15 @@ function formatDate($date) {
                                                         <td>
                                                             <a href="students-view.php?id=<?php echo $student['id']; ?>" class="hstack gap-3">
                                                                 <div class="avatar-image avatar-md">
-                                                                    <img src="assets/images/avatar/<?php echo ($index % 5) + 1; ?>.png" alt="" class="img-fluid">
+                                                                    <?php
+                                                                    $pp = $student['profile_picture'] ?? '';
+                                                                    if ($pp && file_exists(__DIR__ . '/' . $pp)) {
+                                                                        $vb = filemtime(__DIR__ . '/' . $pp);
+                                                                        echo '<img src="' . htmlspecialchars($pp) . '?v=' . $vb . '" alt="" class="img-fluid">';
+                                                                    } else {
+                                                                        echo '<img src="assets/images/avatar/' . (($index % 5) + 1) . '.png" alt="" class="img-fluid">';
+                                                                    }
+                                                                    ?>
                                                                 </div>
                                                                 <div>
                                                                     <span class="text-truncate-1-line"><?php echo htmlspecialchars($student['first_name'] . ' ' . $student['last_name']); ?></span>

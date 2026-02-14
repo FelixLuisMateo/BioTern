@@ -108,6 +108,7 @@ $attendance_query = "
         a.approved_at,
         a.remarks,
         s.id as student_id,
+        s.profile_picture,
         s.student_id as student_number,
         s.first_name,
         s.last_name,
@@ -142,7 +143,17 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
         foreach ($attendances as $attendance) {
             echo '<tr class="single-item">';
             echo '<td><div class="item-checkbox ms-1"><div class="custom-control custom-checkbox"><input type="checkbox" class="custom-control-input checkbox" id="checkBox_' . $attendance['id'] . '"><label class="custom-control-label" for="checkBox_' . $attendance['id'] . '"></label></div></div></td>';
-            echo '<td><a href="students-view.php?id=' . $attendance['student_id'] . '" class="hstack gap-3"><div class="avatar-image avatar-md"><div class="avatar-text avatar-md bg-light-primary rounded">' . strtoupper(substr($attendance['first_name'] ?? 'N', 0, 1) . substr($attendance['last_name'] ?? 'A', 0, 1)) . '</div></div><div><div class="fw-bold">' . htmlspecialchars(($attendance['first_name'] ?? '') . ' ' . ($attendance['last_name'] ?? '')) . '</div><small class="text-muted">' . htmlspecialchars($attendance['student_number'] ?? '') . '</small></div></a></td>';
+            // build avatar (use uploaded profile picture when available)
+            $avatar_html = '<a href="students-view.php?id=' . $attendance['student_id'] . '" class="hstack gap-3">';
+            if (!empty($attendance['profile_picture']) && file_exists(__DIR__ . '/' . $attendance['profile_picture'])) {
+                $v = filemtime(__DIR__ . '/' . $attendance['profile_picture']);
+                $avatar_html .= '<div class="avatar-image avatar-md"><img src="' . htmlspecialchars($attendance['profile_picture']) . '?v=' . $v . '" alt="" class="img-fluid"></div>';
+            } else {
+                $initials = strtoupper(substr($attendance['first_name'] ?? 'N', 0, 1) . substr($attendance['last_name'] ?? 'A', 0, 1));
+                $avatar_html .= '<div class="avatar-image avatar-md"><div class="avatar-text avatar-md bg-light-primary rounded">' . $initials . '</div></div>';
+            }
+            $avatar_html .= '<div><div class="fw-bold">' . htmlspecialchars(($attendance['first_name'] ?? '') . ' ' . ($attendance['last_name'] ?? '')) . '</div><small class="text-muted">' . htmlspecialchars($attendance['student_number'] ?? '') . '</small></div></a>';
+            echo '<td>' . $avatar_html . '</td>';
             echo '<td><span class="badge bg-soft-primary text-primary">' . date('Y-m-d', strtotime($attendance['attendance_date'])) . '</span></td>';
             echo '<td><span class="badge bg-soft-success text-success">' . ( $attendance['morning_time_in'] ? date('h:i A', strtotime($attendance['morning_time_in'])) : '-' ) . '</span></td>';
             echo '<td><span class="badge bg-soft-success text-success">' . ( $attendance['morning_time_out'] ? date('h:i A', strtotime($attendance['morning_time_out'])) : '-' ) . '</span></td>';
@@ -264,6 +275,98 @@ function getAttendanceStatus($morning_time_in) {
 			<script src="https:oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
 			<script src="https:oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
 		<![endif]-->
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        main.nxl-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        div.nxl-content {
+            flex: 1;
+        }
+        footer.footer {
+            margin-top: auto;
+        }
+        
+        /* Dark mode select and Select2 styling */
+        select.form-control,
+        select.form-select,
+        .select2-container--default .select2-selection--single,
+        .select2-container--default .select2-selection--multiple {
+            color: #333 !important;
+            background-color: #ffffff !important;
+        }
+        
+        /* Dark mode support for Select2 - using app-skin-dark class */
+        html.app-skin-dark .select2-container--default .select2-selection--single,
+        html.app-skin-dark .select2-container--default .select2-selection--multiple {
+            color: #f0f0f0 !important;
+            background-color: #2d3748 !important;
+            border-color: #4a5568 !important;
+        }
+        
+        html.app-skin-dark .select2-container--default.select2-container--focus .select2-selection--single,
+        html.app-skin-dark .select2-container--default.select2-container--focus .select2-selection--multiple {
+            color: #f0f0f0 !important;
+            background-color: #2d3748 !important;
+            border-color: #667eea !important;
+        }
+        
+        html.app-skin-dark .select2-container--default .select2-selection--single .select2-selection__rendered {
+            color: #f0f0f0 !important;
+        }
+        
+        html.app-skin-dark .select2-container--default .select2-selection__placeholder {
+            color: #a0aec0 !important;
+        }
+        
+        /* Dark mode dropdown menu */
+        html.app-skin-dark .select2-container--default.select2-container--open .select2-dropdown {
+            background-color: #2d3748 !important;
+            border-color: #4a5568 !important;
+        }
+        
+        html.app-skin-dark .select2-results {
+            background-color: #2d3748 !important;
+        }
+        
+        html.app-skin-dark .select2-results__option {
+            color: #f0f0f0 !important;
+            background-color: #2d3748 !important;
+        }
+        
+        html.app-skin-dark .select2-results__option--highlighted[aria-selected] {
+            background-color: #667eea !important;
+            color: #ffffff !important;
+        }
+        
+        html.app-skin-dark .select2-container--default {
+            background-color: #2d3748 !important;
+        }
+        
+        html.app-skin-dark select.form-control,
+        html.app-skin-dark select.form-select {
+            color: #f0f0f0 !important;
+            background-color: #2d3748 !important;
+            border-color: #4a5568 !important;
+        }
+        
+        html.app-skin-dark select.form-control option,
+        html.app-skin-dark select.form-select option {
+            color: #f0f0f0 !important;
+            background-color: #2d3748 !important;
+        }
+    </style>
 </head>
 
 <body>
@@ -870,9 +973,9 @@ function getAttendanceStatus($morning_time_in) {
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        <div class="col-sm-2 d-flex gap-2">
-                            <button type="submit" class="btn btn-primary">Filter</button>
-                            <a href="attendance.php" class="btn btn-outline-secondary">Reset</a>
+                        <div class="col-sm-2 d-flex gap-1" style="align-items: flex-end;">
+                            <button type="submit" class="btn btn-primary btn-sm px-3 py-1" style="font-size: 0.85rem;">Filter</button>
+                            <a href="students.php" class="btn btn-outline-secondary btn-sm px-3 py-1" style="font-size: 0.85rem;">Reset</a>
                         </div>
                     </form>
                 </div>
@@ -922,11 +1025,15 @@ function getAttendanceStatus($morning_time_in) {
                                                         </td>
                                                         <td>
                                                             <a href="students-view.php?id=<?php echo $attendance['student_id']; ?>" class="hstack gap-3">
-                                                                <div class="avatar-image avatar-md">
-                                                                    <div class="avatar-text avatar-md bg-light-primary rounded">
-                                                                        <?php echo strtoupper(substr($attendance['first_name'] ?? 'N', 0, 1) . substr($attendance['last_name'] ?? 'A', 0, 1)); ?>
-                                                                    </div>
-                                                                </div>
+                                                                <?php
+                                                                $pp = $attendance['profile_picture'] ?? '';
+                                                                if ($pp && file_exists(__DIR__ . '/' . $pp)) {
+                                                                    $v = filemtime(__DIR__ . '/' . $pp);
+                                                                    echo '<div class="avatar-image avatar-md"><img src="' . htmlspecialchars($pp) . '?v=' . $v . '" alt="" class="img-fluid"></div>';
+                                                                } else {
+                                                                    echo '<div class="avatar-image avatar-md"><div class="avatar-text avatar-md bg-light-primary rounded">' . strtoupper(substr($attendance['first_name'] ?? 'N', 0, 1) . substr($attendance['last_name'] ?? 'A', 0, 1)) . '</div></div>';
+                                                                }
+                                                                ?>
                                                                 <div>
                                                                     <span class="text-truncate-1-line fw-bold"><?php echo ($attendance['first_name'] ?? 'N/A') . ' ' . ($attendance['last_name'] ?? 'N/A'); ?></span>
                                                                     <span class="fs-12 text-muted d-block"><?php echo $attendance['student_number'] ?? 'N/A'; ?></span>

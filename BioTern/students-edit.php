@@ -21,11 +21,27 @@ if ($student_id == 0) {
     die("Invalid student ID");
 }
 
+// Create uploads directory if it doesn't exist
+$uploads_dir = dirname(__FILE__) . '/uploads/profile_pictures';
+if (!is_dir($uploads_dir)) {
+    mkdir($uploads_dir, 0755, true);
+}
+// Ensure other upload folders exist
+$uploads_manual_dtr = dirname(__FILE__) . '/uploads/manual_dtr';
+if (!is_dir($uploads_manual_dtr)) {
+    mkdir($uploads_manual_dtr, 0755, true);
+}
+$uploads_documents = dirname(__FILE__) . '/uploads/documents';
+if (!is_dir($uploads_documents)) {
+    mkdir($uploads_documents, 0755, true);
+}
+
 // Fetch Student Details
 $student_query = "
     SELECT 
         s.id,
         s.student_id,
+        s.profile_picture,
         s.first_name,
         s.last_name,
         s.middle_name,
@@ -98,6 +114,40 @@ $success_message = '';
 $error_message = '';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    // Handle profile picture upload
+    $profile_picture_path = $student['profile_picture'] ?? '';
+    
+    if (isset($_FILES['profile_picture']) && $_FILES['profile_picture']['error'] == UPLOAD_ERR_OK) {
+        $file_tmp = $_FILES['profile_picture']['tmp_name'];
+        $file_name = $_FILES['profile_picture']['name'];
+        $file_size = $_FILES['profile_picture']['size'];
+        $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+        
+        // Validate file type and size
+        $allowed_types = ['jpg', 'jpeg', 'png', 'gif'];
+        $max_file_size = 5 * 1024 * 1024; // 5MB
+        
+        if (in_array($file_ext, $allowed_types) && $file_size <= $max_file_size) {
+            // Create unique filename
+            $unique_name = 'student_' . $student_id . '_' . time() . '.' . $file_ext;
+            $file_path = $uploads_dir . '/' . $unique_name;
+            
+            // Delete old profile picture if exists
+            if (!empty($profile_picture_path) && file_exists(dirname(__FILE__) . '/' . $profile_picture_path)) {
+                unlink(dirname(__FILE__) . '/' . $profile_picture_path);
+            }
+            
+            // Move uploaded file
+            if (move_uploaded_file($file_tmp, $file_path)) {
+                $profile_picture_path = 'uploads/profile_pictures/' . $unique_name;
+            } else {
+                $error_message = "Failed to upload profile picture. Please try again.";
+            }
+        } else {
+            $error_message = "Invalid file type or file size exceeds 5MB. Allowed types: JPG, PNG, GIF.";
+        }
+    }
+    
     // Sanitize and validate inputs
     $first_name = isset($_POST['first_name']) ? trim($_POST['first_name']) : '';
     $last_name = isset($_POST['last_name']) ? trim($_POST['last_name']) : '';
@@ -145,6 +195,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     status = ?,
                     supervisor_name = ?,
                     coordinator_name = ?,
+                    profile_picture = ?,
                     updated_at = NOW()
                 WHERE id = ?
             ";
@@ -154,7 +205,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $error_message = "Prepare failed: " . $conn->error;
             } else {
                 $update_stmt->bind_param(
-                    "sssssssssssssi",
+                    "ssssssssssssssi",
                     $first_name,
                     $last_name,
                     $middle_name,
@@ -168,6 +219,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $status,
                     $supervisor_id,
                     $coordinator_id,
+                    $profile_picture_path,
                     $student_id
                 );
 
@@ -254,17 +306,13 @@ function formatDateTime($date) {
             border: 1px solid #dddddd;
             border-radius: 0 0 4px 4px;
             box-shadow: 0 6px 12px rgba(0,0,0,0.08);
-            max-height: 300px;
+            max-height: 200px;
             overflow-y: auto;
         }
 
         .select2-container {
             width: 100% !important;
-        }
-
-        /* Ensure dropdown appears above other content */
-        .select2-container--open {
-            z-index: 99999 !important;
+            max-width: 100%;
         }
 
         .form-control.select2-hidden-accessible {
@@ -321,14 +369,95 @@ function formatDateTime($date) {
             max-width: calc(100% - 80px);
         }
 
-        /* Make dropdown match the width of the select box and sit above content */
-        .select2-container--open {
-            z-index: 99999 !important;
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
         }
-
-        .select2-container--default .select2-dropdown {
-            min-width: 100% !important;
-            box-sizing: border-box;
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        main.nxl-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        div.nxl-content {
+            flex: 1;
+        }
+        footer.footer {
+            margin-top: auto;
+        }
+        
+        /* Dark mode select and Select2 styling */
+        select.form-control,
+        select.form-select,
+        .select2-container--default .select2-selection--single,
+        .select2-container--default .select2-selection--multiple {
+            color: #333 !important;
+            background-color: #ffffff !important;
+        }
+        
+        /* Dark mode support for Select2 - using app-skin-dark class */
+        html.app-skin-dark .select2-container--default .select2-selection--single,
+        html.app-skin-dark .select2-container--default .select2-selection--multiple {
+            color: #f0f0f0 !important;
+            background-color: #2d3748 !important;
+            border-color: #4a5568 !important;
+        }
+        
+        html.app-skin-dark .select2-container--default.select2-container--focus .select2-selection--single,
+        html.app-skin-dark .select2-container--default.select2-container--focus .select2-selection--multiple {
+            color: #f0f0f0 !important;
+            background-color: #2d3748 !important;
+            border-color: #667eea !important;
+        }
+        
+        html.app-skin-dark .select2-container--default .select2-selection--single .select2-selection__rendered {
+            color: #f0f0f0 !important;
+        }
+        
+        html.app-skin-dark .select2-container--default .select2-selection__placeholder {
+            color: #a0aec0 !important;
+        }
+        
+        /* Dark mode dropdown menu */
+        html.app-skin-dark .select2-container--default.select2-container--open .select2-dropdown {
+            background-color: #2d3748 !important;
+            border-color: #4a5568 !important;
+        }
+        
+        html.app-skin-dark .select2-results {
+            background-color: #2d3748 !important;
+        }
+        
+        html.app-skin-dark .select2-results__option {
+            color: #f0f0f0 !important;
+            background-color: #2d3748 !important;
+        }
+        
+        html.app-skin-dark .select2-results__option--highlighted[aria-selected] {
+            background-color: #667eea !important;
+            color: #ffffff !important;
+        }
+        
+        html.app-skin-dark .select2-container--default {
+            background-color: #2d3748 !important;
+        }
+        
+        html.app-skin-dark select.form-control,
+        html.app-skin-dark select.form-select {
+            color: #f0f0f0 !important;
+            background-color: #2d3748 !important;
+            border-color: #4a5568 !important;
+        }
+        
+        html.app-skin-dark select.form-control option,
+        html.app-skin-dark select.form-select option {
+            color: #f0f0f0 !important;
+            background-color: #2d3748 !important;
         }
     </style>
 </head>
@@ -644,7 +773,6 @@ function formatDateTime($date) {
                             <div class="card-header">
                                 <div class="d-flex align-items-center justify-content-between">
                                     <h5 class="card-title mb-0">Edit Student Information</h5>
-                                    <small class="text-muted">Student ID: <?php echo htmlspecialchars($student['student_id']); ?></small>
                                 </div>
                             </div>
                             <div class="card-body">
@@ -666,7 +794,7 @@ function formatDateTime($date) {
                                 <?php endif; ?>
 
                                 <!-- Edit Form -->
-                                <form method="POST" action="" id="editStudentForm">
+                                <form method="POST" action="" id="editStudentForm" enctype="multipart/form-data">
                                     <!-- Personal Information Section -->
                                     <div class="mb-5">
                                         <h6 class="fw-bold mb-4">
@@ -737,12 +865,20 @@ function formatDateTime($date) {
                                             <div class="col-md-6 mb-4">
                                                 <label for="student_id" class="form-label fw-semibold">Student ID</label>
                                                 <input type="text" class="form-control" id="student_id" name="student_id" 
-                                                       value="<?php echo htmlspecialchars($student['student_id'] ?? ''); ?>"
-                                                       readonly>
-                                                <small class="form-text text-muted">Auto-generated and cannot be changed</small>
+                                                       value="<?php echo htmlspecialchars($student['student_id'] ?? ''); ?>">
+                                                <small class="form-text text-muted">Can be edited by admins, coordinators, and supervisors</small>
                                             </div>
                                             <div class="col-md-6 mb-4">
                                                 <label for="profile_picture" class="form-label fw-semibold">Profile Picture</label>
+                                                <div class="mb-2">
+                                                    <?php if (!empty($student['profile_picture'])): ?>
+                                                        <div class="mb-2">
+                                                            <img src="<?php echo htmlspecialchars($student['profile_picture']); ?>" alt="Profile" class="img-thumbnail" style="max-width: 150px; max-height: 150px;">
+                                                        </div>
+                                                    <?php else: ?>
+                                                        <div class="alert alert-info mb-2 py-2 px-3">No profile picture uploaded</div>
+                                                    <?php endif; ?>
+                                                </div>
                                                 <input type="file" class="form-control" id="profile_picture" name="profile_picture" 
                                                        accept="image/*">
                                                 <small class="form-text text-muted">JPG, PNG, GIF (Max 5MB)</small>
@@ -845,16 +981,21 @@ function formatDateTime($date) {
                                     <hr>
 
                                     <!-- Form Actions -->
-                                    <div class="d-flex gap-2 justify-content-end pt-4">
-                                        <a href="students-view.php?id=<?php echo $student['id']; ?>" class="btn btn-light-brand">
-                                            <i class="feather-x me-2"></i>Cancel
+                                    <div class="d-flex gap-2 justify-content-between pt-4">
+                                        <a href="generate_resume.php?id=<?php echo $student['id']; ?>" class="btn btn-success" target="_blank">
+                                            <i class="feather-file-text me-2"></i>Generate Resume
                                         </a>
-                                        <button type="reset" class="btn btn-outline-secondary">
-                                            <i class="feather-refresh-cw me-2"></i>Reset
-                                        </button>
-                                        <button type="submit" class="btn btn-primary">
-                                            <i class="feather-save me-2"></i>Save Changes
-                                        </button>
+                                        <div class="d-flex gap-2">
+                                            <a href="students-view.php?id=<?php echo $student['id']; ?>" class="btn btn-light-brand">
+                                                <i class="feather-x me-2"></i>Cancel
+                                            </a>
+                                            <button type="reset" class="btn btn-outline-secondary">
+                                                <i class="feather-refresh-cw me-2"></i>Reset
+                                            </button>
+                                            <button type="submit" class="btn btn-primary">
+                                                <i class="feather-save me-2"></i>Save Changes
+                                            </button>
+                                        </div>
                                     </div>
                                 </form>
                             </div>
@@ -896,12 +1037,8 @@ function formatDateTime($date) {
             $('#course_id, #status, #gender, #supervisor_id, #coordinator_id').each(function() {
                 $(this).select2({
                     allowClear: true,
-                    // let Select2 resolve width from the element's style so dropdown aligns to the control
                     width: 'resolve',
-                    // attach dropdown to the form so it positions within the form area and not full page
-                    dropdownParent: $('#editStudentForm'),
                     dropdownAutoWidth: false,
-                    // use default theme; classic theme can look bulky in this UI
                     theme: 'default'
                 });
             });

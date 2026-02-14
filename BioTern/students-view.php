@@ -26,6 +26,7 @@ $student_query = "
     SELECT 
         s.id,
         s.student_id,
+        s.profile_picture,
         s.first_name,
         s.last_name,
         s.middle_name,
@@ -242,6 +243,90 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2.min.css">
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2-theme.min.css">
     <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css">
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        main.nxl-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        div.nxl-content {
+            flex: 1;
+        }
+        footer.footer {
+            margin-top: auto;
+        }
+        
+        /* Dark mode select and Select2 styling */
+        select.form-control,
+        select.form-select,
+        .select2-container--default .select2-selection--single,
+        .select2-container--default .select2-selection--multiple {
+            color: #333;
+            background-color: #ffffff;
+        }
+        
+        /* Dark mode support for Select2 */
+        body.dark .select2-container--default .select2-selection--single,
+        body.dark .select2-container--default .select2-selection--multiple,
+        body[data-bs-theme="dark"] .select2-container--default .select2-selection--single,
+        body[data-bs-theme="dark"] .select2-container--default .select2-selection--multiple {
+            color: #f0f0f0;
+            background-color: #2d3748;
+            border-color: #4a5568 !important;
+        }
+        
+        body.dark .select2-container--default .select2-selection--single .select2-selection__rendered,
+        body[data-bs-theme="dark"] .select2-container--default .select2-selection--single .select2-selection__rendered {
+            color: #f0f0f0;
+        }
+        
+        /* Dark mode dropdown menu */
+        body.dark .select2-container--default.select2-container--open .select2-dropdown,
+        body[data-bs-theme="dark"] .select2-container--default.select2-container--open .select2-dropdown {
+            background-color: #2d3748;
+            border-color: #4a5568;
+        }
+        
+        body.dark .select2-results__option,
+        body[data-bs-theme="dark"] .select2-results__option {
+            color: #f0f0f0;
+            background-color: #2d3748;
+        }
+        
+        body.dark .select2-results__option--highlighted[aria-selected],
+        body[data-bs-theme="dark"] .select2-results__option--highlighted[aria-selected] {
+            background-color: #667eea;
+            color: #ffffff;
+        }
+        
+        body.dark .select2-container--default select.form-control,
+        body.dark select.form-control,
+        body.dark select.form-select,
+        body[data-bs-theme="dark"] select.form-control,
+        body[data-bs-theme="dark"] select.form-select {
+            color: #f0f0f0;
+            background-color: #2d3748;
+            border-color: #4a5568;
+        }
+        
+        body.dark select.form-control option,
+        body.dark select.form-select option,
+        body[data-bs-theme="dark"] select.form-control option,
+        body[data-bs-theme="dark"] select.form-select option {
+            color: #f0f0f0;
+            background-color: #2d3748;
+        }
+    </style>
 </head>
 
 <body>
@@ -559,7 +644,11 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                                 <div class="mb-4 text-center">
                                     <div class="wd-150 ht-150 mx-auto mb-3 position-relative">
                                         <div class="avatar-image wd-150 ht-150 border border-5 border-gray-3">
-                                            <img src="assets/images/avatar/<?php echo ($student['id'] % 5) + 1; ?>.png" alt="" class="img-fluid">
+                                            <?php if (!empty($student['profile_picture']) && file_exists(__DIR__ . '/' . $student['profile_picture'])): ?>
+                                                <img src="<?php echo htmlspecialchars($student['profile_picture']) . '?v=' . filemtime(__DIR__ . '/' . $student['profile_picture']); ?>" alt="Profile" class="img-fluid">
+                                            <?php else: ?>
+                                                <img src="assets/images/avatar/<?php echo ($student['id'] % 5) + 1; ?>.png" alt="" class="img-fluid">
+                                            <?php endif; ?>
                                         </div>
                                         <div class="wd-10 ht-10 text-success rounded-circle position-absolute translate-middle" style="top: 76%; right: 10px">
                                             <i class="bi bi-patch-check-fill"></i>

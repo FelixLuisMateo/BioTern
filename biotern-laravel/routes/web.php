@@ -17,6 +17,10 @@ Route::get('/', function () {
     return view('index');
 });
 
+Route::get('/login', function () {
+    return view('auth-login-cover');
+})->name('login');
+
 // Students routes (simple closures returning the existing `students` view)
 Route::get('/students', function () {
     return view('students');
