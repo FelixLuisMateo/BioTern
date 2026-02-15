@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zxx">
 <style>
     .progress-bar div {
@@ -241,24 +241,24 @@
                                     <div class="roles-container">
                                         <div class="roles-grid" id="rolesRow">
                                             <div class="role-card" data-role="student" onclick="selectRole('student')" tabindex="0">
-                                                <div class="role-icon">👨‍🎓</div>
+                                                <div class="role-icon">ðŸ‘¨â€ðŸŽ“</div>
                                                 <h5>Student</h5>
-                                                <p>Student — register for internship</p>
+                                                <p>Student â€” register for internship</p>
                                             </div>
                                             <div class="role-card" data-role="coordinator" onclick="selectRole('coordinator')" tabindex="0">
-                                                <div class="role-icon">👔</div>
+                                                <div class="role-icon">ðŸ‘”</div>
                                                 <h5>Coordinator</h5>
-                                                <p>Coordinator — manage student placements</p>
+                                                <p>Coordinator â€” manage student placements</p>
                                             </div>
                                             <div class="role-card" data-role="supervisor" onclick="selectRole('supervisor')" tabindex="0">
-                                                <div class="role-icon">👨‍💼</div>
+                                                <div class="role-icon">ðŸ‘¨â€ðŸ’¼</div>
                                                 <h5>Supervisor</h5>
-                                                <p>Supervisor — oversee workplace activities</p>
+                                                <p>Supervisor â€” oversee workplace activities</p>
                                             </div>
                                             <div class="role-card" data-role="admin" onclick="selectRole('admin')" tabindex="0">
-                                                <div class="role-icon">⚙️</div>
+                                                <div class="role-icon">âš™ï¸</div>
                                                 <h5>Admin</h5>
-                                                <p>Admin — system administrator</p>
+                                                <p>Admin â€” system administrator</p>
                                             </div>
                                         </div>
                                     </div>
@@ -270,7 +270,7 @@
                         <form id="studentForm" class="w-100 mt-4 pt-2 hide-form" action="register_submit.php" method="post">
                             <input type="hidden" name="role" value="student">
                             <div class="form-section">
-                                <button type="button" class="btn btn-sm btn-outline-secondary mb-4" onclick="backToRoles()">← Back to Role Selection</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary mb-4" onclick="backToRoles()">â† Back to Role Selection</button>
                             </div>
                             <!-- Personal Information Section -->
                             <div class="mb-4">
@@ -334,6 +334,62 @@
                                         </select>
                                     </div>
                                 </div>
+                                <div class="row g-3">
+                                    <div class="col-6 mb-2">
+                                        <label class="form-label fs-12">Coordinator</label>
+                                        <select name="coordinator_id" class="form-control">
+                                            <option value="" disabled selected>Select Coordinator</option>
+                                            <option value="1">Felix Luis Mateo</option>
+                                            <option value="2">John Smith</option>
+                                            <option value="3">Jane Doe</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-6 mb-2">
+                                        <label class="form-label fs-12">Supervisor</label>
+                                        <select name="supervisor_id" class="form-control">
+                                            <option value="" disabled selected>Select Supervisor</option>
+                                            <option value="1">Jomer De Guzman</option>
+                                            <option value="2">Naven Cuenca</option>
+                                            <option value="3">Maria Santos</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="row g-3">
+                                    <div class="col-6 mb-2">
+                                        <label class="form-label fs-12">Total Hours</label>
+                                        <input type="number" name="total_hours" class="form-control" placeholder="Total Hours" min="0">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Additional Information Section -->
+                            <div class="mb-4">
+                                <h5 class="fs-14 fw-bold mb-3">Additional Information</h5>
+                                <div class="row g-3">
+                                    <div class="col-6 mb-2">
+                                        <label class="form-label fs-12">Date of Birth</label>
+                                        <input type="date" name="date_of_birth" class="form-control">
+                                    </div>
+                                    <div class="col-6 mb-2">
+                                        <label class="form-label fs-12">Gender</label>
+                                        <select name="gender" class="form-control">
+                                            <option value="" disabled selected>Select Gender</option>
+                                            <option value="male">Male</option>
+                                            <option value="female">Female</option>
+                                            <option value="other">Other</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="row g-3">
+                                    <div class="col-6 mb-2">
+                                        <label class="form-label fs-12">Phone Number</label>
+                                        <input type="tel" name="phone" class="form-control" placeholder="Phone Number">
+                                    </div>
+                                    <div class="col-6 mb-2">
+                                        <label class="form-label fs-12">Emergency Contact</label>
+                                        <input type="text" name="emergency_contact" class="form-control" placeholder="Emergency Contact Name">
+                                    </div>
+                                </div>
                             </div>
 
                             <!-- Account Information Section -->
@@ -356,7 +412,7 @@
                                         <!-- password strength indicator removed -->
                                     </div>
                                     <div class="col-6 mb-2">
-                                        <input type="password" class="form-control" placeholder="Confirm password" required>
+                                        <input type="password" name="confirm_password" class="form-control" placeholder="Confirm password" required>
                                     </div>
                                 </div>
                             </div>
@@ -379,7 +435,7 @@
                         <form id="coordinatorForm" class="w-100 mt-4 pt-2 hide-form" action="register_submit.php" method="post">
                             <input type="hidden" name="role" value="coordinator">
                             <div class="form-section">
-                                <button type="button" class="btn btn-sm btn-outline-secondary mb-4" onclick="backToRoles()">← Back to Role Selection</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary mb-4" onclick="backToRoles()">â† Back to Role Selection</button>
                             </div>
                             <h5 class="fs-14 fw-bold mb-3">Personal Information</h5>
                             <div class="row g-3">
@@ -438,7 +494,7 @@
                                     </div>
                                 </div>
                                 <div class="col-6 mb-2">
-                                    <input type="password" class="form-control" placeholder="Confirm password" required>
+                                    <input type="password" name="confirm_password" class="form-control" placeholder="Confirm password" required>
                                 </div>
                             </div>
                             <div class="mt-4">
@@ -460,7 +516,7 @@
                         <form id="supervisorForm" class="w-100 mt-4 pt-2 hide-form" action="register_submit.php" method="post">
                             <input type="hidden" name="role" value="supervisor">
                             <div class="form-section">
-                                <button type="button" class="btn btn-sm btn-outline-secondary mb-4" onclick="backToRoles()">← Back to Role Selection</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary mb-4" onclick="backToRoles()">â† Back to Role Selection</button>
                             </div>
                             <h5 class="fs-14 fw-bold mb-3">Personal Information</h5>
                             <div class="row g-3">
@@ -542,7 +598,7 @@
                         <form id="adminForm" class="w-100 mt-4 pt-2 hide-form" action="register_submit.php" method="post">
                             <input type="hidden" name="role" value="admin">
                             <div class="form-section">
-                                <button type="button" class="btn btn-sm btn-outline-secondary mb-4" onclick="backToRoles()">← Back to Role Selection</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary mb-4" onclick="backToRoles()">â† Back to Role Selection</button>
                             </div>
                             <h5 class="fs-14 fw-bold mb-3">Personal Information</h5>
                             <div class="row g-3">
@@ -606,7 +662,7 @@
                                     </div>
                                 </div>
                                 <div class="col-6 mb-2">
-                                    <input type="password" class="form-control" placeholder="Confirm password" required>
+                                    <input type="password" name="confirm_password" class="form-control" placeholder="Confirm password" required>
                                 </div>
                             </div>
                             <div class="mt-4">
@@ -626,11 +682,11 @@
 
                         <div id="loginLink" class="mt-5 text-muted show-form">
                             <span>Already have an account?</span>
-                            <a href="auth-login-cover.html" class="fw-bold">Login</a>
+                            <a href="auth-login-cover.php" class="fw-bold">Login</a>
                         </div>
                         <div id="loginLinkHidden" class="mt-5 text-muted hide-form">
                             <span>Already have an account?</span>
-                            <a href="auth-login-cover.html" class="fw-bold">Login</a>
+                            <a href="auth-login-cover.php" class="fw-bold">Login</a>
                         </div>
                     </div>
                 </div>
@@ -741,6 +797,33 @@
             currentRole = null;
         }
 
+        // Validate password matches confirm password for all forms
+        function validatePasswordMatch(e) {
+            const form = e.target;
+            const password = form.querySelector('input[name="password"]');
+            const confirmPassword = form.querySelector('input[name="confirm_password"]');
+            
+            if (password && confirmPassword) {
+                if (password.value !== confirmPassword.value) {
+                    e.preventDefault();
+                    alert('Passwords do not match. Please check and try again.');
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        // Attach validation to all forms when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            const formIds = ['studentForm', 'coordinatorForm', 'supervisorForm', 'adminForm'];
+            formIds.forEach(formId => {
+                const form = document.getElementById(formId);
+                if (form) {
+                    form.addEventListener('submit', validatePasswordMatch);
+                }
+            });
+        });
+
         /* Role carousel: arrow buttons + touch drag support */
         (function initRoleCarousel(){
             const row = document.getElementById('rolesRow');
@@ -785,3 +868,4 @@
 </body>
 
 </html>
+

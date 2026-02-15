@@ -1,3 +1,49 @@
+﻿<?php
+// Include database connection
+include_once 'config/db.php';
+
+// Initialize analytics variables with defaults
+$bounce_rate = 0;
+$page_views = 0;
+$site_impressions = 0;
+$conversion_rate = 0;
+$active_students = 0;
+$total_students = 0;
+
+try {
+    // Calculate bounce rate based on attendance rejection ratio
+    $total_att = $conn->query("SELECT COUNT(*) as count FROM attendances");
+    $total_attendances = $total_att ? (int)$total_att->fetch_assoc()['count'] : 0;
+    
+    $rejected_att = $conn->query("SELECT COUNT(*) as count FROM attendances WHERE status = 'rejected'");
+    $rejected_attendances = $rejected_att ? (int)$rejected_att->fetch_assoc()['count'] : 0;
+    $bounce_rate = ($total_attendances > 0) ? round(($rejected_attendances / $total_attendances) * 100, 2) : 0;
+    
+    // Calculate page views based on active internships
+    $total_int = $conn->query("SELECT COUNT(*) as count FROM internships");
+    $total_internships = $total_int ? (int)$total_int->fetch_assoc()['count'] : 0;
+    
+    $active_int = $conn->query("SELECT COUNT(*) as count FROM internships WHERE status = 'ongoing'");
+    $active_internships = $active_int ? (int)$active_int->fetch_assoc()['count'] : 0;
+    $page_views = ($total_internships > 0) ? round(($active_internships / $total_internships) * 100, 2) : 0;
+    
+    // Calculate site impressions based on biometric registration
+    $total_std = $conn->query("SELECT COUNT(*) as count FROM students WHERE deleted_at IS NULL");
+    $total_students = $total_std ? (int)$total_std->fetch_assoc()['count'] : 0;
+    
+    $biometric_std = $conn->query("SELECT COUNT(*) as count FROM students WHERE biometric_registered = 1 AND deleted_at IS NULL");
+    $biometric_students = $biometric_std ? (int)$biometric_std->fetch_assoc()['count'] : 0;
+    $site_impressions = ($total_students > 0) ? round(($biometric_students / $total_students) * 100, 2) : 0;
+    
+    // Calculate conversion rate based on approved attendances
+    $approved_att = $conn->query("SELECT COUNT(*) as count FROM attendances WHERE status = 'approved'");
+    $approved_attendances = $approved_att ? (int)$approved_att->fetch_assoc()['count'] : 0;
+    $conversion_rate = ($total_attendances > 0) ? round(($approved_attendances / $total_attendances) * 100, 2) : 0;
+    
+} catch (Exception $e) {
+    // Database error - fallback to 0 values
+}
+?>
 <!DOCTYPE html>
 <html lang="zxx">
 
@@ -71,10 +117,10 @@
                             <span class="nxl-mtext">Reports</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="reports-sales.html">Sales Report</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="reports-leads.html">Leads Report</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="reports-project.html">Project Report</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="reports-timesheets.html">Timesheets Report</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="reports-sales.php">Sales Report</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="reports-leads.php">Leads Report</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="reports-project.php">Project Report</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="reports-timesheets.php">Timesheets Report</a></li>
                         </ul>
                     </li>
                     <li class="nxl-item nxl-hasmenu">
@@ -83,12 +129,12 @@
                             <span class="nxl-mtext">Applications</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="apps-chat.html">Chat</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="apps-email.html">Email</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="apps-tasks.html">Tasks</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="apps-notes.html">Notes</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="apps-storage.html">Storage</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="apps-calendar.html">Calendar</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="apps-chat.php">Chat</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="apps-email.php">Email</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="apps-tasks.php">Tasks</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="apps-notes.php">Notes</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="apps-storage.php">Storage</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="apps-calendar.php">Calendar</a></li>
                         </ul>
                     </li>
                     
@@ -101,7 +147,7 @@
                         <ul class="nxl-submenu">
                             <li class="nxl-item"><a class="nxl-link" href="students.php">Students</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="students-view.php">Students View</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="students-create.html">Students Create</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="students-create.php">Students Create</a></li>
                         </ul>
                     </li>
                     <li class="nxl-item nxl-hasmenu">
@@ -110,9 +156,9 @@
                             <span class="nxl-mtext">Leads</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="leads.html">Leads</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="leads-view.html">Leads View</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="leads-create.html">Leads Create</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="leads.php">Leads</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="leads-view.php">Leads View</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="leads-create.php">Leads Create</a></li>
                         </ul>
                     </li>
                     
@@ -122,11 +168,11 @@
                             <span class="nxl-mtext">Widgets</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="widgets-lists.html">Lists</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="widgets-tables.html">Tables</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="widgets-charts.html">Charts</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="widgets-statistics.html">Statistics</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="widgets-miscellaneous.html">Miscellaneous</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="widgets-lists.php">Lists</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="widgets-tables.php">Tables</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="widgets-charts.php">Charts</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="widgets-statistics.php">Statistics</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="widgets-miscellaneous.php">Miscellaneous</a></li>
                         </ul>
                     </li>
                     <li class="nxl-item nxl-hasmenu">
@@ -135,19 +181,19 @@
                             <span class="nxl-mtext">Settings</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="settings-general.html">General</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-seo.html">SEO</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-tags.html">Tags</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-email.html">Email</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-tasks.html">Tasks</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-leads.html">Leads</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-support.html">Support</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="settings-general.php">General</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="settings-seo.php">SEO</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="settings-tags.php">Tags</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="settings-email.php">Email</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="settings-tasks.php">Tasks</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="settings-leads.php">Leads</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="settings-support.php">Support</a></li>
                             
                             
                             <li class="nxl-item"><a class="nxl-link" href="settings-students.php">Students</a></li>
 
                             
-                            <li class="nxl-item"><a class="nxl-link" href="settings-miscellaneous.html">Miscellaneous</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="settings-miscellaneous.php">Miscellaneous</a></li>
                         </ul>
                     </li>
                     <li class="nxl-item nxl-hasmenu">
@@ -161,7 +207,7 @@
                                     <span class="nxl-mtext">Login</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                                 </a>
                                 <ul class="nxl-submenu">
-                                    <li class="nxl-item"><a class="nxl-link" href="auth-login-cover.html">Cover</a></li>
+                                    <li class="nxl-item"><a class="nxl-link" href="auth-login-cover.php">Cover</a></li>
                                 </ul>
                             </li>
                             <li class="nxl-item nxl-hasmenu">
@@ -177,7 +223,7 @@
                                     <span class="nxl-mtext">Error-404</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                                 </a>
                                 <ul class="nxl-submenu">
-                                    <li class="nxl-item"><a class="nxl-link" href="auth-404-minimal.html">Minimal</a></li>
+                                    <li class="nxl-item"><a class="nxl-link" href="auth-404-minimal.php">Minimal</a></li>
                                 </ul>
                             </li>
                             <li class="nxl-item nxl-hasmenu">
@@ -185,7 +231,7 @@
                                     <span class="nxl-mtext">Reset Pass</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                                 </a>
                                 <ul class="nxl-submenu">
-                                    <li class="nxl-item"><a class="nxl-link" href="auth-reset-cover.html">Cover</a></li>
+                                    <li class="nxl-item"><a class="nxl-link" href="auth-reset-cover.php">Cover</a></li>
                                 </ul>
                             </li>
                             <li class="nxl-item nxl-hasmenu">
@@ -193,7 +239,7 @@
                                     <span class="nxl-mtext">Verify OTP</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                                 </a>
                                 <ul class="nxl-submenu">
-                                    <li class="nxl-item"><a class="nxl-link" href="auth-verify-cover.html">Cover</a></li>
+                                    <li class="nxl-item"><a class="nxl-link" href="auth-verify-cover.php">Cover</a></li>
                                 </ul>
                             </li>
                             <li class="nxl-item nxl-hasmenu">
@@ -201,7 +247,7 @@
                                     <span class="nxl-mtext">Maintenance</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                                 </a>
                                 <ul class="nxl-submenu">
-                                    <li class="nxl-item"><a class="nxl-link" href="auth-maintenance-cover.html">Cover</a></li>
+                                    <li class="nxl-item"><a class="nxl-link" href="auth-maintenance-cover.php">Cover</a></li>
                                 </ul>
                             </li>
                         </ul>
@@ -213,7 +259,7 @@
                         </a>
                         <ul class="nxl-submenu">
                             <li class="nxl-item"><a class="nxl-link" href="#!">Support</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="help-knowledgebase.html">KnowledgeBase</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="help-knowledgebase.php">KnowledgeBase</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="/docs/documentations">Documentations</a></li>
                         </ul>
                     </li>
@@ -381,7 +427,7 @@
                                 <span>Account Settings</span>
                             </a>
                             <div class="dropdown-divider"></div>
-                            <a href="./auth-login-minimal.html" class="dropdown-item">
+                            <a href="./auth-login-minimal.php" class="dropdown-item">
                                 <i class="feather-log-out"></i>
                                 <span>Logout</span>
                             </a>
@@ -766,12 +812,12 @@
                             <div class="card-body p-0">
                                 <div class="d-flex justify-content-between p-4 mb-4">
                                     <div>
-                                        <div class="fw-bold mb-2 text-dark text-truncate-1-line">Bounce Rate (Avg)</div>
-                                        <div class="fs-11 text-muted">VS 20.49% (Prev)</div>
+                                        <div class="fw-bold mb-2 text-dark text-truncate-1-line">Attendance Rejection Rate</div>
+                                        <div class="fs-11 text-muted">Based on attendance records</div>
                                     </div>
                                     <div class="text-end">
-                                        <div class="fs-24 fw-bold mb-2 text-dark"><span class="counter">78.65</span>%</div>
-                                        <div class="fs-11 text-success">(+ 22.85%)</div>
+                                        <div class="fs-24 fw-bold mb-2 text-dark"><span class="counter"><?php echo $bounce_rate; ?></span>%</div>
+                                        <div class="fs-11 text-danger">(Rejected)</div>
                                     </div>
                                 </div>
                                 <div id="bounce-rate"></div>
@@ -783,12 +829,12 @@
                             <div class="card-body p-0">
                                 <div class="d-flex justify-content-between p-4 mb-4">
                                     <div>
-                                        <div class="fw-bold mb-2 text-dark text-truncate-1-line">Page Views (Avg)</div>
-                                        <div class="fs-11 text-muted">VS 36.47% (Prev)</div>
+                                        <div class="fw-bold mb-2 text-dark text-truncate-1-line">Active Internships Rate</div>
+                                        <div class="fs-11 text-muted">Ongoing vs Total internships</div>
                                     </div>
                                     <div class="text-end">
-                                        <div class="fs-24 fw-bold mb-2 text-dark"><span class="counter">86.37</span>%</div>
-                                        <div class="fs-11 text-danger">(- 34.25%)</div>
+                                        <div class="fs-24 fw-bold mb-2 text-dark"><span class="counter"><?php echo $page_views; ?></span>%</div>
+                                        <div class="fs-11 text-success">(Active)</div>
                                     </div>
                                 </div>
                                 <div id="page-views"></div>
@@ -800,12 +846,12 @@
                             <div class="card-body p-0">
                                 <div class="d-flex justify-content-between p-4 mb-4">
                                     <div>
-                                        <div class="fw-bold mb-2 text-dark text-truncate-1-line">Site Impressions (Avg)</div>
-                                        <div class="fs-11 text-muted">VS 43.67% (Prev)</div>
+                                        <div class="fw-bold mb-2 text-dark text-truncate-1-line">Biometric Registration Rate</div>
+                                        <div class="fs-11 text-muted">Registered vs Total students</div>
                                     </div>
                                     <div class="tx-right">
-                                        <div class="fs-24 fw-bold mb-2 text-dark"><span class="counter">67.53</span>%</div>
-                                        <div class="fs-11 text-success">(+ 42.72%)</div>
+                                        <div class="fs-24 fw-bold mb-2 text-dark"><span class="counter"><?php echo $site_impressions; ?></span>%</div>
+                                        <div class="fs-11 text-success">(Registered)</div>
                                     </div>
                                 </div>
                                 <div id="site-impressions"></div>
@@ -817,12 +863,12 @@
                             <div class="card-body p-0">
                                 <div class="d-flex justify-content-between p-4 mb-4">
                                     <div>
-                                        <div class="fw-bold mb-2 text-dark text-truncate-1-line">Conversions Rate (Avg)</div>
-                                        <div class="fs-11 text-muted">VS 22.34% (Prev)</div>
+                                        <div class="fw-bold mb-2 text-dark text-truncate-1-line">Attendance Approval Rate</div>
+                                        <div class="fs-11 text-muted">Approved vs Total records</div>
                                     </div>
                                     <div class="tx-right">
-                                        <div class="fs-24 fw-bold mb-2 text-dark"><span class="counter">32.53</span>%</div>
-                                        <div class="fs-11 text-success">(+ 35.47%)</div>
+                                        <div class="fs-24 fw-bold mb-2 text-dark"><span class="counter"><?php echo $conversion_rate; ?></span>%</div>
+                                        <div class="fs-11 text-success">(Approved)</div>
                                     </div>
                                 </div>
                                 <div id="conversions-rate"></div>
@@ -1286,12 +1332,12 @@
         <!-- [ Footer ] start -->
         <footer class="footer">
             <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
-                <span>Copyright ©</span>
+                <span>Copyright Â©</span>
                 <script>
                     document.write(new Date().getFullYear());
                 </script>
             </p>
-            <p><span>By: <a target="_blank" href="" target="_blank">ACT 2A</a></span> • <span>Distributed by: <a target="_blank" href="" target="_blank">Group 5</a></span></p>
+            <p><span>By: <a target="_blank" href="" target="_blank">ACT 2A</a></span> â€¢ <span>Distributed by: <a target="_blank" href="" target="_blank">Group 5</a></span></p>
             <div class="d-flex align-items-center gap-4">
                 <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Help</a>
                 <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Terms</a>
@@ -1524,3 +1570,4 @@
 </body>
 
 </html>
+

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
@@ -44,7 +44,7 @@
                 <div class="d-flex align-items-center">
                     <!-- Sign In / Sign Up buttons (temporary links) -->
                     <div class="d-none d-md-flex ms-3">
-                        <a href="auth-login-cover.html" class="btn btn-outline-primary btn-sm me-2">Sign In</a>
+                        <a href="auth-login-cover.php" class="btn btn-outline-primary btn-sm me-2">Sign In</a>
                         <a href="auth-register-creative.php" class="btn btn-primary btn-sm">Sign Up</a>
                     </div>
                 </div>
@@ -74,3 +74,5 @@
     <script src="assets/js/theme-customizer-init.min.js"></script>
 </body>
 </html>
+
+

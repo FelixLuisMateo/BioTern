@@ -1,7 +1,164 @@
-<?php
-// Include database configuration and dashboard data
+﻿<?php
+// Include database connection
 include_once 'config/db.php';
-include_once 'includes/dashboard_data.php';
+
+// Initialize analytics variables with defaults
+$attendance_awaiting = 0;
+$attendance_completed = 0;
+$attendance_rejected = 0;
+$attendance_total = 0;
+$student_count = 0;
+$internship_count = 0;
+$biometric_registered = 0;
+$recent_students = array();
+$recent_attendance = array();
+$coordinators = array();
+$supervisors = array();
+$recent_activities = array();
+
+try {
+    // Attendance statistics for Payment Record section
+    $pending_query = $conn->query("SELECT COUNT(*) as count FROM attendances WHERE status = 'pending'");
+    if ($pending_query) {
+        $attendance_awaiting = (int)$pending_query->fetch_assoc()['count'];
+    }
+    
+    $approved_query = $conn->query("SELECT COUNT(*) as count FROM attendances WHERE status = 'approved'");
+    if ($approved_query) {
+        $attendance_completed = (int)$approved_query->fetch_assoc()['count'];
+    }
+    
+    $rejected_query = $conn->query("SELECT COUNT(*) as count FROM attendances WHERE status = 'rejected'");
+    if ($rejected_query) {
+        $attendance_rejected = (int)$rejected_query->fetch_assoc()['count'];
+    }
+    
+    // Total attendance
+    $total_query = $conn->query("SELECT COUNT(*) as count FROM attendances");
+    if ($total_query) {
+        $attendance_total = (int)$total_query->fetch_assoc()['count'];
+    }
+    
+    // Student count
+    $students_query = $conn->query("SELECT COUNT(*) as count FROM students WHERE deleted_at IS NULL");
+    if ($students_query) {
+        $student_count = (int)$students_query->fetch_assoc()['count'];
+    }
+    
+    // Internship count
+    $internships_query = $conn->query("SELECT COUNT(*) as count FROM internships WHERE status = 'ongoing'");
+    if ($internships_query) {
+        $internship_count = (int)$internships_query->fetch_assoc()['count'];
+    }
+    
+    // Biometric registered students
+    $biometric_query = $conn->query("SELECT COUNT(*) as count FROM students WHERE biometric_registered = 1");
+    if ($biometric_query) {
+        $biometric_registered = (int)$biometric_query->fetch_assoc()['count'];
+    }
+    
+    // Get recent students (last 5)
+    $recent_students_query = $conn->query("
+        SELECT s.id, s.student_id, s.first_name, s.last_name, s.email, s.status, s.biometric_registered, s.created_at
+        FROM students s
+        WHERE s.deleted_at IS NULL
+        ORDER BY s.created_at DESC
+        LIMIT 5
+    ");
+    
+    if ($recent_students_query && $recent_students_query->num_rows > 0) {
+        while ($row = $recent_students_query->fetch_assoc()) {
+            $recent_students[] = $row;
+        }
+    }
+    
+    // Get recent attendance records (last 10) with student info
+    $recent_attendance_query = $conn->query("
+        SELECT a.id, a.student_id, a.attendance_date, a.morning_time_in, a.morning_time_out, a.status, a.created_at, 
+               s.first_name, s.last_name, s.email, s.student_id as student_num
+        FROM attendances a
+        LEFT JOIN students s ON a.student_id = s.id
+        ORDER BY a.attendance_date DESC, a.created_at DESC
+        LIMIT 10
+    ");
+    
+    if ($recent_attendance_query && $recent_attendance_query->num_rows > 0) {
+        while ($row = $recent_attendance_query->fetch_assoc()) {
+            $recent_attendance[] = $row;
+        }
+    }
+    
+    // Get coordinators (Active)
+    $coordinators_query = $conn->query("
+        SELECT u.id, u.name, u.email, c.department_id, c.phone, c.created_at
+        FROM users u
+        LEFT JOIN coordinators c ON u.id = c.user_id
+        WHERE u.role = 'coordinator' AND u.is_active = 1
+        ORDER BY u.created_at DESC
+        LIMIT 5
+    ");
+    
+    if ($coordinators_query && $coordinators_query->num_rows > 0) {
+        while ($row = $coordinators_query->fetch_assoc()) {
+            $coordinators[] = $row;
+        }
+    }
+    
+    // Get supervisors (Active)
+    $supervisors_query = $conn->query("
+        SELECT u.id, u.name, u.email, s.phone, s.department, s.created_at
+        FROM users u
+        LEFT JOIN supervisors s ON u.id = s.user_id
+        WHERE u.role = 'supervisor' AND u.is_active = 1
+        ORDER BY u.created_at DESC
+        LIMIT 5
+    ");
+    
+    if ($supervisors_query && $supervisors_query->num_rows > 0) {
+        while ($row = $supervisors_query->fetch_assoc()) {
+            $supervisors[] = $row;
+        }
+    }
+    
+    // Get recent activities (student registrations, attendance records, etc)
+    $activities_query = $conn->query("
+        SELECT 
+            CONCAT('Student Created: ', s.first_name, ' ', s.last_name) as activity,
+            s.created_at as activity_date,
+            'student_created' as activity_type,
+            s.id as entity_id
+        FROM students s
+        WHERE s.deleted_at IS NULL
+        UNION ALL
+        SELECT 
+            CONCAT('Attendance Recorded for ', s.first_name, ' ', s.last_name) as activity,
+            a.created_at as activity_date,
+            'attendance_recorded' as activity_type,
+            a.id as entity_id
+        FROM attendances a
+        LEFT JOIN students s ON a.student_id = s.id
+        UNION ALL
+        SELECT 
+            CONCAT('Biometric Registered: ', s.first_name, ' ', s.last_name) as activity,
+            s.biometric_registered_at as activity_date,
+            'biometric_registered' as activity_type,
+            s.id as entity_id
+        FROM students s
+        WHERE s.biometric_registered = 1 AND s.biometric_registered_at IS NOT NULL
+        ORDER BY activity_date DESC
+        LIMIT 15
+    ");
+    
+    if ($activities_query && $activities_query->num_rows > 0) {
+        while ($row = $activities_query->fetch_assoc()) {
+            $recent_activities[] = $row;
+        }
+    }
+    
+} catch (Exception $e) {
+    // Database error - fallback to 0 values
+    error_log("Dashboard error: " . $e->getMessage());
+}
 ?>
 <!DOCTYPE html>
 <html lang="zxx">
@@ -62,7 +219,7 @@ include_once 'includes/dashboard_data.php';
                             <span class="nxl-mtext">Dashboards</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="index.php">CRM</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="index.php">Overview</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="analytics.php">Analytics</a></li>
                         </ul>
                     </li>
@@ -72,10 +229,10 @@ include_once 'includes/dashboard_data.php';
                             <span class="nxl-mtext">Reports</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="reports-sales.html">Sales Report</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="reports-leads.html">Leads Report</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="reports-project.html">Project Report</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="reports-timesheets.html">Timesheets Report</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="reports-sales.php">Sales Report</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="reports-leads.php">Leads Report</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="reports-project.php">Project Report</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="reports-timesheets.php">Timesheets Report</a></li>
                         </ul>
                     </li>
                     <li class="nxl-item nxl-hasmenu">
@@ -84,12 +241,12 @@ include_once 'includes/dashboard_data.php';
                             <span class="nxl-mtext">Applications</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="apps-chat.html">Chat</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="apps-email.html">Email</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="apps-tasks.html">Tasks</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="apps-notes.html">Notes</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="apps-storage.html">Storage</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="apps-calendar.html">Calendar</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="apps-chat.php">Chat</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="apps-email.php">Email</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="apps-tasks.php">Tasks</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="apps-notes.php">Notes</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="apps-storage.php">Storage</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="apps-calendar.php">Calendar</a></li>
                         </ul>
                     </li>
                     <li class="nxl-item nxl-hasmenu">
@@ -98,9 +255,13 @@ include_once 'includes/dashboard_data.php';
                             <span class="nxl-mtext">Students</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="students.php">Students</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="students.php">Students List</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="students-view.php">Students View</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="students-create.html">Students Create</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="students-create.php">Students Create</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="students-edit.php">Students Edit</a></li>
+                            <li class="nxl-divider"></li>
+                            <li class="nxl-item"><a class="nxl-link" href="attendance.php"><i class="feather-calendar me-2"></i>Attendance Records</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="demo-biometric.php"><i class="feather-activity me-2"></i>Biometric Demo</a></li>
                         </ul>
                     </li>
                     <li class="nxl-item nxl-hasmenu">
@@ -109,9 +270,9 @@ include_once 'includes/dashboard_data.php';
                             <span class="nxl-mtext">Leads</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="leads.html">Leads</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="leads-view.html">Leads View</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="leads-create.html">Leads Create</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="leads.php">Leads</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="leads-view.php">Leads View</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="leads-create.php">Leads Create</a></li>
                         </ul>
                     </li>
                     <li class="nxl-item nxl-hasmenu">
@@ -120,11 +281,11 @@ include_once 'includes/dashboard_data.php';
                             <span class="nxl-mtext">Widgets</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="widgets-lists.html">Lists</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="widgets-tables.html">Tables</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="widgets-charts.html">Charts</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="widgets-statistics.html">Statistics</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="widgets-miscellaneous.html">Miscellaneous</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="widgets-lists.php">Lists</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="widgets-tables.php">Tables</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="widgets-charts.php">Charts</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="widgets-statistics.php">Statistics</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="widgets-miscellaneous.php">Miscellaneous</a></li>
                         </ul>
                     </li>
                     <li class="nxl-item nxl-hasmenu">
@@ -133,17 +294,17 @@ include_once 'includes/dashboard_data.php';
                             <span class="nxl-mtext">Settings</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="settings-general.html">General</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-seo.html">SEO</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-tags.html">Tags</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-email.html">Email</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-tasks.html">Tasks</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-leads.html">Leads</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-support.html">Support</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="settings-general.php">General</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="settings-seo.php">SEO</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="settings-tags.php">Tags</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="settings-email.php">Email</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="settings-tasks.php">Tasks</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="settings-leads.php">Leads</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="settings-support.php">Support</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="settings-students.php">Students</a></li>
 
                             
-                            <li class="nxl-item"><a class="nxl-link" href="settings-miscellaneous.html">Miscellaneous</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="settings-miscellaneous.php">Miscellaneous</a></li>
                         </ul>
                     </li>
                     <li class="nxl-item nxl-hasmenu">
@@ -157,7 +318,7 @@ include_once 'includes/dashboard_data.php';
                                     <span class="nxl-mtext">Login</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                                 </a>
                                 <ul class="nxl-submenu">
-                                    <li class="nxl-item"><a class="nxl-link" href="auth-login-cover.html">Cover</a></li>
+                                    <li class="nxl-item"><a class="nxl-link" href="auth-login-cover.php">Cover</a></li>
                                 </ul>
                             </li>
                             <li class="nxl-item nxl-hasmenu">
@@ -173,7 +334,7 @@ include_once 'includes/dashboard_data.php';
                                     <span class="nxl-mtext">Error-404</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                                 </a>
                                 <ul class="nxl-submenu">
-                                    <li class="nxl-item"><a class="nxl-link" href="auth-404-minimal.html">Minimal</a></li>
+                                    <li class="nxl-item"><a class="nxl-link" href="auth-404-minimal.php">Minimal</a></li>
                                 </ul>
                             </li>
                             <li class="nxl-item nxl-hasmenu">
@@ -181,7 +342,7 @@ include_once 'includes/dashboard_data.php';
                                     <span class="nxl-mtext">Reset Pass</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                                 </a>
                                 <ul class="nxl-submenu">
-                                    <li class="nxl-item"><a class="nxl-link" href="auth-reset-cover.html">Cover</a></li>
+                                    <li class="nxl-item"><a class="nxl-link" href="auth-reset-cover.php">Cover</a></li>
                                 </ul>
                             </li>
                             <li class="nxl-item nxl-hasmenu">
@@ -189,7 +350,7 @@ include_once 'includes/dashboard_data.php';
                                     <span class="nxl-mtext">Verify OTP</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                                 </a>
                                 <ul class="nxl-submenu">
-                                    <li class="nxl-item"><a class="nxl-link" href="auth-verify-cover.html">Cover</a></li>
+                                    <li class="nxl-item"><a class="nxl-link" href="auth-verify-cover.php">Cover</a></li>
                                 </ul>
                             </li>
                             <li class="nxl-item nxl-hasmenu">
@@ -197,7 +358,7 @@ include_once 'includes/dashboard_data.php';
                                     <span class="nxl-mtext">Maintenance</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                                 </a>
                                 <ul class="nxl-submenu">
-                                    <li class="nxl-item"><a class="nxl-link" href="auth-maintenance-cover.html">Cover</a></li>
+                                    <li class="nxl-item"><a class="nxl-link" href="auth-maintenance-cover.php">Cover</a></li>
                                 </ul>
                             </li>
                         </ul>
@@ -209,7 +370,7 @@ include_once 'includes/dashboard_data.php';
                         </a>
                         <ul class="nxl-submenu">
                             <li class="nxl-item"><a class="nxl-link" href="#!">Support</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="help-knowledgebase.html">KnowledgeBase</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="help-knowledgebase.php">KnowledgeBase</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="/docs/documentations">Documentations</a></li>
                         </ul>
                     </li>
@@ -278,27 +439,27 @@ include_once 'includes/dashboard_data.php';
                                         <i class="feather-chevron-right ms-auto me-0"></i>
                                     </a>
                                     <div class="dropdown-menu nxl-h-dropdown">
-                                        <a href="apps-chat.html" class="dropdown-item">
+                                        <a href="apps-chat.php" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Chat</span>
                                         </a>
-                                        <a href="apps-email.html" class="dropdown-item">
+                                        <a href="apps-email.php" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Email</span>
                                         </a>
-                                        <a href="apps-tasks.html" class="dropdown-item">
+                                        <a href="apps-tasks.php" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Tasks</span>
                                         </a>
-                                        <a href="apps-notes.html" class="dropdown-item">
+                                        <a href="apps-notes.php" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Notes</span>
                                         </a>
-                                        <a href="apps-storage.html" class="dropdown-item">
+                                        <a href="apps-storage.php" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Storage</span>
                                         </a>
-                                        <a href="apps-calendar.html" class="dropdown-item">
+                                        <a href="apps-calendar.php" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Calendar</span>
                                         </a>
@@ -314,19 +475,19 @@ include_once 'includes/dashboard_data.php';
                                         <i class="feather-chevron-right ms-auto me-0"></i>
                                     </a>
                                     <div class="dropdown-menu nxl-h-dropdown">
-                                        <a href="reports-sales.html" class="dropdown-item">
+                                        <a href="reports-sales.php" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Sales Report</span>
                                         </a>
-                                        <a href="reports-leads.html" class="dropdown-item">
+                                        <a href="reports-leads.php" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Leads Report</span>
                                         </a>
-                                        <a href="reports-project.html" class="dropdown-item">
+                                        <a href="reports-project.php" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Project Report</span>
                                         </a>
-                                        <a href="reports-timesheets.html" class="dropdown-item">
+                                        <a href="reports-timesheets.php" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Timesheets Report</span>
                                         </a>
@@ -341,19 +502,19 @@ include_once 'includes/dashboard_data.php';
                                         <i class="feather-chevron-right ms-auto me-0"></i>
                                     </a>
                                     <div class="dropdown-menu nxl-h-dropdown">
-                                        <a href="proposal.html" class="dropdown-item">
+                                        <a href="proposal.php" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Proposal</span>
                                         </a>
-                                        <a href="proposal-view.html" class="dropdown-item">
+                                        <a href="proposal-view.php" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Proposal View</span>
                                         </a>
-                                        <a href="proposal-edit.html" class="dropdown-item">
+                                        <a href="proposal-edit.php" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Proposal Edit</span>
                                         </a>
-                                        <a href="proposal-create.html" class="dropdown-item">
+                                        <a href="proposal-create.php" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Proposal Create</span>
                                         </a>
@@ -368,15 +529,15 @@ include_once 'includes/dashboard_data.php';
                                         <i class="feather-chevron-right ms-auto me-0"></i>
                                     </a>
                                     <div class="dropdown-menu nxl-h-dropdown">
-                                        <a href="payment.html" class="dropdown-item">
+                                        <a href="payment.php" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Payment</span>
                                         </a>
-                                        <a href="invoice-view.html" class="dropdown-item">
+                                        <a href="invoice-view.php" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Invoice View</span>
                                         </a>
-                                        <a href="invoice-create.html" class="dropdown-item">
+                                        <a href="invoice-create.php" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Invoice Create</span>
                                         </a>
@@ -399,7 +560,7 @@ include_once 'includes/dashboard_data.php';
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Students View</span>
                                         </a>
-                                        <a href="students-create.html" class="dropdown-item">
+                                        <a href="students-create.php" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Students Create</span>
                                         </a>
@@ -414,15 +575,15 @@ include_once 'includes/dashboard_data.php';
                                         <i class="feather-chevron-right ms-auto me-0"></i>
                                     </a>
                                     <div class="dropdown-menu nxl-h-dropdown">
-                                        <a href="leads.html" class="dropdown-item">
+                                        <a href="leads.php" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Leads</span>
                                         </a>
-                                        <a href="leads-view.html" class="dropdown-item">
+                                        <a href="leads-view.php" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Leads View</span>
                                         </a>
-                                        <a href="leads-create.html" class="dropdown-item">
+                                        <a href="leads-create.php" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Leads Create</span>
                                         </a>
@@ -437,15 +598,15 @@ include_once 'includes/dashboard_data.php';
                                         <i class="feather-chevron-right ms-auto me-0"></i>
                                     </a>
                                     <div class="dropdown-menu nxl-h-dropdown">
-                                        <a href="projects.html" class="dropdown-item">
+                                        <a href="projects.php" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Projects</span>
                                         </a>
-                                        <a href="projects-view.html" class="dropdown-item">
+                                        <a href="projects-view.php" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Projects View</span>
                                         </a>
-                                        <a href="projects-create.html" class="dropdown-item">
+                                        <a href="projects-create.php" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Projects Create</span>
                                         </a>
@@ -460,19 +621,19 @@ include_once 'includes/dashboard_data.php';
                                         <i class="feather-chevron-right ms-auto me-0"></i>
                                     </a>
                                     <div class="dropdown-menu nxl-h-dropdown">
-                                        <a href="widgets-lists.html" class="dropdown-item">
+                                        <a href="widgets-lists.php" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Lists</span>
                                         </a>
-                                        <a href="widgets-tables.html" class="dropdown-item">
+                                        <a href="widgets-tables.php" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Tables</span>
                                         </a>
-                                        <a href="widgets-charts.html" class="dropdown-item">
+                                        <a href="widgets-charts.php" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Charts</span>
                                         </a>
-                                        <a href="widgets-statistics.html" class="dropdown-item">
+                                        <a href="widgets-statistics.php" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Statistics</span>
                                         </a>
@@ -496,15 +657,15 @@ include_once 'includes/dashboard_data.php';
                                                 <i class="feather-chevron-right ms-auto me-0"></i>
                                             </a>
                                             <div class="dropdown-menu nxl-h-dropdown">
-                                                <a href="./auth-login-cover.html" class="dropdown-item">
+                                                <a href="./auth-login-cover.php" class="dropdown-item">
                                                     <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                     <span>Cover</span>
                                                 </a>
-                                                <a href="./auth-login-minimal.html" class="dropdown-item">
+                                                <a href="./auth-login-minimal.php" class="dropdown-item">
                                                     <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                     <span>Minimal</span>
                                                 </a>
-                                                <a href="./auth-login-creative.html" class="dropdown-item">
+                                                <a href="./auth-login-creative.php" class="dropdown-item">
                                                     <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                     <span>Creative</span>
                                                 </a>
@@ -519,11 +680,11 @@ include_once 'includes/dashboard_data.php';
                                                 <i class="feather-chevron-right ms-auto me-0"></i>
                                             </a>
                                             <div class="dropdown-menu nxl-h-dropdown">
-                                                <a href="./auth-register-cover.html" class="dropdown-item">
+                                                <a href="./auth-register-cover.php" class="dropdown-item">
                                                     <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                     <span>Cover</span>
                                                 </a>
-                                                <a href="./auth-register-minimal.html" class="dropdown-item">
+                                                <a href="./auth-register-minimal.php" class="dropdown-item">
                                                     <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                     <span>Minimal</span>
                                                 </a>
@@ -542,15 +703,15 @@ include_once 'includes/dashboard_data.php';
                                                 <i class="feather-chevron-right ms-auto me-0"></i>
                                             </a>
                                             <div class="dropdown-menu nxl-h-dropdown">
-                                                <a href="./auth-404-cover.html" class="dropdown-item">
+                                                <a href="./auth-404-cover.php" class="dropdown-item">
                                                     <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                     <span>Cover</span>
                                                 </a>
-                                                <a href="./auth-404-minimal.html" class="dropdown-item">
+                                                <a href="./auth-404-minimal.php" class="dropdown-item">
                                                     <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                     <span>Minimal</span>
                                                 </a>
-                                                <a href="./auth-404-creative.html" class="dropdown-item">
+                                                <a href="./auth-404-creative.php" class="dropdown-item">
                                                     <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                     <span>Creative</span>
                                                 </a>
@@ -565,15 +726,15 @@ include_once 'includes/dashboard_data.php';
                                                 <i class="feather-chevron-right ms-auto me-0"></i>
                                             </a>
                                             <div class="dropdown-menu nxl-h-dropdown">
-                                                <a href="./auth-reset-cover.html" class="dropdown-item">
+                                                <a href="./auth-reset-cover.php" class="dropdown-item">
                                                     <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                     <span>Cover</span>
                                                 </a>
-                                                <a href="./auth-reset-minimal.html" class="dropdown-item">
+                                                <a href="./auth-reset-minimal.php" class="dropdown-item">
                                                     <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                     <span>Minimal</span>
                                                 </a>
-                                                <a href="./auth-reset-creative.html" class="dropdown-item">
+                                                <a href="./auth-reset-creative.php" class="dropdown-item">
                                                     <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                     <span>Creative</span>
                                                 </a>
@@ -588,15 +749,15 @@ include_once 'includes/dashboard_data.php';
                                                 <i class="feather-chevron-right ms-auto me-0"></i>
                                             </a>
                                             <div class="dropdown-menu nxl-h-dropdown">
-                                                <a href="./auth-verify-cover.html" class="dropdown-item">
+                                                <a href="./auth-verify-cover.php" class="dropdown-item">
                                                     <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                     <span>Cover</span>
                                                 </a>
-                                                <a href="./auth-verify-minimal.html" class="dropdown-item">
+                                                <a href="./auth-verify-minimal.php" class="dropdown-item">
                                                     <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                     <span>Minimal</span>
                                                 </a>
-                                                <a href="./auth-verify-creative.html" class="dropdown-item">
+                                                <a href="./auth-verify-creative.php" class="dropdown-item">
                                                     <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                     <span>Creative</span>
                                                 </a>
@@ -611,15 +772,15 @@ include_once 'includes/dashboard_data.php';
                                                 <i class="feather-chevron-right ms-auto me-0"></i>
                                             </a>
                                             <div class="dropdown-menu nxl-h-dropdown">
-                                                <a href="./auth-maintenance-cover.html" class="dropdown-item">
+                                                <a href="./auth-maintenance-cover.php" class="dropdown-item">
                                                     <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                     <span>Cover</span>
                                                 </a>
-                                                <a href="./auth-maintenance-minimal.html" class="dropdown-item">
+                                                <a href="./auth-maintenance-minimal.php" class="dropdown-item">
                                                     <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                     <span>Minimal</span>
                                                 </a>
-                                                <a href="./auth-maintenance-creative.html" class="dropdown-item">
+                                                <a href="./auth-maintenance-creative.php" class="dropdown-item">
                                                     <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                     <span>Creative</span>
                                                 </a>
@@ -715,27 +876,27 @@ include_once 'includes/dashboard_data.php';
                                             <div class="row g-4">
                                                 <div class="col-lg-6">
                                                     <h6 class="dropdown-item-title">Applications</h6>
-                                                    <a href="apps-chat.html" class="dropdown-item">
+                                                    <a href="apps-chat.php" class="dropdown-item">
                                                         <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                         <span>Chat</span>
                                                     </a>
-                                                    <a href="apps-email.html" class="dropdown-item">
+                                                    <a href="apps-email.php" class="dropdown-item">
                                                         <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                         <span>Email</span>
                                                     </a>
-                                                    <a href="apps-tasks.html" class="dropdown-item">
+                                                    <a href="apps-tasks.php" class="dropdown-item">
                                                         <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                         <span>Tasks</span>
                                                     </a>
-                                                    <a href="apps-notes.html" class="dropdown-item">
+                                                    <a href="apps-notes.php" class="dropdown-item">
                                                         <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                         <span>Notes</span>
                                                     </a>
-                                                    <a href="apps-storage.html" class="dropdown-item">
+                                                    <a href="apps-storage.php" class="dropdown-item">
                                                         <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                         <span>Storage</span>
                                                     </a>
-                                                    <a href="apps-calendar.html" class="dropdown-item">
+                                                    <a href="apps-calendar.php" class="dropdown-item">
                                                         <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                         <span>Calendar</span>
                                                     </a>
@@ -968,61 +1129,61 @@ include_once 'includes/dashboard_data.php';
                                                     <div class="row g-4">
                                                         <div class="col-lg-4">
                                                             <h6 class="dropdown-item-title">Cover</h6>
-                                                            <a href="./auth-login-cover.html" class="dropdown-item">
+                                                            <a href="./auth-login-cover.php" class="dropdown-item">
                                                                 <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                                 <span>Login</span>
                                                             </a>
-                                                            <a href="./auth-register-cover.html" class="dropdown-item">
+                                                            <a href="./auth-register-cover.php" class="dropdown-item">
                                                                 <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                                 <span>Register</span>
                                                             </a>
-                                                            <a href="./auth-404-cover.html" class="dropdown-item">
+                                                            <a href="./auth-404-cover.php" class="dropdown-item">
                                                                 <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                                 <span>Error-404</span>
                                                             </a>
-                                                            <a href="./auth-reset-cover.html" class="dropdown-item">
+                                                            <a href="./auth-reset-cover.php" class="dropdown-item">
                                                                 <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                                 <span>Reset Pass</span>
                                                             </a>
-                                                            <a href="./auth-verify-cover.html" class="dropdown-item">
+                                                            <a href="./auth-verify-cover.php" class="dropdown-item">
                                                                 <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                                 <span>Verify OTP</span>
                                                             </a>
-                                                            <a href="./auth-maintenance-cover.html" class="dropdown-item">
+                                                            <a href="./auth-maintenance-cover.php" class="dropdown-item">
                                                                 <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                                 <span>Maintenance</span>
                                                             </a>
                                                         </div>
                                                         <div class="col-lg-4">
                                                             <h6 class="dropdown-item-title">Minimal</h6>
-                                                            <a href="./auth-login-minimal.html" class="dropdown-item">
+                                                            <a href="./auth-login-minimal.php" class="dropdown-item">
                                                                 <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                                 <span>Login</span>
                                                             </a>
-                                                            <a href="./auth-register-minimal.html" class="dropdown-item">
+                                                            <a href="./auth-register-minimal.php" class="dropdown-item">
                                                                 <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                                 <span>Register</span>
                                                             </a>
-                                                            <a href="./auth-404-minimal.html" class="dropdown-item">
+                                                            <a href="./auth-404-minimal.php" class="dropdown-item">
                                                                 <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                                 <span>Error-404</span>
                                                             </a>
-                                                            <a href="./auth-reset-minimal.html" class="dropdown-item">
+                                                            <a href="./auth-reset-minimal.php" class="dropdown-item">
                                                                 <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                                 <span>Reset Pass</span>
                                                             </a>
-                                                            <a href="./auth-verify-minimal.html" class="dropdown-item">
+                                                            <a href="./auth-verify-minimal.php" class="dropdown-item">
                                                                 <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                                 <span>Verify OTP</span>
                                                             </a>
-                                                            <a href="./auth-maintenance-minimal.html" class="dropdown-item">
+                                                            <a href="./auth-maintenance-minimal.php" class="dropdown-item">
                                                                 <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                                 <span>Maintenance</span>
                                                             </a>
                                                         </div>
                                                         <div class="col-lg-4">
                                                             <h6 class="dropdown-item-title">Creative</h6>
-                                                            <a href="./auth-login-creative.html" class="dropdown-item">
+                                                            <a href="./auth-login-creative.php" class="dropdown-item">
                                                                 <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                                 <span>Login</span>
                                                             </a>
@@ -1030,19 +1191,19 @@ include_once 'includes/dashboard_data.php';
                                                                 <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                                 <span>Register</span>
                                                             </a>
-                                                            <a href="./auth-404-creative.html" class="dropdown-item">
+                                                            <a href="./auth-404-creative.php" class="dropdown-item">
                                                                 <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                                 <span>Error-404</span>
                                                             </a>
-                                                            <a href="./auth-reset-creative.html" class="dropdown-item">
+                                                            <a href="./auth-reset-creative.php" class="dropdown-item">
                                                                 <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                                 <span>Reset Pass</span>
                                                             </a>
-                                                            <a href="./auth-verify-creative.html" class="dropdown-item">
+                                                            <a href="./auth-verify-creative.php" class="dropdown-item">
                                                                 <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                                 <span>Verify OTP</span>
                                                             </a>
-                                                            <a href="./auth-maintenance-creative.html" class="dropdown-item">
+                                                            <a href="./auth-maintenance-creative.php" class="dropdown-item">
                                                                 <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                                 <span>Maintenance</span>
                                                             </a>
@@ -2118,7 +2279,7 @@ include_once 'includes/dashboard_data.php';
                                 <span>Account Settings</span>
                             </a>
                             <div class="dropdown-divider"></div>
-                            <a href="./auth-login-minimal.html" class="dropdown-item">
+                            <a href="./auth-login-minimal.php" class="dropdown-item">
                                 <i class="feather-log-out"></i>
                                 <span>Logout</span>
                             </a>
@@ -2142,11 +2303,11 @@ include_once 'includes/dashboard_data.php';
             <div class="page-header">
                 <div class="page-header-left d-flex align-items-center">
                     <div class="page-header-title">
-                        <h5 class="m-b-10">Dashboard</h5>
+                        <h5 class="m-b-10">Overview</h5>
                     </div>
                     <ul class="breadcrumb">
                         <li class="breadcrumb-item"><a href="index.php">Home</a></li>
-                        <li class="breadcrumb-item">Dashboard</li>
+                        <li class="breadcrumb-item">Overview</li>
                     </ul>
                 </div>
                 <div class="page-header-right ms-auto">
@@ -2221,75 +2382,41 @@ include_once 'includes/dashboard_data.php';
             <!-- [ Main Content ] start -->
             <div class="main-content">
                 <div class="row">
-                    <!-- [Invoices Awaiting Payment] start -->
+                    <!-- [Attendance Awaiting Approval] start -->
                     <div class="col-xxl-3 col-md-6">
                         <div class="card stretch stretch-full">
                             <div class="card-body">
                                 <div class="d-flex align-items-start justify-content-between mb-4">
                                     <div class="d-flex gap-4 align-items-center">
                                         <div class="avatar-text avatar-lg bg-gray-200">
-                                            <i class="feather-users"></i>
+                                            <i class="feather-clock"></i>
                                         </div>
                                         <div>
-                                            <div class="fs-4 fw-bold text-dark"><span class="counter"><?php echo $dashboard_data['total_students']; ?></span></div>
-                                            <h3 class="fs-13 fw-semibold text-truncate-1-line">Total Students</h3>
+                                            <div class="fs-4 fw-bold text-dark"><span class="counter"><?php echo $attendance_awaiting; ?></span>/<span class="counter"><?php echo $attendance_total; ?></span></div>
+                                            <h3 class="fs-13 fw-semibold text-truncate-1-line">Attendance Awaiting Approval</h3>
                                         </div>
                                     </div>
-                                    <a href="javascript:void(0);" class="">
+                                    <a href="attendance.php" class="">
                                         <i class="feather-more-vertical"></i>
                                     </a>
                                 </div>
                                 <div class="pt-4">
                                     <div class="d-flex align-items-center justify-content-between">
-                                        <a href="students.php" class="fs-12 fw-medium text-muted text-truncate-1-line">View all students </a>
+                                        <a href="attendance.php" class="fs-12 fw-medium text-muted text-truncate-1-line">Pending Records </a>
                                         <div class="w-100 text-end">
-                                            <span class="fs-12 text-dark"><?php echo $dashboard_data['active_students']; ?> Active</span>
-                                            <span class="fs-11 text-muted">(<?php echo $dashboard_data['total_students'] > 0 ? round(($dashboard_data['active_students'] / $dashboard_data['total_students']) * 100) : 0; ?>%)</span>
+                                            <span class="fs-12 text-dark"><?php echo $attendance_awaiting; ?> Pending</span>
+                                            <span class="fs-11 text-muted"><?php echo ($attendance_total > 0) ? round(($attendance_awaiting / $attendance_total) * 100) : 0; ?>%</span>
                                         </div>
                                     </div>
                                     <div class="progress mt-2 ht-3">
-                                        <div class="progress-bar bg-primary" role="progressbar" style="width: <?php echo $dashboard_data['total_students'] > 0 ? round(($dashboard_data['active_students'] / $dashboard_data['total_students']) * 100) : 0; ?>%"></div>
+                                        <div class="progress-bar bg-primary" role="progressbar" style="width: <?php echo ($attendance_total > 0) ? round(($attendance_awaiting / $attendance_total) * 100) : 0; ?>%"></div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <!-- [Total Students] end -->
-                    <!-- [Active Internships] start -->
-                    <div class="col-xxl-3 col-md-6">
-                        <div class="card stretch stretch-full">
-                            <div class="card-body">
-                                <div class="d-flex align-items-start justify-content-between mb-4">
-                                    <div class="d-flex gap-4 align-items-center">
-                                        <div class="avatar-text avatar-lg bg-gray-200">
-                                            <i class="feather-briefcase"></i>
-                                        </div>
-                                        <div>
-                                            <div class="fs-4 fw-bold text-dark"><span class="counter"><?php echo $dashboard_data['active_internships']; ?></span>/<span class="counter"><?php echo $dashboard_data['total_internships']; ?></span></div>
-                                            <h3 class="fs-13 fw-semibold text-truncate-1-line">Active Internships</h3>
-                                        </div>
-                                    </div>
-                                    <a href="javascript:void(0);" class="">
-                                        <i class="feather-more-vertical"></i>
-                                    </a>
-                                </div>
-                                <div class="pt-4">
-                                    <div class="d-flex align-items-center justify-content-between">
-                                        <a href="javascript:void(0);" class="fs-12 fw-medium text-muted text-truncate-1-line">Active Internships </a>
-                                        <div class="w-100 text-end">
-                                            <span class="fs-12 text-dark"><?php echo $dashboard_data['completed_internships']; ?> Completed</span>
-                                            <span class="fs-11 text-muted">(<?php echo $dashboard_data['internship_percentage']; ?>%)</span>
-                                        </div>
-                                    </div>
-                                    <div class="progress mt-2 ht-3">
-                                        <div class="progress-bar bg-warning" role="progressbar" style="width: <?php echo $dashboard_data['active_internship_percentage']; ?>%"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- [Active Internships] end -->
-                    <!-- [Pending Approvals] start -->
+                    <!-- [Attendance Awaiting Approval] end -->
+                    <!-- [Attendance Approved] start -->
                     <div class="col-xxl-3 col-md-6">
                         <div class="card stretch stretch-full">
                             <div class="card-body">
@@ -2299,31 +2426,65 @@ include_once 'includes/dashboard_data.php';
                                             <i class="feather-check-circle"></i>
                                         </div>
                                         <div>
-                                            <div class="fs-4 fw-bold text-dark"><span class="counter"><?php echo $dashboard_data['pending_approvals']; ?></span></div>
-                                            <h3 class="fs-13 fw-semibold text-truncate-1-line">Pending Approvals</h3>
+                                            <div class="fs-4 fw-bold text-dark"><span class="counter"><?php echo $attendance_completed; ?></span>/<span class="counter"><?php echo $attendance_total; ?></span></div>
+                                            <h3 class="fs-13 fw-semibold text-truncate-1-line">Attendance Approved</h3>
                                         </div>
                                     </div>
-                                    <a href="javascript:void(0);" class="">
+                                    <a href="attendance.php" class="">
                                         <i class="feather-more-vertical"></i>
                                     </a>
                                 </div>
                                 <div class="pt-4">
                                     <div class="d-flex align-items-center justify-content-between">
-                                        <a href="attendance.php" class="fs-12 fw-medium text-muted text-truncate-1-line">Attendance approvals </a>
+                                        <a href="attendance.php" class="fs-12 fw-medium text-muted text-truncate-1-line">Approved Records </a>
                                         <div class="w-100 text-end">
-                                            <span class="fs-12 text-dark"><?php echo $dashboard_data['approved_attendances']; ?> Approved</span>
-                                            <span class="fs-11 text-muted">(<?php echo $dashboard_data['approval_percentage']; ?>%)</span>
+                                            <span class="fs-12 text-dark"><?php echo $attendance_completed; ?> Approved</span>
+                                            <span class="fs-11 text-muted"><?php echo ($attendance_total > 0) ? round(($attendance_completed / $attendance_total) * 100) : 0; ?>%</span>
                                         </div>
                                     </div>
                                     <div class="progress mt-2 ht-3">
-                                        <div class="progress-bar bg-success" role="progressbar" style="width: <?php echo $dashboard_data['approval_percentage']; ?>%"></div>
+                                        <div class="progress-bar bg-success" role="progressbar" style="width: <?php echo ($attendance_total > 0) ? round(($attendance_completed / $attendance_total) * 100) : 0; ?>%"></div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <!-- [Pending Approvals] end -->
-                    <!-- [Completion Rate] start -->
+                    <!-- [Attendance Approved] end -->
+                    <!-- [Active Internships] start -->
+                    <div class="col-xxl-3 col-md-6">
+                        <div class="card stretch stretch-full">
+                            <div class="card-body">
+                                <div class="d-flex align-items-start justify-content-between mb-4">
+                                    <div class="d-flex gap-4 align-items-center">
+                                        <div class="avatar-text avatar-lg bg-gray-200">
+                                            <i class="feather-users"></i>
+                                        </div>
+                                        <div>
+                                            <div class="fs-4 fw-bold text-dark"><span class="counter"><?php echo $internship_count; ?></span></div>
+                                            <h3 class="fs-13 fw-semibold text-truncate-1-line">Active Internships</h3>
+                                        </div>
+                                    </div>
+                                    <a href="students.php" class="">
+                                        <i class="feather-more-vertical"></i>
+                                    </a>
+                                </div>
+                                <div class="pt-4">
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <a href="students.php" class="fs-12 fw-medium text-muted text-truncate-1-line">Ongoing Internships </a>
+                                        <div class="w-100 text-end">
+                                            <span class="fs-12 text-dark"><?php echo $internship_count; ?> Active</span>
+                                            <span class="fs-11 text-muted">See List</span>
+                                        </div>
+                                    </div>
+                                    <div class="progress mt-2 ht-3">
+                                        <div class="progress-bar bg-info" role="progressbar" style="width: 100%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- [Active Internships] end -->
+                    <!-- [Biometric Registration] start -->
                     <div class="col-xxl-3 col-md-6">
                         <div class="card stretch stretch-full">
                             <div class="card-body">
@@ -2333,30 +2494,30 @@ include_once 'includes/dashboard_data.php';
                                             <i class="feather-activity"></i>
                                         </div>
                                         <div>
-                                            <div class="fs-4 fw-bold text-dark"><span class="counter"><?php echo $dashboard_data['completed_internships']; ?></span></div>
-                                            <h3 class="fs-13 fw-semibold text-truncate-1-line">Completed Internships</h3>
+                                            <div class="fs-4 fw-bold text-dark"><span class="counter"><?php echo $biometric_registered; ?></span>/<span class="counter"><?php echo $student_count; ?></span></div>
+                                            <h3 class="fs-13 fw-semibold text-truncate-1-line">Biometric Registered</h3>
                                         </div>
                                     </div>
-                                    <a href="javascript:void(0);" class="">
+                                    <a href="demo-biometric.php" class="">
                                         <i class="feather-more-vertical"></i>
                                     </a>
                                 </div>
                                 <div class="pt-4">
                                     <div class="d-flex align-items-center justify-content-between">
-                                        <a href="javascript:void(0);" class="fs-12 fw-medium text-muted text-truncate-1-line"> Completion Rate </a>
+                                        <a href="demo-biometric.php" class="fs-12 fw-medium text-muted text-truncate-1-line"> Biometric Rate </a>
                                         <div class="w-100 text-end">
-                                            <span class="fs-12 text-dark"><?php echo $dashboard_data['total_courses']; ?> Courses</span>
-                                            <span class="fs-11 text-muted">(<?php echo $dashboard_data['internship_percentage']; ?>%)</span>
+                                            <span class="fs-12 text-dark"><?php echo $biometric_registered; ?> Students</span>
+                                            <span class="fs-11 text-muted"><?php echo ($student_count > 0) ? round(($biometric_registered / $student_count) * 100) : 0; ?>%</span>
                                         </div>
                                     </div>
                                     <div class="progress mt-2 ht-3">
-                                        <div class="progress-bar bg-danger" role="progressbar" style="width: <?php echo $dashboard_data['internship_percentage']; ?>%"></div>
+                                        <div class="progress-bar bg-danger" role="progressbar" style="width: <?php echo ($student_count > 0) ? round(($biometric_registered / $student_count) * 100) : 0; ?>%"></div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <!-- [Completion Rate] end -->
+                    <!-- [Biometric Registration] end -->
                     <!-- [Payment Records] start -->
                     <div class="col-xxl-8">
                         <div class="card stretch stretch-full">
@@ -2399,37 +2560,37 @@ include_once 'includes/dashboard_data.php';
                                 <div class="row g-4">
                                     <div class="col-lg-3">
                                         <div class="p-3 border border-dashed rounded">
-                                            <div class="fs-12 text-muted mb-1">Awaiting</div>
-                                            <h6 class="fw-bold text-dark">$5,486</h6>
+                                            <div class="fs-12 text-muted mb-1">Awaiting Approval</div>
+                                            <h6 class="fw-bold text-dark"><?php echo $attendance_awaiting; ?></h6>
                                             <div class="progress mt-2 ht-3">
-                                                <div class="progress-bar bg-primary" role="progressbar" style="width: 81%"></div>
+                                                <div class="progress-bar bg-primary" role="progressbar" style="width: <?php echo ($attendance_total > 0) ? intval(($attendance_awaiting / $attendance_total) * 100) : 0; ?>%"></div>
                                             </div>
                                         </div>
                                     </div>
                                     <div class="col-lg-3">
                                         <div class="p-3 border border-dashed rounded">
-                                            <div class="fs-12 text-muted mb-1">Completed</div>
-                                            <h6 class="fw-bold text-dark">$9,275</h6>
+                                            <div class="fs-12 text-muted mb-1">Approved</div>
+                                            <h6 class="fw-bold text-dark"><?php echo $attendance_completed; ?></h6>
                                             <div class="progress mt-2 ht-3">
-                                                <div class="progress-bar bg-success" role="progressbar" style="width: 82%"></div>
+                                                <div class="progress-bar bg-success" role="progressbar" style="width: <?php echo ($attendance_total > 0) ? intval(($attendance_completed / $attendance_total) * 100) : 0; ?>%"></div>
                                             </div>
                                         </div>
                                     </div>
                                     <div class="col-lg-3">
                                         <div class="p-3 border border-dashed rounded">
                                             <div class="fs-12 text-muted mb-1">Rejected</div>
-                                            <h6 class="fw-bold text-dark">$3,868</h6>
+                                            <h6 class="fw-bold text-dark"><?php echo $attendance_rejected; ?></h6>
                                             <div class="progress mt-2 ht-3">
-                                                <div class="progress-bar bg-danger" role="progressbar" style="width: 68%"></div>
+                                                <div class="progress-bar bg-danger" role="progressbar" style="width: <?php echo ($attendance_total > 0) ? intval(($attendance_rejected / $attendance_total) * 100) : 0; ?>%"></div>
                                             </div>
                                         </div>
                                     </div>
                                     <div class="col-lg-3">
                                         <div class="p-3 border border-dashed rounded">
-                                            <div class="fs-12 text-muted mb-1">Revenue</div>
-                                            <h6 class="fw-bold text-dark">$50,668</h6>
+                                            <div class="fs-12 text-muted mb-1">Total Records</div>
+                                            <h6 class="fw-bold text-dark"><?php echo $attendance_total; ?></h6>
                                             <div class="progress mt-2 ht-3">
-                                                <div class="progress-bar bg-dark" role="progressbar" style="width: 75%"></div>
+                                                <div class="progress-bar bg-dark" role="progressbar" style="width: 100%"></div>
                                             </div>
                                         </div>
                                     </div>
@@ -2438,69 +2599,47 @@ include_once 'includes/dashboard_data.php';
                         </div>
                     </div>
                     <!-- [Payment Records] end -->
-                    <!-- [Total Sales] start -->
+                    <!-- [Total Students] start -->
                     <div class="col-xxl-4">
                         <div class="card stretch stretch-full overflow-hidden">
                             <div class="bg-primary text-white">
                                 <div class="p-4">
-                                    <span class="badge bg-light text-primary text-dark float-end">12%</span>
+                                    <span class="badge bg-light text-primary text-dark float-end"><?php echo $student_count; ?></span>
                                     <div class="text-start">
-                                        <h4 class="text-reset">30,569</h4>
-                                        <p class="text-reset m-0">Total Sales</p>
+                                        <h4 class="text-reset"><?php echo $student_count; ?></h4>
+                                        <p class="text-reset m-0">Total Students Enrolled</p>
                                     </div>
                                 </div>
                                 <div id="total-sales-color-graph"></div>
                             </div>
                             <div class="card-body">
-                                <div class="d-flex align-items-center justify-content-between">
-                                    <div class="hstack gap-3">
-                                        <div class="avatar-image avatar-lg p-2 rounded">
-                                            <img class="img-fluid" src="assets/images/brand/shopify.png" alt="" />
+                                <?php if (count($recent_students) > 0): ?>
+                                    <?php foreach (array_slice($recent_students, 0, 3) as $student): ?>
+                                    <div class="d-flex align-items-center justify-content-between mb-3">
+                                        <div class="hstack gap-3">
+                                            <div class="avatar-text avatar-lg bg-soft-primary text-primary">
+                                                <?php echo strtoupper(substr($student['first_name'], 0, 1) . substr($student['last_name'], 0, 1)); ?>
+                                            </div>
+                                            <div>
+                                                <a href="students-view.php?id=<?php echo $student['id']; ?>" class="d-block fw-semibold"><?php echo htmlspecialchars($student['first_name'] . ' ' . $student['last_name']); ?></a>
+                                                <span class="fs-12 text-muted"><?php echo htmlspecialchars($student['student_id']); ?></span>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <a href="javascript:void(0);" class="d-block">Shopify eCommerce Store</a>
-                                            <span class="fs-12 text-muted">Development</span>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div class="fw-bold text-dark">$1200</div>
-                                        <div class="fs-12 text-end">6 Projects</div>
-                                    </div>
-                                </div>
-                                <hr class="border-dashed my-3" />
-                                <div class="d-flex align-items-center justify-content-between">
-                                    <div class="hstack gap-3">
-                                        <div class="avatar-image avatar-lg p-2 rounded">
-                                            <img class="img-fluid" src="assets/images/brand/app-store.png" alt="" />
-                                        </div>
-                                        <div>
-                                            <a href="javascript:void(0);" class="d-block">iOS Apps Development</a>
-                                            <span class="fs-12 text-muted">Development</span>
+                                        <div class="text-end">
+                                            <?php if ($student['biometric_registered']): ?>
+                                            <span class="badge bg-soft-success text-success fs-10">Biometric ✓</span>
+                                            <?php else: ?>
+                                            <span class="badge bg-soft-warning text-warning fs-10">Pending Bio</span>
+                                            <?php endif; ?>
                                         </div>
                                     </div>
-                                    <div>
-                                        <div class="fw-bold text-dark">$1450</div>
-                                        <div class="fs-12 text-end">3 Projects</div>
-                                    </div>
-                                </div>
-                                <hr class="border-dashed my-3" />
-                                <div class="d-flex align-items-center justify-content-between">
-                                    <div class="hstack gap-3">
-                                        <div class="avatar-image avatar-lg p-2 rounded">
-                                            <img class="img-fluid" src="assets/images/brand/figma.png" alt="" />
-                                        </div>
-                                        <div>
-                                            <a href="javascript:void(0);" class="d-block">Figma Dashboard Design</a>
-                                            <span class="fs-12 text-muted">UI/UX Design</span>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div class="fw-bold text-dark">$1250</div>
-                                        <div class="fs-12 text-end">5 Projects</div>
-                                    </div>
-                                </div>
+                                    <hr class="border-dashed my-3" />
+                                    <?php endforeach; ?>
+                                <?php else: ?>
+                                    <p class="text-muted text-center">No recent students found</p>
+                                <?php endif; ?>
                             </div>
-                            <a href="javascript:void(0);" class="card-footer fs-11 fw-bold text-uppercase text-center py-4">Full Details</a>
+                            <a href="students.php" class="card-footer fs-11 fw-bold text-uppercase text-center py-4">View All Students</a>
                         </div>
                     </div>
                     <!-- [Total Sales] end !-->
@@ -2672,11 +2811,11 @@ include_once 'includes/dashboard_data.php';
                         </div>
                     </div>
                     <!-- [Leads Overview] end -->
-                    <!-- [Latest Leads] start -->
+                    <!-- [Latest Attendance Records] start -->
                     <div class="col-xxl-8">
                         <div class="card stretch stretch-full">
                             <div class="card-header">
-                                <h5 class="card-title">Latest Leads</h5>
+                                <h5 class="card-title">Latest Attendance Records</h5>
                                 <div class="card-header-action">
                                     <div class="card-header-btn">
                                         <div data-bs-toggle="tooltip" title="Delete">
@@ -2712,129 +2851,56 @@ include_once 'includes/dashboard_data.php';
                                     <table class="table table-hover mb-0">
                                         <thead>
                                             <tr class="border-b">
-                                                <th scope="row">Users</th>
-                                                <th>Proposal</th>
-                                                <th>Date</th>
+                                                <th scope="row">Students</th>
+                                                <th>Attendance Date</th>
+                                                <th>Time In</th>
                                                 <th>Status</th>
                                                 <th class="text-end">Actions</th>
                                             </tr>
                                         </thead>
                                         <tbody>
+                                            <?php if (count($recent_attendance) > 0): ?>
+                                                <?php foreach ($recent_attendance as $attendance): ?>
                                             <tr>
                                                 <td>
                                                     <div class="d-flex align-items-center gap-3">
-                                                        <div class="avatar-image">
-                                                            <img src="assets/images/avatar/2.png" alt="" class="img-fluid" />
+                                                        <div class="avatar-text avatar-sm bg-soft-primary text-primary">
+                                                            <?php echo strtoupper(substr($attendance['first_name'], 0, 1) . substr($attendance['last_name'], 0, 1)); ?>
                                                         </div>
-                                                        <a href="javascript:void(0);">
-                                                            <span class="d-block">Archie Cantones</span>
-                                                            <span class="fs-12 d-block fw-normal text-muted">arcie.tones@gmail.com</span>
+                                                        <a href="students-view.php?id=<?php echo $attendance['student_id']; ?>">
+                                                            <span class="d-block fw-semibold"><?php echo htmlspecialchars($attendance['first_name'] . ' ' . $attendance['last_name']); ?></span>
+                                                            <span class="fs-12 d-block fw-normal text-muted"><?php echo htmlspecialchars($attendance['student_num']); ?></span>
                                                         </a>
                                                     </div>
                                                 </td>
                                                 <td>
-                                                    <span class="badge bg-gray-200 text-dark">Sent</span>
+                                                    <?php echo date('m/d/Y', strtotime($attendance['attendance_date'])); ?>
                                                 </td>
-                                                <td>11/06/2023 10:53</td>
                                                 <td>
-                                                    <span class="badge bg-soft-success text-success">Completed</span>
+                                                    <?php echo $attendance['morning_time_in'] ? date('h:i a', strtotime($attendance['morning_time_in'])) : 'N/A'; ?>
+                                                </td>
+                                                <td>
+                                                    <?php 
+                                                    $status = $attendance['status'];
+                                                    if ($status === 'approved') {
+                                                        echo '<span class="badge bg-soft-success text-success">Approved</span>';
+                                                    } elseif ($status === 'pending') {
+                                                        echo '<span class="badge bg-soft-warning text-warning">Pending</span>';
+                                                    } else {
+                                                        echo '<span class="badge bg-soft-danger text-danger">Rejected</span>';
+                                                    }
+                                                    ?>
                                                 </td>
                                                 <td class="text-end">
-                                                    <a href="javascript:void(0);"><i class="feather-more-vertical"></i></a>
+                                                    <a href="attendance.php"><i class="feather-more-vertical"></i></a>
                                                 </td>
                                             </tr>
+                                                <?php endforeach; ?>
+                                            <?php else: ?>
                                             <tr>
-                                                <td>
-                                                    <div class="d-flex align-items-center gap-3">
-                                                        <div class="avatar-image">
-                                                            <img src="assets/images/avatar/3.png" alt="" class="img-fluid" />
-                                                        </div>
-                                                        <a href="javascript:void(0);">
-                                                            <span class="d-block">Holmes Cherryman</span>
-                                                            <span class="fs-12 d-block fw-normal text-muted">golms.chan@gmail.com</span>
-                                                        </a>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <span class="badge bg-gray-200 text-dark">New</span>
-                                                </td>
-                                                <td>11/06/2023 10:53</td>
-                                                <td>
-                                                    <span class="badge bg-soft-primary text-primary">In Progress </span>
-                                                </td>
-                                                <td class="text-end">
-                                                    <a href="javascript:void(0);"><i class="feather-more-vertical"></i></a>
-                                                </td>
+                                                <td colspan="5" class="text-center text-muted py-4">No attendance records found</td>
                                             </tr>
-                                            <tr>
-                                                <td>
-                                                    <div class="d-flex align-items-center gap-3">
-                                                        <div class="avatar-image">
-                                                            <img src="assets/images/avatar/4.png" alt="" class="img-fluid" />
-                                                        </div>
-                                                        <a href="javascript:void(0);">
-                                                            <span class="d-block">Malanie Hanvey</span>
-                                                            <span class="fs-12 d-block fw-normal text-muted">lanie.nveyn@gmail.com</span>
-                                                        </a>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <span class="badge bg-gray-200 text-dark">Sent</span>
-                                                </td>
-                                                <td>11/06/2023 10:53</td>
-                                                <td>
-                                                    <span class="badge bg-soft-success text-success">Completed</span>
-                                                </td>
-                                                <td class="text-end">
-                                                    <a href="javascript:void(0);"><i class="feather-more-vertical"></i></a>
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td>
-                                                    <div class="d-flex align-items-center gap-3">
-                                                        <div class="avatar-image">
-                                                            <img src="assets/images/avatar/5.png" alt="" class="img-fluid" />
-                                                        </div>
-                                                        <a href="javascript:void(0);">
-                                                            <span class="d-block">Kenneth Hune</span>
-                                                            <span class="fs-12 d-block fw-normal text-muted">nneth.une@gmail.com</span>
-                                                        </a>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <span class="badge bg-gray-200 text-dark">Returning</span>
-                                                </td>
-                                                <td>11/06/2023 10:53</td>
-                                                <td>
-                                                    <span class="badge bg-soft-warning text-warning">Not Interested</span>
-                                                </td>
-                                                <td class="text-end">
-                                                    <a href="javascript:void(0);"><i class="feather-more-vertical"></i></a>
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td>
-                                                    <div class="d-flex align-items-center gap-3">
-                                                        <div class="avatar-image">
-                                                            <img src="assets/images/avatar/6.png" alt="" class="img-fluid" />
-                                                        </div>
-                                                        <a href="javascript:void(0);">
-                                                            <span class="d-block">Valentine Maton</span>
-                                                            <span class="fs-12 d-block fw-normal text-muted">alenine.aton@gmail.com</span>
-                                                        </a>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <span class="badge bg-gray-200 text-dark">Sent</span>
-                                                </td>
-                                                <td>11/06/2023 10:53</td>
-                                                <td>
-                                                    <span class="badge bg-soft-success text-success">Completed</span>
-                                                </td>
-                                                <td class="text-end">
-                                                    <a href="javascript:void(0);"><i class="feather-more-vertical"></i></a>
-                                                </td>
-                                            </tr>
+                                            <?php endif; ?>
                                         </tbody>
                                     </table>
                                 </div>
@@ -2842,28 +2908,27 @@ include_once 'includes/dashboard_data.php';
                             <div class="card-footer">
                                 <ul class="list-unstyled d-flex align-items-center gap-2 mb-0 pagination-common-style">
                                     <li>
-                                        <a href="javascript:void(0);"><i class="bi bi-arrow-left"></i></a>
+                                        <a href="attendance.php"><i class="bi bi-arrow-left"></i></a>
                                     </li>
-                                    <li><a href="javascript:void(0);" class="active">1</a></li>
-                                    <li><a href="javascript:void(0);">2</a></li>
+                                    <li><a href="attendance.php" class="active">1</a></li>
+                                    <li><a href="attendance.php">2</a></li>
                                     <li>
                                         <a href="javascript:void(0);"><i class="bi bi-dot"></i></a>
                                     </li>
-                                    <li><a href="javascript:void(0);">8</a></li>
-                                    <li><a href="javascript:void(0);">9</a></li>
+                                    <li><a href="attendance.php">View All</a></li>
                                     <li>
-                                        <a href="javascript:void(0);"><i class="bi bi-arrow-right"></i></a>
+                                        <a href="attendance.php"><i class="bi bi-arrow-right"></i></a>
                                     </li>
                                 </ul>
                             </div>
                         </div>
                     </div>
-                    <!-- [Latest Leads] end -->
-                    <!--! BEGIN: [Upcoming Schedule] !-->
+                    <!-- [Latest Attendance Records] end -->
+                    <!--! BEGIN: [Biometric Registration Status] !-->
                     <div class="col-xxl-4">
                         <div class="card stretch stretch-full">
                             <div class="card-header">
-                                <h5 class="card-title">Upcoming Schedule</h5>
+                                <h5 class="card-title">Biometric Registration Status</h5>
                                 <div class="card-header-action">
                                     <div class="card-header-btn">
                                         <div data-bs-toggle="tooltip" title="Delete">
@@ -2895,139 +2960,43 @@ include_once 'includes/dashboard_data.php';
                                 </div>
                             </div>
                             <div class="card-body">
-                                <!--! BEGIN: [Events] !-->
                                 <div class="p-3 border border-dashed rounded-3 mb-3">
                                     <div class="d-flex justify-content-between">
                                         <div class="d-flex align-items-center gap-3">
-                                            <div class="wd-50 ht-50 bg-soft-primary text-primary lh-1 d-flex align-items-center justify-content-center flex-column rounded-2 schedule-date">
-                                                <span class="fs-18 fw-bold mb-1 d-block">20</span>
-                                                <span class="fs-10 fw-semibold text-uppercase d-block">Dec</span>
+                                            <div class="wd-50 ht-50 bg-soft-success text-success lh-1 d-flex align-items-center justify-content-center flex-column rounded-2">
+                                                <span class="fs-18 fw-bold mb-1 d-block"><?php echo $biometric_registered; ?></span>
+                                                <span class="fs-10 fw-semibold text-uppercase d-block">Registered</span>
                                             </div>
                                             <div class="text-dark">
-                                                <a href="javascript:void(0);" class="fw-bold mb-2 text-truncate-1-line">React Dashboard Design</a>
-                                                <span class="fs-11 fw-normal text-muted text-truncate-1-line">11:30am - 12:30pm</span>
+                                                <a href="demo-biometric.php" class="fw-bold mb-2 text-truncate-1-line">Students Registered</a>
+                                                <span class="fs-11 fw-normal text-muted text-truncate-1-line"><?php echo ($student_count > 0) ? round(($biometric_registered / $student_count) * 100) : 0; ?>% of total</span>
                                             </div>
-                                        </div>
-                                        <div class="img-group lh-0 ms-3 justify-content-start d-none d-sm-flex">
-                                            <a href="javascript:void(0)" class="avatar-image avatar-md" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Janette Dalton">
-                                                <img src="assets/images/avatar/2.png" class="img-fluid" alt="image" />
-                                            </a>
-                                            <a href="javascript:void(0)" class="avatar-image avatar-md" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Michael Ksen">
-                                                <img src="assets/images/avatar/3.png" class="img-fluid" alt="image" />
-                                            </a>
-                                            <a href="javascript:void(0)" class="avatar-image avatar-md" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Socrates Itumay">
-                                                <img src="assets/images/avatar/4.png" class="img-fluid" alt="image" />
-                                            </a>
-                                            <a href="javascript:void(0)" class="avatar-image avatar-md" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Marianne Audrey">
-                                                <img src="assets/images/avatar/6.png" class="img-fluid" alt="image" />
-                                            </a>
-                                            <a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Explorer More">
-                                                <i class="feather-more-horizontal"></i>
-                                            </a>
                                         </div>
                                     </div>
                                 </div>
-                                <!--! BEGIN: [Events] !-->
                                 <div class="p-3 border border-dashed rounded-3 mb-3">
                                     <div class="d-flex justify-content-between">
                                         <div class="d-flex align-items-center gap-3">
-                                            <div class="wd-50 ht-50 bg-soft-warning text-warning lh-1 d-flex align-items-center justify-content-center flex-column rounded-2 schedule-date">
-                                                <span class="fs-18 fw-bold mb-1 d-block">30</span>
-                                                <span class="fs-10 fw-semibold text-uppercase d-block">Dec</span>
+                                            <div class="wd-50 ht-50 bg-soft-warning text-warning lh-1 d-flex align-items-center justify-content-center flex-column rounded-2">
+                                                <span class="fs-18 fw-bold mb-1 d-block"><?php echo ($student_count - $biometric_registered); ?></span>
+                                                <span class="fs-10 fw-semibold text-uppercase d-block">Pending</span>
                                             </div>
                                             <div class="text-dark">
-                                                <a href="javascript:void(0);" class="fw-bold mb-2 text-truncate-1-line">Admin Design Concept</a>
-                                                <span class="fs-11 fw-normal text-muted text-truncate-1-line">10:00am - 12:00pm</span>
+                                                <a href="demo-biometric.php" class="fw-bold mb-2 text-truncate-1-line">Awaiting Registration</a>
+                                                <span class="fs-11 fw-normal text-muted text-truncate-1-line"><?php echo ($student_count > 0) ? round((($student_count - $biometric_registered) / $student_count) * 100) : 0; ?>% pending</span>
                                             </div>
-                                        </div>
-                                        <div class="img-group lh-0 ms-3 justify-content-start d-none d-sm-flex">
-                                            <a href="javascript:void(0)" class="avatar-image avatar-md" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Janette Dalton">
-                                                <img src="assets/images/avatar/2.png" class="img-fluid" alt="image" />
-                                            </a>
-                                            <a href="javascript:void(0)" class="avatar-image avatar-md" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Michael Ksen">
-                                                <img src="assets/images/avatar/3.png" class="img-fluid" alt="image" />
-                                            </a>
-                                            <a href="javascript:void(0)" class="avatar-image avatar-md" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Marianne Audrey">
-                                                <img src="assets/images/avatar/5.png" class="img-fluid" alt="image" />
-                                            </a>
-                                            <a href="javascript:void(0)" class="avatar-image avatar-md" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Marianne Audrey">
-                                                <img src="assets/images/avatar/6.png" class="img-fluid" alt="image" />
-                                            </a>
-                                            <a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Explorer More">
-                                                <i class="feather-more-horizontal"></i>
-                                            </a>
                                         </div>
                                     </div>
                                 </div>
-                                <!--! BEGIN: [Events] !-->
-                                <div class="p-3 border border-dashed rounded-3 mb-3">
-                                    <div class="d-flex justify-content-between">
-                                        <div class="d-flex align-items-center gap-3">
-                                            <div class="wd-50 ht-50 bg-soft-success text-success lh-1 d-flex align-items-center justify-content-center flex-column rounded-2 schedule-date">
-                                                <span class="fs-18 fw-bold mb-1 d-block">17</span>
-                                                <span class="fs-10 fw-semibold text-uppercase d-block">Dec</span>
-                                            </div>
-                                            <div class="text-dark">
-                                                <a href="javascript:void(0);" class="fw-bold mb-2 text-truncate-1-line">Standup Team Meeting</a>
-                                                <span class="fs-11 fw-normal text-muted text-truncate-1-line">8:00am - 9:00am</span>
-                                            </div>
-                                        </div>
-                                        <div class="img-group lh-0 ms-3 justify-content-start d-none d-sm-flex">
-                                            <a href="javascript:void(0)" class="avatar-image avatar-md" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Janette Dalton">
-                                                <img src="assets/images/avatar/2.png" class="img-fluid" alt="image" />
-                                            </a>
-                                            <a href="javascript:void(0)" class="avatar-image avatar-md" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Michael Ksen">
-                                                <img src="assets/images/avatar/3.png" class="img-fluid" alt="image" />
-                                            </a>
-                                            <a href="javascript:void(0)" class="avatar-image avatar-md" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Socrates Itumay">
-                                                <img src="assets/images/avatar/4.png" class="img-fluid" alt="image" />
-                                            </a>
-                                            <a href="javascript:void(0)" class="avatar-image avatar-md" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Marianne Audrey">
-                                                <img src="assets/images/avatar/5.png" class="img-fluid" alt="image" />
-                                            </a>
-                                            <a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Explorer More">
-                                                <i class="feather-more-horizontal"></i>
-                                            </a>
-                                        </div>
-                                    </div>
+                                <div class="progress mb-3 ht-5">
+                                    <div class="progress-bar bg-success" role="progressbar" style="width: <?php echo ($student_count > 0) ? round(($biometric_registered / $student_count) * 100) : 0; ?>%"></div>
                                 </div>
-                                <!--! BEGIN: [Events] !-->
-                                <div class="p-3 border border-dashed rounded-3 mb-2">
-                                    <div class="d-flex justify-content-between">
-                                        <div class="d-flex align-items-center gap-3">
-                                            <div class="wd-50 ht-50 bg-soft-danger text-danger lh-1 d-flex align-items-center justify-content-center flex-column rounded-2 schedule-date">
-                                                <span class="fs-18 fw-bold mb-1 d-block">25</span>
-                                                <span class="fs-10 fw-semibold text-uppercase d-block">Dec</span>
-                                            </div>
-                                            <div class="text-dark">
-                                                <a href="javascript:void(0);" class="fw-bold mb-2 text-truncate-1-line">Zoom Team Meeting</a>
-                                                <span class="fs-11 fw-normal text-muted text-truncate-1-line">03:30pm - 05:30pm</span>
-                                            </div>
-                                        </div>
-                                        <div class="img-group lh-0 ms-3 justify-content-start d-none d-sm-flex">
-                                            <a href="javascript:void(0)" class="avatar-image avatar-md" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Janette Dalton">
-                                                <img src="assets/images/avatar/2.png" class="img-fluid" alt="image" />
-                                            </a>
-                                            <a href="javascript:void(0)" class="avatar-image avatar-md" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Socrates Itumay">
-                                                <img src="assets/images/avatar/4.png" class="img-fluid" alt="image" />
-                                            </a>
-                                            <a href="javascript:void(0)" class="avatar-image avatar-md" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Marianne Audrey">
-                                                <img src="assets/images/avatar/5.png" class="img-fluid" alt="image" />
-                                            </a>
-                                            <a href="javascript:void(0)" class="avatar-image avatar-md" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Marianne Audrey">
-                                                <img src="assets/images/avatar/6.png" class="img-fluid" alt="image" />
-                                            </a>
-                                            <a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Explorer More">
-                                                <i class="feather-more-horizontal"></i>
-                                            </a>
-                                        </div>
-                                    </div>
-                                </div>
+                                <p class="text-muted text-center fs-12 mb-0">Overall Biometric Registration Progress</p>
                             </div>
-                            <a href="javascript:void(0);" class="card-footer fs-11 fw-bold text-uppercase text-center py-4">Upcomming Schedule</a>
+                            <a href="demo-biometric.php" class="card-footer fs-11 fw-bold text-uppercase text-center py-4">Manage Biometric</a>
                         </div>
                     </div>
-                    <!--! END: [Upcoming Schedule] !-->
+                    <!--! END: [Biometric Registration Status] !-->
                     <!--! BEGIN: [Project Status] !-->
                     <div class="col-xxl-4">
                         <div class="card stretch stretch-full">
@@ -3239,6 +3208,168 @@ include_once 'includes/dashboard_data.php';
                         </div>
                     </div>
                     <!--! END: [Team Progress] !-->
+                    <!--! BEGIN: [Coordinators List] !-->
+                    <div class="col-xxl-4">
+                        <div class="card stretch stretch-full">
+                            <div class="card-header">
+                                <h5 class="card-title">Coordinators</h5>
+                                <div class="card-header-action">
+                                    <div class="card-header-btn">
+                                        <div data-bs-toggle="tooltip" title="Delete">
+                                            <a href="javascript:void(0);" class="avatar-text avatar-xs bg-danger" data-bs-toggle="remove"> </a>
+                                        </div>
+                                        <div data-bs-toggle="tooltip" title="Refresh">
+                                            <a href="javascript:void(0);" class="avatar-text avatar-xs bg-warning" data-bs-toggle="refresh"> </a>
+                                        </div>
+                                        <div data-bs-toggle="tooltip" title="Maximize/Minimize">
+                                            <a href="javascript:void(0);" class="avatar-text avatar-xs bg-success" data-bs-toggle="expand"> </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body custom-card-action">
+                                <?php if (count($coordinators) > 0): ?>
+                                    <?php foreach ($coordinators as $coordinator): ?>
+                                    <div class="hstack justify-content-between border border-dashed rounded-3 p-3 mb-3">
+                                        <div class="hstack gap-3">
+                                            <div class="avatar-text avatar-lg bg-soft-primary text-primary">
+                                                <?php echo strtoupper(substr($coordinator['name'], 0, 1)); ?>
+                                            </div>
+                                            <div>
+                                                <a href="javascript:void(0);" class="fw-semibold"><?php echo htmlspecialchars($coordinator['name']); ?></a>
+                                                <div class="fs-11 text-muted"><?php echo htmlspecialchars($coordinator['email']); ?></div>
+                                            </div>
+                                        </div>
+                                        <span class="badge bg-soft-info text-info fs-10">Coordinator</span>
+                                    </div>
+                                    <?php endforeach; ?>
+                                <?php else: ?>
+                                    <p class="text-muted text-center">No coordinators found</p>
+                                <?php endif; ?>
+                            </div>
+                            <a href="javascript:void(0);" class="card-footer fs-11 fw-bold text-uppercase text-center py-3">View All Coordinators</a>
+                        </div>
+                    </div>
+                    <!--! END: [Coordinators List] !-->
+                    <!--! BEGIN: [Supervisors List] !-->
+                    <div class="col-xxl-4">
+                        <div class="card stretch stretch-full">
+                            <div class="card-header">
+                                <h5 class="card-title">Supervisors</h5>
+                                <div class="card-header-action">
+                                    <div class="card-header-btn">
+                                        <div data-bs-toggle="tooltip" title="Delete">
+                                            <a href="javascript:void(0);" class="avatar-text avatar-xs bg-danger" data-bs-toggle="remove"> </a>
+                                        </div>
+                                        <div data-bs-toggle="tooltip" title="Refresh">
+                                            <a href="javascript:void(0);" class="avatar-text avatar-xs bg-warning" data-bs-toggle="refresh"> </a>
+                                        </div>
+                                        <div data-bs-toggle="tooltip" title="Maximize/Minimize">
+                                            <a href="javascript:void(0);" class="avatar-text avatar-xs bg-success" data-bs-toggle="expand"> </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body custom-card-action">
+                                <?php if (count($supervisors) > 0): ?>
+                                    <?php foreach ($supervisors as $supervisor): ?>
+                                    <div class="hstack justify-content-between border border-dashed rounded-3 p-3 mb-3">
+                                        <div class="hstack gap-3">
+                                            <div class="avatar-text avatar-lg bg-soft-success text-success">
+                                                <?php echo strtoupper(substr($supervisor['name'], 0, 1)); ?>
+                                            </div>
+                                            <div>
+                                                <a href="javascript:void(0);" class="fw-semibold"><?php echo htmlspecialchars($supervisor['name']); ?></a>
+                                                <div class="fs-11 text-muted"><?php echo htmlspecialchars($supervisor['email']); ?></div>
+                                            </div>
+                                        </div>
+                                        <span class="badge bg-soft-success text-success fs-10">Supervisor</span>
+                                    </div>
+                                    <?php endforeach; ?>
+                                <?php else: ?>
+                                    <p class="text-muted text-center">No supervisors found</p>
+                                <?php endif; ?>
+                            </div>
+                            <a href="javascript:void(0);" class="card-footer fs-11 fw-bold text-uppercase text-center py-3">View All Supervisors</a>
+                        </div>
+                    </div>
+                    <!--! END: [Supervisors List] !-->
+                    <!--! BEGIN: [Recent Activities] !-->
+                    <div class="col-xxl-8">
+                        <div class="card stretch stretch-full">
+                            <div class="card-header">
+                                <h5 class="card-title">Recent Activities & Logs</h5>
+                                <div class="card-header-action">
+                                    <div class="card-header-btn">
+                                        <div data-bs-toggle="tooltip" title="Delete">
+                                            <a href="javascript:void(0);" class="avatar-text avatar-xs bg-danger" data-bs-toggle="remove"> </a>
+                                        </div>
+                                        <div data-bs-toggle="tooltip" title="Refresh">
+                                            <a href="javascript:void(0);" class="avatar-text avatar-xs bg-warning" data-bs-toggle="refresh"> </a>
+                                        </div>
+                                        <div data-bs-toggle="tooltip" title="Maximize/Minimize">
+                                            <a href="javascript:void(0);" class="avatar-text avatar-xs bg-success" data-bs-toggle="expand"> </a>
+                                        </div>
+                                    </div>
+                                    <div class="dropdown">
+                                        <a href="javascript:void(0);" class="avatar-text avatar-sm" data-bs-toggle="dropdown" data-bs-offset="25, 25">
+                                            <div data-bs-toggle="tooltip" title="Options">
+                                                <i class="feather-more-vertical"></i>
+                                            </div>
+                                        </a>
+                                        <div class="dropdown-menu dropdown-menu-end">
+                                            <a href="javascript:void(0);" class="dropdown-item"><i class="feather-sliders"></i>Filter</a>
+                                            <a href="javascript:void(0);" class="dropdown-item"><i class="feather-download"></i>Export</a>
+                                            <div class="dropdown-divider"></div>
+                                            <a href="javascript:void(0);" class="dropdown-item"><i class="feather-settings"></i>Settings</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body custom-card-action p-0">
+                                <div style="max-height: 400px; overflow-y: auto;">
+                                    <?php if (count($recent_activities) > 0): ?>
+                                        <?php foreach ($recent_activities as $activity): ?>
+                                        <div class="d-flex align-items-center gap-3 p-3 border-bottom">
+                                            <div class="avatar-text avatar-sm rounded-circle" 
+                                                style="background-color: <?php 
+                                                    echo ($activity['activity_type'] === 'student_created') ? '#e3f2fd' : 
+                                                         (($activity['activity_type'] === 'attendance_recorded') ? '#f3e5f5' : '#e8f5e9');
+                                                ?>">
+                                                <i class="feather-<?php 
+                                                    echo ($activity['activity_type'] === 'student_created') ? 'user-plus' : 
+                                                         (($activity['activity_type'] === 'attendance_recorded') ? 'clock' : 'check-circle');
+                                                ?>" style="font-size: 14px;"></i>
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <a href="javascript:void(0);" class="fw-semibold text-dark d-block">
+                                                    <?php echo htmlspecialchars($activity['activity']); ?>
+                                                </a>
+                                                <span class="fs-12 text-muted">
+                                                    <?php if ($activity['activity_date']): ?>
+                                                        <?php echo date('M d, Y H:i', strtotime($activity['activity_date'])); ?>
+                                                    <?php else: ?>
+                                                        No date
+                                                    <?php endif; ?>
+                                                </span>
+                                            </div>
+                                            <span class="badge <?php 
+                                                echo ($activity['activity_type'] === 'student_created') ? 'bg-soft-info text-info' : 
+                                                     (($activity['activity_type'] === 'attendance_recorded') ? 'bg-soft-warning text-warning' : 'bg-soft-success text-success');
+                                            ?> fs-10">
+                                                <?php echo str_replace('_', ' ', ucfirst($activity['activity_type'])); ?>
+                                            </span>
+                                        </div>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <p class="text-muted text-center py-4">No recent activities found</p>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                            <a href="javascript:void(0);" class="card-footer fs-11 fw-bold text-uppercase text-center py-3">View All Activities</a>
+                        </div>
+                    </div>
+                    <!--! END: [Recent Activities] !-->
                 </div>
             </div>
             <!-- [ Main Content ] end -->
@@ -3246,12 +3377,12 @@ include_once 'includes/dashboard_data.php';
         <!-- [ Footer ] start -->
         <footer class="footer">
             <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
-                <span>Copyright ©</span>
+                <span>Copyright Â©</span>
                 <script>
                     document.write(new Date().getFullYear());
                 </script>
             </p>
-            <p><span>By: <a target="_blank" href="" target="_blank">ACT 2A</a></span> • <span>Distributed by: <a target="_blank" href="" target="_blank">Group 5</a></span></p>
+            <p><span>By: <a target="_blank" href="" target="_blank">ACT 2A</a></span> â€¢ <span>Distributed by: <a target="_blank" href="" target="_blank">Group 5</a></span></p>
             <div class="d-flex align-items-center gap-4">
                 <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Help</a>
                 <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Terms</a>
@@ -3454,3 +3585,4 @@ include_once 'includes/dashboard_data.php';
 </body>
 
 </html>
+
