@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 // Database Connection
 $host = 'localhost';
 $db_user = 'root';
@@ -58,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $insert_query = "INSERT INTO attendances (student_id, attendance_date, $db_column, status, created_at, updated_at) 
                                 VALUES ($student_id, '$clock_date', '$clock_time', 'pending', NOW(), NOW())";
                 if ($conn->query($insert_query)) {
-                    $message = "✓ " . ucfirst(str_replace('_', ' ', $clock_type)) . " recorded at " . date('h:i A', strtotime($clock_time));
+                    $message = "âœ“ " . ucfirst(str_replace('_', ' ', $clock_type)) . " recorded at " . date('h:i A', strtotime($clock_time));
                     $message_type = "success";
                 } else {
                     $message = "Error recording time: " . $conn->error;
@@ -70,14 +70,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 
                 // If the time field is already set, prevent duplicate clock-in
                 if (!empty($record[$db_column])) {
-                    $message = "✗ " . ucfirst(str_replace('_', ' ', $clock_type)) . " has already been recorded. Cannot clock in twice.";
+                    $message = "âœ— " . ucfirst(str_replace('_', ' ', $clock_type)) . " has already been recorded. Cannot clock in twice.";
                     $message_type = "warning";
                 } else {
                     // Update existing attendance record with this new time
                     $update_query = "UPDATE attendances SET $db_column = '$clock_time', updated_at = NOW() 
                                     WHERE student_id = $student_id AND attendance_date = '$clock_date'";
                     if ($conn->query($update_query)) {
-                        $message = "✓ " . ucfirst(str_replace('_', ' ', $clock_type)) . " recorded at " . date('h:i A', strtotime($clock_time));
+                        $message = "âœ“ " . ucfirst(str_replace('_', ' ', $clock_type)) . " recorded at " . date('h:i A', strtotime($clock_time));
                         $message_type = "success";
                     } else {
                         $message = "Error recording time: " . $conn->error;
@@ -502,7 +502,7 @@ if ($attendance_today->num_rows > 0) {
     <nav class="nxl-navigation">
         <div class="navbar-wrapper">
             <div class="m-header">
-                <a href="index.html" class="b-brand">
+                <a href="index.php" class="b-brand">
                     <!-- ========   change your logo hear   ============ -->
                     <img src="assets/images/logo-full.png" alt="" class="logo logo-lg">
                     <img src="assets/images/logo-abbr.png" alt="" class="logo logo-sm">
@@ -519,8 +519,8 @@ if ($attendance_today->num_rows > 0) {
                             <span class="nxl-mtext">Dashboards</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="index.html">CRM</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="analytics.html">Analytics</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="index.php">CRM</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="analytics.php">Analytics</a></li>
                         </ul>
                     </li>
                     <li class="nxl-item nxl-hasmenu">
@@ -529,10 +529,10 @@ if ($attendance_today->num_rows > 0) {
                             <span class="nxl-mtext">Reports</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="reports-sales.html">Sales Report</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="reports-leads.html">Leads Report</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="reports-project.html">Project Report</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="reports-timesheets.html">Timesheets Report</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="reports-sales.php">Sales Report</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="reports-leads.php">Leads Report</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="reports-project.php">Project Report</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="reports-timesheets.php">Timesheets Report</a></li>
                         </ul>
                     </li>
                     <li class="nxl-item nxl-hasmenu">
@@ -541,12 +541,12 @@ if ($attendance_today->num_rows > 0) {
                             <span class="nxl-mtext">Applications</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="apps-chat.html">Chat</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="apps-email.html">Email</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="apps-tasks.html">Tasks</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="apps-notes.html">Notes</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="apps-storage.html">Storage</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="apps-calendar.html">Calendar</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="apps-chat.php">Chat</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="apps-email.php">Email</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="apps-tasks.php">Tasks</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="apps-notes.php">Notes</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="apps-storage.php">Storage</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="apps-calendar.php">Calendar</a></li>
                         </ul>
                     </li>
                     
@@ -559,7 +559,7 @@ if ($attendance_today->num_rows > 0) {
                         <ul class="nxl-submenu">
                             <li class="nxl-item"><a class="nxl-link" href="students.php">Students</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="students-view.php">Students View</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="students-create.html">Students Create</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="students-create.php">Students Create</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="demo-biometric.php">Demo Biometric</a></li>
                         </ul>
                     </li>
@@ -569,9 +569,9 @@ if ($attendance_today->num_rows > 0) {
                             <span class="nxl-mtext">Leads</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="leads.html">Leads</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="leads-view.html">Leads View</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="leads-create.html">Leads Create</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="leads.php">Leads</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="leads-view.php">Leads View</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="leads-create.php">Leads Create</a></li>
                         </ul>
                     </li>
                     
@@ -581,11 +581,11 @@ if ($attendance_today->num_rows > 0) {
                             <span class="nxl-mtext">Widgets</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="widgets-lists.html">Lists</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="widgets-tables.html">Tables</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="widgets-charts.html">Charts</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="widgets-statistics.html">Statistics</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="widgets-miscellaneous.html">Miscellaneous</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="widgets-lists.php">Lists</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="widgets-tables.php">Tables</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="widgets-charts.php">Charts</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="widgets-statistics.php">Statistics</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="widgets-miscellaneous.php">Miscellaneous</a></li>
                         </ul>
                     </li>
                     <li class="nxl-item nxl-hasmenu">
@@ -594,19 +594,19 @@ if ($attendance_today->num_rows > 0) {
                             <span class="nxl-mtext">Settings</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="settings-general.html">General</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-seo.html">SEO</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-tags.html">Tags</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-email.html">Email</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-tasks.html">Tasks</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-leads.html">Leads</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-support.html">Support</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="settings-general.php">General</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="settings-seo.php">SEO</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="settings-tags.php">Tags</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="settings-email.php">Email</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="settings-tasks.php">Tasks</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="settings-leads.php">Leads</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="settings-support.php">Support</a></li>
                             
                             
                             <li class="nxl-item"><a class="nxl-link" href="settings-students.php">Students</a></li>
 
                             
-                            <li class="nxl-item"><a class="nxl-link" href="settings-miscellaneous.html">Miscellaneous</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="settings-miscellaneous.php">Miscellaneous</a></li>
                         </ul>
                     </li>
                     <li class="nxl-item nxl-hasmenu">
@@ -620,7 +620,7 @@ if ($attendance_today->num_rows > 0) {
                                     <span class="nxl-mtext">Login</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                                 </a>
                                 <ul class="nxl-submenu">
-                                    <li class="nxl-item"><a class="nxl-link" href="auth-login-cover.html">Cover</a></li>
+                                    <li class="nxl-item"><a class="nxl-link" href="auth-login-cover.php">Cover</a></li>
                                 </ul>
                             </li>
                             <li class="nxl-item nxl-hasmenu">
@@ -636,7 +636,7 @@ if ($attendance_today->num_rows > 0) {
                                     <span class="nxl-mtext">Error-404</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                                 </a>
                                 <ul class="nxl-submenu">
-                                    <li class="nxl-item"><a class="nxl-link" href="auth-404-minimal.html">Minimal</a></li>
+                                    <li class="nxl-item"><a class="nxl-link" href="auth-404-minimal.php">Minimal</a></li>
                                 </ul>
                             </li>
                             <li class="nxl-item nxl-hasmenu">
@@ -644,7 +644,7 @@ if ($attendance_today->num_rows > 0) {
                                     <span class="nxl-mtext">Reset Pass</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                                 </a>
                                 <ul class="nxl-submenu">
-                                    <li class="nxl-item"><a class="nxl-link" href="auth-reset-cover.html">Cover</a></li>
+                                    <li class="nxl-item"><a class="nxl-link" href="auth-reset-cover.php">Cover</a></li>
                                 </ul>
                             </li>
                             <li class="nxl-item nxl-hasmenu">
@@ -652,7 +652,7 @@ if ($attendance_today->num_rows > 0) {
                                     <span class="nxl-mtext">Verify OTP</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                                 </a>
                                 <ul class="nxl-submenu">
-                                    <li class="nxl-item"><a class="nxl-link" href="auth-verify-cover.html">Cover</a></li>
+                                    <li class="nxl-item"><a class="nxl-link" href="auth-verify-cover.php">Cover</a></li>
                                 </ul>
                             </li>
                             <li class="nxl-item nxl-hasmenu">
@@ -660,7 +660,7 @@ if ($attendance_today->num_rows > 0) {
                                     <span class="nxl-mtext">Maintenance</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                                 </a>
                                 <ul class="nxl-submenu">
-                                    <li class="nxl-item"><a class="nxl-link" href="auth-maintenance-cover.html">Cover</a></li>
+                                    <li class="nxl-item"><a class="nxl-link" href="auth-maintenance-cover.php">Cover</a></li>
                                 </ul>
                             </li>
                         </ul>
@@ -672,7 +672,7 @@ if ($attendance_today->num_rows > 0) {
                         </a>
                         <ul class="nxl-submenu">
                             <li class="nxl-item"><a class="nxl-link" href="#!">Support</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="help-knowledgebase.html">KnowledgeBase</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="help-knowledgebase.php">KnowledgeBase</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="/docs/documentations">Documentations</a></li>
                         </ul>
                     </li>
@@ -854,7 +854,7 @@ if ($attendance_today->num_rows > 0) {
                                 <span>Account Settings</span>
                             </a>
                             <div class="dropdown-divider"></div>
-                            <a href="./auth-login-minimal.html" class="dropdown-item">
+                            <a href="./auth-login-minimal.php" class="dropdown-item">
                                 <i class="feather-log-out"></i>
                                 <span>Logout</span>
                             </a>
@@ -885,7 +885,7 @@ if ($attendance_today->num_rows > 0) {
                 <?php if (!empty($message)): ?>
                     <div class="alert-custom alert-<?php echo $message_type; ?>">
                         <span class="alert-icon">
-                            <?php echo $message_type === 'success' ? '✓' : '✕'; ?>
+                            <?php echo $message_type === 'success' ? 'âœ“' : 'âœ•'; ?>
                         </span>
                         <span><?php echo $message; ?></span>
                     </div>
@@ -1010,7 +1010,7 @@ if ($attendance_today->num_rows > 0) {
                                                     if ($record['morning_time_in'] && $record['morning_time_out']) {
                                                         $morning = date('h:i A', strtotime($record['morning_time_in'])) . ' - ' . date('h:i A', strtotime($record['morning_time_out']));
                                                     } elseif ($record['morning_time_in']) {
-                                                        $morning = date('h:i A', strtotime($record['morning_time_in'])) . ' ✓';
+                                                        $morning = date('h:i A', strtotime($record['morning_time_in'])) . ' âœ“';
                                                     }
                                                     echo $morning ? '<span class="badge-time badge-morning">' . $morning . '</span>' : '-';
                                                 ?>
@@ -1021,7 +1021,7 @@ if ($attendance_today->num_rows > 0) {
                                                     if ($record['break_time_in'] && $record['break_time_out']) {
                                                         $break = date('h:i A', strtotime($record['break_time_in'])) . ' - ' . date('h:i A', strtotime($record['break_time_out']));
                                                     } elseif ($record['break_time_in']) {
-                                                        $break = date('h:i A', strtotime($record['break_time_in'])) . ' ✓';
+                                                        $break = date('h:i A', strtotime($record['break_time_in'])) . ' âœ“';
                                                     }
                                                     echo $break ? '<span class="badge-time badge-break">' . $break . '</span>' : '-';
                                                 ?>
@@ -1032,7 +1032,7 @@ if ($attendance_today->num_rows > 0) {
                                                     if ($record['afternoon_time_in'] && $record['afternoon_time_out']) {
                                                         $afternoon = date('h:i A', strtotime($record['afternoon_time_in'])) . ' - ' . date('h:i A', strtotime($record['afternoon_time_out']));
                                                     } elseif ($record['afternoon_time_in']) {
-                                                        $afternoon = date('h:i A', strtotime($record['afternoon_time_in'])) . ' ✓';
+                                                        $afternoon = date('h:i A', strtotime($record['afternoon_time_in'])) . ' âœ“';
                                                     }
                                                     echo $afternoon ? '<span class="badge-time badge-afternoon">' . $afternoon . '</span>' : '-';
                                                 ?>
@@ -1078,10 +1078,10 @@ if ($attendance_today->num_rows > 0) {
         <!-- Footer -->
         <footer class="footer" style="margin-top: 50px;">
             <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
-                <span>Copyright ©</span>
+                <span>Copyright Â©</span>
                 <script>document.write(new Date().getFullYear());</script>
             </p>
-            <p><span>By: <a target="_blank" href="">ACT 2A</a></span> • <span>Distributed by: <a target="_blank" href="">Group 5</a></span></p>
+            <p><span>By: <a target="_blank" href="">ACT 2A</a></span> â€¢ <span>Distributed by: <a target="_blank" href="">Group 5</a></span></p>
         </footer>
     </main>
 
@@ -1163,3 +1163,4 @@ if ($attendance_today->num_rows > 0) {
 <?php
 $conn->close();
 ?>
+

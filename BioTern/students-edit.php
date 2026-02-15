@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 // Database Connection
 $host = 'localhost';
 $db_user = 'root';
@@ -224,7 +224,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 );
 
                 if ($update_stmt->execute()) {
-                    $success_message = "✓ Student information updated successfully!";
+                    $success_message = "âœ“ Student information updated successfully!";
                     // Refresh student data
                     $stmt = $conn->prepare($student_query);
                     $stmt->bind_param("i", $student_id);
@@ -340,7 +340,7 @@ function formatDateTime($date) {
             transform: translateY(-50%);
         }
 
-        /* Clear (×) button styling */
+        /* Clear (Ã—) button styling */
         .select2-selection__clear {
             position: absolute;
             right: 36px;
@@ -467,7 +467,7 @@ function formatDateTime($date) {
     <nav class="nxl-navigation">
         <div class="navbar-wrapper">
             <div class="m-header">
-                <a href="index.html" class="b-brand">
+                <a href="index.php" class="b-brand">
                     <img src="assets/images/logo-full.png" alt="" class="logo logo-lg">
                     <img src="assets/images/logo-abbr.png" alt="" class="logo logo-sm">
                 </a>
@@ -483,8 +483,8 @@ function formatDateTime($date) {
                             <span class="nxl-mtext">Dashboards</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="index.html">CRM</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="analytics.html">Analytics</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="index.php">CRM</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="analytics.php">Analytics</a></li>
                         </ul>
                     </li>
                     <li class="nxl-item nxl-hasmenu">
@@ -493,10 +493,10 @@ function formatDateTime($date) {
                             <span class="nxl-mtext">Reports</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="reports-sales.html">Sales Report</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="reports-leads.html">Leads Report</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="reports-project.html">Project Report</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="reports-timesheets.html">Timesheets Report</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="reports-sales.php">Sales Report</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="reports-leads.php">Leads Report</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="reports-project.php">Project Report</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="reports-timesheets.php">Timesheets Report</a></li>
                         </ul>
                     </li>
                     <li class="nxl-item nxl-hasmenu">
@@ -505,12 +505,12 @@ function formatDateTime($date) {
                             <span class="nxl-mtext">Applications</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="apps-chat.html">Chat</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="apps-email.html">Email</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="apps-tasks.html">Tasks</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="apps-notes.html">Notes</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="apps-storage.html">Storage</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="apps-calendar.html">Calendar</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="apps-chat.php">Chat</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="apps-email.php">Email</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="apps-tasks.php">Tasks</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="apps-notes.php">Notes</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="apps-storage.php">Storage</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="apps-calendar.php">Calendar</a></li>
                         </ul>
                     </li>
                     <li class="nxl-item nxl-hasmenu">
@@ -521,7 +521,7 @@ function formatDateTime($date) {
                         <ul class="nxl-submenu">
                             <li class="nxl-item"><a class="nxl-link" href="students.php">Students</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="students-view.php">Students View</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="students-create.html">Students Create</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="students-create.php">Students Create</a></li>
                         </ul>
                     </li>
                     <li class="nxl-item nxl-hasmenu">
@@ -530,9 +530,9 @@ function formatDateTime($date) {
                             <span class="nxl-mtext">Leads</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="leads.html">Leads</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="leads-view.html">Leads View</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="leads-create.html">Leads Create</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="leads.php">Leads</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="leads-view.php">Leads View</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="leads-create.php">Leads Create</a></li>
                         </ul>
                     </li>
                     <li class="nxl-item nxl-hasmenu">
@@ -541,11 +541,11 @@ function formatDateTime($date) {
                             <span class="nxl-mtext">Widgets</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="widgets-lists.html">Lists</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="widgets-tables.html">Tables</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="widgets-charts.html">Charts</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="widgets-statistics.html">Statistics</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="widgets-miscellaneous.html">Miscellaneous</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="widgets-lists.php">Lists</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="widgets-tables.php">Tables</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="widgets-charts.php">Charts</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="widgets-statistics.php">Statistics</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="widgets-miscellaneous.php">Miscellaneous</a></li>
                         </ul>
                     </li>
                     <li class="nxl-item nxl-hasmenu">
@@ -554,15 +554,15 @@ function formatDateTime($date) {
                             <span class="nxl-mtext">Settings</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="settings-general.html">General</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-seo.html">SEO</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-tags.html">Tags</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-email.html">Email</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-tasks.html">Tasks</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-leads.html">Leads</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-support.html">Support</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="settings-general.php">General</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="settings-seo.php">SEO</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="settings-tags.php">Tags</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="settings-email.php">Email</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="settings-tasks.php">Tasks</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="settings-leads.php">Leads</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="settings-support.php">Support</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="settings-students.php">Students</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-miscellaneous.html">Miscellaneous</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="settings-miscellaneous.php">Miscellaneous</a></li>
                         </ul>
                     </li>
                     <li class="nxl-item nxl-hasmenu">
@@ -576,7 +576,7 @@ function formatDateTime($date) {
                                     <span class="nxl-mtext">Login</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                                 </a>
                                 <ul class="nxl-submenu">
-                                    <li class="nxl-item"><a class="nxl-link" href="auth-login-cover.html">Cover</a></li>
+                                    <li class="nxl-item"><a class="nxl-link" href="auth-login-cover.php">Cover</a></li>
                                 </ul>
                             </li>
                             <li class="nxl-item nxl-hasmenu">
@@ -592,7 +592,7 @@ function formatDateTime($date) {
                                     <span class="nxl-mtext">Error-404</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                                 </a>
                                 <ul class="nxl-submenu">
-                                    <li class="nxl-item"><a class="nxl-link" href="auth-404-minimal.html">Minimal</a></li>
+                                    <li class="nxl-item"><a class="nxl-link" href="auth-404-minimal.php">Minimal</a></li>
                                 </ul>
                             </li>
                             <li class="nxl-item nxl-hasmenu">
@@ -600,7 +600,7 @@ function formatDateTime($date) {
                                     <span class="nxl-mtext">Reset Pass</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                                 </a>
                                 <ul class="nxl-submenu">
-                                    <li class="nxl-item"><a class="nxl-link" href="auth-reset-cover.html">Cover</a></li>
+                                    <li class="nxl-item"><a class="nxl-link" href="auth-reset-cover.php">Cover</a></li>
                                 </ul>
                             </li>
                             <li class="nxl-item nxl-hasmenu">
@@ -608,7 +608,7 @@ function formatDateTime($date) {
                                     <span class="nxl-mtext">Verify OTP</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                                 </a>
                                 <ul class="nxl-submenu">
-                                    <li class="nxl-item"><a class="nxl-link" href="auth-verify-cover.html">Cover</a></li>
+                                    <li class="nxl-item"><a class="nxl-link" href="auth-verify-cover.php">Cover</a></li>
                                 </ul>
                             </li>
                             <li class="nxl-item nxl-hasmenu">
@@ -616,7 +616,7 @@ function formatDateTime($date) {
                                     <span class="nxl-mtext">Maintenance</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                                 </a>
                                 <ul class="nxl-submenu">
-                                    <li class="nxl-item"><a class="nxl-link" href="auth-maintenance-cover.html">Cover</a></li>
+                                    <li class="nxl-item"><a class="nxl-link" href="auth-maintenance-cover.php">Cover</a></li>
                                 </ul>
                             </li>
                         </ul>
@@ -628,7 +628,7 @@ function formatDateTime($date) {
                         </a>
                         <ul class="nxl-submenu">
                             <li class="nxl-item"><a class="nxl-link" href="#!">Support</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="help-knowledgebase.html">KnowledgeBase</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="help-knowledgebase.php">KnowledgeBase</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="/docs/documentations">Documentations</a></li>
                         </ul>
                     </li>
@@ -722,7 +722,7 @@ function formatDateTime($date) {
                                 <span>Account Settings</span>
                             </a>
                             <div class="dropdown-divider"></div>
-                            <a href="./auth-login-minimal.html" class="dropdown-item">
+                            <a href="./auth-login-minimal.php" class="dropdown-item">
                                 <i class="feather-log-out"></i>
                                 <span>Logout</span>
                             </a>
@@ -743,7 +743,7 @@ function formatDateTime($date) {
                         <h5 class="m-b-10">Edit Student</h5>
                     </div>
                     <ul class="breadcrumb">
-                        <li class="breadcrumb-item"><a href="index.html">Home</a></li>
+                        <li class="breadcrumb-item"><a href="index.php">Home</a></li>
                         <li class="breadcrumb-item"><a href="students.php">Students</a></li>
                         <li class="breadcrumb-item"><a href="students-view.php?id=<?php echo $student['id']; ?>">View</a></li>
                         <li class="breadcrumb-item">Edit</li>
@@ -1008,12 +1008,12 @@ function formatDateTime($date) {
         <!-- Footer -->
         <footer class="footer">
             <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
-                <span>Copyright ©</span>
+                <span>Copyright Â©</span>
                 <script>
                     document.write(new Date().getFullYear());
                 </script>
             </p>
-            <p><span>By: <a target="_blank" href="">ACT 2A</a></span> • <span>Distributed by: <a target="_blank" href="">Group 5</a></span></p>
+            <p><span>By: <a target="_blank" href="">ACT 2A</a></span> â€¢ <span>Distributed by: <a target="_blank" href="">Group 5</a></span></p>
             <div class="d-flex align-items-center gap-4">
                 <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Help</a>
                 <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Terms</a>
@@ -1091,3 +1091,4 @@ function formatDateTime($date) {
 <?php
 $conn->close();
 ?>
+
