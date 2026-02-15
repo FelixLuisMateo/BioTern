@@ -307,6 +307,7 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                             <li class="nxl-item"><a class="nxl-link" href="{{ url('/students') }}">Students</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="{{ url('/students/view') }}">Students View</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="{{ url('/students/create') }}">Students Create</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/attendance') }}">Attendance</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="{{ url('/demo-biometric') }}">Demo Biometric</a></li>
                         </ul>
                     </li>
