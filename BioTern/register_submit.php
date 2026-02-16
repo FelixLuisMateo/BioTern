@@ -78,6 +78,7 @@ if ($role === 'student') {
     $coordinator_id = getPost('coordinator_id') ? (int)getPost('coordinator_id') : null;
     $total_hours = getPost('total_hours');
     $emergency_contact = getPost('emergency_contact');
+    $emergency_contact_phone = getPost('emergency_contact_phone');
 
     // Use account_email if provided, otherwise use email
     $final_email = $account_email ?: $email;
@@ -151,6 +152,7 @@ if ($role === 'student') {
     }
 
     // Now insert into students table using the user_id
+    // Note: If emergency_contact_phone column doesn't exist, store phone in emergency_contact or add the column
     $stmt = $mysqli->prepare("INSERT INTO students (user_id, course_id, student_id, first_name, last_name, middle_name, username, password, email, section_id, address, phone, date_of_birth, gender, supervisor_id, supervisor_name, coordinator_id, coordinator_name, total_hours, emergency_contact, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())");
     
     if (!$stmt) {
@@ -158,10 +160,16 @@ if ($role === 'student') {
         exit;
     }
     
+    // Combine emergency contact info for storage (Name: Phone format for display)
+    $emergency_contact_full = $emergency_contact;
+    if ($emergency_contact_phone) {
+        $emergency_contact_full = $emergency_contact . ' (' . $emergency_contact_phone . ')';
+    }
+    
     // types: user_id(i), course_id(i), student_id(s), first_name(s), last_name(s), middle_name(s),
     // username(s), password(s), email(s), section_id(i), address(s), phone(s), date_of_birth(s),
     // gender(s), supervisor_id(i), supervisor_name(s), coordinator_id(i), coordinator_name(s), total_hours(i), emergency_contact(s)
-    $stmt->bind_param('iisssssssissssisisis', $user_id, $course_id, $student_id, $first_name, $last_name, $middle_name, $username, $pwdHash, $final_email, $section_id, $address, $phone, $date_of_birth, $gender, $supervisor_id, $supervisor_name, $coordinator_id, $coordinator_name, $total_hours, $emergency_contact);
+    $stmt->bind_param('iisssssssissssisisis', $user_id, $course_id, $student_id, $first_name, $last_name, $middle_name, $username, $pwdHash, $final_email, $section_id, $address, $phone, $date_of_birth, $gender, $supervisor_id, $supervisor_name, $coordinator_id, $coordinator_name, $total_hours, $emergency_contact_full);
     
     try {
         if (!$stmt->execute()) {

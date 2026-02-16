@@ -320,7 +320,8 @@
                         <form id="studentForm" class="w-100 mt-4 pt-2 hide-form" action="register_submit.php" method="post">
                             <input type="hidden" name="role" value="student">
                             <div class="form-section">
-                                <button type="button" class="btn btn-sm btn-outline-secondary mb-4" onclick="backToRoles()">Back to Role Selection</button>
+                                <h3 class="fs-18 fw-bold mb-3">Student Registration</h3>
+                                <button type="button" class="btn btn-sm btn-outline-secondary mb-4" onclick="backToRoles()">← Back to Role Selection</button>
                             </div>
                             <!-- Personal Information Section -->
                             <div class="mb-4">
@@ -460,8 +461,12 @@
                                         <input type="tel" name="phone" class="form-control" placeholder="Phone Number">
                                     </div>
                                     <div class="col-6 mb-2">
-                                        <label class="form-label fs-12">Emergency Contact</label>
+                                        <label class="form-label fs-12">Emergency Contact Name</label>
                                         <input type="text" name="emergency_contact" class="form-control" placeholder="Emergency Contact Name">
+                                    </div>
+                                    <div class="col-6 mb-2">
+                                        <label class="form-label fs-12">Emergency Contact Phone</label>
+                                        <input type="tel" name="emergency_contact_phone" class="form-control" placeholder="Emergency Contact Phone Number">
                                     </div>
                                 </div>
                             </div>
@@ -480,13 +485,15 @@
                                 <div class="row g-3">
                                     <div class="col-6 mb-2">
                                         <div class="input-group field">
-                                            <input type="password" name="password" class="form-control password" id="newPassword" placeholder="Password">
-                                            <div class="input-group-text border-start bg-gray-2 c-pointer show-pass" data-bs-toggle="tooltip" title="Show/Hide Password"><i></i></div>
+                                            <input type="password" name="password" class="form-control password" id="studentPassword" placeholder="Password">
+                                            <div class="input-group-text border-start bg-gray-2 c-pointer show-pass-toggle" data-target="studentPassword" data-bs-toggle="tooltip" title="Show/Hide Password"><i></i></div>
                                         </div>
-                                        <!-- password strength indicator removed -->
                                     </div>
                                     <div class="col-6 mb-2">
-                                        <input type="password" name="confirm_password" class="form-control" placeholder="Confirm password" required>
+                                        <div class="input-group field">
+                                            <input type="password" name="confirm_password" class="form-control" id="studentConfirmPassword" placeholder="Confirm password" required>
+                                            <div class="input-group-text border-start bg-gray-2 c-pointer show-pass-toggle" data-target="studentConfirmPassword" data-bs-toggle="tooltip" title="Show/Hide Password"><i></i></div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -500,8 +507,9 @@
                                     <label class="custom-control-label c-pointer text-muted" for="termsCondition" style="font-weight: 400 !important">I agree to all the <a href="">Terms &amp; Conditions.</a></label>
                                 </div>
                             </div>
-                            <div class="mt-5">
-                                <button type="submit" class="btn btn-lg btn-primary w-100">Create Account</button>
+                            <div class="mt-5 d-flex gap-2">
+                                <button type="submit" class="btn btn-lg btn-primary flex-grow-1">Create Account</button>
+                                <button type="button" class="btn btn-lg btn-outline-primary" onclick="registerFingerprint()">Register Fingerprint</button>
                             </div>
                         </form>
 
@@ -509,7 +517,8 @@
                         <form id="coordinatorForm" class="w-100 mt-4 pt-2 hide-form" action="register_submit.php" method="post">
                             <input type="hidden" name="role" value="coordinator">
                             <div class="form-section">
-                                <button type="button" class="btn btn-sm btn-outline-secondary mb-4" onclick="backToRoles()">â† Back to Role Selection</button>
+                                <h3 class="fs-18 fw-bold mb-3">Coordinator Registration</h3>
+                                <button type="button" class="btn btn-sm btn-outline-secondary mb-4" onclick="backToRoles()">← Back to Role Selection</button>
                             </div>
                             <h5 class="fs-14 fw-bold mb-3">Personal Information</h5>
                             <div class="row g-3">
@@ -563,12 +572,15 @@
                             <div class="row g-3">
                                 <div class="col-6 mb-2">
                                     <div class="input-group field">
-                                        <input type="password" name="password" class="form-control password" placeholder="Password">
-                                        <div class="input-group-text border-start bg-gray-2 c-pointer show-pass" data-bs-toggle="tooltip" title="Show/Hide Password"><i></i></div>
+                                        <input type="password" name="password" class="form-control password" id="coordPassword" placeholder="Password">
+                                        <div class="input-group-text border-start bg-gray-2 c-pointer show-pass-toggle" data-target="coordPassword" data-bs-toggle="tooltip" title="Show/Hide Password"><i></i></div>
                                     </div>
                                 </div>
                                 <div class="col-6 mb-2">
-                                    <input type="password" name="confirm_password" class="form-control" placeholder="Confirm password" required>
+                                    <div class="input-group field">
+                                        <input type="password" name="confirm_password" class="form-control" id="coordConfirmPassword" placeholder="Confirm password" required>
+                                        <div class="input-group-text border-start bg-gray-2 c-pointer show-pass-toggle" data-target="coordConfirmPassword" data-bs-toggle="tooltip" title="Show/Hide Password"><i></i></div>
+                                    </div>
                                 </div>
                             </div>
                             <div class="mt-4">
@@ -581,8 +593,9 @@
                                     <label class="custom-control-label c-pointer text-muted" for="termsCondition_coord" style="font-weight: 400 !important">I agree to all the <a href="">Terms &amp; Conditions.</a></label>
                                 </div>
                             </div>
-                            <div class="mt-5">
-                                <button type="submit" class="btn btn-lg btn-primary w-100">Create Account</button>
+                            <div class="mt-5 d-flex gap-2">
+                                <button type="submit" class="btn btn-lg btn-primary flex-grow-1">Create Account</button>
+                                <button type="button" class="btn btn-lg btn-outline-primary" onclick="registerFingerprint()">Register Fingerprint</button>
                             </div>
                         </form>
 
@@ -590,7 +603,8 @@
                         <form id="supervisorForm" class="w-100 mt-4 pt-2 hide-form" action="register_submit.php" method="post">
                             <input type="hidden" name="role" value="supervisor">
                             <div class="form-section">
-                                <button type="button" class="btn btn-sm btn-outline-secondary mb-4" onclick="backToRoles()">â† Back to Role Selection</button>
+                                <h3 class="fs-18 fw-bold mb-3">Supervisor Registration</h3>
+                                <button type="button" class="btn btn-sm btn-outline-secondary mb-4" onclick="backToRoles()">← Back to Role Selection</button>
                             </div>
                             <h5 class="fs-14 fw-bold mb-3">Personal Information</h5>
                             <div class="row g-3">
@@ -645,12 +659,15 @@
                             <div class="row g-3">
                                 <div class="col-6 mb-2">
                                     <div class="input-group field">
-                                        <input type="password" name="password" class="form-control password" placeholder="Password">
-                                        <div class="input-group-text border-start bg-gray-2 c-pointer show-pass" data-bs-toggle="tooltip" title="Show/Hide Password"><i></i></div>
+                                        <input type="password" name="password" class="form-control password" id="supPassword" placeholder="Password">
+                                        <div class="input-group-text border-start bg-gray-2 c-pointer show-pass-toggle" data-target="supPassword" data-bs-toggle="tooltip" title="Show/Hide Password"><i></i></div>
                                     </div>
                                 </div>
                                 <div class="col-6 mb-2">
-                                    <input type="password" name="confirm_password" class="form-control" placeholder="Confirm password" required>
+                                    <div class="input-group field">
+                                        <input type="password" name="confirm_password" class="form-control" id="supConfirmPassword" placeholder="Confirm password" required>
+                                        <div class="input-group-text border-start bg-gray-2 c-pointer show-pass-toggle" data-target="supConfirmPassword" data-bs-toggle="tooltip" title="Show/Hide Password"><i></i></div>
+                                    </div>
                                 </div>
                             </div>
                             <div class="mt-4">
@@ -663,8 +680,9 @@
                                     <label class="custom-control-label c-pointer text-muted" for="termsCondition_sup" style="font-weight: 400 !important">I agree to all the <a href="">Terms &amp; Conditions.</a></label>
                                 </div>
                             </div>
-                            <div class="mt-5">
-                                <button type="submit" class="btn btn-lg btn-primary w-100">Create Account</button>
+                            <div class="mt-5 d-flex gap-2">
+                                <button type="submit" class="btn btn-lg btn-primary flex-grow-1">Create Account</button>
+                                <button type="button" class="btn btn-lg btn-outline-primary" onclick="registerFingerprint()">Register Fingerprint</button>
                             </div>
                         </form>
 
@@ -672,7 +690,8 @@
                         <form id="adminForm" class="w-100 mt-4 pt-2 hide-form" action="register_submit.php" method="post">
                             <input type="hidden" name="role" value="admin">
                             <div class="form-section">
-                                <button type="button" class="btn btn-sm btn-outline-secondary mb-4" onclick="backToRoles()">â† Back to Role Selection</button>
+                                <h3 class="fs-18 fw-bold mb-3">Admin Registration</h3>
+                                <button type="button" class="btn btn-sm btn-outline-secondary mb-4" onclick="backToRoles()">← Back to Role Selection</button>
                             </div>
                             <h5 class="fs-14 fw-bold mb-3">Personal Information</h5>
                             <div class="row g-3">
@@ -731,12 +750,15 @@
                             <div class="row g-3">
                                 <div class="col-6 mb-2">
                                     <div class="input-group field">
-                                        <input type="password" name="password" class="form-control password" placeholder="Password">
-                                        <div class="input-group-text border-start bg-gray-2 c-pointer show-pass" data-bs-toggle="tooltip" title="Show/Hide Password"><i></i></div>
+                                        <input type="password" name="password" class="form-control password" id="adminPassword" placeholder="Password">
+                                        <div class="input-group-text border-start bg-gray-2 c-pointer show-pass-toggle" data-target="adminPassword" data-bs-toggle="tooltip" title="Show/Hide Password"><i></i></div>
                                     </div>
                                 </div>
                                 <div class="col-6 mb-2">
-                                    <input type="password" name="confirm_password" class="form-control" placeholder="Confirm password" required>
+                                    <div class="input-group field">
+                                        <input type="password" name="confirm_password" class="form-control" id="adminConfirmPassword" placeholder="Confirm password" required>
+                                        <div class="input-group-text border-start bg-gray-2 c-pointer show-pass-toggle" data-target="adminConfirmPassword" data-bs-toggle="tooltip" title="Show/Hide Password"><i></i></div>
+                                    </div>
                                 </div>
                             </div>
                             <div class="mt-4">
@@ -749,8 +771,9 @@
                                     <label class="custom-control-label c-pointer text-muted" for="termsCondition_admin" style="font-weight: 400 !important">I agree to all the <a href="">Terms &amp; Conditions.</a></label>
                                 </div>
                             </div>
-                            <div class="mt-5">
-                                <button type="submit" class="btn btn-lg btn-primary w-100">Create Account</button>
+                            <div class="mt-5 d-flex gap-2">
+                                <button type="submit" class="btn btn-lg btn-primary flex-grow-1">Create Account</button>
+                                <button type="button" class="btn btn-lg btn-outline-primary" onclick="registerFingerprint()">Register Fingerprint</button>
                             </div>
                         </form>
 
@@ -896,7 +919,30 @@
                     form.addEventListener('submit', validatePasswordMatch);
                 }
             });
+            
+            // Setup password visibility toggle
+            setupPasswordToggle();
         });
+
+        // New function to handle password visibility toggle for both password and confirm password
+        function setupPasswordToggle() {
+            const toggles = document.querySelectorAll('.show-pass-toggle');
+            toggles.forEach(toggle => {
+                toggle.addEventListener('click', function() {
+                    const targetId = this.getAttribute('data-target');
+                    const targetField = document.getElementById(targetId);
+                    if (targetField) {
+                        const isPassword = targetField.type === 'password';
+                        targetField.type = isPassword ? 'text' : 'password';
+                    }
+                });
+            });
+        }
+
+        // Function to handle fingerprint registration
+        function registerFingerprint() {
+            window.location.href = 'register_fingerprint.php';
+        }
 
         /* Role carousel: arrow buttons + touch drag support */
         (function initRoleCarousel(){

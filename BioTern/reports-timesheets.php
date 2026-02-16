@@ -499,7 +499,7 @@
                                                     <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                     <span>Cover</span>
                                                 </a>
-                                                <a href="./auth-login-minimal.php" class="dropdown-item">
+                                                <a href="./auth-login-cover.php" class="dropdown-item">
                                                     <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                     <span>Minimal</span>
                                                 </a>
@@ -790,7 +790,7 @@
                                 <span>Account Settings</span>
                             </a>
                             <div class="dropdown-divider"></div>
-                            <a href="./auth-login-minimal.php" class="dropdown-item">
+                            <a href="./auth-login-cover.php" class="dropdown-item">
                                 <i class="feather-log-out"></i>
                                 <span>Logout</span>
                             </a>
