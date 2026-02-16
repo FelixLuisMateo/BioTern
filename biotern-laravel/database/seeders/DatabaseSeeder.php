@@ -12,11 +12,18 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // \App\Models\User::factory(10)->create();
-
-        // \App\Models\User::factory()->create([
-        //     'name' => 'Test User',
-        //     'email' => 'test@example.com',
-        // ]);
+        // Create an initial admin user for local development/testing
+        if (app()->environment('local') || app()->environment() === null) {
+            $email = 'admin@biotern.com';
+            $exists = \App\Models\User::where('email', $email)->exists();
+            if (! $exists) {
+                \App\Models\User::create([
+                    'name' => 'Admin User',
+                    'email' => $email,
+                    'password' => \Illuminate\Support\Facades\Hash::make('password'),
+                ]);
+                echo "Created admin user: {$email} with password 'password'.\n";
+            }
+        }
     }
 }

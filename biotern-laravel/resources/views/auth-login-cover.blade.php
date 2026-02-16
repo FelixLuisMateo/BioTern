@@ -58,13 +58,14 @@
                         <div class="mb-4">
                             <input name="login" type="text" class="form-control" placeholder="Email or Username" value="" required>
                         </div>
-                        <div class="mb-3">
-                            <input name="password" type="password" class="form-control" placeholder="Password" value="" required>
+                        <div class="mb-3 input-group">
+                            <input id="passwordField" name="password" type="password" class="form-control" placeholder="Password" value="" required>
+                            <button type="button" id="togglePassword" class="btn btn-outline-secondary" tabindex="-1">Show</button>
                         </div>
                         <div class="d-flex align-items-center justify-content-between">
                             <div>
                                 <div class="custom-control custom-checkbox">
-                                    <input type="checkbox" class="custom-control-input" id="rememberMe">
+                                    <input type="checkbox" name="remember" class="custom-control-input" id="rememberMe" value="1">
                                     <label class="custom-control-label c-pointer" for="rememberMe">Remember Me</label>
                                 </div>
                             </div>
@@ -100,6 +101,23 @@
     <!--! BEGIN: Theme Customizer  !-->
     <script src="{{ asset('frontend/assets/js/theme-customizer-init.min.js') }}"></script>
     <!--! END: Theme Customizer !-->
+    <script>
+        (function(){
+            var toggle = document.getElementById('togglePassword');
+            var pwd = document.getElementById('passwordField');
+            if (toggle && pwd) {
+                toggle.addEventListener('click', function(){
+                    if (pwd.type === 'password') {
+                        pwd.type = 'text';
+                        toggle.textContent = 'Hide';
+                    } else {
+                        pwd.type = 'password';
+                        toggle.textContent = 'Show';
+                    }
+                });
+            }
+        })();
+    </script>
 </body>
 
 </html>

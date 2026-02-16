@@ -1,3 +1,154 @@
+<?php
+// Include legacy database connection if present (avoid fatal include error)
+$legacyDb = base_path('../BioTern/config/db.php');
+if (file_exists($legacyDb)) {
+    include_once $legacyDb;
+} else {
+    // Legacy connection not available; create a lightweight compatibility
+    // wrapper around Laravel's PDO so existing `$conn->query()` calls work.
+    try {
+        $pdo = \Illuminate\Support\Facades\DB::getPdo();
+        $conn = new class($pdo) {
+            private $pdo;
+            public function __construct($pdo) { $this->pdo = $pdo; }
+            public function query($sql) {
+                $s = ltrim($sql);
+                // Handle SELECT queries by returning a small result wrapper
+                if (stripos($s, 'select') === 0) {
+                    try {
+                        $stmt = $this->pdo->query($sql);
+                        $rows = $stmt ? $stmt->fetchAll(\PDO::FETCH_ASSOC) : [];
+                    } catch (\Exception $e) {
+                        $rows = [];
+                    }
+                    return new class($rows) {
+                        private $rows;
+                        private $pos = 0;
+                        public function __construct($rows) { $this->rows = $rows; }
+                        public function fetch_assoc() { if ($this->pos < count($this->rows)) return $this->rows[$this->pos++]; return null; }
+                        public function num_rows() { return count($this->rows); }
+                    };
+                }
+
+                // Non-SELECT queries: execute and return boolean success
+                try {
+                    $res = $this->pdo->exec($sql);
+                    return $res !== false;
+                } catch (\Exception $e) {
+                    return false;
+                }
+            }
+        };
+    } catch (\Exception $e) {
+        \Log::error('Failed to create legacy DB compatibility: ' . $e->getMessage());
+    }
+}
+
+// Initialize analytics variables with defaults
+$attendance_awaiting = 0;
+$attendance_completed = 0;
+$attendance_rejected = 0;
+$attendance_total = 0;
+$student_count = 0;
+$internship_count = 0;
+$biometric_registered = 0;
+$recent_students = array();
+$recent_attendance = array();
+$coordinators = array();
+$supervisors = array();
+$recent_activities = array();
+
+try {
+    // Attendance statistics for Payment Record section
+    $pending_query = $conn->query("SELECT COUNT(*) as count FROM attendances WHERE status = 'pending'");
+    if ($pending_query) {
+        $attendance_awaiting = (int)$pending_query->fetch_assoc()['count'];
+    }
+
+    $approved_query = $conn->query("SELECT COUNT(*) as count FROM attendances WHERE status = 'approved'");
+    if ($approved_query) {
+        $attendance_completed = (int)$approved_query->fetch_assoc()['count'];
+    }
+
+    $rejected_query = $conn->query("SELECT COUNT(*) as count FROM attendances WHERE status = 'rejected'");
+    if ($rejected_query) {
+        $attendance_rejected = (int)$rejected_query->fetch_assoc()['count'];
+    }
+
+    // Total attendance
+    $total_query = $conn->query("SELECT COUNT(*) as count FROM attendances");
+    if ($total_query) {
+        $attendance_total = (int)$total_query->fetch_assoc()['count'];
+    }
+
+    // Student count
+    $students_query = $conn->query("SELECT COUNT(*) as count FROM students WHERE deleted_at IS NULL");
+    if ($students_query) {
+        $student_count = (int)$students_query->fetch_assoc()['count'];
+    }
+
+    // Internship count
+    $internships_query = $conn->query("SELECT COUNT(*) as count FROM internships WHERE status = 'ongoing'");
+    if ($internships_query) {
+        $internship_count = (int)$internships_query->fetch_assoc()['count'];
+    }
+
+    // Biometric registered students
+    $biometric_query = $conn->query("SELECT COUNT(*) as count FROM students WHERE biometric_registered = 1");
+    if ($biometric_query) {
+        $biometric_registered = (int)$biometric_query->fetch_assoc()['count'];
+    }
+
+    // Get recent students (last 5)
+    $recent_students_query = $conn->query("\n        SELECT s.id, s.student_id, s.first_name, s.last_name, s.email, s.status, s.biometric_registered, s.created_at\n        FROM students s\n        WHERE s.deleted_at IS NULL\n        ORDER BY s.created_at DESC\n        LIMIT 5\n    ");
+
+    if ($recent_students_query && $recent_students_query->num_rows > 0) {
+        while ($row = $recent_students_query->fetch_assoc()) {
+            $recent_students[] = $row;
+        }
+    }
+
+    // Get recent attendance records (last 10) with student info
+    $recent_attendance_query = $conn->query("\n        SELECT a.id, a.student_id, a.attendance_date, a.morning_time_in, a.morning_time_out, a.status, a.created_at, \n               s.first_name, s.last_name, s.email, s.student_id as student_num\n        FROM attendances a\n        LEFT JOIN students s ON a.student_id = s.id\n        ORDER BY a.attendance_date DESC, a.created_at DESC\n        LIMIT 10\n    ");
+
+    if ($recent_attendance_query && $recent_attendance_query->num_rows > 0) {
+        while ($row = $recent_attendance_query->fetch_assoc()) {
+            $recent_attendance[] = $row;
+        }
+    }
+
+    // Get coordinators (Active)
+    $coordinators_query = $conn->query("\n        SELECT u.id, u.name, u.email, c.department_id, c.phone, c.created_at\n        FROM users u\n        LEFT JOIN coordinators c ON u.id = c.user_id\n        WHERE u.role = 'coordinator' AND u.is_active = 1\n        ORDER BY u.created_at DESC\n        LIMIT 5\n    ");
+
+    if ($coordinators_query && $coordinators_query->num_rows > 0) {
+        while ($row = $coordinators_query->fetch_assoc()) {
+            $coordinators[] = $row;
+        }
+    }
+
+    // Get supervisors (Active)
+    $supervisors_query = $conn->query("\n        SELECT u.id, u.name, u.email, s.phone, s.department, s.created_at\n        FROM users u\n        LEFT JOIN supervisors s ON u.id = s.user_id\n        WHERE u.role = 'supervisor' AND u.is_active = 1\n        ORDER BY u.created_at DESC\n        LIMIT 5\n    ");
+
+    if ($supervisors_query && $supervisors_query->num_rows > 0) {
+        while ($row = $supervisors_query->fetch_assoc()) {
+            $supervisors[] = $row;
+        }
+    }
+
+    // Get recent activities (student registrations, attendance records, etc)
+    $activities_query = $conn->query("\n        SELECT \n            CONCAT('Student Created: ', s.first_name, ' ', s.last_name) as activity,\n            s.created_at as activity_date,\n            'student_created' as activity_type,\n            s.id as entity_id\n        FROM students s\n        WHERE s.deleted_at IS NULL\n        UNION ALL\n        SELECT \n            CONCAT('Attendance Recorded for ', s.first_name, ' ', s.last_name) as activity,\n            a.created_at as activity_date,\n            'attendance_recorded' as activity_type,\n            a.id as entity_id\n        FROM attendances a\n        LEFT JOIN students s ON a.student_id = s.id\n        UNION ALL\n        SELECT \n            CONCAT('Biometric Registered: ', s.first_name, ' ', s.last_name) as activity,\n            s.biometric_registered_at as activity_date,\n            'biometric_registered' as activity_type,\n            s.id as entity_id\n        FROM students s\n        WHERE s.biometric_registered = 1 AND s.biometric_registered_at IS NOT NULL\n        ORDER BY activity_date DESC\n        LIMIT 15\n    ");
+
+    if ($activities_query && $activities_query->num_rows > 0) {
+        while ($row = $activities_query->fetch_assoc()) {
+            $recent_activities[] = $row;
+        }
+    }
+
+} catch (Exception $e) {
+    // Database error - fallback to 0 values
+    error_log("Dashboard error: " . $e->getMessage());
+}
+?>
 <!DOCTYPE html>
 <html lang="zxx">
 
@@ -10,27 +161,27 @@
     <meta name="author" content="flexilecode" />
     <!--! The above 6 meta tags *must* come first in the head; any other head content must come *after* these tags !-->
     <!--! BEGIN: Apps Title-->
-    <title>Biotern || Dashboard</title>
+    <title>BioTern || Dashboard</title>
     <!--! END:  Apps Title-->
     <!--! BEGIN: Favicon-->
-    <link rel="shortcut icon" type="image/x-icon" href="{{url('frontend/assets/images/favicon.ico') }}" />
+    <link rel="shortcut icon" type="image/x-icon" href="{{ asset('frontend/assets/images/favicon.ico') }}" />
     <!--! END: Favicon-->
     <!--! BEGIN: Bootstrap CSS-->
-    <link rel="stylesheet" type="text/css" href="{{url('frontend/assets/css/bootstrap.min.css') }}" />
+    <link rel="stylesheet" type="text/css" href="{{ asset('frontend/assets/css/bootstrap.min.css') }}" />
     <!--! END: Bootstrap CSS-->
     <!--! BEGIN: Vendors CSS-->
-    <link rel="stylesheet" type="text/css" href="{{url('frontend/assets/vendors/css/vendors.min.css') }}" />
-    <link rel="stylesheet" type="text/css" href="{{url('frontend/assets/vendors/css/daterangepicker.min.css') }}" />
+    <link rel="stylesheet" type="text/css" href="{{ asset('frontend/assets/vendors/css/vendors.min.css') }}" />
+    <link rel="stylesheet" type="text/css" href="{{ asset('frontend/assets/vendors/css/daterangepicker.min.css') }}" />
     <!--! END: Vendors CSS-->
     <!--! BEGIN: Custom CSS-->
-    <link rel="stylesheet" type="text/css" href="{{url('frontend/assets/css/theme.min.css') }}" />
+    <link rel="stylesheet" type="text/css" href="{{ asset('frontend/assets/css/theme.min.css') }}" />
     <!--! END: Custom CSS-->
     <!--! HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries !-->
     <!--! WARNING: Respond.js doesn"t work if you view the page via file: !-->
     <!--[if lt IE 9]>
-			<script src="https:oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
-			<script src="https:oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
-		<![endif]-->
+            <script src="https:oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+            <script src="https:oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+        <![endif]-->
 </head>
 
 <body>
@@ -40,10 +191,10 @@
     <nav class="nxl-navigation">
         <div class="navbar-wrapper">
             <div class="m-header">
-                <a href="{{ url('/') }}" class="b-brand">
+                    <a href="{{ url('/') }}" class="b-brand">
                     <!-- ========   change your logo hear   ============ -->
-                    <img src="/frontend/assets/images/logo-full.png" alt="" class="logo logo-lg" />
-                    <img src="/frontend/assets/images/logo-abbr.png" alt="" class="logo logo-sm" />
+                    <img src="{{ asset('frontend/assets/images/logo-full.png') }}" alt="" class="logo logo-lg" />
+                    <img src="{{ asset('frontend/assets/images/logo-abbr.png') }}" alt="" class="logo logo-sm" />
                 </a>
             </div>
             <div class="navbar-content">
@@ -2113,10 +2264,13 @@
                                 <span>Account Settings</span>
                             </a>
                             <div class="dropdown-divider"></div>
-                            <a href="./auth-login-minimal.html" class="dropdown-item">
-                                <i class="feather-log-out"></i>
-                                <span>Logout</span>
-                            </a>
+                            <form action="{{ route('logout') }}" method="POST" class="d-inline">
+                                @csrf
+                                <button type="submit" class="dropdown-item btn btn-link text-start p-0">
+                                    <i class="feather-log-out"></i>
+                                    <span>Logout</span>
+                                </button>
+                            </form>
                         </div>
                     </div>
                 </div>
@@ -3433,18 +3587,18 @@
     <!--! Footer Script !-->
     <!--! ================================================================ !-->
     <!--! BEGIN: Vendors JS !-->
-    <script src="/frontend/assets/vendors/js/vendors.min.js"></script>
+    <script src="{{ asset('frontend/assets/vendors/js/vendors.min.js') }}"></script>
     <!-- vendors.min.js {always must need to be top} -->
-    <script src="/frontend/assets/vendors/js/daterangepicker.min.js"></script>
-    <script src="/frontend/assets/vendors/js/apexcharts.min.js"></script>
-    <script src="/frontend/assets/vendors/js/circle-progress.min.js"></script>
+    <script src="{{ asset('frontend/assets/vendors/js/daterangepicker.min.js') }}"></script>
+    <script src="{{ asset('frontend/assets/vendors/js/apexcharts.min.js') }}"></script>
+    <script src="{{ asset('frontend/assets/vendors/js/circle-progress.min.js') }}"></script>
     <!--! END: Vendors JS !-->
     <!--! BEGIN: Apps Init  !-->
-    <script src="/frontend/assets/js/common-init.min.js"></script>
-    <script src="/frontend/assets/js/dashboard-init.min.js"></script>
+    <script src="{{ asset('frontend/assets/js/common-init.min.js') }}"></script>
+    <script src="{{ asset('frontend/assets/js/dashboard-init.min.js') }}"></script>
     <!--! END: Apps Init !-->
     <!--! BEGIN: Theme Customizer  !-->
-    <script src="/frontend/assets/js/theme-customizer-init.min.js"></script>
+    <script src="{{ asset('frontend/assets/js/theme-customizer-init.min.js') }}"></script>
     <!--! END: Theme Customizer !-->
 </body>
 
