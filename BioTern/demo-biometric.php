@@ -709,24 +709,6 @@ if ($attendance_today->num_rows > 0) {
                         <i class="feather-arrow-right"></i>
                     </a>
                 </div>
-                <!--! [End] nxl-navigation-toggle !-->
-                <!--! [Start] nxl-lavel-mega-menu-toggle !-->
-                <div class="nxl-lavel-mega-menu-toggle d-flex d-lg-none">
-                    <a href="javascript:void(0);" id="nxl-lavel-mega-menu-open">
-                        <i class="feather-align-left"></i>
-                    </a>
-                </div>
-                <!--! [End] nxl-lavel-mega-menu-toggle !-->
-                <!--! [Start] nxl-lavel-mega-menu !-->
-                <div class="nxl-drp-link nxl-lavel-mega-menu">
-                    <div class="nxl-lavel-mega-menu-toggle d-flex d-lg-none">
-                        <a href="javascript:void(0)" id="nxl-lavel-mega-menu-hide">
-                            <i class="feather-arrow-left me-2"></i>
-                            <span>Back</span>
-                        </a>
-                    </div>
-                </div>
-                <!--! [End] nxl-lavel-mega-menu !-->
             </div>
             <!--! [End] Header Left !-->
             <!--! [Start] Header Right !-->
@@ -877,8 +859,9 @@ if ($attendance_today->num_rows > 0) {
                 <div class="page-header" style="margin-bottom: 30px;">
                     <h2 style="color: #333; font-weight: 700; margin-bottom: 5px;">
                         <i class="feather-clock"></i> Biometric Time In/Out Demo
+                        <br>
+                        <p style="color: #666; margin: 0;">Simulate clock in and out events for attendance tracking</p>
                     </h2>
-                    <p style="color: #666; margin: 0;">Simulate clock in and out events for attendance tracking</p>
                 </div>
 
                 <!-- Alert Messages -->
@@ -1010,7 +993,7 @@ if ($attendance_today->num_rows > 0) {
                                                     if ($record['morning_time_in'] && $record['morning_time_out']) {
                                                         $morning = date('h:i A', strtotime($record['morning_time_in'])) . ' - ' . date('h:i A', strtotime($record['morning_time_out']));
                                                     } elseif ($record['morning_time_in']) {
-                                                        $morning = date('h:i A', strtotime($record['morning_time_in'])) . ' âœ“';
+                                                        $morning = date('h:i A', strtotime($record['morning_time_in'])) . ' - ';
                                                     }
                                                     echo $morning ? '<span class="badge-time badge-morning">' . $morning . '</span>' : '-';
                                                 ?>
@@ -1021,7 +1004,7 @@ if ($attendance_today->num_rows > 0) {
                                                     if ($record['break_time_in'] && $record['break_time_out']) {
                                                         $break = date('h:i A', strtotime($record['break_time_in'])) . ' - ' . date('h:i A', strtotime($record['break_time_out']));
                                                     } elseif ($record['break_time_in']) {
-                                                        $break = date('h:i A', strtotime($record['break_time_in'])) . ' âœ“';
+                                                        $break = date('h:i A', strtotime($record['break_time_in'])) . ' - ';
                                                     }
                                                     echo $break ? '<span class="badge-time badge-break">' . $break . '</span>' : '-';
                                                 ?>
@@ -1076,12 +1059,19 @@ if ($attendance_today->num_rows > 0) {
         </div>
 
         <!-- Footer -->
-        <footer class="footer" style="margin-top: 50px;">
+        <footer class="footer">
             <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
-                <span>Copyright Â©</span>
-                <script>document.write(new Date().getFullYear());</script>
+                <span>Copyright ©</span>
+                <script>
+                    document.write(new Date().getFullYear());
+                </script>
             </p>
-            <p><span>By: <a target="_blank" href="">ACT 2A</a></span> â€¢ <span>Distributed by: <a target="_blank" href="">Group 5</a></span></p>
+            <p><span>By: <a target="_blank" href="" target="_blank">ACT 2A</a> </span><span>Distributed by: <a target="_blank" href="" target="_blank">Group 5</a></span></p>
+            <div class="d-flex align-items-center gap-4">
+                <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Help</a>
+                <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Terms</a>
+                <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Privacy</a>
+            </div>
         </footer>
     </main>
 

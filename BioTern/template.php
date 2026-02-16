@@ -248,24 +248,6 @@
                         <i class="feather-arrow-right"></i>
                     </a>
                 </div>
-                <!--! [End] nxl-navigation-toggle !-->
-                <!--! [Start] nxl-lavel-mega-menu-toggle !-->
-                <div class="nxl-lavel-mega-menu-toggle d-flex d-lg-none">
-                    <a href="javascript:void(0);" id="nxl-lavel-mega-menu-open">
-                        <i class="feather-align-left"></i>
-                    </a>
-                </div>
-                <!--! [End] nxl-lavel-mega-menu-toggle !-->
-                <!--! [Start] nxl-lavel-mega-menu !-->
-                <div class="nxl-drp-link nxl-lavel-mega-menu">
-                    <div class="nxl-lavel-mega-menu-toggle d-flex d-lg-none">
-                        <a href="javascript:void(0)" id="nxl-lavel-mega-menu-hide">
-                            <i class="feather-arrow-left me-2"></i>
-                            <span>Back</span>
-                        </a>
-                    </div>
-                </div>
-                <!--! [End] nxl-lavel-mega-menu !-->
             </div>
             <!--! [End] Header Left !-->
             <!--! [Start] Header Right !-->
@@ -418,12 +400,12 @@
         <!-- [ Footer ] start -->
         <footer class="footer">
             <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
-                <span>Copyright Â©</span>
+                <span>Copyright ©</span>
                 <script>
                     document.write(new Date().getFullYear());
                 </script>
             </p>
-            <p><span>By: <a target="_blank" href="" target="_blank">ACT 2A</a></span> â€¢ <span>Distributed by: <a target="_blank" href="" target="_blank">Group 5</a></span></p>
+            <p><span>By: <a target="_blank" href="" target="_blank">ACT 2A</a> </span><span>Distributed by: <a target="_blank" href="" target="_blank">Group 5</a></span></p>
             <div class="d-flex align-items-center gap-4">
                 <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Help</a>
                 <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Terms</a>
