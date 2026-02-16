@@ -64,86 +64,86 @@ try {
     if ($pending_query) {
         $attendance_awaiting = (int)$pending_query->fetch_assoc()['count'];
     }
-    
+
     $approved_query = $conn->query("SELECT COUNT(*) as count FROM attendances WHERE status = 'approved'");
     if ($approved_query) {
         $attendance_completed = (int)$approved_query->fetch_assoc()['count'];
     }
-    
+
     $rejected_query = $conn->query("SELECT COUNT(*) as count FROM attendances WHERE status = 'rejected'");
     if ($rejected_query) {
         $attendance_rejected = (int)$rejected_query->fetch_assoc()['count'];
     }
-    
+
     // Total attendance
     $total_query = $conn->query("SELECT COUNT(*) as count FROM attendances");
     if ($total_query) {
         $attendance_total = (int)$total_query->fetch_assoc()['count'];
     }
-    
+
     // Student count
     $students_query = $conn->query("SELECT COUNT(*) as count FROM students WHERE deleted_at IS NULL");
     if ($students_query) {
         $student_count = (int)$students_query->fetch_assoc()['count'];
     }
-    
+
     // Internship count
     $internships_query = $conn->query("SELECT COUNT(*) as count FROM internships WHERE status = 'ongoing'");
     if ($internships_query) {
         $internship_count = (int)$internships_query->fetch_assoc()['count'];
     }
-    
+
     // Biometric registered students
     $biometric_query = $conn->query("SELECT COUNT(*) as count FROM students WHERE biometric_registered = 1");
     if ($biometric_query) {
         $biometric_registered = (int)$biometric_query->fetch_assoc()['count'];
     }
-    
+
     // Get recent students (last 5)
     $recent_students_query = $conn->query("\n        SELECT s.id, s.student_id, s.first_name, s.last_name, s.email, s.status, s.biometric_registered, s.created_at\n        FROM students s\n        WHERE s.deleted_at IS NULL\n        ORDER BY s.created_at DESC\n        LIMIT 5\n    ");
-    
+
     if ($recent_students_query && $recent_students_query->num_rows > 0) {
         while ($row = $recent_students_query->fetch_assoc()) {
             $recent_students[] = $row;
         }
     }
-    
+
     // Get recent attendance records (last 10) with student info
     $recent_attendance_query = $conn->query("\n        SELECT a.id, a.student_id, a.attendance_date, a.morning_time_in, a.morning_time_out, a.status, a.created_at, \n               s.first_name, s.last_name, s.email, s.student_id as student_num\n        FROM attendances a\n        LEFT JOIN students s ON a.student_id = s.id\n        ORDER BY a.attendance_date DESC, a.created_at DESC\n        LIMIT 10\n    ");
-    
+
     if ($recent_attendance_query && $recent_attendance_query->num_rows > 0) {
         while ($row = $recent_attendance_query->fetch_assoc()) {
             $recent_attendance[] = $row;
         }
     }
-    
+
     // Get coordinators (Active)
     $coordinators_query = $conn->query("\n        SELECT u.id, u.name, u.email, c.department_id, c.phone, c.created_at\n        FROM users u\n        LEFT JOIN coordinators c ON u.id = c.user_id\n        WHERE u.role = 'coordinator' AND u.is_active = 1\n        ORDER BY u.created_at DESC\n        LIMIT 5\n    ");
-    
+
     if ($coordinators_query && $coordinators_query->num_rows > 0) {
         while ($row = $coordinators_query->fetch_assoc()) {
             $coordinators[] = $row;
         }
     }
-    
+
     // Get supervisors (Active)
     $supervisors_query = $conn->query("\n        SELECT u.id, u.name, u.email, s.phone, s.department, s.created_at\n        FROM users u\n        LEFT JOIN supervisors s ON u.id = s.user_id\n        WHERE u.role = 'supervisor' AND u.is_active = 1\n        ORDER BY u.created_at DESC\n        LIMIT 5\n    ");
-    
+
     if ($supervisors_query && $supervisors_query->num_rows > 0) {
         while ($row = $supervisors_query->fetch_assoc()) {
             $supervisors[] = $row;
         }
     }
-    
+
     // Get recent activities (student registrations, attendance records, etc)
     $activities_query = $conn->query("\n        SELECT \n            CONCAT('Student Created: ', s.first_name, ' ', s.last_name) as activity,\n            s.created_at as activity_date,\n            'student_created' as activity_type,\n            s.id as entity_id\n        FROM students s\n        WHERE s.deleted_at IS NULL\n        UNION ALL\n        SELECT \n            CONCAT('Attendance Recorded for ', s.first_name, ' ', s.last_name) as activity,\n            a.created_at as activity_date,\n            'attendance_recorded' as activity_type,\n            a.id as entity_id\n        FROM attendances a\n        LEFT JOIN students s ON a.student_id = s.id\n        UNION ALL\n        SELECT \n            CONCAT('Biometric Registered: ', s.first_name, ' ', s.last_name) as activity,\n            s.biometric_registered_at as activity_date,\n            'biometric_registered' as activity_type,\n            s.id as entity_id\n        FROM students s\n        WHERE s.biometric_registered = 1 AND s.biometric_registered_at IS NOT NULL\n        ORDER BY activity_date DESC\n        LIMIT 15\n    ");
-    
+
     if ($activities_query && $activities_query->num_rows > 0) {
         while ($row = $activities_query->fetch_assoc()) {
             $recent_activities[] = $row;
         }
     }
-    
+
 } catch (Exception $e) {
     // Database error - fallback to 0 values
     error_log("Dashboard error: " . $e->getMessage());
@@ -158,7 +158,7 @@ try {
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="" />
     <meta name="keyword" content="" />
-    <meta name="author" content="flexilecode" />    
+    <meta name="author" content="flexilecode" />
     <!--! The above 6 meta tags *must* come first in the head; any other head content must come *after* these tags !-->
     <!--! BEGIN: Apps Title-->
     <title>BioTern || Dashboard</title>
