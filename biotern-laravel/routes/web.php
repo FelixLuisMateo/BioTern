@@ -69,6 +69,7 @@ use App\Http\Controllers\RegisterSubmitController;
 Route::post('register_submit', [RegisterSubmitController::class, 'handle'])->name('register_submit.post');
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\HomeController;
 
 // Login routes
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login.show');
@@ -98,7 +99,13 @@ Route::get('/setup-admin', function () {
 // Dashboard Routes
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [HomeController::class, 'index'])->name('dashboard');
-    });
+});
+
+// The following route groups reference controllers that are not present
+// in this repository copy. Disable them briefly so artisan commands like
+// `route:list` can run. Re-enable (remove the surrounding `if (false)`)
+// once the missing controllers are implemented.
+if (false) {
     // Admin Routes
     Route::middleware('admin')->prefix('admin')->group(function () {
         require 'admin.php';
@@ -118,3 +125,4 @@ Route::middleware('auth')->group(function () {
     Route::middleware('student')->prefix('student')->group(function () {
         require 'student.php';
     });
+}

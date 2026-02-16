@@ -11,7 +11,7 @@ class AuthController extends Controller
 {
     public function showLogin()
     {
-        return view('login');
+        return view('auth-login-cover');
     }
 
     public function login(Request $request)
@@ -31,7 +31,8 @@ class AuthController extends Controller
         $user = $query->first();
 
         if ($user && Hash::check($password, $user->password)) {
-            Auth::loginUsingId($user->id);
+            $remember = $request->filled('remember');
+            Auth::loginUsingId($user->id, $remember);
             $request->session()->regenerate();
 
             // If the authenticated user is an admin, redirect to the admin dashboard.
