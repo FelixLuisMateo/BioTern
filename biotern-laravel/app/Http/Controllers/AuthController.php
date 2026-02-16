@@ -44,7 +44,7 @@ class AuthController extends Controller
                 $isAdmin = true;
             }
             if ($isAdmin) {
-                return redirect()->route('admin.dashboard');
+                return redirect()->route('dashboard');
             }
 
             return redirect()->intended('/');
