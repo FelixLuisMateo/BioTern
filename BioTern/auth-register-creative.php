@@ -19,11 +19,17 @@
     .role-card {
         border: 2px solid #e9ecef;
         border-radius: 10px;
-        padding: 30px;
+        padding: 25px 20px;
         text-align: center;
         cursor: pointer;
         transition: all 0.3s ease;
         background: #fff;
+        min-height: 180px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        color: #1a1a1a;
     }
 
     .role-card:hover {
@@ -38,23 +44,54 @@
         box-shadow: 0 5px 20px rgba(255, 71, 87, 0.2);
     }
 
+    /* Dark mode adjustments for role cards */
+    @media (prefers-color-scheme: dark) {
+        .role-card {
+            background: #2d2d2d;
+            border-color: #444;
+            color: #e0e0e0;
+        }
+
+        .role-card:hover {
+            border-color: #FF4757;
+            box-shadow: 0 5px 20px rgba(255, 71, 87, 0.3);
+            background: #373737;
+        }
+
+        .role-card.selected {
+            background: #3d2a2a;
+            border-color: #FF4757;
+            box-shadow: 0 5px 20px rgba(255, 71, 87, 0.4);
+        }
+
+        .role-card h5 {
+            color: #f0f0f0;
+        }
+
+        .role-card p {
+            color: #b0b0b0;
+        }
+    }
+
     .role-icon {
-        font-size: 40px;
-        margin-bottom: 15px;
+        font-size: 48px;
+        margin-bottom: 12px;
         display: inline-block;
+        line-height: 1;
     }
 
     .role-card h5 {
-        font-size: 18px;
-        font-weight: bold;
-        margin-bottom: 10px;
+        font-size: 16px;
+        font-weight: 600;
+        margin-bottom: 8px;
         color: #1a1a1a;
     }
 
     .role-card p {
-        font-size: 12px;
+        font-size: 13px;
         color: #6c757d;
         margin: 0;
+        line-height: 1.4;
     }
 
     .hide-form {
@@ -231,6 +268,19 @@
                         <h2 class="fs-20 fw-bolder mb-4">Register</h2>
                         <h4 class="fs-13 fw-bold mb-2">Manage your Internship account in one place.</h4>
                         <p class="fs-12 fw-medium text-muted">Let's get you all setup, so you can verify your personal account and begin setting up your profile.</p>
+                        <?php
+                        if (isset($_GET['registered'])) {
+                            $reg = $_GET['registered'];
+                            $msg = isset($_GET['msg']) ? htmlspecialchars($_GET['msg']) : '';
+                            if ($reg === 'exists') {
+                                echo '<div class="alert alert-warning" role="alert">' . ($msg ?: 'An account with that email or username already exists.') . '</div>';
+                            } elseif ($reg === 'error') {
+                                echo '<div class="alert alert-danger" role="alert">' . ($msg ?: 'An error occurred while registering.') . '</div>';
+                            } elseif (in_array($reg, ['student','coordinator','supervisor','admin'])) {
+                                echo '<div class="alert alert-success" role="alert">Registration successful. You may now login.</div>';
+                            }
+                        }
+                        ?>
                         
                         <!-- ROLE SELECTION SCREEN -->
                         <div id="roleSelectionScreen" class="show-form">
@@ -241,24 +291,24 @@
                                     <div class="roles-container">
                                         <div class="roles-grid" id="rolesRow">
                                             <div class="role-card" data-role="student" onclick="selectRole('student')" tabindex="0">
-                                                <div class="role-icon">ðŸ‘¨â€ðŸŽ“</div>
+                                                <div class="role-icon">👨‍🎓</div>
                                                 <h5>Student</h5>
-                                                <p>Student â€” register for internship</p>
+                                                <p>Student: Register for internship</p>
                                             </div>
                                             <div class="role-card" data-role="coordinator" onclick="selectRole('coordinator')" tabindex="0">
-                                                <div class="role-icon">ðŸ‘”</div>
+                                                <div class="role-icon">👔</div>
                                                 <h5>Coordinator</h5>
-                                                <p>Coordinator â€” manage student placements</p>
+                                                <p>Coordinator: Manage student placements</p>
                                             </div>
                                             <div class="role-card" data-role="supervisor" onclick="selectRole('supervisor')" tabindex="0">
-                                                <div class="role-icon">ðŸ‘¨â€ðŸ’¼</div>
+                                                <div class="role-icon">👨‍💼</div>
                                                 <h5>Supervisor</h5>
-                                                <p>Supervisor â€” oversee workplace activities</p>
+                                                <p>Supervisor: Oversee workplace activities</p>
                                             </div>
                                             <div class="role-card" data-role="admin" onclick="selectRole('admin')" tabindex="0">
-                                                <div class="role-icon">âš™ï¸</div>
+                                                <div class="role-icon">⚙️</div>
                                                 <h5>Admin</h5>
-                                                <p>Admin â€” system administrator</p>
+                                                <p>Admin: System administrator</p>
                                             </div>
                                         </div>
                                     </div>
@@ -270,7 +320,7 @@
                         <form id="studentForm" class="w-100 mt-4 pt-2 hide-form" action="register_submit.php" method="post">
                             <input type="hidden" name="role" value="student">
                             <div class="form-section">
-                                <button type="button" class="btn btn-sm btn-outline-secondary mb-4" onclick="backToRoles()">â† Back to Role Selection</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary mb-4" onclick="backToRoles()">Back to Role Selection</button>
                             </div>
                             <!-- Personal Information Section -->
                             <div class="mb-4">
@@ -339,18 +389,42 @@
                                         <label class="form-label fs-12">Coordinator</label>
                                         <select name="coordinator_id" class="form-control">
                                             <option value="" disabled selected>Select Coordinator</option>
-                                            <option value="1">Felix Luis Mateo</option>
-                                            <option value="2">John Smith</option>
-                                            <option value="3">Jane Doe</option>
+                                            <?php
+                                            // Connect to database and fetch coordinators
+                                            $dbHost = '127.0.0.1';
+                                            $dbUser = 'root';
+                                            $dbPass = '';
+                                            $dbName = 'biotern_db';
+                                            $tempConn = new mysqli($dbHost, $dbUser, $dbPass, $dbName);
+                                            if ($tempConn && $tempConn->connect_errno === 0) {
+                                                $result = $tempConn->query("SELECT id, CONCAT(first_name, ' ', last_name) as full_name FROM coordinators WHERE is_active = 1 ORDER BY first_name");
+                                                if ($result) {
+                                                    while ($row = $result->fetch_assoc()) {
+                                                        echo '<option value="' . htmlspecialchars($row['id']) . '">' . htmlspecialchars($row['full_name']) . '</option>';
+                                                    }
+                                                }
+                                                $tempConn->close();
+                                            }
+                                            ?>
                                         </select>
                                     </div>
                                     <div class="col-6 mb-2">
                                         <label class="form-label fs-12">Supervisor</label>
                                         <select name="supervisor_id" class="form-control">
                                             <option value="" disabled selected>Select Supervisor</option>
-                                            <option value="1">Jomer De Guzman</option>
-                                            <option value="2">Naven Cuenca</option>
-                                            <option value="3">Maria Santos</option>
+                                            <?php
+                                            // Connect to database and fetch supervisors
+                                            $tempConn = new mysqli($dbHost, $dbUser, $dbPass, $dbName);
+                                            if ($tempConn && $tempConn->connect_errno === 0) {
+                                                $result = $tempConn->query("SELECT id, CONCAT(first_name, ' ', last_name) as full_name FROM supervisors WHERE is_active = 1 ORDER BY first_name");
+                                                if ($result) {
+                                                    while ($row = $result->fetch_assoc()) {
+                                                        echo '<option value="' . htmlspecialchars($row['id']) . '">' . htmlspecialchars($row['full_name']) . '</option>';
+                                                    }
+                                                }
+                                                $tempConn->close();
+                                            }
+                                            ?>
                                         </select>
                                     </div>
                                 </div>

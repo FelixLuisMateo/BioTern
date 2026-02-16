@@ -35,8 +35,15 @@ function createUser($mysqli, $username, $email, $password, $role) {
         if ($stmt) {
             $name = $username;
             $stmt->bind_param('sssss', $name, $username, $email, $pwdHash, $role);
-            $stmt->execute();
-            $userId = $mysqli->insert_id;
+            try {
+                $stmt->execute();
+                $userId = $mysqli->insert_id;
+            } catch (mysqli_sql_exception $e) {
+                $code = $e->getCode();
+                $stmt->close();
+                // Duplicate entry (1062) or other SQL error - return null so callers can handle it
+                return null;
+            }
             $stmt->close();
         }
     }
@@ -92,16 +99,29 @@ if ($role === 'student') {
     if ($stmt_user) {
         $full_name = $first_name . ' ' . $last_name;
         $stmt_user->bind_param('ssss', $full_name, $username, $final_email, $pwdHash);
-        if ($stmt_user->execute()) {
-            $user_id = $mysqli->insert_id;
-        } else {
-            // Check if it's a duplicate email error
-            $error = $stmt_user->error;
+        try {
+            if ($stmt_user->execute()) {
+                $user_id = $mysqli->insert_id;
+            }
+        } catch (mysqli_sql_exception $e) {
+            $code = $e->getCode();
+            $msg = $e->getMessage();
             $stmt_user->close();
-            header('Location: auth-register-creative.php?registered=error&msg=' . urlencode($error));
+            // 1062 = duplicate entry
+            if ($code === 1062 || strpos($msg, 'Duplicate entry') !== false) {
+                header('Location: auth-register-creative.php?registered=exists&msg=' . urlencode('An account with that email or username already exists'));
+                exit;
+            }
+            header('Location: auth-register-creative.php?registered=error&msg=' . urlencode($msg));
             exit;
         }
         $stmt_user->close();
+    }
+
+    // Validate that user_id was created successfully
+    if (!$user_id) {
+        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Failed to create user account'));
+        exit;
     }
 
     // Look up supervisor and coordinator names from their IDs
@@ -131,19 +151,32 @@ if ($role === 'student') {
     }
 
     // Now insert into students table using the user_id
-    if ($user_id) {
-        $stmt = $mysqli->prepare("INSERT INTO students (user_id, course_id, student_id, first_name, last_name, middle_name, username, password, email, section_id, address, phone, date_of_birth, gender, supervisor_name, coordinator_name, total_hours, emergency_contact, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())");
-        if ($stmt) {
-            $stmt->bind_param('iisssssssissssssi', $user_id, $course_id, $student_id, $first_name, $last_name, $middle_name, $username, $pwdHash, $final_email, $section_id, $address, $phone, $date_of_birth, $gender, $supervisor_name, $coordinator_name, $total_hours, $emergency_contact);
-            if (!$stmt->execute()) {
-                $error = $stmt->error;
-                $stmt->close();
-                header('Location: auth-register-creative.php?registered=error&msg=' . urlencode($error));
-                exit;
-            }
-            $stmt->close();
-        }
+    $stmt = $mysqli->prepare("INSERT INTO students (user_id, course_id, student_id, first_name, last_name, middle_name, username, password, email, section_id, address, phone, date_of_birth, gender, supervisor_id, supervisor_name, coordinator_id, coordinator_name, total_hours, emergency_contact, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())");
+    
+    if (!$stmt) {
+        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Database statement error: ' . $mysqli->error));
+        exit;
     }
+    
+    // types: user_id(i), course_id(i), student_id(s), first_name(s), last_name(s), middle_name(s),
+    // username(s), password(s), email(s), section_id(i), address(s), phone(s), date_of_birth(s),
+    // gender(s), supervisor_id(i), supervisor_name(s), coordinator_id(i), coordinator_name(s), total_hours(i), emergency_contact(s)
+    $stmt->bind_param('iisssssssissssisisis', $user_id, $course_id, $student_id, $first_name, $last_name, $middle_name, $username, $pwdHash, $final_email, $section_id, $address, $phone, $date_of_birth, $gender, $supervisor_id, $supervisor_name, $coordinator_id, $coordinator_name, $total_hours, $emergency_contact);
+    
+    try {
+        if (!$stmt->execute()) {
+            $error = $stmt->error;
+            $stmt->close();
+            header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Student record error: ' . $error));
+            exit;
+        }
+    } catch (mysqli_sql_exception $e) {
+        $stmt->close();
+        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Student record error: ' . $e->getMessage()));
+        exit;
+    }
+    
+    $stmt->close();
 
     header('Location: auth-register-creative.php?registered=student');
     exit;
@@ -154,7 +187,7 @@ if ($role === 'coordinator') {
     $password = getPost('password');
     $confirm_password = getPost('confirm_password');
     if ($password !== $confirm_password) {
-        header('Location: auth-register-creative.html?registered=error&msg=' . urlencode('Passwords do not match'));
+        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Passwords do not match'));
         exit;
     }
     
@@ -163,19 +196,29 @@ if ($role === 'coordinator') {
     $email = getPost('email');
     $phone = getPost('phone');
     $office_location = getPost('office_location');
-    $department_id = getPost('department_id');
-    $position = getPost('position');
+    $department_id = getPost('department_id') ? (int)getPost('department_id') : null;
     $username = getPost('username');
     $account_email = getPost('account_email');
 
     $final_email = $account_email ?: $email;
     $userId = createUser($mysqli, $username ?: ($first_name . ' ' . $last_name), $final_email, $password ?: bin2hex(random_bytes(4)), 'coordinator');
+    
+    // if createUser() returned null (possible duplicate/email exists), warn and stop
+    if (!$userId) {
+        header('Location: auth-register-creative.php?registered=exists&msg=' . urlencode('An account with that email or username already exists'));
+        exit;
+    }
 
-    $stmt = $mysqli->prepare("INSERT INTO coordinators (user_id, first_name, last_name, middle_name, email, phone, department_id, office_location, bio, profile_picture, is_active, created_at) VALUES (?, ?, ?, NULL, ?, ?, ?, ?, NULL, NULL, 1, NOW())");
+    // Insert into coordinators table
+    $stmt = $mysqli->prepare("INSERT INTO coordinators (user_id, first_name, last_name, middle_name, email, phone, department_id, office_location, is_active, created_at) VALUES (?, ?, ?, NULL, ?, ?, ?, ?, 1, NOW())");
     if ($stmt) {
-        $u = $userId ?: null;
-        $stmt->bind_param('isssiss', $u, $first_name, $last_name, $final_email, $phone, $department_id, $office_location);
-        $stmt->execute();
+        $stmt->bind_param('isssiis', $userId, $first_name, $last_name, $final_email, $phone, $department_id, $office_location);
+        if (!$stmt->execute()) {
+            $error = $stmt->error;
+            $stmt->close();
+            header('Location: auth-register-creative.php?registered=error&msg=' . urlencode($error));
+            exit;
+        }
         $stmt->close();
     }
 
@@ -188,7 +231,7 @@ if ($role === 'supervisor') {
     $password = getPost('password');
     $confirm_password = getPost('confirm_password');
     if ($password !== $confirm_password) {
-        header('Location: auth-register-creative.html?registered=error&msg=' . urlencode('Passwords do not match'));
+        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Passwords do not match'));
         exit;
     }
     
@@ -196,22 +239,29 @@ if ($role === 'supervisor') {
     $last_name = getPost('last_name');
     $email = getPost('email');
     $phone = getPost('phone');
-    $company_name = getPost('company_name');
-    $job_position = getPost('job_position');
-    $department = getPost('department');
     $specialization = getPost('specialization');
-    $company_address = getPost('company_address');
     $username = getPost('username');
     $account_email = getPost('account_email');
 
     $final_email = $account_email ?: $email;
     $userId = createUser($mysqli, $username ?: ($first_name . ' ' . $last_name), $final_email, $password ?: bin2hex(random_bytes(4)), 'supervisor');
+    
+    // if createUser() returned null (possible duplicate/email exists), warn and stop
+    if (!$userId) {
+        header('Location: auth-register-creative.php?registered=exists&msg=' . urlencode('An account with that email or username already exists'));
+        exit;
+    }
 
-    $stmt = $mysqli->prepare("INSERT INTO supervisors (user_id, first_name, last_name, middle_name, email, phone, department_id, specialization, bio, profile_picture, is_active, created_at) VALUES (?, ?, ?, NULL, ?, ?, NULL, ?, NULL, NULL, 1, NOW())");
+    // Insert into supervisors table
+    $stmt = $mysqli->prepare("INSERT INTO supervisors (user_id, first_name, last_name, middle_name, email, phone, department_id, specialization, is_active, created_at) VALUES (?, ?, ?, NULL, ?, ?, NULL, ?, 1, NOW())");
     if ($stmt) {
-        $u = $userId ?: null;
-        $stmt->bind_param('isssss', $u, $first_name, $last_name, $final_email, $phone, $specialization);
-        $stmt->execute();
+        $stmt->bind_param('isssss', $userId, $first_name, $last_name, $final_email, $phone, $specialization);
+        if (!$stmt->execute()) {
+            $error = $stmt->error;
+            $stmt->close();
+            header('Location: auth-register-creative.php?registered=error&msg=' . urlencode($error));
+            exit;
+        }
         $stmt->close();
     }
 
@@ -224,7 +274,7 @@ if ($role === 'admin') {
     $password = getPost('password');
     $confirm_password = getPost('confirm_password');
     if ($password !== $confirm_password) {
-        header('Location: auth-register-creative.html?registered=error&msg=' . urlencode('Passwords do not match'));
+        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Passwords do not match'));
         exit;
     }
     
@@ -232,15 +282,31 @@ if ($role === 'admin') {
     $last_name = getPost('last_name');
     $email = getPost('email');
     $phone = getPost('phone');
-    $admin_level = getPost('admin_level');
-    $department_id = getPost('department_id');
-    $position = getPost('position');
     $username = getPost('username');
     $account_email = getPost('account_email');
 
-    $userId = createUser($mysqli, $username ?: ($first_name . ' ' . $last_name), $account_email ?: $email, $password ?: bin2hex(random_bytes(4)), 'admin');
+    $final_email = $account_email ?: $email;
+    $userId = createUser($mysqli, $username ?: ($first_name . ' ' . $last_name), $final_email, $password ?: bin2hex(random_bytes(4)), 'admin');
+    
+    // if createUser() returned null (possible duplicate/email exists), warn and stop
+    if (!$userId) {
+        header('Location: auth-register-creative.php?registered=exists&msg=' . urlencode('An account with that email or username already exists'));
+        exit;
+    }
 
-    // Admins are usually stored in users + roles; additional admin metadata can be stored in an admins table if present.
+    // If you have an admins table, insert here. Otherwise admin data is stored in users table with role='admin'
+    // Example if admins table exists:
+    // $stmt = $mysqli->prepare("INSERT INTO admins (user_id, first_name, last_name, email, phone, is_active, created_at) VALUES (?, ?, ?, ?, ?, 1, NOW())");
+    // if ($stmt) {
+    //     $stmt->bind_param('issss', $userId, $first_name, $last_name, $final_email, $phone);
+    //     if (!$stmt->execute()) {
+    //         $error = $stmt->error;
+    //         $stmt->close();
+    //         header('Location: auth-register-creative.php?registered=error&msg=' . urlencode($error));
+    //         exit;
+    //     }
+    //     $stmt->close();
+    // }
 
     header('Location: auth-register-creative.php?registered=admin');
     exit;

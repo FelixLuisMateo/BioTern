@@ -451,7 +451,7 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                                     <span class="nxl-mtext">Register</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                                 </a>
                                 <ul class="nxl-submenu">
-                                    <li class="nxl-item"><a class="nxl-link" href="register_submit.php">Creative</a></li>
+                                    <li class="nxl-item"><a class="nxl-link" href="auth-register-creative.php">Creative</a></li>
                                 </ul>
                             </li>
                             <li class="nxl-item nxl-hasmenu">
