@@ -75,8 +75,8 @@ if (isset($_GET['action'])) {
         /* ensure preview sits above footer visually */
         
         /* Select2 dropdown should overlay above other elements */
-        .select2-container--open { z-index: 99999 !important; }
-        .select2-dropdown { z-index: 99999 !important; }
+        .select2-container--open { z-index: 9999999 !important; }
+        .select2-dropdown { z-index: 9999999 !important; }
         /* prevent theme/form-control styles from enlarging the Select2 search input */
         .select2-container .select2-search__field {
             padding: 4px !important;
@@ -86,8 +86,33 @@ if (isset($_GET['action'])) {
             box-shadow: none !important;
             background: transparent !important;
         }
+        /* hide Select2's internal rendered selection so overlay input is the only visible text
+           keeps arrow and container UI visible */
+        .select2-container .select2-selection__rendered,
+        .select2-container .select2-selection__placeholder {
+            visibility: hidden !important;
+        }
+        /* overlay input placed on top of the visible Select2 box so users can type directly */
+        .select2-overlay-input {
+            position: absolute;
+            inset: 0 40px 0 8px; /* leave room on the right for the arrow */
+            width: calc(100% - 48px);
+            height: calc(100% - 8px);
+            border: none;
+            background: transparent;
+            padding: 6px 8px;
+            box-sizing: border-box;
+            z-index: 99999999;
+            font: inherit;
+            color: inherit;
+        }
+        .select2-overlay-input:focus { outline: none; }
         /* ensure page content sits below the site header/navigation */
-        main.nxl-container { padding-top: 72px; }
+        main.nxl-container { padding-top: 90px; }
+        /* force the global header to be fixed and above everything */
+        .nxl-header { position: fixed !important; top: 0; left: 0; right: 0; z-index: 2147483647 !important; }
+        /* ensure navigation/sidebar sits below header visually */
+        .nxl-navigation { z-index: 2147483646; }
     </style>
 
 </head>
@@ -176,7 +201,7 @@ if (isset($_GET['action'])) {
             const inputCompanyAddress = document.getElementById('input_company_address');
 
             select.select2({
-                placeholder: 'Search by name or student id',
+                placeholder: '',
                 ajax: {
                     url: 'documents.php',
                     dataType: 'json',
@@ -190,13 +215,74 @@ if (isset($_GET['action'])) {
                 dropdownCssClass: 'select2-dropdown'
             });
 
+            // create an overlay input so users can type directly in the visible box
+            (function createOverlayInput(){
+                var sel = document.getElementById('student_select');
+                var container = sel && sel.nextElementSibling;
+                if (!container) return;
+                container.style.position = container.style.position || 'relative';
+
+                var overlay = document.createElement('input');
+                overlay.type = 'text';
+                overlay.className = 'select2-overlay-input';
+                overlay.placeholder = sel.getAttribute('data-placeholder') || 'Search by name or student id';
+                overlay.autocomplete = 'off';
+                container.appendChild(overlay);
+
+                function openAndSync(){
+                    try { select.select2('open'); } catch(e){}
+                    setTimeout(function(){
+                        var fld = document.querySelector('.select2-container--open .select2-search__field');
+                        if (!fld) return;
+                        fld.value = overlay.value || '';
+                        fld.dispatchEvent(new Event('input', { bubbles: true }));
+                        // keep focus on the overlay so typing remains in the visible box
+                    }, 0);
+                }
+
+                // forward typing into Select2
+                overlay.addEventListener('input', function(){ openAndSync(); });
+                overlay.addEventListener('keydown', function(e){
+                    // open on printable key or backspace
+                    if (e.key && (e.key.length === 1 || e.key === 'Backspace')){
+                        openAndSync();
+                        // let overlay keep its value; prevent default only for some keys
+                    }
+                });
+
+                // when select2 closes, copy displayed selection text back to overlay
+                $(document).on('select2:select select2:closing', '#student_select', function(e){
+                    setTimeout(function(){
+                        var txt = $('#student_select').find('option:selected').text() || '';
+                        overlay.value = txt.replace(/\s+—\s+.*$/,'');
+                    }, 0);
+                });
+
+                // focus overlay when container is clicked
+                container.addEventListener('click', function(){ overlay.focus(); });
+            })();
+
+            
+
             // ensure the Select2 search input receives focus when dropdown opens
             select.on('select2:open', function() {
-                setTimeout(function(){
-                    const fld = document.querySelector('.select2-container--open .select2-search__field');
-                    if (fld) fld.focus();
-                }, 0);
+                // when Select2 opens, do not steal focus from the overlay input
+                // we still leave the internal field available for accessibility
             });
+
+            // adjust top padding based on header height (header is injected by the template include at the bottom)
+            function adjustTopPadding(){
+                var hdr = document.querySelector('.nxl-header');
+                var main = document.querySelector('main.nxl-container');
+                if (hdr && main) {
+                    var h = hdr.offsetHeight || 0;
+                    main.style.paddingTop = (h + 8) + 'px';
+                }
+            }
+            // run after DOM loads and when window resizes
+            document.addEventListener('DOMContentLoaded', function(){ setTimeout(adjustTopPadding, 50); });
+            window.addEventListener('load', adjustTopPadding);
+            window.addEventListener('resize', adjustTopPadding);
 
             // when a student is selected, auto-fetch student details and fill only student-specific preview fields
             $('#student_select').on('select2:select', function(e){
