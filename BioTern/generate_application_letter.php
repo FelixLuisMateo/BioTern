@@ -64,12 +64,12 @@ if ($do_download_pdf || $do_download_html) ob_start();
                     .crest{ position:absolute; top:0.22in; left:0.22in; width:0.77in; height:0.76in; object-fit:contain; }
         .header img{ max-height:70px; }
         /* Header styles as specified: Calibri (Body), blue colors and sizes */
-        .header h2 { font-family: Calibri, 'Calibri', Arial, sans-serif; color: #1b4f9c; font-size:13pt; margin:6px 0 2px 0; }
-        .header .meta { font-family: Calibri, 'Calibri', Arial, sans-serif; color:#1b4f9c; font-size:9pt; }
-        .header .tel { font-family: Calibri, 'Calibri', Arial, sans-serif; color:#1b4f9c; font-size:11pt; }
+        .header h2 { font-family: Calibri, 'Calibri', Arial, sans-serif; color: #1b4f9c; font-size:14pt; margin:6px 0 2px 0; }
+        .header .meta { font-family: Calibri, 'Calibri', Arial, sans-serif; color:#1b4f9c; font-size:10pt; }
+        .header .tel { font-family: Calibri, 'Calibri', Arial, sans-serif; color:#1b4f9c; font-size:12pt; }
         /* Main content font sizes: heading 12pt Times New Roman, body 11pt Times New Roman */
-        h3{ font-family: 'Times New Roman', Times, serif; font-size:12pt; color:#000; margin:6px 0; }
-        .content{ margin-top:8px; line-height:1.45; font-size:11pt; font-family: 'Times New Roman', Times, serif; }
+        h3{ font-family: 'Times New Roman', Times, serif; font-size:13pt; color:#000; margin:6px 0; }
+        .content{ margin-top:8px; line-height:1.45; font-size:12pt; font-family: 'Times New Roman', Times, serif; }
         .small{ font-size:13px; }
         .signature{ margin-top:28px; }
         /* hide print-value spans on screen, show on print */
@@ -147,8 +147,6 @@ if ($do_download_pdf || $do_download_html) ob_start();
             Tip: To remove the headers and footers (date / URL) from the PDF, uncheck "Headers and footers" or "Include headers and footers" in your browser's print dialog (Chrome/Edge: More settings → uncheck "Headers and footers").
         </div>
         <button id="btn_print" class="btn btn-primary btn-lg">Print / Save as PDF (letter)</button>
-        <button id="btn_download_pdf" class="btn btn-success btn-lg">Download PDF</button>
-        <button id="btn_download_html" class="btn btn-outline-secondary btn-lg">Download HTML</button>
         <button id="btn_close" class="btn btn-secondary btn-lg">Close</button>
     </div>
 
@@ -169,26 +167,6 @@ if ($do_download_pdf || $do_download_html) ob_start();
         // print button: open print dialog — note: browser headers/footers are controlled by print dialog settings
         document.getElementById('btn_print').addEventListener('click', function(){
             window.print();
-        });
-
-        // Download PDF / HTML handlers build the current URL and add a download flag
-        function buildDownloadUrl(flag){
-            var base = window.location.href.split('#')[0].split('?')[0];
-            var params = new URLSearchParams(window.location.search);
-            // preserve existing query params (id, ap_name etc.) then set download flag
-            params.set(flag, '1');
-            return base + '?' + params.toString();
-        }
-
-        document.getElementById('btn_download_pdf').addEventListener('click', function(){
-            var url = buildDownloadUrl('download_pdf');
-            // open in new tab to trigger download
-            window.open(url, '_blank');
-        });
-
-        document.getElementById('btn_download_html').addEventListener('click', function(){
-            var url = buildDownloadUrl('download_html');
-            window.open(url, '_blank');
         });
 
         document.getElementById('btn_close').addEventListener('click', function(){ window.close(); });
