@@ -67,9 +67,8 @@ if (isset($_GET['action'])) {
         html, body { height: 100%; margin: 0; padding: 0; }
         body { display:flex; flex-direction:column; min-height:100vh; }
         main.nxl-container { flex:1; display:flex; flex-direction:column; }
-        /* give extra bottom space so previews stay above fixed footer */
-        div.nxl-content { flex:1; padding-bottom:340px; }
-        .doc-preview { background:#fff; border:1px solid #eee; padding:24px; max-width:800px; margin-top:18px; margin-bottom:32px; position:relative; z-index:2200; box-shadow:0 6px 20px rgba(0,0,0,0.04); }
+        div.nxl-content { flex:1; padding-bottom:24px; }
+        .doc-preview { background:#fff; border:1px solid #eee; padding:24px; max-width:800px; margin-top:18px; margin-bottom:32px; position:relative; z-index:1; box-shadow:0 6px 20px rgba(0,0,0,0.04); }
         /* move the header text a bit lower so the crest/logo fits inside the preview */
         .doc-preview .text-center { padding-top:40px; }
         /* ensure preview sits above footer visually */
@@ -107,12 +106,21 @@ if (isset($_GET['action'])) {
             color: inherit;
         }
         .select2-overlay-input:focus { outline: none; }
-        /* ensure page content sits below the site header/navigation */
         main.nxl-container { padding-top: 90px; }
-        /* force the global header to be fixed and above everything */
         .nxl-header { position: fixed !important; top: 0; left: 0; right: 0; z-index: 2147483647 !important; }
-        /* ensure navigation/sidebar sits below header visually */
         .nxl-navigation { z-index: 2147483646; }
+        footer.footer { margin-top: auto; }
+        @media (max-width: 1024px) {
+            .nxl-navigation,
+            .nxl-navigation.mob-navigation-active { z-index: 2147483646 !important; }
+            .nxl-header { z-index: 2147483647 !important; }
+            .nxl-container { position: relative; z-index: 1; }
+            .doc-preview { z-index: 1 !important; }
+            .select2-container--open,
+            .select2-dropdown { z-index: 900 !important; }
+            .nxl-navigation { z-index: 2147483648 !important; }
+            .nxl-navigation .navbar-wrapper { z-index: 2147483648 !important; }
+        }
     </style>
 
 </head>
@@ -203,7 +211,7 @@ if (isset($_GET['action'])) {
             select.select2({
                 placeholder: '',
                 ajax: {
-                    url: 'documents.php',
+                    url: 'document_application.php',
                     dataType: 'json',
                     delay: 250,
                     data: function(params){ return { action: 'search_students', q: params.term }; },
@@ -270,20 +278,6 @@ if (isset($_GET['action'])) {
                 // we still leave the internal field available for accessibility
             });
 
-            // adjust top padding based on header height (header is injected by the template include at the bottom)
-            function adjustTopPadding(){
-                var hdr = document.querySelector('.nxl-header');
-                var main = document.querySelector('main.nxl-container');
-                if (hdr && main) {
-                    var h = hdr.offsetHeight || 0;
-                    main.style.paddingTop = (h + 8) + 'px';
-                }
-            }
-            // run after DOM loads and when window resizes
-            document.addEventListener('DOMContentLoaded', function(){ setTimeout(adjustTopPadding, 50); });
-            window.addEventListener('load', adjustTopPadding);
-            window.addEventListener('resize', adjustTopPadding);
-
             // when a student is selected, auto-fetch student details and fill only student-specific preview fields
             $('#student_select').on('select2:select', function(e){
                 const id = select.val();
@@ -291,7 +285,7 @@ if (isset($_GET['action'])) {
                 // enable fill button too
                 $('#btn_fill').prop('disabled', false);
                 // auto-fill student info (NOT recipient/company fields)
-                fetch('documents.php?action=get_student&id=' + encodeURIComponent(id))
+                fetch('document_application.php?action=get_student&id=' + encodeURIComponent(id))
                     .then(r => r.json())
                     .then(data => {
                         if (!data) return;
@@ -338,7 +332,7 @@ if (isset($_GET['action'])) {
                 const id = select.val();
                 if (!id) return;
                 // populate only student information in preview (do not touch recipient/company inputs)
-                fetch('documents.php?action=get_student&id=' + encodeURIComponent(id))
+                fetch('document_application.php?action=get_student&id=' + encodeURIComponent(id))
                     .then(r => r.json())
                     .then(data => {
                         if (!data) return;
@@ -355,6 +349,34 @@ if (isset($_GET['action'])) {
                         updateGenerateLink(id);
                     });
             });
+
+            // fallback mobile sidebar toggler for pages where template markup/scripts load later
+            document.addEventListener('click', function(e){
+                const toggle = e.target.closest('#mobile-collapse');
+                if (!toggle) return;
+                e.preventDefault();
+
+                const nav = document.querySelector('.nxl-navigation');
+                if (!nav) return;
+
+                nav.classList.toggle('mob-navigation-active');
+
+                let overlay = document.querySelector('.nxl-md-overlay');
+                if (nav.classList.contains('mob-navigation-active')) {
+                    if (!overlay) {
+                        overlay = document.createElement('div');
+                        overlay.className = 'nxl-md-overlay';
+                        document.body.appendChild(overlay);
+                    }
+                    overlay.onclick = function(){
+                        nav.classList.remove('mob-navigation-active');
+                        overlay.remove();
+                    };
+                } else if (overlay) {
+                    overlay.remove();
+                }
+            });
+
         })();
     </script>
     <?php include 'template.php'; ?>

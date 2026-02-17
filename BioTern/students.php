@@ -296,9 +296,9 @@ function formatDate($date) {
                             <span class="nxl-mtext">Documents</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="documents.php">Application Letter</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="document_application.php">Application Letter</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="generate_endorsement_letter.php">Endorsement Letter</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="generate_moa.php">MOA</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="document_moa.php">MOA</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="generate_resume.php">Resume</a></li>
                         </ul>
                     </li>
@@ -433,19 +433,6 @@ function formatDate($date) {
                     <a href="javascript:void(0);" id="menu-expend-button" style="display: none">
                         <i class="feather-arrow-right"></i>
                     </a>
-                </div>
-                <div class="nxl-lavel-mega-menu-toggle d-flex d-lg-none">
-                    <a href="javascript:void(0);" id="nxl-lavel-mega-menu-open">
-                        <i class="feather-align-left"></i>
-                    </a>
-                </div>
-                <div class="nxl-drp-link nxl-lavel-mega-menu">
-                    <div class="nxl-lavel-mega-menu-toggle d-flex d-lg-none">
-                        <a href="javascript:void(0)" id="nxl-lavel-mega-menu-hide">
-                            <i class="feather-arrow-left me-2"></i>
-                            <span>Back</span>
-                        </a>
-                    </div>
                 </div>
             </div>
             <div class="header-right ms-auto">

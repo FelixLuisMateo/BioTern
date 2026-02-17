@@ -108,9 +108,9 @@
                             <span class="nxl-mtext">Documents</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="documents.php">Application Letter</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="document_application.php">Application Letter</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="generate_endorsement_letter.php">Endorsement Letter</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="generate_moa.php">MOA</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="document_moa.php">MOA</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="generate_resume.php">Resume</a></li>
                         </ul>
                     </li>

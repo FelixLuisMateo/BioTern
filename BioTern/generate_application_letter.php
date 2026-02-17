@@ -28,7 +28,7 @@ $address = $student['address'] ?? '';
 $phone = $student['phone'] ?? '';
 $today = date('F j, Y');
 
-// Allow overriding some fields via query string when generating from documents.php
+// Allow overriding some fields via query string when generating from document_application.php
 $ap_name = isset($_GET['ap_name']) ? trim($_GET['ap_name']) : '';
 $ap_position = isset($_GET['ap_position']) ? trim($_GET['ap_position']) : '';
 $ap_company = isset($_GET['ap_company']) ? trim($_GET['ap_company']) : '';
