@@ -205,8 +205,8 @@ $year = date("Y");
         <div class="logo-section">
             <img src="assets/images/auth/auth-cover-login-bg.png" alt="BioTern Logo">
         </div>
-        <h1 class="display-6">Welcome to BioTern</h1>
-        <p class="lead text-muted">Your Biometric Internship Monitoring and Management System</p>
+        <h1 style="color: #ffffff;">Welcome to BioTern</h1>
+        <p class="lead text-muted" style="color: #ffffff;">Your Biometric Internship Monitoring and Management System</p>
         <p class="text-muted">Manage interns, supervisors, coordinators, attendance and reports in one place.</p>
         <br>
         <a href="auth-register-creative.php" class="apply-btn">Apply Now</a>

@@ -1015,7 +1015,7 @@ if ($attendance_today->num_rows > 0) {
                                                     if ($record['afternoon_time_in'] && $record['afternoon_time_out']) {
                                                         $afternoon = date('h:i A', strtotime($record['afternoon_time_in'])) . ' - ' . date('h:i A', strtotime($record['afternoon_time_out']));
                                                     } elseif ($record['afternoon_time_in']) {
-                                                        $afternoon = date('h:i A', strtotime($record['afternoon_time_in'])) . ' âœ“';
+                                                        $afternoon = date('h:i A', strtotime($record['afternoon_time_in'])) . ' - ';
                                                     }
                                                     echo $afternoon ? '<span class="badge-time badge-afternoon">' . $afternoon . '</span>' : '-';
                                                 ?>

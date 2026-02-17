@@ -292,6 +292,18 @@ function formatDate($date) {
                     </li>
                     <li class="nxl-item nxl-hasmenu">
                         <a href="javascript:void(0);" class="nxl-link">
+                            <span class="nxl-micon"><i class="feather-file-text"></i></span>
+                            <span class="nxl-mtext">Documents</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                        </a>
+                        <ul class="nxl-submenu">
+                            <li class="nxl-item"><a class="nxl-link" href="documents.php">Application Letter</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="generate_endorsement_letter.php">Endorsement Letter</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="generate_moa.php">MOA</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="generate_resume.php">Resume</a></li>
+                        </ul>
+                    </li>
+                    <li class="nxl-item nxl-hasmenu">
+                        <a href="javascript:void(0);" class="nxl-link">
                             <span class="nxl-micon"><i class="feather-alert-circle"></i></span>
                             <span class="nxl-mtext">Leads</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
