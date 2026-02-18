@@ -1,17 +1,102 @@
 <?php
-// Database Connection
-$host = 'localhost';
-$db_user = 'root';
-$db_password = '';
-$db_name = 'biotern_db';
+// Include legacy database connection if present (avoid fatal include error)
+$legacyDb = base_path('../BioTern/config/db.php');
+if (file_exists($legacyDb)) {
+    include_once $legacyDb;
+} else {
+    try {
+        $pdo = \Illuminate\Support\Facades\DB::connection()->getPdo();
 
-try {
-    $conn = new mysqli($host, $db_user, $db_password, $db_name);
-    if ($conn->connect_error) {
-        die("Connection failed: " . $conn->connect_error);
+        if (!class_exists('LegacyPdoResultWrapper')) {
+            class LegacyPdoResultWrapper {
+                private $rows;
+                private $pos = 0;
+                public $num_rows = 0;
+
+                public function __construct($rows) {
+                    $this->rows = is_array($rows) ? $rows : [];
+                    $this->num_rows = count($this->rows);
+                }
+
+                public function fetch_assoc() {
+                    if ($this->pos < $this->num_rows) {
+                        return $this->rows[$this->pos++];
+                    }
+                    return null;
+                }
+            }
+        }
+
+        if (!class_exists('LegacyPdoStatementWrapper')) {
+            class LegacyPdoStatementWrapper {
+                private $pdo;
+                private $sql;
+                private $params = [];
+                private $stmt;
+                private $rows = [];
+
+                public function __construct($pdo, $sql) {
+                    $this->pdo = $pdo;
+                    $this->sql = $sql;
+                }
+
+                public function bind_param($types, &...$vars) {
+                    $this->params = [];
+                    foreach ($vars as &$value) {
+                        $this->params[] = &$value;
+                    }
+                    return true;
+                }
+
+                public function execute() {
+                    $this->stmt = $this->pdo->prepare($this->sql);
+                    $values = [];
+                    foreach ($this->params as &$value) {
+                        $values[] = $value;
+                    }
+                    $ok = $this->stmt->execute($values);
+                    try {
+                        $this->rows = $this->stmt->fetchAll(\PDO::FETCH_ASSOC);
+                    } catch (\Exception $e) {
+                        $this->rows = [];
+                    }
+                    return $ok;
+                }
+
+                public function get_result() {
+                    return new LegacyPdoResultWrapper($this->rows);
+                }
+            }
+        }
+
+        $conn = new class($pdo) {
+            private $pdo;
+
+            public function __construct($pdo) {
+                $this->pdo = $pdo;
+            }
+
+            public function query($sql) {
+                try {
+                    $stmt = $this->pdo->query($sql);
+                    $rows = $stmt ? $stmt->fetchAll(\PDO::FETCH_ASSOC) : [];
+                    return new LegacyPdoResultWrapper($rows);
+                } catch (\Exception $e) {
+                    return new LegacyPdoResultWrapper([]);
+                }
+            }
+
+            public function prepare($sql) {
+                return new LegacyPdoStatementWrapper($this->pdo, $sql);
+            }
+
+            public function real_escape_string($value) {
+                return substr($this->pdo->quote($value), 1, -1);
+            }
+        };
+    } catch (\Exception $e) {
+        die('Database Error: ' . $e->getMessage());
     }
-} catch (Exception $e) {
-    die("Database Error: " . $e->getMessage());
 }
 
 // Get student ID from URL parameter
@@ -23,9 +108,10 @@ if ($student_id == 0) {
 
 // Fetch Student Details
 $student_query = "
-    SELECT
+    SELECT 
         s.id,
         s.student_id,
+        s.profile_picture,
         s.first_name,
         s.last_name,
         s.middle_name,
@@ -71,8 +157,8 @@ $student = $result->fetch_assoc();
 // Check if student is active today (has any attendance record for today)
 $today = date('Y-m-d');
 $active_today_query = "
-    SELECT COUNT(*) as count
-    FROM attendances
+    SELECT COUNT(*) as count 
+    FROM attendances 
     WHERE student_id = ? AND attendance_date = ?
 ";
 $stmt_active = $conn->prepare($active_today_query);
@@ -84,13 +170,13 @@ $is_active_today = $active_row['count'] > 0 ? true : false;
 
 // Check if student is currently clocked in (has morning_time_in but no morning_time_out)
 $clocked_in_query = "
-    SELECT
+    SELECT 
         id,
         morning_time_in,
         morning_time_out,
         afternoon_time_in,
         afternoon_time_out
-    FROM attendances
+    FROM attendances 
     WHERE student_id = ? AND attendance_date = ?
     LIMIT 1
 ";
@@ -107,7 +193,7 @@ if ($attendance_record) {
     $morning_out = $attendance_record['morning_time_out'];
     $afternoon_in = $attendance_record['afternoon_time_in'];
     $afternoon_out = $attendance_record['afternoon_time_out'];
-
+    
     // Student is clocked in if:
     // - Morning clock in exists but no clock out, OR
     // - Afternoon clock in exists but no afternoon clock out
@@ -124,7 +210,7 @@ $completion_percentage = ($hours_rendered / $total_hours) * 100;
 
 // Fetch Attendance Records for activity
 $activity_query = "
-    SELECT
+    SELECT 
         att.id,
         att.attendance_date as date,
         att.morning_time_in,
@@ -201,25 +287,25 @@ function formatTimeRange($time_in, $time_out) {
 
 function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $afternoon_in, $afternoon_out) {
     $total = 0;
-
+    
     // Morning hours
     if ($morning_in && $morning_out) {
         $morning_time = strtotime($morning_out) - strtotime($morning_in);
         $total += $morning_time / 3600;
     }
-
+    
     // Afternoon hours
     if ($afternoon_in && $afternoon_out) {
         $afternoon_time = strtotime($afternoon_out) - strtotime($afternoon_in);
         $total += $afternoon_time / 3600;
     }
-
+    
     // Subtract break time
     if ($break_in && $break_out) {
         $break_time = strtotime($break_out) - strtotime($break_in);
         $total -= $break_time / 3600;
     }
-
+    
     return round(max(0, $total), 2);
 }
 
@@ -242,19 +328,100 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
     <link rel="stylesheet" type="text/css" href="{{ asset('frontend/assets/vendors/css/select2.min.css') }}">
     <link rel="stylesheet" type="text/css" href="{{ asset('frontend/assets/vendors/css/select2-theme.min.css') }}">
     <link rel="stylesheet" type="text/css" href="{{ asset('frontend/assets/css/theme.min.css') }}">
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        main.nxl-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        div.nxl-content {
+            flex: 1;
+        }
+        footer.footer {
+            margin-top: auto;
+        }
+        
+        /* Dark mode select and Select2 styling */
+        select.form-control,
+        select.form-select,
+        .select2-container--default .select2-selection--single,
+        .select2-container--default .select2-selection--multiple {
+            color: #333;
+            background-color: #ffffff;
+        }
+        
+        /* Dark mode support for Select2 */
+        body.dark .select2-container--default .select2-selection--single,
+        body.dark .select2-container--default .select2-selection--multiple,
+        body[data-bs-theme="dark"] .select2-container--default .select2-selection--single,
+        body[data-bs-theme="dark"] .select2-container--default .select2-selection--multiple {
+            color: #f0f0f0;
+            background-color: #2d3748;
+            border-color: #4a5568 !important;
+        }
+        
+        body.dark .select2-container--default .select2-selection--single .select2-selection__rendered,
+        body[data-bs-theme="dark"] .select2-container--default .select2-selection--single .select2-selection__rendered {
+            color: #f0f0f0;
+        }
+        
+        /* Dark mode dropdown menu */
+        body.dark .select2-container--default.select2-container--open .select2-dropdown,
+        body[data-bs-theme="dark"] .select2-container--default.select2-container--open .select2-dropdown {
+            background-color: #2d3748;
+            border-color: #4a5568;
+        }
+        
+        body.dark .select2-results__option,
+        body[data-bs-theme="dark"] .select2-results__option {
+            color: #f0f0f0;
+            background-color: #2d3748;
+        }
+        
+        body.dark .select2-results__option--highlighted[aria-selected],
+        body[data-bs-theme="dark"] .select2-results__option--highlighted[aria-selected] {
+            background-color: #667eea;
+            color: #ffffff;
+        }
+        
+        body.dark .select2-container--default select.form-control,
+        body.dark select.form-control,
+        body.dark select.form-select,
+        body[data-bs-theme="dark"] select.form-control,
+        body[data-bs-theme="dark"] select.form-select {
+            color: #f0f0f0;
+            background-color: #2d3748;
+            border-color: #4a5568;
+        }
+        
+        body.dark select.form-control option,
+        body.dark select.form-select option,
+        body[data-bs-theme="dark"] select.form-control option,
+        body[data-bs-theme="dark"] select.form-select option {
+            color: #f0f0f0;
+            background-color: #2d3748;
+        }
+    </style>
 </head>
 
 <body>
-    <!--! ================================================================ !-->
-    <!--! [Start] Navigation Manu !-->
-    <!--! ================================================================ !-->
+    <!--! Navigation !-->
     <nav class="nxl-navigation">
         <div class="navbar-wrapper">
             <div class="m-header">
-                <a href="{{ url('/') }}" class="b-brand">
-                    <!-- ========   change your logo hear   ============ -->
-                    <img src="/frontend/assets/images/logo-full.png" alt="" class="logo logo-lg" />
-                    <img src="/frontend/assets/images/logo-abbr.png" alt="" class="logo logo-sm" />
+                <a href="{{ route('dashboard') }}" class="b-brand">
+                    <img src="{{ asset('frontend/assets/images/logo-full.png') }}" alt="" class="logo logo-lg">
+                    <img src="{{ asset('frontend/assets/images/logo-abbr.png') }}" alt="" class="logo logo-sm">
                 </a>
             </div>
             <div class="navbar-content">
@@ -268,7 +435,7 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                             <span class="nxl-mtext">Dashboards</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/') }}">CRM</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ route('dashboard') }}">CRM</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="{{ url('/analytics') }}">Analytics</a></li>
                         </ul>
                     </li>
@@ -278,10 +445,10 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                             <span class="nxl-mtext">Reports</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/reports/sales') }}">Sales Report</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/reports/leads') }}">Leads Report</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/reports/project') }}">Project Report</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/reports/timesheets') }}">Timesheets Report</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/reports-sales') }}">Sales Report</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/reports-ojt') }}">Leads Report</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/reports-project') }}">Project Report</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/reports-timesheets') }}">Timesheets Report</a></li>
                         </ul>
                     </li>
                     <li class="nxl-item nxl-hasmenu">
@@ -305,21 +472,19 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                         </a>
                         <ul class="nxl-submenu">
                             <li class="nxl-item"><a class="nxl-link" href="{{ url('/students') }}">Students</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/students/view') }}">Students View</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/students/create') }}">Students Create</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/attendance') }}">Attendance</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/demo-biometric') }}">Demo Biometric</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/students-view') }}">Students View</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/students-create') }}">Students Create</a></li>
                         </ul>
                     </li>
                     <li class="nxl-item nxl-hasmenu">
                         <a href="javascript:void(0);" class="nxl-link">
                             <span class="nxl-micon"><i class="feather-alert-circle"></i></span>
-                            <span class="nxl-mtext">Leads</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                            <span class="nxl-mtext">Assign OJT Designation</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/leads') }}">Leads</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/leads/view') }}">Leads View</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/leads/create') }}">Leads Create</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/ojt') }}">OJT List</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/ojt-view') }}">OJT View</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/ojt-create') }}">OJT Create</a></li>
                         </ul>
                     </li>
                     <li class="nxl-item nxl-hasmenu">
@@ -341,15 +506,15 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                             <span class="nxl-mtext">Settings</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings/general') }}">General</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings/seo') }}">SEO</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings/tags') }}">Tags</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings/email') }}">Email</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings/tasks') }}">Tasks</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings/leads') }}">Leads</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings/support') }}">Support</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings/students') }}">Students</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings/miscellaneous') }}">Miscellaneous</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings-general') }}">General</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings-seo') }}">SEO</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings-tags') }}">Tags</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings-email') }}">Email</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings-tasks') }}">Tasks</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings-ojt') }}">Leads</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings-support') }}">Support</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings-students') }}">Students</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings-miscellaneous') }}">Miscellaneous</a></li>
                         </ul>
                     </li>
                     <li class="nxl-item nxl-hasmenu">
@@ -363,7 +528,7 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                                     <span class="nxl-mtext">Login</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                                 </a>
                                 <ul class="nxl-submenu">
-                                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/auth/login') }}">Cover</a></li>
+                                    <li class="nxl-item"><a class="nxl-link" href="{{ url('/auth-login-cover') }}">Cover</a></li>
                                 </ul>
                             </li>
                             <li class="nxl-item nxl-hasmenu">
@@ -371,7 +536,7 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                                     <span class="nxl-mtext">Register</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                                 </a>
                                 <ul class="nxl-submenu">
-                                    <li class="nxl-item"><a class="nxl-link" href="{{ url('/auth/register') }}">Creative</a></li>
+                                    <li class="nxl-item"><a class="nxl-link" href="{{ url('/auth-register-creative') }}">Creative</a></li>
                                 </ul>
                             </li>
                             <li class="nxl-item nxl-hasmenu">
@@ -379,7 +544,7 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                                     <span class="nxl-mtext">Error-404</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                                 </a>
                                 <ul class="nxl-submenu">
-                                    <li class="nxl-item"><a class="nxl-link" href="auth-404-minimal.html">Minimal</a></li>
+                                    <li class="nxl-item"><a class="nxl-link" href="{{ url('/auth-404-minimal') }}">Minimal</a></li>
                                 </ul>
                             </li>
                             <li class="nxl-item nxl-hasmenu">
@@ -387,7 +552,7 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                                     <span class="nxl-mtext">Reset Pass</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                                 </a>
                                 <ul class="nxl-submenu">
-                                    <li class="nxl-item"><a class="nxl-link" href="auth-reset-cover.html">Cover</a></li>
+                                    <li class="nxl-item"><a class="nxl-link" href="{{ url('/auth-reset-cover') }}">Cover</a></li>
                                 </ul>
                             </li>
                             <li class="nxl-item nxl-hasmenu">
@@ -395,7 +560,7 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                                     <span class="nxl-mtext">Verify OTP</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                                 </a>
                                 <ul class="nxl-submenu">
-                                    <li class="nxl-item"><a class="nxl-link" href="auth-verify-cover.html">Cover</a></li>
+                                    <li class="nxl-item"><a class="nxl-link" href="{{ url('/auth-verify-cover') }}">Cover</a></li>
                                 </ul>
                             </li>
                             <li class="nxl-item nxl-hasmenu">
@@ -403,7 +568,7 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                                     <span class="nxl-mtext">Maintenance</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                                 </a>
                                 <ul class="nxl-submenu">
-                                    <li class="nxl-item"><a class="nxl-link" href="auth-maintenance-cover.html">Cover</a></li>
+                                    <li class="nxl-item"><a class="nxl-link" href="{{ url('/auth-maintenance-cover') }}">Cover</a></li>
                                 </ul>
                             </li>
                         </ul>
@@ -414,18 +579,16 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                             <span class="nxl-mtext">Help Center</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/help/support') }}">Support</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="#!">Support</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="{{ url('/help-knowledgebase') }}">KnowledgeBase</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/docs/documentations') }}">Documentations</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="/docs/documentations">Documentations</a></li>
                         </ul>
                     </li>
                 </ul>
             </div>
         </div>
     </nav>
-    <!--! ================================================================ !-->
-    <!--! [End]  Navigation Manu !-->
-    <!--! ================================================================ !-->
+
     <!--! Header !-->
     <header class="nxl-header">
         <div class="header-wrapper">
@@ -511,7 +674,7 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                                 <span>Account Settings</span>
                             </a>
                             <div class="dropdown-divider"></div>
-                            <a href="./auth-login-minimal.html" class="dropdown-item">
+                            <a href="{{ url('/auth-login-cover') }}" class="dropdown-item">
                                 <i class="feather-log-out"></i>
                                 <span>Logout</span>
                             </a>
@@ -531,11 +694,11 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                     <div class="page-header-title">
                         <h5 class="m-b-10">Student Profile</h5>
                     </div>
-                        <ul class="breadcrumb">
-                            <li class="breadcrumb-item"><a href="{{ url('/') }}">Home</a></li>
-                            <li class="breadcrumb-item"><a href="students.php">Students</a></li>
-                            <li class="breadcrumb-item">View</li>
-                        </ul>
+                    <ul class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Home</a></li>
+                        <li class="breadcrumb-item"><a href="{{ url('/students') }}">Students</a></li>
+                        <li class="breadcrumb-item">View</li>
+                    </ul>
                 </div>
                 <div class="page-header-right ms-auto">
                     <div class="page-header-right-items">
@@ -547,7 +710,7 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                                 <i class="feather-eye me-2"></i>
                                 <span>Follow</span>
                             </a>
-                            <a href="students.php" class="btn btn-primary">
+                            <a href="{{ url('/students') }}" class="btn btn-primary">
                                 <i class="feather-arrow-left me-2"></i>
                                 <span>Back to List</span>
                             </a>
@@ -566,7 +729,11 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                                 <div class="mb-4 text-center">
                                     <div class="wd-150 ht-150 mx-auto mb-3 position-relative">
                                         <div class="avatar-image wd-150 ht-150 border border-5 border-gray-3">
-                                            <img src="<?php echo asset('frontend/assets/images/avatar/' . (($student['id'] % 5) + 1) . '.png'); ?>" alt="" class="img-fluid">
+                                            <?php if (!empty($student['profile_picture']) && file_exists(__DIR__ . '/' . $student['profile_picture'])): ?>
+                                                <img src="<?php echo htmlspecialchars($student['profile_picture']) . '?v=' . filemtime(__DIR__ . '/' . $student['profile_picture']); ?>" alt="Profile" class="img-fluid">
+                                            <?php else: ?>
+                                                <img src="{{ asset('frontend/assets/images/avatar/<?php echo ($student['id'] % 5) + 1; ?>.png') }}" alt="" class="img-fluid">
+                                            <?php endif; ?>
                                         </div>
                                         <div class="wd-10 ht-10 text-success rounded-circle position-absolute translate-middle" style="top: 76%; right: 10px">
                                             <i class="bi bi-patch-check-fill"></i>
@@ -579,7 +746,7 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                                     <div class="fs-12 fw-normal text-muted text-center d-flex flex-wrap gap-3 mb-4">
                                         <div class="flex-fill py-3 px-4 rounded-1 d-none d-sm-block border border-dashed border-gray-5">
                                             <h6 class="fs-15 fw-bolder" id="hoursRemaining">
-                                                <?php
+                                                <?php 
                                                 $hours = floor($hours_remaining);
                                                 $mins = floor(($hours_remaining - $hours) * 60);
                                                 echo $hours . 'h:' . str_pad($mins, 2, '0', STR_PAD_LEFT) . 'm:00s';
@@ -627,7 +794,7 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                                         <i class="feather-trash-2 me-2"></i>
                                         <span>Delete</span>
                                     </a>
-                                    <a href="students-edit.php?id=<?php echo $student['id']; ?>" class="w-50 btn btn-primary">
+                                    <a href="{{ url('/students-edit') }}?id=<?php echo $student['id']; ?>" class="w-50 btn btn-primary">
                                         <i class="feather-edit me-2"></i>
                                         <span>Edit Profile</span>
                                     </a>
@@ -658,7 +825,7 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                                     <div class="profile-details mb-5">
                                         <div class="mb-4 d-flex align-items-center justify-content-between">
                                             <h5 class="fw-bold mb-0">Profile Details:</h5>
-                                            <a href="students-edit.php?id=<?php echo $student['id']; ?>" class="btn btn-sm btn-light-brand">Edit Profile</a>
+                                            <a href="{{ url('/students-edit') }}?id=<?php echo $student['id']; ?>" class="btn btn-sm btn-light-brand">Edit Profile</a>
                                         </div>
                                         <div class="row g-0 mb-4">
                                             <div class="col-sm-6 text-muted">First Name:</div>
@@ -737,7 +904,7 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                                         <ul class="list-unstyled activity-feed">
                                             <?php if (count($activities) > 0): ?>
                                                 <?php foreach ($activities as $activity): ?>
-                                                    <?php
+                                                    <?php 
                                                     $total_hours = !empty($activity['total_hours']) ? $activity['total_hours'] : calculateTotalHours(
                                                         $activity['morning_time_in'],
                                                         $activity['morning_time_out'],
@@ -815,7 +982,7 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                     document.write(new Date().getFullYear());
                 </script>
             </p>
-            <p><span>By: <a target="_blank" href="">ACT 2A</a></span> • <span>Distributed by: <a target="_blank" href="">Group 5</a></span></p>
+            <p><span>By: <a target="_blank" href="">ACT 2A</a> </span><span>Distributed by: <a target="_blank" href="">Group 5</a></span></p>
             <div class="d-flex align-items-center gap-4">
                 <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Help</a>
                 <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Terms</a>
@@ -841,23 +1008,23 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
             const timerElement = document.getElementById('hoursRemaining');
             const storageKey = `student_timer_${studentId}`;
             const statusKey = `student_active_${studentId}`;
-
+            
             // Check if student is active today
             if (!isActiveToday) {
                 timerElement.textContent = 'Student not active today';
                 return;
             }
-
+            
             // Check if student is clocked in
             if (!isClockedIn) {
                 timerElement.textContent = 'Student not clocked in';
                 return;
             }
-
+            
             // Get stored remaining seconds or initialize
             let storedData = localStorage.getItem(storageKey);
             let remainingSeconds;
-
+            
             if (storedData) {
                 const data = JSON.parse(storedData);
                 const storedTime = data.timestamp;
@@ -870,21 +1037,21 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                 remainingSeconds = hoursRemaining * 3600;
                 saveTimerState(remainingSeconds, storageKey);
             }
-
+            
             // Update display and save state
             function updateTimer() {
                 if (remainingSeconds > 0) {
                     remainingSeconds--;
-
+                    
                     const hours = Math.floor(remainingSeconds / 3600);
                     const minutes = Math.floor((remainingSeconds % 3600) / 60);
                     const seconds = remainingSeconds % 60;
-
-                    timerElement.textContent =
-                        hours + 'h:' +
-                        (minutes < 10 ? '0' : '') + minutes + 'm:' +
+                    
+                    timerElement.textContent = 
+                        hours + 'h:' + 
+                        (minutes < 10 ? '0' : '') + minutes + 'm:' + 
                         (seconds < 10 ? '0' : '') + seconds + 's';
-
+                    
                     // Save state every 10 seconds to avoid excessive storage writes
                     if (remainingSeconds % 10 === 0) {
                         saveTimerState(remainingSeconds, storageKey);
@@ -894,10 +1061,10 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                     localStorage.removeItem(storageKey);
                 }
             }
-
+            
             // Check if student is still clocked in (every 30 seconds)
             function checkClockInStatus() {
-                fetch('get_clock_status.php?student_id=' + studentId)
+            fetch('{{ url('/get_clock_status') }}?student_id=' + studentId)
                     .then(response => response.json())
                     .then(data => {
                         if (!data.is_clocked_in) {
@@ -911,7 +1078,7 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                         console.log('Clock status check failed');
                     });
             }
-
+            
             // Save timer state to localStorage
             function saveTimerState(seconds, key) {
                 const data = {
@@ -920,7 +1087,7 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                 };
                 localStorage.setItem(key, JSON.stringify(data));
             }
-
+            
             // Clear expired timers (older than 24 hours)
             function clearExpiredTimers() {
                 const currentTime = new Date().getTime();
@@ -938,26 +1105,26 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                     }
                 }
             }
-
+            
             // Initial display
             updateTimer();
-
+            
             // Update every second
             const timerInterval = setInterval(updateTimer, 1000);
-
+            
             // Check clock in status every 30 seconds
             const clockCheckInterval = setInterval(checkClockInStatus, 30000);
-
+            
             // Clear on page unload
             window.addEventListener('beforeunload', function() {
                 saveTimerState(remainingSeconds, storageKey);
                 clearExpiredTimers();
             });
-
+            
             // Clear expired timers on init
             clearExpiredTimers();
         }
-
+        
         // Initialize timer when DOM is ready
         document.addEventListener('DOMContentLoaded', initializeTimer);
     </script>
@@ -968,3 +1135,4 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
 <?php
 $conn->close();
 ?>
+

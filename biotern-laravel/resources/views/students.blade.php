@@ -330,7 +330,7 @@ function formatDate($date) {
                         </a>
                         <ul class="nxl-submenu">
                             <li class="nxl-item"><a class="nxl-link" href="{{ url('/students') }}">Students</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/students-view') }}">Students View</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/students/view') }}">Students View</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="{{ url('/students-create') }}">Students Create</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="{{ url('/attendance') }}">Attendance DTR</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="{{ url('/demo-biometric') }}">Demo Biometric</a></li>
@@ -813,7 +813,7 @@ function formatDate($date) {
                                                             </div>
                                                         </td>
                                                         <td>
-                                                            <a href="students-view.php?id=<?php echo $student['id']; ?>" class="hstack gap-3">
+                                                            <a href="{{ url('/students/view') }}?id=<?php echo $student['id']; ?>" class="hstack gap-3">
                                                                 <div class="avatar-image avatar-md">
                                                                     <?php
                                                                     $pp = $student['profile_picture'] ?? '';
@@ -830,7 +830,7 @@ function formatDate($date) {
                                                                 </div>
                                                             </a>
                                                         </td>
-                                                        <td><a href="students-view.php?id=<?php echo $student['id']; ?>"><?php echo htmlspecialchars($student['student_id']); ?></a></td>
+                                                        <td><a href="{{ url('/students/view') }}?id=<?php echo $student['id']; ?>"><?php echo htmlspecialchars($student['student_id']); ?></a></td>
                                                         <td><a href="javascript:void(0);"><?php echo htmlspecialchars($student['course_name'] ?? 'N/A'); ?></a></td>
                                                         <td><a href="javascript:void(0);"><?php echo htmlspecialchars($student['supervisor_name'] ?? '-'); ?></a></td>
                                                         <td><a href="javascript:void(0);"><?php echo htmlspecialchars($student['coordinator_name'] ?? '-'); ?></a></td>
@@ -838,7 +838,7 @@ function formatDate($date) {
                                                         <td><?php echo getStatusBadge($student['status']); ?></td>
                                                         <td>
                                                             <div class="hstack gap-2 justify-content-end">
-                                                                <a href="students-view.php?id=<?php echo $student['id']; ?>" class="avatar-text avatar-md" title="View">
+                                                                <a href="{{ url('/students/view') }}?id=<?php echo $student['id']; ?>" class="avatar-text avatar-md" title="View">
                                                                     <i class="feather feather-eye"></i>
                                                                 </a>
                                                                 <div class="dropdown">
@@ -936,4 +936,3 @@ function formatDate($date) {
 </body>
 
 </html>
-
