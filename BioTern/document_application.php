@@ -153,6 +153,16 @@ if (isset($_GET['action'])) {
         .nxl-navigation { z-index: 2147483646; }
         footer.footer { margin-top: auto; }
         #btn_generate.is-disabled { opacity: .65; }
+        .file-edit-active #letter_content {
+            outline: 2px dashed #3b82f6;
+            outline-offset: 6px;
+            background: rgba(59, 130, 246, 0.04);
+        }
+        #letter_content[contenteditable="true"] {
+            cursor: text;
+            user-select: text;
+            -webkit-user-select: text;
+        }
         @media (max-width: 1024px) {
             .nxl-navigation,
             .nxl-navigation.mob-navigation-active { z-index: 2147483646 !important; }
@@ -199,8 +209,8 @@ if (isset($_GET['action'])) {
                             <textarea id="input_company_address" class="form-control form-control-sm" rows="2" placeholder="Company address"></textarea>
                         </div>
                         <div class="mt-3 d-flex gap-2">
-                            <button id="btn_fill" class="btn btn-primary flex-grow-0" disabled>Fill Template</button>
-                            <a id="btn_generate" class="btn btn-success flex-grow-1 is-disabled" target="_blank">Generate / Print</a>
+                            <button id="btn_file_edit_application" type="button" class="btn btn-primary flex-grow-0">File Edit</button>
+                            <button id="btn_generate" type="button" class="btn btn-success flex-grow-1">Generate / Print</button>
                         </div>
                     </div>
                 </div>
@@ -245,12 +255,53 @@ if (isset($_GET['action'])) {
     <script src="assets/vendors/js/select2.min.js"></script>
     <script>
         (function(){
+            const APP_TEMPLATE_STORAGE_KEY = 'biotern_application_template_html_v1';
             const select = $('#student_select');
             const inputName = document.getElementById('input_name');
             const inputPosition = document.getElementById('input_position');
             const inputCompany = document.getElementById('input_company');
             const inputCompanyAddress = document.getElementById('input_company_address');
+            const btnFileEdit = document.getElementById('btn_file_edit_application');
+            const letterContent = document.getElementById('letter_content');
             let selectedStudentId = null;
+            let isFileEditMode = false;
+            let hasLoadedSavedTemplate = false;
+
+            function saveApplicationTemplateHtml() {
+                if (!letterContent) return;
+                try { localStorage.setItem(APP_TEMPLATE_STORAGE_KEY, letterContent.innerHTML); } catch (err) {}
+            }
+
+            function loadApplicationTemplateHtml() {
+                if (!letterContent) return false;
+                try {
+                    const saved = localStorage.getItem(APP_TEMPLATE_STORAGE_KEY);
+                    if (!saved) return false;
+                    letterContent.innerHTML = saved;
+                    hasLoadedSavedTemplate = true;
+                    return true;
+                } catch (err) {
+                    return false;
+                }
+            }
+
+            function toggleApplicationFileEdit(e, btnEl) {
+                if (e && typeof e.preventDefault === 'function') e.preventDefault();
+                if (!letterContent) return false;
+                isFileEditMode = !isFileEditMode;
+                letterContent.contentEditable = isFileEditMode ? 'true' : 'false';
+                letterContent.spellcheck = isFileEditMode;
+                document.body.classList.toggle('file-edit-active', isFileEditMode);
+                const editBtn = btnEl || btnFileEdit || document.getElementById('btn_file_edit_application');
+                if (editBtn) editBtn.textContent = isFileEditMode ? 'Done Editing' : 'File Edit';
+                if (isFileEditMode) {
+                    letterContent.focus();
+                } else {
+                    saveApplicationTemplateHtml();
+                    updateGenerateLink(selectedStudentId || select.val());
+                }
+                return false;
+            }
 
             select.select2({
                 placeholder: '',
@@ -327,13 +378,15 @@ if (isset($_GET['action'])) {
                 const id = select.val();
                 if (!id) return;
                 selectedStudentId = id;
-                // enable fill button too
-                $('#btn_fill').prop('disabled', false);
                 // auto-fill student info (NOT recipient/company fields)
                 fetch('document_application.php?action=get_student&id=' + encodeURIComponent(id))
                     .then(r => r.json())
                     .then(data => {
                         if (!data) return;
+                        if (isFileEditMode) {
+                            updateGenerateLink(id);
+                            return;
+                        }
                         const fullname = [data.first_name, data.middle_name, data.last_name].filter(Boolean).join(' ');
                         // Do NOT set inputName/inputCompany/inputPosition here — those are for the recipient/company
                         // Only set student-related preview fields
@@ -349,6 +402,7 @@ if (isset($_GET['action'])) {
             });
 
             function updatePreviewFields(){
+                if (isFileEditMode) return;
                 document.getElementById('ap_name').textContent = inputName.value || '__________________________';
                 document.getElementById('ap_position').textContent = inputPosition.value || '__________________________';
                 document.getElementById('ap_company').textContent = inputCompany.value || '__________________________';
@@ -357,18 +411,22 @@ if (isset($_GET['action'])) {
 
             function updateGenerateLink(id){
                 const finalId = id || selectedStudentId || select.val();
-                if (!finalId) return;
                 const gen = document.getElementById('btn_generate');
                 const params = new URLSearchParams();
-                params.set('id', finalId);
+                if (finalId) params.set('id', finalId);
                 if (inputName.value) params.set('ap_name', inputName.value);
                 if (inputPosition.value) params.set('ap_position', inputPosition.value);
                 if (inputCompany.value) params.set('ap_company', inputCompany.value);
                 if (inputCompanyAddress.value) params.set('ap_address', inputCompanyAddress.value);
+                try {
+                    if (localStorage.getItem(APP_TEMPLATE_STORAGE_KEY)) {
+                        params.set('use_saved_template', '1');
+                    }
+                } catch (err) {}
                 params.set('date', new Date().toLocaleDateString());
-                gen.href = 'generate_application_letter.php?' + params.toString();
-                gen.classList.remove('is-disabled');
-                gen.removeAttribute('aria-disabled');
+                const url = 'generate_application_letter.php?' + params.toString();
+                gen.dataset.url = url;
+                return url;
             }
 
             inputName.addEventListener('input', function(){ updatePreviewFields(); updateGenerateLink(selectedStudentId); });
@@ -376,41 +434,25 @@ if (isset($_GET['action'])) {
             inputCompany.addEventListener('input', function(){ updatePreviewFields(); updateGenerateLink(selectedStudentId); });
             inputCompanyAddress.addEventListener('input', function(){ updatePreviewFields(); updateGenerateLink(selectedStudentId); });
 
-            $('#btn_fill').on('click', function(){
-                const id = selectedStudentId || select.val();
-                if (!id) return;
-                // populate only student information in preview (do not touch recipient/company inputs)
-                fetch('document_application.php?action=get_student&id=' + encodeURIComponent(id))
-                    .then(r => r.json())
-                    .then(data => {
-                        if (!data) return;
-                        const fullname = [data.first_name, data.middle_name, data.last_name].filter(Boolean).join(' ');
-                        inputCompany.value = '';
-                        inputCompanyAddress.value = data.address || '';
-                        inputPosition.value = '';
-                        document.getElementById('ap_student').textContent = fullname;
-                        document.getElementById('ap_student_name').textContent = fullname;
-                        document.getElementById('ap_student_address').textContent = data.address || '__________________________';
-                        document.getElementById('ap_student_contact').textContent = data.phone || '__________________________';
-                        document.getElementById('ap_date').textContent = new Date().toLocaleDateString();
-                        updatePreviewFields();
-                        updateGenerateLink(id);
-                    });
+            document.addEventListener('click', function(e){
+                const editBtn = e.target.closest('#btn_file_edit_application');
+                if (!editBtn) return;
+                toggleApplicationFileEdit(e, editBtn);
             });
+
+            if (letterContent) {
+                letterContent.addEventListener('input', function(){
+                    if (!isFileEditMode) return;
+                    saveApplicationTemplateHtml();
+                    updateGenerateLink(selectedStudentId || select.val());
+                });
+            }
 
             // keep button reliably clickable and generate href on demand
             document.getElementById('btn_generate').addEventListener('click', function(e){
-                const id = selectedStudentId || select.val();
-                if (!id) {
-                    e.preventDefault();
-                    alert('Please select a student first.');
-                    this.classList.add('is-disabled');
-                    this.setAttribute('aria-disabled', 'true');
-                    return;
-                }
-                if (!this.href || this.classList.contains('is-disabled')) {
-                    updateGenerateLink(id);
-                }
+                const url = updateGenerateLink(selectedStudentId || select.val());
+                if (!url) return;
+                window.location.href = url;
             });
 
             // fallback mobile sidebar toggler for pages where template markup/scripts load later
@@ -439,6 +481,13 @@ if (isset($_GET['action'])) {
                     overlay.remove();
                 }
             });
+
+            loadApplicationTemplateHtml();
+            if (!hasLoadedSavedTemplate) {
+                updatePreviewFields();
+                document.getElementById('ap_date').textContent = new Date().toLocaleDateString();
+            }
+            updateGenerateLink(selectedStudentId || select.val());
 
         })();
     </script>

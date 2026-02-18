@@ -32,6 +32,7 @@ $doc_no = q('doc_no', '______');
 $page_no = q('page_no', '_____');
 $book_no = q('book_no', '_____');
 $series_no = q('series_no', '_____');
+$use_saved_template = q('use_saved_template', '0') === '1';
 ?>
 <!doctype html>
 <html>
@@ -129,7 +130,7 @@ $series_no = q('series_no', '_____');
 </head>
 <body>
 <div class="container">
-    <div class="doc">
+    <div class="doc" id="moa_doc_content">
         <h4>Memorandum of Agreement</h4>
         <p>
             This Memorandum of Agreement made and executed between: <strong><u>CLARK COLLEGE OF SCIENCE AND TECHNOLOGY</u></strong> a Higher Education Institution, duly organized and existing under Philippine Laws with office/business address at <strong><u>AUREA ST. SAMSONVILLE, DAU MABALACAT CITY PAMPANGA</u></strong> represented here in by <strong><u>MR. JOMAR G. SANGIL (IT, DEPARTMENT HEAD),</u></strong> here in after referred to as the Higher Education Institution.
@@ -199,5 +200,18 @@ $series_no = q('series_no', '_____');
         <button class="btn" onclick="window.close()">Close</button>
     </div>
 </div>
+<?php if ($use_saved_template): ?>
+<script>
+    (function(){
+        try {
+            var saved = localStorage.getItem('biotern_moa_template_html_v1');
+            var doc = document.getElementById('moa_doc_content');
+            if (saved && doc) {
+                doc.innerHTML = saved;
+            }
+        } catch (err) {}
+    })();
+</script>
+<?php endif; ?>
 </body>
 </html>

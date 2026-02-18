@@ -125,6 +125,16 @@ if (isset($_GET['action'])) {
         .nxl-container { min-height: auto !important; }
         .nxl-container .nxl-content { padding-bottom: 0 !important; }
         .footer { margin-bottom: 0 !important; }
+        .file-edit-active #moa_content {
+            outline: 2px dashed #3b82f6;
+            outline-offset: 6px;
+            background: rgba(59, 130, 246, 0.04);
+        }
+        #moa_content[contenteditable="true"] {
+            cursor: text;
+            user-select: text;
+            -webkit-user-select: text;
+        }
         @media (max-width: 1024px) {
             .nxl-navigation,
             .nxl-navigation.mob-navigation-active { z-index: 2147483646 !important; }
@@ -254,7 +264,7 @@ if (isset($_GET['action'])) {
                         </div>
 
                         <div class="mt-3 d-flex gap-2">
-                            <button id="btn_fill" class="btn btn-primary flex-grow-0">Fill Preview</button>
+                            <button id="btn_file_edit_moa" type="button" class="btn btn-primary flex-grow-0">File Edit</button>
                             <button id="btn_generate_moa" type="button" class="btn btn-success flex-grow-1">Generate MOA</button>
                         </div>
                     </div>
@@ -262,13 +272,6 @@ if (isset($_GET['action'])) {
 
                 <div class="col-lg-6">
                     <div class="doc-preview" id="moa_preview">
-                        <img class="crest-preview" src="assets/images/auth/auth-cover-login-bg.png" alt="crest" onerror="this.style.display='none'" style="position:absolute; top:12px; left:12px; width:86px;">
-                        <div class="text-center mb-3" style="padding-top:8px;">
-                            <h6 class="mt-2">CLARK COLLEGE OF SCIENCE AND TECHNOLOGY</h6>
-                            <div class="small text-muted">SNS Bldg. Aurea St., Samsonville Subd., Dau, Mabalacat, Pampanga</div>
-                            <div>Telefax No.: (045) 624-0215</div>
-                        </div>
-
                         <div id="moa_content">
                             <h5 style="text-align:center;">Memorandum of Agreement</h5>
                             <p>Date: <span id="moa_date">__________</span></p>
@@ -348,6 +351,7 @@ if (isset($_GET['action'])) {
     <script src="assets/vendors/js/select2.min.js"></script>
     <script>
         (function(){
+            const MOA_TEMPLATE_STORAGE_KEY = 'biotern_moa_template_html_v1';
             const select = $('#student_select');
             const partnerName = document.getElementById('moa_partner_name');
             const partnerRep = document.getElementById('moa_partner_rep');
@@ -371,8 +375,62 @@ if (isset($_GET['action'])) {
             const pageNo = document.getElementById('moa_page_no');
             const bookNo = document.getElementById('moa_book_no');
             const seriesNo = document.getElementById('moa_series_no');
-            const btnFill = document.getElementById('btn_fill');
+            const btnFill = document.getElementById('btn_file_edit_moa');
             const btnGenerate = document.getElementById('btn_generate_moa');
+            const moaContent = document.getElementById('moa_content');
+            let isFileEditMode = false;
+            let hasLoadedSavedTemplate = false;
+
+            function saveMoaTemplateHtml() {
+                if (!moaContent) return;
+                try { localStorage.setItem(MOA_TEMPLATE_STORAGE_KEY, moaContent.innerHTML); } catch (err) {}
+            }
+
+            function loadMoaTemplateHtml() {
+                if (!moaContent) return false;
+                try {
+                    const saved = localStorage.getItem(MOA_TEMPLATE_STORAGE_KEY);
+                    if (!saved) return false;
+                    moaContent.innerHTML = saved;
+                    hasLoadedSavedTemplate = true;
+                    return true;
+                } catch (err) {
+                    return false;
+                }
+            }
+
+            // Keep File Edit working even if later JS blocks fail.
+            function forceToggleMoaFileEdit(e, btnEl) {
+                if (e && typeof e.preventDefault === 'function') e.preventDefault();
+                isFileEditMode = !isFileEditMode;
+                if (!moaContent) return;
+                moaContent.contentEditable = isFileEditMode ? 'true' : 'false';
+                moaContent.spellcheck = isFileEditMode;
+                document.body.classList.toggle('file-edit-active', isFileEditMode);
+                const editBtn = btnEl || btnFill || document.getElementById('btn_file_edit_moa');
+                if (editBtn) editBtn.textContent = isFileEditMode ? 'Done Editing' : 'File Edit';
+                if (isFileEditMode) {
+                    moaContent.focus();
+                    try {
+                        const range = document.createRange();
+                        range.selectNodeContents(moaContent);
+                        range.collapse(false);
+                        const sel = window.getSelection();
+                        sel.removeAllRanges();
+                        sel.addRange(range);
+                    } catch (err) {}
+                } else {
+                    // Keep manual content edits intact when leaving File Edit mode.
+                    saveMoaTemplateHtml();
+                    updateGenerateLink();
+                }
+                return false;
+            }
+            document.addEventListener('click', function(e){
+                const editBtn = e.target.closest('#btn_file_edit_moa');
+                if (!editBtn) return;
+                forceToggleMoaFileEdit(e, editBtn);
+            });
 
             select.select2({
                 placeholder: '',
@@ -434,6 +492,7 @@ if (isset($_GET['action'])) {
             });
 
             function updatePreview(){
+                if (isFileEditMode) return;
                 document.getElementById('pv_partner_company_name').textContent = partnerName.value || '__________________________';
                 document.getElementById('pv_partner_name').textContent = partnerRep.value || '__________________________';
                 document.getElementById('pv_partner_address').textContent = partnerAddress.value || '__________________________';
@@ -484,6 +543,11 @@ if (isset($_GET['action'])) {
                 if (pageNo.value) params.set('page_no', pageNo.value);
                 if (bookNo.value) params.set('book_no', bookNo.value);
                 if (seriesNo.value) params.set('series_no', seriesNo.value);
+                try {
+                    if (localStorage.getItem(MOA_TEMPLATE_STORAGE_KEY)) {
+                        params.set('use_saved_template', '1');
+                    }
+                } catch (err) {}
                 params.set('date', new Date().toLocaleDateString());
                 const url = 'generate_moa.php?' + params.toString();
                 btnGenerate.dataset.url = url;
@@ -499,7 +563,14 @@ if (isset($_GET['action'])) {
                 docNo, pageNo, bookNo, seriesNo
             ].forEach(function(el){ if (!el) return; el.addEventListener('input', function(){ updatePreview(); updateGenerateLink(); }); });
 
-            btnFill.addEventListener('click', function(){ updatePreview(); updateGenerateLink(); });
+            window.__toggleMoaFileEdit = forceToggleMoaFileEdit;
+            if (moaContent) {
+                moaContent.addEventListener('input', function(){
+                    if (!isFileEditMode) return;
+                    saveMoaTemplateHtml();
+                    updateGenerateLink();
+                });
+            }
             btnGenerate.addEventListener('click', function(){
                 const url = updateGenerateLink();
                 if (!url) return;
@@ -534,7 +605,8 @@ if (isset($_GET['action'])) {
             });
 
             // initialize
-            updatePreview();
+            loadMoaTemplateHtml();
+            if (!hasLoadedSavedTemplate) updatePreview();
             updateGenerateLink();
 
         })();
