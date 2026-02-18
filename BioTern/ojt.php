@@ -10,7 +10,7 @@
     <meta name="author" content="ACT 2A Group 5">
     <!--! The above 6 meta tags *must* come first in the head; any other head content must come *after* these tags !-->
     <!--! BEGIN: Apps Title-->
-    <title>BioTern || Leads</title>
+    <title>BioTern || OJT</title>
     <!--! END:  Apps Title-->
     <!--! BEGIN: Favicon-->
     <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
@@ -70,7 +70,7 @@
                         </a>
                         <ul class="nxl-submenu">
                             <li class="nxl-item"><a class="nxl-link" href="reports-sales.php">Sales Report</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="reports-ojt.php">Leads Report</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="reports-ojt.php">OJT Report</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="reports-project.php">Project Report</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="reports-timesheets.php">Timesheets Report</a></li>
                         </ul>
@@ -138,7 +138,7 @@
                             <li class="nxl-item"><a class="nxl-link" href="settings-tags.php">Tags</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="settings-email.php">Email</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="settings-tasks.php">Tasks</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-ojt.php">Leads</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="settings-ojt.php">OJT</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="settings-support.php">Support</a></li>
                             
                             
@@ -421,11 +421,11 @@
             <div class="page-header">
                 <div class="page-header-left d-flex align-items-center">
                     <div class="page-header-title">
-                        <h5 class="m-b-10">Leads</h5>
+                        <h5 class="m-b-10">OJT</h5>
                     </div>
                     <ul class="breadcrumb">
                         <li class="breadcrumb-item"><a href="index.php">Home</a></li>
-                        <li class="breadcrumb-item">Leads</li>
+                        <li class="breadcrumb-item">OJT</li>
                     </ul>
                 </div>
                 <div class="page-header-right ms-auto">
@@ -518,7 +518,7 @@
                             </div>
                             <a href="ojt-create.php" class="btn btn-primary">
                                 <i class="feather-plus me-2"></i>
-                                <span>Create Lead</span>
+                                <span>Create OJT</span>
                             </a>
                         </div>
                     </div>
@@ -541,7 +541,7 @@
                                                 <i class="feather-users"></i>
                                             </div>
                                             <a href="javascript:void(0);" class="fw-bold d-block">
-                                                <span class="d-block">Total Leads</span>
+                                                <span class="d-block">Total OJTs</span>
                                                 <span class="fs-24 fw-bolder d-block">26,595</span>
                                             </a>
                                         </div>
@@ -562,7 +562,7 @@
                                                 <i class="feather-user-check"></i>
                                             </div>
                                             <a href="javascript:void(0);" class="fw-bold d-block">
-                                                <span class="d-block">Active Leads</span>
+                                                <span class="d-block">Active OJTs</span>
                                                 <span class="fs-24 fw-bolder d-block">2,245</span>
                                             </a>
                                         </div>
@@ -583,7 +583,7 @@
                                                 <i class="feather-user-plus"></i>
                                             </div>
                                             <a href="javascript:void(0);" class="fw-bold d-block">
-                                                <span class="d-block">New Leads</span>
+                                                <span class="d-block">New OJTs</span>
                                                 <span class="fs-24 fw-bolder d-block">1,254</span>
                                             </a>
                                         </div>
@@ -604,7 +604,7 @@
                                                 <i class="feather-user-minus"></i>
                                             </div>
                                             <a href="javascript:void(0);" class="fw-bold d-block">
-                                                <span class="d-block">Inactive Leads</span>
+                                                <span class="d-block">Inactive OJTs</span>
                                                 <span class="fs-24 fw-bolder d-block">4,586</span>
                                             </a>
                                         </div>
@@ -638,7 +638,7 @@
                                                         </div>
                                                     </div>
                                                 </th>
-                                                <th>Lead</th>
+                                                <th>OJT</th>
                                                 <th>Email</th>
                                                 <th>Source</th>
                                                 <th>Phone</th>

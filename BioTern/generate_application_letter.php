@@ -13,15 +13,24 @@ try {
 }
 
 $student_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
-if ($student_id <= 0) die('Invalid student id');
+$student = [
+    'first_name' => '',
+    'middle_name' => '',
+    'last_name' => '',
+    'address' => '',
+    'phone' => ''
+];
 
-$query = "SELECT s.*, c.name as course_name FROM students s LEFT JOIN courses c ON s.course_id = c.id WHERE s.id = ? LIMIT 1";
-$stmt = $conn->prepare($query);
-$stmt->bind_param('i', $student_id);
-$stmt->execute();
-$result = $stmt->get_result();
-if ($result->num_rows == 0) die('Student not found');
-$student = $result->fetch_assoc();
+if ($student_id > 0) {
+    $query = "SELECT s.*, c.name as course_name FROM students s LEFT JOIN courses c ON s.course_id = c.id WHERE s.id = ? LIMIT 1";
+    $stmt = $conn->prepare($query);
+    $stmt->bind_param('i', $student_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($result && $result->num_rows > 0) {
+        $student = $result->fetch_assoc();
+    }
+}
 
 $full_name = trim(($student['first_name'] ?? '') . ' ' . ($student['middle_name'] ?? '') . ' ' . ($student['last_name'] ?? ''));
 $address = $student['address'] ?? '';
@@ -34,6 +43,7 @@ $ap_position = isset($_GET['ap_position']) ? trim($_GET['ap_position']) : '';
 $ap_company = isset($_GET['ap_company']) ? trim($_GET['ap_company']) : '';
 $ap_company_address = isset($_GET['ap_address']) ? trim($_GET['ap_address']) : '';
 $print_date = isset($_GET['date']) ? trim($_GET['date']) : $today;
+$use_saved_template = isset($_GET['use_saved_template']) && $_GET['use_saved_template'] === '1';
 
 // do NOT default recipient name to student; leave blank unless provided
 
@@ -47,7 +57,7 @@ if ($do_download_pdf || $do_download_html) ob_start();
 <html>
 <head>
     <meta charset="utf-8">
-    <title>BioTern || Application Letter - <?php echo htmlspecialchars($student['first_name'] . ' ' . $student['last_name']); ?></title>
+    <title>BioTern || Application Letter - <?php echo htmlspecialchars(trim(($student['first_name'] ?? '') . ' ' . ($student['last_name'] ?? '')) ?: 'Preview'); ?></title>
     <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
     <style>
                 /* Use US Letter for printing and set sensible margins */
@@ -113,7 +123,7 @@ if ($do_download_pdf || $do_download_html) ob_start();
         <div class="tel">Telefax No.: (045) 624-0215</div>
     </div>
 
-    <div class="content">
+    <div class="content" id="application_doc_content">
         <h3 style="text-align:center;">Application Approval Sheet</h3>
         <p class="field-block">Date: <input type="text" class="blank-input" id="fld_date" value="<?php echo htmlspecialchars($print_date); ?>"> <span class="print-val" id="pv_date"></span></p>
         <p class="field-block">Mr./Ms.: <input type="text" class="blank-input" id="fld_name" value="<?php echo htmlspecialchars($ap_name ?: ''); ?>"> <span class="print-val" id="pv_name"></span></p>
@@ -170,6 +180,17 @@ if ($do_download_pdf || $do_download_html) ob_start();
         });
 
         document.getElementById('btn_close').addEventListener('click', function(){ window.close(); });
+    })();
+
+    (function(){
+        if (!<?php echo $use_saved_template ? 'true' : 'false'; ?>) return;
+        try {
+            var saved = localStorage.getItem('biotern_application_template_html_v1');
+            var doc = document.getElementById('application_doc_content');
+            if (saved && doc) {
+                doc.innerHTML = saved;
+            }
+        } catch (err) {}
     })();
 </script>
 </body>
