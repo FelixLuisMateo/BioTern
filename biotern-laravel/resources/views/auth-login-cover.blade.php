@@ -52,6 +52,11 @@
                     </div>
                     <h2 class="fs-25 fw-bolder mb-4">Login</h2>
                     <h4 class="fs-15 fw-bold mb-2">Log in to your Clark College of Science and Technology internship account.</h4>
+                    @if ($errors->has('login'))
+                        <div class="alert alert-danger mt-3" role="alert">
+                            Incorrect email/username or password. Please try again.
+                        </div>
+                    @endif
 
                     <form method="POST" action="/login" class="w-100 mt-4 pt-2">
                         {{ csrf_field() }}

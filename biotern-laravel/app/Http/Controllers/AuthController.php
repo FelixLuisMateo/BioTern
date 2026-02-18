@@ -64,7 +64,7 @@ class AuthController extends Controller
             return redirect()->intended('/');
         }
 
-        return back()->withErrors(['login' => 'The provided credentials do not match our records.']);
+        return back()->withErrors(['login' => 'Incorrect email/username or password. Please try again.']);
     }
 
     public function logout(Request $request)
