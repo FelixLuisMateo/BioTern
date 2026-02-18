@@ -817,9 +817,9 @@ function formatDate($date) {
                                                                 <div class="avatar-image avatar-md">
                                                                     <?php
                                                                     $pp = $student['profile_picture'] ?? '';
-                                                                    if ($pp && file_exists(__DIR__ . '/' . $pp)) {
-                                                                        $vb = filemtime(__DIR__ . '/' . $pp);
-                                                                        echo '<img src="' . htmlspecialchars($pp) . '?v=' . $vb . '" alt="" class="img-fluid">';
+                                                                    if ($pp && file_exists(public_path($pp))) {
+                                                                        $vb = filemtime(public_path($pp));
+                                                                        echo '<img src="' . asset($pp) . '?v=' . $vb . '" alt="" class="img-fluid">';
                                                                     } else {
                                                                         echo '<img src="' . asset('frontend/assets/images/avatar/' . (($index % 5) + 1) . '.png') . '" alt="" class="img-fluid">';
                                                                     }

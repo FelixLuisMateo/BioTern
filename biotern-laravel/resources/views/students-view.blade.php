@@ -729,10 +729,10 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                                 <div class="mb-4 text-center">
                                     <div class="wd-150 ht-150 mx-auto mb-3 position-relative">
                                         <div class="avatar-image wd-150 ht-150 border border-5 border-gray-3">
-                                            <?php if (!empty($student['profile_picture']) && file_exists(__DIR__ . '/' . $student['profile_picture'])): ?>
-                                                <img src="<?php echo htmlspecialchars($student['profile_picture']) . '?v=' . filemtime(__DIR__ . '/' . $student['profile_picture']); ?>" alt="Profile" class="img-fluid">
+                                            <?php if (!empty($student['profile_picture']) && file_exists(public_path($student['profile_picture']))): ?>
+                                                <img src="<?php echo asset($student['profile_picture']) . '?v=' . filemtime(public_path($student['profile_picture'])); ?>" alt="Profile" class="img-fluid">
                                             <?php else: ?>
-                                                <img src="{{ asset('frontend/assets/images/avatar/<?php echo ($student['id'] % 5) + 1; ?>.png') }}" alt="" class="img-fluid">
+                                                <?php echo '<img src="' . asset('frontend/assets/images/avatar/' . (($student['id'] % 5) + 1) . '.png') . '" alt="" class="img-fluid">'; ?>
                                             <?php endif; ?>
                                         </div>
                                         <div class="wd-10 ht-10 text-success rounded-circle position-absolute translate-middle" style="top: 76%; right: 10px">
