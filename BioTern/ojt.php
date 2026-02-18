@@ -70,7 +70,7 @@
                         </a>
                         <ul class="nxl-submenu">
                             <li class="nxl-item"><a class="nxl-link" href="reports-sales.php">Sales Report</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="reports-leads.php">Leads Report</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="reports-ojt.php">Leads Report</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="reports-project.php">Project Report</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="reports-timesheets.php">Timesheets Report</a></li>
                         </ul>
@@ -105,12 +105,12 @@
                     <li class="nxl-item nxl-hasmenu">
                         <a href="javascript:void(0);" class="nxl-link">
                             <span class="nxl-micon"><i class="feather-alert-circle"></i></span>
-                            <span class="nxl-mtext">Leads</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                            <span class="nxl-mtext">Assign OJT Designation</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="leads.php">Leads</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="leads-view.php">Leads View</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="leads-create.php">Leads Create</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="ojt.php">OJT List</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="ojt-view.php">OJT View</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="ojt-create.php">OJT Create</a></li>
                         </ul>
                     </li>
                     
@@ -138,7 +138,7 @@
                             <li class="nxl-item"><a class="nxl-link" href="settings-tags.php">Tags</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="settings-email.php">Email</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="settings-tasks.php">Tasks</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-leads.php">Leads</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="settings-ojt.php">Leads</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="settings-support.php">Support</a></li>
                             
                             
@@ -516,7 +516,7 @@
                                     </a>
                                 </div>
                             </div>
-                            <a href="leads-create.php" class="btn btn-primary">
+                            <a href="ojt-create.php" class="btn btn-primary">
                                 <i class="feather-plus me-2"></i>
                                 <span>Create Lead</span>
                             </a>
@@ -658,7 +658,7 @@
                                                     </div>
                                                 </td>
                                                 <td>
-                                                    <a href="leads-view.php" class="hstack gap-3">
+                                                    <a href="ojt-view.php" class="hstack gap-3">
                                                         <div class="avatar-image avatar-md">
                                                             <img src="assets/images/avatar/1.png" alt="" class="img-fluid">
                                                         </div>
@@ -690,7 +690,7 @@
                                                 </td>
                                                 <td>
                                                     <div class="hstack gap-2 justify-content-end">
-                                                        <a href="leads-view.php" class="avatar-text avatar-md">
+                                                        <a href="ojt-view.php" class="avatar-text avatar-md">
                                                             <i class="feather feather-eye"></i>
                                                         </a>
                                                         <div class="dropdown">
@@ -751,7 +751,7 @@
                                                     </div>
                                                 </td>
                                                 <td>
-                                                    <a href="leads-view.php" class="hstack gap-3">
+                                                    <a href="ojt-view.php" class="hstack gap-3">
                                                         <div class="avatar-image avatar-md bg-warning text-white">N</div>
                                                         <div>
                                                             <span class="text-truncate-1-line">Nancy Elliot</span>
@@ -781,7 +781,7 @@
                                                 </td>
                                                 <td>
                                                     <div class="hstack gap-2 justify-content-end">
-                                                        <a href="leads-view.php" class="avatar-text avatar-md">
+                                                        <a href="ojt-view.php" class="avatar-text avatar-md">
                                                             <i class="feather feather-eye"></i>
                                                         </a>
                                                         <div class="dropdown">
@@ -842,7 +842,7 @@
                                                     </div>
                                                 </td>
                                                 <td>
-                                                    <a href="leads-view.php" class="hstack gap-3">
+                                                    <a href="ojt-view.php" class="hstack gap-3">
                                                         <div class="avatar-image avatar-md">
                                                             <img src="assets/images/avatar/2.png" alt="" class="img-fluid">
                                                         </div>
@@ -874,7 +874,7 @@
                                                 </td>
                                                 <td>
                                                     <div class="hstack gap-2 justify-content-end">
-                                                        <a href="leads-view.php" class="avatar-text avatar-md">
+                                                        <a href="ojt-view.php" class="avatar-text avatar-md">
                                                             <i class="feather feather-eye"></i>
                                                         </a>
                                                         <div class="dropdown">
@@ -935,7 +935,7 @@
                                                     </div>
                                                 </td>
                                                 <td>
-                                                    <a href="leads-view.php" class="hstack gap-3">
+                                                    <a href="ojt-view.php" class="hstack gap-3">
                                                         <div class="avatar-image avatar-md bg-teal text-white">H</div>
                                                         <div>
                                                             <span class="text-truncate-1-line">Henry Leach</span>
@@ -965,7 +965,7 @@
                                                 </td>
                                                 <td>
                                                     <div class="hstack gap-2 justify-content-end">
-                                                        <a href="leads-view.php" class="avatar-text avatar-md">
+                                                        <a href="ojt-view.php" class="avatar-text avatar-md">
                                                             <i class="feather feather-eye"></i>
                                                         </a>
                                                         <div class="dropdown">
@@ -1026,7 +1026,7 @@
                                                     </div>
                                                 </td>
                                                 <td>
-                                                    <a href="leads-view.php" class="hstack gap-3">
+                                                    <a href="ojt-view.php" class="hstack gap-3">
                                                         <div class="avatar-image avatar-md">
                                                             <img src="assets/images/avatar/3.png" alt="" class="img-fluid">
                                                         </div>
@@ -1058,7 +1058,7 @@
                                                 </td>
                                                 <td>
                                                     <div class="hstack gap-2 justify-content-end">
-                                                        <a href="leads-view.php" class="avatar-text avatar-md">
+                                                        <a href="ojt-view.php" class="avatar-text avatar-md">
                                                             <i class="feather feather-eye"></i>
                                                         </a>
                                                         <div class="dropdown">
@@ -1119,7 +1119,7 @@
                                                     </div>
                                                 </td>
                                                 <td>
-                                                    <a href="leads-view.php" class="hstack gap-3">
+                                                    <a href="ojt-view.php" class="hstack gap-3">
                                                         <div class="avatar-image avatar-md bg-warning text-white">N</div>
                                                         <div>
                                                             <span class="text-truncate-1-line">Nancy Elliot</span>
@@ -1149,7 +1149,7 @@
                                                 </td>
                                                 <td>
                                                     <div class="hstack gap-2 justify-content-end">
-                                                        <a href="leads-view.php" class="avatar-text avatar-md">
+                                                        <a href="ojt-view.php" class="avatar-text avatar-md">
                                                             <i class="feather feather-eye"></i>
                                                         </a>
                                                         <div class="dropdown">
@@ -1210,7 +1210,7 @@
                                                     </div>
                                                 </td>
                                                 <td>
-                                                    <a href="leads-view.php" class="hstack gap-3">
+                                                    <a href="ojt-view.php" class="hstack gap-3">
                                                         <div class="avatar-image avatar-md">
                                                             <img src="assets/images/avatar/4.png" alt="" class="img-fluid">
                                                         </div>
@@ -1242,7 +1242,7 @@
                                                 </td>
                                                 <td>
                                                     <div class="hstack gap-2 justify-content-end">
-                                                        <a href="leads-view.php" class="avatar-text avatar-md">
+                                                        <a href="ojt-view.php" class="avatar-text avatar-md">
                                                             <i class="feather feather-eye"></i>
                                                         </a>
                                                         <div class="dropdown">
@@ -1303,7 +1303,7 @@
                                                     </div>
                                                 </td>
                                                 <td>
-                                                    <a href="leads-view.php" class="hstack gap-3">
+                                                    <a href="ojt-view.php" class="hstack gap-3">
                                                         <div class="avatar-image avatar-md bg-success text-white">H</div>
                                                         <div>
                                                             <span class="text-truncate-1-line">Leach Henry</span>
@@ -1333,7 +1333,7 @@
                                                 </td>
                                                 <td>
                                                     <div class="hstack gap-2 justify-content-end">
-                                                        <a href="leads-view.php" class="avatar-text avatar-md">
+                                                        <a href="ojt-view.php" class="avatar-text avatar-md">
                                                             <i class="feather feather-eye"></i>
                                                         </a>
                                                         <div class="dropdown">
@@ -1394,7 +1394,7 @@
                                                     </div>
                                                 </td>
                                                 <td>
-                                                    <a href="leads-view.php" class="hstack gap-3">
+                                                    <a href="ojt-view.php" class="hstack gap-3">
                                                         <div class="avatar-image avatar-md">
                                                             <img src="assets/images/avatar/5.png" alt="" class="img-fluid">
                                                         </div>
@@ -1426,7 +1426,7 @@
                                                 </td>
                                                 <td>
                                                     <div class="hstack gap-2 justify-content-end">
-                                                        <a href="leads-view.php" class="avatar-text avatar-md">
+                                                        <a href="ojt-view.php" class="avatar-text avatar-md">
                                                             <i class="feather feather-eye"></i>
                                                         </a>
                                                         <div class="dropdown">
@@ -1487,7 +1487,7 @@
                                                     </div>
                                                 </td>
                                                 <td>
-                                                    <a href="leads-view.php" class="hstack gap-3">
+                                                    <a href="ojt-view.php" class="hstack gap-3">
                                                         <div class="avatar-image avatar-md bg-primary text-white">E</div>
                                                         <div>
                                                             <span class="text-truncate-1-line">Elliot Nancy</span>
@@ -1517,7 +1517,7 @@
                                                 </td>
                                                 <td>
                                                     <div class="hstack gap-2 justify-content-end">
-                                                        <a href="leads-view.php" class="avatar-text avatar-md">
+                                                        <a href="ojt-view.php" class="avatar-text avatar-md">
                                                             <i class="feather feather-eye"></i>
                                                         </a>
                                                         <div class="dropdown">

@@ -230,7 +230,7 @@ try {
                         </a>
                         <ul class="nxl-submenu">
                             <li class="nxl-item"><a class="nxl-link" href="reports-sales.php">Sales Report</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="reports-leads.php">Leads Report</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="reports-ojt.php">Leads Report</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="reports-project.php">Project Report</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="reports-timesheets.php">Timesheets Report</a></li>
                         </ul>
@@ -267,12 +267,12 @@ try {
                     <li class="nxl-item nxl-hasmenu">
                         <a href="javascript:void(0);" class="nxl-link">
                             <span class="nxl-micon"><i class="feather-alert-circle"></i></span>
-                            <span class="nxl-mtext">Leads</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                            <span class="nxl-mtext">Assign OJT Designation</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="leads.php">Leads</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="leads-view.php">Leads View</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="leads-create.php">Leads Create</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="ojt.php">OJT List</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="ojt-view.php">OJT View</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="ojt-create.php">OJT Create</a></li>
                         </ul>
                     </li>
                     <li class="nxl-item nxl-hasmenu">
@@ -299,7 +299,7 @@ try {
                             <li class="nxl-item"><a class="nxl-link" href="settings-tags.php">Tags</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="settings-email.php">Email</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="settings-tasks.php">Tasks</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-leads.php">Leads</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="settings-ojt.php">Leads</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="settings-support.php">Support</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="settings-students.php">Students</a></li>
 
@@ -479,7 +479,7 @@ try {
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Sales Report</span>
                                         </a>
-                                        <a href="reports-leads.php" class="dropdown-item">
+                                        <a href="reports-ojt.php" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Leads Report</span>
                                         </a>
@@ -575,15 +575,15 @@ try {
                                         <i class="feather-chevron-right ms-auto me-0"></i>
                                     </a>
                                     <div class="dropdown-menu nxl-h-dropdown">
-                                        <a href="leads.php" class="dropdown-item">
+                                        <a href="ojt.php" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Leads</span>
                                         </a>
-                                        <a href="leads-view.php" class="dropdown-item">
+                                        <a href="ojt-view.php" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Leads View</span>
                                         </a>
-                                        <a href="leads-create.php" class="dropdown-item">
+                                        <a href="ojt-create.php" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Leads Create</span>
                                         </a>

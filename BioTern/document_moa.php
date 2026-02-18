@@ -255,7 +255,7 @@ if (isset($_GET['action'])) {
 
                         <div class="mt-3 d-flex gap-2">
                             <button id="btn_fill" class="btn btn-primary flex-grow-0">Fill Preview</button>
-                            <a id="btn_generate_moa" class="btn btn-success flex-grow-1" href="generate_moa.php" target="_blank" rel="noopener">Generate MOA</a>
+                            <button id="btn_generate_moa" type="button" class="btn btn-success flex-grow-1">Generate MOA</button>
                         </div>
                     </div>
                 </div>
@@ -486,7 +486,7 @@ if (isset($_GET['action'])) {
                 if (seriesNo.value) params.set('series_no', seriesNo.value);
                 params.set('date', new Date().toLocaleDateString());
                 const url = 'generate_moa.php?' + params.toString();
-                btnGenerate.href = url;
+                btnGenerate.dataset.url = url;
                 return url;
             }
 
@@ -501,8 +501,9 @@ if (isset($_GET['action'])) {
 
             btnFill.addEventListener('click', function(){ updatePreview(); updateGenerateLink(); });
             btnGenerate.addEventListener('click', function(){
-                // keep native anchor navigation; just ensure href is fresh
-                updateGenerateLink();
+                const url = updateGenerateLink();
+                if (!url) return;
+                window.location.href = url;
             });
 
             // fallback mobile sidebar toggler for pages where template markup/scripts load later

@@ -40,7 +40,7 @@ $series_no = q('series_no', '_____');
     <title>BioTern || Memorandum of Agreement</title>
     <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
     <style>
-        @page { size: A4 portrait; margin: 1in; }
+        @page { size: A4 portrait; margin: 0.35in 1in 1in 1in; }
         html, body { margin: 0; padding: 0; color: #111; }
         body { font-family: "Arial Narrow", Arial, sans-serif; font-size: 12pt; background: #eceff3; }
         .container {
@@ -49,13 +49,13 @@ $series_no = q('series_no', '_____');
             margin: 18px auto;
             box-sizing: border-box;
             position: relative;
-            padding: 1in;
+            padding: 0.35in 1in 1in 1in;
             background: #fff;
             box-shadow: 0 8px 28px rgba(0, 0, 0, 0.14);
         }
         .header {
             text-align: center;
-            margin-top: -80px;
+            margin-top: 0;
             margin-bottom: 14px;
             border-bottom: 1px solid #9ec1ea;
             padding-bottom: 8px;
@@ -129,14 +129,6 @@ $series_no = q('series_no', '_____');
 </head>
 <body>
 <div class="container">
-    <div class="header">
-        <img class="crest" src="assets/images/auth/auth-cover-login-bg.png" alt="crest" onerror="this.style.display='none'">
-        <p class="school-name">CLARK COLLEGE OF SCIENCE AND TECHNOLOGY</p>
-        <p class="school-former">(formerly Clark International College of Science &amp; Technology)</p>
-        <p class="school-address">SNS Bldg., Aurea St., Samsonville Subd., Dau, Mabalacat City, Pampanga</p>
-        <p class="school-tel">Telefax No.: (045) 624-0215</p>
-    </div>
-
     <div class="doc">
         <h4>Memorandum of Agreement</h4>
         <p>
@@ -146,13 +138,13 @@ $series_no = q('series_no', '_____');
             And 
         </p>
         <strong><?php echo htmlspecialchars($partner_name); ?></strong> an enterprise duly organized and existing under Philippine Laws with office/business address at <strong><u><?php echo htmlspecialchars($partner_address); ?></u></strong> represented herein by <strong><u><?php echo htmlspecialchars($partner_rep); ?></u></strong> here in after referred to as the PARTNER COMPANY.
-        <p style="text-align:center; margin-top:-10px; margin-bottom:-10px;">Witnesseth:</p>
+        <p style="text-align:center; margin-top:10px; margin-bottom:-10px;">Witnesseth:</p>
         <p>The parties hereby bind themselves to undertake a Memorandum of Agreement for the purpose of supporting the HEI Internship for Learners under the following terms and condition:</p>
         <p><strong>Clark College of Science and Technology:</strong></p>
         <ol>
-            <li>The <b>Clark College of Science and Technology</b> shall be responsible for briefing the Learners as part of the HEI’s and Job Induction Program;</li>
+            <li>The <b>Clark College of Science and Technology</b> shall be responsible for briefing the Learners as part of the HEI's and Job Induction Program;</li>
             <li>The <b>Clark College of Science and Technology</b> shall provide the learner undergoing the INTERNSHIP with the basic orientation on work values, behavior, and discipline to ensure smooth cooperation with the <strong><u>PARTNER COMPANY</u></strong>.</li>
-            <li>The <b>Clark College of Science and Technology</b> shall issue and official endorsement vouching for the well-being of the Learner which shall be used by the <strong><u>PARTNER COMPANY</u></strong>. for the processing the learner’s application for INTERNSHIP;</li>
+            <li>The <b>Clark College of Science and Technology</b> shall issue and official endorsement vouching for the well-being of the Learner which shall be used by the <strong><u>PARTNER COMPANY</u></strong>. for the processing the learner's application for INTERNSHIP;</li>
             <li>The <b>Clark College of Science and Technology</b> shall voluntarily withdraw a Learner who is found to misbehave and/or act in defiance to existing standards, rules, and regulation of the <strong><u>PARTNER COMPANY</u></strong> can impose necessary HEI sanctions to the said learner;</li>
             <li>The <b>Clark College of Science and Technology</b> through its Industry Coordinator shall make onsite sit/follow ups to the <strong><u>PARTNER COMPANY</u></strong> during the training period and evaluate the Learner’s progress based on the training plan and discuss training problems;</li>
             <li>The <b>Clark College of Science and Technology</b> has the discretion to pull out the Learner if there is an apparent risk and/or exploitation on the rights of the Learner;</li>
@@ -161,7 +153,7 @@ $series_no = q('series_no', '_____');
             <li>There is no employer-employee relationship between the  <strong><u>PARTNER COMPANY</u></strong> and the Learner;</li>
             <li>The duration of the program shall be equivalent to 250 working hours unless otherwise agreed upon by the <strong><u>PARTNER COMPANY</u></strong> and the <strong>Clark College of Science and Technology;</strong></li>
             <li>Any violation of the foregoing covenants will warrant the cancellation of the Memorandum of Agreement by the <strong><u>PARTNER COMPANY</u></strong> within thirty (30) days upon notice to the <strong>Clark College of Science and Technology.</strong></li>
-            <li>The <strong><u>PARTNER COMPANY</u></strong> may grant allowance to Learner in accordance with the PARTNER ENTERPISE’S existing rules and regulations;</li>
+            <li>The <strong><u>PARTNER COMPANY</u></strong> may grant allowance to Learner in accordance with the PARTNER ENTERPISE existing rules and regulations;</li>
             <li>The <strong><u>PARTNER COMPANY</u></strong> is not allowed to employ Learner within the INTERNSHIP period in order for the Learner to graduate from the program he/she is enrolled in.</li>
         </ol>
 
@@ -193,8 +185,7 @@ $series_no = q('series_no', '_____');
             </div>
         </div>
 
-        <p style="margin-top:10px;"><strong>ACKNOWLEDGEMENT</strong></p>
-        <p>
+        <p style="margin-top:10px;"><strong>ACKNOWLEDGEMENT</strong></p>      
             Before me, a Notary Public in the city <?php echo htmlspecialchars($notary_city); ?>, personally appeared <?php echo htmlspecialchars($notary_appeared_1); ?> and <?php echo htmlspecialchars($notary_appeared_2); ?> with Community Tax Certificates indicated above, known to me to be the same persons who executed the foregoing instrument and they acknowledged to me that the same is their free will and voluntary deed and that of the ENTERPRISEs herein represented. Witness my hand and seal on this <?php echo htmlspecialchars($notary_day); ?> day of <?php echo htmlspecialchars($notary_month); ?> <?php echo htmlspecialchars($notary_year); ?> in <?php echo htmlspecialchars($notary_place); ?>.
         </p>
         <p style="margin-bottom: -12px;">Doc No. <?php echo htmlspecialchars($doc_no); ?>:</p>
