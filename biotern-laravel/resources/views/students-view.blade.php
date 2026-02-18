@@ -108,7 +108,7 @@ if ($student_id == 0) {
 
 // Fetch Student Details
 $student_query = "
-    SELECT 
+    SELECT
         s.id,
         s.student_id,
         s.profile_picture,
@@ -157,8 +157,8 @@ $student = $result->fetch_assoc();
 // Check if student is active today (has any attendance record for today)
 $today = date('Y-m-d');
 $active_today_query = "
-    SELECT COUNT(*) as count 
-    FROM attendances 
+    SELECT COUNT(*) as count
+    FROM attendances
     WHERE student_id = ? AND attendance_date = ?
 ";
 $stmt_active = $conn->prepare($active_today_query);
@@ -170,13 +170,13 @@ $is_active_today = $active_row['count'] > 0 ? true : false;
 
 // Check if student is currently clocked in (has morning_time_in but no morning_time_out)
 $clocked_in_query = "
-    SELECT 
+    SELECT
         id,
         morning_time_in,
         morning_time_out,
         afternoon_time_in,
         afternoon_time_out
-    FROM attendances 
+    FROM attendances
     WHERE student_id = ? AND attendance_date = ?
     LIMIT 1
 ";
@@ -193,7 +193,7 @@ if ($attendance_record) {
     $morning_out = $attendance_record['morning_time_out'];
     $afternoon_in = $attendance_record['afternoon_time_in'];
     $afternoon_out = $attendance_record['afternoon_time_out'];
-    
+
     // Student is clocked in if:
     // - Morning clock in exists but no clock out, OR
     // - Afternoon clock in exists but no afternoon clock out
@@ -210,7 +210,7 @@ $completion_percentage = ($hours_rendered / $total_hours) * 100;
 
 // Fetch Attendance Records for activity
 $activity_query = "
-    SELECT 
+    SELECT
         att.id,
         att.attendance_date as date,
         att.morning_time_in,
@@ -287,25 +287,25 @@ function formatTimeRange($time_in, $time_out) {
 
 function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $afternoon_in, $afternoon_out) {
     $total = 0;
-    
+
     // Morning hours
     if ($morning_in && $morning_out) {
         $morning_time = strtotime($morning_out) - strtotime($morning_in);
         $total += $morning_time / 3600;
     }
-    
+
     // Afternoon hours
     if ($afternoon_in && $afternoon_out) {
         $afternoon_time = strtotime($afternoon_out) - strtotime($afternoon_in);
         $total += $afternoon_time / 3600;
     }
-    
+
     // Subtract break time
     if ($break_in && $break_out) {
         $break_time = strtotime($break_out) - strtotime($break_in);
         $total -= $break_time / 3600;
     }
-    
+
     return round(max(0, $total), 2);
 }
 
@@ -350,7 +350,7 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
         footer.footer {
             margin-top: auto;
         }
-        
+
         /* Dark mode select and Select2 styling */
         select.form-control,
         select.form-select,
@@ -359,7 +359,7 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
             color: #333;
             background-color: #ffffff;
         }
-        
+
         /* Dark mode support for Select2 */
         body.dark .select2-container--default .select2-selection--single,
         body.dark .select2-container--default .select2-selection--multiple,
@@ -369,31 +369,31 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
             background-color: #2d3748;
             border-color: #4a5568 !important;
         }
-        
+
         body.dark .select2-container--default .select2-selection--single .select2-selection__rendered,
         body[data-bs-theme="dark"] .select2-container--default .select2-selection--single .select2-selection__rendered {
             color: #f0f0f0;
         }
-        
+
         /* Dark mode dropdown menu */
         body.dark .select2-container--default.select2-container--open .select2-dropdown,
         body[data-bs-theme="dark"] .select2-container--default.select2-container--open .select2-dropdown {
             background-color: #2d3748;
             border-color: #4a5568;
         }
-        
+
         body.dark .select2-results__option,
         body[data-bs-theme="dark"] .select2-results__option {
             color: #f0f0f0;
             background-color: #2d3748;
         }
-        
+
         body.dark .select2-results__option--highlighted[aria-selected],
         body[data-bs-theme="dark"] .select2-results__option--highlighted[aria-selected] {
             background-color: #667eea;
             color: #ffffff;
         }
-        
+
         body.dark .select2-container--default select.form-control,
         body.dark select.form-control,
         body.dark select.form-select,
@@ -403,7 +403,7 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
             background-color: #2d3748;
             border-color: #4a5568;
         }
-        
+
         body.dark select.form-control option,
         body.dark select.form-select option,
         body[data-bs-theme="dark"] select.form-control option,
@@ -746,7 +746,7 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                                     <div class="fs-12 fw-normal text-muted text-center d-flex flex-wrap gap-3 mb-4">
                                         <div class="flex-fill py-3 px-4 rounded-1 d-none d-sm-block border border-dashed border-gray-5">
                                             <h6 class="fs-15 fw-bolder" id="hoursRemaining">
-                                                <?php 
+                                                <?php
                                                 $hours = floor($hours_remaining);
                                                 $mins = floor(($hours_remaining - $hours) * 60);
                                                 echo $hours . 'h:' . str_pad($mins, 2, '0', STR_PAD_LEFT) . 'm:00s';
@@ -904,7 +904,7 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                                         <ul class="list-unstyled activity-feed">
                                             <?php if (count($activities) > 0): ?>
                                                 <?php foreach ($activities as $activity): ?>
-                                                    <?php 
+                                                    <?php
                                                     $total_hours = !empty($activity['total_hours']) ? $activity['total_hours'] : calculateTotalHours(
                                                         $activity['morning_time_in'],
                                                         $activity['morning_time_out'],
@@ -1008,23 +1008,23 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
             const timerElement = document.getElementById('hoursRemaining');
             const storageKey = `student_timer_${studentId}`;
             const statusKey = `student_active_${studentId}`;
-            
+
             // Check if student is active today
             if (!isActiveToday) {
                 timerElement.textContent = 'Student not active today';
                 return;
             }
-            
+
             // Check if student is clocked in
             if (!isClockedIn) {
                 timerElement.textContent = 'Student not clocked in';
                 return;
             }
-            
+
             // Get stored remaining seconds or initialize
             let storedData = localStorage.getItem(storageKey);
             let remainingSeconds;
-            
+
             if (storedData) {
                 const data = JSON.parse(storedData);
                 const storedTime = data.timestamp;
@@ -1037,21 +1037,21 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                 remainingSeconds = hoursRemaining * 3600;
                 saveTimerState(remainingSeconds, storageKey);
             }
-            
+
             // Update display and save state
             function updateTimer() {
                 if (remainingSeconds > 0) {
                     remainingSeconds--;
-                    
+
                     const hours = Math.floor(remainingSeconds / 3600);
                     const minutes = Math.floor((remainingSeconds % 3600) / 60);
                     const seconds = remainingSeconds % 60;
-                    
-                    timerElement.textContent = 
-                        hours + 'h:' + 
-                        (minutes < 10 ? '0' : '') + minutes + 'm:' + 
+
+                    timerElement.textContent =
+                        hours + 'h:' +
+                        (minutes < 10 ? '0' : '') + minutes + 'm:' +
                         (seconds < 10 ? '0' : '') + seconds + 's';
-                    
+
                     // Save state every 10 seconds to avoid excessive storage writes
                     if (remainingSeconds % 10 === 0) {
                         saveTimerState(remainingSeconds, storageKey);
@@ -1061,7 +1061,7 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                     localStorage.removeItem(storageKey);
                 }
             }
-            
+
             // Check if student is still clocked in (every 30 seconds)
             function checkClockInStatus() {
             fetch('{{ url('/get_clock_status') }}?student_id=' + studentId)
@@ -1078,7 +1078,7 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                         console.log('Clock status check failed');
                     });
             }
-            
+
             // Save timer state to localStorage
             function saveTimerState(seconds, key) {
                 const data = {
@@ -1087,7 +1087,7 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                 };
                 localStorage.setItem(key, JSON.stringify(data));
             }
-            
+
             // Clear expired timers (older than 24 hours)
             function clearExpiredTimers() {
                 const currentTime = new Date().getTime();
@@ -1105,26 +1105,26 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                     }
                 }
             }
-            
+
             // Initial display
             updateTimer();
-            
+
             // Update every second
             const timerInterval = setInterval(updateTimer, 1000);
-            
+
             // Check clock in status every 30 seconds
             const clockCheckInterval = setInterval(checkClockInStatus, 30000);
-            
+
             // Clear on page unload
             window.addEventListener('beforeunload', function() {
                 saveTimerState(remainingSeconds, storageKey);
                 clearExpiredTimers();
             });
-            
+
             // Clear expired timers on init
             clearExpiredTimers();
         }
-        
+
         // Initialize timer when DOM is ready
         document.addEventListener('DOMContentLoaded', initializeTimer);
     </script>
