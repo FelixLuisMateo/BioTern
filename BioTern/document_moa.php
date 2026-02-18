@@ -74,6 +74,50 @@ if (isset($_GET['action'])) {
         .select2-container .select2-selection__rendered, .select2-container .select2-selection__placeholder { visibility: hidden !important; }
         .select2-overlay-input { position: absolute; inset: 0 40px 0 8px; width: calc(100% - 48px); height: calc(100% - 8px); border: none; background: transparent; padding: 6px 8px; box-sizing: border-box; z-index: 99999999; font: inherit; color: inherit; }
         .select2-overlay-input:focus { outline: none; }
+        /* Dark mode: make Select2 input readable */
+        html.app-skin-dark .select2-container--default .select2-selection--single {
+            background: #0f172a !important;
+            border-color: #1b2436 !important;
+            color: #dbe5f1 !important;
+        }
+        html.app-skin-dark .select2-overlay-input {
+            color: #dbe5f1 !important;
+        }
+        html.app-skin-dark .select2-overlay-input::placeholder {
+            color: #9fb0c6 !important;
+        }
+        html.app-skin-dark .select2-container--default.select2-container--open .select2-dropdown {
+            background: #0f172a !important;
+            border-color: #1b2436 !important;
+        }
+        html.app-skin-dark .select2-results__option {
+            background: #0f172a !important;
+            color: #dbe5f1 !important;
+        }
+        html.app-skin-dark .select2-results__option--highlighted[aria-selected] {
+            background: #1f2b44 !important;
+            color: #ffffff !important;
+        }
+
+        /* Dark mode: preview panel compatibility */
+        html.app-skin-dark .doc-preview {
+            background: #0f172a !important;
+            border-color: #1b2436 !important;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+        }
+        html.app-skin-dark .doc-preview h5,
+        html.app-skin-dark .doc-preview h6,
+        html.app-skin-dark .doc-preview p,
+        html.app-skin-dark .doc-preview div,
+        html.app-skin-dark .doc-preview span,
+        html.app-skin-dark .doc-preview li,
+        html.app-skin-dark .doc-preview strong,
+        html.app-skin-dark .doc-preview b {
+            color: #dbe5f1 !important;
+        }
+        html.app-skin-dark .doc-preview .text-muted {
+            color: #9fb0c6 !important;
+        }
         .moa-main.nxl-container { padding-top: 90px; }
         .nxl-header { position: fixed !important; top: 0; left: 0; right: 0; z-index: 2147483647 !important; }
         .nxl-navigation { z-index: 2147483646; }
@@ -107,11 +151,9 @@ if (isset($_GET['action'])) {
             <div class="row">
                 <div class="col-lg-6">
                     <div class="card p-3">
-                        <label for="student_select" class="form-label">Search Student (optional)</label>
-                        <select id="student_select" style="width:100%"></select>
 
                         <div class="mt-3">
-                            <label class="form-label">Partner / Company Name</label>
+                            <label class="form-label">Company Name</label>
                             <input id="moa_partner_name" class="form-control form-control-sm" type="text" placeholder="Partner company name">
                         </div>
 
@@ -161,26 +203,16 @@ if (isset($_GET['action'])) {
                                 <label class="form-label">Witness (Partner)</label>
                                 <input id="moa_presence_partner_rep" class="form-control form-control-sm" type="text" placeholder="Witness name for partner side">
                             </div>
-                            <div class="col-6">
-                                <label class="form-label">Witness (School)</label>
-                                <input id="moa_presence_school_admin" class="form-control form-control-sm" type="text" placeholder="School witness name">
-                            </div>
+                        </div>
+                        
+                        <div class="mt-2">
+                            <label class="form-label">Witness (School)</label>
+                            <input id="moa_presence_school_admin" class="form-control form-control-sm" type="text" placeholder="Name (defaults to Mr. Ross Carvel Ramirez)">
                         </div>
 
                         <div class="mt-2">
                             <label class="form-label">Notary City</label>
                             <input id="moa_notary_city" class="form-control form-control-sm" type="text" placeholder="City where acknowledged">
-                        </div>
-
-                        <div class="row mt-2 g-2">
-                            <div class="col-6">
-                                <label class="form-label">Appeared Person 1</label>
-                                <input id="moa_notary_appeared_1" class="form-control form-control-sm" type="text" placeholder="Name of first signatory">
-                            </div>
-                            <div class="col-6">
-                                <label class="form-label">Appeared Person 2</label>
-                                <input id="moa_notary_appeared_2" class="form-control form-control-sm" type="text" placeholder="Name of second signatory">
-                            </div>
                         </div>
 
                         <div class="row mt-2 g-2">
@@ -223,7 +255,7 @@ if (isset($_GET['action'])) {
 
                         <div class="mt-3 d-flex gap-2">
                             <button id="btn_fill" class="btn btn-primary flex-grow-0">Fill Preview</button>
-                            <a id="btn_generate_moa" class="btn btn-success flex-grow-1 disabled" target="_blank">Generate MOA</a>
+                            <a id="btn_generate_moa" class="btn btn-success flex-grow-1" href="generate_moa.php" target="_blank" rel="noopener">Generate MOA</a>
                         </div>
                     </div>
                 </div>
@@ -242,7 +274,7 @@ if (isset($_GET['action'])) {
                             <p>Date: <span id="moa_date">__________</span></p>
                             <p>This Memorandum of Agreement made and executed between: <strong>CLARK COLLEGE OF SCIENCE AND TECHNOLOGY</strong>a Higher Education Institution, duly organized and existing under Philippine Laws with office/business address at <strong>AUREA ST. SAMSONVILLE, DAU MABALACAT CITY PAMPANGA</strong> represented herein by <strong>MR. JOMAR G. SANGIL (IT, DEPARTMENT HEAD)</strong>, here in after referred to as the Higher Education Institution.<strong></p>
                             And<br>
-                            <strong><span id="pv_partner_company_name">__________________________</span></strong>an enterprise duly organized and existing under Philippine Laws with office/ business address at<strong><span id="pv_partner_address">__________________________</span></strong>represented herein by<strong><span id="pv_partner_name">__________________________</span></strong> herein after referred to as the PARTNER COMPANY.</p>
+                            <strong><span id="pv_partner_company_name">__________________________</span></strong> an enterprise duly organized and existing under Philippine Laws with office/ business address at <strong><span id="pv_partner_address">__________________________</span></strong>represented herein by <strong><span id="pv_partner_name">__________________________</span></strong> herein after referred to as the PARTNER COMPANY.</p>
                             Witnesseth: <br><br>
                             <p>The parties hereby bind themselves to undertake a Memorandum of Agreement for the purpose of supporting the HEI Internship for Learners under the following terms and condition</p>
                             <strong>Clark College of Science and Technology:</strong><br>
@@ -415,8 +447,8 @@ if (isset($_GET['action'])) {
                 document.getElementById('pv_presence_partner_rep').textContent = presencePartnerRep.value || '______________________________';
                 document.getElementById('pv_presence_school_admin').textContent = presenceSchoolAdmin.value || 'Mr. Ross Carvel Ramirez';
                 document.getElementById('pv_notary_city').textContent = notaryCity.value || '__________________';
-                document.getElementById('pv_notary_appeared_1').textContent = notaryAppeared1.value || '__________________';
-                document.getElementById('pv_notary_appeared_2').textContent = notaryAppeared2.value || '__________________';
+                document.getElementById('pv_notary_appeared_1').textContent = (notaryAppeared1 && notaryAppeared1.value) || '__________________';
+                document.getElementById('pv_notary_appeared_2').textContent = (notaryAppeared2 && notaryAppeared2.value) || '__________________';
                 document.getElementById('pv_notary_day').textContent = notaryDay.value || '_____';
                 document.getElementById('pv_notary_month').textContent = notaryMonth.value || '__________________';
                 document.getElementById('pv_notary_year').textContent = notaryYear.value || '20___';
@@ -442,8 +474,8 @@ if (isset($_GET['action'])) {
                 if (presencePartnerRep.value) params.set('presence_partner_rep', presencePartnerRep.value);
                 if (presenceSchoolAdmin.value) params.set('presence_school_admin', presenceSchoolAdmin.value);
                 if (notaryCity.value) params.set('notary_city', notaryCity.value);
-                if (notaryAppeared1.value) params.set('notary_appeared_1', notaryAppeared1.value);
-                if (notaryAppeared2.value) params.set('notary_appeared_2', notaryAppeared2.value);
+                if (notaryAppeared1 && notaryAppeared1.value) params.set('notary_appeared_1', notaryAppeared1.value);
+                if (notaryAppeared2 && notaryAppeared2.value) params.set('notary_appeared_2', notaryAppeared2.value);
                 if (notaryDay.value) params.set('notary_day', notaryDay.value);
                 if (notaryMonth.value) params.set('notary_month', notaryMonth.value);
                 if (notaryYear.value) params.set('notary_year', notaryYear.value);
@@ -453,8 +485,9 @@ if (isset($_GET['action'])) {
                 if (bookNo.value) params.set('book_no', bookNo.value);
                 if (seriesNo.value) params.set('series_no', seriesNo.value);
                 params.set('date', new Date().toLocaleDateString());
-                btnGenerate.href = 'generate_moa.php?' + params.toString();
-                btnGenerate.classList.remove('disabled');
+                const url = 'generate_moa.php?' + params.toString();
+                btnGenerate.href = url;
+                return url;
             }
 
             [
@@ -467,6 +500,10 @@ if (isset($_GET['action'])) {
             ].forEach(function(el){ if (!el) return; el.addEventListener('input', function(){ updatePreview(); updateGenerateLink(); }); });
 
             btnFill.addEventListener('click', function(){ updatePreview(); updateGenerateLink(); });
+            btnGenerate.addEventListener('click', function(){
+                // keep native anchor navigation; just ensure href is fresh
+                updateGenerateLink();
+            });
 
             // fallback mobile sidebar toggler for pages where template markup/scripts load later
             document.addEventListener('click', function(e){
