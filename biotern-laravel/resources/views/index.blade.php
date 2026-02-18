@@ -50,7 +50,7 @@
         <p class="lead text-muted">Your Biometric Internship Monitoring and Management System</p>
         <p class="text-muted">Manage interns, supervisors, coordinators, attendance and reports in one place.</p>
         <br>
-        <a href="{{ url('auth-register-creative.php') }}" class="apply-btn">Apply Now</a>
+        <a href="/register" class="apply-btn">Apply Now</a>
     </div>
 
     <footer>
