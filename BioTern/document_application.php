@@ -106,10 +106,53 @@ if (isset($_GET['action'])) {
             color: inherit;
         }
         .select2-overlay-input:focus { outline: none; }
+        /* Dark mode: make Select2 input readable */
+        html.app-skin-dark .select2-container--default .select2-selection--single {
+            background: #0f172a !important;
+            border-color: #1b2436 !important;
+            color: #dbe5f1 !important;
+        }
+        html.app-skin-dark .select2-overlay-input {
+            color: #dbe5f1 !important;
+        }
+        html.app-skin-dark .select2-overlay-input::placeholder {
+            color: #9fb0c6 !important;
+        }
+        html.app-skin-dark .select2-container--default.select2-container--open .select2-dropdown {
+            background: #0f172a !important;
+            border-color: #1b2436 !important;
+        }
+        html.app-skin-dark .select2-results__option {
+            background: #0f172a !important;
+            color: #dbe5f1 !important;
+        }
+        html.app-skin-dark .select2-results__option--highlighted[aria-selected] {
+            background: #1f2b44 !important;
+            color: #ffffff !important;
+        }
+
+        /* Dark mode: preview panel compatibility */
+        html.app-skin-dark .doc-preview {
+            background: #0f172a !important;
+            border-color: #1b2436 !important;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+        }
+        html.app-skin-dark .doc-preview h6,
+        html.app-skin-dark .doc-preview p,
+        html.app-skin-dark .doc-preview div,
+        html.app-skin-dark .doc-preview span,
+        html.app-skin-dark .doc-preview strong {
+            color: #dbe5f1 !important;
+        }
+        html.app-skin-dark .doc-preview .text-muted {
+            color: #9fb0c6 !important;
+        }
+
         main.nxl-container { padding-top: 90px; }
         .nxl-header { position: fixed !important; top: 0; left: 0; right: 0; z-index: 2147483647 !important; }
         .nxl-navigation { z-index: 2147483646; }
         footer.footer { margin-top: auto; }
+        #btn_generate.is-disabled { opacity: .65; }
         @media (max-width: 1024px) {
             .nxl-navigation,
             .nxl-navigation.mob-navigation-active { z-index: 2147483646 !important; }
@@ -157,7 +200,7 @@ if (isset($_GET['action'])) {
                         </div>
                         <div class="mt-3 d-flex gap-2">
                             <button id="btn_fill" class="btn btn-primary flex-grow-0" disabled>Fill Template</button>
-                            <a id="btn_generate" class="btn btn-success flex-grow-1 disabled" target="_blank">Generate / Print</a>
+                            <a id="btn_generate" class="btn btn-success flex-grow-1 is-disabled" target="_blank">Generate / Print</a>
                         </div>
                     </div>
                 </div>
@@ -207,6 +250,7 @@ if (isset($_GET['action'])) {
             const inputPosition = document.getElementById('input_position');
             const inputCompany = document.getElementById('input_company');
             const inputCompanyAddress = document.getElementById('input_company_address');
+            let selectedStudentId = null;
 
             select.select2({
                 placeholder: '',
@@ -282,6 +326,7 @@ if (isset($_GET['action'])) {
             $('#student_select').on('select2:select', function(e){
                 const id = select.val();
                 if (!id) return;
+                selectedStudentId = id;
                 // enable fill button too
                 $('#btn_fill').prop('disabled', false);
                 // auto-fill student info (NOT recipient/company fields)
@@ -311,25 +356,28 @@ if (isset($_GET['action'])) {
             }
 
             function updateGenerateLink(id){
+                const finalId = id || selectedStudentId || select.val();
+                if (!finalId) return;
                 const gen = document.getElementById('btn_generate');
                 const params = new URLSearchParams();
-                params.set('id', id);
+                params.set('id', finalId);
                 if (inputName.value) params.set('ap_name', inputName.value);
                 if (inputPosition.value) params.set('ap_position', inputPosition.value);
                 if (inputCompany.value) params.set('ap_company', inputCompany.value);
                 if (inputCompanyAddress.value) params.set('ap_address', inputCompanyAddress.value);
                 params.set('date', new Date().toLocaleDateString());
                 gen.href = 'generate_application_letter.php?' + params.toString();
-                gen.classList.remove('disabled');
+                gen.classList.remove('is-disabled');
+                gen.removeAttribute('aria-disabled');
             }
 
-            inputName.addEventListener('input', function(){ updatePreviewFields(); if (select.val()) updateGenerateLink(select.val()); });
-            inputPosition.addEventListener('input', function(){ updatePreviewFields(); if (select.val()) updateGenerateLink(select.val()); });
-            inputCompany.addEventListener('input', function(){ updatePreviewFields(); if (select.val()) updateGenerateLink(select.val()); });
-            inputCompanyAddress.addEventListener('input', function(){ updatePreviewFields(); if (select.val()) updateGenerateLink(select.val()); });
+            inputName.addEventListener('input', function(){ updatePreviewFields(); updateGenerateLink(selectedStudentId); });
+            inputPosition.addEventListener('input', function(){ updatePreviewFields(); updateGenerateLink(selectedStudentId); });
+            inputCompany.addEventListener('input', function(){ updatePreviewFields(); updateGenerateLink(selectedStudentId); });
+            inputCompanyAddress.addEventListener('input', function(){ updatePreviewFields(); updateGenerateLink(selectedStudentId); });
 
             $('#btn_fill').on('click', function(){
-                const id = select.val();
+                const id = selectedStudentId || select.val();
                 if (!id) return;
                 // populate only student information in preview (do not touch recipient/company inputs)
                 fetch('document_application.php?action=get_student&id=' + encodeURIComponent(id))
@@ -348,6 +396,21 @@ if (isset($_GET['action'])) {
                         updatePreviewFields();
                         updateGenerateLink(id);
                     });
+            });
+
+            // keep button reliably clickable and generate href on demand
+            document.getElementById('btn_generate').addEventListener('click', function(e){
+                const id = selectedStudentId || select.val();
+                if (!id) {
+                    e.preventDefault();
+                    alert('Please select a student first.');
+                    this.classList.add('is-disabled');
+                    this.setAttribute('aria-disabled', 'true');
+                    return;
+                }
+                if (!this.href || this.classList.contains('is-disabled')) {
+                    updateGenerateLink(id);
+                }
             });
 
             // fallback mobile sidebar toggler for pages where template markup/scripts load later
