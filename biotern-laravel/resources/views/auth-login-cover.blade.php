@@ -79,7 +79,7 @@
                     </form>
                     <div class="mt-5 text-muted">
                         <span> Don't have an account?</span>
-                        <a href="{{ url('/auth/register') }}" class="fw-bold">Create an Account</a>
+                        <a href="{{ url('/register') }}" class="fw-bold">Create an Account</a>
                     </div>
                 </div>
             </div>

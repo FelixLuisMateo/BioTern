@@ -62,11 +62,17 @@ Route::get('register_submit', function () {
     return view('register_submit');
 })->name('register_submit');
 
+// Also expose a simpler `/register` path for convenience (served by controller)
+Route::get('/register', [App\Http\Controllers\RegisterSubmitController::class, 'show'])->name('register');
+
 // Accept form POSTs from the frontend registration form and render
 // the `register_submit` view which contains the processing logic.
-use App\Http\Controllers\RegisterSubmitController;
+Route::post('register_submit', [App\Http\Controllers\RegisterSubmitController::class, 'handle'])->name('register_submit.post');
 
-Route::post('register_submit', [RegisterSubmitController::class, 'handle'])->name('register_submit.post');
+// Backwards-compatible redirect: old URL used in some views
+Route::get('/auth/register', function () {
+    return redirect('/register');
+});
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\HomeController;

@@ -21,14 +21,28 @@ class AuthController extends Controller
             'password' => 'required|string',
         ]);
 
-        $login = $request->input('login');
+        $login = trim($request->input('login'));
         $password = $request->input('password');
 
-        $query = DB::table('users')->where('email', $login);
-        if (Schema::hasColumn('users', 'username')) {
-            $query->orWhere('username', $login);
+        // Determine whether user supplied an email or a username.
+        // If the input contains an '@' and is a valid email, search by email.
+        // Otherwise, if a `username` column exists, search by username first,
+        // then fall back to email as a secondary check.
+        $user = null;
+        $hasUsername = Schema::hasColumn('users', 'username');
+
+        if (strpos($login, '@') !== false && filter_var($login, FILTER_VALIDATE_EMAIL)) {
+            $user = DB::table('users')->where('email', $login)->first();
+        } else {
+            if ($hasUsername) {
+                $user = DB::table('users')->where('username', $login)->first();
+            }
+            // If no user found by username, try email as a fallback (covers users
+            // who may login with their email without including an '@' by mistake)
+            if (! $user) {
+                $user = DB::table('users')->where('email', $login)->first();
+            }
         }
-        $user = $query->first();
 
         if ($user && Hash::check($password, $user->password)) {
             $remember = $request->filled('remember');
