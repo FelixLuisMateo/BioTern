@@ -61,41 +61,41 @@ try {
     if ($pending_query) {
         $attendance_awaiting = (int)$pending_query->fetch_assoc()['count'];
     }
-    
+
     $approved_query = $conn->query("SELECT COUNT(*) as count FROM attendances WHERE status = 'approved'");
     if ($approved_query) {
         $attendance_completed = (int)$approved_query->fetch_assoc()['count'];
     }
-    
+
     $rejected_query = $conn->query("SELECT COUNT(*) as count FROM attendances WHERE status = 'rejected'");
     if ($rejected_query) {
         $attendance_rejected = (int)$rejected_query->fetch_assoc()['count'];
     }
-    
+
     // Total attendance
     $total_query = $conn->query("SELECT COUNT(*) as count FROM attendances");
     if ($total_query) {
         $attendance_total = (int)$total_query->fetch_assoc()['count'];
     }
-    
+
     // Student count
     $students_query = $conn->query("SELECT COUNT(*) as count FROM students WHERE deleted_at IS NULL");
     if ($students_query) {
         $student_count = (int)$students_query->fetch_assoc()['count'];
     }
-    
+
     // Internship count
     $internships_query = $conn->query("SELECT COUNT(*) as count FROM internships WHERE status = 'ongoing'");
     if ($internships_query) {
         $internship_count = (int)$internships_query->fetch_assoc()['count'];
     }
-    
+
     // Biometric registered students
     $biometric_query = $conn->query("SELECT COUNT(*) as count FROM students WHERE biometric_registered = 1");
     if ($biometric_query) {
         $biometric_registered = (int)$biometric_query->fetch_assoc()['count'];
     }
-    
+
     // Get recent students (last 5)
     $recent_students_query = $conn->query("
         SELECT s.id, s.student_id, s.first_name, s.last_name, s.email, s.status, s.biometric_registered, s.created_at
@@ -104,29 +104,29 @@ try {
         ORDER BY s.created_at DESC
         LIMIT 5
     ");
-    
+
     if ($recent_students_query && $recent_students_query->num_rows > 0) {
         while ($row = $recent_students_query->fetch_assoc()) {
             $recent_students[] = $row;
         }
     }
-    
+
     // Get recent attendance records (last 10) with student info
     $recent_attendance_query = $conn->query("
-        SELECT a.id, a.student_id, a.attendance_date, a.morning_time_in, a.morning_time_out, a.status, a.created_at, 
+        SELECT a.id, a.student_id, a.attendance_date, a.morning_time_in, a.morning_time_out, a.status, a.created_at,
                s.first_name, s.last_name, s.email, s.student_id as student_num
         FROM attendances a
         LEFT JOIN students s ON a.student_id = s.id
         ORDER BY a.attendance_date DESC, a.created_at DESC
         LIMIT 10
     ");
-    
+
     if ($recent_attendance_query && $recent_attendance_query->num_rows > 0) {
         while ($row = $recent_attendance_query->fetch_assoc()) {
             $recent_attendance[] = $row;
         }
     }
-    
+
     // Get coordinators (Active)
     $coordinators_query = $conn->query("
         SELECT u.id, u.name, u.email, c.department_id, c.phone, c.created_at
@@ -136,13 +136,13 @@ try {
         ORDER BY u.created_at DESC
         LIMIT 5
     ");
-    
+
     if ($coordinators_query && $coordinators_query->num_rows > 0) {
         while ($row = $coordinators_query->fetch_assoc()) {
             $coordinators[] = $row;
         }
     }
-    
+
     // Get supervisors (Active)
     $supervisors_query = $conn->query("
         SELECT u.id, u.name, u.email, s.phone, s.department, s.created_at
@@ -152,16 +152,16 @@ try {
         ORDER BY u.created_at DESC
         LIMIT 5
     ");
-    
+
     if ($supervisors_query && $supervisors_query->num_rows > 0) {
         while ($row = $supervisors_query->fetch_assoc()) {
             $supervisors[] = $row;
         }
     }
-    
+
     // Get recent activities (student registrations, attendance records, etc)
     $activities_query = $conn->query("
-        SELECT 
+        SELECT
             CONCAT('Student Created: ', s.first_name, ' ', s.last_name) as activity,
             s.created_at as activity_date,
             'student_created' as activity_type,
@@ -169,7 +169,7 @@ try {
         FROM students s
         WHERE s.deleted_at IS NULL
         UNION ALL
-        SELECT 
+        SELECT
             CONCAT('Attendance Recorded for ', s.first_name, ' ', s.last_name) as activity,
             a.created_at as activity_date,
             'attendance_recorded' as activity_type,
@@ -177,7 +177,7 @@ try {
         FROM attendances a
         LEFT JOIN students s ON a.student_id = s.id
         UNION ALL
-        SELECT 
+        SELECT
             CONCAT('Biometric Registered: ', s.first_name, ' ', s.last_name) as activity,
             s.biometric_registered_at as activity_date,
             'biometric_registered' as activity_type,
@@ -187,13 +187,13 @@ try {
         ORDER BY activity_date DESC
         LIMIT 15
     ");
-    
+
     if ($activities_query && $activities_query->num_rows > 0) {
         while ($row = $activities_query->fetch_assoc()) {
             $recent_activities[] = $row;
         }
     }
-    
+
 } catch (Exception $e) {
     // Database error - fallback to 0 values
     error_log("Dashboard error: " . $e->getMessage());
@@ -208,7 +208,7 @@ try {
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="" />
     <meta name="keyword" content="" />
-    <meta name="author" content="flexilecode" />    
+    <meta name="author" content="flexilecode" />
     <!--! The above 6 meta tags *must* come first in the head; any other head content must come *after* these tags !-->
     <!--! BEGIN: Apps Title-->
     <title>BioTern || Dashboard</title>
@@ -342,7 +342,7 @@ try {
                             <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings-support') }}">Support</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings-students') }}">Students</a></li>
 
-                            
+
                             <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings-miscellaneous') }}">Miscellaneous</a></li>
                         </ul>
                     </li>
@@ -2129,7 +2129,7 @@ try {
                                     </div>
                                     <div class="col-sm-4 col-6 language_select">
                                         <a href="javascript:void(0);" class="d-flex align-items-center gap-2">
-                                            <div class="avatar-image avatar-sm"><img src="{{ asset('frontend/assets/vendors/img/flags/1x1/ru.svg') }}" alt="" class="img-fluid" /></div>
+                                            <div class="avatar-image avatar-sm"><img src="{{ asset('frontend/asses/tvendors/img/flags/1x1/ru.svg') }}" alt="" class="img-fluid" /></div>
                                             <span>Russian</span>
                                         </a>
                                     </div>
@@ -2919,7 +2919,7 @@ try {
                                                     <?php echo $attendance['morning_time_in'] ? date('h:i a', strtotime($attendance['morning_time_in'])) : 'N/A'; ?>
                                                 </td>
                                                 <td>
-                                                    <?php 
+                                                    <?php
                                                     $status = $attendance['status'];
                                                     if ($status === 'approved') {
                                                         echo '<span class="badge bg-soft-success text-success">Approved</span>';
@@ -3370,13 +3370,13 @@ try {
                                     <?php if (count($recent_activities) > 0): ?>
                                         <?php foreach ($recent_activities as $activity): ?>
                                         <div class="d-flex align-items-center gap-3 p-3 border-bottom">
-                                            <div class="avatar-text avatar-sm rounded-circle" 
-                                                style="background-color: <?php 
-                                                    echo ($activity['activity_type'] === 'student_created') ? '#e3f2fd' : 
+                                            <div class="avatar-text avatar-sm rounded-circle"
+                                                style="background-color: <?php
+                                                    echo ($activity['activity_type'] === 'student_created') ? '#e3f2fd' :
                                                          (($activity['activity_type'] === 'attendance_recorded') ? '#f3e5f5' : '#e8f5e9');
                                                 ?>">
-                                                <i class="feather-<?php 
-                                                    echo ($activity['activity_type'] === 'student_created') ? 'user-plus' : 
+                                                <i class="feather-<?php
+                                                    echo ($activity['activity_type'] === 'student_created') ? 'user-plus' :
                                                          (($activity['activity_type'] === 'attendance_recorded') ? 'clock' : 'check-circle');
                                                 ?>" style="font-size: 14px;"></i>
                                             </div>
@@ -3392,8 +3392,8 @@ try {
                                                     <?php endif; ?>
                                                 </span>
                                             </div>
-                                            <span class="badge <?php 
-                                                echo ($activity['activity_type'] === 'student_created') ? 'bg-soft-info text-info' : 
+                                            <span class="badge <?php
+                                                echo ($activity['activity_type'] === 'student_created') ? 'bg-soft-info text-info' :
                                                      (($activity['activity_type'] === 'attendance_recorded') ? 'bg-soft-warning text-warning' : 'bg-soft-success text-success');
                                             ?> fs-10">
                                                 <?php echo str_replace('_', ' ', ucfirst($activity['activity_type'])); ?>

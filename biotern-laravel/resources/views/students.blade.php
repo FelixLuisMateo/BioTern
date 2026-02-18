@@ -1,17 +1,63 @@
 <?php
-// Database Connection
-$host = 'localhost';
-$db_user = 'root';
-$db_password = '';
-$db_name = 'biotern_db';
+// Include legacy database connection if present (avoid fatal include error)
+$legacyDb = base_path('../BioTern/config/db.php');
+if (file_exists($legacyDb)) {
+    include_once $legacyDb;
+} else {
+    // Legacy connection not available; create a lightweight compatibility
+    // wrapper around Laravel's PDO so existing `$conn->query()` calls work.
+    try {
+        $pdo = \Illuminate\Support\Facades\DB::getPdo();
+        $conn = new class($pdo) {
+            private $pdo;
 
-try {
-    $conn = new mysqli($host, $db_user, $db_password, $db_name);
-    if ($conn->connect_error) {
-        die("Connection failed: " . $conn->connect_error);
+            public function __construct($pdo) {
+                $this->pdo = $pdo;
+            }
+
+            public function query($sql) {
+                $s = ltrim($sql);
+                if (stripos($s, 'select') === 0) {
+                    try {
+                        $stmt = $this->pdo->query($sql);
+                        $rows = $stmt ? $stmt->fetchAll(\PDO::FETCH_ASSOC) : [];
+                    } catch (\Exception $e) {
+                        $rows = [];
+                    }
+                    return new class($rows) {
+                        private $rows;
+                        private $pos = 0;
+
+                        public function __construct($rows) {
+                            $this->rows = $rows;
+                        }
+
+                        public function fetch_assoc() {
+                            if ($this->pos < count($this->rows)) return $this->rows[$this->pos++];
+                            return null;
+                        }
+
+                        public function num_rows() {
+                            return count($this->rows);
+                        }
+                    };
+                }
+
+                try {
+                    $res = $this->pdo->exec($sql);
+                    return $res !== false;
+                } catch (\Exception $e) {
+                    return false;
+                }
+            }
+
+            public function real_escape_string($value) {
+                return substr($this->pdo->quote($value), 1, -1);
+            }
+        };
+    } catch (\Exception $e) {
+        \Log::error('Failed to create legacy DB compatibility: ' . $e->getMessage());
     }
-} catch (Exception $e) {
-    die("Database Error: " . $e->getMessage());
 }
 
 // Fetch Students Statistics
@@ -26,6 +72,56 @@ $stats_query = "
 $stats_result = $conn->query($stats_query);
 $stats = $stats_result->fetch_assoc();
 
+// Prepare filter inputs
+$filter_course = isset($_GET['course_id']) ? intval($_GET['course_id']) : 0;
+$filter_department = isset($_GET['department_id']) ? intval($_GET['department_id']) : 0;
+$filter_supervisor = isset($_GET['supervisor']) ? trim($_GET['supervisor']) : '';
+$filter_coordinator = isset($_GET['coordinator']) ? trim($_GET['coordinator']) : '';
+$filter_status = isset($_GET['status']) ? intval($_GET['status']) : -1;
+
+// Fetch dropdown lists
+$courses = [];
+$courses_res = $conn->query("SELECT id, name FROM courses WHERE is_active = 1 ORDER BY name ASC");
+if ($courses_res && $courses_res->num_rows) {
+    while ($r = $courses_res->fetch_assoc()) $courses[] = $r;
+}
+
+$departments = [];
+$dept_res = $conn->query("SELECT id, name FROM departments ORDER BY name ASC");
+if ($dept_res && $dept_res->num_rows) {
+    while ($r = $dept_res->fetch_assoc()) $departments[] = $r;
+}
+
+$supervisors = [];
+$sup_res = $conn->query("SELECT DISTINCT supervisor_name FROM students WHERE supervisor_name IS NOT NULL AND supervisor_name <> '' ORDER BY supervisor_name ASC");
+if ($sup_res && $sup_res->num_rows) {
+    while ($r = $sup_res->fetch_assoc()) $supervisors[] = $r['supervisor_name'];
+}
+
+$coordinators = [];
+$coor_res = $conn->query("SELECT DISTINCT coordinator_name FROM students WHERE coordinator_name IS NOT NULL AND coordinator_name <> '' ORDER BY coordinator_name ASC");
+if ($coor_res && $coor_res->num_rows) {
+    while ($r = $coor_res->fetch_assoc()) $coordinators[] = $r['coordinator_name'];
+}
+
+// Build WHERE clauses depending on provided filters
+$where = [];
+if ($filter_course > 0) {
+    $where[] = "s.course_id = " . intval($filter_course);
+}
+if ($filter_department > 0) {
+    $where[] = "i.department_id = " . intval($filter_department);
+}
+if (!empty($filter_supervisor)) {
+    $where[] = "(s.supervisor_name LIKE '%" . $conn->real_escape_string($filter_supervisor) . "%' OR i.supervisor_id IN (SELECT id FROM users WHERE name LIKE '%" . $conn->real_escape_string($filter_supervisor) . "%'))";
+}
+if (!empty($filter_coordinator)) {
+    $where[] = "(s.coordinator_name LIKE '%" . $conn->real_escape_string($filter_coordinator) . "%' OR i.coordinator_id IN (SELECT id FROM users WHERE name LIKE '%" . $conn->real_escape_string($filter_coordinator) . "%'))";
+}
+if ($filter_status >= 0) {
+    $where[] = "s.status = " . intval($filter_status);
+}
+
 // Fetch Students with Related Information
 $students_query = "
     SELECT
@@ -36,8 +132,11 @@ $students_query = "
         s.email,
         s.phone,
         s.status,
+        s.supervisor_name,
+        s.coordinator_name,
         s.biometric_registered,
         s.created_at,
+        s.profile_picture,
         c.name as course_name,
         c.id as course_id,
         i.supervisor_id,
@@ -49,6 +148,7 @@ $students_query = "
     LEFT JOIN internships i ON s.id = i.student_id AND i.status = 'ongoing'
     LEFT JOIN users u_supervisor ON i.supervisor_id = u_supervisor.id
     LEFT JOIN users u_coordinator ON i.coordinator_id = u_coordinator.id
+    " . (count($where) > 0 ? "WHERE " . implode(' AND ', $where) : "") . "
     ORDER BY s.first_name ASC
     LIMIT 100
 ";
@@ -97,19 +197,89 @@ function formatDate($date) {
     <link rel="stylesheet" type="text/css" href="{{ asset('frontend/assets/vendors/css/select2.min.css') }}">
     <link rel="stylesheet" type="text/css" href="{{ asset('frontend/assets/vendors/css/select2-theme.min.css') }}">
     <link rel="stylesheet" type="text/css" href="{{ asset('frontend/assets/css/theme.min.css') }}">
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        main.nxl-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        div.nxl-content {
+            flex: 1;
+        }
+        footer.footer {
+            margin-top: auto;
+        }
+
+        /* Dark mode select and Select2 styling */
+        select.form-control,
+        select.form-select,
+        .select2-container--default .select2-selection--single,
+        .select2-container--default .select2-selection--multiple {
+            color: #333;
+            background-color: #ffffff;
+        }
+
+        /* Dark mode support for Select2 - using app-skin-dark class */
+        html.app-skin-dark .select2-container--default .select2-selection--single,
+        html.app-skin-dark .select2-container--default .select2-selection--multiple {
+            color: #f0f0f0 !important;
+            background-color: #2d3748 !important;
+            border-color: #4a5568 !important;
+        }
+
+        html.app-skin-dark .select2-container--default .select2-selection--single .select2-selection__rendered {
+            color: #f0f0f0 !important;
+        }
+
+        /* Dark mode dropdown menu */
+        html.app-skin-dark .select2-container--default.select2-container--open .select2-dropdown {
+            background-color: #2d3748 !important;
+            border-color: #4a5568 !important;
+        }
+
+        html.app-skin-dark .select2-results__option {
+            color: #f0f0f0 !important;
+            background-color: #2d3748 !important;
+        }
+
+        html.app-skin-dark .select2-results__option--highlighted[aria-selected] {
+            background-color: #667eea !important;
+            color: #ffffff !important;
+        }
+
+        html.app-skin-dark select.form-control,
+        html.app-skin-dark select.form-select {
+            color: #f0f0f0 !important;
+            background-color: #2d3748 !important;
+            border-color: #4a5568 !important;
+        }
+
+        html.app-skin-dark select.form-control option,
+        html.app-skin-dark select.form-select option {
+            color: #f0f0f0 !important;
+            background-color: #2d3748 !important;
+        }
+    </style>
 </head>
 
 <body>
-    <!--! ================================================================ !-->
-    <!--! [Start] Navigation Manu !-->
-    <!--! ================================================================ !-->
+    <!--! Navigation !-->
     <nav class="nxl-navigation">
         <div class="navbar-wrapper">
             <div class="m-header">
-                <a href="{{ url('/') }}" class="b-brand">
-                    <!-- ========   change your logo hear   ============ -->
-                    <img src="/frontend/assets/images/logo-full.png" alt="" class="logo logo-lg" />
-                    <img src="/frontend/assets/images/logo-abbr.png" alt="" class="logo logo-sm" />
+                <a href="{{ route('dashboard') }}" class="b-brand">
+                    <img src="{{ asset('frontend/assets/images/logo-full.png') }}" alt="" class="logo logo-lg">
+                    <img src="{{ asset('frontend/assets/images/logo-abbr.png') }}" alt="" class="logo logo-sm">
                 </a>
             </div>
             <div class="navbar-content">
@@ -123,7 +293,7 @@ function formatDate($date) {
                             <span class="nxl-mtext">Dashboards</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/') }}">CRM</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ route('dashboard') }}">CRM</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="{{ url('/analytics') }}">Analytics</a></li>
                         </ul>
                     </li>
@@ -133,10 +303,10 @@ function formatDate($date) {
                             <span class="nxl-mtext">Reports</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/reports/sales') }}">Sales Report</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/reports/leads') }}">Leads Report</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/reports/project') }}">Project Report</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/reports/timesheets') }}">Timesheets Report</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/reports-sales') }}">Sales Report</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/reports-ojt') }}">Leads Report</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/reports-project') }}">Project Report</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/reports-timesheets') }}">Timesheets Report</a></li>
                         </ul>
                     </li>
                     <li class="nxl-item nxl-hasmenu">
@@ -160,21 +330,33 @@ function formatDate($date) {
                         </a>
                         <ul class="nxl-submenu">
                             <li class="nxl-item"><a class="nxl-link" href="{{ url('/students') }}">Students</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/students/view') }}">Students View</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/students/create') }}">Students Create</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/attendance') }}">Attendance</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/students-view') }}">Students View</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/students-create') }}">Students Create</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/attendance') }}">Attendance DTR</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="{{ url('/demo-biometric') }}">Demo Biometric</a></li>
                         </ul>
                     </li>
                     <li class="nxl-item nxl-hasmenu">
                         <a href="javascript:void(0);" class="nxl-link">
-                            <span class="nxl-micon"><i class="feather-alert-circle"></i></span>
-                            <span class="nxl-mtext">Leads</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                            <span class="nxl-micon"><i class="feather-file-text"></i></span>
+                            <span class="nxl-mtext">Documents</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/leads') }}">Leads</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/leads/view') }}">Leads View</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/leads/create') }}">Leads Create</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/document_application') }}">Application Letter</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/generate_endorsement_letter') }}">Endorsement Letter</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/document_moa') }}">MOA</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/generate_resume') }}">Resume</a></li>
+                        </ul>
+                    </li>
+                    <li class="nxl-item nxl-hasmenu">
+                        <a href="javascript:void(0);" class="nxl-link">
+                            <span class="nxl-micon"><i class="feather-alert-circle"></i></span>
+                            <span class="nxl-mtext">Assign OJT Designation</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                        </a>
+                        <ul class="nxl-submenu">
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/ojt') }}">OJT List</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/ojt-view') }}">OJT View</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/ojt-create') }}">OJT Create</a></li>
                         </ul>
                     </li>
                     <li class="nxl-item nxl-hasmenu">
@@ -196,15 +378,15 @@ function formatDate($date) {
                             <span class="nxl-mtext">Settings</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings/general') }}">General</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings/seo') }}">SEO</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings/tags') }}">Tags</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings/email') }}">Email</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings/tasks') }}">Tasks</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings/leads') }}">Leads</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings/support') }}">Support</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings/students') }}">Students</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings/miscellaneous') }}">Miscellaneous</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings-general') }}">General</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings-seo') }}">SEO</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings-tags') }}">Tags</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings-email') }}">Email</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings-tasks') }}">Tasks</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings-ojt') }}">Leads</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings-support') }}">Support</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings-students') }}">Students</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings-miscellaneous') }}">Miscellaneous</a></li>
                         </ul>
                     </li>
                     <li class="nxl-item nxl-hasmenu">
@@ -218,7 +400,7 @@ function formatDate($date) {
                                     <span class="nxl-mtext">Login</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                                 </a>
                                 <ul class="nxl-submenu">
-                                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/auth/login') }}">Cover</a></li>
+                                    <li class="nxl-item"><a class="nxl-link" href="{{ url('/auth-login-cover') }}">Cover</a></li>
                                 </ul>
                             </li>
                             <li class="nxl-item nxl-hasmenu">
@@ -226,7 +408,7 @@ function formatDate($date) {
                                     <span class="nxl-mtext">Register</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                                 </a>
                                 <ul class="nxl-submenu">
-                                    <li class="nxl-item"><a class="nxl-link" href="{{ url('/auth/register') }}">Creative</a></li>
+                                    <li class="nxl-item"><a class="nxl-link" href="{{ url('/auth-register-creative') }}">Creative</a></li>
                                 </ul>
                             </li>
                             <li class="nxl-item nxl-hasmenu">
@@ -234,7 +416,7 @@ function formatDate($date) {
                                     <span class="nxl-mtext">Error-404</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                                 </a>
                                 <ul class="nxl-submenu">
-                                    <li class="nxl-item"><a class="nxl-link" href="auth-404-minimal.html">Minimal</a></li>
+                                    <li class="nxl-item"><a class="nxl-link" href="{{ url('/auth-404-minimal') }}">Minimal</a></li>
                                 </ul>
                             </li>
                             <li class="nxl-item nxl-hasmenu">
@@ -242,7 +424,7 @@ function formatDate($date) {
                                     <span class="nxl-mtext">Reset Pass</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                                 </a>
                                 <ul class="nxl-submenu">
-                                    <li class="nxl-item"><a class="nxl-link" href="auth-reset-cover.html">Cover</a></li>
+                                    <li class="nxl-item"><a class="nxl-link" href="{{ url('/auth-reset-cover') }}">Cover</a></li>
                                 </ul>
                             </li>
                             <li class="nxl-item nxl-hasmenu">
@@ -250,7 +432,7 @@ function formatDate($date) {
                                     <span class="nxl-mtext">Verify OTP</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                                 </a>
                                 <ul class="nxl-submenu">
-                                    <li class="nxl-item"><a class="nxl-link" href="auth-verify-cover.html">Cover</a></li>
+                                    <li class="nxl-item"><a class="nxl-link" href="{{ url('/auth-verify-cover') }}">Cover</a></li>
                                 </ul>
                             </li>
                             <li class="nxl-item nxl-hasmenu">
@@ -258,7 +440,7 @@ function formatDate($date) {
                                     <span class="nxl-mtext">Maintenance</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                                 </a>
                                 <ul class="nxl-submenu">
-                                    <li class="nxl-item"><a class="nxl-link" href="auth-maintenance-cover.html">Cover</a></li>
+                                    <li class="nxl-item"><a class="nxl-link" href="{{ url('/auth-maintenance-cover') }}">Cover</a></li>
                                 </ul>
                             </li>
                         </ul>
@@ -269,18 +451,15 @@ function formatDate($date) {
                             <span class="nxl-mtext">Help Center</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/help/support') }}">Support</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="#!">Support</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="{{ url('/help-knowledgebase') }}">KnowledgeBase</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/docs/documentations') }}">Documentations</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="/docs/documentations">Documentations</a></li>
                         </ul>
                     </li>
                 </ul>
             </div>
         </div>
     </nav>
-    <!--! ================================================================ !-->
-    <!--! [End]  Navigation Manu !-->
-    <!--! ================================================================ !-->
 
     <!--! Header !-->
     <header class="nxl-header">
@@ -300,19 +479,6 @@ function formatDate($date) {
                     <a href="javascript:void(0);" id="menu-expend-button" style="display: none">
                         <i class="feather-arrow-right"></i>
                     </a>
-                </div>
-                <div class="nxl-lavel-mega-menu-toggle d-flex d-lg-none">
-                    <a href="javascript:void(0);" id="nxl-lavel-mega-menu-open">
-                        <i class="feather-align-left"></i>
-                    </a>
-                </div>
-                <div class="nxl-drp-link nxl-lavel-mega-menu">
-                    <div class="nxl-lavel-mega-menu-toggle d-flex d-lg-none">
-                        <a href="javascript:void(0)" id="nxl-lavel-mega-menu-hide">
-                            <i class="feather-arrow-left me-2"></i>
-                            <span>Back</span>
-                        </a>
-                    </div>
                 </div>
             </div>
             <div class="header-right ms-auto">
@@ -380,7 +546,7 @@ function formatDate($date) {
                                 <span>Account Settings</span>
                             </a>
                             <div class="dropdown-divider"></div>
-                            <a href="./auth-login-minimal.html" class="dropdown-item">
+                            <a href="{{ url('/auth-login-cover') }}" class="dropdown-item">
                                 <i class="feather-log-out"></i>
                                 <span>Logout</span>
                             </a>
@@ -401,14 +567,14 @@ function formatDate($date) {
                         <h5 class="m-b-10">Students</h5>
                     </div>
                     <ul class="breadcrumb">
-                        <li class="breadcrumb-item"><a href="{{ url('/') }}">Home</a></li>
+                        <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Home</a></li>
                         <li class="breadcrumb-item">Students</li>
                     </ul>
                 </div>
                 <div class="page-header-right ms-auto">
                     <div class="page-header-right-items">
                         <div class="d-flex d-md-none">
-                            <a href="javascript:history.back()" class="page-header-right-close-toggle">
+                            <a href="javascript:void(0)" class="page-header-right-close-toggle">
                                 <i class="feather-arrow-left me-2"></i>
                                 <span>Back</span>
                             </a>
@@ -468,17 +634,65 @@ function formatDate($date) {
                                     </a>
                                 </div>
                             </div>
-                            <a href="students-create.html" class="btn btn-primary">
+                            <a href="{{ url('/students-create') }}" class="btn btn-primary">
                                 <i class="feather-plus me-2"></i>
                                 <span>Create Students</span>
                             </a>
                         </div>
                     </div>
                     <div class="d-md-none d-flex align-items-center">
-                        <a href="javascript:history.back()" class="page-header-right-open-toggle">
+                        <a href="javascript:void(0)" class="page-header-right-open-toggle">
                             <i class="feather-align-right fs-20"></i>
                         </a>
                     </div>
+                </div>
+            </div>
+
+            <!-- Filters -->
+            <div class="row mb-3 px-3">
+                <div class="col-12">
+                    <form method="GET" class="row g-2">
+                        <div class="col-sm-2">
+                            <label class="form-label">Course</label>
+                            <select name="course_id" class="form-control">
+                                <option value="0">-- All Courses --</option>
+                                <?php foreach ($courses as $course): ?>
+                                    <option value="<?php echo $course['id']; ?>" <?php echo $filter_course == $course['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($course['name']); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-sm-2">
+                            <label class="form-label">Department</label>
+                            <select name="department_id" class="form-control">
+                                <option value="0">-- All Departments --</option>
+                                <?php foreach ($departments as $dept): ?>
+                                    <option value="<?php echo $dept['id']; ?>" <?php echo $filter_department == $dept['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($dept['name']); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-sm-2">
+                            <label class="form-label">Supervisor</label>
+                            <select name="supervisor" class="form-control">
+                                <option value="">-- Any Supervisor --</option>
+                                <?php foreach ($supervisors as $sup): ?>
+                                    <option value="<?php echo htmlspecialchars($sup); ?>" <?php echo $filter_supervisor == $sup ? 'selected' : ''; ?>><?php echo htmlspecialchars($sup); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-sm-2">
+                            <label class="form-label">Coordinator</label>
+                            <select name="coordinator" class="form-control">
+                                <option value="">-- Any Coordinator --</option>
+                                <?php foreach ($coordinators as $coor): ?>
+                                    <option value="<?php echo htmlspecialchars($coor); ?>" <?php echo $filter_coordinator == $coor ? 'selected' : ''; ?>><?php echo htmlspecialchars($coor); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-sm-2 d-flex gap-1" style="align-items: flex-end;">
+                            <button type="submit" class="btn btn-primary btn-sm px-3 py-1" style="font-size: 0.85rem;">Filter</button>
+                            <a href="{{ url('/students') }}" class="btn btn-outline-secondary btn-sm px-3 py-1" style="font-size: 0.85rem;">Reset</a>
+                        </div>
+                    </form>
                 </div>
             </div>
 
@@ -601,7 +815,15 @@ function formatDate($date) {
                                                         <td>
                                                             <a href="students-view.php?id=<?php echo $student['id']; ?>" class="hstack gap-3">
                                                                 <div class="avatar-image avatar-md">
-                                                                    <img src="<?php echo asset('frontend/assets/images/avatar/' . (($index % 5) + 1) . '.png'); ?>" alt="" class="img-fluid">
+                                                                    <?php
+                                                                    $pp = $student['profile_picture'] ?? '';
+                                                                    if ($pp && file_exists(__DIR__ . '/' . $pp)) {
+                                                                        $vb = filemtime(__DIR__ . '/' . $pp);
+                                                                        echo '<img src="' . htmlspecialchars($pp) . '?v=' . $vb . '" alt="" class="img-fluid">';
+                                                                    } else {
+                                                                        echo '<img src="' . asset('frontend/assets/images/avatar/' . (($index % 5) + 1) . '.png') . '" alt="" class="img-fluid">';
+                                                                    }
+                                                                    ?>
                                                                 </div>
                                                                 <div>
                                                                     <span class="text-truncate-1-line"><?php echo htmlspecialchars($student['first_name'] . ' ' . $student['last_name']); ?></span>
@@ -693,7 +915,7 @@ function formatDate($date) {
                     document.write(new Date().getFullYear());
                 </script>
             </p>
-            <p><span>By: <a target="_blank" href="">ACT 2A</a></span> • <span>Distributed by: <a target="_blank" href="">Group 5</a></span></p>
+            <p><span>By: <a target="_blank" href="">ACT 2A</a> </span><span>Distributed by: <a target="_blank" href="">Group 5</a></span></p>
             <div class="d-flex align-items-center gap-4">
                 <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Help</a>
                 <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Terms</a>
@@ -714,3 +936,4 @@ function formatDate($date) {
 </body>
 
 </html>
+
