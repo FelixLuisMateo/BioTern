@@ -580,24 +580,6 @@ function getAttendanceStatus($morning_time_in) {
                         <i class="feather-arrow-right"></i>
                     </a>
                 </div>
-                <!--! [End] nxl-navigation-toggle !-->
-                <!--! [Start] nxl-lavel-mega-menu-toggle !-->
-                <div class="nxl-lavel-mega-menu-toggle d-flex d-lg-none">
-                    <a href="javascript:void(0);" id="nxl-lavel-mega-menu-open">
-                        <i class="feather-align-left"></i>
-                    </a>
-                </div>
-                <!--! [End] nxl-lavel-mega-menu-toggle !-->
-                <!--! [Start] nxl-lavel-mega-menu !-->
-                <div class="nxl-drp-link nxl-lavel-mega-menu">
-                    <div class="nxl-lavel-mega-menu-toggle d-flex d-lg-none">
-                        <a href="javascript:void(0)" id="nxl-lavel-mega-menu-hide">
-                            <i class="feather-arrow-left me-2"></i>
-                            <span>Back</span>
-                        </a>
-                    </div>
-                </div>
-                <!--! [End] nxl-lavel-mega-menu !-->
             </div>
             <!--! [End] Header Left !-->
             <!--! [Start] Header Right !-->
@@ -983,6 +965,29 @@ function getAttendanceStatus($morning_time_in) {
             <div class="main-content">
                 <div class="row">
                     <div class="col-lg-12">
+                        <!-- Bulk Actions Toolbar -->
+                        <div class="card stretch stretch-full mb-3" id="bulkActionsToolbar" style="display: none;">
+                            <div class="card-body p-2">
+                                <div class="d-flex align-items-center gap-2 flex-wrap">
+                                    <span class="text-muted"><strong id="selectedCount">0</strong> record(s) selected</span>
+                                    <div class="btn-group" role="group">
+                                        <button type="button" class="btn btn-sm btn-success" onclick="performBulkAction('approve')" title="Approve selected records">
+                                            <i class="feather feather-check-circle me-1"></i> Approve All
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-warning" onclick="performBulkAction('reject')" title="Reject selected records">
+                                            <i class="feather feather-x-circle me-1"></i> Reject All
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-danger" onclick="performBulkAction('delete')" title="Delete selected records">
+                                            <i class="feather feather-trash-2 me-1"></i> Delete All
+                                        </button>
+                                    </div>
+                                    <button type="button" class="btn btn-sm btn-secondary ms-auto" onclick="clearSelection()">
+                                        <i class="feather feather-x me-1"></i> Clear
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="card stretch stretch-full">
                             <div class="card-body p-0">
                                 <div class="table-responsive">
@@ -1138,12 +1143,12 @@ function getAttendanceStatus($morning_time_in) {
         <!-- [ Footer ] start -->
         <footer class="footer">
             <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
-                <span>Copyright Â©</span>
+                <span>Copyright ©</span>
                 <script>
                     document.write(new Date().getFullYear());
                 </script>
             </p>
-            <p><span>By: <a target="_blank" href="" target="_blank">ACT 2A</a></span> â€¢ <span>Distributed by: <a target="_blank" href="" target="_blank">Group 5</a></span></p>
+            <p><span>By: <a target="_blank" href="" target="_blank">ACT 2A</a> </span><span>Distributed by: <a target="_blank" href="" target="_blank">Group 5</a></span></p>
             <div class="d-flex align-items-center gap-4">
                 <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Help</a>
                 <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Terms</a>
@@ -1192,6 +1197,31 @@ function getAttendanceStatus($morning_time_in) {
         }
         /* Allow dropdowns to overflow parent containers */
         .page-header, .page-header-right { overflow: visible !important; }
+        
+        /* Fix dropdown visibility in table */
+        .table-responsive {
+            overflow: visible !important;
+        }
+        
+        .table td {
+            position: relative;
+            overflow: visible !important;
+        }
+        
+        .dropdown {
+            position: static !important;
+        }
+        
+        .dropdown-menu {
+            position: absolute !important;
+            z-index: 10000 !important;
+        }
+        
+        /* Ensure table doesn't clip dropdowns */
+        .table-hover tbody tr {
+            position: static !important;
+            overflow: visible !important;
+        }
     </style>
 
     <script src="assets/vendors/js/dataTables.min.js"></script>
@@ -1199,6 +1229,16 @@ function getAttendanceStatus($morning_time_in) {
     <script src="assets/vendors/js/select2.min.js"></script>
     <script src="assets/vendors/js/select2-active.min.js"></script>
     <!--! END: Vendors JS !-->
+    
+    <style>
+        /* Fix dropdown visibility in scrollable table */
+        .table-responsive .dropdown-menu {
+            position: absolute !important;
+            z-index: 10000 !important;
+            margin-top: 5px;
+        }
+    </style>
+    
     <!--! BEGIN: Apps Init  !-->
     <script src="assets/js/common-init.min.js"></script>
     <script src="assets/js/customers-init.min.js"></script>
@@ -1302,6 +1342,11 @@ function getAttendanceStatus($morning_time_in) {
                     });
                     // re-init tooltips
                     $('[data-bs-toggle="tooltip"]').each(function() { new bootstrap.Tooltip(this); });
+                    // re-init dropdowns
+                    var dropdownElements = document.querySelectorAll('[data-bs-toggle="dropdown"]');
+                    dropdownElements.forEach(function(element) {
+                        new bootstrap.Dropdown(element);
+                    });
                 }).fail(function() {
                     // fallback to full reload on error
                     window.location.href = window.location.pathname + (qs ? ('?' + qs) : '');
@@ -1311,6 +1356,12 @@ function getAttendanceStatus($morning_time_in) {
             // Handle Check All
             $('#checkAllAttendance').on('change', function() {
                 $('.checkbox').prop('checked', this.checked);
+                updateBulkActionsToolbar();
+            });
+
+            // Handle individual checkbox changes
+            $(document).on('change', '.checkbox', function() {
+                updateBulkActionsToolbar();
             });
 
             // Initialize tooltips
@@ -1325,62 +1376,152 @@ function getAttendanceStatus($morning_time_in) {
             // You can implement a modal or redirect to detail page
         }
 
-        // Approve attendance function
-        function approveAttendance(id) {
-            if (confirm('Are you sure you want to approve this attendance?')) {
-                var form = document.createElement('form');
-                form.method = 'POST';
-                form.action = 'process_attendance.php';
-                
-                var input1 = document.createElement('input');
-                input1.type = 'hidden';
-                input1.name = 'action';
-                input1.value = 'approve';
-                
-                var input2 = document.createElement('input');
-                input2.type = 'hidden';
-                input2.name = 'id';
-                input2.value = id;
-                
-                form.appendChild(input1);
-                form.appendChild(input2);
-                document.body.appendChild(form);
-                form.submit();
+        // Update bulk actions toolbar visibility and count
+        function updateBulkActionsToolbar() {
+            var selectedCount = $('.checkbox:checked').length;
+            $('#selectedCount').text(selectedCount);
+            
+            if (selectedCount > 0) {
+                $('#bulkActionsToolbar').slideDown(200);
+            } else {
+                $('#bulkActionsToolbar').slideUp(200);
+                $('#checkAllAttendance').prop('checked', false);
             }
         }
 
-        // Reject attendance function
+        // Clear selection
+        function clearSelection() {
+            $('.checkbox').prop('checked', false);
+            $('#checkAllAttendance').prop('checked', false);
+            updateBulkActionsToolbar();
+        }
+
+        // Helper function to get selected IDs
+        function getSelectedIds() {
+            var ids = [];
+            $('.checkbox:checked').each(function() {
+                var id = $(this).attr('id').replace('checkBox_', '');
+                ids.push(id);
+            });
+            return ids;
+        }
+
+        // Show toast notification
+        function showToast(message, type = 'success') {
+            // Remove existing toasts
+            $('.toast-notification').remove();
+            
+            var toastHtml = '<div class="toast-notification alert alert-' + type + ' alert-dismissible fade show" role="alert" style="position: fixed; top: 20px; right: 20px; z-index: 99999; max-width: 400px;">' +
+                message +
+                '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>' +
+                '</div>';
+            
+            $('body').append(toastHtml);
+            
+            setTimeout(function() {
+                $('.toast-notification').fadeOut(function() {
+                    $(this).remove();
+                });
+            }, 4000);
+        }
+
+        // Refresh table after action
+        function refreshAttendanceTable() {
+            var currentUrl = window.location.href;
+            $.get(currentUrl, function(html) {
+                if ($.fn.DataTable.isDataTable('#attendanceList')) {
+                    $('#attendanceList').DataTable().destroy();
+                }
+                var newTbody = $(html).find('#attendanceList tbody').html();
+                $('#attendanceList tbody').html(newTbody);
+                $('#attendanceList').DataTable({
+                    "pageLength": 10,
+                    "ordering": true,
+                    "searching": true
+                });
+                // Reinitialize tooltips
+                $('[data-bs-toggle="tooltip"]').each(function() {
+                    new bootstrap.Tooltip(this);
+                });
+                // Reinitialize dropdowns - Bootstrap 5
+                var dropdownElements = document.querySelectorAll('[data-bs-toggle="dropdown"]');
+                dropdownElements.forEach(function(element) {
+                    new bootstrap.Dropdown(element);
+                });
+                $('#checkAllAttendance').prop('checked', false);
+                updateBulkActionsToolbar();
+            });
+        }
+
+        // Approve attendance function (single or bulk via AJAX)
+        function approveAttendance(id) {
+            var ids = id ? [id] : getSelectedIds();
+            
+            if (ids.length === 0) {
+                showToast('Please select at least one attendance record to approve', 'warning');
+                return;
+            }
+
+            if (confirm('Are you sure you want to approve ' + ids.length + ' attendance record(s)?')) {
+                $.ajax({
+                    type: 'POST',
+                    url: 'process_attendance.php',
+                    data: {
+                        action: 'approve',
+                        id: ids
+                    },
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.success) {
+                            showToast(response.message, 'success');
+                            refreshAttendanceTable();
+                        } else {
+                            showToast(response.message, 'danger');
+                        }
+                    },
+                    error: function() {
+                        showToast('Error processing request', 'danger');
+                    }
+                });
+            }
+        }
+
+        // Reject attendance function (single or bulk via AJAX)
         function rejectAttendance(id) {
+            var ids = id ? [id] : getSelectedIds();
+            
+            if (ids.length === 0) {
+                showToast('Please select at least one attendance record to reject', 'warning');
+                return;
+            }
+
             var remarks = prompt('Enter rejection reason:');
             if (remarks !== null && remarks.trim() !== '') {
-                var form = document.createElement('form');
-                form.method = 'POST';
-                form.action = 'process_attendance.php';
-                
-                var input1 = document.createElement('input');
-                input1.type = 'hidden';
-                input1.name = 'action';
-                input1.value = 'reject';
-                
-                var input2 = document.createElement('input');
-                input2.type = 'hidden';
-                input2.name = 'id';
-                input2.value = id;
-                
-                var input3 = document.createElement('input');
-                input3.type = 'hidden';
-                input3.name = 'remarks';
-                input3.value = remarks;
-                
-                form.appendChild(input1);
-                form.appendChild(input2);
-                form.appendChild(input3);
-                document.body.appendChild(form);
-                form.submit();
+                $.ajax({
+                    type: 'POST',
+                    url: 'process_attendance.php',
+                    data: {
+                        action: 'reject',
+                        id: ids,
+                        remarks: remarks
+                    },
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.success) {
+                            showToast(response.message, 'success');
+                            refreshAttendanceTable();
+                        } else {
+                            showToast(response.message, 'danger');
+                        }
+                    },
+                    error: function() {
+                        showToast('Error processing request', 'danger');
+                    }
+                });
             }
         }
 
-        // Edit attendance function
+        // Edit attendance function (redirects to edit page)
         function editAttendance(id) {
             window.location.href = 'edit_attendance.php?id=' + id;
         }
@@ -1396,24 +1537,81 @@ function getAttendanceStatus($morning_time_in) {
             // Implement your notification logic here
         }
 
-        // Delete attendance function
+        // Delete attendance function (single or bulk via AJAX)
         function deleteAttendance(id) {
-            if (confirm('Are you sure you want to delete this attendance record? This action cannot be undone.')) {
-                var form = document.createElement('form');
-                form.method = 'POST';
-                form.action = 'process_attendance.php';
-                
-                var input1 = document.createElement('input');
-                input1.type = 'hidden';
-                input1.name = 'action';
-                input1.value = 'delete';
-                
-                var input2 = document.createElement('input');
-                input2.type = 'hidden';
-                input2.name = 'id';
-                input2.value = id;
-                
-                form.appendChild(input1);
-                form.appendChild(input2);
-                document.body.appendChild(form);
+            var ids = id ? [id] : getSelectedIds();
+            
+            if (ids.length === 0) {
+                showToast('Please select at least one attendance record to delete', 'warning');
+                return;
+            }
+
+            if (confirm('Are you sure you want to delete ' + ids.length + ' attendance record(s)? This action cannot be undone.')) {
+                $.ajax({
+                    type: 'POST',
+                    url: 'process_attendance.php',
+                    data: {
+                        action: 'delete',
+                        id: ids
+                    },
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.success) {
+                            showToast(response.message, 'success');
+                            refreshAttendanceTable();
+                        } else {
+                            showToast(response.message, 'danger');
+                        }
+                    },
+                    error: function() {
+                        showToast('Error processing request', 'danger');
+                    }
+                });
+            }
+        }
+
+        // Bulk action handler
+        function performBulkAction(action) {
+            var ids = getSelectedIds();
+            
+            if (ids.length === 0) {
+                showToast('Please select at least one attendance record', 'warning');
+                return;
+            }
+
+            if (action === 'approve') {
+                approveAttendance(null);
+            } else if (action === 'reject') {
+                rejectAttendance(null);
+            } else if (action === 'delete') {
+                deleteAttendance(null);
+            }
+        }
+
+        // Edit status inline via AJAX
+        function changeStatus(id, newStatus) {
+            if (confirm('Change status to ' + newStatus + '?')) {
+                $.ajax({
+                    type: 'POST',
+                    url: 'process_attendance.php',
+                    data: {
+                        action: 'edit_status',
+                        id: [id],
+                        status: newStatus
+                    },
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.success) {
+                            showToast(response.message, 'success');
+                            refreshAttendanceTable();
+                        } else {
+                            showToast(response.message, 'danger');
+                        }
+                    },
+                    error: function() {
+                        showToast('Error processing request', 'danger');
+                    }
+                });
+            }
+        }
 

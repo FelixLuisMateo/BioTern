@@ -44,33 +44,31 @@
         box-shadow: 0 5px 20px rgba(255, 71, 87, 0.2);
     }
 
-    /* Dark mode adjustments for role cards */
-    @media (prefers-color-scheme: dark) {
-        .role-card {
-            background: #2d2d2d;
-            border-color: #444;
-            color: #e0e0e0;
-        }
+    /* Dark mode support using html.app-skin-dark */
+    html.app-skin-dark .role-card {
+        background: #001033;
+        border-color: #444444;
+        color: #e0e0e0;
+    }
 
-        .role-card:hover {
-            border-color: #FF4757;
-            box-shadow: 0 5px 20px rgba(255, 71, 87, 0.3);
-            background: #373737;
-        }
+    html.app-skin-dark .role-card:hover {
+        border-color: #FF4757;
+        box-shadow: 0 5px 20px rgba(255, 71, 87, 0.3);
+        background: #373737;
+    }
 
-        .role-card.selected {
-            background: #3d2a2a;
-            border-color: #FF4757;
-            box-shadow: 0 5px 20px rgba(255, 71, 87, 0.4);
-        }
+    html.app-skin-dark .role-card.selected {
+        background: #3d2a2a;
+        border-color: #FF4757;
+        box-shadow: 0 5px 20px rgba(255, 71, 87, 0.4);
+    }
 
-        .role-card h5 {
-            color: #f0f0f0;
-        }
+    html.app-skin-dark .role-card h5 {
+        color: #f0f0f0;
+    }
 
-        .role-card p {
-            color: #b0b0b0;
-        }
+    html.app-skin-dark .role-card p {
+        color: #b0b0b0;
     }
 
     .role-icon {
