@@ -2,6 +2,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class RegisterSubmitController extends Controller
 {
@@ -173,5 +174,32 @@ class RegisterSubmitController extends Controller
         }
 
         return redirect('/register_submit');
+    }
+
+    /**
+     * Show the registration form with coordinators and supervisors lists.
+     */
+    public function show(Request $request)
+    {
+        $coordinators = collect();
+        $supervisors = collect();
+
+        try {
+            $coordinators = DB::table('coordinators')
+                ->where('is_active', 1)
+                ->orderBy('first_name')
+                ->select(DB::raw("id, CONCAT(first_name, ' ', last_name) as full_name"))
+                ->get();
+
+            $supervisors = DB::table('supervisors')
+                ->where('is_active', 1)
+                ->orderBy('first_name')
+                ->select(DB::raw("id, CONCAT(first_name, ' ', last_name) as full_name"))
+                ->get();
+        } catch (\Throwable $e) {
+            // ignore - repository may be a trimmed copy without these tables
+        }
+
+        return view('auth-register-creative', compact('coordinators', 'supervisors'));
     }
 }
