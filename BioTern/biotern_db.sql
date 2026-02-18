@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Feb 12, 2026 at 11:20 AM
+-- Generation Time: Feb 16, 2026 at 10:38 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -44,6 +44,9 @@ CREATE TABLE `attendances` (
   `approved_by` bigint(20) UNSIGNED DEFAULT NULL,
   `approved_at` timestamp NULL DEFAULT NULL,
   `remarks` text DEFAULT NULL,
+  `rejection_remarks` text DEFAULT NULL,
+  `rejected_by` bigint(20) UNSIGNED DEFAULT NULL,
+  `rejected_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -52,29 +55,32 @@ CREATE TABLE `attendances` (
 -- Dumping data for table `attendances`
 --
 
-INSERT INTO `attendances` (`id`, `student_id`, `internship_id`, `attendance_date`, `morning_time_in`, `morning_time_out`, `break_time_in`, `break_time_out`, `afternoon_time_in`, `afternoon_time_out`, `total_hours`, `source`, `status`, `approved_by`, `approved_at`, `remarks`, `created_at`, `updated_at`) VALUES
-(1, 1, NULL, '2026-02-09', '17:03:00', '12:00:00', '12:30:00', '13:30:00', '14:00:00', '17:00:00', 140.00, 'manual', 'pending', NULL, NULL, NULL, '2026-02-09 06:33:20', '2026-02-10 09:03:49'),
-(2, 2, NULL, '2026-02-09', '16:30:00', '12:15:00', '12:45:00', '13:45:00', '14:15:00', '17:15:00', NULL, 'manual', 'approved', NULL, NULL, NULL, '2026-02-09 06:33:20', '2026-02-09 09:18:56'),
-(3, 3, NULL, '2026-02-09', '08:30:00', '12:30:00', '13:00:00', '14:00:00', '14:30:00', '16:27:00', NULL, 'manual', 'pending', NULL, NULL, NULL, '2026-02-09 06:33:20', '2026-02-09 08:27:36'),
-(4, 1, NULL, '2026-02-08', '07:45:00', '11:45:00', '12:15:00', '13:15:00', '13:45:00', '16:45:00', NULL, 'manual', 'approved', NULL, NULL, NULL, '2026-02-09 06:33:20', '2026-02-09 06:33:20'),
-(5, 2, NULL, '2026-02-08', '08:00:00', '12:00:00', '12:30:00', '13:30:00', '14:00:00', '17:00:00', NULL, 'manual', 'rejected', NULL, NULL, NULL, '2026-02-09 06:33:20', '2026-02-09 06:33:20'),
-(6, 1, NULL, '2026-02-09', '17:03:00', '12:00:00', '12:30:00', '13:30:00', '14:00:00', '17:00:00', NULL, 'manual', 'pending', NULL, NULL, NULL, '2026-02-09 06:36:38', '2026-02-09 09:03:00'),
-(7, 1, NULL, '2026-02-08', '08:15:00', '12:15:00', '12:45:00', '13:45:00', '14:15:00', '17:15:00', NULL, 'manual', 'approved', NULL, NULL, NULL, '2026-02-09 06:36:38', '2026-02-09 06:36:38'),
-(8, 1, NULL, '2026-02-07', '08:30:00', '12:30:00', '13:00:00', '14:00:00', '14:30:00', '17:30:00', NULL, 'manual', 'pending', NULL, NULL, NULL, '2026-02-09 06:36:38', '2026-02-09 06:36:38'),
-(9, 2, NULL, '2026-02-09', '16:30:00', '12:00:00', '12:30:00', '13:30:00', '14:00:00', '17:00:00', NULL, 'manual', 'approved', NULL, NULL, NULL, '2026-02-09 06:36:38', '2026-02-09 09:18:56'),
-(10, 2, NULL, '2026-02-08', '07:45:00', '11:45:00', '12:15:00', '13:15:00', '13:45:00', '16:45:00', NULL, 'manual', 'approved', NULL, NULL, NULL, '2026-02-09 06:36:38', '2026-02-09 06:36:38'),
-(11, 2, NULL, '2026-02-07', '08:15:00', '12:15:00', '12:45:00', '13:45:00', '14:15:00', '17:15:00', NULL, 'manual', 'approved', NULL, NULL, NULL, '2026-02-09 06:36:38', '2026-02-09 06:36:38'),
-(12, 3, NULL, '2026-02-09', '08:30:00', '12:30:00', '13:00:00', '14:00:00', '14:30:00', '16:27:00', NULL, 'manual', 'pending', NULL, NULL, NULL, '2026-02-09 06:36:38', '2026-02-09 08:27:36'),
-(13, 3, NULL, '2026-02-08', '08:00:00', '12:00:00', '12:30:00', '13:30:00', '14:00:00', '17:00:00', NULL, 'manual', 'rejected', NULL, NULL, NULL, '2026-02-09 06:36:38', '2026-02-09 06:36:38'),
-(14, 3, NULL, '2026-02-07', '09:00:00', '12:30:00', '13:00:00', '14:00:00', '14:30:00', '17:30:00', NULL, 'manual', 'pending', NULL, NULL, NULL, '2026-02-09 06:36:38', '2026-02-09 06:36:38'),
-(15, 2, NULL, '2026-02-10', '09:57:00', '09:50:00', '09:50:00', NULL, NULL, NULL, NULL, 'manual', 'pending', NULL, NULL, NULL, '2026-02-10 01:38:53', '2026-02-10 01:57:14'),
-(16, 3, NULL, '2026-02-10', '09:40:00', '10:01:00', NULL, NULL, '17:52:00', '17:52:00', NULL, 'manual', 'pending', NULL, NULL, NULL, '2026-02-10 01:40:34', '2026-02-10 09:52:56'),
-(17, 1, NULL, '2026-02-10', '09:57:00', '09:57:00', '09:58:00', '09:58:00', NULL, '09:59:00', NULL, 'manual', 'pending', NULL, NULL, NULL, '2026-02-10 01:57:41', '2026-02-10 01:59:23'),
-(18, 2, NULL, '2026-02-11', NULL, NULL, NULL, NULL, '12:53:00', '15:30:00', NULL, 'manual', 'pending', NULL, NULL, NULL, '2026-02-11 04:53:11', '2026-02-11 07:30:36'),
-(19, 1, NULL, '2026-02-11', NULL, NULL, NULL, NULL, '13:01:00', '13:02:00', NULL, 'manual', 'pending', NULL, NULL, NULL, '2026-02-11 05:01:14', '2026-02-11 05:02:53'),
-(20, 3, NULL, '2026-02-11', NULL, NULL, NULL, NULL, '15:31:00', '16:43:00', NULL, 'manual', 'pending', NULL, NULL, NULL, '2026-02-11 07:31:02', '2026-02-11 08:43:47'),
-(21, 2, NULL, '2026-02-12', '11:00:00', NULL, NULL, NULL, NULL, NULL, NULL, 'manual', 'pending', NULL, NULL, NULL, '2026-02-12 03:00:31', '2026-02-12 03:00:31'),
-(22, 5, NULL, '2026-02-12', NULL, NULL, NULL, NULL, '15:19:00', NULL, NULL, 'manual', 'pending', NULL, NULL, NULL, '2026-02-12 07:19:20', '2026-02-12 07:19:20');
+INSERT INTO `attendances` (`id`, `student_id`, `internship_id`, `attendance_date`, `morning_time_in`, `morning_time_out`, `break_time_in`, `break_time_out`, `afternoon_time_in`, `afternoon_time_out`, `total_hours`, `source`, `status`, `approved_by`, `approved_at`, `remarks`, `rejection_remarks`, `rejected_by`, `rejected_at`, `created_at`, `updated_at`) VALUES
+(1, 1, NULL, '2026-02-09', '17:03:00', '12:00:00', '12:30:00', '13:30:00', '14:00:00', '17:00:00', 140.00, 'manual', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-02-09 06:33:20', '2026-02-10 09:03:49'),
+(2, 2, NULL, '2026-02-09', '16:30:00', '12:15:00', '12:45:00', '13:45:00', '14:15:00', '17:15:00', NULL, 'manual', 'approved', NULL, NULL, NULL, NULL, NULL, NULL, '2026-02-09 06:33:20', '2026-02-09 09:18:56'),
+(3, 3, NULL, '2026-02-09', '08:30:00', '12:30:00', '13:00:00', '14:00:00', '14:30:00', '16:27:00', NULL, 'manual', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-02-09 06:33:20', '2026-02-09 08:27:36'),
+(4, 1, NULL, '2026-02-08', '07:45:00', '11:45:00', '12:15:00', '13:15:00', '13:45:00', '16:45:00', NULL, 'manual', 'approved', NULL, NULL, NULL, NULL, NULL, NULL, '2026-02-09 06:33:20', '2026-02-09 06:33:20'),
+(5, 2, NULL, '2026-02-08', '08:00:00', '12:00:00', '12:30:00', '13:30:00', '14:00:00', '17:00:00', NULL, 'manual', 'rejected', NULL, NULL, NULL, NULL, NULL, NULL, '2026-02-09 06:33:20', '2026-02-09 06:33:20'),
+(6, 1, NULL, '2026-02-09', '17:03:00', '12:00:00', '12:30:00', '13:30:00', '14:00:00', '17:00:00', NULL, 'manual', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-02-09 06:36:38', '2026-02-09 09:03:00'),
+(7, 1, NULL, '2026-02-08', '08:15:00', '12:15:00', '12:45:00', '13:45:00', '14:15:00', '17:15:00', NULL, 'manual', 'approved', NULL, NULL, NULL, NULL, NULL, NULL, '2026-02-09 06:36:38', '2026-02-09 06:36:38'),
+(8, 1, NULL, '2026-02-07', '08:30:00', '12:30:00', '13:00:00', '14:00:00', '14:30:00', '17:30:00', NULL, 'manual', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-02-09 06:36:38', '2026-02-09 06:36:38'),
+(9, 2, NULL, '2026-02-09', '16:30:00', '12:00:00', '12:30:00', '13:30:00', '14:00:00', '17:00:00', NULL, 'manual', 'approved', NULL, NULL, NULL, NULL, NULL, NULL, '2026-02-09 06:36:38', '2026-02-09 09:18:56'),
+(10, 2, NULL, '2026-02-08', '07:45:00', '11:45:00', '12:15:00', '13:15:00', '13:45:00', '16:45:00', NULL, 'manual', 'approved', NULL, NULL, NULL, NULL, NULL, NULL, '2026-02-09 06:36:38', '2026-02-09 06:36:38'),
+(11, 2, NULL, '2026-02-07', '08:15:00', '12:15:00', '12:45:00', '13:45:00', '14:15:00', '17:15:00', NULL, 'manual', 'approved', NULL, NULL, NULL, NULL, NULL, NULL, '2026-02-09 06:36:38', '2026-02-09 06:36:38'),
+(12, 3, NULL, '2026-02-09', '08:30:00', '12:30:00', '13:00:00', '14:00:00', '14:30:00', '16:27:00', NULL, 'manual', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-02-09 06:36:38', '2026-02-09 08:27:36'),
+(13, 3, NULL, '2026-02-08', '08:00:00', '12:00:00', '12:30:00', '13:30:00', '14:00:00', '17:00:00', NULL, 'manual', 'rejected', NULL, NULL, NULL, NULL, NULL, NULL, '2026-02-09 06:36:38', '2026-02-09 06:36:38'),
+(14, 3, NULL, '2026-02-07', '09:00:00', '12:30:00', '13:00:00', '14:00:00', '14:30:00', '17:30:00', NULL, 'manual', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-02-09 06:36:38', '2026-02-09 06:36:38'),
+(15, 2, NULL, '2026-02-10', '09:57:00', '09:50:00', '09:50:00', NULL, NULL, NULL, NULL, 'manual', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-02-10 01:38:53', '2026-02-10 01:57:14'),
+(16, 3, NULL, '2026-02-10', '09:40:00', '10:01:00', NULL, NULL, '17:52:00', '17:52:00', NULL, 'manual', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-02-10 01:40:34', '2026-02-10 09:52:56'),
+(17, 1, NULL, '2026-02-10', '09:57:00', '09:57:00', '09:58:00', '09:58:00', NULL, '09:59:00', NULL, 'manual', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-02-10 01:57:41', '2026-02-10 01:59:23'),
+(18, 2, NULL, '2026-02-11', NULL, NULL, NULL, NULL, '12:53:00', '15:30:00', NULL, 'manual', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-02-11 04:53:11', '2026-02-11 07:30:36'),
+(19, 1, NULL, '2026-02-11', NULL, NULL, NULL, NULL, '13:01:00', '13:02:00', NULL, 'manual', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-02-11 05:01:14', '2026-02-11 05:02:53'),
+(20, 3, NULL, '2026-02-11', NULL, NULL, NULL, NULL, '15:31:00', '16:43:00', NULL, 'manual', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-02-11 07:31:02', '2026-02-11 08:43:47'),
+(21, 2, NULL, '2026-02-12', '11:00:00', NULL, NULL, NULL, NULL, NULL, NULL, 'manual', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-02-12 03:00:31', '2026-02-12 03:00:31'),
+(22, 5, NULL, '2026-02-12', NULL, NULL, NULL, NULL, '15:19:00', NULL, NULL, 'manual', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-02-12 07:19:20', '2026-02-12 07:19:20'),
+(23, 5, NULL, '2026-02-13', '09:16:00', NULL, NULL, NULL, NULL, NULL, NULL, 'manual', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-02-13 01:16:56', '2026-02-13 01:16:56'),
+(24, 2, NULL, '2026-02-13', '09:18:00', '09:19:00', NULL, NULL, '09:19:00', NULL, NULL, 'manual', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-02-13 01:18:45', '2026-02-13 01:19:49'),
+(25, 7, NULL, '2026-02-16', '13:45:00', NULL, NULL, NULL, NULL, NULL, NULL, 'manual', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-02-16 05:45:00', '2026-02-16 05:45:00');
 
 -- --------------------------------------------------------
 
@@ -168,7 +174,8 @@ CREATE TABLE `coordinators` (
 --
 
 INSERT INTO `coordinators` (`id`, `user_id`, `first_name`, `last_name`, `middle_name`, `email`, `phone`, `department_id`, `office_location`, `bio`, `profile_picture`, `is_active`, `created_at`, `updated_at`, `deleted_at`) VALUES
-(4, 15, 'Jomer', 'De Guzman', NULL, 'jomers@gmail.com', '92345678901', 1, 'Sa bahay niya', NULL, NULL, 1, '2026-02-12 07:29:31', '2026-02-12 07:29:31', NULL);
+(4, 15, 'Jomer', 'De Guzman', NULL, 'jomers@gmail.com', '92345678901', 1, 'Sa bahay niya', NULL, NULL, 1, '2026-02-12 07:29:31', '2026-02-12 07:29:31', NULL),
+(5, 24, 'Prince', 'Basmayor', NULL, 'basmayor@gmail.com', '9134897513', 1, '12345 basmayor house', NULL, NULL, 1, '2026-02-16 05:38:46', '2026-02-16 05:38:46', NULL);
 
 -- --------------------------------------------------------
 
@@ -255,10 +262,16 @@ CREATE TABLE `documents` (
   `student_id` bigint(20) UNSIGNED NOT NULL,
   `document_type` varchar(255) NOT NULL,
   `file_path` varchar(255) NOT NULL,
+  `file_name` varchar(255) DEFAULT NULL,
   `uploaded_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
-  `deleted_at` timestamp NULL DEFAULT NULL
+  `deleted_at` timestamp NULL DEFAULT NULL,
+  `file_type` varchar(50) DEFAULT NULL,
+  `file_size` bigint(20) DEFAULT NULL,
+  `description` longtext DEFAULT NULL,
+  `uploaded_by` bigint(20) UNSIGNED DEFAULT NULL,
+  `last_modified_by` bigint(20) UNSIGNED DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -335,6 +348,28 @@ INSERT INTO `internships` (`id`, `student_id`, `course_id`, `department_id`, `co
 (1, 1, 1, 1, 2, 3, 'external', 'Tech Solutions Inc', '100 Business Park, Metro', 'Junior Developer', '2026-01-15', '2026-06-15', 'Web Development Internship', 'ongoing', '2026-2027', 600, 0, 0.00, '2026-02-09 06:36:38', '2026-02-09 06:36:38', NULL),
 (2, 2, 1, 1, 2, 3, 'external', 'Digital Agency Co', '200 Innovation Ave, Metro', 'UI/UX Designer', '2026-01-20', '2026-06-20', 'Design Internship', 'ongoing', '2026-2027', 600, 0, 0.00, '2026-02-09 06:36:38', '2026-02-09 06:36:38', NULL),
 (3, 3, 2, 1, 2, 3, 'internal', 'BioTern Labs', '500 Campus Blvd, City', 'Data Analyst', '2026-02-01', '2026-07-01', 'Data Analysis Internship', 'ongoing', '2026-2027', 600, 0, 0.00, '2026-02-09 06:36:38', '2026-02-09 06:36:38', NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `manual_dtr_attachments`
+--
+
+CREATE TABLE `manual_dtr_attachments` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `student_id` bigint(20) UNSIGNED NOT NULL,
+  `attendance_id` bigint(20) UNSIGNED NOT NULL,
+  `attendance_date` date NOT NULL,
+  `file_path` varchar(255) NOT NULL,
+  `file_name` varchar(255) NOT NULL,
+  `file_type` varchar(50) DEFAULT NULL,
+  `file_size` bigint(20) DEFAULT NULL,
+  `reason` varchar(255) DEFAULT NULL COMMENT 'e.g., Biometric Machine Breakdown',
+  `uploaded_by` bigint(20) UNSIGNED DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `deleted_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -431,6 +466,8 @@ CREATE TABLE `students` (
   `section_id` int(11) NOT NULL,
   `supervisor_name` text DEFAULT NULL,
   `coordinator_name` text DEFAULT NULL,
+  `supervisor_id` bigint(20) UNSIGNED DEFAULT NULL,
+  `coordinator_id` bigint(20) UNSIGNED DEFAULT NULL,
   `phone` varchar(255) DEFAULT NULL,
   `date_of_birth` date DEFAULT NULL,
   `gender` enum('male','female','other') DEFAULT NULL,
@@ -438,6 +475,7 @@ CREATE TABLE `students` (
   `total_hours_remaining` int(11) DEFAULT NULL,
   `total_hours` int(11) DEFAULT NULL,
   `emergency_contact` varchar(255) DEFAULT NULL,
+  `profile_picture` varchar(255) DEFAULT NULL,
   `biometric_registered` tinyint(1) NOT NULL DEFAULT 0,
   `biometric_registered_at` timestamp NULL DEFAULT NULL,
   `status` varchar(255) NOT NULL DEFAULT '1',
@@ -450,11 +488,13 @@ CREATE TABLE `students` (
 -- Dumping data for table `students`
 --
 
-INSERT INTO `students` (`id`, `user_id`, `course_id`, `student_id`, `first_name`, `last_name`, `middle_name`, `username`, `password`, `email`, `section_id`, `supervisor_name`, `coordinator_name`, `phone`, `date_of_birth`, `gender`, `address`, `total_hours_remaining`, `total_hours`, `emergency_contact`, `biometric_registered`, `biometric_registered_at`, `status`, `created_at`, `updated_at`, `deleted_at`) VALUES
-(1, 4, 1, '05-0001', 'John', 'Doe', 'Michael', NULL, '', 'john@student.com', 0, 'Jomer De Guzman', 'Felix Luis Mateo', '09123456789', '2003-01-15', 'male', '123 Main St, City', NULL, 140, 'Maria Doe', 1, '2026-02-01 07:49:45', 'Ongoing', '2026-02-09 06:36:38', '2026-02-11 06:30:13', NULL),
-(2, 5, 3, '05-0002', 'Jane', 'Smith', 'Marie', NULL, '', 'jane@student.com', 0, 'Naven Cuenca', 'Ivy Bactazo', '092345678901', '2003-06-20', 'female', '456 Oak Ave, City', NULL, 250, 'Robert Smith', 1, '2026-02-03 07:49:58', '0', '2026-02-09 06:36:38', '2026-02-11 07:28:03', NULL),
-(3, 6, 2, '05-0003', 'Mike', 'Johnson', 'Anthony', NULL, '', 'mike@student.com', 0, 'Naven Cuenca', 'Ivy Bactazo', '09345678901', '2003-03-10', 'male', '789 Pine Rd, City', NULL, 100, 'Sarah Johnson', 1, '2026-02-05 07:50:04', 'Ongoing', '2026-02-09 06:36:38', '2026-02-11 06:30:25', NULL),
-(5, 12, 1, '05-8502', 'Felix', 'Mateo', 'Luis Manaloto', 'felixluismateo16', '$2y$10$bK.ueb82uspJ1esWCiWZlOrlMwB79bEB3FfkzOeYqrXFuw4sWprJ2', 'felixluismanalotomateo16@gmail.com', 0, NULL, NULL, NULL, NULL, NULL, '6000 Dau, Mabalacat Cuty, Pampanga', NULL, NULL, NULL, 0, NULL, '1', '2026-02-12 06:49:03', '2026-02-12 06:49:03', NULL);
+INSERT INTO `students` (`id`, `user_id`, `course_id`, `student_id`, `first_name`, `last_name`, `middle_name`, `username`, `password`, `email`, `section_id`, `supervisor_name`, `coordinator_name`, `supervisor_id`, `coordinator_id`, `phone`, `date_of_birth`, `gender`, `address`, `total_hours_remaining`, `total_hours`, `emergency_contact`, `profile_picture`, `biometric_registered`, `biometric_registered_at`, `status`, `created_at`, `updated_at`, `deleted_at`) VALUES
+(1, 4, 1, '05-0001', 'John', 'Doe', 'Michael', NULL, '', 'john@student.com', 0, 'Jomer De Guzman', 'Felix Luis Mateo', NULL, NULL, '09123456789', '2003-01-15', 'male', '123 Main St, City', NULL, 140, 'Maria Doe', NULL, 1, '2026-02-01 07:49:45', 'Ongoing', '2026-02-09 06:36:38', '2026-02-11 06:30:13', NULL),
+(2, 5, 3, '05-0002', 'Jane', 'Smith', 'Marie', NULL, '', 'jane@student.com', 0, 'Naven Cuenca', 'Ivy Bactazo', NULL, NULL, '092345678901', '2003-06-20', 'female', '456 Oak Ave, City', NULL, 250, 'Robert Smith', NULL, 1, '2026-02-03 07:49:58', '0', '2026-02-09 06:36:38', '2026-02-14 03:02:37', NULL),
+(3, 6, 2, '05-0003', 'Mike', 'Johnson', 'Anthony', NULL, '', 'mike@student.com', 0, 'Naven Cuenca', 'Ivy Bactazo', NULL, NULL, '09345678901', '2003-03-10', 'male', '789 Pine Rd, City', NULL, 100, 'Sarah Johnson', NULL, 1, '2026-02-05 07:50:04', 'Ongoing', '2026-02-09 06:36:38', '2026-02-11 06:30:25', NULL),
+(5, 12, 1, '05-8502', 'Felix Luis', 'Mateo', 'Manaloto', 'felixluismateo16', '$2y$10$bK.ueb82uspJ1esWCiWZlOrlMwB79bEB3FfkzOeYqrXFuw4sWprJ2', 'felixluismanalotomateo16@gmail.com', 0, 'Jomer De Guzman', 'Ivy Bactazo', NULL, NULL, '(+63) 991 633 2193', '2006-03-16', 'male', '6000 Dau, Mabalacat Cuty, Pampanga', NULL, NULL, '09091783340', 'uploads/profile_pictures/student_5_1771039576.png', 0, NULL, '1', '2026-02-12 06:49:03', '2026-02-14 03:42:07', NULL),
+(6, 23, 3, '05-1234', 'Lucky', 'Mateo', '', 'lucky', '$2y$10$YDK.6KIiuSgJxNWBYP9gNe.YXQvS9iwLIlJYPlxu9yQCrcnGKAjHq', 'luckymateo@gmail.com', 0, NULL, NULL, NULL, NULL, '09213410354', '2006-06-15', 'male', '6170 Dau, Mabalacat City, Pampanga', NULL, 200, 'Car', NULL, 0, NULL, '1', '2026-02-16 05:34:41', '2026-02-16 05:34:41', NULL),
+(7, 25, 3, '05-1233', 'Brian', 'Leonardo', '', 'brian', '$2y$10$2ydLo1skdlQYf90dr3yg0OEsP31LITpr2D8hSGWuv/jl9L1iyrJBG', 'brian@gmail.com', 0, 'Lucky Manaloto', 'Prince Basmayor', 4, 5, '055985451', '2004-07-09', 'male', '2356 Leonardo street', NULL, 200, 'Kuku', '', 0, NULL, '1', '2026-02-16 05:44:36', '2026-02-16 06:42:14', NULL);
 
 -- --------------------------------------------------------
 
@@ -530,6 +570,31 @@ CREATE TABLE `system_settings` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `upload_settings`
+--
+
+CREATE TABLE `upload_settings` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `upload_type` varchar(50) NOT NULL COMMENT 'profile_picture, manual_dtr, documents',
+  `base_path` varchar(255) NOT NULL COMMENT 'Path relative to web root',
+  `max_file_size` bigint(20) DEFAULT 5242880 COMMENT 'In bytes (5MB default)',
+  `allowed_extensions` varchar(255) DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `upload_settings`
+--
+
+INSERT INTO `upload_settings` (`id`, `upload_type`, `base_path`, `max_file_size`, `allowed_extensions`, `created_at`, `updated_at`) VALUES
+(1, 'profile_picture', '/uploads/profile_pictures/', 5242880, 'jpg,jpeg,png,gif', '2026-02-14 03:09:01', '2026-02-14 03:09:01'),
+(2, 'manual_dtr', '/uploads/manual_dtr/', 10485760, 'jpg,jpeg,png,pdf', '2026-02-14 03:09:01', '2026-02-14 03:09:01'),
+(3, 'documents', '/uploads/documents/', 20971520, 'pdf,doc,docx,xls,xlsx,txt', '2026-02-14 03:09:01', '2026-02-14 03:09:01');
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `users`
 --
 
@@ -563,7 +628,11 @@ INSERT INTO `users` (`id`, `name`, `username`, `email`, `email_verified_at`, `pa
 (12, 'Felix Mateo', 'felixluismateo16', 'felixluismanalotomateo16@gmail.com', NULL, '$2y$10$bK.ueb82uspJ1esWCiWZlOrlMwB79bEB3FfkzOeYqrXFuw4sWprJ2', NULL, 'student', 1, '2026-02-12 06:49:03', '2026-02-12 06:49:03'),
 (13, 'ToxicDaw', 'ToxicDaw', 'jomer@gmail.com', NULL, '$2y$10$l4a1M9972YjUDgnK21QqNemcdJVI9COcf50Tfj1tnoZz2/swYhs2O', NULL, 'coordinator', 1, '2026-02-12 07:21:26', '2026-02-12 07:21:26'),
 (15, 'ToxicDaw', 'ToxicDaw', 'jomers@gmail.com', NULL, '$2y$10$8B/tX8rPSRlr8IInFaMOgOnCGw83JNsTxdScB7LcZA5c45bn0inMi', NULL, 'coordinator', 1, '2026-02-12 07:29:31', '2026-02-12 07:29:31'),
-(16, 'Lucky', 'Lucky', 'luckyluckymateo@gmail.com', NULL, '$2y$10$g8QlU.4rdfGnfcp/v.itgum51fEs4JpPAFCbohBLS//KvOTR2N/hS', NULL, 'supervisor', 1, '2026-02-12 07:33:13', '2026-02-12 07:33:13');
+(16, 'Lucky', 'Lucky', 'luckyluckymateo@gmail.com', NULL, '$2y$10$g8QlU.4rdfGnfcp/v.itgum51fEs4JpPAFCbohBLS//KvOTR2N/hS', NULL, 'supervisor', 1, '2026-02-12 07:33:13', '2026-02-12 07:33:13'),
+(17, 'Ivan Sanchez', 'Ivan', 'IvanSanchez@gmail.com', NULL, '$2y$10$oHgjisJkgBJc0P.MCSvkgOP/7YGWSckBVor4dDpProiaN3L8y5MCS', NULL, 'student', 1, '2026-02-16 04:57:43', '2026-02-16 04:57:43'),
+(23, 'Lucky Mateo', 'lucky', 'luckymateo@gmail.com', NULL, '$2y$10$YDK.6KIiuSgJxNWBYP9gNe.YXQvS9iwLIlJYPlxu9yQCrcnGKAjHq', NULL, 'student', 1, '2026-02-16 05:34:41', '2026-02-16 05:34:41'),
+(24, 'Prince', 'Prince', 'basmayor@gmail.com', NULL, '$2y$10$IpoVpycSK9xjb4xafvR66uIPJu3r6x99wUe1rV6asOlYwZ9g06bXm', NULL, 'coordinator', 1, '2026-02-16 05:38:46', '2026-02-16 05:38:46'),
+(25, 'Brian Leonardo', 'brian', 'brian@gmail.com', NULL, '$2y$10$2ydLo1skdlQYf90dr3yg0OEsP31LITpr2D8hSGWuv/jl9L1iyrJBG', NULL, 'student', 1, '2026-02-16 05:44:36', '2026-02-16 05:44:36');
 
 -- --------------------------------------------------------
 
@@ -670,7 +739,10 @@ ALTER TABLE `departments`
 --
 ALTER TABLE `documents`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `documents_student_id_foreign` (`student_id`);
+  ADD KEY `documents_student_id_foreign` (`student_id`),
+  ADD KEY `idx_student_id` (`student_id`),
+  ADD KEY `idx_document_type` (`document_type`),
+  ADD KEY `idx_created_at` (`created_at`);
 
 --
 -- Indexes for table `evaluations`
@@ -696,6 +768,15 @@ ALTER TABLE `internships`
   ADD KEY `idx_department_id` (`department_id`),
   ADD KEY `idx_coordinator_id` (`coordinator_id`),
   ADD KEY `idx_supervisor_id` (`supervisor_id`);
+
+--
+-- Indexes for table `manual_dtr_attachments`
+--
+ALTER TABLE `manual_dtr_attachments`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `attendance_id` (`attendance_id`),
+  ADD KEY `idx_student_id` (`student_id`),
+  ADD KEY `idx_attendance_date` (`attendance_date`);
 
 --
 -- Indexes for table `messages`
@@ -751,6 +832,13 @@ ALTER TABLE `system_settings`
   ADD UNIQUE KEY `system_settings_key_unique` (`key`);
 
 --
+-- Indexes for table `upload_settings`
+--
+ALTER TABLE `upload_settings`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uq_upload_type` (`upload_type`);
+
+--
 -- Indexes for table `users`
 --
 ALTER TABLE `users`
@@ -767,7 +855,7 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `attendances`
 --
 ALTER TABLE `attendances`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=23;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=26;
 
 --
 -- AUTO_INCREMENT for table `biometric_data`
@@ -785,7 +873,7 @@ ALTER TABLE `certificates`
 -- AUTO_INCREMENT for table `coordinators`
 --
 ALTER TABLE `coordinators`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `courses`
@@ -830,6 +918,12 @@ ALTER TABLE `internships`
   MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
+-- AUTO_INCREMENT for table `manual_dtr_attachments`
+--
+ALTER TABLE `manual_dtr_attachments`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `messages`
 --
 ALTER TABLE `messages`
@@ -851,7 +945,7 @@ ALTER TABLE `sections`
 -- AUTO_INCREMENT for table `students`
 --
 ALTER TABLE `students`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- AUTO_INCREMENT for table `supervisors`
@@ -866,10 +960,16 @@ ALTER TABLE `system_settings`
   MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `upload_settings`
+--
+ALTER TABLE `upload_settings`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=26;
 
 --
 -- Constraints for dumped tables
@@ -935,6 +1035,13 @@ ALTER TABLE `internships`
   ADD CONSTRAINT `internships_ibfk_3` FOREIGN KEY (`department_id`) REFERENCES `departments` (`id`),
   ADD CONSTRAINT `internships_ibfk_4` FOREIGN KEY (`coordinator_id`) REFERENCES `users` (`id`),
   ADD CONSTRAINT `internships_ibfk_5` FOREIGN KEY (`supervisor_id`) REFERENCES `users` (`id`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `manual_dtr_attachments`
+--
+ALTER TABLE `manual_dtr_attachments`
+  ADD CONSTRAINT `manual_dtr_attachments_ibfk_1` FOREIGN KEY (`student_id`) REFERENCES `students` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `manual_dtr_attachments_ibfk_2` FOREIGN KEY (`attendance_id`) REFERENCES `attendances` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `messages`
