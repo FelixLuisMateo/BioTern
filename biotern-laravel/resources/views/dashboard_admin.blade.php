@@ -191,7 +191,7 @@ try {
     <nav class="nxl-navigation">
         <div class="navbar-wrapper">
             <div class="m-header">
-                    <a href="{{ url('/') }}" class="b-brand">
+                    <a href="{{ route('dashboard') }}" class="b-brand">
                     <!-- ========   change your logo hear   ============ -->
                     <img src="{{ asset('frontend/assets/images/logo-full.png') }}" alt="" class="logo logo-lg" />
                     <img src="{{ asset('frontend/assets/images/logo-abbr.png') }}" alt="" class="logo logo-sm" />

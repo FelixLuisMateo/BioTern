@@ -105,6 +105,10 @@ Route::get('/setup-admin', function () {
 // Dashboard Routes
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [HomeController::class, 'index'])->name('dashboard');
+    // Student-friendly named route
+    Route::get('/student/dashboard', [App\Http\Controllers\HomeController::class, 'index'])
+        ->name('student.dashboard')
+        ->middleware('auth');
 });
 
 // The following route groups reference controllers that are not present
