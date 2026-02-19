@@ -295,9 +295,6 @@ try {
                         </a>
                         <ul class="nxl-submenu">
                             <li class="nxl-item"><a class="nxl-link" href="{{ url('/students') }}">Students List</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/students-view') }}">Students View</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/students-create') }}">Students Create</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/students-edit') }}">Students Edit</a></li>
                             <li class="nxl-divider"></li>
                             <li class="nxl-item"><a class="nxl-link" href="{{ url('/attendance') }}"><i class="feather-calendar me-2"></i>Attendance Records</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="{{ url('/demo-biometric') }}"><i class="feather-activity me-2"></i>Biometric Demo</a></li>

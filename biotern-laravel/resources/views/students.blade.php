@@ -145,7 +145,9 @@ $students_query = "
         u_coordinator.name as coordinator_name
     FROM students s
     LEFT JOIN courses c ON s.course_id = c.id
-    LEFT JOIN internships i ON s.id = i.student_id AND i.status = 'ongoing'
+    LEFT JOIN internships i ON i.id = (
+        SELECT id FROM internships WHERE student_id = s.id AND status = 'ongoing' ORDER BY id DESC LIMIT 1
+    )
     LEFT JOIN users u_supervisor ON i.supervisor_id = u_supervisor.id
     LEFT JOIN users u_coordinator ON i.coordinator_id = u_coordinator.id
     " . (count($where) > 0 ? "WHERE " . implode(' AND ', $where) : "") . "
@@ -158,6 +160,24 @@ if ($students_result->num_rows > 0) {
     while ($row = $students_result->fetch_assoc()) {
         $students[] = $row;
     }
+}
+
+// Remove duplicate student rows (by student id) that may result from joins
+if (count($students) > 1) {
+    $seen = [];
+    $unique = [];
+    foreach ($students as $st) {
+        $sid = isset($st['id']) ? $st['id'] : null;
+        if ($sid === null) {
+            $unique[] = $st;
+            continue;
+        }
+        if (!isset($seen[$sid])) {
+            $seen[$sid] = true;
+            $unique[] = $st;
+        }
+    }
+    $students = $unique;
 }
 
 // Helper function to get status badge
@@ -269,6 +289,42 @@ function formatDate($date) {
             color: #f0f0f0 !important;
             background-color: #2d3748 !important;
         }
+
+        /* Filter row alignment */
+        .filter-form .form-label {
+            margin-bottom: 0.35rem;
+        }
+
+        .filter-form .form-control {
+            min-height: 42px;
+        }
+
+        .filter-form .select2-container .select2-selection--single {
+            min-height: 42px;
+            display: flex;
+            align-items: center;
+        }
+
+        .filter-form .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 40px;
+        }
+
+        .filter-form .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 40px;
+        }
+
+        .filter-form .filter-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1.55rem;
+        }
+
+        .filter-form .filter-actions .btn {
+            min-height: 42px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
     </style>
 </head>
 
@@ -330,10 +386,9 @@ function formatDate($date) {
                         </a>
                         <ul class="nxl-submenu">
                             <li class="nxl-item"><a class="nxl-link" href="{{ url('/students') }}">Students</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/students/view') }}">Students View</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/students-create') }}">Students Create</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/attendance') }}">Attendance DTR</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/demo-biometric') }}">Demo Biometric</a></li>
+                            <li class="nxl-divider"></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/attendance') }}"><i class="feather-calendar me-2"></i>Attendance Records</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/demo-biometric') }}"><i class="feather-activity me-2"></i>Biometric Demo</a></li>
                         </ul>
                     </li>
                     <li class="nxl-item nxl-hasmenu">
@@ -649,12 +704,16 @@ function formatDate($date) {
             </div>
 
             <!-- Filters -->
-            <div class="row mb-3 px-3">
+            <div class="row mb-1 px-3">
                 <div class="col-12">
-                    <form method="GET" class="row g-2">
+                    <form method="GET" class="row g-2 align-items-end filter-form">
                         <div class="col-sm-2">
-                            <label class="form-label">Course</label>
-                            <select name="course_id" class="form-control">
+                            <label class="form-label" for="filter-date">Date</label>
+                            <input id="filter-date" type="date" name="date" class="form-control" value="<?php echo htmlspecialchars($_GET['date'] ?? ''); ?>">
+                        </div>
+                        <div class="col-sm-2">
+                            <label class="form-label" for="filter-course">Course</label>
+                            <select id="filter-course" name="course_id" class="form-control">
                                 <option value="0">-- All Courses --</option>
                                 <?php foreach ($courses as $course): ?>
                                     <option value="<?php echo $course['id']; ?>" <?php echo $filter_course == $course['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($course['name']); ?></option>
@@ -662,8 +721,8 @@ function formatDate($date) {
                             </select>
                         </div>
                         <div class="col-sm-2">
-                            <label class="form-label">Department</label>
-                            <select name="department_id" class="form-control">
+                            <label class="form-label" for="filter-department">Department</label>
+                            <select id="filter-department" name="department_id" class="form-control">
                                 <option value="0">-- All Departments --</option>
                                 <?php foreach ($departments as $dept): ?>
                                     <option value="<?php echo $dept['id']; ?>" <?php echo $filter_department == $dept['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($dept['name']); ?></option>
@@ -671,8 +730,8 @@ function formatDate($date) {
                             </select>
                         </div>
                         <div class="col-sm-2">
-                            <label class="form-label">Supervisor</label>
-                            <select name="supervisor" class="form-control">
+                            <label class="form-label" for="filter-supervisor">Supervisor</label>
+                            <select id="filter-supervisor" name="supervisor" class="form-control">
                                 <option value="">-- Any Supervisor --</option>
                                 <?php foreach ($supervisors as $sup): ?>
                                     <option value="<?php echo htmlspecialchars($sup); ?>" <?php echo $filter_supervisor == $sup ? 'selected' : ''; ?>><?php echo htmlspecialchars($sup); ?></option>
@@ -680,17 +739,20 @@ function formatDate($date) {
                             </select>
                         </div>
                         <div class="col-sm-2">
-                            <label class="form-label">Coordinator</label>
-                            <select name="coordinator" class="form-control">
+                            <label class="form-label" for="filter-coordinator">Coordinator</label>
+                            <select id="filter-coordinator" name="coordinator" class="form-control">
                                 <option value="">-- Any Coordinator --</option>
                                 <?php foreach ($coordinators as $coor): ?>
                                     <option value="<?php echo htmlspecialchars($coor); ?>" <?php echo $filter_coordinator == $coor ? 'selected' : ''; ?>><?php echo htmlspecialchars($coor); ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        <div class="col-sm-2 d-flex gap-1" style="align-items: flex-end;">
-                            <button type="submit" class="btn btn-primary btn-sm px-3 py-1" style="font-size: 0.85rem;">Filter</button>
-                            <a href="{{ url('/students') }}" class="btn btn-outline-secondary btn-sm px-3 py-1" style="font-size: 0.85rem;">Reset</a>
+                        <div class="col-sm-2">
+                            <label class="form-label d-block invisible">Actions</label>
+                            <div class="filter-actions">
+                                <button type="submit" class="btn btn-primary">Filter</button>
+                                <a href="{{ url('/students') }}" class="btn btn-outline-secondary">Reset</a>
+                            </div>
                         </div>
                     </form>
                 </div>
