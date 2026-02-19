@@ -13,7 +13,6 @@ if (file_exists($legacyDb)) {
             public function __construct($pdo) { $this->pdo = $pdo; }
             public function query($sql) {
                 $s = ltrim($sql);
-                // Handle SELECT queries by returning a small result wrapper
                 if (stripos($s, 'select') === 0) {
                     try {
                         $stmt = $this->pdo->query($sql);
@@ -30,7 +29,6 @@ if (file_exists($legacyDb)) {
                     };
                 }
 
-                // Non-SELECT queries: execute and return boolean success
                 try {
                     $res = $this->pdo->exec($sql);
                     return $res !== false;
@@ -43,7 +41,6 @@ if (file_exists($legacyDb)) {
         \Log::error('Failed to create legacy DB compatibility: ' . $e->getMessage());
     }
 }
-
 // Initialize analytics variables with defaults
 $attendance_awaiting = 0;
 $attendance_completed = 0;
@@ -100,7 +97,13 @@ try {
     }
 
     // Get recent students (last 5)
-    $recent_students_query = $conn->query("\n        SELECT s.id, s.student_id, s.first_name, s.last_name, s.email, s.status, s.biometric_registered, s.created_at\n        FROM students s\n        WHERE s.deleted_at IS NULL\n        ORDER BY s.created_at DESC\n        LIMIT 5\n    ");
+    $recent_students_query = $conn->query("
+        SELECT s.id, s.student_id, s.first_name, s.last_name, s.email, s.status, s.biometric_registered, s.created_at
+        FROM students s
+        WHERE s.deleted_at IS NULL
+        ORDER BY s.created_at DESC
+        LIMIT 5
+    ");
 
     if ($recent_students_query && $recent_students_query->num_rows > 0) {
         while ($row = $recent_students_query->fetch_assoc()) {
@@ -109,7 +112,14 @@ try {
     }
 
     // Get recent attendance records (last 10) with student info
-    $recent_attendance_query = $conn->query("\n        SELECT a.id, a.student_id, a.attendance_date, a.morning_time_in, a.morning_time_out, a.status, a.created_at, \n               s.first_name, s.last_name, s.email, s.student_id as student_num\n        FROM attendances a\n        LEFT JOIN students s ON a.student_id = s.id\n        ORDER BY a.attendance_date DESC, a.created_at DESC\n        LIMIT 10\n    ");
+    $recent_attendance_query = $conn->query("
+        SELECT a.id, a.student_id, a.attendance_date, a.morning_time_in, a.morning_time_out, a.status, a.created_at,
+               s.first_name, s.last_name, s.email, s.student_id as student_num
+        FROM attendances a
+        LEFT JOIN students s ON a.student_id = s.id
+        ORDER BY a.attendance_date DESC, a.created_at DESC
+        LIMIT 10
+    ");
 
     if ($recent_attendance_query && $recent_attendance_query->num_rows > 0) {
         while ($row = $recent_attendance_query->fetch_assoc()) {
@@ -118,7 +128,14 @@ try {
     }
 
     // Get coordinators (Active)
-    $coordinators_query = $conn->query("\n        SELECT u.id, u.name, u.email, c.department_id, c.phone, c.created_at\n        FROM users u\n        LEFT JOIN coordinators c ON u.id = c.user_id\n        WHERE u.role = 'coordinator' AND u.is_active = 1\n        ORDER BY u.created_at DESC\n        LIMIT 5\n    ");
+    $coordinators_query = $conn->query("
+        SELECT u.id, u.name, u.email, c.department_id, c.phone, c.created_at
+        FROM users u
+        LEFT JOIN coordinators c ON u.id = c.user_id
+        WHERE u.role = 'coordinator' AND u.is_active = 1
+        ORDER BY u.created_at DESC
+        LIMIT 5
+    ");
 
     if ($coordinators_query && $coordinators_query->num_rows > 0) {
         while ($row = $coordinators_query->fetch_assoc()) {
@@ -127,7 +144,14 @@ try {
     }
 
     // Get supervisors (Active)
-    $supervisors_query = $conn->query("\n        SELECT u.id, u.name, u.email, s.phone, s.department, s.created_at\n        FROM users u\n        LEFT JOIN supervisors s ON u.id = s.user_id\n        WHERE u.role = 'supervisor' AND u.is_active = 1\n        ORDER BY u.created_at DESC\n        LIMIT 5\n    ");
+    $supervisors_query = $conn->query("
+        SELECT u.id, u.name, u.email, s.phone, s.department, s.created_at
+        FROM users u
+        LEFT JOIN supervisors s ON u.id = s.user_id
+        WHERE u.role = 'supervisor' AND u.is_active = 1
+        ORDER BY u.created_at DESC
+        LIMIT 5
+    ");
 
     if ($supervisors_query && $supervisors_query->num_rows > 0) {
         while ($row = $supervisors_query->fetch_assoc()) {
@@ -136,7 +160,33 @@ try {
     }
 
     // Get recent activities (student registrations, attendance records, etc)
-    $activities_query = $conn->query("\n        SELECT \n            CONCAT('Student Created: ', s.first_name, ' ', s.last_name) as activity,\n            s.created_at as activity_date,\n            'student_created' as activity_type,\n            s.id as entity_id\n        FROM students s\n        WHERE s.deleted_at IS NULL\n        UNION ALL\n        SELECT \n            CONCAT('Attendance Recorded for ', s.first_name, ' ', s.last_name) as activity,\n            a.created_at as activity_date,\n            'attendance_recorded' as activity_type,\n            a.id as entity_id\n        FROM attendances a\n        LEFT JOIN students s ON a.student_id = s.id\n        UNION ALL\n        SELECT \n            CONCAT('Biometric Registered: ', s.first_name, ' ', s.last_name) as activity,\n            s.biometric_registered_at as activity_date,\n            'biometric_registered' as activity_type,\n            s.id as entity_id\n        FROM students s\n        WHERE s.biometric_registered = 1 AND s.biometric_registered_at IS NOT NULL\n        ORDER BY activity_date DESC\n        LIMIT 15\n    ");
+    $activities_query = $conn->query("
+        SELECT
+            CONCAT('Student Created: ', s.first_name, ' ', s.last_name) as activity,
+            s.created_at as activity_date,
+            'student_created' as activity_type,
+            s.id as entity_id
+        FROM students s
+        WHERE s.deleted_at IS NULL
+        UNION ALL
+        SELECT
+            CONCAT('Attendance Recorded for ', s.first_name, ' ', s.last_name) as activity,
+            a.created_at as activity_date,
+            'attendance_recorded' as activity_type,
+            a.id as entity_id
+        FROM attendances a
+        LEFT JOIN students s ON a.student_id = s.id
+        UNION ALL
+        SELECT
+            CONCAT('Biometric Registered: ', s.first_name, ' ', s.last_name) as activity,
+            s.biometric_registered_at as activity_date,
+            'biometric_registered' as activity_type,
+            s.id as entity_id
+        FROM students s
+        WHERE s.biometric_registered = 1 AND s.biometric_registered_at IS NOT NULL
+        ORDER BY activity_date DESC
+        LIMIT 15
+    ");
 
     if ($activities_query && $activities_query->num_rows > 0) {
         while ($row = $activities_query->fetch_assoc()) {
@@ -179,9 +229,9 @@ try {
     <!--! HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries !-->
     <!--! WARNING: Respond.js doesn"t work if you view the page via file: !-->
     <!--[if lt IE 9]>
-            <script src="https:oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
-            <script src="https:oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
-        <![endif]-->
+			<script src="https:oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+			<script src="https:oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+		<![endif]-->
 </head>
 
 <body>
@@ -191,7 +241,7 @@ try {
     <nav class="nxl-navigation">
         <div class="navbar-wrapper">
             <div class="m-header">
-                    <a href="{{ route('dashboard') }}" class="b-brand">
+                <a href="{{ route('dashboard') }}" class="b-brand">
                     <!-- ========   change your logo hear   ============ -->
                     <img src="{{ asset('frontend/assets/images/logo-full.png') }}" alt="" class="logo logo-lg" />
                     <img src="{{ asset('frontend/assets/images/logo-abbr.png') }}" alt="" class="logo logo-sm" />
@@ -208,7 +258,7 @@ try {
                             <span class="nxl-mtext">Dashboards</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/') }}">CRM</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ route('dashboard') }}">Overview</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="{{ url('/analytics') }}">Analytics</a></li>
                         </ul>
                     </li>
@@ -218,10 +268,10 @@ try {
                             <span class="nxl-mtext">Reports</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/reports/sales') }}">Sales Report</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/reports/leads') }}">Leads Report</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/reports/project') }}">Project Report</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/reports/timesheets') }}">Timesheets Report</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/reports-sales') }}">Sales Report</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/reports-ojt') }}">Leads Report</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/reports-project') }}">Project Report</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/reports-timesheets') }}">Timesheets Report</a></li>
                         </ul>
                     </li>
                     <li class="nxl-item nxl-hasmenu">
@@ -244,22 +294,21 @@ try {
                             <span class="nxl-mtext">Students</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/students') }}">Students</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/students/view') }}">Students View</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/students/create') }}">Students Create</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/attendance') }}">Attendance</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/demo-biometric') }}">Demo Biometric</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/students') }}">Students List</a></li>
+                            <li class="nxl-divider"></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/attendance') }}"><i class="feather-calendar me-2"></i>Attendance Records</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/demo-biometric') }}"><i class="feather-activity me-2"></i>Biometric Demo</a></li>
                         </ul>
                     </li>
                     <li class="nxl-item nxl-hasmenu">
                         <a href="javascript:void(0);" class="nxl-link">
                             <span class="nxl-micon"><i class="feather-alert-circle"></i></span>
-                            <span class="nxl-mtext">Leads</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                            <span class="nxl-mtext">Assign OJT Designation</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/leads') }}">Leads</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/leads/view') }}">Leads View</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/leads/create') }}">Leads Create</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/ojt') }}">OJT List</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/ojt-view') }}">OJT View</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/ojt-create') }}">OJT Create</a></li>
                         </ul>
                     </li>
                     <li class="nxl-item nxl-hasmenu">
@@ -281,15 +330,17 @@ try {
                             <span class="nxl-mtext">Settings</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings/general') }}">General</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings/seo') }}">SEO</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings/tags') }}">Tags</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings/email') }}">Email</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings/tasks') }}">Tasks</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings/leads') }}">Leads</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings/support') }}">Support</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings/students') }}">Students</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings/miscellaneous') }}">Miscellaneous</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings-general') }}">General</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings-seo') }}">SEO</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings-tags') }}">Tags</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings-email') }}">Email</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings-tasks') }}">Tasks</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings-ojt') }}">Leads</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings-support') }}">Support</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings-students') }}">Students</a></li>
+
+
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings-miscellaneous') }}">Miscellaneous</a></li>
                         </ul>
                     </li>
                     <li class="nxl-item nxl-hasmenu">
@@ -303,7 +354,7 @@ try {
                                     <span class="nxl-mtext">Login</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                                 </a>
                                 <ul class="nxl-submenu">
-                                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/auth/login') }}">Cover</a></li>
+                                    <li class="nxl-item"><a class="nxl-link" href="{{ url('/auth-login-cover') }}">Cover</a></li>
                                 </ul>
                             </li>
                             <li class="nxl-item nxl-hasmenu">
@@ -311,7 +362,7 @@ try {
                                     <span class="nxl-mtext">Register</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                                 </a>
                                 <ul class="nxl-submenu">
-                                    <li class="nxl-item"><a class="nxl-link" href="{{ url('/auth/register') }}">Creative</a></li>
+                                    <li class="nxl-item"><a class="nxl-link" href="{{ url('/auth-register-creative') }}">Creative</a></li>
                                 </ul>
                             </li>
                             <li class="nxl-item nxl-hasmenu">
@@ -319,7 +370,7 @@ try {
                                     <span class="nxl-mtext">Error-404</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                                 </a>
                                 <ul class="nxl-submenu">
-                                    <li class="nxl-item"><a class="nxl-link" href="auth-404-minimal.html">Minimal</a></li>
+                                    <li class="nxl-item"><a class="nxl-link" href="{{ url('/auth-404-minimal') }}">Minimal</a></li>
                                 </ul>
                             </li>
                             <li class="nxl-item nxl-hasmenu">
@@ -327,7 +378,7 @@ try {
                                     <span class="nxl-mtext">Reset Pass</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                                 </a>
                                 <ul class="nxl-submenu">
-                                    <li class="nxl-item"><a class="nxl-link" href="auth-reset-cover.html">Cover</a></li>
+                                    <li class="nxl-item"><a class="nxl-link" href="{{ url('/auth-reset-cover') }}">Cover</a></li>
                                 </ul>
                             </li>
                             <li class="nxl-item nxl-hasmenu">
@@ -335,7 +386,7 @@ try {
                                     <span class="nxl-mtext">Verify OTP</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                                 </a>
                                 <ul class="nxl-submenu">
-                                    <li class="nxl-item"><a class="nxl-link" href="auth-verify-cover.html">Cover</a></li>
+                                    <li class="nxl-item"><a class="nxl-link" href="{{ url('/auth-verify-cover') }}">Cover</a></li>
                                 </ul>
                             </li>
                             <li class="nxl-item nxl-hasmenu">
@@ -343,7 +394,7 @@ try {
                                     <span class="nxl-mtext">Maintenance</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                                 </a>
                                 <ul class="nxl-submenu">
-                                    <li class="nxl-item"><a class="nxl-link" href="auth-maintenance-cover.html">Cover</a></li>
+                                    <li class="nxl-item"><a class="nxl-link" href="{{ url('/auth-maintenance-cover') }}">Cover</a></li>
                                 </ul>
                             </li>
                         </ul>
@@ -354,9 +405,9 @@ try {
                             <span class="nxl-mtext">Help Center</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/help/support') }}">Support</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="#!">Support</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="{{ url('/help-knowledgebase') }}">KnowledgeBase</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/docs/documentations') }}">Documentations</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="/docs/documentations">Documentations</a></li>
                         </ul>
                     </li>
                 </ul>
@@ -424,27 +475,27 @@ try {
                                         <i class="feather-chevron-right ms-auto me-0"></i>
                                     </a>
                                     <div class="dropdown-menu nxl-h-dropdown">
-                                        <a href="apps-chat.html" class="dropdown-item">
+                                        <a href="{{ url('/apps-chat') }}" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Chat</span>
                                         </a>
-                                        <a href="apps-email.html" class="dropdown-item">
+                                        <a href="{{ url('/apps-email') }}" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Email</span>
                                         </a>
-                                        <a href="apps-tasks.html" class="dropdown-item">
+                                        <a href="{{ url('/apps-tasks') }}" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Tasks</span>
                                         </a>
-                                        <a href="apps-notes.html" class="dropdown-item">
+                                        <a href="{{ url('/apps-notes') }}" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Notes</span>
                                         </a>
-                                        <a href="apps-storage.html" class="dropdown-item">
+                                        <a href="{{ url('/apps-storage') }}" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Storage</span>
                                         </a>
-                                        <a href="apps-calendar.html" class="dropdown-item">
+                                        <a href="{{ url('/apps-calendar') }}" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Calendar</span>
                                         </a>
@@ -460,19 +511,19 @@ try {
                                         <i class="feather-chevron-right ms-auto me-0"></i>
                                     </a>
                                     <div class="dropdown-menu nxl-h-dropdown">
-                                        <a href="reports-sales.html" class="dropdown-item">
+                                        <a href="{{ url('/reports-sales') }}" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Sales Report</span>
                                         </a>
-                                        <a href="reports-leads.html" class="dropdown-item">
+                                        <a href="{{ url('/reports-ojt') }}" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Leads Report</span>
                                         </a>
-                                        <a href="reports-project.html" class="dropdown-item">
+                                        <a href="{{ url('/reports-project') }}" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Project Report</span>
                                         </a>
-                                        <a href="reports-timesheets.html" class="dropdown-item">
+                                        <a href="{{ url('/reports-timesheets') }}" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Timesheets Report</span>
                                         </a>
@@ -487,19 +538,19 @@ try {
                                         <i class="feather-chevron-right ms-auto me-0"></i>
                                     </a>
                                     <div class="dropdown-menu nxl-h-dropdown">
-                                        <a href="proposal.html" class="dropdown-item">
+                                        <a href="{{ url('/proposal') }}" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Proposal</span>
                                         </a>
-                                        <a href="proposal-view.html" class="dropdown-item">
+                                        <a href="{{ url('/proposal-view') }}" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Proposal View</span>
                                         </a>
-                                        <a href="proposal-edit.html" class="dropdown-item">
+                                        <a href="{{ url('/proposal-edit') }}" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Proposal Edit</span>
                                         </a>
-                                        <a href="proposal-create.html" class="dropdown-item">
+                                        <a href="{{ url('/proposal-create') }}" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Proposal Create</span>
                                         </a>
@@ -514,15 +565,15 @@ try {
                                         <i class="feather-chevron-right ms-auto me-0"></i>
                                     </a>
                                     <div class="dropdown-menu nxl-h-dropdown">
-                                        <a href="payment.html" class="dropdown-item">
+                                        <a href="{{ url('/payment') }}" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Payment</span>
                                         </a>
-                                        <a href="invoice-view.html" class="dropdown-item">
+                                        <a href="{{ url('/invoice-view') }}" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Invoice View</span>
                                         </a>
-                                        <a href="invoice-create.html" class="dropdown-item">
+                                        <a href="{{ url('/invoice-create') }}" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Invoice Create</span>
                                         </a>
@@ -541,11 +592,11 @@ try {
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Students</span>
                                         </a>
-                                        <a href="{{ url('/students/view') }}" class="dropdown-item">
+                                        <a href="{{ url('/students-view') }}" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Students View</span>
                                         </a>
-                                        <a href="{{ url('/students/create') }}" class="dropdown-item">
+                                        <a href="{{ url('/students-create') }}" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Students Create</span>
                                         </a>
@@ -560,15 +611,15 @@ try {
                                         <i class="feather-chevron-right ms-auto me-0"></i>
                                     </a>
                                     <div class="dropdown-menu nxl-h-dropdown">
-                                        <a href="leads.html" class="dropdown-item">
+                                        <a href="{{ url('/ojt') }}" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Leads</span>
                                         </a>
-                                        <a href="leads-view.html" class="dropdown-item">
+                                        <a href="{{ url('/ojt-view') }}" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Leads View</span>
                                         </a>
-                                        <a href="leads-create.html" class="dropdown-item">
+                                        <a href="{{ url('/ojt-create') }}" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Leads Create</span>
                                         </a>
@@ -583,15 +634,15 @@ try {
                                         <i class="feather-chevron-right ms-auto me-0"></i>
                                     </a>
                                     <div class="dropdown-menu nxl-h-dropdown">
-                                        <a href="projects.html" class="dropdown-item">
+                                        <a href="{{ url('/projects') }}" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Projects</span>
                                         </a>
-                                        <a href="projects-view.html" class="dropdown-item">
+                                        <a href="{{ url('/projects-view') }}" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Projects View</span>
                                         </a>
-                                        <a href="projects-create.html" class="dropdown-item">
+                                        <a href="{{ url('/projects-create') }}" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Projects Create</span>
                                         </a>
@@ -606,19 +657,19 @@ try {
                                         <i class="feather-chevron-right ms-auto me-0"></i>
                                     </a>
                                     <div class="dropdown-menu nxl-h-dropdown">
-                                        <a href="widgets-lists.html" class="dropdown-item">
+                                        <a href="{{ url('/widgets-lists') }}" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Lists</span>
                                         </a>
-                                        <a href="widgets-tables.html" class="dropdown-item">
+                                        <a href="{{ url('/widgets-tables') }}" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Tables</span>
                                         </a>
-                                        <a href="widgets-charts.html" class="dropdown-item">
+                                        <a href="{{ url('/widgets-charts') }}" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Charts</span>
                                         </a>
-                                        <a href="widgets-statistics.html" class="dropdown-item">
+                                        <a href="{{ url('/widgets-statistics') }}" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Statistics</span>
                                         </a>
@@ -642,15 +693,15 @@ try {
                                                 <i class="feather-chevron-right ms-auto me-0"></i>
                                             </a>
                                             <div class="dropdown-menu nxl-h-dropdown">
-                                                <a href="./auth-login-cover.html" class="dropdown-item">
+                                                <a href="{{ url('/auth-login-cover') }}" class="dropdown-item">
                                                     <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                     <span>Cover</span>
                                                 </a>
-                                                <a href="./auth-login-minimal.html" class="dropdown-item">
+                                                <a href="{{ url('/auth-login-cover') }}" class="dropdown-item">
                                                     <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                     <span>Minimal</span>
                                                 </a>
-                                                <a href="./auth-login-creative.html" class="dropdown-item">
+                                                <a href="{{ url('/auth-login-creative') }}" class="dropdown-item">
                                                     <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                     <span>Creative</span>
                                                 </a>
@@ -665,15 +716,15 @@ try {
                                                 <i class="feather-chevron-right ms-auto me-0"></i>
                                             </a>
                                             <div class="dropdown-menu nxl-h-dropdown">
-                                                <a href="./auth-register-cover.html" class="dropdown-item">
+                                                <a href="{{ url('/auth-register-cover') }}" class="dropdown-item">
                                                     <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                     <span>Cover</span>
                                                 </a>
-                                                <a href="./auth-register-minimal.html" class="dropdown-item">
+                                                <a href="{{ url('/auth-register-minimal') }}" class="dropdown-item">
                                                     <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                     <span>Minimal</span>
                                                 </a>
-                                                <a href="./auth-register-creative.html" class="dropdown-item">
+                                                <a href="{{ url('/register_submit') }}" class="dropdown-item">
                                                     <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                     <span>Creative</span>
                                                 </a>
@@ -688,15 +739,15 @@ try {
                                                 <i class="feather-chevron-right ms-auto me-0"></i>
                                             </a>
                                             <div class="dropdown-menu nxl-h-dropdown">
-                                                <a href="./auth-404-cover.html" class="dropdown-item">
+                                                <a href="{{ url('/auth-404-cover') }}" class="dropdown-item">
                                                     <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                     <span>Cover</span>
                                                 </a>
-                                                <a href="./auth-404-minimal.html" class="dropdown-item">
+                                                <a href="{{ url('/auth-404-minimal') }}" class="dropdown-item">
                                                     <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                     <span>Minimal</span>
                                                 </a>
-                                                <a href="./auth-404-creative.html" class="dropdown-item">
+                                                <a href="{{ url('/auth-404-creative') }}" class="dropdown-item">
                                                     <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                     <span>Creative</span>
                                                 </a>
@@ -711,15 +762,15 @@ try {
                                                 <i class="feather-chevron-right ms-auto me-0"></i>
                                             </a>
                                             <div class="dropdown-menu nxl-h-dropdown">
-                                                <a href="./auth-reset-cover.html" class="dropdown-item">
+                                                <a href="{{ url('/auth-reset-cover') }}" class="dropdown-item">
                                                     <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                     <span>Cover</span>
                                                 </a>
-                                                <a href="./auth-reset-minimal.html" class="dropdown-item">
+                                                <a href="{{ url('/auth-reset-minimal') }}" class="dropdown-item">
                                                     <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                     <span>Minimal</span>
                                                 </a>
-                                                <a href="./auth-reset-creative.html" class="dropdown-item">
+                                                <a href="{{ url('/auth-reset-creative') }}" class="dropdown-item">
                                                     <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                     <span>Creative</span>
                                                 </a>
@@ -734,15 +785,15 @@ try {
                                                 <i class="feather-chevron-right ms-auto me-0"></i>
                                             </a>
                                             <div class="dropdown-menu nxl-h-dropdown">
-                                                <a href="./auth-verify-cover.html" class="dropdown-item">
+                                                <a href="{{ url('/auth-verify-cover') }}" class="dropdown-item">
                                                     <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                     <span>Cover</span>
                                                 </a>
-                                                <a href="./auth-verify-minimal.html" class="dropdown-item">
+                                                <a href="{{ url('/auth-verify-minimal') }}" class="dropdown-item">
                                                     <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                     <span>Minimal</span>
                                                 </a>
-                                                <a href="./auth-verify-creative.html" class="dropdown-item">
+                                                <a href="{{ url('/auth-verify-creative') }}" class="dropdown-item">
                                                     <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                     <span>Creative</span>
                                                 </a>
@@ -757,15 +808,15 @@ try {
                                                 <i class="feather-chevron-right ms-auto me-0"></i>
                                             </a>
                                             <div class="dropdown-menu nxl-h-dropdown">
-                                                <a href="./auth-maintenance-cover.html" class="dropdown-item">
+                                                <a href="{{ url('/auth-maintenance-cover') }}" class="dropdown-item">
                                                     <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                     <span>Cover</span>
                                                 </a>
-                                                <a href="./auth-maintenance-minimal.html" class="dropdown-item">
+                                                <a href="{{ url('/auth-maintenance-minimal') }}" class="dropdown-item">
                                                     <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                     <span>Minimal</span>
                                                 </a>
-                                                <a href="./auth-maintenance-creative.html" class="dropdown-item">
+                                                <a href="{{ url('/auth-maintenance-creative') }}" class="dropdown-item">
                                                     <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                     <span>Creative</span>
                                                 </a>
@@ -849,7 +900,7 @@ try {
                                         <!--! [Start] v-pills-general !-->
                                         <div class="tab-pane fade show active" id="v-pills-general" role="tabpanel">
                                             <div class="mb-4 rounded-3 border">
-                                                <img src="/frontend/assets/images/banner/mockup.png" alt="" class="img-fluid rounded-3" />
+                                                <img src="{{ asset('frontend/assets/images/banner/mockup.png') }}" alt="" class="img-fluid rounded-3" />
                                             </div>
                                             <h6 class="fw-bolder">Duralux - Admin Dashboard UiKit</h6>
                                             <p class="fs-12 fw-normal text-muted text-truncate-3-line">Get started Duralux with Duralux up and running. Duralux bootstrap template docs helps you to get started with simple html codes.</p>
@@ -861,34 +912,34 @@ try {
                                             <div class="row g-4">
                                                 <div class="col-lg-6">
                                                     <h6 class="dropdown-item-title">Applications</h6>
-                                                    <a href="apps-chat.html" class="dropdown-item">
+                                                    <a href="{{ url('/apps-chat') }}" class="dropdown-item">
                                                         <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                         <span>Chat</span>
                                                     </a>
-                                                    <a href="apps-email.html" class="dropdown-item">
+                                                    <a href="{{ url('/apps-email') }}" class="dropdown-item">
                                                         <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                         <span>Email</span>
                                                     </a>
-                                                    <a href="apps-tasks.html" class="dropdown-item">
+                                                    <a href="{{ url('/apps-tasks') }}" class="dropdown-item">
                                                         <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                         <span>Tasks</span>
                                                     </a>
-                                                    <a href="apps-notes.html" class="dropdown-item">
+                                                    <a href="{{ url('/apps-notes') }}" class="dropdown-item">
                                                         <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                         <span>Notes</span>
                                                     </a>
-                                                    <a href="apps-storage.html" class="dropdown-item">
+                                                    <a href="{{ url('/apps-storage') }}" class="dropdown-item">
                                                         <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                         <span>Storage</span>
                                                     </a>
-                                                    <a href="apps-calendar.html" class="dropdown-item">
+                                                    <a href="{{ url('/apps-calendar') }}" class="dropdown-item">
                                                         <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                         <span>Calendar</span>
                                                     </a>
                                                 </div>
                                                 <div class="col-lg-6">
                                                     <div class="nxl-mega-menu-image">
-                                                        <img src="/frontend/assets/images/general/full-avatar.png" alt="" class="img-fluid full-user-avtar" />
+                                                        <img src="{{ asset('frontend/assets/images/general/full-avatar.png') }}" alt="" class="img-fluid full-user-avtar" />
                                                     </div>
                                                 </div>
                                             </div>
@@ -919,7 +970,7 @@ try {
                                                 <div class="col-lg-4">
                                                     <a href="javascript:void(0);" class="dropdown-item">
                                                         <div class="menu-item-icon">
-                                                            <img src="/frontend/assets/images/brand/app-store.png" alt="" class="img-fluid" />
+                                                            <img src="{{ asset('frontend/assets/images/brand/app-store.png') }}" alt="" class="img-fluid" />
                                                         </div>
                                                         <div class="menu-item-title">App Store</div>
                                                         <div class="menu-item-arrow">
@@ -928,7 +979,7 @@ try {
                                                     </a>
                                                     <a href="javascript:void(0);" class="dropdown-item">
                                                         <div class="menu-item-icon">
-                                                            <img src="/frontend/assets/images/brand/spotify.png" alt="" class="img-fluid" />
+                                                            <img src="{{ asset('frontend/assets/images/brand/spotify.png') }}" alt="" class="img-fluid" />
                                                         </div>
                                                         <div class="menu-item-title">Spotify</div>
                                                         <div class="menu-item-arrow">
@@ -937,7 +988,7 @@ try {
                                                     </a>
                                                     <a href="javascript:void(0);" class="dropdown-item">
                                                         <div class="menu-item-icon">
-                                                            <img src="/frontend/assets/images/brand/figma.png" alt="" class="img-fluid" />
+                                                            <img src="{{ asset('frontend/assets/images/brand/figma.png') }}" alt="" class="img-fluid" />
                                                         </div>
                                                         <div class="menu-item-title">Figma</div>
                                                         <div class="menu-item-arrow">
@@ -946,7 +997,7 @@ try {
                                                     </a>
                                                     <a href="javascript:void(0);" class="dropdown-item">
                                                         <div class="menu-item-icon">
-                                                            <img src="/frontend/assets/images/brand/shopify.png" alt="" class="img-fluid" />
+                                                            <img src="{{ asset('frontend/assets/images/brand/shopify.png') }}" alt="" class="img-fluid" />
                                                         </div>
                                                         <div class="menu-item-title">Shopify</div>
                                                         <div class="menu-item-arrow">
@@ -955,7 +1006,7 @@ try {
                                                     </a>
                                                     <a href="javascript:void(0);" class="dropdown-item">
                                                         <div class="menu-item-icon">
-                                                            <img src="/frontend/assets/images/brand/paypal.png" alt="" class="img-fluid" />
+                                                            <img src="{{ asset('frontend/assets/images/brand/paypal.png') }}" alt="" class="img-fluid" />
                                                         </div>
                                                         <div class="menu-item-title">Paypal</div>
                                                         <div class="menu-item-arrow">
@@ -966,7 +1017,7 @@ try {
                                                 <div class="col-lg-4">
                                                     <a href="javascript:void(0);" class="dropdown-item">
                                                         <div class="menu-item-icon">
-                                                            <img src="/frontend/assets/images/brand/gmail.png" alt="" class="img-fluid" />
+                                                            <img src="{{ asset('frontend/assets/images/brand/gmail.png') }}" alt="" class="img-fluid" />
                                                         </div>
                                                         <div class="menu-item-title">Gmail</div>
                                                         <div class="menu-item-arrow">
@@ -975,7 +1026,7 @@ try {
                                                     </a>
                                                     <a href="javascript:void(0);" class="dropdown-item">
                                                         <div class="menu-item-icon">
-                                                            <img src="/frontend/assets/images/brand/dropbox.png" alt="" class="img-fluid" />
+                                                            <img src="{{ asset('frontend/assets/images/brand/dropbox.png') }}" alt="" class="img-fluid" />
                                                         </div>
                                                         <div class="menu-item-title">Dropbox</div>
                                                         <div class="menu-item-arrow">
@@ -984,7 +1035,7 @@ try {
                                                     </a>
                                                     <a href="javascript:void(0);" class="dropdown-item">
                                                         <div class="menu-item-icon">
-                                                            <img src="/frontend/assets/images/brand/google-drive.png" alt="" class="img-fluid" />
+                                                            <img src="{{ asset('frontend/assets/images/brand/google-drive.png') }}" alt="" class="img-fluid" />
                                                         </div>
                                                         <div class="menu-item-title">Google Drive</div>
                                                         <div class="menu-item-arrow">
@@ -993,7 +1044,7 @@ try {
                                                     </a>
                                                     <a href="javascript:void(0);" class="dropdown-item">
                                                         <div class="menu-item-icon">
-                                                            <img src="/frontend/assets/images/brand/github.png" alt="" class="img-fluid" />
+                                                            <img src="{{ asset('frontend/assets/images/brand/github.png') }}" alt="" class="img-fluid" />
                                                         </div>
                                                         <div class="menu-item-title">Github</div>
                                                         <div class="menu-item-arrow">
@@ -1002,7 +1053,7 @@ try {
                                                     </a>
                                                     <a href="javascript:void(0);" class="dropdown-item">
                                                         <div class="menu-item-icon">
-                                                            <img src="/frontend/assets/images/brand/gitlab.png" alt="" class="img-fluid" />
+                                                            <img src="{{ asset('frontend/assets/images/brand/gitlab.png') }}" alt="" class="img-fluid" />
                                                         </div>
                                                         <div class="menu-item-title">Gitlab</div>
                                                         <div class="menu-item-arrow">
@@ -1013,7 +1064,7 @@ try {
                                                 <div class="col-lg-4">
                                                     <a href="javascript:void(0);" class="dropdown-item">
                                                         <div class="menu-item-icon">
-                                                            <img src="/frontend/assets/images/brand/facebook.png" alt="" class="img-fluid" />
+                                                            <img src="{{ asset('frontend/assets/images/brand/facebook.png') }}" alt="" class="img-fluid" />
                                                         </div>
                                                         <div class="menu-item-title">Facebook</div>
                                                         <div class="menu-item-arrow">
@@ -1022,7 +1073,7 @@ try {
                                                     </a>
                                                     <a href="javascript:void(0);" class="dropdown-item">
                                                         <div class="menu-item-icon">
-                                                            <img src="/frontend/assets/images/brand/pinterest.png" alt="" class="img-fluid" />
+                                                            <img src="{{ asset('frontend/assets/images/brand/pinterest.png') }}" alt="" class="img-fluid" />
                                                         </div>
                                                         <div class="menu-item-title">Pinterest</div>
                                                         <div class="menu-item-arrow">
@@ -1031,7 +1082,7 @@ try {
                                                     </a>
                                                     <a href="javascript:void(0);" class="dropdown-item">
                                                         <div class="menu-item-icon">
-                                                            <img src="/frontend/assets/images/brand/instagram.png" alt="" class="img-fluid" />
+                                                            <img src="{{ asset('frontend/assets/images/brand/instagram.png') }}" alt="" class="img-fluid" />
                                                         </div>
                                                         <div class="menu-item-title">Instagram</div>
                                                         <div class="menu-item-arrow">
@@ -1040,7 +1091,7 @@ try {
                                                     </a>
                                                     <a href="javascript:void(0);" class="dropdown-item">
                                                         <div class="menu-item-icon">
-                                                            <img src="/frontend/assets/images/brand/twitter.png" alt="" class="img-fluid" />
+                                                            <img src="{{ asset('frontend/assets/images/brand/twitter.png') }}" alt="" class="img-fluid" />
                                                         </div>
                                                         <div class="menu-item-title">Twitter</div>
                                                         <div class="menu-item-arrow">
@@ -1049,7 +1100,7 @@ try {
                                                     </a>
                                                     <a href="javascript:void(0);" class="dropdown-item">
                                                         <div class="menu-item-icon">
-                                                            <img src="/frontend/assets/images/brand/youtube.png" alt="" class="img-fluid" />
+                                                            <img src="{{ asset('frontend/assets/images/brand/youtube.png') }}" alt="" class="img-fluid" />
                                                         </div>
                                                         <div class="menu-item-title">Youtube</div>
                                                         <div class="menu-item-arrow">
@@ -1098,7 +1149,7 @@ try {
                                                 </div>
                                                 <div class="col-xl-4">
                                                     <div class="nxl-mega-menu-image">
-                                                        <img src="/frontend/assets/images/banner/1.jpg" alt="" class="img-fluid" />
+                                                        <img src="{{ asset('frontend/assets/images/banner/1.jpg') }}" alt="" class="img-fluid" />
                                                     </div>
                                                     <div class="mt-4">
                                                         <a href="mailto:flexilecode@gmail.com" class="fs-13 fw-bold">View all resources on Duralux &rarr;</a>
@@ -1114,81 +1165,81 @@ try {
                                                     <div class="row g-4">
                                                         <div class="col-lg-4">
                                                             <h6 class="dropdown-item-title">Cover</h6>
-                                                            <a href="./auth-login-cover.html" class="dropdown-item">
+                                                            <a href="{{ url('/auth-login-cover') }}" class="dropdown-item">
                                                                 <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                                 <span>Login</span>
                                                             </a>
-                                                            <a href="./auth-register-cover.html" class="dropdown-item">
+                                                            <a href="{{ url('/auth-register-cover') }}" class="dropdown-item">
                                                                 <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                                 <span>Register</span>
                                                             </a>
-                                                            <a href="./auth-404-cover.html" class="dropdown-item">
+                                                            <a href="{{ url('/auth-404-cover') }}" class="dropdown-item">
                                                                 <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                                 <span>Error-404</span>
                                                             </a>
-                                                            <a href="./auth-reset-cover.html" class="dropdown-item">
+                                                            <a href="{{ url('/auth-reset-cover') }}" class="dropdown-item">
                                                                 <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                                 <span>Reset Pass</span>
                                                             </a>
-                                                            <a href="./auth-verify-cover.html" class="dropdown-item">
+                                                            <a href="{{ url('/auth-verify-cover') }}" class="dropdown-item">
                                                                 <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                                 <span>Verify OTP</span>
                                                             </a>
-                                                            <a href="./auth-maintenance-cover.html" class="dropdown-item">
+                                                            <a href="{{ url('/auth-maintenance-cover') }}" class="dropdown-item">
                                                                 <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                                 <span>Maintenance</span>
                                                             </a>
                                                         </div>
                                                         <div class="col-lg-4">
                                                             <h6 class="dropdown-item-title">Minimal</h6>
-                                                            <a href="./auth-login-minimal.html" class="dropdown-item">
+                                                            <a href="{{ url('/auth-login-cover') }}" class="dropdown-item">
                                                                 <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                                 <span>Login</span>
                                                             </a>
-                                                            <a href="./auth-register-minimal.html" class="dropdown-item">
+                                                            <a href="{{ url('/auth-register-minimal') }}" class="dropdown-item">
                                                                 <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                                 <span>Register</span>
                                                             </a>
-                                                            <a href="./auth-404-minimal.html" class="dropdown-item">
+                                                            <a href="{{ url('/auth-404-minimal') }}" class="dropdown-item">
                                                                 <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                                 <span>Error-404</span>
                                                             </a>
-                                                            <a href="./auth-reset-minimal.html" class="dropdown-item">
+                                                            <a href="{{ url('/auth-reset-minimal') }}" class="dropdown-item">
                                                                 <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                                 <span>Reset Pass</span>
                                                             </a>
-                                                            <a href="./auth-verify-minimal.html" class="dropdown-item">
+                                                            <a href="{{ url('/auth-verify-minimal') }}" class="dropdown-item">
                                                                 <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                                 <span>Verify OTP</span>
                                                             </a>
-                                                            <a href="./auth-maintenance-minimal.html" class="dropdown-item">
+                                                            <a href="{{ url('/auth-maintenance-minimal') }}" class="dropdown-item">
                                                                 <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                                 <span>Maintenance</span>
                                                             </a>
                                                         </div>
                                                         <div class="col-lg-4">
                                                             <h6 class="dropdown-item-title">Creative</h6>
-                                                            <a href="./auth-login-creative.html" class="dropdown-item">
+                                                            <a href="{{ url('/auth-login-creative') }}" class="dropdown-item">
                                                                 <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                                 <span>Login</span>
                                                             </a>
-                                                            <a href="./auth-register-creative.html" class="dropdown-item">
+                                                            <a href="{{ url('/register_submit') }}" class="dropdown-item">
                                                                 <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                                 <span>Register</span>
                                                             </a>
-                                                            <a href="./auth-404-creative.html" class="dropdown-item">
+                                                            <a href="{{ url('/auth-404-creative') }}" class="dropdown-item">
                                                                 <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                                 <span>Error-404</span>
                                                             </a>
-                                                            <a href="./auth-reset-creative.html" class="dropdown-item">
+                                                            <a href="{{ url('/auth-reset-creative') }}" class="dropdown-item">
                                                                 <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                                 <span>Reset Pass</span>
                                                             </a>
-                                                            <a href="./auth-verify-creative.html" class="dropdown-item">
+                                                            <a href="{{ url('/auth-verify-creative') }}" class="dropdown-item">
                                                                 <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                                 <span>Verify OTP</span>
                                                             </a>
-                                                            <a href="./auth-maintenance-creative.html" class="dropdown-item">
+                                                            <a href="{{ url('/auth-maintenance-creative') }}" class="dropdown-item">
                                                                 <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                                                 <span>Maintenance</span>
                                                             </a>
@@ -1208,7 +1259,7 @@ try {
                                                         <div class="carousel-inner rounded-3">
                                                             <div class="carousel-item active">
                                                                 <div class="nxl-mega-menu-image">
-                                                                    <img src="/frontend/assets/images/banner/6.jpg" alt="" class="img-fluid d-block w-100" />
+                                                                    <img src="{{ asset('frontend/assets/images/banner/6.jpg') }}" alt="" class="img-fluid d-block w-100" />
                                                                 </div>
                                                                 <div class="carousel-caption">
                                                                     <h5 class="carousel-caption-title text-truncate-1-line">Shopify eCommerce Store</h5>
@@ -1217,7 +1268,7 @@ try {
                                                             </div>
                                                             <div class="carousel-item">
                                                                 <div class="nxl-mega-menu-image">
-                                                                    <img src="/frontend/assets/images/banner/5.jpg" alt="" class="img-fluid d-block w-100" />
+                                                                    <img src="{{ asset('frontend/assets/images/banner/5.jpg') }}" alt="" class="img-fluid d-block w-100" />
                                                                 </div>
                                                                 <div class="carousel-caption">
                                                                     <h5 class="carousel-caption-title text-truncate-1-line">iOS Apps Development</h5>
@@ -1226,7 +1277,7 @@ try {
                                                             </div>
                                                             <div class="carousel-item">
                                                                 <div class="nxl-mega-menu-image">
-                                                                    <img src="/frontend/assets/images/banner/4.jpg" alt="" class="img-fluid d-block w-100" />
+                                                                    <img src="{{ asset('frontend/assets/images/banner/4.jpg') }}" alt="" class="img-fluid d-block w-100" />
                                                                 </div>
                                                                 <div class="carousel-caption">
                                                                     <h5 class="carousel-caption-title text-truncate-1-line">Figma Dashboard Design</h5>
@@ -1235,7 +1286,7 @@ try {
                                                             </div>
                                                             <div class="carousel-item">
                                                                 <div class="nxl-mega-menu-image">
-                                                                    <img src="/frontend/assets/images/banner/3.jpg" alt="" class="img-fluid d-block w-100" />
+                                                                    <img src="{{ asset('frontend/assets/images/banner/3.jpg') }}" alt="" class="img-fluid d-block w-100" />
                                                                 </div>
                                                                 <div class="carousel-caption">
                                                                     <h5 class="carousel-caption-title text-truncate-1-line">React Dashboard Design</h5>
@@ -1244,7 +1295,7 @@ try {
                                                             </div>
                                                             <div class="carousel-item">
                                                                 <div class="nxl-mega-menu-image">
-                                                                    <img src="/frontend/assets/images/banner/2.jpg" alt="" class="img-fluid d-block w-100" />
+                                                                    <img src="{{ asset('frontend/assets/images/banner/2.jpg') }}" alt="" class="img-fluid d-block w-100" />
                                                                 </div>
                                                                 <div class="carousel-caption">
                                                                     <h5 class="carousel-caption-title text-truncate-1-line">Standup Team Meeting</h5>
@@ -1253,7 +1304,7 @@ try {
                                                             </div>
                                                             <div class="carousel-item">
                                                                 <div class="nxl-mega-menu-image">
-                                                                    <img src="/frontend/assets/images/banner/1.jpg" alt="" class="img-fluid d-block w-100" />
+                                                                    <img src="{{ asset('frontend/assets/images/banner/1.jpg') }}" alt="" class="img-fluid d-block w-100" />
                                                                 </div>
                                                                 <div class="carousel-caption">
                                                                     <h5 class="carousel-caption-title text-truncate-1-line">Zoom Team Meeting</h5>
@@ -1329,7 +1380,7 @@ try {
                                                                 <div class="col-xl-6">
                                                                     <div class="d-lg-flex align-items-center gap-3">
                                                                         <div class="wd-150 rounded-3">
-                                                                            <img src="/frontend/assets/images/banner/1.jpg" alt="" class="img-fluid rounded-3" />
+                                                                            <img src="{{ asset('frontend/assets/images/banner/1.jpg') }}" alt="" class="img-fluid rounded-3" />
                                                                         </div>
                                                                         <div class="mt-3 mt-lg-0 ms-lg-3 item-text">
                                                                             <a href="javascript:void(0);">
@@ -1338,7 +1389,7 @@ try {
                                                                             <p class="fs-12 fw-normal text-muted mb-0 text-truncate-2-line">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Sint nam ullam iure eum sed rerum libero quis doloremque maiores veritatis?</p>
                                                                             <div class="hstack gap-2 mt-3">
                                                                                 <div class="avatar-image avatar-sm">
-                                                                                    <img src="/frontend/assets/images/avatar/1.png" alt="" class="img-fluid" />
+                                                                                    <img src="{{ asset('frontend/assets/images/avatar/1.png') }}" alt="" class="img-fluid" />
                                                                                 </div>
                                                                                 <a href="javascript:void(0);" class="fs-12">Felix Luis Mateo</a>
                                                                             </div>
@@ -1348,7 +1399,7 @@ try {
                                                                 <div class="col-xl-6">
                                                                     <div class="d-lg-flex align-items-center gap-3">
                                                                         <div class="wd-150 rounded-3">
-                                                                            <img src="/frontend/assets/images/banner/2.jpg" alt="" class="img-fluid rounded-3" />
+                                                                            <img src="{{ asset('frontend/assets/images/banner/2.jpg') }}" alt="" class="img-fluid rounded-3" />
                                                                         </div>
                                                                         <div class="mt-3 mt-lg-0 ms-lg-3 item-text">
                                                                             <a href="javascript:void(0);">
@@ -1357,7 +1408,7 @@ try {
                                                                             <p class="fs-12 fw-normal text-muted mb-0 text-truncate-2-line">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Sint nam ullam iure eum sed rerum libero quis doloremque maiores veritatis?</p>
                                                                             <div class="hstack gap-2 mt-3">
                                                                                 <div class="avatar-image avatar-sm">
-                                                                                    <img src="/frontend/assets/images/avatar/2.png" alt="" class="img-fluid" />
+                                                                                    <img src="{{ asset('frontend/assets/images/avatar/2.png') }}" alt="" class="img-fluid" />
                                                                                 </div>
                                                                                 <a href="javascript:void(0);" class="fs-12">Green Cute</a>
                                                                             </div>
@@ -1367,7 +1418,7 @@ try {
                                                                 <div class="col-xl-6">
                                                                     <div class="d-lg-flex align-items-center gap-3">
                                                                         <div class="wd-150 rounded-3">
-                                                                            <img src="/frontend/assets/images/banner/3.jpg" alt="" class="img-fluid rounded-3" />
+                                                                            <img src="{{ asset('frontend/assets/images/banner/3.jpg') }}" alt="" class="img-fluid rounded-3" />
                                                                         </div>
                                                                         <div class="mt-3 mt-lg-0 ms-lg-3 item-text">
                                                                             <a href="javascript:void(0);">
@@ -1376,7 +1427,7 @@ try {
                                                                             <p class="fs-12 fw-normal text-muted mb-0 text-truncate-2-line">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Sint nam ullam iure eum sed rerum libero quis doloremque maiores veritatis?</p>
                                                                             <div class="hstack gap-2 mt-3">
                                                                                 <div class="avatar-image avatar-sm">
-                                                                                    <img src="/frontend/assets/images/avatar/3.png" alt="" class="img-fluid" />
+                                                                                    <img src="{{ asset('frontend/assets/images/avatar/3.png') }}" alt="" class="img-fluid" />
                                                                                 </div>
                                                                                 <a href="javascript:void(0);" class="fs-12">Malanie Hanvey</a>
                                                                             </div>
@@ -1386,7 +1437,7 @@ try {
                                                                 <div class="col-xl-6">
                                                                     <div class="d-lg-flex align-items-center gap-3">
                                                                         <div class="wd-150 rounded-3">
-                                                                            <img src="/frontend/assets/images/banner/4.jpg" alt="" class="img-fluid rounded-3" />
+                                                                            <img src="{{ asset('frontend/assets/images/banner/4.jpg') }}" alt="" class="img-fluid rounded-3" />
                                                                         </div>
                                                                         <div class="mt-3 mt-lg-0 ms-lg-3 item-text">
                                                                             <a href="javascript:void(0);">
@@ -1395,7 +1446,7 @@ try {
                                                                             <p class="fs-12 fw-normal text-muted mb-0 text-truncate-2-line">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Sint nam ullam iure eum sed rerum libero quis doloremque maiores veritatis?</p>
                                                                             <div class="hstack gap-2 mt-3">
                                                                                 <div class="avatar-image avatar-sm">
-                                                                                    <img src="/frontend/assets/images/avatar/4.png" alt="" class="img-fluid" />
+                                                                                    <img src="{{ asset('frontend/assets/images/avatar/4.png') }}" alt="" class="img-fluid" />
                                                                                 </div>
                                                                                 <a href="javascript:void(0);" class="fs-12">Kenneth Hune</a>
                                                                             </div>
@@ -1514,7 +1565,7 @@ try {
                                                                 <div class="carousel-inner rounded-3">
                                                                     <div class="carousel-item active">
                                                                         <div class="nxl-mega-menu-image">
-                                                                            <img src="/frontend/assets/images/banner/6.jpg" alt="" class="img-fluid d-block w-100" />
+                                                                            <img src="{{ asset('frontend/assets/images/banner/6.jpg') }}" alt="" class="img-fluid d-block w-100" />
                                                                         </div>
                                                                         <div class="carousel-caption">
                                                                             <h5 class="carousel-caption-title text-truncate-1-line">Shopify eCommerce Store</h5>
@@ -1523,7 +1574,7 @@ try {
                                                                     </div>
                                                                     <div class="carousel-item">
                                                                         <div class="nxl-mega-menu-image">
-                                                                            <img src="/frontend/assets/images/banner/5.jpg" alt="" class="img-fluid d-block w-100" />
+                                                                            <img src="{{ asset('frontend/assets/images/banner/5.jpg') }}" alt="" class="img-fluid d-block w-100" />
                                                                         </div>
                                                                         <div class="carousel-caption">
                                                                             <h5 class="carousel-caption-title text-truncate-1-line">iOS Apps Development</h5>
@@ -1532,7 +1583,7 @@ try {
                                                                     </div>
                                                                     <div class="carousel-item">
                                                                         <div class="nxl-mega-menu-image">
-                                                                            <img src="/frontend/assets/images/banner/4.jpg" alt="" class="img-fluid d-block w-100" />
+                                                                            <img src="{{ asset('frontend/assets/images/banner/4.jpg') }}" alt="" class="img-fluid d-block w-100" />
                                                                         </div>
                                                                         <div class="carousel-caption">
                                                                             <h5 class="carousel-caption-title text-truncate-1-line">Figma Dashboard Design</h5>
@@ -1541,7 +1592,7 @@ try {
                                                                     </div>
                                                                     <div class="carousel-item">
                                                                         <div class="nxl-mega-menu-image">
-                                                                            <img src="/frontend/assets/images/banner/3.jpg" alt="" class="img-fluid d-block w-100" />
+                                                                            <img src="{{ asset('frontend/assets/images/banner/3.jpg') }}" alt="" class="img-fluid d-block w-100" />
                                                                         </div>
                                                                         <div class="carousel-caption">
                                                                             <h5 class="carousel-caption-title text-truncate-1-line">React Dashboard Design</h5>
@@ -1550,7 +1601,7 @@ try {
                                                                     </div>
                                                                     <div class="carousel-item">
                                                                         <div class="nxl-mega-menu-image">
-                                                                            <img src="/frontend/assets/images/banner/2.jpg" alt="" class="img-fluid d-block w-100" />
+                                                                            <img src="{{ asset('frontend/assets/images/banner/2.jpg') }}" alt="" class="img-fluid d-block w-100" />
                                                                         </div>
                                                                         <div class="carousel-caption">
                                                                             <h5 class="carousel-caption-title text-truncate-1-line">Standup Team Meeting</h5>
@@ -1559,7 +1610,7 @@ try {
                                                                     </div>
                                                                     <div class="carousel-item">
                                                                         <div class="nxl-mega-menu-image">
-                                                                            <img src="/frontend/assets/images/banner/1.jpg" alt="" class="img-fluid d-block w-100" />
+                                                                            <img src="{{ asset('frontend/assets/images/banner/1.jpg') }}" alt="" class="img-fluid d-block w-100" />
                                                                         </div>
                                                                         <div class="carousel-caption">
                                                                             <h5 class="carousel-caption-title text-truncate-1-line">Zoom Team Meeting</h5>
@@ -1665,7 +1716,7 @@ try {
                                                         </div>
                                                         <div class="col-xxl-3 offset-xxl-1 col-xl-4">
                                                             <div class="nxl-mega-menu-image">
-                                                                <img src="/frontend/assets/images/banner/1.jpg" alt="" class="img-fluid" />
+                                                                <img src="{{ asset('frontend/assets/images/banner/1.jpg') }}" alt="" class="img-fluid" />
                                                             </div>
                                                             <div class="mt-4">
                                                                 <a href="mailto:flexilecode@gmail.com" class="fs-13 fw-bold">View all features on Duralux &rarr;</a>
@@ -1689,7 +1740,7 @@ try {
                                                                 <div class="col-xxl-4 col-lg-6">
                                                                     <div class="d-flex align-items-center gap-3">
                                                                         <div class="wd-100 rounded-3">
-                                                                            <img src="/frontend/assets/images/banner/1.jpg" alt="" class="img-fluid rounded-3 border border-3" />
+                                                                            <img src="{{ asset('frontend/assets/images/banner/1.jpg') }}" alt="" class="img-fluid rounded-3 border border-3" />
                                                                         </div>
                                                                         <div>
                                                                             <a href="javascript:void(0);">
@@ -1703,7 +1754,7 @@ try {
                                                                 <div class="col-xxl-4 col-lg-6">
                                                                     <div class="d-flex align-items-center gap-3">
                                                                         <div class="wd-100 rounded-3">
-                                                                            <img src="/frontend/assets/images/banner/2.jpg" alt="" class="img-fluid rounded-3 border border-3" />
+                                                                            <img src="{{ asset('frontend/assets/images/banner/2.jpg') }}" alt="" class="img-fluid rounded-3 border border-3" />
                                                                         </div>
                                                                         <div>
                                                                             <a href="javascript:void(0);">
@@ -1717,7 +1768,7 @@ try {
                                                                 <div class="col-xxl-4 col-lg-6">
                                                                     <div class="d-flex align-items-center gap-3">
                                                                         <div class="wd-100 rounded-3">
-                                                                            <img src="/frontend/assets/images/banner/3.jpg" alt="" class="img-fluid rounded-3 border border-3" />
+                                                                            <img src="{{ asset('frontend/assets/images/banner/3.jpg') }}" alt="" class="img-fluid rounded-3 border border-3" />
                                                                         </div>
                                                                         <div>
                                                                             <a href="javascript:void(0);">
@@ -1731,7 +1782,7 @@ try {
                                                                 <div class="col-xxl-4 col-lg-6">
                                                                     <div class="d-flex align-items-center gap-3">
                                                                         <div class="wd-100 rounded-3">
-                                                                            <img src="/frontend/assets/images/banner/4.jpg" alt="" class="img-fluid rounded-3 border border-3" />
+                                                                            <img src="{{ asset('frontend/assets/images/banner/4.jpg') }}" alt="" class="img-fluid rounded-3 border border-3" />
                                                                         </div>
                                                                         <div>
                                                                             <a href="javascript:void(0);">
@@ -1745,7 +1796,7 @@ try {
                                                                 <div class="col-xxl-4 col-lg-6">
                                                                     <div class="d-flex align-items-center gap-3">
                                                                         <div class="wd-100 rounded-3">
-                                                                            <img src="/frontend/assets/images/banner/5.jpg" alt="" class="img-fluid rounded-3 border border-3" />
+                                                                            <img src="{{ asset('frontend/assets/images/banner/5.jpg') }}" alt="" class="img-fluid rounded-3 border border-3" />
                                                                         </div>
                                                                         <div>
                                                                             <a href="javascript:void(0);">
@@ -1759,7 +1810,7 @@ try {
                                                                 <div class="col-xxl-4 col-lg-6">
                                                                     <div class="d-flex align-items-center gap-3">
                                                                         <div class="wd-100 rounded-3">
-                                                                            <img src="/frontend/assets/images/banner/6.jpg" alt="" class="img-fluid rounded-3 border border-3" />
+                                                                            <img src="{{ asset('frontend/assets/images/banner/6.jpg') }}" alt="" class="img-fluid rounded-3 border border-3" />
                                                                         </div>
                                                                         <div>
                                                                             <a href="javascript:void(0);">
@@ -1888,7 +1939,7 @@ try {
                                     <div class="d-flex align-items-center justify-content-between mb-4">
                                         <div class="d-flex align-items-center gap-3">
                                             <div class="avatar-image rounded">
-                                                <img src="/frontend/assets/images/avatar/1.png" alt="" class="img-fluid" />
+                                                <img src="{{ asset('frontend/assets/images/avatar/1.png') }}" alt="" class="img-fluid" />
                                             </div>
                                             <div>
                                                 <a href="javascript:void(0);" class="font-body fw-bold d-block mb-1">Felix Luis Mateo</a>
@@ -1902,7 +1953,7 @@ try {
                                     <div class="d-flex align-items-center justify-content-between mb-4">
                                         <div class="d-flex align-items-center gap-3">
                                             <div class="avatar-image rounded">
-                                                <img src="/frontend/assets/images/avatar/2.png" alt="" class="img-fluid" />
+                                                <img src="{{ asset('frontend/assets/images/avatar/2.png') }}" alt="" class="img-fluid" />
                                             </div>
                                             <div>
                                                 <a href="javascript:void(0);" class="font-body fw-bold d-block mb-1">Green Cute</a>
@@ -1916,7 +1967,7 @@ try {
                                     <div class="d-flex align-items-center justify-content-between mb-4">
                                         <div class="d-flex align-items-center gap-3">
                                             <div class="avatar-image rounded">
-                                                <img src="/frontend/assets/images/avatar/3.png" alt="" class="img-fluid" />
+                                                <img src="{{ asset('frontend/assets/images/avatar/3.png') }}" alt="" class="img-fluid" />
                                             </div>
                                             <div>
                                                 <a href="javascript:void(0);" class="font-body fw-bold d-block mb-1">Malanie Hanvey</a>
@@ -1930,7 +1981,7 @@ try {
                                     <div class="d-flex align-items-center justify-content-between mb-4">
                                         <div class="d-flex align-items-center gap-3">
                                             <div class="avatar-image rounded">
-                                                <img src="/frontend/assets/images/avatar/4.png" alt="" class="img-fluid" />
+                                                <img src="{{ asset('frontend/assets/images/avatar/4.png') }}" alt="" class="img-fluid" />
                                             </div>
                                             <div>
                                                 <a href="javascript:void(0);" class="font-body fw-bold d-block mb-1">Kenneth Hune</a>
@@ -1944,7 +1995,7 @@ try {
                                     <div class="d-flex align-items-center justify-content-between mb-0">
                                         <div class="d-flex align-items-center gap-3">
                                             <div class="avatar-image rounded">
-                                                <img src="/frontend/assets/images/avatar/5.png" alt="" class="img-fluid" />
+                                                <img src="{{ asset('frontend/assets/images/avatar/5.png') }}" alt="" class="img-fluid" />
                                             </div>
                                             <div>
                                                 <a href="javascript:void(0);" class="font-body fw-bold d-block mb-1">Archie Cantones</a>
@@ -1962,7 +2013,7 @@ try {
                                     <div class="d-flex align-items-center justify-content-between mb-4">
                                         <div class="d-flex align-items-center gap-3">
                                             <div class="avatar-image bg-gray-200 rounded">
-                                                <img src="/frontend/assets/images/file-icons/css.png" alt="" class="img-fluid" />
+                                                <img src="{{ asset('frontend/assets/images/file-icons/css.png') }}" alt="" class="img-fluid" />
                                             </div>
                                             <div>
                                                 <a href="javascript:void(0);" class="font-body fw-bold d-block mb-1">Project Style CSS</a>
@@ -1976,7 +2027,7 @@ try {
                                     <div class="d-flex align-items-center justify-content-between mb-4">
                                         <div class="d-flex align-items-center gap-3">
                                             <div class="avatar-image bg-gray-200 rounded">
-                                                <img src="/frontend/assets/images/file-icons/zip.png" alt="" class="img-fluid" />
+                                                <img src="{{ asset('frontend/assets/images/file-icons/zip.png') }}" alt="" class="img-fluid" />
                                             </div>
                                             <div>
                                                 <a href="javascript:void(0);" class="font-body fw-bold d-block mb-1">Dashboard Project Zip</a>
@@ -1990,7 +2041,7 @@ try {
                                     <div class="d-flex align-items-center justify-content-between mb-0">
                                         <div class="d-flex align-items-center gap-3">
                                             <div class="avatar-image bg-gray-200 rounded">
-                                                <img src="/frontend/assets/images/file-icons/pdf.png" alt="" class="img-fluid" />
+                                                <img src="{{ asset('frontend/assets/images/file-icons/pdf.png') }}" alt="" class="img-fluid" />
                                             </div>
                                             <div>
                                                 <a href="javascript:void(0);" class="font-body fw-bold d-block mb-1">Project Document PDF</a>
@@ -2009,7 +2060,7 @@ try {
                     </div>
                     <div class="dropdown nxl-h-item nxl-header-language d-none d-sm-flex">
                         <a href="javascript:void(0);" class="nxl-head-link me-0 nxl-language-link" data-bs-toggle="dropdown" data-bs-auto-close="outside">
-                            <img src="/frontend/assets/vendors/img/flags/4x3/us.svg" alt="" class="img-fluid wd-20" />
+                            <img src="{{ asset('frontend/assets/vendors/img/flags/4x3/us.svg') }}" alt="" class="img-fluid wd-20" />
                         </a>
                         <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-language-dropdown">
                             <div class="dropdown-divider mt-0"></div>
@@ -2027,73 +2078,73 @@ try {
                                 <div class="row px-4 pt-3">
                                     <div class="col-sm-4 col-6 language_select">
                                         <a href="javascript:void(0);" class="d-flex align-items-center gap-2">
-                                            <div class="avatar-image avatar-sm"><img src="/frontend/assets/vendors/img/flags/1x1/sa.svg" alt="" class="img-fluid" /></div>
+                                            <div class="avatar-image avatar-sm"><img src="{{ asset('frontend/assets/vendors/img/flags/1x1/sa.svg') }}" alt="" class="img-fluid" /></div>
                                             <span>Arabic</span>
                                         </a>
                                     </div>
                                     <div class="col-sm-4 col-6 language_select">
                                         <a href="javascript:void(0);" class="d-flex align-items-center gap-2">
-                                            <div class="avatar-image avatar-sm"><img src="/frontend/assets/vendors/img/flags/1x1/bd.svg" alt="" class="img-fluid" /></div>
+                                            <div class="avatar-image avatar-sm"><img src="{{ asset('frontend/assets/vendors/img/flags/1x1/bd.svg') }}" alt="" class="img-fluid" /></div>
                                             <span>Bengali</span>
                                         </a>
                                     </div>
                                     <div class="col-sm-4 col-6 language_select">
                                         <a href="javascript:void(0);" class="d-flex align-items-center gap-2">
-                                            <div class="avatar-image avatar-sm"><img src="/frontend/assets/vendors/img/flags/1x1/ch.svg" alt="" class="img-fluid" /></div>
+                                            <div class="avatar-image avatar-sm"><img src="{{ asset('frontend/assets/vendors/img/flags/1x1/ch.svg') }}" alt="" class="img-fluid" /></div>
                                             <span>Chinese</span>
                                         </a>
                                     </div>
                                     <div class="col-sm-4 col-6 language_select">
                                         <a href="javascript:void(0);" class="d-flex align-items-center gap-2">
-                                            <div class="avatar-image avatar-sm"><img src="/frontend/assets/vendors/img/flags/1x1/nl.svg" alt="" class="img-fluid" /></div>
+                                            <div class="avatar-image avatar-sm"><img src="{{ asset('frontend/assets/vendors/img/flags/1x1/nl.svg') }}" alt="" class="img-fluid" /></div>
                                             <span>Dutch</span>
                                         </a>
                                     </div>
                                     <div class="col-sm-4 col-6 language_select active">
                                         <a href="javascript:void(0);" class="d-flex align-items-center gap-2">
-                                            <div class="avatar-image avatar-sm"><img src="/frontend/assets/vendors/img/flags/1x1/us.svg" alt="" class="img-fluid" /></div>
+                                            <div class="avatar-image avatar-sm"><img src="{{ asset('frontend/assets/vendors/img/flags/1x1/us.svg') }}" alt="" class="img-fluid" /></div>
                                             <span>English</span>
                                         </a>
                                     </div>
                                     <div class="col-sm-4 col-6 language_select">
                                         <a href="javascript:void(0);" class="d-flex align-items-center gap-2">
-                                            <div class="avatar-image avatar-sm"><img src="/frontend/assets/vendors/img/flags/1x1/fr.svg" alt="" class="img-fluid" /></div>
+                                            <div class="avatar-image avatar-sm"><img src="{{ asset('frontend/assets/vendors/img/flags/1x1/fr.svg') }}" alt="" class="img-fluid" /></div>
                                             <span>French</span>
                                         </a>
                                     </div>
                                     <div class="col-sm-4 col-6 language_select">
                                         <a href="javascript:void(0);" class="d-flex align-items-center gap-2">
-                                            <div class="avatar-image avatar-sm"><img src="/frontend/assets/vendors/img/flags/1x1/de.svg" alt="" class="img-fluid" /></div>
+                                            <div class="avatar-image avatar-sm"><img src="{{ asset('frontend/assets/vendors/img/flags/1x1/de.svg') }}" alt="" class="img-fluid" /></div>
                                             <span>German</span>
                                         </a>
                                     </div>
                                     <div class="col-sm-4 col-6 language_select">
                                         <a href="javascript:void(0);" class="d-flex align-items-center gap-2">
-                                            <div class="avatar-image avatar-sm"><img src="/frontend/assets/vendors/img/flags/1x1/in.svg" alt="" class="img-fluid" /></div>
+                                            <div class="avatar-image avatar-sm"><img src="{{ asset('frontend/assets/vendors/img/flags/1x1/in.svg') }}" alt="" class="img-fluid" /></div>
                                             <span>Hindi</span>
                                         </a>
                                     </div>
                                     <div class="col-sm-4 col-6 language_select">
                                         <a href="javascript:void(0);" class="d-flex align-items-center gap-2">
-                                            <div class="avatar-image avatar-sm"><img src="/frontend/assets/vendors/img/flags/1x1/ru.svg" alt="" class="img-fluid" /></div>
+                                            <div class="avatar-image avatar-sm"><img src="{{ asset('frontend/asses/tvendors/img/flags/1x1/ru.svg') }}" alt="" class="img-fluid" /></div>
                                             <span>Russian</span>
                                         </a>
                                     </div>
                                     <div class="col-sm-4 col-6 language_select">
                                         <a href="javascript:void(0);" class="d-flex align-items-center gap-2">
-                                            <div class="avatar-image avatar-sm"><img src="/frontend/assets/vendors/img/flags/1x1/es.svg" alt="" class="img-fluid" /></div>
+                                            <div class="avatar-image avatar-sm"><img src="{{ asset('frontend/assets/vendors/img/flags/1x1/es.svg') }}" alt="" class="img-fluid" /></div>
                                             <span>Spanish</span>
                                         </a>
                                     </div>
                                     <div class="col-sm-4 col-6 language_select">
                                         <a href="javascript:void(0);" class="d-flex align-items-center gap-2">
-                                            <div class="avatar-image avatar-sm"><img src="/frontend/assets/vendors/img/flags/1x1/tr.svg" alt="" class="img-fluid" /></div>
+                                            <div class="avatar-image avatar-sm"><img src="{{ asset('frontend/assets/vendors/img/flags/1x1/tr.svg') }}" alt="" class="img-fluid" /></div>
                                             <span>Turkish</span>
                                         </a>
                                     </div>
                                     <div class="col-sm-4 col-6 language_select">
                                         <a href="javascript:void(0);" class="d-flex align-items-center gap-2">
-                                            <div class="avatar-image avatar-sm"><img src="/frontend/assets/vendors/img/flags/1x1/pk.svg" alt="" class="img-fluid" /></div>
+                                            <div class="avatar-image avatar-sm"><img src="{{ asset('frontend/assets/vendors/img/flags/1x1/pk.svg') }}" alt="" class="img-fluid" /></div>
                                             <span>Urdo</span>
                                         </a>
                                     </div>
@@ -2154,7 +2205,7 @@ try {
                                 </a>
                             </div>
                             <div class="notifications-item">
-                                <img src="/frontend/assets/images/avatar/2.png" alt="" class="rounded me-3 border" />
+                                <img src="{{ asset('frontend/assets/images/avatar/2.png') }}" alt="" class="rounded me-3 border" />
                                 <div class="notifications-desc">
                                     <a href="javascript:void(0);" class="font-body text-truncate-2-line"> <span class="fw-semibold text-dark">Malanie Hanvey</span> We should talk about that at lunch!</a>
                                     <div class="d-flex justify-content-between align-items-center">
@@ -2169,7 +2220,7 @@ try {
                                 </div>
                             </div>
                             <div class="notifications-item">
-                                <img src="/frontend/assets/images/avatar/3.png" alt="" class="rounded me-3 border" />
+                                <img src="{{ asset('frontend/assets/images/avatar/3.png') }}" alt="" class="rounded me-3 border" />
                                 <div class="notifications-desc">
                                     <a href="javascript:void(0);" class="font-body text-truncate-2-line"> <span class="fw-semibold text-dark">Valentine Maton</span> You can download the latest invoices now.</a>
                                     <div class="d-flex justify-content-between align-items-center">
@@ -2184,7 +2235,7 @@ try {
                                 </div>
                             </div>
                             <div class="notifications-item">
-                                <img src="/frontend/assets/images/avatar/4.png" alt="" class="rounded me-3 border" />
+                                <img src="{{ asset('frontend/assets/images/avatar/4.png') }}" alt="" class="rounded me-3 border" />
                                 <div class="notifications-desc">
                                     <a href="javascript:void(0);" class="font-body text-truncate-2-line"> <span class="fw-semibold text-dark">Archie Cantones</span> Don't forget to pickup Jeremy after school!</a>
                                     <div class="d-flex justify-content-between align-items-center">
@@ -2205,12 +2256,12 @@ try {
                     </div>
                     <div class="dropdown nxl-h-item">
                         <a href="javascript:void(0);" data-bs-toggle="dropdown" role="button" data-bs-auto-close="outside">
-                            <img src="/frontend/assets/images/avatar/1.png" alt="user-image" class="img-fluid user-avtar me-0" />
+                            <img src="{{ asset('frontend/assets/images/avatar/1.png') }}" alt="user-image" class="img-fluid user-avtar me-0" />
                         </a>
                         <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-user-dropdown">
                             <div class="dropdown-header">
                                 <div class="d-flex align-items-center">
-                                    <img src="/frontend/assets/images/avatar/1.png" alt="user-image" class="img-fluid user-avtar" />
+                                    <img src="{{ asset('frontend/assets/images/avatar/1.png') }}" alt="user-image" class="img-fluid user-avtar" />
                                     <div>
                                         <h6 class="text-dark mb-0">Felix Luis Mateo <span class="badge bg-soft-success text-success ms-1">PRO</span></h6>
                                         <span class="fs-12 fw-medium text-muted">felixluismateo@example.com</span>
@@ -2264,13 +2315,10 @@ try {
                                 <span>Account Settings</span>
                             </a>
                             <div class="dropdown-divider"></div>
-                            <form action="{{ route('logout') }}" method="POST" class="d-inline">
-                                @csrf
-                                <button type="submit" class="dropdown-item btn btn-link text-start p-0">
-                                    <i class="feather-log-out"></i>
-                                    <span>Logout</span>
-                                </button>
-                            </form>
+                            <a href="{{ url('/auth-login-cover') }}" class="dropdown-item">
+                                <i class="feather-log-out"></i>
+                                <span>Logout</span>
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -2291,17 +2339,17 @@ try {
             <div class="page-header">
                 <div class="page-header-left d-flex align-items-center">
                     <div class="page-header-title">
-                        <h5 class="m-b-10">Dashboard</h5>
+                        <h5 class="m-b-10">Overview</h5>
                     </div>
                     <ul class="breadcrumb">
-                        <li class="breadcrumb-item"><a href="{{ url('/') }}">Home</a></li>
-                        <li class="breadcrumb-item">Dashboard</li>
+                        <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Home</a></li>
+                        <li class="breadcrumb-item">Overview</li>
                     </ul>
                 </div>
                 <div class="page-header-right ms-auto">
                     <div class="page-header-right-items">
                         <div class="d-flex d-md-none">
-                            <a href="javascript:history.back()" class="page-header-right-close-toggle">
+                            <a href="javascript:void(0)" class="page-header-right-close-toggle">
                                 <i class="feather-arrow-left me-2"></i>
                                 <span>Back</span>
                             </a>
@@ -2360,7 +2408,7 @@ try {
                         </div>
                     </div>
                     <div class="d-md-none d-flex align-items-center">
-                        <a href="javascript:history.back()" class="page-header-right-open-toggle">
+                        <a href="javascript:void(0)" class="page-header-right-open-toggle">
                             <i class="feather-align-right fs-20"></i>
                         </a>
                     </div>
@@ -2370,109 +2418,109 @@ try {
             <!-- [ Main Content ] start -->
             <div class="main-content">
                 <div class="row">
-                    <!-- [Invoices Awaiting Payment] start -->
+                    <!-- [Attendance Awaiting Approval] start -->
                     <div class="col-xxl-3 col-md-6">
                         <div class="card stretch stretch-full">
                             <div class="card-body">
                                 <div class="d-flex align-items-start justify-content-between mb-4">
                                     <div class="d-flex gap-4 align-items-center">
                                         <div class="avatar-text avatar-lg bg-gray-200">
-                                            <i class="feather-dollar-sign"></i>
+                                            <i class="feather-clock"></i>
                                         </div>
                                         <div>
-                                            <div class="fs-4 fw-bold text-dark"><span class="counter">45</span>/<span class="counter">76</span></div>
-                                            <h3 class="fs-13 fw-semibold text-truncate-1-line">Invoices Awaiting Payment</h3>
+                                            <div class="fs-4 fw-bold text-dark"><span class="counter"><?php echo $attendance_awaiting; ?></span>/<span class="counter"><?php echo $attendance_total; ?></span></div>
+                                            <h3 class="fs-13 fw-semibold text-truncate-1-line">Attendance Awaiting Approval</h3>
                                         </div>
                                     </div>
-                                    <a href="javascript:void(0);" class="">
+                                    <a href="{{ url('/attendance') }}" class="">
                                         <i class="feather-more-vertical"></i>
                                     </a>
                                 </div>
                                 <div class="pt-4">
                                     <div class="d-flex align-items-center justify-content-between">
-                                        <a href="javascript:void(0);" class="fs-12 fw-medium text-muted text-truncate-1-line">Invoices Awaiting </a>
+                                        <a href="{{ url('/attendance') }}" class="fs-12 fw-medium text-muted text-truncate-1-line">Pending Records </a>
                                         <div class="w-100 text-end">
-                                            <span class="fs-12 text-dark">$5,569</span>
-                                            <span class="fs-11 text-muted">(56%)</span>
+                                            <span class="fs-12 text-dark"><?php echo $attendance_awaiting; ?> Pending</span>
+                                            <span class="fs-11 text-muted"><?php echo ($attendance_total > 0) ? round(($attendance_awaiting / $attendance_total) * 100) : 0; ?>%</span>
                                         </div>
                                     </div>
                                     <div class="progress mt-2 ht-3">
-                                        <div class="progress-bar bg-primary" role="progressbar" style="width: 56%"></div>
+                                        <div class="progress-bar bg-primary" role="progressbar" style="width: <?php echo ($attendance_total > 0) ? round(($attendance_awaiting / $attendance_total) * 100) : 0; ?>%"></div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <!-- [Invoices Awaiting Payment] end -->
-                    <!-- [Converted Leads] start -->
+                    <!-- [Attendance Awaiting Approval] end -->
+                    <!-- [Attendance Approved] start -->
                     <div class="col-xxl-3 col-md-6">
                         <div class="card stretch stretch-full">
                             <div class="card-body">
                                 <div class="d-flex align-items-start justify-content-between mb-4">
                                     <div class="d-flex gap-4 align-items-center">
                                         <div class="avatar-text avatar-lg bg-gray-200">
-                                            <i class="feather-cast"></i>
+                                            <i class="feather-check-circle"></i>
                                         </div>
                                         <div>
-                                            <div class="fs-4 fw-bold text-dark"><span class="counter">48</span>/<span class="counter">86</span></div>
-                                            <h3 class="fs-13 fw-semibold text-truncate-1-line">Converted Leads</h3>
+                                            <div class="fs-4 fw-bold text-dark"><span class="counter"><?php echo $attendance_completed; ?></span>/<span class="counter"><?php echo $attendance_total; ?></span></div>
+                                            <h3 class="fs-13 fw-semibold text-truncate-1-line">Attendance Approved</h3>
                                         </div>
                                     </div>
-                                    <a href="javascript:void(0);" class="">
+                                    <a href="{{ url('/attendance') }}" class="">
                                         <i class="feather-more-vertical"></i>
                                     </a>
                                 </div>
                                 <div class="pt-4">
                                     <div class="d-flex align-items-center justify-content-between">
-                                        <a href="javascript:void(0);" class="fs-12 fw-medium text-muted text-truncate-1-line">Converted Leads </a>
+                                        <a href="{{ url('/attendance') }}" class="fs-12 fw-medium text-muted text-truncate-1-line">Approved Records </a>
                                         <div class="w-100 text-end">
-                                            <span class="fs-12 text-dark">52 Completed</span>
-                                            <span class="fs-11 text-muted">(63%)</span>
+                                            <span class="fs-12 text-dark"><?php echo $attendance_completed; ?> Approved</span>
+                                            <span class="fs-11 text-muted"><?php echo ($attendance_total > 0) ? round(($attendance_completed / $attendance_total) * 100) : 0; ?>%</span>
                                         </div>
                                     </div>
                                     <div class="progress mt-2 ht-3">
-                                        <div class="progress-bar bg-warning" role="progressbar" style="width: 63%"></div>
+                                        <div class="progress-bar bg-success" role="progressbar" style="width: <?php echo ($attendance_total > 0) ? round(($attendance_completed / $attendance_total) * 100) : 0; ?>%"></div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <!-- [Converted Leads] end -->
-                    <!-- [Projects In Progress] start -->
+                    <!-- [Attendance Approved] end -->
+                    <!-- [Active Internships] start -->
                     <div class="col-xxl-3 col-md-6">
                         <div class="card stretch stretch-full">
                             <div class="card-body">
                                 <div class="d-flex align-items-start justify-content-between mb-4">
                                     <div class="d-flex gap-4 align-items-center">
                                         <div class="avatar-text avatar-lg bg-gray-200">
-                                            <i class="feather-briefcase"></i>
+                                            <i class="feather-users"></i>
                                         </div>
                                         <div>
-                                            <div class="fs-4 fw-bold text-dark"><span class="counter">16</span>/<span class="counter">20</span></div>
-                                            <h3 class="fs-13 fw-semibold text-truncate-1-line">Projects In Progress</h3>
+                                            <div class="fs-4 fw-bold text-dark"><span class="counter"><?php echo $internship_count; ?></span></div>
+                                            <h3 class="fs-13 fw-semibold text-truncate-1-line">Active Internships</h3>
                                         </div>
                                     </div>
-                                    <a href="javascript:void(0);" class="">
+                                    <a href="{{ url('/students') }}" class="">
                                         <i class="feather-more-vertical"></i>
                                     </a>
                                 </div>
                                 <div class="pt-4">
                                     <div class="d-flex align-items-center justify-content-between">
-                                        <a href="javascript:void(0);" class="fs-12 fw-medium text-muted text-truncate-1-line">Projects In Progress </a>
+                                        <a href="{{ url('/students') }}" class="fs-12 fw-medium text-muted text-truncate-1-line">Ongoing Internships </a>
                                         <div class="w-100 text-end">
-                                            <span class="fs-12 text-dark">16 Completed</span>
-                                            <span class="fs-11 text-muted">(78%)</span>
+                                            <span class="fs-12 text-dark"><?php echo $internship_count; ?> Active</span>
+                                            <span class="fs-11 text-muted">See List</span>
                                         </div>
                                     </div>
                                     <div class="progress mt-2 ht-3">
-                                        <div class="progress-bar bg-success" role="progressbar" style="width: 78%"></div>
+                                        <div class="progress-bar bg-info" role="progressbar" style="width: 100%"></div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <!-- [Projects In Progress] end -->
-                    <!-- [Conversion Rate] start -->
+                    <!-- [Active Internships] end -->
+                    <!-- [Biometric Registration] start -->
                     <div class="col-xxl-3 col-md-6">
                         <div class="card stretch stretch-full">
                             <div class="card-body">
@@ -2482,30 +2530,30 @@ try {
                                             <i class="feather-activity"></i>
                                         </div>
                                         <div>
-                                            <div class="fs-4 fw-bold text-dark"><span class="counter">46.59</span>%</div>
-                                            <h3 class="fs-13 fw-semibold text-truncate-1-line">Conversion Rate</h3>
+                                            <div class="fs-4 fw-bold text-dark"><span class="counter"><?php echo $biometric_registered; ?></span>/<span class="counter"><?php echo $student_count; ?></span></div>
+                                            <h3 class="fs-13 fw-semibold text-truncate-1-line">Biometric Registered</h3>
                                         </div>
                                     </div>
-                                    <a href="javascript:void(0);" class="">
+                                    <a href="{{ url('/demo-biometric') }}" class="">
                                         <i class="feather-more-vertical"></i>
                                     </a>
                                 </div>
                                 <div class="pt-4">
                                     <div class="d-flex align-items-center justify-content-between">
-                                        <a href="javascript:void(0);" class="fs-12 fw-medium text-muted text-truncate-1-line"> Conversion Rate </a>
+                                        <a href="{{ url('/demo-biometric') }}" class="fs-12 fw-medium text-muted text-truncate-1-line"> Biometric Rate </a>
                                         <div class="w-100 text-end">
-                                            <span class="fs-12 text-dark">$2,254</span>
-                                            <span class="fs-11 text-muted">(46%)</span>
+                                            <span class="fs-12 text-dark"><?php echo $biometric_registered; ?> Students</span>
+                                            <span class="fs-11 text-muted"><?php echo ($student_count > 0) ? round(($biometric_registered / $student_count) * 100) : 0; ?>%</span>
                                         </div>
                                     </div>
                                     <div class="progress mt-2 ht-3">
-                                        <div class="progress-bar bg-danger" role="progressbar" style="width: 46%"></div>
+                                        <div class="progress-bar bg-danger" role="progressbar" style="width: <?php echo ($student_count > 0) ? round(($biometric_registered / $student_count) * 100) : 0; ?>%"></div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <!-- [Conversion Rate] end -->
+                    <!-- [Biometric Registration] end -->
                     <!-- [Payment Records] start -->
                     <div class="col-xxl-8">
                         <div class="card stretch stretch-full">
@@ -2548,37 +2596,37 @@ try {
                                 <div class="row g-4">
                                     <div class="col-lg-3">
                                         <div class="p-3 border border-dashed rounded">
-                                            <div class="fs-12 text-muted mb-1">Awaiting</div>
-                                            <h6 class="fw-bold text-dark">$5,486</h6>
+                                            <div class="fs-12 text-muted mb-1">Awaiting Approval</div>
+                                            <h6 class="fw-bold text-dark"><?php echo $attendance_awaiting; ?></h6>
                                             <div class="progress mt-2 ht-3">
-                                                <div class="progress-bar bg-primary" role="progressbar" style="width: 81%"></div>
+                                                <div class="progress-bar bg-primary" role="progressbar" style="width: <?php echo ($attendance_total > 0) ? intval(($attendance_awaiting / $attendance_total) * 100) : 0; ?>%"></div>
                                             </div>
                                         </div>
                                     </div>
                                     <div class="col-lg-3">
                                         <div class="p-3 border border-dashed rounded">
-                                            <div class="fs-12 text-muted mb-1">Completed</div>
-                                            <h6 class="fw-bold text-dark">$9,275</h6>
+                                            <div class="fs-12 text-muted mb-1">Approved</div>
+                                            <h6 class="fw-bold text-dark"><?php echo $attendance_completed; ?></h6>
                                             <div class="progress mt-2 ht-3">
-                                                <div class="progress-bar bg-success" role="progressbar" style="width: 82%"></div>
+                                                <div class="progress-bar bg-success" role="progressbar" style="width: <?php echo ($attendance_total > 0) ? intval(($attendance_completed / $attendance_total) * 100) : 0; ?>%"></div>
                                             </div>
                                         </div>
                                     </div>
                                     <div class="col-lg-3">
                                         <div class="p-3 border border-dashed rounded">
                                             <div class="fs-12 text-muted mb-1">Rejected</div>
-                                            <h6 class="fw-bold text-dark">$3,868</h6>
+                                            <h6 class="fw-bold text-dark"><?php echo $attendance_rejected; ?></h6>
                                             <div class="progress mt-2 ht-3">
-                                                <div class="progress-bar bg-danger" role="progressbar" style="width: 68%"></div>
+                                                <div class="progress-bar bg-danger" role="progressbar" style="width: <?php echo ($attendance_total > 0) ? intval(($attendance_rejected / $attendance_total) * 100) : 0; ?>%"></div>
                                             </div>
                                         </div>
                                     </div>
                                     <div class="col-lg-3">
                                         <div class="p-3 border border-dashed rounded">
-                                            <div class="fs-12 text-muted mb-1">Revenue</div>
-                                            <h6 class="fw-bold text-dark">$50,668</h6>
+                                            <div class="fs-12 text-muted mb-1">Total Records</div>
+                                            <h6 class="fw-bold text-dark"><?php echo $attendance_total; ?></h6>
                                             <div class="progress mt-2 ht-3">
-                                                <div class="progress-bar bg-dark" role="progressbar" style="width: 75%"></div>
+                                                <div class="progress-bar bg-dark" role="progressbar" style="width: 100%"></div>
                                             </div>
                                         </div>
                                     </div>
@@ -2587,69 +2635,47 @@ try {
                         </div>
                     </div>
                     <!-- [Payment Records] end -->
-                    <!-- [Total Sales] start -->
+                    <!-- [Total Students] start -->
                     <div class="col-xxl-4">
                         <div class="card stretch stretch-full overflow-hidden">
                             <div class="bg-primary text-white">
                                 <div class="p-4">
-                                    <span class="badge bg-light text-primary text-dark float-end">12%</span>
+                                    <span class="badge bg-light text-primary text-dark float-end"><?php echo $student_count; ?></span>
                                     <div class="text-start">
-                                        <h4 class="text-reset">30,569</h4>
-                                        <p class="text-reset m-0">Total Sales</p>
+                                        <h4 class="text-reset"><?php echo $student_count; ?></h4>
+                                        <p class="text-reset m-0">Total Students Enrolled</p>
                                     </div>
                                 </div>
                                 <div id="total-sales-color-graph"></div>
                             </div>
                             <div class="card-body">
-                                <div class="d-flex align-items-center justify-content-between">
-                                    <div class="hstack gap-3">
-                                        <div class="avatar-image avatar-lg p-2 rounded">
-                                            <img class="img-fluid" src="/frontend/assets/images/brand/shopify.png" alt="" />
+                                <?php if (count($recent_students) > 0): ?>
+                                    <?php foreach (array_slice($recent_students, 0, 3) as $student): ?>
+                                    <div class="d-flex align-items-center justify-content-between mb-3">
+                                        <div class="hstack gap-3">
+                                            <div class="avatar-text avatar-lg bg-soft-primary text-primary">
+                                                <?php echo strtoupper(substr($student['first_name'], 0, 1) . substr($student['last_name'], 0, 1)); ?>
+                                            </div>
+                                            <div>
+                                                <a href="students-view.php?id=<?php echo $student['id']; ?>" class="d-block fw-semibold"><?php echo htmlspecialchars($student['first_name'] . ' ' . $student['last_name']); ?></a>
+                                                <span class="fs-12 text-muted"><?php echo htmlspecialchars($student['student_id']); ?></span>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <a href="javascript:void(0);" class="d-block">Shopify eCommerce Store</a>
-                                            <span class="fs-12 text-muted">Development</span>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div class="fw-bold text-dark">$1200</div>
-                                        <div class="fs-12 text-end">6 Projects</div>
-                                    </div>
-                                </div>
-                                <hr class="border-dashed my-3" />
-                                <div class="d-flex align-items-center justify-content-between">
-                                    <div class="hstack gap-3">
-                                        <div class="avatar-image avatar-lg p-2 rounded">
-                                            <img class="img-fluid" src="/frontend/assets/images/brand/app-store.png" alt="" />
-                                        </div>
-                                        <div>
-                                            <a href="javascript:void(0);" class="d-block">iOS Apps Development</a>
-                                            <span class="fs-12 text-muted">Development</span>
+                                        <div class="text-end">
+                                            <?php if ($student['biometric_registered']): ?>
+                                            <span class="badge bg-soft-success text-success fs-10">Biometric ✓</span>
+                                            <?php else: ?>
+                                            <span class="badge bg-soft-warning text-warning fs-10">Pending Bio</span>
+                                            <?php endif; ?>
                                         </div>
                                     </div>
-                                    <div>
-                                        <div class="fw-bold text-dark">$1450</div>
-                                        <div class="fs-12 text-end">3 Projects</div>
-                                    </div>
-                                </div>
-                                <hr class="border-dashed my-3" />
-                                <div class="d-flex align-items-center justify-content-between">
-                                    <div class="hstack gap-3">
-                                        <div class="avatar-image avatar-lg p-2 rounded">
-                                            <img class="img-fluid" src="/frontend/assets/images/brand/figma.png" alt="" />
-                                        </div>
-                                        <div>
-                                            <a href="javascript:void(0);" class="d-block">Figma Dashboard Design</a>
-                                            <span class="fs-12 text-muted">UI/UX Design</span>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div class="fw-bold text-dark">$1250</div>
-                                        <div class="fs-12 text-end">5 Projects</div>
-                                    </div>
-                                </div>
+                                    <hr class="border-dashed my-3" />
+                                    <?php endforeach; ?>
+                                <?php else: ?>
+                                    <p class="text-muted text-center">No recent students found</p>
+                                <?php endif; ?>
                             </div>
-                            <a href="javascript:void(0);" class="card-footer fs-11 fw-bold text-uppercase text-center py-4">Full Details</a>
+                            <a href="{{ url('/students') }}" class="card-footer fs-11 fw-bold text-uppercase text-center py-4">View All Students</a>
                         </div>
                     </div>
                     <!-- [Total Sales] end !-->
@@ -2821,11 +2847,11 @@ try {
                         </div>
                     </div>
                     <!-- [Leads Overview] end -->
-                    <!-- [Latest Leads] start -->
+                    <!-- [Latest Attendance Records] start -->
                     <div class="col-xxl-8">
                         <div class="card stretch stretch-full">
                             <div class="card-header">
-                                <h5 class="card-title">Latest Leads</h5>
+                                <h5 class="card-title">Latest Attendance Records</h5>
                                 <div class="card-header-action">
                                     <div class="card-header-btn">
                                         <div data-bs-toggle="tooltip" title="Delete">
@@ -2861,129 +2887,56 @@ try {
                                     <table class="table table-hover mb-0">
                                         <thead>
                                             <tr class="border-b">
-                                                <th scope="row">Users</th>
-                                                <th>Proposal</th>
-                                                <th>Date</th>
+                                                <th scope="row">Students</th>
+                                                <th>Attendance Date</th>
+                                                <th>Time In</th>
                                                 <th>Status</th>
                                                 <th class="text-end">Actions</th>
                                             </tr>
                                         </thead>
                                         <tbody>
+                                            <?php if (count($recent_attendance) > 0): ?>
+                                                <?php foreach ($recent_attendance as $attendance): ?>
                                             <tr>
                                                 <td>
                                                     <div class="d-flex align-items-center gap-3">
-                                                        <div class="avatar-image">
-                                                            <img src="/frontend/assets/images/avatar/2.png" alt="" class="img-fluid" />
+                                                        <div class="avatar-text avatar-sm bg-soft-primary text-primary">
+                                                            <?php echo strtoupper(substr($attendance['first_name'], 0, 1) . substr($attendance['last_name'], 0, 1)); ?>
                                                         </div>
-                                                        <a href="javascript:void(0);">
-                                                            <span class="d-block">Archie Cantones</span>
-                                                            <span class="fs-12 d-block fw-normal text-muted">arcie.tones@gmail.com</span>
+                                                        <a href="students-view.php?id=<?php echo $attendance['student_id']; ?>">
+                                                            <span class="d-block fw-semibold"><?php echo htmlspecialchars($attendance['first_name'] . ' ' . $attendance['last_name']); ?></span>
+                                                            <span class="fs-12 d-block fw-normal text-muted"><?php echo htmlspecialchars($attendance['student_num']); ?></span>
                                                         </a>
                                                     </div>
                                                 </td>
                                                 <td>
-                                                    <span class="badge bg-gray-200 text-dark">Sent</span>
+                                                    <?php echo date('m/d/Y', strtotime($attendance['attendance_date'])); ?>
                                                 </td>
-                                                <td>11/06/2023 10:53</td>
                                                 <td>
-                                                    <span class="badge bg-soft-success text-success">Completed</span>
+                                                    <?php echo $attendance['morning_time_in'] ? date('h:i a', strtotime($attendance['morning_time_in'])) : 'N/A'; ?>
+                                                </td>
+                                                <td>
+                                                    <?php
+                                                    $status = $attendance['status'];
+                                                    if ($status === 'approved') {
+                                                        echo '<span class="badge bg-soft-success text-success">Approved</span>';
+                                                    } elseif ($status === 'pending') {
+                                                        echo '<span class="badge bg-soft-warning text-warning">Pending</span>';
+                                                    } else {
+                                                        echo '<span class="badge bg-soft-danger text-danger">Rejected</span>';
+                                                    }
+                                                    ?>
                                                 </td>
                                                 <td class="text-end">
-                                                    <a href="javascript:void(0);"><i class="feather-more-vertical"></i></a>
+                                                    <a href="{{ url('/attendance') }}"><i class="feather-more-vertical"></i></a>
                                                 </td>
                                             </tr>
+                                                <?php endforeach; ?>
+                                            <?php else: ?>
                                             <tr>
-                                                <td>
-                                                    <div class="d-flex align-items-center gap-3">
-                                                        <div class="avatar-image">
-                                                            <img src="/frontend/assets/images/avatar/3.png" alt="" class="img-fluid" />
-                                                        </div>
-                                                        <a href="javascript:void(0);">
-                                                            <span class="d-block">Holmes Cherryman</span>
-                                                            <span class="fs-12 d-block fw-normal text-muted">golms.chan@gmail.com</span>
-                                                        </a>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <span class="badge bg-gray-200 text-dark">New</span>
-                                                </td>
-                                                <td>11/06/2023 10:53</td>
-                                                <td>
-                                                    <span class="badge bg-soft-primary text-primary">In Progress </span>
-                                                </td>
-                                                <td class="text-end">
-                                                    <a href="javascript:void(0);"><i class="feather-more-vertical"></i></a>
-                                                </td>
+                                                <td colspan="5" class="text-center text-muted py-4">No attendance records found</td>
                                             </tr>
-                                            <tr>
-                                                <td>
-                                                    <div class="d-flex align-items-center gap-3">
-                                                        <div class="avatar-image">
-                                                            <img src="/frontend/assets/images/avatar/4.png" alt="" class="img-fluid" />
-                                                        </div>
-                                                        <a href="javascript:void(0);">
-                                                            <span class="d-block">Malanie Hanvey</span>
-                                                            <span class="fs-12 d-block fw-normal text-muted">lanie.nveyn@gmail.com</span>
-                                                        </a>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <span class="badge bg-gray-200 text-dark">Sent</span>
-                                                </td>
-                                                <td>11/06/2023 10:53</td>
-                                                <td>
-                                                    <span class="badge bg-soft-success text-success">Completed</span>
-                                                </td>
-                                                <td class="text-end">
-                                                    <a href="javascript:void(0);"><i class="feather-more-vertical"></i></a>
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td>
-                                                    <div class="d-flex align-items-center gap-3">
-                                                        <div class="avatar-image">
-                                                            <img src="/frontend/assets/images/avatar/5.png" alt="" class="img-fluid" />
-                                                        </div>
-                                                        <a href="javascript:void(0);">
-                                                            <span class="d-block">Kenneth Hune</span>
-                                                            <span class="fs-12 d-block fw-normal text-muted">nneth.une@gmail.com</span>
-                                                        </a>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <span class="badge bg-gray-200 text-dark">Returning</span>
-                                                </td>
-                                                <td>11/06/2023 10:53</td>
-                                                <td>
-                                                    <span class="badge bg-soft-warning text-warning">Not Interested</span>
-                                                </td>
-                                                <td class="text-end">
-                                                    <a href="javascript:void(0);"><i class="feather-more-vertical"></i></a>
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td>
-                                                    <div class="d-flex align-items-center gap-3">
-                                                        <div class="avatar-image">
-                                                            <img src="/frontend/assets/images/avatar/6.png" alt="" class="img-fluid" />
-                                                        </div>
-                                                        <a href="javascript:void(0);">
-                                                            <span class="d-block">Valentine Maton</span>
-                                                            <span class="fs-12 d-block fw-normal text-muted">alenine.aton@gmail.com</span>
-                                                        </a>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <span class="badge bg-gray-200 text-dark">Sent</span>
-                                                </td>
-                                                <td>11/06/2023 10:53</td>
-                                                <td>
-                                                    <span class="badge bg-soft-success text-success">Completed</span>
-                                                </td>
-                                                <td class="text-end">
-                                                    <a href="javascript:void(0);"><i class="feather-more-vertical"></i></a>
-                                                </td>
-                                            </tr>
+                                            <?php endif; ?>
                                         </tbody>
                                     </table>
                                 </div>
@@ -2991,28 +2944,27 @@ try {
                             <div class="card-footer">
                                 <ul class="list-unstyled d-flex align-items-center gap-2 mb-0 pagination-common-style">
                                     <li>
-                                        <a href="javascript:void(0);"><i class="bi bi-arrow-left"></i></a>
+                                        <a href="{{ url('/attendance') }}"><i class="bi bi-arrow-left"></i></a>
                                     </li>
-                                    <li><a href="javascript:void(0);" class="active">1</a></li>
-                                    <li><a href="javascript:void(0);">2</a></li>
+                                    <li><a href="{{ url('/attendance') }}" class="active">1</a></li>
+                                    <li><a href="{{ url('/attendance') }}">2</a></li>
                                     <li>
                                         <a href="javascript:void(0);"><i class="bi bi-dot"></i></a>
                                     </li>
-                                    <li><a href="javascript:void(0);">8</a></li>
-                                    <li><a href="javascript:void(0);">9</a></li>
+                                    <li><a href="{{ url('/attendance') }}">View All</a></li>
                                     <li>
-                                        <a href="javascript:void(0);"><i class="bi bi-arrow-right"></i></a>
+                                        <a href="{{ url('/attendance') }}"><i class="bi bi-arrow-right"></i></a>
                                     </li>
                                 </ul>
                             </div>
                         </div>
                     </div>
-                    <!-- [Latest Leads] end -->
-                    <!--! BEGIN: [Upcoming Schedule] !-->
+                    <!-- [Latest Attendance Records] end -->
+                    <!--! BEGIN: [Biometric Registration Status] !-->
                     <div class="col-xxl-4">
                         <div class="card stretch stretch-full">
                             <div class="card-header">
-                                <h5 class="card-title">Upcoming Schedule</h5>
+                                <h5 class="card-title">Biometric Registration Status</h5>
                                 <div class="card-header-action">
                                     <div class="card-header-btn">
                                         <div data-bs-toggle="tooltip" title="Delete">
@@ -3044,139 +2996,43 @@ try {
                                 </div>
                             </div>
                             <div class="card-body">
-                                <!--! BEGIN: [Events] !-->
                                 <div class="p-3 border border-dashed rounded-3 mb-3">
                                     <div class="d-flex justify-content-between">
                                         <div class="d-flex align-items-center gap-3">
-                                            <div class="wd-50 ht-50 bg-soft-primary text-primary lh-1 d-flex align-items-center justify-content-center flex-column rounded-2 schedule-date">
-                                                <span class="fs-18 fw-bold mb-1 d-block">20</span>
-                                                <span class="fs-10 fw-semibold text-uppercase d-block">Dec</span>
+                                            <div class="wd-50 ht-50 bg-soft-success text-success lh-1 d-flex align-items-center justify-content-center flex-column rounded-2">
+                                                <span class="fs-18 fw-bold mb-1 d-block"><?php echo $biometric_registered; ?></span>
+                                                <span class="fs-10 fw-semibold text-uppercase d-block">Registered</span>
                                             </div>
                                             <div class="text-dark">
-                                                <a href="javascript:void(0);" class="fw-bold mb-2 text-truncate-1-line">React Dashboard Design</a>
-                                                <span class="fs-11 fw-normal text-muted text-truncate-1-line">11:30am - 12:30pm</span>
+                                                <a href="{{ url('/demo-biometric') }}" class="fw-bold mb-2 text-truncate-1-line">Students Registered</a>
+                                                <span class="fs-11 fw-normal text-muted text-truncate-1-line"><?php echo ($student_count > 0) ? round(($biometric_registered / $student_count) * 100) : 0; ?>% of total</span>
                                             </div>
-                                        </div>
-                                        <div class="img-group lh-0 ms-3 justify-content-start d-none d-sm-flex">
-                                            <a href="javascript:void(0)" class="avatar-image avatar-md" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Janette Dalton">
-                                                <img src="/frontend/assets/images/avatar/2.png" class="img-fluid" alt="image" />
-                                            </a>
-                                            <a href="javascript:void(0)" class="avatar-image avatar-md" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Michael Ksen">
-                                                <img src="/frontend/assets/images/avatar/3.png" class="img-fluid" alt="image" />
-                                            </a>
-                                            <a href="javascript:void(0)" class="avatar-image avatar-md" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Socrates Itumay">
-                                                <img src="/frontend/assets/images/avatar/4.png" class="img-fluid" alt="image" />
-                                            </a>
-                                            <a href="javascript:void(0)" class="avatar-image avatar-md" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Marianne Audrey">
-                                                <img src="/frontend/assets/images/avatar/6.png" class="img-fluid" alt="image" />
-                                            </a>
-                                            <a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Explorer More">
-                                                <i class="feather-more-horizontal"></i>
-                                            </a>
                                         </div>
                                     </div>
                                 </div>
-                                <!--! BEGIN: [Events] !-->
                                 <div class="p-3 border border-dashed rounded-3 mb-3">
                                     <div class="d-flex justify-content-between">
                                         <div class="d-flex align-items-center gap-3">
-                                            <div class="wd-50 ht-50 bg-soft-warning text-warning lh-1 d-flex align-items-center justify-content-center flex-column rounded-2 schedule-date">
-                                                <span class="fs-18 fw-bold mb-1 d-block">30</span>
-                                                <span class="fs-10 fw-semibold text-uppercase d-block">Dec</span>
+                                            <div class="wd-50 ht-50 bg-soft-warning text-warning lh-1 d-flex align-items-center justify-content-center flex-column rounded-2">
+                                                <span class="fs-18 fw-bold mb-1 d-block"><?php echo ($student_count - $biometric_registered); ?></span>
+                                                <span class="fs-10 fw-semibold text-uppercase d-block">Pending</span>
                                             </div>
                                             <div class="text-dark">
-                                                <a href="javascript:void(0);" class="fw-bold mb-2 text-truncate-1-line">Admin Design Concept</a>
-                                                <span class="fs-11 fw-normal text-muted text-truncate-1-line">10:00am - 12:00pm</span>
+                                                <a href="{{ url('/demo-biometric') }}" class="fw-bold mb-2 text-truncate-1-line">Awaiting Registration</a>
+                                                <span class="fs-11 fw-normal text-muted text-truncate-1-line"><?php echo ($student_count > 0) ? round((($student_count - $biometric_registered) / $student_count) * 100) : 0; ?>% pending</span>
                                             </div>
-                                        </div>
-                                        <div class="img-group lh-0 ms-3 justify-content-start d-none d-sm-flex">
-                                            <a href="javascript:void(0)" class="avatar-image avatar-md" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Janette Dalton">
-                                                <img src="/frontend/assets/images/avatar/2.png" class="img-fluid" alt="image" />
-                                            </a>
-                                            <a href="javascript:void(0)" class="avatar-image avatar-md" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Michael Ksen">
-                                                <img src="/frontend/assets/images/avatar/3.png" class="img-fluid" alt="image" />
-                                            </a>
-                                            <a href="javascript:void(0)" class="avatar-image avatar-md" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Marianne Audrey">
-                                                <img src="/frontend/assets/images/avatar/5.png" class="img-fluid" alt="image" />
-                                            </a>
-                                            <a href="javascript:void(0)" class="avatar-image avatar-md" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Marianne Audrey">
-                                                <img src="/frontend/assets/images/avatar/6.png" class="img-fluid" alt="image" />
-                                            </a>
-                                            <a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Explorer More">
-                                                <i class="feather-more-horizontal"></i>
-                                            </a>
                                         </div>
                                     </div>
                                 </div>
-                                <!--! BEGIN: [Events] !-->
-                                <div class="p-3 border border-dashed rounded-3 mb-3">
-                                    <div class="d-flex justify-content-between">
-                                        <div class="d-flex align-items-center gap-3">
-                                            <div class="wd-50 ht-50 bg-soft-success text-success lh-1 d-flex align-items-center justify-content-center flex-column rounded-2 schedule-date">
-                                                <span class="fs-18 fw-bold mb-1 d-block">17</span>
-                                                <span class="fs-10 fw-semibold text-uppercase d-block">Dec</span>
-                                            </div>
-                                            <div class="text-dark">
-                                                <a href="javascript:void(0);" class="fw-bold mb-2 text-truncate-1-line">Standup Team Meeting</a>
-                                                <span class="fs-11 fw-normal text-muted text-truncate-1-line">8:00am - 9:00am</span>
-                                            </div>
-                                        </div>
-                                        <div class="img-group lh-0 ms-3 justify-content-start d-none d-sm-flex">
-                                            <a href="javascript:void(0)" class="avatar-image avatar-md" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Janette Dalton">
-                                                <img src="/frontend/assets/images/avatar/2.png" class="img-fluid" alt="image" />
-                                            </a>
-                                            <a href="javascript:void(0)" class="avatar-image avatar-md" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Michael Ksen">
-                                                <img src="/frontend/assets/images/avatar/3.png" class="img-fluid" alt="image" />
-                                            </a>
-                                            <a href="javascript:void(0)" class="avatar-image avatar-md" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Socrates Itumay">
-                                                <img src="/frontend/assets/images/avatar/4.png" class="img-fluid" alt="image" />
-                                            </a>
-                                            <a href="javascript:void(0)" class="avatar-image avatar-md" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Marianne Audrey">
-                                                <img src="/frontend/assets/images/avatar/5.png" class="img-fluid" alt="image" />
-                                            </a>
-                                            <a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Explorer More">
-                                                <i class="feather-more-horizontal"></i>
-                                            </a>
-                                        </div>
-                                    </div>
+                                <div class="progress mb-3 ht-5">
+                                    <div class="progress-bar bg-success" role="progressbar" style="width: <?php echo ($student_count > 0) ? round(($biometric_registered / $student_count) * 100) : 0; ?>%"></div>
                                 </div>
-                                <!--! BEGIN: [Events] !-->
-                                <div class="p-3 border border-dashed rounded-3 mb-2">
-                                    <div class="d-flex justify-content-between">
-                                        <div class="d-flex align-items-center gap-3">
-                                            <div class="wd-50 ht-50 bg-soft-danger text-danger lh-1 d-flex align-items-center justify-content-center flex-column rounded-2 schedule-date">
-                                                <span class="fs-18 fw-bold mb-1 d-block">25</span>
-                                                <span class="fs-10 fw-semibold text-uppercase d-block">Dec</span>
-                                            </div>
-                                            <div class="text-dark">
-                                                <a href="javascript:void(0);" class="fw-bold mb-2 text-truncate-1-line">Zoom Team Meeting</a>
-                                                <span class="fs-11 fw-normal text-muted text-truncate-1-line">03:30pm - 05:30pm</span>
-                                            </div>
-                                        </div>
-                                        <div class="img-group lh-0 ms-3 justify-content-start d-none d-sm-flex">
-                                            <a href="javascript:void(0)" class="avatar-image avatar-md" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Janette Dalton">
-                                                <img src="/frontend/assets/images/avatar/2.png" class="img-fluid" alt="image" />
-                                            </a>
-                                            <a href="javascript:void(0)" class="avatar-image avatar-md" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Socrates Itumay">
-                                                <img src="/frontend/assets/images/avatar/4.png" class="img-fluid" alt="image" />
-                                            </a>
-                                            <a href="javascript:void(0)" class="avatar-image avatar-md" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Marianne Audrey">
-                                                <img src="/frontend/assets/images/avatar/5.png" class="img-fluid" alt="image" />
-                                            </a>
-                                            <a href="javascript:void(0)" class="avatar-image avatar-md" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Marianne Audrey">
-                                                <img src="/frontend/assets/images/avatar/6.png" class="img-fluid" alt="image" />
-                                            </a>
-                                            <a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Explorer More">
-                                                <i class="feather-more-horizontal"></i>
-                                            </a>
-                                        </div>
-                                    </div>
-                                </div>
+                                <p class="text-muted text-center fs-12 mb-0">Overall Biometric Registration Progress</p>
                             </div>
-                            <a href="javascript:void(0);" class="card-footer fs-11 fw-bold text-uppercase text-center py-4">Upcomming Schedule</a>
+                            <a href="{{ url('/demo-biometric') }}" class="card-footer fs-11 fw-bold text-uppercase text-center py-4">Manage Biometric</a>
                         </div>
                     </div>
-                    <!--! END: [Upcoming Schedule] !-->
+                    <!--! END: [Biometric Registration Status] !-->
                     <!--! BEGIN: [Project Status] !-->
                     <div class="col-xxl-4">
                         <div class="card stretch stretch-full">
@@ -3216,7 +3072,7 @@ try {
                                 <div class="mb-3">
                                     <div class="mb-4 pb-1 d-flex">
                                         <div class="d-flex w-50 align-items-center me-3">
-                                            <img src="/frontend/assets/images/brand/app-store.png" alt="laravel-logo" class="me-3" width="35" />
+                                            <img src="{{ asset('frontend/assets/images/brand/app-store.png') }}" alt="laravel-logo" class="me-3" width="35" />
                                             <div>
                                                 <a href="javascript:void(0);" class="text-truncate-1-line">Apps Development</a>
                                                 <div class="fs-11 text-muted">Applications</div>
@@ -3232,7 +3088,7 @@ try {
                                     <hr class="border-dashed my-3" />
                                     <div class="mb-4 pb-1 d-flex">
                                         <div class="d-flex w-50 align-items-center me-3">
-                                            <img src="/frontend/assets/images/brand/figma.png" alt="figma-logo" class="me-3" width="35" />
+                                            <img src="{{ asset('frontend/assets/images/brand/figma.png') }}" alt="figma-logo" class="me-3" width="35" />
                                             <div>
                                                 <a href="javascript:void(0);" class="text-truncate-1-line">Dashboard Design</a>
                                                 <div class="fs-11 text-muted">App UI Kit</div>
@@ -3248,7 +3104,7 @@ try {
                                     <hr class="border-dashed my-3" />
                                     <div class="mb-4 pb-1 d-flex">
                                         <div class="d-flex w-50 align-items-center me-3">
-                                            <img src="/frontend/assets/images/brand/facebook.png" alt="vue-logo" class="me-3" width="35" />
+                                            <img src="{{ asset('frontend/assets/images/brand/facebook.png') }}" alt="vue-logo" class="me-3" width="35" />
                                             <div>
                                                 <a href="javascript:void(0);" class="text-truncate-1-line">Facebook Marketing</a>
                                                 <div class="fs-11 text-muted">Marketing</div>
@@ -3264,7 +3120,7 @@ try {
                                     <hr class="border-dashed my-3" />
                                     <div class="mb-4 pb-1 d-flex">
                                         <div class="d-flex w-50 align-items-center me-3">
-                                            <img src="/frontend/assets/images/brand/github.png" alt="react-logo" class="me-3" width="35" />
+                                            <img src="{{ asset('frontend/assets/images/brand/github.png') }}" alt="react-logo" class="me-3" width="35" />
                                             <div>
                                                 <a href="javascript:void(0);" class="text-truncate-1-line">React Dashboard Github</a>
                                                 <div class="fs-11 text-muted">Dashboard</div>
@@ -3280,7 +3136,7 @@ try {
                                     <hr class="border-dashed my-3" />
                                     <div class="d-flex">
                                         <div class="d-flex w-50 align-items-center me-3">
-                                            <img src="/frontend/assets/images/brand/paypal.png" alt="sketch-logo" class="me-3" width="35" />
+                                            <img src="{{ asset('frontend/assets/images/brand/paypal.png') }}" alt="sketch-logo" class="me-3" width="35" />
                                             <div>
                                                 <a href="javascript:void(0);" class="text-truncate-1-line">Paypal Payment Gateway</a>
                                                 <div class="fs-11 text-muted">Payment</div>
@@ -3338,7 +3194,7 @@ try {
                                 <div class="hstack justify-content-between border border-dashed rounded-3 p-3 mb-3">
                                     <div class="hstack gap-3">
                                         <div class="avatar-image">
-                                            <img src="/frontend/assets/images/avatar/1.png" alt="" class="img-fluid" />
+                                            <img src="{{ asset('frontend/assets/images/avatar/1.png') }}" alt="" class="img-fluid" />
                                         </div>
                                         <div>
                                             <a href="javascript:void(0);">Felix Luis Mateo</a>
@@ -3350,7 +3206,7 @@ try {
                                 <div class="hstack justify-content-between border border-dashed rounded-3 p-3 mb-3">
                                     <div class="hstack gap-3">
                                         <div class="avatar-image">
-                                            <img src="/frontend/assets/images/avatar/2.png" alt="" class="img-fluid" />
+                                            <img src="{{ asset('frontend/assets/images/avatar/2.png') }}" alt="" class="img-fluid" />
                                         </div>
                                         <div>
                                             <a href="javascript:void(0);">Archie Cantones</a>
@@ -3362,7 +3218,7 @@ try {
                                 <div class="hstack justify-content-between border border-dashed rounded-3 p-3 mb-3">
                                     <div class="hstack gap-3">
                                         <div class="avatar-image">
-                                            <img src="/frontend/assets/images/avatar/3.png" alt="" class="img-fluid" />
+                                            <img src="{{ asset('frontend/assets/images/avatar/3.png') }}" alt="" class="img-fluid" />
                                         </div>
                                         <div>
                                             <a href="javascript:void(0);">Malanie Hanvey</a>
@@ -3374,7 +3230,7 @@ try {
                                 <div class="hstack justify-content-between border border-dashed rounded-3 p-3 mb-2">
                                     <div class="hstack gap-3">
                                         <div class="avatar-image">
-                                            <img src="/frontend/assets/images/avatar/4.png" alt="" class="img-fluid" />
+                                            <img src="{{ asset('frontend/assets/images/avatar/4.png') }}" alt="" class="img-fluid" />
                                         </div>
                                         <div>
                                             <a href="javascript:void(0);">Kenneth Hune</a>
@@ -3388,6 +3244,168 @@ try {
                         </div>
                     </div>
                     <!--! END: [Team Progress] !-->
+                    <!--! BEGIN: [Coordinators List] !-->
+                    <div class="col-xxl-4">
+                        <div class="card stretch stretch-full">
+                            <div class="card-header">
+                                <h5 class="card-title">Coordinators</h5>
+                                <div class="card-header-action">
+                                    <div class="card-header-btn">
+                                        <div data-bs-toggle="tooltip" title="Delete">
+                                            <a href="javascript:void(0);" class="avatar-text avatar-xs bg-danger" data-bs-toggle="remove"> </a>
+                                        </div>
+                                        <div data-bs-toggle="tooltip" title="Refresh">
+                                            <a href="javascript:void(0);" class="avatar-text avatar-xs bg-warning" data-bs-toggle="refresh"> </a>
+                                        </div>
+                                        <div data-bs-toggle="tooltip" title="Maximize/Minimize">
+                                            <a href="javascript:void(0);" class="avatar-text avatar-xs bg-success" data-bs-toggle="expand"> </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body custom-card-action">
+                                <?php if (count($coordinators) > 0): ?>
+                                    <?php foreach ($coordinators as $coordinator): ?>
+                                    <div class="hstack justify-content-between border border-dashed rounded-3 p-3 mb-3">
+                                        <div class="hstack gap-3">
+                                            <div class="avatar-text avatar-lg bg-soft-primary text-primary">
+                                                <?php echo strtoupper(substr($coordinator['name'], 0, 1)); ?>
+                                            </div>
+                                            <div>
+                                                <a href="javascript:void(0);" class="fw-semibold"><?php echo htmlspecialchars($coordinator['name']); ?></a>
+                                                <div class="fs-11 text-muted"><?php echo htmlspecialchars($coordinator['email']); ?></div>
+                                            </div>
+                                        </div>
+                                        <span class="badge bg-soft-info text-info fs-10">Coordinator</span>
+                                    </div>
+                                    <?php endforeach; ?>
+                                <?php else: ?>
+                                    <p class="text-muted text-center">No coordinators found</p>
+                                <?php endif; ?>
+                            </div>
+                            <a href="javascript:void(0);" class="card-footer fs-11 fw-bold text-uppercase text-center py-3">View All Coordinators</a>
+                        </div>
+                    </div>
+                    <!--! END: [Coordinators List] !-->
+                    <!--! BEGIN: [Supervisors List] !-->
+                    <div class="col-xxl-4">
+                        <div class="card stretch stretch-full">
+                            <div class="card-header">
+                                <h5 class="card-title">Supervisors</h5>
+                                <div class="card-header-action">
+                                    <div class="card-header-btn">
+                                        <div data-bs-toggle="tooltip" title="Delete">
+                                            <a href="javascript:void(0);" class="avatar-text avatar-xs bg-danger" data-bs-toggle="remove"> </a>
+                                        </div>
+                                        <div data-bs-toggle="tooltip" title="Refresh">
+                                            <a href="javascript:void(0);" class="avatar-text avatar-xs bg-warning" data-bs-toggle="refresh"> </a>
+                                        </div>
+                                        <div data-bs-toggle="tooltip" title="Maximize/Minimize">
+                                            <a href="javascript:void(0);" class="avatar-text avatar-xs bg-success" data-bs-toggle="expand"> </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body custom-card-action">
+                                <?php if (count($supervisors) > 0): ?>
+                                    <?php foreach ($supervisors as $supervisor): ?>
+                                    <div class="hstack justify-content-between border border-dashed rounded-3 p-3 mb-3">
+                                        <div class="hstack gap-3">
+                                            <div class="avatar-text avatar-lg bg-soft-success text-success">
+                                                <?php echo strtoupper(substr($supervisor['name'], 0, 1)); ?>
+                                            </div>
+                                            <div>
+                                                <a href="javascript:void(0);" class="fw-semibold"><?php echo htmlspecialchars($supervisor['name']); ?></a>
+                                                <div class="fs-11 text-muted"><?php echo htmlspecialchars($supervisor['email']); ?></div>
+                                            </div>
+                                        </div>
+                                        <span class="badge bg-soft-success text-success fs-10">Supervisor</span>
+                                    </div>
+                                    <?php endforeach; ?>
+                                <?php else: ?>
+                                    <p class="text-muted text-center">No supervisors found</p>
+                                <?php endif; ?>
+                            </div>
+                            <a href="javascript:void(0);" class="card-footer fs-11 fw-bold text-uppercase text-center py-3">View All Supervisors</a>
+                        </div>
+                    </div>
+                    <!--! END: [Supervisors List] !-->
+                    <!--! BEGIN: [Recent Activities] !-->
+                    <div class="col-xxl-8">
+                        <div class="card stretch stretch-full">
+                            <div class="card-header">
+                                <h5 class="card-title">Recent Activities & Logs</h5>
+                                <div class="card-header-action">
+                                    <div class="card-header-btn">
+                                        <div data-bs-toggle="tooltip" title="Delete">
+                                            <a href="javascript:void(0);" class="avatar-text avatar-xs bg-danger" data-bs-toggle="remove"> </a>
+                                        </div>
+                                        <div data-bs-toggle="tooltip" title="Refresh">
+                                            <a href="javascript:void(0);" class="avatar-text avatar-xs bg-warning" data-bs-toggle="refresh"> </a>
+                                        </div>
+                                        <div data-bs-toggle="tooltip" title="Maximize/Minimize">
+                                            <a href="javascript:void(0);" class="avatar-text avatar-xs bg-success" data-bs-toggle="expand"> </a>
+                                        </div>
+                                    </div>
+                                    <div class="dropdown">
+                                        <a href="javascript:void(0);" class="avatar-text avatar-sm" data-bs-toggle="dropdown" data-bs-offset="25, 25">
+                                            <div data-bs-toggle="tooltip" title="Options">
+                                                <i class="feather-more-vertical"></i>
+                                            </div>
+                                        </a>
+                                        <div class="dropdown-menu dropdown-menu-end">
+                                            <a href="javascript:void(0);" class="dropdown-item"><i class="feather-sliders"></i>Filter</a>
+                                            <a href="javascript:void(0);" class="dropdown-item"><i class="feather-download"></i>Export</a>
+                                            <div class="dropdown-divider"></div>
+                                            <a href="javascript:void(0);" class="dropdown-item"><i class="feather-settings"></i>Settings</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body custom-card-action p-0">
+                                <div style="max-height: 400px; overflow-y: auto;">
+                                    <?php if (count($recent_activities) > 0): ?>
+                                        <?php foreach ($recent_activities as $activity): ?>
+                                        <div class="d-flex align-items-center gap-3 p-3 border-bottom">
+                                            <div class="avatar-text avatar-sm rounded-circle"
+                                                style="background-color: <?php
+                                                    echo ($activity['activity_type'] === 'student_created') ? '#e3f2fd' :
+                                                         (($activity['activity_type'] === 'attendance_recorded') ? '#f3e5f5' : '#e8f5e9');
+                                                ?>">
+                                                <i class="feather-<?php
+                                                    echo ($activity['activity_type'] === 'student_created') ? 'user-plus' :
+                                                         (($activity['activity_type'] === 'attendance_recorded') ? 'clock' : 'check-circle');
+                                                ?>" style="font-size: 14px;"></i>
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <a href="javascript:void(0);" class="fw-semibold text-dark d-block">
+                                                    <?php echo htmlspecialchars($activity['activity']); ?>
+                                                </a>
+                                                <span class="fs-12 text-muted">
+                                                    <?php if ($activity['activity_date']): ?>
+                                                        <?php echo date('M d, Y H:i', strtotime($activity['activity_date'])); ?>
+                                                    <?php else: ?>
+                                                        No date
+                                                    <?php endif; ?>
+                                                </span>
+                                            </div>
+                                            <span class="badge <?php
+                                                echo ($activity['activity_type'] === 'student_created') ? 'bg-soft-info text-info' :
+                                                     (($activity['activity_type'] === 'attendance_recorded') ? 'bg-soft-warning text-warning' : 'bg-soft-success text-success');
+                                            ?> fs-10">
+                                                <?php echo str_replace('_', ' ', ucfirst($activity['activity_type'])); ?>
+                                            </span>
+                                        </div>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <p class="text-muted text-center py-4">No recent activities found</p>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                            <a href="javascript:void(0);" class="card-footer fs-11 fw-bold text-uppercase text-center py-3">View All Activities</a>
+                        </div>
+                    </div>
+                    <!--! END: [Recent Activities] !-->
                 </div>
             </div>
             <!-- [ Main Content ] end -->
@@ -3400,7 +3418,7 @@ try {
                     document.write(new Date().getFullYear());
                 </script>
             </p>
-            <p><span>By: <a target="_blank" href="" target="_blank">ACT 2A</a></span> • <span>Distributed by: <a target="_blank" href="" target="_blank">Group 5</a></span></p>
+            <p><span>By: <a target="_blank" href="" target="_blank">ACT 2A</a></span> <span>Distributed by: <a target="_blank" href="" target="_blank">Group 5</a></span></p>
             <div class="d-flex align-items-center gap-4">
                 <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Help</a>
                 <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Terms</a>
@@ -3603,3 +3621,4 @@ try {
 </body>
 
 </html>
+

@@ -27,8 +27,8 @@ Route::get('/students', function () {
 })->name('students.index');
 
 Route::get('/students/view', function () {
-    return view('students');
-});
+    return view('students-view');
+})->name('students.view');
 
 Route::get('/students/create', function () {
     return view('students');
