@@ -1,4 +1,313 @@
-﻿<!DOCTYPE html>
+﻿<?php
+$host = 'localhost';
+$db_user = 'root';
+$db_password = '';
+$db_name = 'biotern_db';
+
+$conn = null;
+$view_user_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
+$flash_message = '';
+$flash_type = 'success';
+$student = null;
+$app_letter = [
+    'date' => '',
+    'application_person' => '',
+    'position' => '',
+    'company_name' => '',
+    'company_address' => ''
+];
+$moa_data = [
+    'company_name' => '',
+    'company_address' => '',
+    'company_receipt' => '',
+    'doc_no' => '',
+    'page_no' => '',
+    'book_no' => '',
+    'series_no' => '',
+    'total_hours' => '',
+    'moa_address' => '',
+    'moa_date' => '',
+    'coordinator' => '',
+    'school_position' => '',
+    'position' => '',
+    'partner_representative' => '',
+    'school_administrator' => '',
+    'school_admin_position' => '',
+    'notary_address' => '',
+    'witness' => '',
+    'acknowledgement_date' => '',
+    'acknowledgement_address' => ''
+];
+
+function display_text($value, $fallback = '-')
+{
+    $text = trim((string)$value);
+    return $text !== '' ? $text : $fallback;
+}
+
+function format_dt($value)
+{
+    if (!$value) return '-';
+    $ts = strtotime((string)$value);
+    if (!$ts) return '-';
+    return date('M d, Y h:i A', $ts);
+}
+
+function status_badge_html($status)
+{
+    $raw = trim((string)$status);
+    if ($raw === '1' || strcasecmp($raw, 'active') === 0 || strcasecmp($raw, 'ongoing') === 0) {
+        return '<span class="badge bg-soft-success text-success">Active</span>';
+    }
+    if ($raw === '0' || strcasecmp($raw, 'inactive') === 0) {
+        return '<span class="badge bg-soft-danger text-danger">Inactive</span>';
+    }
+    return '<span class="badge bg-soft-primary text-primary">' . htmlspecialchars($raw !== '' ? ucfirst($raw) : 'Unknown') . '</span>';
+}
+
+try {
+    $conn = new mysqli($host, $db_user, $db_password, $db_name);
+    if ($conn->connect_error) {
+        throw new Exception($conn->connect_error);
+    }
+
+    $conn->query("CREATE TABLE IF NOT EXISTS application_letter (
+        id INT(11) NOT NULL AUTO_INCREMENT,
+        user_id INT(11) NOT NULL,
+        date DATE DEFAULT NULL,
+        application_person VARCHAR(255) DEFAULT NULL,
+        position VARCHAR(255) DEFAULT NULL,
+        company_name VARCHAR(255) DEFAULT NULL,
+        company_address VARCHAR(255) DEFAULT NULL,
+        PRIMARY KEY (id),
+        UNIQUE KEY user_id (user_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
+    $conn->query("CREATE TABLE IF NOT EXISTS moa (
+        id INT(11) NOT NULL AUTO_INCREMENT,
+        user_id INT(11) NOT NULL,
+        company_name VARCHAR(255) NOT NULL,
+        company_address VARCHAR(255) NOT NULL,
+        company_receipt VARCHAR(255) NOT NULL,
+        doc_no VARCHAR(100) NOT NULL,
+        page_no VARCHAR(100) NOT NULL,
+        book_no VARCHAR(100) NOT NULL,
+        series_no VARCHAR(100) NOT NULL,
+        total_hours VARCHAR(50) NOT NULL,
+        moa_address VARCHAR(255) NOT NULL,
+        moa_date DATE DEFAULT NULL,
+        coordinator VARCHAR(255) NOT NULL,
+        school_posistion VARCHAR(255) NOT NULL,
+        position VARCHAR(255) NOT NULL,
+        partner_representative VARCHAR(255) NOT NULL,
+        school_administrator VARCHAR(255) NOT NULL,
+        school_admin_position VARCHAR(255) NOT NULL,
+        notary_address VARCHAR(255) NOT NULL,
+        witness VARCHAR(255) NOT NULL,
+        acknowledgement_date DATE DEFAULT NULL,
+        acknowledgement_address VARCHAR(255) NOT NULL,
+        PRIMARY KEY (id),
+        UNIQUE KEY user_id (user_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
+    // Ensure acknowledgement_date is DATE even if previously created as VARCHAR.
+    $ack_col = $conn->query("SHOW COLUMNS FROM moa LIKE 'acknowledgement_date'");
+    if ($ack_col && $ack_col->num_rows > 0) {
+        $ack_meta = $ack_col->fetch_assoc();
+        if (isset($ack_meta['Type']) && stripos($ack_meta['Type'], 'date') === false) {
+            $conn->query("ALTER TABLE moa MODIFY acknowledgement_date DATE DEFAULT NULL");
+        }
+    }
+    $hours_col = $conn->query("SHOW COLUMNS FROM moa LIKE 'total_hours'");
+    if (!$hours_col || $hours_col->num_rows === 0) {
+        $conn->query("ALTER TABLE moa ADD COLUMN total_hours VARCHAR(50) NOT NULL AFTER company_receipt");
+    }
+    $doc_col = $conn->query("SHOW COLUMNS FROM moa LIKE 'doc_no'");
+    if (!$doc_col || $doc_col->num_rows === 0) {
+        $conn->query("ALTER TABLE moa ADD COLUMN doc_no VARCHAR(100) NOT NULL AFTER company_receipt");
+    }
+    $page_col = $conn->query("SHOW COLUMNS FROM moa LIKE 'page_no'");
+    if (!$page_col || $page_col->num_rows === 0) {
+        $conn->query("ALTER TABLE moa ADD COLUMN page_no VARCHAR(100) NOT NULL AFTER doc_no");
+    }
+    $book_col = $conn->query("SHOW COLUMNS FROM moa LIKE 'book_no'");
+    if (!$book_col || $book_col->num_rows === 0) {
+        $conn->query("ALTER TABLE moa ADD COLUMN book_no VARCHAR(100) NOT NULL AFTER page_no");
+    }
+    $series_col = $conn->query("SHOW COLUMNS FROM moa LIKE 'series_no'");
+    if (!$series_col || $series_col->num_rows === 0) {
+        $conn->query("ALTER TABLE moa ADD COLUMN series_no VARCHAR(100) NOT NULL AFTER book_no");
+    }
+    $school_pos_col = $conn->query("SHOW COLUMNS FROM moa LIKE 'school_posistion'");
+    if (!$school_pos_col || $school_pos_col->num_rows === 0) {
+        $conn->query("ALTER TABLE moa ADD COLUMN school_posistion VARCHAR(255) NOT NULL AFTER coordinator");
+    }
+    $school_admin_pos_col = $conn->query("SHOW COLUMNS FROM moa LIKE 'school_admin_position'");
+    if (!$school_admin_pos_col || $school_admin_pos_col->num_rows === 0) {
+        $conn->query("ALTER TABLE moa ADD COLUMN school_admin_position VARCHAR(255) NOT NULL AFTER school_administrator");
+    }
+
+    $res_col = $conn->query("SHOW COLUMNS FROM application_letter LIKE 'company_address'");
+    if (!$res_col || $res_col->num_rows === 0) {
+        $conn->query("ALTER TABLE application_letter ADD COLUMN company_address VARCHAR(255) DEFAULT NULL");
+    }
+    $res_type = $conn->query("SHOW COLUMNS FROM application_letter LIKE 'company_name'");
+    if ($res_type && $res_type->num_rows > 0) {
+        $col = $res_type->fetch_assoc();
+        if (isset($col['Type']) && stripos($col['Type'], 'int') !== false) {
+            $conn->query("ALTER TABLE application_letter MODIFY company_name VARCHAR(255) DEFAULT NULL");
+        }
+    }
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_application_letter'])) {
+        $posted_user_id = isset($_POST['user_id']) ? intval($_POST['user_id']) : 0;
+        if ($posted_user_id > 0) {
+            $date_val = isset($_POST['date']) && $_POST['date'] !== '' ? $_POST['date'] : null;
+            $person_val = trim($_POST['application_person'] ?? '');
+            $position_val = trim($_POST['position'] ?? '');
+            $company_name_val = trim($_POST['company_name'] ?? '');
+            $company_address_val = trim($_POST['company_address'] ?? '');
+
+            $stmt = $conn->prepare("INSERT INTO application_letter (user_id, date, application_person, position, company_name, company_address)
+                VALUES (?, ?, ?, ?, ?, ?)
+                ON DUPLICATE KEY UPDATE
+                    date = VALUES(date),
+                    application_person = VALUES(application_person),
+                    position = VALUES(position),
+                    company_name = VALUES(company_name),
+                    company_address = VALUES(company_address)");
+            $stmt->bind_param('isssss', $posted_user_id, $date_val, $person_val, $position_val, $company_name_val, $company_address_val);
+            if ($stmt->execute()) {
+                $flash_message = 'Application Letter autofill data saved.';
+                $flash_type = 'success';
+            } else {
+                $flash_message = 'Failed to save Application Letter data.';
+                $flash_type = 'danger';
+            }
+            $view_user_id = $posted_user_id;
+        }
+    }
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_moa'])) {
+        $posted_user_id = isset($_POST['user_id']) ? intval($_POST['user_id']) : 0;
+        if ($posted_user_id > 0) {
+            $company_name = trim($_POST['company_name'] ?? '');
+            $company_address = trim($_POST['company_address'] ?? '');
+            $company_receipt = trim($_POST['company_receipt'] ?? '');
+            $doc_no = trim($_POST['doc_no'] ?? '');
+            $page_no = trim($_POST['page_no'] ?? '');
+            $book_no = trim($_POST['book_no'] ?? '');
+            $series_no = trim($_POST['series_no'] ?? '');
+            $total_hours = trim($_POST['total_hours'] ?? '');
+            $moa_address = trim($_POST['moa_address'] ?? '');
+            $moa_date = isset($_POST['moa_date']) && $_POST['moa_date'] !== '' ? $_POST['moa_date'] : null;
+            $coordinator = trim($_POST['coordinator'] ?? '');
+            $school_posistion = trim($_POST['school_position'] ?? ($_POST['school_posistion'] ?? ''));
+            $position = trim($_POST['position'] ?? '');
+            $partner_representative = trim($_POST['partner_representative'] ?? '');
+            $school_administrator = trim($_POST['school_administrator'] ?? '');
+            $school_admin_position = trim($_POST['school_admin_position'] ?? '');
+            $notary_address = trim($_POST['notary_address'] ?? '');
+            $witness = trim($_POST['witness'] ?? '');
+            $acknowledgement_date = isset($_POST['acknowledgement_date']) && $_POST['acknowledgement_date'] !== '' ? $_POST['acknowledgement_date'] : null;
+            $acknowledgement_address = trim($_POST['acknowledgement_address'] ?? '');
+
+            $stmt = $conn->prepare("INSERT INTO moa (user_id, company_name, company_address, company_receipt, doc_no, page_no, book_no, series_no, total_hours, moa_address, moa_date, coordinator, school_posistion, position, partner_representative, school_administrator, school_admin_position, notary_address, witness, acknowledgement_date, acknowledgement_address)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON DUPLICATE KEY UPDATE
+                    company_name = VALUES(company_name),
+                    company_address = VALUES(company_address),
+                    company_receipt = VALUES(company_receipt),
+                    doc_no = VALUES(doc_no),
+                    page_no = VALUES(page_no),
+                    book_no = VALUES(book_no),
+                    series_no = VALUES(series_no),
+                    total_hours = VALUES(total_hours),
+                    moa_address = VALUES(moa_address),
+                    moa_date = VALUES(moa_date),
+                    coordinator = VALUES(coordinator),
+                    school_posistion = VALUES(school_posistion),
+                    position = VALUES(position),
+                    partner_representative = VALUES(partner_representative),
+                    school_administrator = VALUES(school_administrator),
+                    school_admin_position = VALUES(school_admin_position),
+                    notary_address = VALUES(notary_address),
+                    witness = VALUES(witness),
+                    acknowledgement_date = VALUES(acknowledgement_date),
+                    acknowledgement_address = VALUES(acknowledgement_address)");
+            $types = 'i' . str_repeat('s', 20);
+            $stmt->bind_param(
+                $types,
+                $posted_user_id,
+                $company_name,
+                $company_address,
+                $company_receipt,
+                $doc_no,
+                $page_no,
+                $book_no,
+                $series_no,
+                $total_hours,
+                $moa_address,
+                $moa_date,
+                $coordinator,
+                $school_posistion,
+                $position,
+                $partner_representative,
+                $school_administrator,
+                $school_admin_position,
+                $notary_address,
+                $witness,
+                $acknowledgement_date,
+                $acknowledgement_address
+            );
+            if ($stmt->execute()) {
+                $flash_message = 'MOA autofill data saved.';
+                $flash_type = 'success';
+            } else {
+                $flash_message = 'Failed to save MOA data.';
+                $flash_type = 'danger';
+            }
+            $view_user_id = $posted_user_id;
+        }
+    }
+
+    if ($view_user_id > 0) {
+        $stmt_student = $conn->prepare("SELECT s.*, c.name AS course_name FROM students s LEFT JOIN courses c ON s.course_id = c.id WHERE s.id = ? LIMIT 1");
+        $stmt_student->bind_param('i', $view_user_id);
+        $stmt_student->execute();
+        $res_student = $stmt_student->get_result();
+        $student = $res_student ? $res_student->fetch_assoc() : null;
+
+        $stmt_app = $conn->prepare("SELECT * FROM application_letter WHERE user_id = ? LIMIT 1");
+        $stmt_app->bind_param('i', $view_user_id);
+        $stmt_app->execute();
+        $res_app = $stmt_app->get_result();
+        $row = $res_app ? $res_app->fetch_assoc() : null;
+        if ($row) {
+            $app_letter['date'] = $row['date'] ?? '';
+            $app_letter['application_person'] = $row['application_person'] ?? '';
+            $app_letter['position'] = $row['position'] ?? '';
+            $app_letter['company_name'] = isset($row['company_name']) ? (string)$row['company_name'] : '';
+            $app_letter['company_address'] = $row['company_address'] ?? '';
+        }
+
+        $stmt_moa = $conn->prepare("SELECT * FROM moa WHERE user_id = ? LIMIT 1");
+        $stmt_moa->bind_param('i', $view_user_id);
+        $stmt_moa->execute();
+        $res_moa = $stmt_moa->get_result();
+        $moa_row = $res_moa ? $res_moa->fetch_assoc() : null;
+        if ($moa_row) {
+            if (!isset($moa_row['school_position']) || $moa_row['school_position'] === '' || $moa_row['school_position'] === null) {
+                $moa_row['school_position'] = $moa_row['school_posistion'] ?? '';
+            }
+            foreach ($moa_data as $k => $v) {
+                $moa_data[$k] = isset($moa_row[$k]) ? (string)$moa_row[$k] : '';
+            }
+        }
+    }
+} catch (Exception $e) {
+    $flash_message = 'Database error: ' . $e->getMessage();
+    $flash_type = 'danger';
+}
+?><!DOCTYPE html>
 <html lang="zxx">
 
 <head>
@@ -495,13 +804,13 @@
                                 <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#profileTab">Profile</button>
                             </li>
                             <li class="nav-item" role="presentation">
-                                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#proposalTab">Proposal</button>
+                                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#applicationTab">Application Letter</button>
                             </li>
                             <li class="nav-item" role="presentation">
-                                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tasksTab">Tasks</button>
+                                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#moaTab">MOA</button>
                             </li>
                             <li class="nav-item" role="presentation">
-                                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#notesTab">Notes</button>
+                                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#endorsementTab">Endorsement Letter</button>
                             </li>
                             <li class="nav-item" role="presentation">
                                 <button class="nav-link" data-bs-toggle="tab" data-bs-target="#commentTab">Comments</button>
@@ -514,186 +823,282 @@
             <div class="main-content">
                 <div class="tab-content">
                     <div class="tab-pane fade show active" id="profileTab" role="tabpanel">
-                        <div class="card card-body lead-info">
-                            <div class="mb-4 d-flex align-items-center justify-content-between">
-                                <h5 class="fw-bold mb-0">
-                                    <span class="d-block mb-2">Lead Information :</span>
-                                    <span class="fs-12 fw-normal text-muted d-block">Following information for your lead</span>
-                                </h5>
-                                <a href="javascript:void(0);" class="btn btn-sm btn-light-brand">Create Invoice</a>
+                        <?php if (!$student): ?>
+                            <div class="card card-body">
+                                <div class="alert alert-warning mb-0">No student found for this ID.</div>
                             </div>
-                            <div class="row mb-4">
-                                <div class="col-lg-2 fw-medium">Name</div>
-                                <div class="col-lg-10"><a href="javascript:void(0);">Alexandra Dell</a></div>
-                            </div>
-                            <div class="row mb-4">
-                                <div class="col-lg-2 fw-medium">Position</div>
-                                <div class="col-lg-10">CEO, Founder at <a href="javascript:void(0);">theme_ocean</a></div>
-                            </div>
-                            <div class="row mb-4">
-                                <div class="col-lg-2 fw-medium">Company</div>
-                                <div class="col-lg-10"><a href="javascript:void(0);">theme_ocean</a></div>
-                            </div>
-                            <div class="row mb-4">
-                                <div class="col-lg-2 fw-medium">Email</div>
-                                <div class="col-lg-10"><a href="javascript:void(0);">felixluismateo@example.com</a></div>
-                            </div>
-                            <div class="row mb-4">
-                                <div class="col-lg-2 fw-medium">Phone</div>
-                                <div class="col-lg-10"><a href="javascript:void(0);">+01 (375) 5896 654</a></div>
-                            </div>
-                            <div class="row mb-4">
-                                <div class="col-lg-2 fw-medium">Website</div>
-                                <div class="col-lg-10"><a href="javascript:void(0);">https://www.themewagon.com</a></div>
-                            </div>
-                            <div class="row mb-4">
-                                <div class="col-lg-2 fw-medium">Lead value</div>
-                                <div class="col-lg-10"><a href="javascript:void(0);">$255.50 USD</a></div>
-                            </div>
-                            <div class="row mb-4">
-                                <div class="col-lg-2 fw-medium">Address</div>
-                                <div class="col-lg-10"><a href="javascript:void(0);">47813 Johnathon Parks Suite 559</a></div>
-                            </div>
-                            <div class="row mb-4">
-                                <div class="col-lg-2 fw-medium">City</div>
-                                <div class="col-lg-10"><a href="javascript:void(0);">Cartermouth</a></div>
-                            </div>
-                            <div class="row mb-4">
-                                <div class="col-lg-2 fw-medium">State</div>
-                                <div class="col-lg-10"><a href="javascript:void(0);">Connecticut</a></div>
-                            </div>
-                            <div class="row mb-4">
-                                <div class="col-lg-2 fw-medium">Country</div>
-                                <div class="col-lg-10"><a href="javascript:void(0);">United Kingdom </a></div>
-                            </div>
-                            <div class="row mb-0">
-                                <div class="col-lg-2 fw-medium">Zip Code</div>
-                                <div class="col-lg-10"><a href="javascript:void(0);">81135-0615 </a></div>
-                            </div>
-                        </div>
-                        <hr>
-                        <div class="card card-body general-info">
-                            <div class="mb-4 d-flex align-items-center justify-content-between">
-                                <h5 class="fw-bold mb-0">
-                                    <span class="d-block mb-2">General Information :</span>
-                                    <span class="fs-12 fw-normal text-muted d-block">General information for your lead</span>
-                                </h5>
-                                <a href="javascript:void(0);" class="btn btn-sm btn-light-brand">Edit Lead</a>
-                            </div>
-                            <div class="row mb-4">
-                                <div class="col-lg-2 fw-medium">Status</div>
-                                <div class="col-lg-10 hstack gap-1">
-                                    <a href="javascript:void(0);" class="hstack gap-2">
-                                        <div class="avatar-text avatar-sm">
-                                            <i class="feather-git-commit"></i>
-                                        </div>
-                                        <span>Student</span>
-                                    </a>
+                        <?php else: ?>
+                            <?php
+                            $full_name = trim(($student['first_name'] ?? '') . ' ' . ($student['middle_name'] ?? '') . ' ' . ($student['last_name'] ?? ''));
+                            $profile_picture = trim((string)($student['profile_picture'] ?? ''));
+                            $profile_img_src = 'assets/images/avatar/1.png';
+                            if ($profile_picture !== '' && file_exists(__DIR__ . '/' . $profile_picture)) {
+                                $profile_img_src = $profile_picture . '?v=' . filemtime(__DIR__ . '/' . $profile_picture);
+                            }
+                            ?>
+                            <div class="card card-body lead-info">
+                                <div class="mb-4 d-flex align-items-center justify-content-between">
+                                    <h5 class="fw-bold mb-0">
+                                        <span class="d-block mb-2">Student Information :</span>
+                                        <span class="fs-12 fw-normal text-muted d-block">Live data from students table</span>
+                                    </h5>
+                                    <a href="students-view.php?id=<?php echo intval($student['id']); ?>" class="btn btn-sm btn-light-brand">Open Student View</a>
+                                </div>
+                                <div class="row mb-4">
+                                    <div class="col-lg-2 fw-medium">Profile</div>
+                                    <div class="col-lg-10"><img src="<?php echo htmlspecialchars($profile_img_src); ?>" alt="profile" class="img-fluid rounded-circle" style="width:56px;height:56px;object-fit:cover;"></div>
+                                </div>
+                                <div class="row mb-4">
+                                    <div class="col-lg-2 fw-medium">Name</div>
+                                    <div class="col-lg-10"><?php echo htmlspecialchars(display_text($full_name)); ?></div>
+                                </div>
+                                <div class="row mb-4">
+                                    <div class="col-lg-2 fw-medium">Student ID</div>
+                                    <div class="col-lg-10"><?php echo htmlspecialchars(display_text($student['student_id'] ?? '')); ?></div>
+                                </div>
+                                <div class="row mb-4">
+                                    <div class="col-lg-2 fw-medium">Course</div>
+                                    <div class="col-lg-10"><?php echo htmlspecialchars(display_text($student['course_name'] ?? '')); ?></div>
+                                </div>
+                                <div class="row mb-4">
+                                    <div class="col-lg-2 fw-medium">Email</div>
+                                    <div class="col-lg-10"><?php echo htmlspecialchars(display_text($student['email'] ?? '')); ?></div>
+                                </div>
+                                <div class="row mb-4">
+                                    <div class="col-lg-2 fw-medium">Phone</div>
+                                    <div class="col-lg-10"><?php echo htmlspecialchars(display_text($student['phone'] ?? '')); ?></div>
+                                </div>
+                                <div class="row mb-4">
+                                    <div class="col-lg-2 fw-medium">Gender</div>
+                                    <div class="col-lg-10"><?php echo htmlspecialchars(display_text(isset($student['gender']) ? ucfirst((string)$student['gender']) : '')); ?></div>
+                                </div>
+                                <div class="row mb-4">
+                                    <div class="col-lg-2 fw-medium">Date of Birth</div>
+                                    <div class="col-lg-10"><?php echo htmlspecialchars(display_text($student['date_of_birth'] ?? '')); ?></div>
+                                </div>
+                                <div class="row mb-0">
+                                    <div class="col-lg-2 fw-medium">Address</div>
+                                    <div class="col-lg-10"><?php echo htmlspecialchars(display_text($student['address'] ?? '')); ?></div>
                                 </div>
                             </div>
-                            <div class="row mb-4">
-                                <div class="col-lg-2 fw-medium">Source</div>
-                                <div class="col-lg-10 hstack gap-1">
-                                    <a href="javascript:void(0);" class="hstack gap-2">
-                                        <div class="avatar-text avatar-sm">
-                                            <i class="feather-facebook"></i>
-                                        </div>
-                                        <span>Facebook</span>
-                                    </a>
+                            <hr>
+                            <div class="card card-body general-info">
+                                <div class="mb-4 d-flex align-items-center justify-content-between">
+                                    <h5 class="fw-bold mb-0">
+                                        <span class="d-block mb-2">General Information :</span>
+                                        <span class="fs-12 fw-normal text-muted d-block">Live data from students table</span>
+                                    </h5>
+                                </div>
+                                <div class="row mb-4">
+                                    <div class="col-lg-2 fw-medium">Status</div>
+                                    <div class="col-lg-10"><?php echo status_badge_html($student['status'] ?? ''); ?></div>
+                                </div>
+                                <div class="row mb-4">
+                                    <div class="col-lg-2 fw-medium">Supervisor</div>
+                                    <div class="col-lg-10"><?php echo htmlspecialchars(display_text($student['supervisor_name'] ?? '')); ?></div>
+                                </div>
+                                <div class="row mb-4">
+                                    <div class="col-lg-2 fw-medium">Coordinator</div>
+                                    <div class="col-lg-10"><?php echo htmlspecialchars(display_text($student['coordinator_name'] ?? '')); ?></div>
+                                </div>
+                                <div class="row mb-4">
+                                    <div class="col-lg-2 fw-medium">Emergency Contact</div>
+                                    <div class="col-lg-10"><?php echo htmlspecialchars(display_text($student['emergency_contact'] ?? '')); ?></div>
+                                </div>
+                                <div class="row mb-4">
+                                    <div class="col-lg-2 fw-medium">Total Hours</div>
+                                    <div class="col-lg-10"><?php echo htmlspecialchars(display_text($student['total_hours'] ?? '')); ?></div>
+                                </div>
+                                <div class="row mb-4">
+                                    <div class="col-lg-2 fw-medium">Hours Remaining</div>
+                                    <div class="col-lg-10"><?php echo htmlspecialchars(display_text($student['total_hours_remaining'] ?? '')); ?></div>
+                                </div>
+                                <div class="row mb-4">
+                                    <div class="col-lg-2 fw-medium">Biometric Registered</div>
+                                    <div class="col-lg-10"><?php echo !empty($student['biometric_registered']) ? 'Yes' : 'No'; ?></div>
+                                </div>
+                                <div class="row mb-4">
+                                    <div class="col-lg-2 fw-medium">Biometric Registered At</div>
+                                    <div class="col-lg-10"><?php echo htmlspecialchars(format_dt($student['biometric_registered_at'] ?? '')); ?></div>
+                                </div>
+                                <div class="row mb-4">
+                                    <div class="col-lg-2 fw-medium">Created At</div>
+                                    <div class="col-lg-10"><?php echo htmlspecialchars(format_dt($student['created_at'] ?? '')); ?></div>
+                                </div>
+                                <div class="row mb-0">
+                                    <div class="col-lg-2 fw-medium">Updated At</div>
+                                    <div class="col-lg-10"><?php echo htmlspecialchars(format_dt($student['updated_at'] ?? '')); ?></div>
                                 </div>
                             </div>
-                            <div class="row mb-4">
-                                <div class="col-lg-2 fw-medium">Default Language</div>
-                                <div class="col-lg-10 hstack gap-1">
-                                    <a href="javascript:void(0);" class="hstack gap-2">
-                                        <div class="avatar-text avatar-sm">
-                                            <i class="feather-airplay"></i>
-                                        </div>
-                                        <span>System Default</span>
-                                    </a>
-                                </div>
-                            </div>
-                            <div class="row mb-4">
-                                <div class="col-lg-2 fw-medium">Privacy</div>
-                                <div class="col-lg-10 hstack gap-1">
-                                    <a href="javascript:void(0);" class="hstack gap-2">
-                                        <div class="avatar-text avatar-sm">
-                                            <i class="feather-globe"></i>
-                                        </div>
-                                        <span>Private</span>
-                                    </a>
-                                </div>
-                            </div>
-                            <div class="row mb-4">
-                                <div class="col-lg-2 fw-medium">Created</div>
-                                <div class="col-lg-10 hstack gap-1">
-                                    <a href="javascript:void(0);" class="hstack gap-2">
-                                        <div class="avatar-text avatar-sm">
-                                            <i class="feather-clock"></i>
-                                        </div>
-                                        <span>26 MAY, 2023</span>
-                                    </a>
-                                </div>
-                            </div>
-                            <div class="row mb-4">
-                                <div class="col-lg-2 fw-medium">Assigned</div>
-                                <div class="col-lg-10 hstack gap-1">
-                                    <a href="javascript:void(0);" class="hstack gap-2">
-                                        <div class="avatar-image avatar-sm">
-                                            <img src="assets/images/avatar/1.png" alt="" class="img-fluid">
-                                        </div>
-                                        <span>Felix Luis Mateo</span>
-                                    </a>
-                                </div>
-                            </div>
-                            <div class="row mb-4">
-                                <div class="col-lg-2 fw-medium">Lead By</div>
-                                <div class="col-lg-10 hstack gap-1">
-                                    <a href="javascript:void(0);" class="hstack gap-2">
-                                        <div class="avatar-image avatar-sm">
-                                            <img src="assets/images/avatar/2.png" alt="" class="img-fluid">
-                                        </div>
-                                        <span>Green Cute - Website design and development</span>
-                                    </a>
-                                </div>
-                            </div>
-                            <div class="row mb-4">
-                                <div class="col-lg-2 fw-medium">Tags</div>
-                                <div class="col-lg-10 hstack gap-1"><a href="javascript:void(0);" class="badge bg-soft-primary text-primary">VIP</a><a href="javascript:void(0);" class="badge bg-soft-success text-success">High Rated</a><a href="javascript:void(0);" class="badge bg-soft-warning text-warning">Promotions</a><a href="javascript:void(0);" class="badge bg-soft-danger text-danger">Team</a><a href="javascript:void(0);" class="badge bg-soft-teal text-teal">Updates</a></div>
-                            </div>
-                            <div class="row mb-4">
-                                <div class="col-lg-2 fw-medium">Description</div>
-                                <div class="col-lg-10 hstack gap-1">Lorem ipsum, dolor sit amet consectetur adipisicing elit. Molestiae, nulla veniam, ipsam nemo autem fugit earum accusantium reprehenderit recusandae in minima harum vitae doloremque quasi aut dolorum voluptate. Minima, deleniti.Lorem ipsum, dolor sit amet consectetur adipisicing elit. Molestiae, nulla veniam, ipsam nemo autem fugit earum accusantium reprehenderit recusandae in minima harum vitae doloremque quasi aut dolorum voluptate.</div>
-                            </div>
-                        </div>
+                        <?php endif; ?>
                     </div>
-                    <div class="tab-pane fade" id="proposalTab" role="tabpanel">
+                    <div class="tab-pane fade" id="applicationTab" role="tabpanel">
                         <div class="card card-body">
-                            <div class="d-flex align-items-center justify-content-center" style="height: calc(100vh - 315px)">
-                                <div class="text-center">
-                                    <h2 class="fs-16 fw-semibold">No proposals yet!</h2>
-                                    <p class="fs-12 text-muted">There is no proposals create yet.</p>
-                                    <a href="javascript:void(0);" class="avatar-text bg-soft-primary text-primary mx-auto" data-bs-toggle="tooltip" title="Create Proposals">
-                                        <i class="feather-plus"></i>
-                                    </a>
+                            <?php if ($flash_message !== ''): ?>
+                                <div class="alert alert-<?php echo htmlspecialchars($flash_type); ?> mb-3"><?php echo htmlspecialchars($flash_message); ?></div>
+                            <?php endif; ?>
+
+                            <?php if ($view_user_id <= 0): ?>
+                                <div class="alert alert-warning mb-0">Open this page from OJT List using a specific student row so document data can be linked by user ID.</div>
+                            <?php else: ?>
+                                <div class="mb-4">
+                                    <h5 class="fw-bold mb-1">Application Letter Autofill</h5>
+                                    <p class="text-muted mb-0">Saved data here will be used by <code>document_application.php</code> when this student is selected.</p>
                                 </div>
-                            </div>
+
+                                <div class="mb-3">
+                                    <strong>Student:</strong>
+                                    <?php
+                                    $student_name = $student ? trim(($student['first_name'] ?? '') . ' ' . ($student['middle_name'] ?? '') . ' ' . ($student['last_name'] ?? '')) : 'Unknown';
+                                    echo htmlspecialchars($student_name);
+                                    ?>
+                                    <span class="text-muted">(ID: <?php echo intval($view_user_id); ?>)</span>
+                                </div>
+
+                                <form method="post" action="ojt-view.php?id=<?php echo intval($view_user_id); ?>">
+                                    <input type="hidden" name="save_application_letter" value="1">
+                                    <input type="hidden" name="user_id" value="<?php echo intval($view_user_id); ?>">
+
+                                    <div class="row g-3">
+                                        <div class="col-md-4">
+                                            <label class="form-label">Date</label>
+                                            <input type="date" name="date" class="form-control" value="<?php echo htmlspecialchars($app_letter['date']); ?>">
+                                        </div>
+                                        <div class="col-md-8">
+                                            <label class="form-label">Mr./Ms. (as to appear)</label>
+                                            <input type="text" name="application_person" class="form-control" value="<?php echo htmlspecialchars($app_letter['application_person']); ?>" placeholder="Recipient full name">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Position</label>
+                                            <input type="text" name="position" class="form-control" value="<?php echo htmlspecialchars($app_letter['position']); ?>" placeholder="Position">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Company Name</label>
+                                            <input type="text" name="company_name" class="form-control" value="<?php echo htmlspecialchars($app_letter['company_name']); ?>" placeholder="Company name">
+                                        </div>
+                                        <div class="col-12">
+                                            <label class="form-label">Company Address</label>
+                                            <textarea name="company_address" class="form-control" rows="2" placeholder="Company address"><?php echo htmlspecialchars($app_letter['company_address']); ?></textarea>
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-3 d-flex gap-2">
+                                        <button type="submit" class="btn btn-primary">Save Application Data</button>
+                                        <a href="document_application.php?id=<?php echo intval($view_user_id); ?>" class="btn btn-success">Open Application Letter</a>
+                                    </div>
+                                </form>
+                            <?php endif; ?>
                         </div>
                     </div>
-                    <div class="tab-pane fade" id="tasksTab" role="tabpanel">
+                    <div class="tab-pane fade" id="moaTab" role="tabpanel">
                         <div class="card card-body">
-                            <div class="d-flex align-items-center justify-content-center" style="height: calc(100vh - 315px)">
-                                <div class="text-center">
-                                    <h2 class="fs-16 fw-semibold">No tasks yet!</h2>
-                                    <p class="fs-12 text-muted">There is no tasks create yet.</p>
-                                    <a href="javascript:void(0);" class="avatar-text bg-soft-primary text-primary mx-auto" data-bs-toggle="tooltip" title="Create Tasks">
-                                        <i class="feather-plus"></i>
-                                    </a>
+                            <?php if ($view_user_id <= 0): ?>
+                                <div class="alert alert-warning mb-0">Open this page from OJT List using a specific student row so document data can be linked by user ID.</div>
+                            <?php else: ?>
+                                <div class="mb-4">
+                                    <h5 class="fw-bold mb-1">MOA Autofill</h5>
+                                    <p class="text-muted mb-0">Saved data here will be used by <code>document_moa.php</code> when this student is selected.</p>
                                 </div>
-                            </div>
+                                <form method="post" action="ojt-view.php?id=<?php echo intval($view_user_id); ?>">
+                                    <input type="hidden" name="save_moa" value="1">
+                                    <input type="hidden" name="user_id" value="<?php echo intval($view_user_id); ?>">
+
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label">Company Name</label>
+                                            <input type="text" name="company_name" class="form-control" value="<?php echo htmlspecialchars($moa_data['company_name']); ?>">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Company Address</label>
+                                            <input type="text" name="company_address" class="form-control" value="<?php echo htmlspecialchars($moa_data['company_address']); ?>">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label">Partner Representative</label>
+                                            <input type="text" name="partner_representative" class="form-control" value="<?php echo htmlspecialchars($moa_data['partner_representative']); ?>">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label">Partner Representative Position</label>
+                                            <input type="text" name="position" class="form-control" value="<?php echo htmlspecialchars($moa_data['position']); ?>">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label">Coordinator / School Rep</label>
+                                            <input type="text" name="coordinator" class="form-control" value="<?php echo htmlspecialchars($moa_data['coordinator']); ?>">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label">Coordinator / School Rep Position</label>
+                                            <input type="text" name="school_position" class="form-control" value="<?php echo htmlspecialchars($moa_data['school_position']); ?>">
+                                        </div>
+
+
+
+                                        
+                                        <div class="col-md-4">
+                                            <label class="form-label">MOA Date</label>
+                                            <input type="date" name="moa_date" class="form-control" value="<?php echo htmlspecialchars($moa_data['moa_date']); ?>">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label">MOA Address / Signing Place</label>
+                                            <input type="text" name="moa_address" class="form-control" value="<?php echo htmlspecialchars($moa_data['moa_address']); ?>">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label">School Administrator</label>
+                                            <input type="text" name="school_administrator" class="form-control" value="<?php echo htmlspecialchars($moa_data['school_administrator']); ?>">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label">School Administrator Position</label>
+                                            <input type="text" name="school_admin_position" class="form-control" value="<?php echo htmlspecialchars($moa_data['school_admin_position']); ?>">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label">Witness</label>
+                                            <input type="text" name="witness" class="form-control" value="<?php echo htmlspecialchars($moa_data['witness']); ?>">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label">Notary Address/City</label>
+                                            <input type="text" name="notary_address" class="form-control" value="<?php echo htmlspecialchars($moa_data['notary_address']); ?>">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label">Acknowledgement Date</label>
+                                            <input type="date" name="acknowledgement_date" class="form-control" value="<?php echo htmlspecialchars($moa_data['acknowledgement_date']); ?>">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Acknowledgement Address</label>
+                                            <input type="text" name="acknowledgement_address" class="form-control" value="<?php echo htmlspecialchars($moa_data['acknowledgement_address']); ?>">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Company Receipt / Ref.</label>
+                                            <input type="text" name="company_receipt" class="form-control" value="<?php echo htmlspecialchars($moa_data['company_receipt']); ?>">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">Doc No.</label>
+                                            <input type="text" name="doc_no" class="form-control" value="<?php echo htmlspecialchars($moa_data['doc_no']); ?>">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">Page No.</label>
+                                            <input type="text" name="page_no" class="form-control" value="<?php echo htmlspecialchars($moa_data['page_no']); ?>">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">Book No.</label>
+                                            <input type="text" name="book_no" class="form-control" value="<?php echo htmlspecialchars($moa_data['book_no']); ?>">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">Series of</label>
+                                            <input type="text" name="series_no" class="form-control" value="<?php echo htmlspecialchars($moa_data['series_no']); ?>">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Total Hours (Clause #10)</label>
+                                            <input type="number" name="total_hours" class="form-control" min="1" step="1" value="<?php echo htmlspecialchars($moa_data['total_hours']); ?>">
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-3 d-flex gap-2">
+                                        <button type="submit" class="btn btn-primary">Save MOA Data</button>
+                                        <a href="document_moa.php?id=<?php echo intval($view_user_id); ?>" class="btn btn-success">Open MOA</a>
+                                    </div>
+                                </form>
+                            <?php endif; ?>
                         </div>
                     </div>
-                    <div class="tab-pane fade" id="notesTab" role="tabpanel">
+                    <div class="tab-pane fade" id="endorsementTab" role="tabpanel">
                         <div class="card card-body">
                             <div class="d-flex align-items-center justify-content-center" style="height: calc(100vh - 315px)">
                                 <div class="text-center">
@@ -934,4 +1339,5 @@
 </body>
 
 </html>
+
 

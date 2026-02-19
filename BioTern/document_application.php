@@ -12,6 +12,7 @@ try {
 } catch (Exception $e) {
     die('Database error: ' . $e->getMessage());
 }
+$prefill_student_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 
 // Simple AJAX endpoints served by this file
 if (isset($_GET['action'])) {
@@ -36,6 +37,22 @@ if (isset($_GET['action'])) {
     if ($action === 'get_student' && isset($_GET['id'])) {
         $id = intval($_GET['id']);
         $stmt = $conn->prepare("SELECT s.*, c.name as course_name FROM students s LEFT JOIN courses c ON s.course_id = c.id WHERE s.id = ? LIMIT 1");
+        $stmt->bind_param('i', $id);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        $data = $res->fetch_assoc();
+        echo json_encode($data ?: new stdClass());
+        exit;
+    }
+
+    if ($action === 'get_application_letter' && isset($_GET['id'])) {
+        $id = intval($_GET['id']);
+        $exists = $conn->query("SHOW TABLES LIKE 'application_letter'");
+        if (!$exists || $exists->num_rows === 0) {
+            echo json_encode(new stdClass());
+            exit;
+        }
+        $stmt = $conn->prepare("SELECT * FROM application_letter WHERE user_id = ? LIMIT 1");
         $stmt->bind_param('i', $id);
         $stmt->execute();
         $res = $stmt->get_result();
@@ -153,6 +170,7 @@ if (isset($_GET['action'])) {
         .nxl-navigation { z-index: 2147483646; }
         footer.footer { margin-top: auto; }
         #btn_generate.is-disabled { opacity: .65; }
+        .card .btn { position: relative; z-index: 2; }
         .file-edit-active #letter_content {
             outline: 2px dashed #3b82f6;
             outline-offset: 6px;
@@ -256,6 +274,7 @@ if (isset($_GET['action'])) {
     <script>
         (function(){
             const APP_TEMPLATE_STORAGE_KEY = 'biotern_application_template_html_v1';
+            const PREFILL_STUDENT_ID = <?php echo intval($prefill_student_id); ?>;
             const select = $('#student_select');
             const inputName = document.getElementById('input_name');
             const inputPosition = document.getElementById('input_position');
@@ -285,21 +304,12 @@ if (isset($_GET['action'])) {
                 }
             }
 
-            function toggleApplicationFileEdit(e, btnEl) {
+            function openApplicationEditor(e) {
                 if (e && typeof e.preventDefault === 'function') e.preventDefault();
-                if (!letterContent) return false;
-                isFileEditMode = !isFileEditMode;
-                letterContent.contentEditable = isFileEditMode ? 'true' : 'false';
-                letterContent.spellcheck = isFileEditMode;
-                document.body.classList.toggle('file-edit-active', isFileEditMode);
-                const editBtn = btnEl || btnFileEdit || document.getElementById('btn_file_edit_application');
-                if (editBtn) editBtn.textContent = isFileEditMode ? 'Done Editing' : 'File Edit';
-                if (isFileEditMode) {
-                    letterContent.focus();
-                } else {
-                    saveApplicationTemplateHtml();
-                    updateGenerateLink(selectedStudentId || select.val());
+                if (letterContent) {
+                    try { localStorage.setItem(APP_TEMPLATE_STORAGE_KEY, letterContent.innerHTML); } catch (err) {}
                 }
+                window.location.href = 'edit_application.php';
                 return false;
             }
 
@@ -383,10 +393,6 @@ if (isset($_GET['action'])) {
                     .then(r => r.json())
                     .then(data => {
                         if (!data) return;
-                        if (isFileEditMode) {
-                            updateGenerateLink(id);
-                            return;
-                        }
                         const fullname = [data.first_name, data.middle_name, data.last_name].filter(Boolean).join(' ');
                         // Do NOT set inputName/inputCompany/inputPosition here — those are for the recipient/company
                         // Only set student-related preview fields
@@ -397,9 +403,52 @@ if (isset($_GET['action'])) {
                         document.getElementById('ap_date').textContent = new Date().toLocaleDateString();
                         // update generate link (do not include recipient if empty)
                         updatePreviewFields();
+                        loadApplicationLetterData(id);
                         updateGenerateLink(id);
                     });
             });
+
+            function loadApplicationLetterData(id){
+                if (!id) return;
+                fetch('document_application.php?action=get_application_letter&id=' + encodeURIComponent(id))
+                    .then(r => r.json())
+                    .then(data => {
+                        if (!data || typeof data !== 'object') return;
+                        inputName.value = (data.application_person || '').toString();
+                        inputPosition.value = (data.posistion || data.position || '').toString();
+                        inputCompany.value = (data.company_name || '').toString();
+                        inputCompanyAddress.value = (data.company_address || '').toString();
+                        if (data.date) document.getElementById('ap_date').textContent = data.date;
+                        updatePreviewFields();
+                        updateGenerateLink(id);
+                    })
+                    .catch(() => {});
+            }
+
+            function prefillByStudentId(id){
+                if (!id) return;
+                selectedStudentId = id;
+                fetch('document_application.php?action=get_student&id=' + encodeURIComponent(id))
+                    .then(r => r.json())
+                    .then(data => {
+                        if (!data || !data.id) return;
+                        const fullname = [data.first_name, data.middle_name, data.last_name].filter(Boolean).join(' ');
+                        const label = (fullname || 'Student') + ' — ' + (data.student_id || id);
+                        const option = new Option(label, String(id), true, true);
+                        select.append(option).trigger('change');
+
+                        document.getElementById('ap_student').textContent = fullname || '__________________________';
+                        document.getElementById('ap_student_name').textContent = fullname || '__________________________';
+                        document.getElementById('ap_student_address').textContent = data.address || '__________________________';
+                        document.getElementById('ap_student_contact').textContent = data.phone || '__________________________';
+                        document.getElementById('ap_date').textContent = new Date().toLocaleDateString();
+
+                        loadApplicationLetterData(id);
+                        updatePreviewFields();
+                        updateGenerateLink(id);
+                    })
+                    .catch(() => {});
+            }
 
             function updatePreviewFields(){
                 if (isFileEditMode) return;
@@ -434,19 +483,9 @@ if (isset($_GET['action'])) {
             inputCompany.addEventListener('input', function(){ updatePreviewFields(); updateGenerateLink(selectedStudentId); });
             inputCompanyAddress.addEventListener('input', function(){ updatePreviewFields(); updateGenerateLink(selectedStudentId); });
 
-            document.addEventListener('click', function(e){
-                const editBtn = e.target.closest('#btn_file_edit_application');
-                if (!editBtn) return;
-                toggleApplicationFileEdit(e, editBtn);
+            btnFileEdit.addEventListener('click', function(e){
+                openApplicationEditor(e);
             });
-
-            if (letterContent) {
-                letterContent.addEventListener('input', function(){
-                    if (!isFileEditMode) return;
-                    saveApplicationTemplateHtml();
-                    updateGenerateLink(selectedStudentId || select.val());
-                });
-            }
 
             // keep button reliably clickable and generate href on demand
             document.getElementById('btn_generate').addEventListener('click', function(e){
@@ -488,6 +527,7 @@ if (isset($_GET['action'])) {
                 document.getElementById('ap_date').textContent = new Date().toLocaleDateString();
             }
             updateGenerateLink(selectedStudentId || select.val());
+            if (PREFILL_STUDENT_ID > 0) prefillByStudentId(PREFILL_STUDENT_ID);
 
         })();
     </script>

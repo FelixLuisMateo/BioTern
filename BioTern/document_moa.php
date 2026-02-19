@@ -12,6 +12,7 @@ try {
 } catch (Exception $e) {
     die('Database error: ' . $e->getMessage());
 }
+$prefill_student_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 
 // Simple AJAX endpoints served by this file (reuse same endpoints as application document)
 if (isset($_GET['action'])) {
@@ -36,6 +37,22 @@ if (isset($_GET['action'])) {
     if ($action === 'get_student' && isset($_GET['id'])) {
         $id = intval($_GET['id']);
         $stmt = $conn->prepare("SELECT s.*, c.name as course_name FROM students s LEFT JOIN courses c ON s.course_id = c.id WHERE s.id = ? LIMIT 1");
+        $stmt->bind_param('i', $id);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        $data = $res->fetch_assoc();
+        echo json_encode($data ?: new stdClass());
+        exit;
+    }
+
+    if ($action === 'get_moa' && isset($_GET['id'])) {
+        $id = intval($_GET['id']);
+        $exists = $conn->query("SHOW TABLES LIKE 'moa'");
+        if (!$exists || $exists->num_rows === 0) {
+            echo json_encode(new stdClass());
+            exit;
+        }
+        $stmt = $conn->prepare("SELECT * FROM moa WHERE user_id = ? LIMIT 1");
         $stmt->bind_param('i', $id);
         $stmt->execute();
         $res = $stmt->get_result();
@@ -168,6 +185,11 @@ if (isset($_GET['action'])) {
                         </div>
 
                         <div class="mt-2">
+                            <label class="form-label">Company Address</label>
+                            <textarea id="moa_partner_address" class="form-control form-control-sm" rows="2" placeholder="Partner address"></textarea>
+                        </div>
+
+                        <div class="mt-2">
                             <label class="form-label">Partner Representative</label>
                             <input id="moa_partner_rep" class="form-control form-control-sm" type="text" placeholder="Representative (e.g. Mr. Edward Docena)">
                         </div>
@@ -178,13 +200,23 @@ if (isset($_GET['action'])) {
                         </div>
 
                         <div class="mt-2">
-                            <label class="form-label">Partner Address</label>
-                            <textarea id="moa_partner_address" class="form-control form-control-sm" rows="2" placeholder="Partner address"></textarea>
+                            <label class="form-label">Company Receipt / Ref.</label>
+                            <input id="moa_company_receipt" class="form-control form-control-sm" type="text" placeholder="Reference / receipt no.">
+                        </div>
+
+                        <div class="mt-2">
+                            <label class="form-label">Total Hours (Clause #10)</label>
+                            <input id="moa_total_hours" class="form-control form-control-sm" type="number" min="1" step="1" placeholder="e.g. 250">
                         </div>
 
                         <div class="mt-2">
                             <label class="form-label">School Representative</label>
                             <input id="moa_school_rep" class="form-control form-control-sm" type="text" placeholder="School rep (defaults to Mr. Jomar G. Sangil)">
+                        </div>
+
+                        <div class="mt-2">
+                            <label class="form-label">School Representative Position</label>
+                            <input id="moa_school_position" class="form-control form-control-sm" type="text" placeholder="e.g. Head of Information Technology, CCST">
                         </div>
 
                         <hr class="my-3">
@@ -216,8 +248,13 @@ if (isset($_GET['action'])) {
                         </div>
                         
                         <div class="mt-2">
-                            <label class="form-label">Witness (School)</label>
+                            <label class="form-label">School Administrator</label>
                             <input id="moa_presence_school_admin" class="form-control form-control-sm" type="text" placeholder="Name (defaults to Mr. Ross Carvel Ramirez)">
+                        </div>
+
+                        <div class="mt-2">
+                            <label class="form-label">School Administrator Position</label>
+                            <input id="moa_presence_school_admin_position" class="form-control form-control-sm" type="text" placeholder="e.g. School Administrator">
                         </div>
 
                         <div class="mt-2">
@@ -278,6 +315,7 @@ if (isset($_GET['action'])) {
                             <p>This Memorandum of Agreement made and executed between: <strong>CLARK COLLEGE OF SCIENCE AND TECHNOLOGY</strong>a Higher Education Institution, duly organized and existing under Philippine Laws with office/business address at <strong>AUREA ST. SAMSONVILLE, DAU MABALACAT CITY PAMPANGA</strong> represented herein by <strong>MR. JOMAR G. SANGIL (IT, DEPARTMENT HEAD)</strong>, here in after referred to as the Higher Education Institution.<strong></p>
                             And<br>
                             <strong><span id="pv_partner_company_name">__________________________</span></strong> an enterprise duly organized and existing under Philippine Laws with office/ business address at <strong><span id="pv_partner_address">__________________________</span></strong>represented herein by <strong><span id="pv_partner_name">__________________________</span></strong> herein after referred to as the PARTNER COMPANY.</p>
+                            <p>Company Receipt / Ref.: <span id="pv_company_receipt">__________________________</span></p>
                             Witnesseth: <br><br>
                             <p>The parties hereby bind themselves to undertake a Memorandum of Agreement for the purpose of supporting the HEI Internship for Learners under the following terms and condition</p>
                             <strong>Clark College of Science and Technology:</strong><br>
@@ -291,7 +329,7 @@ if (isset($_GET['action'])) {
                                 <li>The <b>Clark College of Science and Technology</b> shall ensure that the Learner shall ensure that the Learner has an on-and off the campus insurance coverage within the duration of the training as part of their training fee.</li>
                                 <li>The <b>Clark College of Science and Technology</b> shall ensure Learner shall be personally responsible for any and all liabilities arising from negligence in the performance of his/her duties and functions while under INTERNSHIP;</li>
                                 <li>There is no employer-employee relationship between the <strong>PARTNER COMPANY</strong> and the Learner;</li>
-                                <li>The duration of the program shall be equivalent to 250 working hours unless otherwise agreed upon by the <strong>PARTNER COMPANY</strong> and the Clark College of Science and Technology;</li>
+                                <li>The duration of the program shall be equivalent to <span id="pv_total_hours">250</span> working hours unless otherwise agreed upon by the <strong>PARTNER COMPANY</strong> and the Clark College of Science and Technology;</li>
                                 <li>Any violation of the foregoing covenants will warrant the cancellation of the Memorandum of Agreement by the <strong>PARTNER COMPANY</strong> within thirty (30) days upon notice to the Clark College of Science and Technology.</li>
                                 <li>The <strong>PARTNER COMPANY</strong> may grant allowance to Learner in accordance with the PARTNER ENTERPISE’S existing rules and regulations;</li>
                                 <li>The <strong>PARTNER COMPANY</strong> is not allowed to employ Learner within the INTERNSHIP period in order for the Learner to graduate from the program he/she is enrolled in.</li>
@@ -307,13 +345,13 @@ if (isset($_GET['action'])) {
                             <div style="display:flex; justify-content:space-between; gap:12px; margin-top:24px;">
                                 <div style="flex:1;">
                                     <p>For the PARTNER COMPANY</p>
-                                    <p style="margin-top:40px;"><strong id="pv_partner_rep">MR. EDWARD DOCENA</strong></p>
-                                    <p id="pv_partner_position">CEO Teemo Printing Services</p>
+                                    <p style="margin-top:40px;"><strong id="pv_partner_rep"></strong></p>
+                                    <p id="pv_partner_position"></p>
                                 </div>
                                 <div style="flex:1; text-align:right;">
-                                    <p>For the SCHOOL</p>
-                                    <p style="margin-top:40px;"><strong id="pv_school_rep">MR. JOMAR G. SANGIL</strong></p>
-                                    <p>Head of Information Technology, CCST</p>
+                                    <p style="margin-right: 60px;"><strong>For the SCHOOL</strong></p>
+                                    <p style="margin-top:40px; text-align:right;"><strong id="pv_school_rep"></strong></p>
+                                    <p style="margin-top:-18px; text-align:right;" id="pv_school_position"></p>
                                 </div>
                             </div>
 
@@ -321,18 +359,18 @@ if (isset($_GET['action'])) {
 
                             <div style="display:flex; justify-content:space-between; gap:12px; margin-top:16px;">
                                 <div style="flex:1;">
-                                    <p style="margin-top:40px;"><span id="pv_presence_partner_rep">______________________________</span></p>
-                                    <p>Representative of the PARTNER COMPANY</p>
+                                    <p style="margin-top:40px;"><span id="pv_presence_partner_rep"></span></p>
+                                    <p>Representative for the PARTNER COMPANY</p>
                                 </div>
                                 <div style="flex:1; text-align:right;">
-                                    <p style="margin-top:40px;"><span id="pv_presence_school_admin">Mr. Ross Carvel Ramirez</span></p>
-                                    <p>School Administrator</p>
+                                    <p style="margin-top:40px; text-align:right;"><span id="pv_presence_school_admin"></span></p>
+                                    <p style="margin-top:-18px; text-align:right;" id="pv_presence_school_admin_position"></p>
                                 </div>
                             </div>
 
                             <p style="margin-top:24px;"><strong>ACKNOWLEDGEMENT</strong></p>
                             <p>
-                                Before me, a Notary Public in the city <span id="pv_notary_city">__________________</span>, personally appeared <span id="pv_notary_appeared_1">__________________</span> and <span id="pv_notary_appeared_2">__________________</span> with Community Tax Certificates indicated above, known to me to be the same persons who executed the foregoing instrument and they acknowledged to me that the same is their free will and voluntary deed and that of the ENTERPRISEs herein represented. Witness my hand and seal on this <span id="pv_notary_day">_____</span> day of <span id="pv_notary_month">__________________</span> <span id="pv_notary_year">20___</span> in <span id="pv_notary_place">__________________</span>.
+                                Before me, a Notary Public in the city <span id="pv_notary_city">__________________</span>, personally appeared <strong><u><span id="pv_notary_appeared_1">__________________</span></u></strong> known to me to be the same persons who executed the foregoing instrument and they acknowledged to me that the same is their free will and voluntary deed and that of the ENTERPRISEs herein represented. Witness my hand and seal on this <span id="pv_notary_day">_____</span> day of <span id="pv_notary_month">__________________</span> <span id="pv_notary_year">20___</span> in <span id="pv_notary_place">__________________</span>.
                             </p>
 
                             <p style="margin-top:16px;">Doc No. <span id="pv_doc_no">______</span>:</p>
@@ -352,18 +390,23 @@ if (isset($_GET['action'])) {
     <script>
         (function(){
             const MOA_TEMPLATE_STORAGE_KEY = 'biotern_moa_template_html_v1';
+            const PREFILL_STUDENT_ID = <?php echo intval($prefill_student_id); ?>;
             const select = $('#student_select');
             const partnerName = document.getElementById('moa_partner_name');
             const partnerRep = document.getElementById('moa_partner_rep');
             const partnerPosition = document.getElementById('moa_partner_position');
             const partnerAddress = document.getElementById('moa_partner_address');
+            const companyReceipt = document.getElementById('moa_company_receipt');
+            const totalHours = document.getElementById('moa_total_hours');
             const schoolRep = document.getElementById('moa_school_rep');
+            const schoolPosition = document.getElementById('moa_school_position');
             const signedAt = document.getElementById('moa_signed_at');
             const signedDay = document.getElementById('moa_signed_day');
             const signedMonth = document.getElementById('moa_signed_month');
             const signedYear = document.getElementById('moa_signed_year');
             const presencePartnerRep = document.getElementById('moa_presence_partner_rep');
             const presenceSchoolAdmin = document.getElementById('moa_presence_school_admin');
+            const presenceSchoolAdminPosition = document.getElementById('moa_presence_school_admin_position');
             const notaryCity = document.getElementById('moa_notary_city');
             const notaryAppeared1 = document.getElementById('moa_notary_appeared_1');
             const notaryAppeared2 = document.getElementById('moa_notary_appeared_2');
@@ -380,6 +423,23 @@ if (isset($_GET['action'])) {
             const moaContent = document.getElementById('moa_content');
             let isFileEditMode = false;
             let hasLoadedSavedTemplate = false;
+
+            function withOrdinalSuffix(dayValue){
+                const raw = (dayValue || '').toString().trim();
+                if (!raw) return raw;
+                if (!/^\d+$/.test(raw)) return raw;
+                const n = parseInt(raw, 10);
+                if (isNaN(n)) return raw;
+                const mod100 = n % 100;
+                let suffix = 'th';
+                if (mod100 < 11 || mod100 > 13) {
+                    const mod10 = n % 10;
+                    if (mod10 === 1) suffix = 'st';
+                    else if (mod10 === 2) suffix = 'nd';
+                    else if (mod10 === 3) suffix = 'rd';
+                }
+                return String(n) + suffix;
+            }
 
             function saveMoaTemplateHtml() {
                 if (!moaContent) return;
@@ -399,37 +459,15 @@ if (isset($_GET['action'])) {
                 }
             }
 
-            // Keep File Edit working even if later JS blocks fail.
-            function forceToggleMoaFileEdit(e, btnEl) {
+            function openMoaEditor(e) {
                 if (e && typeof e.preventDefault === 'function') e.preventDefault();
-                isFileEditMode = !isFileEditMode;
-                if (!moaContent) return;
-                moaContent.contentEditable = isFileEditMode ? 'true' : 'false';
-                moaContent.spellcheck = isFileEditMode;
-                document.body.classList.toggle('file-edit-active', isFileEditMode);
-                const editBtn = btnEl || btnFill || document.getElementById('btn_file_edit_moa');
-                if (editBtn) editBtn.textContent = isFileEditMode ? 'Done Editing' : 'File Edit';
-                if (isFileEditMode) {
-                    moaContent.focus();
-                    try {
-                        const range = document.createRange();
-                        range.selectNodeContents(moaContent);
-                        range.collapse(false);
-                        const sel = window.getSelection();
-                        sel.removeAllRanges();
-                        sel.addRange(range);
-                    } catch (err) {}
-                } else {
-                    // Keep manual content edits intact when leaving File Edit mode.
-                    saveMoaTemplateHtml();
-                    updateGenerateLink();
-                }
+                window.open('edit_moa.php', '_blank');
                 return false;
             }
             document.addEventListener('click', function(e){
                 const editBtn = e.target.closest('#btn_file_edit_moa');
                 if (!editBtn) return;
-                forceToggleMoaFileEdit(e, editBtn);
+                openMoaEditor(e);
             });
 
             select.select2({
@@ -488,27 +526,102 @@ if (isset($_GET['action'])) {
                         if (!data) return;
                         const fullname = [data.first_name, data.middle_name, data.last_name].filter(Boolean).join(' ');
                         // place student name in preview if desired (not required for MOA header)
+                        loadMoaData(id);
                     });
             });
+
+            function loadMoaData(id){
+                if (!id) return;
+                fetch('document_moa.php?action=get_moa&id=' + encodeURIComponent(id))
+                    .then(r => r.json())
+                    .then(data => {
+                        if (!data || typeof data !== 'object') return;
+                        partnerName.value = (data.company_name || '').toString();
+                        partnerAddress.value = (data.company_address || '').toString();
+                        partnerRep.value = (data.partner_representative || '').toString();
+                        partnerPosition.value = (data.position || '').toString();
+                        schoolRep.value = (data.coordinator || '').toString();
+                        schoolPosition.value = (data.school_posistion || data.school_position || '').toString();
+                        signedAt.value = (data.moa_address || '').toString();
+                        // Witness from MOA data should populate both witness textbox and acknowledgement appeared field.
+                        presencePartnerRep.value = (data.witness || '').toString();
+                        presenceSchoolAdmin.value = (data.school_administrator || '').toString();
+                        presenceSchoolAdminPosition.value = (data.school_admin_position || '').toString();
+                        notaryCity.value = (data.notary_address || '').toString();
+                        notaryPlace.value = (data.acknowledgement_address || '').toString();
+                        companyReceipt.value = (data.company_receipt || '').toString();
+                        totalHours.value = (data.total_hours || '').toString();
+
+                        if (data.moa_date) {
+                            const d = new Date(data.moa_date);
+                            if (!isNaN(d.getTime())) {
+                                signedDay.value = String(d.getDate()).padStart(2, '0');
+                                signedMonth.value = d.toLocaleString('en-US', { month: 'long' });
+                                signedYear.value = String(d.getFullYear());
+                            }
+                        }
+                        if (data.acknowledgement_date) {
+                            const ad = new Date(data.acknowledgement_date);
+                            if (!isNaN(ad.getTime())) {
+                                notaryDay.value = String(ad.getDate()).padStart(2, '0');
+                                notaryMonth.value = ad.toLocaleString('en-US', { month: 'long' });
+                                notaryYear.value = String(ad.getFullYear());
+                            }
+                        }
+                        // Witness should appear in ACKNOWLEDGEMENT (personally appeared...)
+                        if (notaryAppeared1) {
+                            notaryAppeared1.value = (data.witness || '').toString();
+                        }
+
+                        updatePreview();
+                        updateGenerateLink();
+                    })
+                    .catch(() => {});
+            }
+
+            function prefillByStudentId(id){
+                if (!id) return;
+                fetch('document_moa.php?action=get_student&id=' + encodeURIComponent(id))
+                    .then(r => r.json())
+                    .then(data => {
+                        if (!data || !data.id) return;
+                        // select2 may not be present in this page layout; guard usage
+                        if (select && select.length) {
+                            const fullname = [data.first_name, data.middle_name, data.last_name].filter(Boolean).join(' ');
+                            const label = (fullname || 'Student') + ' — ' + (data.student_id || id);
+                            const option = new Option(label, String(id), true, true);
+                            select.append(option).trigger('change');
+                        }
+                        loadMoaData(id);
+                    })
+                    .catch(() => {});
+            }
 
             function updatePreview(){
                 if (isFileEditMode) return;
                 document.getElementById('pv_partner_company_name').textContent = partnerName.value || '__________________________';
                 document.getElementById('pv_partner_name').textContent = partnerRep.value || '__________________________';
                 document.getElementById('pv_partner_address').textContent = partnerAddress.value || '__________________________';
-                document.getElementById('pv_partner_rep').textContent = partnerRep.value || 'MR. EDWARD DOCENA';
-                document.getElementById('pv_partner_position').textContent = partnerPosition.value || 'CEO / Representative';
-                document.getElementById('pv_school_rep').textContent = schoolRep.value || 'MR. JOMAR G. SANGIL';
+                document.getElementById('pv_company_receipt').textContent = companyReceipt.value || '__________________________';
+                document.getElementById('pv_total_hours').textContent = (totalHours && totalHours.value) ? totalHours.value : '250';
+                document.getElementById('pv_partner_rep').textContent = partnerRep.value || '__________________________';
+                document.getElementById('pv_partner_position').textContent = partnerPosition.value || '______________, ';
+                document.getElementById('pv_school_rep').textContent = schoolRep.value || '__________________';
                 document.getElementById('pv_signed_at').textContent = signedAt.value || '__________________';
-                document.getElementById('pv_signed_day').textContent = signedDay.value || '_____';
+                document.getElementById('pv_signed_day').textContent = withOrdinalSuffix(signedDay.value) || '_____';
                 document.getElementById('pv_signed_month').textContent = signedMonth.value || '__________________';
                 document.getElementById('pv_signed_year').textContent = signedYear.value || '20__';
                 document.getElementById('pv_presence_partner_rep').textContent = presencePartnerRep.value || '______________________________';
-                document.getElementById('pv_presence_school_admin').textContent = presenceSchoolAdmin.value || 'Mr. Ross Carvel Ramirez';
+                document.getElementById('pv_presence_school_admin').textContent = presenceSchoolAdmin.value || '______________________';
+                document.getElementById('pv_presence_school_admin_position').textContent = presenceSchoolAdminPosition.value || '______________________';
+                document.getElementById('pv_school_position').textContent = schoolPosition.value || '__________________';
                 document.getElementById('pv_notary_city').textContent = notaryCity.value || '__________________';
-                document.getElementById('pv_notary_appeared_1').textContent = (notaryAppeared1 && notaryAppeared1.value) || '__________________';
-                document.getElementById('pv_notary_appeared_2').textContent = (notaryAppeared2 && notaryAppeared2.value) || '__________________';
-                document.getElementById('pv_notary_day').textContent = notaryDay.value || '_____';
+                const appeared1Value = (notaryAppeared1 && notaryAppeared1.value) || (presencePartnerRep && presencePartnerRep.value) || '';
+                const pvNotaryAppeared1 = document.getElementById('pv_notary_appeared_1');
+                if (pvNotaryAppeared1) pvNotaryAppeared1.textContent = appeared1Value || '__________________';
+                const pvNotaryAppeared2 = document.getElementById('pv_notary_appeared_2');
+                if (pvNotaryAppeared2) pvNotaryAppeared2.textContent = (notaryAppeared2 && notaryAppeared2.value) || '__________________';
+                document.getElementById('pv_notary_day').textContent = withOrdinalSuffix(notaryDay.value) || '_____';
                 document.getElementById('pv_notary_month').textContent = notaryMonth.value || '__________________';
                 document.getElementById('pv_notary_year').textContent = notaryYear.value || '20___';
                 document.getElementById('pv_notary_place').textContent = notaryPlace.value || '__________________';
@@ -525,17 +638,22 @@ if (isset($_GET['action'])) {
                 if (partnerRep.value) params.set('partner_rep', partnerRep.value);
                 if (partnerPosition.value) params.set('partner_position', partnerPosition.value);
                 if (partnerAddress.value) params.set('partner_address', partnerAddress.value);
+                if (companyReceipt.value) params.set('company_receipt', companyReceipt.value);
+                if (totalHours && totalHours.value) params.set('total_hours', totalHours.value);
                 if (schoolRep.value) params.set('school_rep', schoolRep.value);
+                if (schoolPosition && schoolPosition.value) params.set('school_position', schoolPosition.value);
                 if (signedAt.value) params.set('signed_at', signedAt.value);
-                if (signedDay.value) params.set('signed_day', signedDay.value);
+                if (signedDay.value) params.set('signed_day', withOrdinalSuffix(signedDay.value));
                 if (signedMonth.value) params.set('signed_month', signedMonth.value);
                 if (signedYear.value) params.set('signed_year', signedYear.value);
                 if (presencePartnerRep.value) params.set('presence_partner_rep', presencePartnerRep.value);
                 if (presenceSchoolAdmin.value) params.set('presence_school_admin', presenceSchoolAdmin.value);
+                if (presenceSchoolAdminPosition && presenceSchoolAdminPosition.value) params.set('presence_school_admin_position', presenceSchoolAdminPosition.value);
                 if (notaryCity.value) params.set('notary_city', notaryCity.value);
                 if (notaryAppeared1 && notaryAppeared1.value) params.set('notary_appeared_1', notaryAppeared1.value);
+                else if (presencePartnerRep && presencePartnerRep.value) params.set('notary_appeared_1', presencePartnerRep.value);
                 if (notaryAppeared2 && notaryAppeared2.value) params.set('notary_appeared_2', notaryAppeared2.value);
-                if (notaryDay.value) params.set('notary_day', notaryDay.value);
+                if (notaryDay.value) params.set('notary_day', withOrdinalSuffix(notaryDay.value));
                 if (notaryMonth.value) params.set('notary_month', notaryMonth.value);
                 if (notaryYear.value) params.set('notary_year', notaryYear.value);
                 if (notaryPlace.value) params.set('notary_place', notaryPlace.value);
@@ -543,11 +661,6 @@ if (isset($_GET['action'])) {
                 if (pageNo.value) params.set('page_no', pageNo.value);
                 if (bookNo.value) params.set('book_no', bookNo.value);
                 if (seriesNo.value) params.set('series_no', seriesNo.value);
-                try {
-                    if (localStorage.getItem(MOA_TEMPLATE_STORAGE_KEY)) {
-                        params.set('use_saved_template', '1');
-                    }
-                } catch (err) {}
                 params.set('date', new Date().toLocaleDateString());
                 const url = 'generate_moa.php?' + params.toString();
                 btnGenerate.dataset.url = url;
@@ -555,22 +668,14 @@ if (isset($_GET['action'])) {
             }
 
             [
-                partnerName, partnerRep, partnerPosition, partnerAddress, schoolRep,
+                partnerName, partnerRep, partnerPosition, partnerAddress, companyReceipt, totalHours, schoolRep, schoolPosition,
                 signedAt, signedDay, signedMonth, signedYear,
-                presencePartnerRep, presenceSchoolAdmin,
+                presencePartnerRep, presenceSchoolAdmin, presenceSchoolAdminPosition,
                 notaryCity, notaryAppeared1, notaryAppeared2,
                 notaryDay, notaryMonth, notaryYear, notaryPlace,
                 docNo, pageNo, bookNo, seriesNo
             ].forEach(function(el){ if (!el) return; el.addEventListener('input', function(){ updatePreview(); updateGenerateLink(); }); });
 
-            window.__toggleMoaFileEdit = forceToggleMoaFileEdit;
-            if (moaContent) {
-                moaContent.addEventListener('input', function(){
-                    if (!isFileEditMode) return;
-                    saveMoaTemplateHtml();
-                    updateGenerateLink();
-                });
-            }
             btnGenerate.addEventListener('click', function(){
                 const url = updateGenerateLink();
                 if (!url) return;
@@ -604,10 +709,10 @@ if (isset($_GET['action'])) {
                 }
             });
 
-            // initialize
-            loadMoaTemplateHtml();
-            if (!hasLoadedSavedTemplate) updatePreview();
+            // initialize (always render live autofill preview)
+            updatePreview();
             updateGenerateLink();
+            if (PREFILL_STUDENT_ID > 0) prefillByStudentId(PREFILL_STUDENT_ID);
 
         })();
     </script>
