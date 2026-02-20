@@ -14,6 +14,34 @@ try {
     die("Database Error: " . $e->getMessage());
 }
 
+// Handle attendance actions (approve/reject/delete)
+$action_message = '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'])) {
+    $action = trim($_POST['action']);
+    $attendance_id = intval($_POST['id']);
+    $current_user_id = \Illuminate\Support\Facades\Auth::id();
+
+    if ($attendance_id > 0) {
+        if ($action === 'approve') {
+            $q = "UPDATE attendances SET status = 'approved', approved_by = " . ($current_user_id ? intval($current_user_id) : 'NULL') . ", approved_at = NOW(), updated_at = NOW() WHERE id = " . $attendance_id;
+            if ($conn->query($q)) {
+                $action_message = 'Attendance approved successfully.';
+            }
+        } elseif ($action === 'reject') {
+            $remarks = isset($_POST['remarks']) ? $conn->real_escape_string(trim($_POST['remarks'])) : '';
+            $q = "UPDATE attendances SET status = 'rejected', remarks = '" . $remarks . "', approved_by = " . ($current_user_id ? intval($current_user_id) : 'NULL') . ", approved_at = NOW(), updated_at = NOW() WHERE id = " . $attendance_id;
+            if ($conn->query($q)) {
+                $action_message = 'Attendance rejected successfully.';
+            }
+        } elseif ($action === 'delete') {
+            $q = "DELETE FROM attendances WHERE id = " . $attendance_id;
+            if ($conn->query($q)) {
+                $action_message = 'Attendance deleted successfully.';
+            }
+        }
+    }
+}
+
 // Fetch Attendance Statistics
 $stats_query = "
     SELECT
@@ -34,11 +62,6 @@ $filter_department = isset($_GET['department_id']) ? intval($_GET['department_id
 $filter_supervisor = isset($_GET['supervisor']) ? trim($_GET['supervisor']) : '';
 $filter_coordinator = isset($_GET['coordinator']) ? trim($_GET['coordinator']) : '';
 $filter_status = isset($_GET['status']) ? trim($_GET['status']) : '';
-
-// default to today when no date filters provided
-if (empty($filter_date) && empty($start_date) && empty($end_date) && empty($filter_status)) {
-    $filter_date = date('Y-m-d');
-}
 
 // Fetch dropdown lists
 $courses = [];
@@ -120,10 +143,16 @@ $attendance_query = "
     FROM attendances a
     LEFT JOIN students s ON a.student_id = s.id
     LEFT JOIN courses c ON s.course_id = c.id
-    LEFT JOIN internships i ON s.id = i.student_id AND i.status = 'ongoing'
+    LEFT JOIN internships i ON i.id = (
+        SELECT id
+        FROM internships
+        WHERE student_id = s.id AND status = 'ongoing'
+        ORDER BY id DESC
+        LIMIT 1
+    )
     LEFT JOIN departments d ON i.department_id = d.id
     LEFT JOIN users u ON a.approved_by = u.id
-    WHERE " . implode(' AND ', $where) . "
+    " . (count($where) > 0 ? "WHERE " . implode(' AND ', $where) : "") . "
     ORDER BY a.attendance_date DESC, s.last_name ASC
     LIMIT 100
 ";
@@ -136,6 +165,26 @@ if ($attendance_result && $attendance_result->num_rows > 0) {
     }
 }
 
+// Remove duplicate attendance rows (same student + date), keeping the latest record
+if (count($attendances) > 1) {
+    $seen = [];
+    $unique = [];
+    foreach ($attendances as $attendance) {
+        $studentId = isset($attendance['student_id']) ? $attendance['student_id'] : null;
+        $attendanceDate = isset($attendance['attendance_date']) ? $attendance['attendance_date'] : null;
+        if ($studentId === null || $attendanceDate === null) {
+            $unique[] = $attendance;
+            continue;
+        }
+        $dedupeKey = $studentId . '|' . $attendanceDate;
+        if (!isset($seen[$dedupeKey])) {
+            $seen[$dedupeKey] = true;
+            $unique[] = $attendance;
+        }
+    }
+    $attendances = $unique;
+}
+
 // If requested via AJAX, return only the table rows HTML so frontend can replace tbody
 if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
     if (!empty($attendances)) {
@@ -144,12 +193,12 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
             echo '<td><div class="item-checkbox ms-1"><div class="custom-control custom-checkbox"><input type="checkbox" class="custom-control-input checkbox" id="checkBox_' . $attendance['id'] . '"><label class="custom-control-label" for="checkBox_' . $attendance['id'] . '"></label></div></div></td>';
             echo '<td><a href="' . url('/students/view') . '?id=' . $attendance['student_id'] . '" class="hstack gap-3"><div class="avatar-image avatar-md"><div class="avatar-text avatar-md bg-light-primary rounded">' . strtoupper(substr($attendance['first_name'] ?? 'N', 0, 1) . substr($attendance['last_name'] ?? 'A', 0, 1)) . '</div></div><div><div class="fw-bold">' . htmlspecialchars(($attendance['first_name'] ?? '') . ' ' . ($attendance['last_name'] ?? '')) . '</div><small class="text-muted">' . htmlspecialchars($attendance['student_number'] ?? '') . '</small></div></a></td>';
             echo '<td><span class="badge bg-soft-primary text-primary">' . date('Y-m-d', strtotime($attendance['attendance_date'])) . '</span></td>';
-            echo '<td><span class="badge bg-soft-success text-success">' . ( $attendance['morning_time_in'] ? date('h:i A', strtotime($attendance['morning_time_in'])) : '-' ) . '</span></td>';
-            echo '<td><span class="badge bg-soft-success text-success">' . ( $attendance['morning_time_out'] ? date('h:i A', strtotime($attendance['morning_time_out'])) : '-' ) . '</span></td>';
-            echo '<td><span class="badge bg-soft-info text-info">' . ( $attendance['break_time_in'] ? date('h:i A', strtotime($attendance['break_time_in'])) : '-' ) . '</span></td>';
-            echo '<td><span class="badge bg-soft-info text-info">' . ( $attendance['break_time_out'] ? date('h:i A', strtotime($attendance['break_time_out'])) : '-' ) . '</span></td>';
-            echo '<td><span class="badge bg-soft-warning text-warning">' . ( $attendance['afternoon_time_in'] ? date('h:i A', strtotime($attendance['afternoon_time_in'])) : '-' ) . '</span></td>';
-            echo '<td><span class="badge bg-soft-warning text-warning">' . ( $attendance['afternoon_time_out'] ? date('h:i A', strtotime($attendance['afternoon_time_out'])) : '-' ) . '</span></td>';
+            echo '<td><span class="badge bg-soft-success text-success">' . formatTime($attendance['morning_time_in']) . '</span></td>';
+            echo '<td><span class="badge bg-soft-success text-success">' . formatTime($attendance['morning_time_out']) . '</span></td>';
+            echo '<td><span class="badge bg-soft-info text-info">' . formatTime($attendance['break_time_in']) . '</span></td>';
+            echo '<td><span class="badge bg-soft-info text-info">' . formatTime($attendance['break_time_out']) . '</span></td>';
+            echo '<td><span class="badge bg-soft-warning text-warning">' . formatTime($attendance['afternoon_time_in']) . '</span></td>';
+            echo '<td><span class="badge bg-soft-warning text-warning">' . formatTime($attendance['afternoon_time_out']) . '</span></td>';
             $total_hours = calculateTotalHours($attendance['morning_time_in'], $attendance['morning_time_out'], $attendance['afternoon_time_in'], $attendance['afternoon_time_out']);
             echo '<td><span class="badge bg-soft-secondary text-secondary">' . $total_hours . 'h</span></td>';
             // attendance status
@@ -175,10 +224,16 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
 
 // Helper function to format time
 function formatTime($time) {
-    if ($time) {
-        return date('h:i A', strtotime($time));
+    if (empty($time) || $time === '00:00:00' || $time === '0000-00-00 00:00:00') {
+        return '-';
     }
-    return '-';
+
+    $parsed = strtotime($time);
+    if ($parsed === false) {
+        return '-';
+    }
+
+    return date('h:i A', $parsed);
 }
 
 // Helper function to get status badge
@@ -264,6 +319,29 @@ function getAttendanceStatus($morning_time_in) {
 			<script src="https:oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
 			<script src="https:oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
 		<![endif]-->
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        main.nxl-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        div.nxl-content {
+            flex: 1;
+        }
+        footer.footer {
+            margin-top: auto;
+        }
+    </style>
 </head>
 
 <body>
@@ -2453,16 +2531,16 @@ function getAttendanceStatus($morning_time_in) {
             <!-- [ page-header ] end -->
             <!-- [ Main Content ] start -->
             <!-- Filters -->
-            <div class="row mb-1 px-3">
+           <div class="row mb-1 px-3">
                 <div class="col-12">
                     <form method="GET" class="row g-2 align-items-end filter-form">
                         <div class="col-sm-2">
-                            <label class="form-label">Date</label>
-                            <input type="date" name="date" class="form-control" value="<?php echo htmlspecialchars($filter_date); ?>">
+                            <label class="form-label" for="filter-date">Date</label>
+                            <input id="filter-date" type="date" name="date" class="form-control" value="<?php echo htmlspecialchars($_GET['date'] ?? ''); ?>">
                         </div>
                         <div class="col-sm-2">
-                            <label class="form-label">Course</label>
-                            <select name="course_id" class="form-control">
+                            <label class="form-label" for="filter-course">Course</label>
+                            <select id="filter-course" name="course_id" class="form-control">
                                 <option value="0">-- All Courses --</option>
                                 <?php foreach ($courses as $course): ?>
                                     <option value="<?php echo $course['id']; ?>" <?php echo $filter_course == $course['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($course['name']); ?></option>
@@ -2470,8 +2548,8 @@ function getAttendanceStatus($morning_time_in) {
                             </select>
                         </div>
                         <div class="col-sm-2">
-                            <label class="form-label">Department</label>
-                            <select name="department_id" class="form-control">
+                            <label class="form-label" for="filter-department">Department</label>
+                            <select id="filter-department" name="department_id" class="form-control">
                                 <option value="0">-- All Departments --</option>
                                 <?php foreach ($departments as $dept): ?>
                                     <option value="<?php echo $dept['id']; ?>" <?php echo $filter_department == $dept['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($dept['name']); ?></option>
@@ -2479,8 +2557,8 @@ function getAttendanceStatus($morning_time_in) {
                             </select>
                         </div>
                         <div class="col-sm-2">
-                            <label class="form-label">Supervisor</label>
-                            <select name="supervisor" class="form-control">
+                            <label class="form-label" for="filter-supervisor">Supervisor</label>
+                            <select id="filter-supervisor" name="supervisor" class="form-control">
                                 <option value="">-- Any Supervisor --</option>
                                 <?php foreach ($supervisors as $sup): ?>
                                     <option value="<?php echo htmlspecialchars($sup); ?>" <?php echo $filter_supervisor == $sup ? 'selected' : ''; ?>><?php echo htmlspecialchars($sup); ?></option>
@@ -2488,8 +2566,8 @@ function getAttendanceStatus($morning_time_in) {
                             </select>
                         </div>
                         <div class="col-sm-2">
-                            <label class="form-label">Coordinator</label>
-                            <select name="coordinator" class="form-control">
+                            <label class="form-label" for="filter-coordinator">Coordinator</label>
+                            <select id="filter-coordinator" name="coordinator" class="form-control">
                                 <option value="">-- Any Coordinator --</option>
                                 <?php foreach ($coordinators as $coor): ?>
                                     <option value="<?php echo htmlspecialchars($coor); ?>" <?php echo $filter_coordinator == $coor ? 'selected' : ''; ?>><?php echo htmlspecialchars($coor); ?></option>
@@ -2507,6 +2585,11 @@ function getAttendanceStatus($morning_time_in) {
                 </div>
             </div>
             <div class="main-content">
+                <?php if (!empty($action_message)): ?>
+                    <div class="alert alert-success mx-3 mt-2" role="alert">
+                        <?php echo htmlspecialchars($action_message); ?>
+                    </div>
+                <?php endif; ?>
                 <div class="row">
                     <div class="col-lg-12">
                         <div class="card stretch stretch-full">
@@ -2665,7 +2748,7 @@ function getAttendanceStatus($morning_time_in) {
                     document.write(new Date().getFullYear());
                 </script>
             </p>
-            <p><span>By: <a target="_blank" href="" target="_blank">ACT 2A</a></span> • <span>Distributed by: <a target="_blank" href="" target="_blank">Group 5</a></span></p>
+            <p><span>By: <a target="_blank" href="">ACT 2A</a> </span><span>Distributed by: <a target="_blank" href="">Group 5</a></span></p>
             <div class="d-flex align-items-center gap-4">
                 <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Help</a>
                 <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Terms</a>
@@ -2715,13 +2798,92 @@ function getAttendanceStatus($morning_time_in) {
         /* Allow dropdowns to overflow parent containers */
         .page-header, .page-header-right { overflow: visible !important; }
 
-        /* Filter row alignment */
+        /* Dark mode select and Select2 styling */
+        select.form-control,
+        select.form-select,
+        .select2-container--default .select2-selection--single,
+        .select2-container--default .select2-selection--multiple {
+            color: #333;
+            background-color: #ffffff;
+        }
+
+        /* Dark mode support for Select2 - using app-skin-dark class */
+        html.app-skin-dark .select2-container--default .select2-selection--single,
+        html.app-skin-dark .select2-container--default .select2-selection--multiple {
+            color: #f0f0f0 !important;
+            background-color: #2d3748 !important;
+            border-color: #4a5568 !important;
+        }
+
+        html.app-skin-dark .select2-container--default .select2-selection--single .select2-selection__rendered {
+            color: #f0f0f0 !important;
+        }
+
+        /* Dark mode dropdown menu */
+        html.app-skin-dark .select2-container--default.select2-container--open .select2-dropdown {
+            background-color: #2d3748 !important;
+            border-color: #4a5568 !important;
+        }
+
+        html.app-skin-dark .select2-results__option {
+            color: #f0f0f0 !important;
+            background-color: #2d3748 !important;
+        }
+
+        html.app-skin-dark .select2-results__option--highlighted[aria-selected] {
+            background-color: #667eea !important;
+            color: #ffffff !important;
+        }
+
+        html.app-skin-light select.form-control,
+        html.app-skin-dark select.form-select {
+            color: #f0f0f0 !important;
+            background-color: #0f172a !important;
+            border-color: #4a5568 !important;
+        }
+
+        html.app-skin-dark select.form-control option,
+        html.app-skin-dark select.form-select option {
+            color: #f0f0f0 !important;
+            background-color: #2d3748 !important;
+        }
+ /* Filter row alignment */
         .filter-form .form-label {
             margin-bottom: 0.35rem;
         }
 
-        .filter-form .form-control {
+
+        /* Calendar input design */
+        .filter-form input[type="date"].form-control {
             min-height: 42px;
+            border-radius: 8px;
+            padding-right: 2.25rem;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .filter-form input[type="date"].form-control:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.2);
+        }
+
+        html.app-skin-light .filter-form input[type="date"].form-control {
+            color: #f0f0f0 !important;
+            background-color: #2d3748 !important;
+            border-color: #4a5568 !important;
+        }
+
+        html.app-skin-dark .filter-form input[type="date"].form-control::-webkit-calendar-picker-indicator {
+            filter: invert(1) brightness(1.2);
+            opacity: 0.9;
+            cursor: pointer;
+        }
+
+        html.app-skin-dark .filter-form input[type="date"].form-control::-webkit-datetime-edit,
+        html.app-skin-dark .filter-form input[type="date"].form-control::-webkit-datetime-edit-text,
+        html.app-skin-dark .filter-form input[type="date"].form-control::-webkit-datetime-edit-month-field,
+        html.app-skin-dark .filter-form input[type="date"].form-control::-webkit-datetime-edit-day-field,
+        html.app-skin-dark .filter-form input[type="date"].form-control::-webkit-datetime-edit-year-field {
+            color: #f0f0f0;
         }
 
         .filter-form .select2-container .select2-selection--single {
@@ -2883,27 +3045,49 @@ function getAttendanceStatus($morning_time_in) {
             // You can implement a modal or redirect to detail page
         }
 
+        const attendanceActionUrl = "{{ url('/attendance') }}";
+        const csrfToken = "{{ csrf_token() }}";
+
+        function submitAttendanceAction(action, id, remarks) {
+            var form = document.createElement('form');
+            form.method = 'POST';
+            form.action = attendanceActionUrl;
+
+            var token = document.createElement('input');
+            token.type = 'hidden';
+            token.name = '_token';
+            token.value = csrfToken;
+
+            var input1 = document.createElement('input');
+            input1.type = 'hidden';
+            input1.name = 'action';
+            input1.value = action;
+
+            var input2 = document.createElement('input');
+            input2.type = 'hidden';
+            input2.name = 'id';
+            input2.value = id;
+
+            form.appendChild(token);
+            form.appendChild(input1);
+            form.appendChild(input2);
+
+            if (remarks !== undefined && remarks !== null) {
+                var input3 = document.createElement('input');
+                input3.type = 'hidden';
+                input3.name = 'remarks';
+                input3.value = remarks;
+                form.appendChild(input3);
+            }
+
+            document.body.appendChild(form);
+            form.submit();
+        }
+
         // Approve attendance function
         function approveAttendance(id) {
             if (confirm('Are you sure you want to approve this attendance?')) {
-                var form = document.createElement('form');
-                form.method = 'POST';
-                form.action = 'process_attendance.php';
-
-                var input1 = document.createElement('input');
-                input1.type = 'hidden';
-                input1.name = 'action';
-                input1.value = 'approve';
-
-                var input2 = document.createElement('input');
-                input2.type = 'hidden';
-                input2.name = 'id';
-                input2.value = id;
-
-                form.appendChild(input1);
-                form.appendChild(input2);
-                document.body.appendChild(form);
-                form.submit();
+                submitAttendanceAction('approve', id);
             }
         }
 
@@ -2911,68 +3095,33 @@ function getAttendanceStatus($morning_time_in) {
         function rejectAttendance(id) {
             var remarks = prompt('Enter rejection reason:');
             if (remarks !== null && remarks.trim() !== '') {
-                var form = document.createElement('form');
-                form.method = 'POST';
-                form.action = 'process_attendance.php';
-
-                var input1 = document.createElement('input');
-                input1.type = 'hidden';
-                input1.name = 'action';
-                input1.value = 'reject';
-
-                var input2 = document.createElement('input');
-                input2.type = 'hidden';
-                input2.name = 'id';
-                input2.value = id;
-
-                var input3 = document.createElement('input');
-                input3.type = 'hidden';
-                input3.name = 'remarks';
-                input3.value = remarks;
-
-                form.appendChild(input1);
-                form.appendChild(input2);
-                form.appendChild(input3);
-                document.body.appendChild(form);
-                form.submit();
+                submitAttendanceAction('reject', id, remarks.trim());
             }
         }
 
         // Edit attendance function
         function editAttendance(id) {
-            window.location.href = 'edit_attendance.php?id=' + id;
+            alert('Edit action is not connected yet for Attendance ID: ' + id);
         }
 
         // Print attendance function
         function printAttendance(id) {
-            window.open('print_attendance.php?id=' + id, 'Print', 'height=600,width=800');
+            window.print();
         }
 
         // Send notification function
         function sendNotification(id) {
-            alert('Sending notification for Attendance ID: ' + id);
-            // Implement your notification logic here
+            alert('Notification action is not connected yet for Attendance ID: ' + id);
         }
 
         // Delete attendance function
         function deleteAttendance(id) {
             if (confirm('Are you sure you want to delete this attendance record? This action cannot be undone.')) {
-                var form = document.createElement('form');
-                form.method = 'POST';
-                form.action = 'process_attendance.php';
+                submitAttendanceAction('delete', id);
+            }
+        }
+    </script>
+</body>
 
-                var input1 = document.createElement('input');
-                input1.type = 'hidden';
-                input1.name = 'action';
-                input1.value = 'delete';
-
-                var input2 = document.createElement('input');
-                input2.type = 'hidden';
-                input2.name = 'id';
-                input2.value = id;
-
-                form.appendChild(input1);
-                form.appendChild(input2);
-                document.body.appendChild(form);
-
+</html>
 

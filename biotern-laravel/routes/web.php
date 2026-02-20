@@ -30,6 +30,10 @@ Route::get('/students/view', function () {
     return view('students-view');
 })->name('students.view');
 
+Route::match(['get', 'post'], '/students-edit', function () {
+    return view('students-edit');
+})->name('students.edit');
+
 Route::get('/students/create', function () {
     return view('students');
 });
@@ -54,7 +58,7 @@ Route::post('/demo-biometric', function () {
     return view('demo-biometric');
 });
 
-Route::get('/attendance', function () {
+Route::match(['get', 'post'], '/attendance', function () {
     return view('attendance');
 });
 

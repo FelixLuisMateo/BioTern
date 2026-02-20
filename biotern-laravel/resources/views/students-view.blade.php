@@ -282,6 +282,12 @@ function formatTimeRange($time_in, $time_out) {
     if ($time_in && $time_out) {
         return date('h:i A', strtotime($time_in)) . ' - ' . date('h:i A', strtotime($time_out));
     }
+    if ($time_in) {
+        return date('h:i A', strtotime($time_in)) . ' ✓';
+    }
+    if ($time_out) {
+        return 'Out: ' . date('h:i A', strtotime($time_out));
+    }
     return '-';
 }
 
@@ -2606,14 +2612,14 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                                         <a href="javascript:void(0);" class="float-end"><?php echo htmlspecialchars($student['email']); ?></a>
                                     </li>
                                 </ul>
-                                <div class="d-flex gap-2 text-center pt-4">
-                                    <a href="javascript:void(0);" class="w-50 btn btn-light-brand">
-                                        <i class="feather-trash-2 me-2"></i>
-                                        <span>Delete</span>
-                                    </a>
-                                    <a href="{{ url('/students-edit') }}?id=<?php echo $student['id']; ?>" class="w-50 btn btn-primary">
+                                <div class="d-grid gap-2 text-center pt-4">
+                                    <a href="{{ url('/students-edit') }}?id=<?php echo $student['id']; ?>" class="btn btn-primary">
                                         <i class="feather-edit me-2"></i>
                                         <span>Edit Profile</span>
+                                    </a>
+                                    <a href="{{ url('/students-edit') }}?id=<?php echo $student['id']; ?>#upload-profile-picture" class="btn btn-info">
+                                        <i class="feather-image me-2"></i>
+                                        <span>Upload Profile Picture</span>
                                     </a>
                                 </div>
                             </div>
@@ -2640,9 +2646,8 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                                 <!-- Overview Tab -->
                                 <div class="tab-pane fade show active p-4" id="overviewTab" role="tabpanel">
                                     <div class="profile-details mb-5">
-                                        <div class="mb-4 d-flex align-items-center justify-content-between">
+                                        <div class="mb-4">
                                             <h5 class="fw-bold mb-0">Profile Details:</h5>
-                                            <a href="{{ url('/students-edit') }}?id=<?php echo $student['id']; ?>" class="btn btn-sm btn-light-brand">Edit Profile</a>
                                         </div>
                                         <div class="row g-0 mb-4">
                                             <div class="col-sm-6 text-muted">First Name:</div>

@@ -21,11 +21,23 @@ if ($student_id == 0) {
     die("Invalid student ID");
 }
 
+// Create uploads directory if it doesn't exist
+$uploads_dir = public_path('uploads/profile_pictures');
+if (!is_dir($uploads_dir)) {
+    mkdir($uploads_dir, 0755, true);
+}
+// Ensure other upload folders exist
+$uploads_documents = public_path('uploads/documents');
+if (!is_dir($uploads_documents)) {
+    mkdir($uploads_documents, 0755, true);
+}
+
 // Fetch Student Details
 $student_query = "
     SELECT
         s.id,
         s.student_id,
+        s.profile_picture,
         s.first_name,
         s.last_name,
         s.middle_name,
@@ -98,6 +110,57 @@ $success_message = '';
 $error_message = '';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    // Handle profile picture upload
+    $action = isset($_POST['action']) ? trim($_POST['action']) : 'update_profile';
+    $profile_picture_path = $student['profile_picture'] ?? '';
+
+    if (($action === 'update_profile' || $action === 'upload_profile_picture') && isset($_FILES['profile_picture']) && $_FILES['profile_picture']['error'] == UPLOAD_ERR_OK) {
+        $file_tmp = $_FILES['profile_picture']['tmp_name'];
+        $file_name = $_FILES['profile_picture']['name'];
+        $file_size = $_FILES['profile_picture']['size'];
+        $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+
+        // Validate file type and size
+        $allowed_types = ['jpg', 'jpeg', 'png', 'gif'];
+        $max_file_size = 5 * 1024 * 1024; // 5MB
+
+        if (in_array($file_ext, $allowed_types) && $file_size <= $max_file_size) {
+            // Create unique filename
+            $unique_name = 'student_' . $student_id . '_' . time() . '.' . $file_ext;
+            $file_path = $uploads_dir . '/' . $unique_name;
+
+            // Delete old profile picture if exists
+            if (!empty($profile_picture_path) && is_file(public_path($profile_picture_path))) {
+                @unlink(public_path($profile_picture_path));
+            }
+
+            // Move uploaded file
+            if (move_uploaded_file($file_tmp, $file_path)) {
+                $profile_picture_path = 'uploads/profile_pictures/' . $unique_name;
+            } else {
+                $error_message = "Failed to upload profile picture. Please try again.";
+            }
+        } else {
+            $error_message = "Invalid file type or file size exceeds 5MB. Allowed types: JPG, PNG, GIF.";
+        }
+    }
+
+    if ($action === 'upload_profile_picture' && empty($error_message) && !empty($profile_picture_path)) {
+        $upd = $conn->prepare("UPDATE students SET profile_picture = ?, updated_at = NOW() WHERE id = ?");
+        if ($upd) {
+            $upd->bind_param("si", $profile_picture_path, $student_id);
+            if ($upd->execute()) {
+                $success_message = "✓ Profile picture uploaded successfully.";
+            } else {
+                $error_message = "Failed to save profile picture path.";
+            }
+            $upd->close();
+        } else {
+            $error_message = "Prepare failed while saving profile picture.";
+        }
+    }
+
+    if ($action === 'update_profile') {
     // Sanitize and validate inputs
     $first_name = isset($_POST['first_name']) ? trim($_POST['first_name']) : '';
     $last_name = isset($_POST['last_name']) ? trim($_POST['last_name']) : '';
@@ -145,6 +208,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     status = ?,
                     supervisor_name = ?,
                     coordinator_name = ?,
+                    profile_picture = ?,
                     updated_at = NOW()
                 WHERE id = ?
             ";
@@ -154,7 +218,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $error_message = "Prepare failed: " . $conn->error;
             } else {
                 $update_stmt->bind_param(
-                    "sssssssssssssi",
+                    "ssssssssssssssi",
                     $first_name,
                     $last_name,
                     $middle_name,
@@ -168,6 +232,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $status,
                     $supervisor_id,
                     $coordinator_id,
+                    $profile_picture_path,
                     $student_id
                 );
 
@@ -187,6 +252,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             }
         }
     }
+    }
+
+    // Refresh student data after any action
+    $stmt = $conn->prepare($student_query);
+    $stmt->bind_param("i", $student_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $student = $result->fetch_assoc();
 }
 
 // Helper functions
@@ -254,17 +327,13 @@ function formatDateTime($date) {
             border: 1px solid #dddddd;
             border-radius: 0 0 4px 4px;
             box-shadow: 0 6px 12px rgba(0,0,0,0.08);
-            max-height: 300px;
+            max-height: 200px;
             overflow-y: auto;
         }
 
         .select2-container {
             width: 100% !important;
-        }
-
-        /* Ensure dropdown appears above other content */
-        .select2-container--open {
-            z-index: 99999 !important;
+            max-width: 100%;
         }
 
         .form-control.select2-hidden-accessible {
@@ -292,7 +361,7 @@ function formatDateTime($date) {
             transform: translateY(-50%);
         }
 
-        /* Clear (×) button styling */
+        /* Clear (Ã—) button styling */
         .select2-selection__clear {
             position: absolute;
             right: 36px;
@@ -321,35 +390,113 @@ function formatDateTime($date) {
             max-width: calc(100% - 80px);
         }
 
-        /* Make dropdown match the width of the select box and sit above content */
-        .select2-container--open {
-            z-index: 99999 !important;
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        main.nxl-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        div.nxl-content {
+            flex: 1;
+        }
+        footer.footer {
+            margin-top: auto;
         }
 
-        .select2-container--default .select2-dropdown {
-            min-width: 100% !important;
-            box-sizing: border-box;
+        /* Dark mode select and Select2 styling */
+        select.form-control,
+        select.form-select,
+        .select2-container--default .select2-selection--single,
+        .select2-container--default .select2-selection--multiple {
+            color: #333 !important;
+            background-color: #ffffff !important;
+        }
+
+        /* Dark mode support for Select2 - using app-skin-dark class */
+        html.app-skin-dark .select2-container--default .select2-selection--single,
+        html.app-skin-dark .select2-container--default .select2-selection--multiple {
+            color: #f0f0f0 !important;
+            background-color: #2d3748 !important;
+            border-color: #4a5568 !important;
+        }
+
+        html.app-skin-dark .select2-container--default.select2-container--focus .select2-selection--single,
+        html.app-skin-dark .select2-container--default.select2-container--focus .select2-selection--multiple {
+            color: #f0f0f0 !important;
+            background-color: #2d3748 !important;
+            border-color: #667eea !important;
+        }
+
+        html.app-skin-dark .select2-container--default .select2-selection--single .select2-selection__rendered {
+            color: #f0f0f0 !important;
+        }
+
+        html.app-skin-dark .select2-container--default .select2-selection__placeholder {
+            color: #a0aec0 !important;
+        }
+
+        /* Dark mode dropdown menu */
+        html.app-skin-dark .select2-container--default.select2-container--open .select2-dropdown {
+            background-color: #2d3748 !important;
+            border-color: #4a5568 !important;
+        }
+
+        html.app-skin-dark .select2-results {
+            background-color: #2d3748 !important;
+        }
+
+        html.app-skin-dark .select2-results__option {
+            color: #f0f0f0 !important;
+            background-color: #2d3748 !important;
+        }
+
+        html.app-skin-dark .select2-results__option--highlighted[aria-selected] {
+            background-color: #667eea !important;
+            color: #ffffff !important;
+        }
+
+        html.app-skin-dark .select2-container--default {
+            background-color: #2d3748 !important;
+        }
+
+        html.app-skin-dark select.form-control,
+        html.app-skin-dark select.form-select {
+            color: #f0f0f0 !important;
+            background-color: #2d3748 !important;
+            border-color: #4a5568 !important;
+        }
+
+        html.app-skin-dark select.form-control option,
+        html.app-skin-dark select.form-select option {
+            color: #f0f0f0 !important;
+            background-color: #2d3748 !important;
         }
     </style>
 </head>
 
 <body>
-    <!--! ================================================================ !-->
-    <!--! [Start] Navigation Manu !-->
-    <!--! ================================================================ !-->
+    <!--! Navigation !-->
     <nav class="nxl-navigation">
         <div class="navbar-wrapper">
             <div class="m-header">
                 <a href="{{ route('dashboard') }}" class="b-brand">
-                    <!-- ========   change your logo hear   ============ -->
-                    <img src="{{ asset('frontend/assets/images/logo-full.png') }}" alt="" class="logo logo-lg" />
-                    <img src="{{ asset('frontend/assets/images/logo-abbr.png') }}" alt="" class="logo logo-sm" />
+                    <img src="{{ asset('frontend/assets/images/logo-full.png') }}" alt="" class="logo logo-lg">
+                    <img src="{{ asset('frontend/assets/images/logo-abbr.png') }}" alt="" class="logo logo-sm">
                 </a>
             </div>
             <div class="navbar-content">
                 <ul class="nxl-navbar">
                     <li class="nxl-item nxl-caption">
-                        <label>Navigation</label>
+                        <span class="nav-caption">Navigation</span>
                     </li>
                     <li class="nxl-item nxl-hasmenu">
                         <a href="javascript:void(0);" class="nxl-link">
@@ -357,7 +504,7 @@ function formatDateTime($date) {
                             <span class="nxl-mtext">Dashboards</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="{{ route('dashboard') }}">Overview</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ route('dashboard') }}">CRM</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="{{ url('/analytics') }}">Analytics</a></li>
                         </ul>
                     </li>
@@ -393,10 +540,9 @@ function formatDateTime($date) {
                             <span class="nxl-mtext">Students</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/students') }}">Students List</a></li>
-                            <li class="nxl-divider"></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/attendance') }}"><i class="feather-calendar me-2"></i>Attendance Records</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/demo-biometric') }}"><i class="feather-activity me-2"></i>Biometric Demo</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/students') }}">Students</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/students/view') }}">Students View</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/students/create') }}">Students Create</a></li>
                         </ul>
                     </li>
                     <li class="nxl-item nxl-hasmenu">
@@ -437,8 +583,6 @@ function formatDateTime($date) {
                             <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings-ojt') }}">Leads</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings-support') }}">Support</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings-students') }}">Students</a></li>
-
-
                             <li class="nxl-item"><a class="nxl-link" href="{{ url('/settings-miscellaneous') }}">Miscellaneous</a></li>
                         </ul>
                     </li>
@@ -513,16 +657,11 @@ function formatDateTime($date) {
             </div>
         </div>
     </nav>
-    <!--! ================================================================ !-->
-    <!--! [End]  Navigation Manu !-->
-    <!--! ================================================================ !-->
 
     <!--! Header !-->
     <header class="nxl-header">
         <div class="header-wrapper">
-            <!--! [Start] Header Left !-->
             <div class="header-left d-flex align-items-center gap-4">
-                <!--! [Start] nxl-head-mobile-toggler !-->
                 <a href="javascript:void(0);" class="nxl-head-mobile-toggler" id="mobile-collapse">
                     <div class="hamburger hamburger--arrowturn">
                         <div class="hamburger-box">
@@ -530,8 +669,6 @@ function formatDateTime($date) {
                         </div>
                     </div>
                 </a>
-                <!--! [Start] nxl-head-mobile-toggler !-->
-                <!--! [Start] nxl-navigation-toggle !-->
                 <div class="nxl-navigation-toggle">
                     <a href="javascript:void(0);" id="menu-mini-button">
                         <i class="feather-align-left"></i>
@@ -715,11 +852,11 @@ function formatDateTime($date) {
                                         </a>
                                         <a href="{{ url('/ojt-view') }}" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                            <span>OJT View</span>
+                                            <span>Leads View</span>
                                         </a>
                                         <a href="{{ url('/ojt-create') }}" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                            <span>OJT Create</span>
+                                            <span>Leads Create</span>
                                         </a>
                                     </div>
                                 </div>
@@ -1962,291 +2099,10 @@ function formatDateTime($date) {
                                 <span class="input-group-text">
                                     <i class="feather-search fs-6 text-muted"></i>
                                 </span>
-                                <input type="text" class="form-control search-input-field" placeholder="Search...." />
+                                <input type="text" class="form-control search-input-field" id="global_search" name="global_search" placeholder="Search...." aria-label="Search">
                                 <span class="input-group-text">
                                     <button type="button" class="btn-close"></button>
                                 </span>
-                            </div>
-                            <div class="dropdown-divider mt-0"></div>
-                            <div class="search-items-wrapper">
-                                <div class="searching-for px-4 py-2">
-                                    <p class="fs-11 fw-medium text-muted">I'm searching for...</p>
-                                    <div class="d-flex flex-wrap gap-1">
-                                        <a href="javascript:void(0);" class="flex-fill border rounded py-1 px-2 text-center fs-11 fw-semibold">Projects</a>
-                                        <a href="javascript:void(0);" class="flex-fill border rounded py-1 px-2 text-center fs-11 fw-semibold">Leads</a>
-                                        <a href="javascript:void(0);" class="flex-fill border rounded py-1 px-2 text-center fs-11 fw-semibold">Contacts</a>
-                                        <a href="javascript:void(0);" class="flex-fill border rounded py-1 px-2 text-center fs-11 fw-semibold">Inbox</a>
-                                        <a href="javascript:void(0);" class="flex-fill border rounded py-1 px-2 text-center fs-11 fw-semibold">Invoices</a>
-                                        <a href="javascript:void(0);" class="flex-fill border rounded py-1 px-2 text-center fs-11 fw-semibold">Tasks</a>
-                                        <a href="javascript:void(0);" class="flex-fill border rounded py-1 px-2 text-center fs-11 fw-semibold">Students</a>
-                                        <a href="javascript:void(0);" class="flex-fill border rounded py-1 px-2 text-center fs-11 fw-semibold">Notes</a>
-                                        <a href="javascript:void(0);" class="flex-fill border rounded py-1 px-2 text-center fs-11 fw-semibold">Affiliate</a>
-                                        <a href="javascript:void(0);" class="flex-fill border rounded py-1 px-2 text-center fs-11 fw-semibold">Storage</a>
-                                        <a href="javascript:void(0);" class="flex-fill border rounded py-1 px-2 text-center fs-11 fw-semibold">Calendar</a>
-                                    </div>
-                                </div>
-                                <div class="dropdown-divider"></div>
-                                <div class="recent-result px-4 py-2">
-                                    <h4 class="fs-13 fw-normal text-gray-600 mb-3">Recnet <span class="badge small bg-gray-200 rounded ms-1 text-dark">3</span></h4>
-                                    <div class="d-flex align-items-center justify-content-between mb-4">
-                                        <div class="d-flex align-items-center gap-3">
-                                            <div class="avatar-text rounded">
-                                                <i class="feather-airplay"></i>
-                                            </div>
-                                            <div>
-                                                <a href="javascript:void(0);" class="font-body fw-bold d-block mb-1">CRM dashboard redesign</a>
-                                                <p class="fs-11 text-muted mb-0">Home / project / crm</p>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <a href="javascript:void(0);" class="badge border rounded text-dark">/<i class="feather-command ms-1 fs-10"></i></a>
-                                        </div>
-                                    </div>
-                                    <div class="d-flex align-items-center justify-content-between mb-4">
-                                        <div class="d-flex align-items-center gap-3">
-                                            <div class="avatar-text rounded">
-                                                <i class="feather-file-plus"></i>
-                                            </div>
-                                            <div>
-                                                <a href="javascript:void(0);" class="font-body fw-bold d-block mb-1">Create new document</a>
-                                                <p class="fs-11 text-muted mb-0">Home / tasks / docs</p>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <a href="javascript:void(0);" class="badge border rounded text-dark">N /<i class="feather-command ms-1 fs-10"></i></a>
-                                        </div>
-                                    </div>
-                                    <div class="d-flex align-items-center justify-content-between">
-                                        <div class="d-flex align-items-center gap-3">
-                                            <div class="avatar-text rounded">
-                                                <i class="feather-user-plus"></i>
-                                            </div>
-                                            <div>
-                                                <a href="javascript:void(0);" class="font-body fw-bold d-block mb-1">Invite project colleagues</a>
-                                                <p class="fs-11 text-muted mb-0">Home / project / invite</p>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <a href="javascript:void(0);" class="badge border rounded text-dark">P /<i class="feather-command ms-1 fs-10"></i></a>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="dropdown-divider my-3"></div>
-                                <div class="users-result px-4 py-2">
-                                    <h4 class="fs-13 fw-normal text-gray-600 mb-3">Users <span class="badge small bg-gray-200 rounded ms-1 text-dark">5</span></h4>
-                                    <div class="d-flex align-items-center justify-content-between mb-4">
-                                        <div class="d-flex align-items-center gap-3">
-                                            <div class="avatar-image rounded">
-                                                <img src="{{ asset('frontend/assets/images/avatar/1.png') }}" alt="" class="img-fluid" />
-                                            </div>
-                                            <div>
-                                                <a href="javascript:void(0);" class="font-body fw-bold d-block mb-1">Felix Luis Mateo</a>
-                                                <p class="fs-11 text-muted mb-0">felixluismateo@example.com</p>
-                                            </div>
-                                        </div>
-                                        <a href="javascript:void(0);" class="avatar-text avatar-md">
-                                            <i class="feather-chevron-right"></i>
-                                        </a>
-                                    </div>
-                                    <div class="d-flex align-items-center justify-content-between mb-4">
-                                        <div class="d-flex align-items-center gap-3">
-                                            <div class="avatar-image rounded">
-                                                <img src="{{ asset('frontend/assets/images/avatar/2.png') }}" alt="" class="img-fluid" />
-                                            </div>
-                                            <div>
-                                                <a href="javascript:void(0);" class="font-body fw-bold d-block mb-1">Green Cute</a>
-                                                <p class="fs-11 text-muted mb-0">green.cute@outlook.com</p>
-                                            </div>
-                                        </div>
-                                        <a href="javascript:void(0);" class="avatar-text avatar-md">
-                                            <i class="feather-chevron-right"></i>
-                                        </a>
-                                    </div>
-                                    <div class="d-flex align-items-center justify-content-between mb-4">
-                                        <div class="d-flex align-items-center gap-3">
-                                            <div class="avatar-image rounded">
-                                                <img src="{{ asset('frontend/assets/images/avatar/3.png') }}" alt="" class="img-fluid" />
-                                            </div>
-                                            <div>
-                                                <a href="javascript:void(0);" class="font-body fw-bold d-block mb-1">Malanie Hanvey</a>
-                                                <p class="fs-11 text-muted mb-0">malanie.anvey@outlook.com</p>
-                                            </div>
-                                        </div>
-                                        <a href="javascript:void(0);" class="avatar-text avatar-md">
-                                            <i class="feather-chevron-right"></i>
-                                        </a>
-                                    </div>
-                                    <div class="d-flex align-items-center justify-content-between mb-4">
-                                        <div class="d-flex align-items-center gap-3">
-                                            <div class="avatar-image rounded">
-                                                <img src="{{ asset('frontend/assets/images/avatar/4.png') }}" alt="" class="img-fluid" />
-                                            </div>
-                                            <div>
-                                                <a href="javascript:void(0);" class="font-body fw-bold d-block mb-1">Kenneth Hune</a>
-                                                <p class="fs-11 text-muted mb-0">kenth.hune@outlook.com</p>
-                                            </div>
-                                        </div>
-                                        <a href="javascript:void(0);" class="avatar-text avatar-md">
-                                            <i class="feather-chevron-right"></i>
-                                        </a>
-                                    </div>
-                                    <div class="d-flex align-items-center justify-content-between mb-0">
-                                        <div class="d-flex align-items-center gap-3">
-                                            <div class="avatar-image rounded">
-                                                <img src="{{ asset('frontend/assets/images/avatar/5.png') }}" alt="" class="img-fluid" />
-                                            </div>
-                                            <div>
-                                                <a href="javascript:void(0);" class="font-body fw-bold d-block mb-1">Archie Cantones</a>
-                                                <p class="fs-11 text-muted mb-0">archie.cones@outlook.com</p>
-                                            </div>
-                                        </div>
-                                        <a href="javascript:void(0);" class="avatar-text avatar-md">
-                                            <i class="feather-chevron-right"></i>
-                                        </a>
-                                    </div>
-                                </div>
-                                <div class="dropdown-divider my-3"></div>
-                                <div class="file-result px-4 py-2">
-                                    <h4 class="fs-13 fw-normal text-gray-600 mb-3">Files <span class="badge small bg-gray-200 rounded ms-1 text-dark">3</span></h4>
-                                    <div class="d-flex align-items-center justify-content-between mb-4">
-                                        <div class="d-flex align-items-center gap-3">
-                                            <div class="avatar-image bg-gray-200 rounded">
-                                                <img src="{{ asset('frontend/assets/images/file-icons/css.png') }}" alt="" class="img-fluid" />
-                                            </div>
-                                            <div>
-                                                <a href="javascript:void(0);" class="font-body fw-bold d-block mb-1">Project Style CSS</a>
-                                                <p class="fs-11 text-muted mb-0">05.74 MB</p>
-                                            </div>
-                                        </div>
-                                        <a href="javascript:void(0);" class="avatar-text avatar-md">
-                                            <i class="feather-download"></i>
-                                        </a>
-                                    </div>
-                                    <div class="d-flex align-items-center justify-content-between mb-4">
-                                        <div class="d-flex align-items-center gap-3">
-                                            <div class="avatar-image bg-gray-200 rounded">
-                                                <img src="{{ asset('frontend/assets/images/file-icons/zip.png') }}" alt="" class="img-fluid" />
-                                            </div>
-                                            <div>
-                                                <a href="javascript:void(0);" class="font-body fw-bold d-block mb-1">Dashboard Project Zip</a>
-                                                <p class="fs-11 text-muted mb-0">46.83 MB</p>
-                                            </div>
-                                        </div>
-                                        <a href="javascript:void(0);" class="avatar-text avatar-md">
-                                            <i class="feather-download"></i>
-                                        </a>
-                                    </div>
-                                    <div class="d-flex align-items-center justify-content-between mb-0">
-                                        <div class="d-flex align-items-center gap-3">
-                                            <div class="avatar-image bg-gray-200 rounded">
-                                                <img src="{{ asset('frontend/assets/images/file-icons/pdf.png') }}" alt="" class="img-fluid" />
-                                            </div>
-                                            <div>
-                                                <a href="javascript:void(0);" class="font-body fw-bold d-block mb-1">Project Document PDF</a>
-                                                <p class="fs-11 text-muted mb-0">12.85 MB</p>
-                                            </div>
-                                        </div>
-                                        <a href="javascript:void(0);" class="avatar-text avatar-md">
-                                            <i class="feather-download"></i>
-                                        </a>
-                                    </div>
-                                </div>
-                                <div class="dropdown-divider mt-3 mb-0"></div>
-                                <a href="javascript:void(0);" class="p-3 fs-10 fw-bold text-uppercase text-center d-block">Loar More</a>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="dropdown nxl-h-item nxl-header-language d-none d-sm-flex">
-                        <a href="javascript:void(0);" class="nxl-head-link me-0 nxl-language-link" data-bs-toggle="dropdown" data-bs-auto-close="outside">
-                            <img src="{{ asset('frontend/assets/vendors/img/flags/4x3/us.svg') }}" alt="" class="img-fluid wd-20" />
-                        </a>
-                        <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-language-dropdown">
-                            <div class="dropdown-divider mt-0"></div>
-                            <div class="language-items-wrapper">
-                                <div class="select-language px-4 py-2 hstack justify-content-between gap-4">
-                                    <div class="lh-lg">
-                                        <h6 class="mb-0">Select Language</h6>
-                                        <p class="fs-11 text-muted mb-0">12 languages avaiable!</p>
-                                    </div>
-                                    <a href="javascript:void(0);" class="avatar-text avatar-md" data-bs-toggle="tooltip" title="Add Language">
-                                        <i class="feather-plus"></i>
-                                    </a>
-                                </div>
-                                <div class="dropdown-divider"></div>
-                                <div class="row px-4 pt-3">
-                                    <div class="col-sm-4 col-6 language_select">
-                                        <a href="javascript:void(0);" class="d-flex align-items-center gap-2">
-                                            <div class="avatar-image avatar-sm"><img src="{{ asset('frontend/assets/vendors/img/flags/1x1/sa.svg') }}" alt="" class="img-fluid" /></div>
-                                            <span>Arabic</span>
-                                        </a>
-                                    </div>
-                                    <div class="col-sm-4 col-6 language_select">
-                                        <a href="javascript:void(0);" class="d-flex align-items-center gap-2">
-                                            <div class="avatar-image avatar-sm"><img src="{{ asset('frontend/assets/vendors/img/flags/1x1/bd.svg') }}" alt="" class="img-fluid" /></div>
-                                            <span>Bengali</span>
-                                        </a>
-                                    </div>
-                                    <div class="col-sm-4 col-6 language_select">
-                                        <a href="javascript:void(0);" class="d-flex align-items-center gap-2">
-                                            <div class="avatar-image avatar-sm"><img src="{{ asset('frontend/assets/vendors/img/flags/1x1/ch.svg') }}" alt="" class="img-fluid" /></div>
-                                            <span>Chinese</span>
-                                        </a>
-                                    </div>
-                                    <div class="col-sm-4 col-6 language_select">
-                                        <a href="javascript:void(0);" class="d-flex align-items-center gap-2">
-                                            <div class="avatar-image avatar-sm"><img src="{{ asset('frontend/assets/vendors/img/flags/1x1/nl.svg') }}" alt="" class="img-fluid" /></div>
-                                            <span>Dutch</span>
-                                        </a>
-                                    </div>
-                                    <div class="col-sm-4 col-6 language_select active">
-                                        <a href="javascript:void(0);" class="d-flex align-items-center gap-2">
-                                            <div class="avatar-image avatar-sm"><img src="{{ asset('frontend/assets/vendors/img/flags/1x1/us.svg') }}" alt="" class="img-fluid" /></div>
-                                            <span>English</span>
-                                        </a>
-                                    </div>
-                                    <div class="col-sm-4 col-6 language_select">
-                                        <a href="javascript:void(0);" class="d-flex align-items-center gap-2">
-                                            <div class="avatar-image avatar-sm"><img src="{{ asset('frontend/assets/vendors/img/flags/1x1/fr.svg') }}" alt="" class="img-fluid" /></div>
-                                            <span>French</span>
-                                        </a>
-                                    </div>
-                                    <div class="col-sm-4 col-6 language_select">
-                                        <a href="javascript:void(0);" class="d-flex align-items-center gap-2">
-                                            <div class="avatar-image avatar-sm"><img src="{{ asset('frontend/assets/vendors/img/flags/1x1/de.svg') }}" alt="" class="img-fluid" /></div>
-                                            <span>German</span>
-                                        </a>
-                                    </div>
-                                    <div class="col-sm-4 col-6 language_select">
-                                        <a href="javascript:void(0);" class="d-flex align-items-center gap-2">
-                                            <div class="avatar-image avatar-sm"><img src="{{ asset('frontend/assets/vendors/img/flags/1x1/in.svg') }}" alt="" class="img-fluid" /></div>
-                                            <span>Hindi</span>
-                                        </a>
-                                    </div>
-                                    <div class="col-sm-4 col-6 language_select">
-                                        <a href="javascript:void(0);" class="d-flex align-items-center gap-2">
-                                            <div class="avatar-image avatar-sm"><img src="{{ asset('frontend/asses/tvendors/img/flags/1x1/ru.svg') }}" alt="" class="img-fluid" /></div>
-                                            <span>Russian</span>
-                                        </a>
-                                    </div>
-                                    <div class="col-sm-4 col-6 language_select">
-                                        <a href="javascript:void(0);" class="d-flex align-items-center gap-2">
-                                            <div class="avatar-image avatar-sm"><img src="{{ asset('frontend/assets/vendors/img/flags/1x1/es.svg') }}" alt="" class="img-fluid" /></div>
-                                            <span>Spanish</span>
-                                        </a>
-                                    </div>
-                                    <div class="col-sm-4 col-6 language_select">
-                                        <a href="javascript:void(0);" class="d-flex align-items-center gap-2">
-                                            <div class="avatar-image avatar-sm"><img src="{{ asset('frontend/assets/vendors/img/flags/1x1/tr.svg') }}" alt="" class="img-fluid" /></div>
-                                            <span>Turkish</span>
-                                        </a>
-                                    </div>
-                                    <div class="col-sm-4 col-6 language_select">
-                                        <a href="javascript:void(0);" class="d-flex align-items-center gap-2">
-                                            <div class="avatar-image avatar-sm"><img src="{{ asset('frontend/assets/vendors/img/flags/1x1/pk.svg') }}" alt="" class="img-fluid" /></div>
-                                            <span>Urdo</span>
-                                        </a>
-                                    </div>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -2267,29 +2123,6 @@ function formatDateTime($date) {
                         </a>
                     </div>
                     <div class="dropdown nxl-h-item">
-                        <a href="javascript:void(0);" class="nxl-head-link me-0" data-bs-toggle="dropdown" role="button" data-bs-auto-close="outside">
-                            <i class="feather-clock"></i>
-                            <span class="badge bg-success nxl-h-badge">2</span>
-                        </a>
-                        <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-timesheets-menu">
-                            <div class="d-flex justify-content-between align-items-center timesheets-head">
-                                <h6 class="fw-bold text-dark mb-0">Timesheets</h6>
-                                <a href="javascript:void(0);" class="fs-11 text-success text-end ms-auto" data-bs-toggle="tooltip" title="Upcomming Timers">
-                                    <i class="feather-clock"></i>
-                                    <span>3 Upcomming</span>
-                                </a>
-                            </div>
-                            <div class="d-flex justify-content-between align-items-center flex-column timesheets-body">
-                                <i class="feather-clock fs-1 mb-4"></i>
-                                <p class="text-muted">No started timers found yes!</p>
-                                <a href="javascript:void(0);" class="btn btn-sm btn-primary">Started Timer</a>
-                            </div>
-                            <div class="text-center timesheets-footer">
-                                <a href="javascript:void(0);" class="fs-13 fw-semibold text-dark">Alls Timesheets</a>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="dropdown nxl-h-item">
                         <a class="nxl-head-link me-3" data-bs-toggle="dropdown" href="#" role="button" data-bs-auto-close="outside">
                             <i class="feather-bell"></i>
                             <span class="badge bg-danger nxl-h-badge">3</span>
@@ -2297,117 +2130,24 @@ function formatDateTime($date) {
                         <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-notifications-menu">
                             <div class="d-flex justify-content-between align-items-center notifications-head">
                                 <h6 class="fw-bold text-dark mb-0">Notifications</h6>
-                                <a href="javascript:void(0);" class="fs-11 text-success text-end ms-auto" data-bs-toggle="tooltip" title="Make as Read">
-                                    <i class="feather-check"></i>
-                                    <span>Make as Read</span>
-                                </a>
-                            </div>
-                            <div class="notifications-item">
-                                <img src="{{ asset('frontend/assets/images/avatar/2.png') }}" alt="" class="rounded me-3 border" />
-                                <div class="notifications-desc">
-                                    <a href="javascript:void(0);" class="font-body text-truncate-2-line"> <span class="fw-semibold text-dark">Malanie Hanvey</span> We should talk about that at lunch!</a>
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <div class="notifications-date text-muted border-bottom border-bottom-dashed">2 minutes ago</div>
-                                        <div class="d-flex align-items-center float-end gap-2">
-                                            <a href="javascript:void(0);" class="d-block wd-8 ht-8 rounded-circle bg-gray-300" data-bs-toggle="tooltip" title="Make as Read"></a>
-                                            <a href="javascript:void(0);" class="text-danger" data-bs-toggle="tooltip" title="Remove">
-                                                <i class="feather-x fs-12"></i>
-                                            </a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="notifications-item">
-                                <img src="{{ asset('frontend/assets/images/avatar/3.png') }}" alt="" class="rounded me-3 border" />
-                                <div class="notifications-desc">
-                                    <a href="javascript:void(0);" class="font-body text-truncate-2-line"> <span class="fw-semibold text-dark">Valentine Maton</span> You can download the latest invoices now.</a>
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <div class="notifications-date text-muted border-bottom border-bottom-dashed">36 minutes ago</div>
-                                        <div class="d-flex align-items-center float-end gap-2">
-                                            <a href="javascript:void(0);" class="d-block wd-8 ht-8 rounded-circle bg-gray-300" data-bs-toggle="tooltip" title="Make as Read"></a>
-                                            <a href="javascript:void(0);" class="text-danger" data-bs-toggle="tooltip" title="Remove">
-                                                <i class="feather-x fs-12"></i>
-                                            </a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="notifications-item">
-                                <img src="{{ asset('frontend/assets/images/avatar/4.png') }}" alt="" class="rounded me-3 border" />
-                                <div class="notifications-desc">
-                                    <a href="javascript:void(0);" class="font-body text-truncate-2-line"> <span class="fw-semibold text-dark">Archie Cantones</span> Don't forget to pickup Jeremy after school!</a>
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <div class="notifications-date text-muted border-bottom border-bottom-dashed">53 minutes ago</div>
-                                        <div class="d-flex align-items-center float-end gap-2">
-                                            <a href="javascript:void(0);" class="d-block wd-8 ht-8 rounded-circle bg-gray-300" data-bs-toggle="tooltip" title="Make as Read"></a>
-                                            <a href="javascript:void(0);" class="text-danger" data-bs-toggle="tooltip" title="Remove">
-                                                <i class="feather-x fs-12"></i>
-                                            </a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="text-center notifications-footer">
-                                <a href="javascript:void(0);" class="fs-13 fw-semibold text-dark">Alls Notifications</a>
                             </div>
                         </div>
                     </div>
                     <div class="dropdown nxl-h-item">
                         <a href="javascript:void(0);" data-bs-toggle="dropdown" role="button" data-bs-auto-close="outside">
-                            <img src="{{ asset('frontend/assets/images/avatar/1.png') }}" alt="user-image" class="img-fluid user-avtar me-0" />
+                            <img src="{{ asset('frontend/assets/images/avatar/1.png') }}" alt="user-image" class="img-fluid user-avtar me-0">
                         </a>
                         <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-user-dropdown">
                             <div class="dropdown-header">
                                 <div class="d-flex align-items-center">
-                                    <img src="{{ asset('frontend/assets/images/avatar/1.png') }}" alt="user-image" class="img-fluid user-avtar" />
+                                    <img src="{{ asset('frontend/assets/images/avatar/1.png') }}" alt="user-image" class="img-fluid user-avtar">
                                     <div>
-                                        <h6 class="text-dark mb-0">Felix Luis Mateo <span class="badge bg-soft-success text-success ms-1">PRO</span></h6>
+                                        <h6 class="text-dark mb-0">Felix Luis Mateo</h6>
                                         <span class="fs-12 fw-medium text-muted">felixluismateo@example.com</span>
                                     </div>
                                 </div>
                             </div>
-                            <div class="dropdown">
-                                <a href="javascript:void(0);" class="dropdown-item" data-bs-toggle="dropdown">
-                                    <span class="hstack">
-                                        <i class="wd-10 ht-10 border border-2 border-gray-1 bg-success rounded-circle me-2"></i>
-                                        <span>Active</span>
-                                    </span>
-                                    <i class="feather-chevron-right ms-auto me-0"></i>
-                                </a>
-                                <div class="dropdown-menu">
-                                    <a href="javascript:void(0);" class="dropdown-item">
-                                        <span class="hstack">
-                                            <i class="wd-10 ht-10 border border-2 border-gray-1 bg-warning rounded-circle me-2"></i>
-                                            <span>Always</span>
-                                        </span>
-                                    </a>
-                                    <a href="javascript:void(0);" class="dropdown-item">
-                                        <span class="hstack">
-                                            <i class="wd-10 ht-10 border border-2 border-gray-1 bg-success rounded-circle me-2"></i>
-                                            <span>Active</span>
-                                        </span>
-                                    </a>
-                                </div>
-                            </div>
                             <div class="dropdown-divider"></div>
-
-                            <div class="dropdown-divider"></div>
-                            <a href="javascript:void(0);" class="dropdown-item">
-                                <i class="feather-user"></i>
-                                <span>Profile Details</span>
-                            </a>
-                            <a href="javascript:void(0);" class="dropdown-item">
-                                <i class="feather-activity"></i>
-                                <span>Activity Feed</span>
-                            </a>
-                            <a href="javascript:void(0);" class="dropdown-item">
-                                <i class="feather-dollar-sign"></i>
-                                <span>Billing Details</span>
-                            </a>
-                            <a href="javascript:void(0);" class="dropdown-item">
-                                <i class="feather-bell"></i>
-                                <span>Notifications</span>
-                            </a>
                             <a href="javascript:void(0);" class="dropdown-item">
                                 <i class="feather-settings"></i>
                                 <span>Account Settings</span>
@@ -2421,8 +2161,6 @@ function formatDateTime($date) {
                     </div>
                 </div>
             </div>
-                </div>
-            <!--! [End] Header Right !-->
         </div>
     </header>
 
@@ -2436,20 +2174,20 @@ function formatDateTime($date) {
                         <h5 class="m-b-10">Edit Student</h5>
                     </div>
                     <ul class="breadcrumb">
-                        <li class="breadcrumb-item"><a href="{{ url('/') }}">Home</a></li>
-                        <li class="breadcrumb-item"><a href="students.php">Students</a></li>
-                        <li class="breadcrumb-item"><a href="students-view.php?id=<?php echo $student['id']; ?>">View</a></li>
+                        <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Home</a></li>
+                        <li class="breadcrumb-item"><a href="{{ url('/students') }}">Students</a></li>
+                        <li class="breadcrumb-item"><a href="{{ url('/students/view') }}?id=<?php echo $student['id']; ?>">View</a></li>
                         <li class="breadcrumb-item">Edit</li>
                     </ul>
                 </div>
                 <div class="page-header-right ms-auto">
                     <div class="page-header-right-items">
                         <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
-                            <a href="students-view.php?id=<?php echo $student['id']; ?>" class="btn btn-light-brand">
+                            <a href="{{ url('/students/view') }}?id=<?php echo $student['id']; ?>" class="btn btn-light-brand">
                                 <i class="feather-arrow-left me-2"></i>
                                 <span>Back to View</span>
                             </a>
-                            <a href="students.php" class="btn btn-primary">
+                            <a href="{{ url('/students') }}" class="btn btn-primary">
                                 <i class="feather-list me-2"></i>
                                 <span>Back to List</span>
                             </a>
@@ -2466,7 +2204,6 @@ function formatDateTime($date) {
                             <div class="card-header">
                                 <div class="d-flex align-items-center justify-content-between">
                                     <h5 class="card-title mb-0">Edit Student Information</h5>
-                                    <small class="text-muted">Student ID: <?php echo htmlspecialchars($student['student_id']); ?></small>
                                 </div>
                             </div>
                             <div class="card-body">
@@ -2487,8 +2224,31 @@ function formatDateTime($date) {
                                     </div>
                                 <?php endif; ?>
 
+                                <!-- Quick Upload Tools -->
+                                <div class="row g-3 mb-4" id="upload-tools">
+                                    <div class="col-lg-6" id="upload-profile-picture">
+                                        <div class="border rounded p-3 h-100">
+                                            <h6 class="fw-bold mb-3"><i class="feather-image me-2"></i>Upload Profile Picture</h6>
+                                            <form method="POST" action="" enctype="multipart/form-data">
+                                                <?php echo csrf_field(); ?>
+                                                <input type="hidden" name="action" value="upload_profile_picture">
+                                                <div class="mb-3">
+                                                    <label for="upload_profile_picture_file" class="form-label visually-hidden">Profile picture</label>
+                                                    <input type="file" class="form-control" id="upload_profile_picture_file" name="profile_picture" accept="image/*" required aria-describedby="uploadProfileHelp">
+                                                    <small id="uploadProfileHelp" class="form-text text-muted">JPG, JPEG, PNG, GIF (Max 5MB)</small>
+                                                </div>
+                                                <button type="submit" class="btn btn-primary btn-sm">
+                                                    <i class="feather-upload me-2"></i>Upload Picture
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <!-- Edit Form -->
-                                <form method="POST" action="" id="editStudentForm">
+                                <form method="POST" action="" id="editStudentForm" enctype="multipart/form-data">
+                                    <?php echo csrf_field(); ?>
+                                    <input type="hidden" name="action" value="update_profile">
                                     <!-- Personal Information Section -->
                                     <div class="mb-5">
                                         <h6 class="fw-bold mb-4">
@@ -2498,39 +2258,39 @@ function formatDateTime($date) {
                                         <div class="row">
                                             <div class="col-md-4 mb-4">
                                                 <label for="first_name" class="form-label fw-semibold">First Name <span class="text-danger">*</span></label>
-                                                <input type="text" class="form-control" id="first_name" name="first_name"
-                                                       value="<?php echo htmlspecialchars($student['first_name']); ?>" required>
+                                                      <input type="text" class="form-control" id="first_name" name="first_name"
+                                                          value="<?php echo htmlspecialchars($student['first_name']); ?>" required autocomplete="given-name">
                                             </div>
                                             <div class="col-md-4 mb-4">
                                                 <label for="middle_name" class="form-label fw-semibold">Middle Name</label>
-                                                <input type="text" class="form-control" id="middle_name" name="middle_name"
-                                                       value="<?php echo htmlspecialchars($student['middle_name'] ?? ''); ?>">
+                                                      <input type="text" class="form-control" id="middle_name" name="middle_name"
+                                                          value="<?php echo htmlspecialchars($student['middle_name'] ?? ''); ?>" autocomplete="additional-name">
                                             </div>
                                             <div class="col-md-4 mb-4">
                                                 <label for="last_name" class="form-label fw-semibold">Last Name <span class="text-danger">*</span></label>
-                                                <input type="text" class="form-control" id="last_name" name="last_name"
-                                                       value="<?php echo htmlspecialchars($student['last_name']); ?>" required>
+                                                      <input type="text" class="form-control" id="last_name" name="last_name"
+                                                          value="<?php echo htmlspecialchars($student['last_name']); ?>" required autocomplete="family-name">
                                             </div>
                                         </div>
 
                                         <div class="row">
                                             <div class="col-md-6 mb-4">
                                                 <label for="email" class="form-label fw-semibold">Email Address <span class="text-danger">*</span></label>
-                                                <input type="email" class="form-control" id="email" name="email"
-                                                       value="<?php echo htmlspecialchars($student['email']); ?>" required>
+                                                      <input type="email" class="form-control" id="email" name="email"
+                                                          value="<?php echo htmlspecialchars($student['email']); ?>" required autocomplete="email">
                                             </div>
                                             <div class="col-md-6 mb-4">
                                                 <label for="phone" class="form-label fw-semibold">Phone Number</label>
-                                                <input type="tel" class="form-control" id="phone" name="phone"
-                                                       value="<?php echo htmlspecialchars($student['phone'] ?? ''); ?>">
+                                                      <input type="tel" class="form-control" id="phone" name="phone"
+                                                          value="<?php echo htmlspecialchars($student['phone'] ?? ''); ?>" autocomplete="tel">
                                             </div>
                                         </div>
 
                                         <div class="row">
                                             <div class="col-md-6 mb-4">
                                                 <label for="date_of_birth" class="form-label fw-semibold">Date of Birth</label>
-                                                <input type="date" class="form-control" id="date_of_birth" name="date_of_birth"
-                                                       value="<?php echo formatDate($student['date_of_birth']); ?>">
+                                                      <input type="date" class="form-control" id="date_of_birth" name="date_of_birth"
+                                                          value="<?php echo formatDate($student['date_of_birth']); ?>" autocomplete="bday">
                                             </div>
                                             <div class="col-md-6 mb-4">
                                                 <label for="gender" class="form-label fw-semibold">Gender</label>
@@ -2545,26 +2305,34 @@ function formatDateTime($date) {
 
                                         <div class="mb-4">
                                             <label for="address" class="form-label fw-semibold">Home Address</label>
-                                            <textarea class="form-control" id="address" name="address" rows="3"><?php echo htmlspecialchars($student['address'] ?? ''); ?></textarea>
+                                            <textarea class="form-control" id="address" name="address" rows="3" autocomplete="street-address"><?php echo htmlspecialchars($student['address'] ?? ''); ?></textarea>
                                         </div>
 
                                         <div class="mb-4">
                                             <label for="emergency_contact" class="form-label fw-semibold">Emergency Contact Number</label>
                                             <input type="text" class="form-control" id="emergency_contact" name="emergency_contact"
                                                    value="<?php echo htmlspecialchars($student['emergency_contact'] ?? ''); ?>"
-                                                   placeholder="Phone number">
+                                                   placeholder="Phone number" autocomplete="tel">
                                         </div>
 
                                         <div class="row">
                                             <div class="col-md-6 mb-4">
                                                 <label for="student_id" class="form-label fw-semibold">Student ID</label>
-                                                <input type="text" class="form-control" id="student_id" name="student_id"
-                                                       value="<?php echo htmlspecialchars($student['student_id'] ?? ''); ?>"
-                                                       readonly>
-                                                <small class="form-text text-muted">Auto-generated and cannot be changed</small>
+                                                      <input type="text" class="form-control" id="student_id" name="student_id"
+                                                          value="<?php echo htmlspecialchars($student['student_id'] ?? ''); ?>" autocomplete="username">
+                                                <small class="form-text text-muted">Can be edited by admins, coordinators, and supervisors</small>
                                             </div>
                                             <div class="col-md-6 mb-4">
                                                 <label for="profile_picture" class="form-label fw-semibold">Profile Picture</label>
+                                                <div class="mb-2">
+                                                    <?php if (!empty($student['profile_picture'])): ?>
+                                                        <div class="mb-2">
+                                                            <img src="<?php echo asset($student['profile_picture']) . '?v=' . filemtime(public_path($student['profile_picture'])); ?>" alt="Profile" class="img-thumbnail" style="max-width: 150px; max-height: 150px;">
+                                                        </div>
+                                                    <?php else: ?>
+                                                        <div class="alert alert-info mb-2 py-2 px-3">No profile picture uploaded</div>
+                                                    <?php endif; ?>
+                                                </div>
                                                 <input type="file" class="form-control" id="profile_picture" name="profile_picture"
                                                        accept="image/*">
                                                 <small class="form-text text-muted">JPG, PNG, GIF (Max 5MB)</small>
@@ -2637,7 +2405,7 @@ function formatDateTime($date) {
 
                                         <div class="row">
                                             <div class="col-md-6">
-                                                <label class="form-label fw-semibold text-muted">Biometric Status</label>
+                                                <div class="form-label fw-semibold text-muted">Biometric Status</div>
                                                 <div class="form-text">
                                                     <?php if ($student['biometric_registered']): ?>
                                                         <span class="badge bg-success">
@@ -2654,7 +2422,7 @@ function formatDateTime($date) {
                                                 </div>
                                             </div>
                                             <div class="col-md-6">
-                                                <label class="form-label fw-semibold text-muted">Registration Date</label>
+                                                <div class="form-label fw-semibold text-muted">Registration Date</div>
                                                 <div class="form-text">
                                                     <small class="text-muted">
                                                         Registered: <?php echo formatDateTime($student['created_at']); ?>
@@ -2667,16 +2435,21 @@ function formatDateTime($date) {
                                     <hr>
 
                                     <!-- Form Actions -->
-                                    <div class="d-flex gap-2 justify-content-end pt-4">
-                                        <a href="students-view.php?id=<?php echo $student['id']; ?>" class="btn btn-light-brand">
-                                            <i class="feather-x me-2"></i>Cancel
+                                    <div class="d-flex gap-2 justify-content-between pt-4">
+                                        <a href="{{ url('/generate_resume') }}?id=<?php echo $student['id']; ?>" class="btn btn-success" target="_blank">
+                                            <i class="feather-file-text me-2"></i>Generate Resume
                                         </a>
-                                        <button type="reset" class="btn btn-outline-secondary">
-                                            <i class="feather-refresh-cw me-2"></i>Reset
-                                        </button>
-                                        <button type="submit" class="btn btn-primary">
-                                            <i class="feather-save me-2"></i>Save Changes
-                                        </button>
+                                        <div class="d-flex gap-2">
+                                            <a href="{{ url('/students/view') }}?id=<?php echo $student['id']; ?>" class="btn btn-light-brand">
+                                                <i class="feather-x me-2"></i>Cancel
+                                            </a>
+                                            <button type="reset" class="btn btn-outline-secondary">
+                                                <i class="feather-refresh-cw me-2"></i>Reset
+                                            </button>
+                                            <button type="submit" class="btn btn-primary">
+                                                <i class="feather-save me-2"></i>Save Changes
+                                            </button>
+                                        </div>
                                     </div>
                                 </form>
                             </div>
@@ -2694,7 +2467,7 @@ function formatDateTime($date) {
                     document.write(new Date().getFullYear());
                 </script>
             </p>
-            <p><span>By: <a target="_blank" href="">ACT 2A</a></span> • <span>Distributed by: <a target="_blank" href="">Group 5</a></span></p>
+            <p><span>By: <a target="_blank" href="">ACT 2A</a> </span><span>Distributed by: <a target="_blank" href="">Group 5</a></span></p>
             <div class="d-flex align-items-center gap-4">
                 <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Help</a>
                 <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Terms</a>
@@ -2718,12 +2491,8 @@ function formatDateTime($date) {
             $('#course_id, #status, #gender, #supervisor_id, #coordinator_id').each(function() {
                 $(this).select2({
                     allowClear: true,
-                    // let Select2 resolve width from the element's style so dropdown aligns to the control
                     width: 'resolve',
-                    // attach dropdown to the form so it positions within the form area and not full page
-                    dropdownParent: $('#editStudentForm'),
                     dropdownAutoWidth: false,
-                    // use default theme; classic theme can look bulky in this UI
                     theme: 'default'
                 });
             });
