@@ -514,8 +514,8 @@ function formatDateTime($date) {
         html.app-skin-dark .select2-container--default .select2-selection--single,
         html.app-skin-dark .select2-container--default .select2-selection--multiple {
             color: #f0f0f0 !important;
-            background-color: #2d3748 !important;
-            border-color: #4a5568 !important;
+            background-color: #0f172a !important;
+            border-color: #120a36 !important;
         }
 
         html.app-skin-dark .select2-container--default.select2-container--focus .select2-selection--single,
