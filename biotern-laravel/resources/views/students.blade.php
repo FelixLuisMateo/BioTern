@@ -78,6 +78,7 @@ $filter_department = isset($_GET['department_id']) ? intval($_GET['department_id
 $filter_supervisor = isset($_GET['supervisor']) ? trim($_GET['supervisor']) : '';
 $filter_coordinator = isset($_GET['coordinator']) ? trim($_GET['coordinator']) : '';
 $filter_status = isset($_GET['status']) ? intval($_GET['status']) : -1;
+$filter_date = isset($_GET['date']) && $_GET['date'] !== '' ? $_GET['date'] : '';
 
 // Fetch dropdown lists
 $courses = [];
@@ -120,6 +121,9 @@ if (!empty($filter_coordinator)) {
 }
 if ($filter_status >= 0) {
     $where[] = "s.status = " . intval($filter_status);
+}
+if (!empty($filter_date)) {
+    $where[] = "DATE(s.created_at) = '" . $conn->real_escape_string($filter_date) . "'";
 }
 
 // Fetch Students with Related Information
@@ -295,8 +299,38 @@ function formatDate($date) {
             margin-bottom: 0.35rem;
         }
 
-        .filter-form .form-control {
+
+        /* Calendar input design */
+        .filter-form input[type="date"].form-control {
             min-height: 42px;
+            border-radius: 8px;
+            padding-right: 2.25rem;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .filter-form input[type="date"].form-control:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.2);
+        }
+
+        html.app-skin-light .filter-form input[type="date"].form-control {
+            color: #f0f0f0 !important;
+            background-color: #2d3748 !important;
+            border-color: #4a5568 !important;
+        }
+
+        html.app-skin-dark .filter-form input[type="date"].form-control::-webkit-calendar-picker-indicator {
+            filter: invert(1) brightness(1.2);
+            opacity: 0.9;
+            cursor: pointer;
+        }
+
+        html.app-skin-dark .filter-form input[type="date"].form-control::-webkit-datetime-edit,
+        html.app-skin-dark .filter-form input[type="date"].form-control::-webkit-datetime-edit-text,
+        html.app-skin-dark .filter-form input[type="date"].form-control::-webkit-datetime-edit-month-field,
+        html.app-skin-dark .filter-form input[type="date"].form-control::-webkit-datetime-edit-day-field,
+        html.app-skin-dark .filter-form input[type="date"].form-control::-webkit-datetime-edit-year-field {
+            color: #f0f0f0;
         }
 
         .filter-form .select2-container .select2-selection--single {

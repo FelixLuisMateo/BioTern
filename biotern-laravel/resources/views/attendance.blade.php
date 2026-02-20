@@ -35,11 +35,6 @@ $filter_supervisor = isset($_GET['supervisor']) ? trim($_GET['supervisor']) : ''
 $filter_coordinator = isset($_GET['coordinator']) ? trim($_GET['coordinator']) : '';
 $filter_status = isset($_GET['status']) ? trim($_GET['status']) : '';
 
-// default to today when no date filters provided
-if (empty($filter_date) && empty($start_date) && empty($end_date) && empty($filter_status)) {
-    $filter_date = date('Y-m-d');
-}
-
 // Fetch dropdown lists
 $courses = [];
 $courses_res = $conn->query("SELECT id, name FROM courses WHERE is_active = 1 ORDER BY name ASC");
@@ -120,10 +115,16 @@ $attendance_query = "
     FROM attendances a
     LEFT JOIN students s ON a.student_id = s.id
     LEFT JOIN courses c ON s.course_id = c.id
-    LEFT JOIN internships i ON s.id = i.student_id AND i.status = 'ongoing'
+    LEFT JOIN internships i ON i.id = (
+        SELECT id
+        FROM internships
+        WHERE student_id = s.id AND status = 'ongoing'
+        ORDER BY id DESC
+        LIMIT 1
+    )
     LEFT JOIN departments d ON i.department_id = d.id
     LEFT JOIN users u ON a.approved_by = u.id
-    WHERE " . implode(' AND ', $where) . "
+    " . (count($where) > 0 ? "WHERE " . implode(' AND ', $where) : "") . "
     ORDER BY a.attendance_date DESC, s.last_name ASC
     LIMIT 100
 ";
@@ -136,6 +137,26 @@ if ($attendance_result && $attendance_result->num_rows > 0) {
     }
 }
 
+// Remove duplicate attendance rows (same student + date), keeping the latest record
+if (count($attendances) > 1) {
+    $seen = [];
+    $unique = [];
+    foreach ($attendances as $attendance) {
+        $studentId = isset($attendance['student_id']) ? $attendance['student_id'] : null;
+        $attendanceDate = isset($attendance['attendance_date']) ? $attendance['attendance_date'] : null;
+        if ($studentId === null || $attendanceDate === null) {
+            $unique[] = $attendance;
+            continue;
+        }
+        $dedupeKey = $studentId . '|' . $attendanceDate;
+        if (!isset($seen[$dedupeKey])) {
+            $seen[$dedupeKey] = true;
+            $unique[] = $attendance;
+        }
+    }
+    $attendances = $unique;
+}
+
 // If requested via AJAX, return only the table rows HTML so frontend can replace tbody
 if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
     if (!empty($attendances)) {
@@ -144,12 +165,12 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
             echo '<td><div class="item-checkbox ms-1"><div class="custom-control custom-checkbox"><input type="checkbox" class="custom-control-input checkbox" id="checkBox_' . $attendance['id'] . '"><label class="custom-control-label" for="checkBox_' . $attendance['id'] . '"></label></div></div></td>';
             echo '<td><a href="' . url('/students/view') . '?id=' . $attendance['student_id'] . '" class="hstack gap-3"><div class="avatar-image avatar-md"><div class="avatar-text avatar-md bg-light-primary rounded">' . strtoupper(substr($attendance['first_name'] ?? 'N', 0, 1) . substr($attendance['last_name'] ?? 'A', 0, 1)) . '</div></div><div><div class="fw-bold">' . htmlspecialchars(($attendance['first_name'] ?? '') . ' ' . ($attendance['last_name'] ?? '')) . '</div><small class="text-muted">' . htmlspecialchars($attendance['student_number'] ?? '') . '</small></div></a></td>';
             echo '<td><span class="badge bg-soft-primary text-primary">' . date('Y-m-d', strtotime($attendance['attendance_date'])) . '</span></td>';
-            echo '<td><span class="badge bg-soft-success text-success">' . ( $attendance['morning_time_in'] ? date('h:i A', strtotime($attendance['morning_time_in'])) : '-' ) . '</span></td>';
-            echo '<td><span class="badge bg-soft-success text-success">' . ( $attendance['morning_time_out'] ? date('h:i A', strtotime($attendance['morning_time_out'])) : '-' ) . '</span></td>';
-            echo '<td><span class="badge bg-soft-info text-info">' . ( $attendance['break_time_in'] ? date('h:i A', strtotime($attendance['break_time_in'])) : '-' ) . '</span></td>';
-            echo '<td><span class="badge bg-soft-info text-info">' . ( $attendance['break_time_out'] ? date('h:i A', strtotime($attendance['break_time_out'])) : '-' ) . '</span></td>';
-            echo '<td><span class="badge bg-soft-warning text-warning">' . ( $attendance['afternoon_time_in'] ? date('h:i A', strtotime($attendance['afternoon_time_in'])) : '-' ) . '</span></td>';
-            echo '<td><span class="badge bg-soft-warning text-warning">' . ( $attendance['afternoon_time_out'] ? date('h:i A', strtotime($attendance['afternoon_time_out'])) : '-' ) . '</span></td>';
+            echo '<td><span class="badge bg-soft-success text-success">' . formatTime($attendance['morning_time_in']) . '</span></td>';
+            echo '<td><span class="badge bg-soft-success text-success">' . formatTime($attendance['morning_time_out']) . '</span></td>';
+            echo '<td><span class="badge bg-soft-info text-info">' . formatTime($attendance['break_time_in']) . '</span></td>';
+            echo '<td><span class="badge bg-soft-info text-info">' . formatTime($attendance['break_time_out']) . '</span></td>';
+            echo '<td><span class="badge bg-soft-warning text-warning">' . formatTime($attendance['afternoon_time_in']) . '</span></td>';
+            echo '<td><span class="badge bg-soft-warning text-warning">' . formatTime($attendance['afternoon_time_out']) . '</span></td>';
             $total_hours = calculateTotalHours($attendance['morning_time_in'], $attendance['morning_time_out'], $attendance['afternoon_time_in'], $attendance['afternoon_time_out']);
             echo '<td><span class="badge bg-soft-secondary text-secondary">' . $total_hours . 'h</span></td>';
             // attendance status
@@ -175,10 +196,16 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
 
 // Helper function to format time
 function formatTime($time) {
-    if ($time) {
-        return date('h:i A', strtotime($time));
+    if (empty($time) || $time === '00:00:00' || $time === '0000-00-00 00:00:00') {
+        return '-';
     }
-    return '-';
+
+    $parsed = strtotime($time);
+    if ($parsed === false) {
+        return '-';
+    }
+
+    return date('h:i A', $parsed);
 }
 
 // Helper function to get status badge
@@ -264,6 +291,29 @@ function getAttendanceStatus($morning_time_in) {
 			<script src="https:oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
 			<script src="https:oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
 		<![endif]-->
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        main.nxl-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        div.nxl-content {
+            flex: 1;
+        }
+        footer.footer {
+            margin-top: auto;
+        }
+    </style>
 </head>
 
 <body>
@@ -2500,7 +2550,7 @@ function getAttendanceStatus($morning_time_in) {
                             <label class="form-label d-block invisible">Actions</label>
                             <div class="filter-actions">
                                 <button type="submit" class="btn btn-primary">Filter</button>
-                                <a href="{{ url('/students') }}" class="btn btn-outline-secondary">Reset</a>
+                                <a href="{{ url('/attendance') }}" class="btn btn-outline-secondary">Reset</a>
                             </div>
                         </div>
                     </form>
@@ -2665,7 +2715,7 @@ function getAttendanceStatus($morning_time_in) {
                     document.write(new Date().getFullYear());
                 </script>
             </p>
-            <p><span>By: <a target="_blank" href="" target="_blank">ACT 2A</a></span> • <span>Distributed by: <a target="_blank" href="" target="_blank">Group 5</a></span></p>
+            <p><span>By: <a target="_blank" href="">ACT 2A</a> </span><span>Distributed by: <a target="_blank" href="">Group 5</a></span></p>
             <div class="d-flex align-items-center gap-4">
                 <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Help</a>
                 <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Terms</a>
@@ -2769,8 +2819,38 @@ function getAttendanceStatus($morning_time_in) {
             margin-bottom: 0.35rem;
         }
 
-        .filter-form .form-control {
+
+        /* Calendar input design */
+        .filter-form input[type="date"].form-control {
             min-height: 42px;
+            border-radius: 8px;
+            padding-right: 2.25rem;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .filter-form input[type="date"].form-control:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.2);
+        }
+
+        html.app-skin-light .filter-form input[type="date"].form-control {
+            color: #f0f0f0 !important;
+            background-color: #2d3748 !important;
+            border-color: #4a5568 !important;
+        }
+
+        html.app-skin-dark .filter-form input[type="date"].form-control::-webkit-calendar-picker-indicator {
+            filter: invert(1) brightness(1.2);
+            opacity: 0.9;
+            cursor: pointer;
+        }
+
+        html.app-skin-dark .filter-form input[type="date"].form-control::-webkit-datetime-edit,
+        html.app-skin-dark .filter-form input[type="date"].form-control::-webkit-datetime-edit-text,
+        html.app-skin-dark .filter-form input[type="date"].form-control::-webkit-datetime-edit-month-field,
+        html.app-skin-dark .filter-form input[type="date"].form-control::-webkit-datetime-edit-day-field,
+        html.app-skin-dark .filter-form input[type="date"].form-control::-webkit-datetime-edit-year-field {
+            color: #f0f0f0;
         }
 
         .filter-form .select2-container .select2-selection--single {
@@ -3023,6 +3103,8 @@ function getAttendanceStatus($morning_time_in) {
                 form.appendChild(input1);
                 form.appendChild(input2);
                 document.body.appendChild(form);
+
+
 
 
 
