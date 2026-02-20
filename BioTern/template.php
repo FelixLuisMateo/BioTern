@@ -109,7 +109,7 @@
                         </a>
                         <ul class="nxl-submenu">
                             <li class="nxl-item"><a class="nxl-link" href="document_application.php">Application Letter</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="generate_endorsement_letter.php">Endorsement Letter</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="document_endorsement.php">Endorsement Letter</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="document_moa.php">MOA</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="generate_resume.php">Resume</a></li>
                         </ul>
