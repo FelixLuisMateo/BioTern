@@ -6,11 +6,14 @@ function q($key, $default = '')
 }
 
 $print_date = q('date', date('F j, Y'));
-$partner_name = q('partner_name', '__________________________');
+$partner_name = q('partner_name', '____________');
 $partner_rep = q('partner_rep', '__________________________');
-$partner_position = q('partner_position', '__________________________');
+$partner_position = q('partner_position', '______________, ');
 $partner_address = q('partner_address', '__________________________');
-$school_rep = q('school_rep', 'MR. JOMAR G. SANGIL');
+$company_receipt = q('company_receipt', '__________________________');
+$total_hours = q('total_hours', '250');
+$school_rep = q('school_rep', '__________________');
+$school_position = q('school_position', '__________________');
 
 $signed_at = q('signed_at', '__________________');
 $signed_day = q('signed_day', '_____');
@@ -18,7 +21,8 @@ $signed_month = q('signed_month', '__________________');
 $signed_year = q('signed_year', '20__');
 
 $presence_partner_rep = q('presence_partner_rep', '______________________________');
-$presence_school_admin = q('presence_school_admin', 'Mr. Ross Carvel Ramirez');
+$presence_school_admin = q('presence_school_admin', '______________________');
+$presence_school_admin_position = q('presence_school_admin_position', '______________________');
 
 $notary_city = q('notary_city', '__________________');
 $notary_appeared_1 = q('notary_appeared_1', '__________________');
@@ -152,7 +156,7 @@ $use_saved_template = q('use_saved_template', '0') === '1';
             <li>The <b>Clark College of Science and Technology</b> shall ensure that the Learner shall ensure that the Learner has an on-and off the campus insurance coverage within the duration of the training as part of their training fee.</li>
             <li>The <b>Clark College of Science and Technology</b> shall ensure Learner shall be personally responsible for any and all liabilities arising from negligence in the performance of his/her duties and functions while under INTERNSHIP;</li>
             <li>There is no employer-employee relationship between the  <strong><u>PARTNER COMPANY</u></strong> and the Learner;</li>
-            <li>The duration of the program shall be equivalent to 250 working hours unless otherwise agreed upon by the <strong><u>PARTNER COMPANY</u></strong> and the <strong>Clark College of Science and Technology;</strong></li>
+            <li>The duration of the program shall be equivalent to <?php echo htmlspecialchars($total_hours); ?> working hours unless otherwise agreed upon by the <strong><u>PARTNER COMPANY</u></strong> and the <strong>Clark College of Science and Technology;</strong></li>
             <li>Any violation of the foregoing covenants will warrant the cancellation of the Memorandum of Agreement by the <strong><u>PARTNER COMPANY</u></strong> within thirty (30) days upon notice to the <strong>Clark College of Science and Technology.</strong></li>
             <li>The <strong><u>PARTNER COMPANY</u></strong> may grant allowance to Learner in accordance with the PARTNER ENTERPISE existing rules and regulations;</li>
             <li>The <strong><u>PARTNER COMPANY</u></strong> is not allowed to employ Learner within the INTERNSHIP period in order for the Learner to graduate from the program he/she is enrolled in.</li>
@@ -164,30 +168,30 @@ $use_saved_template = q('use_saved_template', '0') === '1';
         <div class="row" style="margin-top:-12px;">
             <div class="col">
                 <p><strong>For the PARTNER COMPANY</strong></p>
-                <p style="margin-top:16px;"><strong><?php echo htmlspecialchars($partner_rep); ?></strong></p>
-                <p style="margin-top:-18px;"><?php echo htmlspecialchars($partner_position); echo htmlspecialchars($partner_name); ?></p>
+                <p style="margin-top:16px;"><strong><u><?php echo htmlspecialchars($partner_rep); ?></u></strong></p>
+                <p style="margin-top:-18px;"><strong><u><?php echo htmlspecialchars($partner_position); ?></u>, <u><?php echo htmlspecialchars($partner_name); ?></u></strong></p>
             </div>
             <div class="col right">
-                <p style="margin-right: 60px;"><strong>For the SCHOOL</strong></p>
-                <p style="margin-top:16px; margin-right: 82px;"><strong><?php echo htmlspecialchars($school_rep); ?></strong></p>
-                <p style="margin-top:-18px;">Head of Information Technology, CCST</p>
+                <p style="text-align:right;"><strong>For the SCHOOL</strong></p>
+                <p style="margin-top:16px; text-align:right;"><strong><u><?php echo htmlspecialchars($school_rep); ?></u></strong></p>
+                <p style="margin-top:-18px; text-align:right;"><strong><u><?php echo htmlspecialchars($school_position); ?></u></strong></p>
             </div>
         </div>
 
         <p style="margin-top:-5px; text-align:center;"><strong>SIGNED IN THE PRESENCE OF:</strong></p>
         <div class="row">
             <div class="col">
-                <p style="margin-top:0px;"><?php echo htmlspecialchars($presence_partner_rep); ?></p>
-                <p style="margin-top:-18px;">Representative of the PARTNER COMPANY</p>
+                <p style="margin-top:0px;"><strong><u><?php echo htmlspecialchars($company_receipt); ?></u></strong></p>
+                <p style="margin-top:-18px;">Representative for the PARTNER COMPANY</p>
             </div>
             <div class="col right">
-                <p style="margin-top:0px; margin-right: 40px;"><u><?php echo htmlspecialchars($presence_school_admin); ?></u></p>
-                <p style="margin-top:-18px; margin-right: 65px;">School Administrator</p>
+                <p style="margin-top:0px; text-align:right;"><strong><u><?php echo htmlspecialchars($presence_school_admin); ?></u></strong></p>
+                <p style="margin-top:-18px; text-align:right;"><strong><u><?php echo htmlspecialchars($presence_school_admin_position); ?></u></strong></p>
             </div>
         </div>
 
         <p style="margin-top:10px;"><strong>ACKNOWLEDGEMENT</strong></p>      
-            Before me, a Notary Public in the city <?php echo htmlspecialchars($notary_city); ?>, personally appeared <?php echo htmlspecialchars($notary_appeared_1); ?> and <?php echo htmlspecialchars($notary_appeared_2); ?> with Community Tax Certificates indicated above, known to me to be the same persons who executed the foregoing instrument and they acknowledged to me that the same is their free will and voluntary deed and that of the ENTERPRISEs herein represented. Witness my hand and seal on this <?php echo htmlspecialchars($notary_day); ?> day of <?php echo htmlspecialchars($notary_month); ?> <?php echo htmlspecialchars($notary_year); ?> in <?php echo htmlspecialchars($notary_place); ?>.
+            Before me, a Notary Public in the city <strong><u><?php echo htmlspecialchars($notary_city); ?></u></strong>, personally appeared <strong><u><?php echo htmlspecialchars($presence_partner_rep); ?></u></strong>, known to me to be the same persons who executed the foregoing instrument and they acknowledged to me that the same is their free will and voluntary deed and that of the ENTERPRISEs herein represented. Witness my hand and seal on this <strong><u><?php echo htmlspecialchars($notary_day); ?></u></strong> day of <strong><u><?php echo htmlspecialchars($notary_month); ?></u></strong> <strong><u><?php echo htmlspecialchars($notary_year); ?></u></strong> in <strong><u><?php echo htmlspecialchars($notary_place); ?></u></strong>.
         </p>
         <p style="margin-bottom: -12px;">Doc No. <?php echo htmlspecialchars($doc_no); ?>:</p>
         <p style="margin-bottom: -12px;">Page No. <?php echo htmlspecialchars($page_no); ?>:</p>
@@ -197,7 +201,7 @@ $use_saved_template = q('use_saved_template', '0') === '1';
 
     <div class="actions no-print">
         <button class="btn" onclick="window.print()">Print / Save PDF</button>
-        <button class="btn" onclick="window.close()">Close</button>
+        <button class="btn" id="btn_close_moa" type="button">Close</button>
     </div>
 </div>
 <?php if ($use_saved_template): ?>
@@ -213,5 +217,23 @@ $use_saved_template = q('use_saved_template', '0') === '1';
     })();
 </script>
 <?php endif; ?>
+<script>
+    (function(){
+        var btn = document.getElementById('btn_close_moa');
+        if (!btn) return;
+        btn.addEventListener('click', function(){
+            // Browsers may block window.close() unless opened by script.
+            try { window.close(); } catch (err) {}
+            setTimeout(function(){
+                if (window.closed) return;
+                if (window.history.length > 1) {
+                    window.history.back();
+                    return;
+                }
+                window.location.href = 'document_moa.php';
+            }, 80);
+        });
+    })();
+</script>
 </body>
 </html>
