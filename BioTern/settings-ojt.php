@@ -69,7 +69,7 @@
                         </a>
                         <ul class="nxl-submenu">
                             <li class="nxl-item"><a class="nxl-link" href="reports-sales.php">Sales Report</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="reports-ojt.php">Leads Report</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="reports-ojt.php">OJT Report</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="reports-project.php">Project Report</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="reports-timesheets.php">Timesheets Report</a></li>
                         </ul>
@@ -553,20 +553,20 @@
                                     <small class="form-text text-muted">Auto assign as admin to customer after convert [Ex: Yes/No]</small>
                                 </div>
                                 <div class="mb-5">
-                                    <label class="form-label">Allow non-admin staff members to import leads </label>
+                                    <label class="form-label">Allow non-admin staff members to import OJT </label>
                                     <select class="form-select" data-select2-selector="icon">
                                         <option value="" data-icon="feather-check text-success">Yes</option>
                                         <option value="" data-icon="feather-x text-danger" selected>No</option>
                                     </select>
-                                    <small class="form-text text-muted">Allow non-admin staff members to import leads [Ex: Yes/No]</small>
+                                    <small class="form-text text-muted">Allow non-admin staff members to import OJT [Ex: Yes/No]</small>
                                 </div>
                                 <div class="mb-0">
-                                    <label class="form-label">Do not allow leads to be edited after they are converted to Students(administrators not applied)</label>
+                                    <label class="form-label">Do not allow OJT to be edited after they are converted to Students(administrators not applied)</label>
                                     <select class="form-select" data-select2-selector="icon">
                                         <option value="" data-icon="feather-check text-success" selected>Yes</option>
                                         <option value="" data-icon="feather-x text-danger">No</option>
                                     </select>
-                                    <small class="form-text text-muted">Do not allow leads to be edited after they are converted to Students(administrators not applied) [Ex: Yes/No]</small>
+                                    <small class="form-text text-muted">Do not allow OJT to be edited after they are converted to Students(administrators not applied) [Ex: Yes/No]</small>
                                 </div>
                             </div>
                         </div>

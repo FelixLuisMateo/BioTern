@@ -70,7 +70,7 @@
                         </a>
                         <ul class="nxl-submenu">
                             <li class="nxl-item"><a class="nxl-link" href="reports-sales.php">Sales Report</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="reports-ojt.php">Leads Report</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="reports-ojt.php">OJT Report</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="reports-project.php">Project Report</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="reports-timesheets.php">Timesheets Report</a></li>
                         </ul>
@@ -1211,11 +1211,11 @@
                         </div>
                     </div>
                     <!-- [Tickets] end -->
-                    <!-- [Leads Status] start -->
+                    <!-- [OJT Status] start -->
                     <div class="col-xxl-8">
                         <div class="card stretch stretch-full">
                             <div class="card-header">
-                                <h5 class="card-title">Leads Status</h5>
+                                <h5 class="card-title">OJT Status</h5>
                                 <div class="card-header-action">
                                     <div class="card-header-btn">
                                         <div data-bs-toggle="tooltip" title="Delete">
@@ -1423,7 +1423,7 @@
                             </div>
                         </div>
                     </div>
-                    <!-- [ Leads Status] end -->
+                    <!-- [ OJT Status] end -->
                     <!-- [Countries] start -->
                     <div class="col-xxl-4">
                         <div class="card stretch stretch-full">
@@ -1585,7 +1585,7 @@
                         </div>
                     </div>
                     <!-- [Countries] end -->
-                    <!-- [Contact Leads ] start -->
+                    <!-- [Contact OJT ] start -->
                     <div class="col-xxl-8">
                         <div class="card stretch stretch-full">
                             <div class="card-header">
