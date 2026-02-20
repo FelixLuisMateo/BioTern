@@ -76,7 +76,11 @@ if ($role === 'student') {
     $gender = getPost('gender');
     $supervisor_id = getPost('supervisor_id') ? (int)getPost('supervisor_id') : null;
     $coordinator_id = getPost('coordinator_id') ? (int)getPost('coordinator_id') : null;
-    $total_hours = getPost('total_hours');
+    $internal_total_hours = getPost('internal_total_hours');
+    if ($internal_total_hours === null || $internal_total_hours === '') {
+        // Backward compatibility for older forms still posting total_hours.
+        $internal_total_hours = getPost('total_hours');
+    }
     $emergency_contact = getPost('emergency_contact');
     $emergency_contact_phone = getPost('emergency_contact_phone');
 
@@ -84,7 +88,7 @@ if ($role === 'student') {
     $final_email = $account_email ?: $email;
     $course_id = (int)$course_id;
     $section_id = is_numeric($section) ? (int)$section : 0;
-    $total_hours = $total_hours ? (int)$total_hours : null;
+    $internal_total_hours = $internal_total_hours ? (int)$internal_total_hours : null;
     
     // Ensure username is not empty
     if (!$username) {
@@ -153,7 +157,7 @@ if ($role === 'student') {
 
     // Now insert into students table using the user_id
     // Note: If emergency_contact_phone column doesn't exist, store phone in emergency_contact or add the column
-    $stmt = $mysqli->prepare("INSERT INTO students (user_id, course_id, student_id, first_name, last_name, middle_name, username, password, email, section_id, address, phone, date_of_birth, gender, supervisor_id, supervisor_name, coordinator_id, coordinator_name, total_hours, emergency_contact, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())");
+    $stmt = $mysqli->prepare("INSERT INTO students (user_id, course_id, student_id, first_name, last_name, middle_name, username, password, email, section_id, address, phone, date_of_birth, gender, supervisor_id, supervisor_name, coordinator_id, coordinator_name, internal_total_hours, emergency_contact, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())");
     
     if (!$stmt) {
         header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Database statement error: ' . $mysqli->error));
@@ -168,8 +172,8 @@ if ($role === 'student') {
     
     // types: user_id(i), course_id(i), student_id(s), first_name(s), last_name(s), middle_name(s),
     // username(s), password(s), email(s), section_id(i), address(s), phone(s), date_of_birth(s),
-    // gender(s), supervisor_id(i), supervisor_name(s), coordinator_id(i), coordinator_name(s), total_hours(i), emergency_contact(s)
-    $stmt->bind_param('iisssssssissssisisis', $user_id, $course_id, $student_id, $first_name, $last_name, $middle_name, $username, $pwdHash, $final_email, $section_id, $address, $phone, $date_of_birth, $gender, $supervisor_id, $supervisor_name, $coordinator_id, $coordinator_name, $total_hours, $emergency_contact_full);
+    // gender(s), supervisor_id(i), supervisor_name(s), coordinator_id(i), coordinator_name(s), internal_total_hours(i), emergency_contact(s)
+    $stmt->bind_param('iisssssssissssisisis', $user_id, $course_id, $student_id, $first_name, $last_name, $middle_name, $username, $pwdHash, $final_email, $section_id, $address, $phone, $date_of_birth, $gender, $supervisor_id, $supervisor_name, $coordinator_id, $coordinator_name, $internal_total_hours, $emergency_contact_full);
     
     try {
         if (!$stmt->execute()) {

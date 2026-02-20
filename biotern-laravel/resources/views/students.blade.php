@@ -394,7 +394,7 @@ function formatDate($date) {
                         </a>
                         <ul class="nxl-submenu">
                             <li class="nxl-item"><a class="nxl-link" href="{{ url('/reports-sales') }}">Sales Report</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/reports-ojt') }}">Leads Report</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/reports-ojt') }}">OJT Report</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="{{ url('/reports-project') }}">Project Report</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="{{ url('/reports-timesheets') }}">Timesheets Report</a></li>
                         </ul>

@@ -70,7 +70,7 @@
                         </a>
                         <ul class="nxl-submenu">
                             <li class="nxl-item"><a class="nxl-link" href="reports-sales.php">Sales Report</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="reports-ojt.php">Leads Report</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="reports-ojt.php">OJT Report</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="reports-project.php">Project Report</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="reports-timesheets.php">Timesheets Report</a></li>
                         </ul>
@@ -1059,11 +1059,11 @@
                         </div>
                     </div>
                     <!-- [Payment Records] end -->
-                    <!-- [Leads Overview] start -->
+                    <!-- [OJT Overview] start -->
                     <div class="col-xxl-4">
                         <div class="card stretch stretch-full">
                             <div class="card-header">
-                                <h5 class="card-title">Leads Overview</h5>
+                                <h5 class="card-title">OJT Overview</h5>
                                 <div class="card-header-action">
                                     <div class="card-header-btn">
                                         <div data-bs-toggle="tooltip" title="Delete">
@@ -1156,7 +1156,7 @@
                             <a href="javascript:void(0);" class="card-footer fs-11 fw-bold text-uppercase text-center">Update: 50 Min Ago</a>
                         </div>
                     </div>
-                    <!-- [Leads Overview] end -->
+                    <!-- [OJT Overview] end -->
                     <!-- [Visitors Overview] start -->
                     <div class="col-xxl-8">
                         <div class="card stretch stretch-full">

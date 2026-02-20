@@ -68,17 +68,29 @@ if ($do_download_pdf || $do_download_html) ob_start();
           /* fit printable area: printable width = A4 width - page margins (210mm - 20mm = 190mm)
                             container total (max-width + left/right padding) should not exceed printable width */
                     .container{ width:100%; max-width:7.5in; margin:0 auto; padding:0.4in; box-sizing:border-box; position:relative; }
-                    /* Move the centered header text down so the crest/logo has space */
-                    .header{ text-align:center; border-bottom:1px solid #8ab0e6; padding-top:-101px; padding-bottom:6px; margin-bottom:10px }
+                    .header{
+                        position: relative;
+                        min-height: 0.9in;
+                        text-align:center;
+                        border-bottom:1px solid #8ab0e6;
+                        padding: 0.08in 0 0.06in 0;
+                        margin-bottom:10px;
+                    }
                     /* logo size requested: 0.77in x 0.76in */
                     .crest{ position:absolute; top:0.22in; left:0.22in; width:0.77in; height:0.76in; object-fit:contain; }
-        .header img{ max-height:70px; }
         /* Header styles as specified: Calibri (Body), blue colors and sizes */
         .header h2 { font-family: Calibri, 'Calibri', Arial, sans-serif; color: #1b4f9c; font-size:14pt; margin:6px 0 2px 0; }
         .header .meta { font-family: Calibri, 'Calibri', Arial, sans-serif; color:#1b4f9c; font-size:10pt; }
         .header .tel { font-family: Calibri, 'Calibri', Arial, sans-serif; color:#1b4f9c; font-size:12pt; }
         /* Main content font sizes: heading 12pt Times New Roman, body 11pt Times New Roman */
-        h3{ font-family: 'Times New Roman', Times, serif; font-size:13pt; color:#000; margin:6px 0; }
+        h3{ font-family: 'Times New Roman', Times, serif; font-size:13pt; color:#000; margin:6px 0; text-align:center; }
+        #application_doc_content h3{
+            text-align:center !important;
+            width:100%;
+            display:block;
+            margin-left:auto;
+            margin-right:auto;
+        }
         .content{ margin-top:8px; line-height:1.45; font-size:12pt; font-family: 'Times New Roman', Times, serif; }
         .small{ font-size:13px; }
         .signature{ margin-top:28px; }
@@ -97,9 +109,7 @@ if ($do_download_pdf || $do_download_html) ob_start();
             .container { margin: 0; padding: 10mm; }
             /* avoid page breaks inside main sections */
             .container, .content, .signature { page-break-inside: avoid; }
-            /* show print-only crest and hide absolute one to avoid duplicates */
-            .crest { display: none !important; }
-            .crest-print { display: block !important; position: absolute; top: 0.22in; left: 0.22in; width: 0.77in; height:0.76in; z-index: 2300; object-fit:contain; }
+            .crest { display: block !important; }
             /* ensure images print with correct colors */
             img { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             /* Reduce bottom spacing that might create an extra page */
@@ -116,8 +126,6 @@ if ($do_download_pdf || $do_download_html) ob_start();
     <!-- crest at top-left (auth-cover-login-bg.png if available) -->
     <img class="crest" src="assets/images/auth/auth-cover-login-bg.png" alt="crest" onerror="this.style.display='none'">
     <div class="header">
-        <!-- print-only inline crest: some print engines omit absolutely positioned images; include an inline, print-visible image to ensure the header logo appears -->
-        <img class="crest-print" src="assets/images/auth/auth-cover-login-bg.png" alt="crest" onerror="this.style.display='none'" style="display:none;" />
         <h2>CLARK COLLEGE OF SCIENCE AND TECHNOLOGY</h2>
         <div class="meta">SNS Bldg. Aurea St., Samsonville Subd., Dau, Mabalacat, Pampanga &middot;</div>
         <div class="tel">Telefax No.: (045) 624-0215</div>
@@ -162,6 +170,31 @@ if ($do_download_pdf || $do_download_html) ob_start();
 
 </div>
 <script>
+    (function(){
+        function setText(id, value) {
+            var el = document.getElementById(id);
+            if (!el) return;
+            el.textContent = value || '__________________________';
+        }
+
+        function applyRuntimeValues() {
+            setText('ap_date', <?php echo json_encode($print_date); ?>);
+            setText('ap_name', <?php echo json_encode($ap_name); ?>);
+            setText('ap_position', <?php echo json_encode($ap_position); ?>);
+            setText('ap_company', <?php echo json_encode($ap_company); ?>);
+            setText('ap_address', <?php echo json_encode($ap_company_address); ?>);
+            setText('ap_student', <?php echo json_encode($full_name); ?>);
+            setText('ap_student_name', <?php echo json_encode($full_name); ?>);
+            setText('ap_student_address', <?php echo json_encode($address); ?>);
+            setText('ap_student_contact', <?php echo json_encode($phone); ?>);
+        }
+
+        // Apply once for default template content.
+        applyRuntimeValues();
+        // Expose for later call after saved-template injection.
+        window.__applyApplicationRuntimeValues = applyRuntimeValues;
+    })();
+
     // mirror input values into print-only spans and hide inputs when printing
     (function(){
         var fields = ['date','name','position','company','company_address'];
@@ -179,7 +212,17 @@ if ($do_download_pdf || $do_download_html) ob_start();
             window.print();
         });
 
-        document.getElementById('btn_close').addEventListener('click', function(){ window.close(); });
+        document.getElementById('btn_close').addEventListener('click', function(){
+            if (window.opener && !window.opener.closed) {
+                window.close();
+                return;
+            }
+            if (window.history.length > 1) {
+                window.history.back();
+                return;
+            }
+            window.location.href = 'document_application.php';
+        });
     })();
 
     (function(){
@@ -187,8 +230,34 @@ if ($do_download_pdf || $do_download_html) ob_start();
         try {
             var saved = localStorage.getItem('biotern_application_template_html_v1');
             var doc = document.getElementById('application_doc_content');
+            var pageCrest = document.querySelector('.crest');
             if (saved && doc) {
-                doc.innerHTML = saved;
+                var temp = document.createElement('div');
+                temp.innerHTML = saved;
+                var extracted = temp.querySelector('.content');
+                var savedCrest = temp.querySelector('.crest');
+                if (savedCrest && pageCrest) {
+                    var style = savedCrest.style || {};
+                    if (style.left) pageCrest.style.left = style.left;
+                    if (style.top) pageCrest.style.top = style.top;
+                    if (style.width) pageCrest.style.width = style.width;
+                    if (style.height) pageCrest.style.height = style.height;
+                }
+                if (!extracted) extracted = temp.querySelector('#application_doc_content');
+                if (extracted) {
+                    doc.innerHTML = extracted.innerHTML;
+                } else {
+                    var oldHeader = temp.querySelector('.header');
+                    if (oldHeader) oldHeader.remove();
+                    var oldCrest = temp.querySelector('.crest');
+                    if (oldCrest) oldCrest.remove();
+                    doc.innerHTML = temp.innerHTML || saved;
+                }
+                if (typeof window.__applyApplicationRuntimeValues === 'function') {
+                    window.__applyApplicationRuntimeValues();
+                }
+                var title = doc.querySelector('h3');
+                if (title) title.style.textAlign = 'center';
             }
         } catch (err) {}
     })();

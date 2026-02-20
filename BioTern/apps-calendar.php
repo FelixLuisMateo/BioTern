@@ -71,7 +71,7 @@
                         </a>
                         <ul class="nxl-submenu">
                             <li class="nxl-item"><a class="nxl-link" href="reports-sales.php">Sales Report</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="reports-ojt.php">Leads Report</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="reports-ojt.php">OJT Report</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="reports-project.php">Project Report</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="reports-timesheets.php">Timesheets Report</a></li>
                         </ul>
@@ -139,7 +139,7 @@
                             <li class="nxl-item"><a class="nxl-link" href="settings-tags.php">Tags</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="settings-email.php">Email</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="settings-tasks.php">Tasks</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-ojt.php">Leads</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="settings-ojt.php">OJT</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="settings-support.php">Support</a></li>
                             
                             

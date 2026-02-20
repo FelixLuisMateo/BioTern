@@ -430,7 +430,7 @@ if ($attendance_today->num_rows > 0) {
                         </a>
                         <ul class="nxl-submenu">
                             <li class="nxl-item"><a class="nxl-link" href="{{ url('/reports-sales') }}">Sales Report</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/reports-ojt') }}">Leads Report</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/reports-ojt') }}">OJT Report</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="{{ url('/reports-project') }}">Project Report</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="{{ url('/reports-timesheets') }}">Timesheets Report</a></li>
                         </ul>
@@ -678,7 +678,7 @@ if ($attendance_today->num_rows > 0) {
                                         </a>
                                         <a href="{{ url('/reports-ojt') }}" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                            <span>Leads Report</span>
+                                            <span>OJT Report</span>
                                         </a>
                                         <a href="{{ url('/reports-project') }}" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
@@ -778,11 +778,11 @@ if ($attendance_today->num_rows > 0) {
                                         </a>
                                         <a href="{{ url('/ojt-view') }}" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                            <span>Leads View</span>
+                                            <span>OJT View</span>
                                         </a>
                                         <a href="{{ url('/ojt-create') }}" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                            <span>Leads Create</span>
+                                            <span>OJT Create</span>
                                         </a>
                                     </div>
                                 </div>
@@ -1290,7 +1290,7 @@ if ($attendance_today->num_rows > 0) {
                                                         </div>
                                                         <div class="col-lg-4">
                                                             <h6 class="dropdown-item-title">Pages</h6>
-                                                            <a href="javascript:void(0);" class="dropdown-item">Leads </a>
+                                                            <a href="javascript:void(0);" class="dropdown-item">OJT </a>
                                                             <a href="javascript:void(0);" class="dropdown-item">Payments</a>
                                                             <a href="javascript:void(0);" class="dropdown-item">Projects</a>
                                                             <a href="javascript:void(0);" class="dropdown-item">Proposals</a>

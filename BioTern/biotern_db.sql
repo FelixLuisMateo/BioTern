@@ -472,8 +472,8 @@ CREATE TABLE `students` (
   `date_of_birth` date DEFAULT NULL,
   `gender` enum('male','female','other') DEFAULT NULL,
   `address` varchar(255) DEFAULT NULL,
-  `total_hours_remaining` int(11) DEFAULT NULL,
-  `total_hours` int(11) DEFAULT NULL,
+  `internal_total_hours_remaining` int(11) DEFAULT NULL,
+  `internal_total_hours` int(11) DEFAULT NULL,
   `emergency_contact` varchar(255) DEFAULT NULL,
   `profile_picture` varchar(255) DEFAULT NULL,
   `biometric_registered` tinyint(1) NOT NULL DEFAULT 0,
@@ -488,7 +488,7 @@ CREATE TABLE `students` (
 -- Dumping data for table `students`
 --
 
-INSERT INTO `students` (`id`, `user_id`, `course_id`, `student_id`, `first_name`, `last_name`, `middle_name`, `username`, `password`, `email`, `section_id`, `supervisor_name`, `coordinator_name`, `supervisor_id`, `coordinator_id`, `phone`, `date_of_birth`, `gender`, `address`, `total_hours_remaining`, `total_hours`, `emergency_contact`, `profile_picture`, `biometric_registered`, `biometric_registered_at`, `status`, `created_at`, `updated_at`, `deleted_at`) VALUES
+INSERT INTO `students` (`id`, `user_id`, `course_id`, `student_id`, `first_name`, `last_name`, `middle_name`, `username`, `password`, `email`, `section_id`, `supervisor_name`, `coordinator_name`, `supervisor_id`, `coordinator_id`, `phone`, `date_of_birth`, `gender`, `address`, `internal_total_hours_remaining`, `internal_total_hours`, `emergency_contact`, `profile_picture`, `biometric_registered`, `biometric_registered_at`, `status`, `created_at`, `updated_at`, `deleted_at`) VALUES
 (1, 4, 1, '05-0001', 'John', 'Doe', 'Michael', NULL, '', 'john@student.com', 0, 'Jomer De Guzman', 'Felix Luis Mateo', NULL, NULL, '09123456789', '2003-01-15', 'male', '123 Main St, City', NULL, 140, 'Maria Doe', NULL, 1, '2026-02-01 07:49:45', 'Ongoing', '2026-02-09 06:36:38', '2026-02-11 06:30:13', NULL),
 (2, 5, 3, '05-0002', 'Jane', 'Smith', 'Marie', NULL, '', 'jane@student.com', 0, 'Naven Cuenca', 'Ivy Bactazo', NULL, NULL, '092345678901', '2003-06-20', 'female', '456 Oak Ave, City', NULL, 250, 'Robert Smith', NULL, 1, '2026-02-03 07:49:58', '0', '2026-02-09 06:36:38', '2026-02-14 03:02:37', NULL),
 (3, 6, 2, '05-0003', 'Mike', 'Johnson', 'Anthony', NULL, '', 'mike@student.com', 0, 'Naven Cuenca', 'Ivy Bactazo', NULL, NULL, '09345678901', '2003-03-10', 'male', '789 Pine Rd, City', NULL, 100, 'Sarah Johnson', NULL, 1, '2026-02-05 07:50:04', 'Ongoing', '2026-02-09 06:36:38', '2026-02-11 06:30:25', NULL),

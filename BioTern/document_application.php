@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 // Documents page - provides UI to generate student documents (Application Letter etc.)
 
 $host = 'localhost';
@@ -26,7 +26,7 @@ if (isset($_GET['action'])) {
         $out = [];
         if ($res) {
             while ($r = $res->fetch_assoc()) {
-                $text = trim($r['first_name'] . ' ' . ($r['middle_name'] ? $r['middle_name'] . ' ' : '') . $r['last_name']) . ' — ' . $r['student_id'];
+                $text = trim($r['first_name'] . ' ' . ($r['middle_name'] ? $r['middle_name'] . ' ' : '') . $r['last_name']) . ' â€” ' . $r['student_id'];
                 $out[] = ['id' => $r['id'], 'text' => $text];
             }
         }
@@ -86,8 +86,36 @@ if (isset($_GET['action'])) {
         main.nxl-container { flex:1; display:flex; flex-direction:column; }
         div.nxl-content { flex:1; padding-bottom:24px; }
         .doc-preview { background:#fff; border:1px solid #eee; padding:24px; max-width:800px; margin-top:18px; margin-bottom:32px; position:relative; z-index:1; box-shadow:0 6px 20px rgba(0,0,0,0.04); }
-        /* move the header text a bit lower so the crest/logo fits inside the preview */
-        .doc-preview .text-center { padding-top:40px; }
+        .preview-header{
+            position: relative;
+            min-height: 72px;
+            text-align: center;
+            border-bottom: 1px solid #8ab0e6;
+            padding: 8px 0 6px 0;
+            margin-bottom: 10px;
+        }
+        .preview-header .school-name{
+            font-family: Calibri, Arial, sans-serif;
+            font-weight: 700;
+            color:#1b4f9c;
+            font-size: 20px;
+            line-height: 1.1;
+            margin: 0;
+        }
+        .preview-header .school-meta{
+            font-family: Calibri, Arial, sans-serif;
+            color:#1b4f9c;
+            font-size: 14px;
+            line-height: 1.2;
+            margin: 2px 0 0;
+        }
+        .preview-header .school-tel{
+            font-family: Calibri, Arial, sans-serif;
+            color:#1b4f9c;
+            font-size: 14px;
+            line-height: 1.2;
+            margin: 2px 0 0;
+        }
         /* ensure preview sits above footer visually */
         
         /* Select2 dropdown should overlay above other elements */
@@ -212,19 +240,19 @@ if (isset($_GET['action'])) {
                         <select id="student_select" style="width:100%"></select>
                         <div class="mt-3">
                             <label class="form-label">Mr./Ms. (as to appear)</label>
-                            <input id="input_name" class="form-control form-control-sm" type="text" placeholder="Student full name">
+                            <input id="input_name" class="form-control form-control-sm" type="text" placeholder="Recepient full name" autocomplete="off">
                         </div>
                         <div class="mt-2">
                             <label class="form-label">Position</label>
-                            <input id="input_position" class="form-control form-control-sm" type="text" placeholder="Position (optional)">
+                            <input id="input_position" class="form-control form-control-sm" type="text" placeholder="Position (optional)" autocomplete="off">
                         </div>
                         <div class="mt-2">
                             <label class="form-label">Company</label>
-                            <input id="input_company" class="form-control form-control-sm" type="text" placeholder="Company name">
+                            <input id="input_company" class="form-control form-control-sm" type="text" placeholder="Company name" autocomplete="off">
                         </div>
                         <div class="mt-2">
                             <label class="form-label">Company Address</label>
-                            <textarea id="input_company_address" class="form-control form-control-sm" rows="2" placeholder="Company address"></textarea>
+                            <textarea id="input_company_address" class="form-control form-control-sm" rows="2" placeholder="Company address" autocomplete="off"></textarea>
                         </div>
                         <div class="mt-3 d-flex gap-2">
                             <button id="btn_file_edit_application" type="button" class="btn btn-primary flex-grow-0">File Edit</button>
@@ -235,11 +263,11 @@ if (isset($_GET['action'])) {
 
                 <div class="col-lg-6">
                     <div class="doc-preview" id="letter_preview">
-                        <img class="crest-preview" src="assets/images/auth/auth-cover-login-bg.png" alt="crest" onerror="this.style.display='none'" style="position:absolute; top:12px; left:12px; width:86px;">
-                        <div class="text-center mb-3" style="padding-top:8px;">
-                            <h6 class="mt-2">CLARK COLLEGE OF SCIENCE AND TECHNOLOGY</h6>
-                            <div class="small text-muted">SNS Bldg. Aurea St., Samsonville Subd., Dau, Mabalacat, Pampanga</div>
-                            <div>Telefax No.: (045) 624-0215</div>
+                        <img class="crest-preview" src="assets/images/auth/auth-cover-login-bg.png" alt="crest" onerror="this.style.display='none'" style="position:absolute; top:12px; left:12px; width:56px; height:56px; object-fit:contain;">
+                        <div class="preview-header">
+                            <p class="school-name">CLARK COLLEGE OF SCIENCE AND TECHNOLOGY</p>
+                            <p class="school-meta">SNS Bldg. Aurea St., Samsonville Subd., Dau, Mabalacat, Pampanga</p>
+                            <p class="school-tel">Telefax No.: (045) 624-0215</p>
                         </div>
                         <div id="letter_content">
                             <p><strong>Application Approval Sheet</strong></p>
@@ -296,7 +324,18 @@ if (isset($_GET['action'])) {
                 try {
                     const saved = localStorage.getItem(APP_TEMPLATE_STORAGE_KEY);
                     if (!saved) return false;
-                    letterContent.innerHTML = saved;
+                    const temp = document.createElement('div');
+                    temp.innerHTML = saved;
+                    const extracted = temp.querySelector('.content') || temp.querySelector('#application_doc_content');
+                    if (extracted) {
+                        letterContent.innerHTML = extracted.innerHTML;
+                    } else {
+                        const oldHeader = temp.querySelector('.header');
+                        if (oldHeader) oldHeader.remove();
+                        const oldCrest = temp.querySelector('.crest');
+                        if (oldCrest) oldCrest.remove();
+                        letterContent.innerHTML = temp.innerHTML || saved;
+                    }
                     hasLoadedSavedTemplate = true;
                     return true;
                 } catch (err) {
@@ -306,10 +345,8 @@ if (isset($_GET['action'])) {
 
             function openApplicationEditor(e) {
                 if (e && typeof e.preventDefault === 'function') e.preventDefault();
-                if (letterContent) {
-                    try { localStorage.setItem(APP_TEMPLATE_STORAGE_KEY, letterContent.innerHTML); } catch (err) {}
-                }
-                window.location.href = 'edit_application.php';
+                // Always open editor with blank/default template, no student autofill carry-over.
+                window.location.href = 'edit_application.php?blank=1';
                 return false;
             }
 
@@ -367,7 +404,7 @@ if (isset($_GET['action'])) {
                 $(document).on('select2:select select2:closing', '#student_select', function(e){
                     setTimeout(function(){
                         var txt = $('#student_select').find('option:selected').text() || '';
-                        overlay.value = txt.replace(/\s+—\s+.*$/,'');
+                        overlay.value = txt.replace(/\s+â€”\s+.*$/,'');
                     }, 0);
                 });
 
@@ -394,16 +431,19 @@ if (isset($_GET['action'])) {
                     .then(data => {
                         if (!data) return;
                         const fullname = [data.first_name, data.middle_name, data.last_name].filter(Boolean).join(' ');
-                        // Do NOT set inputName/inputCompany/inputPosition here — those are for the recipient/company
+                        // Do NOT set inputName/inputCompany/inputPosition here â€” those are for the recipient/company
                         // Only set student-related preview fields
                         document.getElementById('ap_student').textContent = fullname;
                         document.getElementById('ap_student_name').textContent = fullname;
                         document.getElementById('ap_student_address').textContent = data.address || '__________________________';
                         document.getElementById('ap_student_contact').textContent = data.phone || '__________________________';
                         document.getElementById('ap_date').textContent = new Date().toLocaleDateString();
+                        // keep recipient/company fields blank until user types
+                        clearRecipientCompanyFields();
+                        // then load saved application letter values from ojt-view.php data
+                        loadApplicationLetterData(id);
                         // update generate link (do not include recipient if empty)
                         updatePreviewFields();
-                        loadApplicationLetterData(id);
                         updateGenerateLink(id);
                     });
             });
@@ -433,9 +473,13 @@ if (isset($_GET['action'])) {
                     .then(data => {
                         if (!data || !data.id) return;
                         const fullname = [data.first_name, data.middle_name, data.last_name].filter(Boolean).join(' ');
-                        const label = (fullname || 'Student') + ' — ' + (data.student_id || id);
+                        const label = (fullname || 'Student') + ' - ' + (data.student_id || id);
                         const option = new Option(label, String(id), true, true);
                         select.append(option).trigger('change');
+
+                        // Keep visible search text in sync for prefilled student id.
+                        const overlayInput = document.querySelector('.select2-overlay-input');
+                        if (overlayInput) overlayInput.value = fullname || '';
 
                         document.getElementById('ap_student').textContent = fullname || '__________________________';
                         document.getElementById('ap_student_name').textContent = fullname || '__________________________';
@@ -443,11 +487,23 @@ if (isset($_GET['action'])) {
                         document.getElementById('ap_student_contact').textContent = data.phone || '__________________________';
                         document.getElementById('ap_date').textContent = new Date().toLocaleDateString();
 
+                        clearRecipientCompanyFields();
                         loadApplicationLetterData(id);
                         updatePreviewFields();
                         updateGenerateLink(id);
                     })
                     .catch(() => {});
+            }
+
+            function clearRecipientCompanyFields(){
+                inputName.value = '';
+                inputPosition.value = '';
+                inputCompany.value = '';
+                inputCompanyAddress.value = '';
+                document.getElementById('ap_name').textContent = '__________________________';
+                document.getElementById('ap_position').textContent = '__________________________';
+                document.getElementById('ap_company').textContent = '__________________________';
+                document.getElementById('ap_address').textContent = '__________________________';
             }
 
             function updatePreviewFields(){
@@ -526,6 +582,7 @@ if (isset($_GET['action'])) {
                 updatePreviewFields();
                 document.getElementById('ap_date').textContent = new Date().toLocaleDateString();
             }
+            clearRecipientCompanyFields();
             updateGenerateLink(selectedStudentId || select.val());
             if (PREFILL_STUDENT_ID > 0) prefillByStudentId(PREFILL_STUDENT_ID);
 
@@ -534,3 +591,4 @@ if (isset($_GET['action'])) {
     <?php include 'template.php'; ?>
 </body>
 </html>
+

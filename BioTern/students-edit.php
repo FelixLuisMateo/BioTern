@@ -14,6 +14,27 @@ try {
     die("Database Error: " . $e->getMessage());
 }
 
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+$current_role = strtolower(trim((string) (
+    $_SESSION['role'] ??
+    $_SESSION['user_role'] ??
+    $_SESSION['account_role'] ??
+    $_SESSION['user_type'] ??
+    $_SESSION['type'] ??
+    ''
+)));
+$can_edit_sensitive_hours = in_array($current_role, ['admin', 'coordinator', 'supervisor'], true);
+
+// Ensure new student assignment/hour fields exist.
+$conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS internal_total_hours INT(11) DEFAULT NULL");
+$conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS internal_total_hours_remaining INT(11) DEFAULT NULL");
+$conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS external_total_hours INT(11) DEFAULT NULL");
+$conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS external_total_hours_remaining INT(11) DEFAULT NULL");
+$conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS assignment_track VARCHAR(20) NOT NULL DEFAULT 'internal'");
+
 // Get student ID from URL parameter
 $student_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 
@@ -51,6 +72,11 @@ $student_query = "
         s.gender,
         s.address,
         s.emergency_contact,
+        s.internal_total_hours,
+        s.internal_total_hours_remaining,
+        s.external_total_hours,
+        s.external_total_hours_remaining,
+        s.assignment_track,
         s.status,
         s.biometric_registered,
         s.biometric_registered_at,
@@ -162,12 +188,33 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $status = isset($_POST['status']) ? intval($_POST['status']) : 1;
     $supervisor_id = isset($_POST['supervisor_id']) ? trim($_POST['supervisor_id']) : '';
     $coordinator_id = isset($_POST['coordinator_id']) ? trim($_POST['coordinator_id']) : '';
+    $student_id_code = isset($_POST['student_id']) ? trim($_POST['student_id']) : ($student['student_id'] ?? '');
+    $internal_total_hours = isset($_POST['internal_total_hours']) && $_POST['internal_total_hours'] !== '' ? intval($_POST['internal_total_hours']) : null;
+    $internal_total_hours_remaining = isset($_POST['internal_total_hours_remaining']) && $_POST['internal_total_hours_remaining'] !== '' ? intval($_POST['internal_total_hours_remaining']) : null;
+    $external_total_hours = isset($_POST['external_total_hours']) && $_POST['external_total_hours'] !== '' ? intval($_POST['external_total_hours']) : null;
+    $external_total_hours_remaining = isset($_POST['external_total_hours_remaining']) && $_POST['external_total_hours_remaining'] !== '' ? intval($_POST['external_total_hours_remaining']) : null;
+    $assignment_track = isset($_POST['assignment_track']) ? trim($_POST['assignment_track']) : 'internal';
+
+    if (!$can_edit_sensitive_hours) {
+        $student_id_code = (string)($student['student_id'] ?? '');
+        $internal_total_hours = isset($student['internal_total_hours']) ? intval($student['internal_total_hours']) : null;
+        $internal_total_hours_remaining = isset($student['internal_total_hours_remaining']) ? intval($student['internal_total_hours_remaining']) : null;
+        $external_total_hours = isset($student['external_total_hours']) ? intval($student['external_total_hours']) : null;
+        $external_total_hours_remaining = isset($student['external_total_hours_remaining']) ? intval($student['external_total_hours_remaining']) : null;
+        $assignment_track = (string)($student['assignment_track'] ?? 'internal');
+    }
+
+    if (!in_array($assignment_track, ['internal', 'external'], true)) {
+        $assignment_track = 'internal';
+    }
 
     // Validation
     if (empty($first_name) || empty($last_name) || empty($email)) {
         $error_message = "First Name, Last Name, and Email are required fields!";
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $error_message = "Invalid email format!";
+    } elseif ($assignment_track === 'external' && ($internal_total_hours_remaining === null || $internal_total_hours_remaining > 0)) {
+        $error_message = "Cannot assign student to External unless Internal is completed (Internal Total Hours Remaining must be 0).";
     } else {
         // Check if email already exists (excluding current student)
         $email_check = $conn->prepare("SELECT id FROM students WHERE email = ? AND id != ?");
@@ -182,6 +229,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $update_query = "
                 UPDATE students 
                 SET 
+                    student_id = ?,
                     first_name = ?,
                     last_name = ?,
                     middle_name = ?,
@@ -191,6 +239,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     gender = ?,
                     address = ?,
                     emergency_contact = ?,
+                    internal_total_hours = ?,
+                    internal_total_hours_remaining = ?,
+                    external_total_hours = ?,
+                    external_total_hours_remaining = ?,
+                    assignment_track = ?,
                     course_id = NULLIF(?, 0),
                     status = ?,
                     supervisor_name = ?,
@@ -205,7 +258,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $error_message = "Prepare failed: " . $conn->error;
             } else {
                 $update_stmt->bind_param(
-                    "ssssssssssssssi",
+                    "ssssssssssiiiisiisssi",
+                    $student_id_code,
                     $first_name,
                     $last_name,
                     $middle_name,
@@ -215,6 +269,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $gender,
                     $address,
                     $emergency_contact,
+                    $internal_total_hours,
+                    $internal_total_hours_remaining,
+                    $external_total_hours,
+                    $external_total_hours_remaining,
+                    $assignment_track,
                     $course_id,
                     $status,
                     $supervisor_id,
@@ -494,7 +553,7 @@ function formatDateTime($date) {
                         </a>
                         <ul class="nxl-submenu">
                             <li class="nxl-item"><a class="nxl-link" href="reports-sales.php">Sales Report</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="reports-ojt.php">Leads Report</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="reports-ojt.php">OJT Report</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="reports-project.php">Project Report</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="reports-timesheets.php">Timesheets Report</a></li>
                         </ul>
@@ -865,8 +924,11 @@ function formatDateTime($date) {
                                             <div class="col-md-6 mb-4">
                                                 <label for="student_id" class="form-label fw-semibold">Student ID</label>
                                                 <input type="text" class="form-control" id="student_id" name="student_id" 
+                                                       <?php echo $can_edit_sensitive_hours ? '' : 'disabled'; ?>
                                                        value="<?php echo htmlspecialchars($student['student_id'] ?? ''); ?>">
-                                                <small class="form-text text-muted">Can be edited by admins, coordinators, and supervisors</small>
+                                                <small class="form-text text-muted">
+                                                    <?php echo $can_edit_sensitive_hours ? 'Can be edited by admins, coordinators, and supervisors' : 'Read-only for student accounts'; ?>
+                                                </small>
                                             </div>
                                             <div class="col-md-6 mb-4">
                                                 <label for="profile_picture" class="form-label fw-semibold">Profile Picture</label>
@@ -946,6 +1008,36 @@ function formatDateTime($date) {
                                                     <option value="1" <?php echo $student['status'] == 1 ? 'selected' : ''; ?>>Active</option>
                                                     <option value="0" <?php echo $student['status'] == 0 ? 'selected' : ''; ?>>Inactive</option>
                                                 </select>
+                                            </div>
+                                        </div>
+
+                                        <div class="row">
+                                            <div class="col-md-6 mb-4">
+                                                <label for="assignment_track" class="form-label fw-semibold">Assignment Track</label>
+                                                <select class="form-control" id="assignment_track" name="assignment_track" <?php echo $can_edit_sensitive_hours ? '' : 'disabled'; ?>>
+                                                    <option value="internal" <?php echo (($student['assignment_track'] ?? 'internal') === 'internal') ? 'selected' : ''; ?>>Internal</option>
+                                                    <option value="external" <?php echo (($student['assignment_track'] ?? '') === 'external') ? 'selected' : ''; ?>>External</option>
+                                                </select>
+                                                <small class="form-text text-muted">Rule: External is allowed only when Internal Hours Remaining is 0.</small>
+                                            </div>
+                                        </div>
+
+                                        <div class="row">
+                                            <div class="col-md-3 mb-4">
+                                                <label for="internal_total_hours" class="form-label fw-semibold">Internal Total Hours</label>
+                                                <input type="number" class="form-control" id="internal_total_hours" name="internal_total_hours" min="0" step="1" <?php echo $can_edit_sensitive_hours ? '' : 'disabled'; ?> value="<?php echo htmlspecialchars((string)($student['internal_total_hours'] ?? '')); ?>">
+                                            </div>
+                                            <div class="col-md-3 mb-4">
+                                                <label for="internal_total_hours_remaining" class="form-label fw-semibold">Internal Hours Remaining</label>
+                                                <input type="number" class="form-control" id="internal_total_hours_remaining" name="internal_total_hours_remaining" min="0" step="1" <?php echo $can_edit_sensitive_hours ? '' : 'disabled'; ?> value="<?php echo htmlspecialchars((string)($student['internal_total_hours_remaining'] ?? '')); ?>">
+                                            </div>
+                                            <div class="col-md-3 mb-4">
+                                                <label for="external_total_hours" class="form-label fw-semibold">External Total Hours</label>
+                                                <input type="number" class="form-control" id="external_total_hours" name="external_total_hours" min="0" step="1" <?php echo $can_edit_sensitive_hours ? '' : 'disabled'; ?> value="<?php echo htmlspecialchars((string)($student['external_total_hours'] ?? '')); ?>">
+                                            </div>
+                                            <div class="col-md-3 mb-4">
+                                                <label for="external_total_hours_remaining" class="form-label fw-semibold">External Hours Remaining</label>
+                                                <input type="number" class="form-control" id="external_total_hours_remaining" name="external_total_hours_remaining" min="0" step="1" <?php echo $can_edit_sensitive_hours ? '' : 'disabled'; ?> value="<?php echo htmlspecialchars((string)($student['external_total_hours_remaining'] ?? '')); ?>">
                                             </div>
                                         </div>
 

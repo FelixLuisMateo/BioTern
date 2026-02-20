@@ -1,4 +1,18 @@
-﻿<?php
+<?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+$current_role = strtolower(trim((string) (
+    $_SESSION['role'] ??
+    $_SESSION['user_role'] ??
+    $_SESSION['account_role'] ??
+    $_SESSION['user_type'] ??
+    $_SESSION['type'] ??
+    ''
+)));
+$is_student_user = ($current_role === 'student');
+
 // Database Connection
 $host = 'localhost';
 $db_user = 'root';
@@ -258,7 +272,7 @@ function formatDate($date) {
                         </a>
                         <ul class="nxl-submenu">
                             <li class="nxl-item"><a class="nxl-link" href="reports-sales.php">Sales Report</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="reports-ojt.php">Leads Report</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="reports-ojt.php">OJT Report</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="reports-project.php">Project Report</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="reports-timesheets.php">Timesheets Report</a></li>
                         </ul>
@@ -795,51 +809,53 @@ function formatDate($date) {
                                                                 <a href="students-view.php?id=<?php echo $student['id']; ?>" class="avatar-text avatar-md" title="View">
                                                                     <i class="feather feather-eye"></i>
                                                                 </a>
-                                                                <div class="dropdown">
-                                                                    <a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="dropdown" data-bs-offset="0,21">
-                                                                        <i class="feather feather-more-horizontal"></i>
-                                                                    </a>
-                                                                    <ul class="dropdown-menu">
-                                                                        <li>
-                                                                            <a class="dropdown-item" href="javascript:void(0)">
-                                                                                <i class="feather feather-edit-3 me-3"></i>
-                                                                                <span>Edit</span>
-                                                                            </a>
-                                                                        </li>
-                                                                        <li>
-                                                                            <a class="dropdown-item printBTN" href="javascript:void(0)">
-                                                                                <i class="feather feather-printer me-3"></i>
-                                                                                <span>Print</span>
-                                                                            </a>
-                                                                        </li>
-                                                                        <li>
-                                                                            <a class="dropdown-item" href="javascript:void(0)">
-                                                                                <i class="feather feather-clock me-3"></i>
-                                                                                <span>Remind</span>
-                                                                            </a>
-                                                                        </li>
-                                                                        <li class="dropdown-divider"></li>
-                                                                        <li>
-                                                                            <a class="dropdown-item" href="javascript:void(0)">
-                                                                                <i class="feather feather-archive me-3"></i>
-                                                                                <span>Archive</span>
-                                                                            </a>
-                                                                        </li>
-                                                                        <li>
-                                                                            <a class="dropdown-item" href="javascript:void(0)">
-                                                                                <i class="feather feather-alert-octagon me-3"></i>
-                                                                                <span>Report Spam</span>
-                                                                            </a>
-                                                                        </li>
-                                                                        <li class="dropdown-divider"></li>
-                                                                        <li>
-                                                                            <a class="dropdown-item" href="javascript:void(0)">
-                                                                                <i class="feather feather-trash-2 me-3"></i>
-                                                                                <span>Delete</span>
-                                                                            </a>
-                                                                        </li>
-                                                                    </ul>
-                                                                </div>
+                                                                <?php if (!$is_student_user): ?>
+                                                                    <div class="dropdown">
+                                                                        <a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="dropdown" data-bs-offset="0,21">
+                                                                            <i class="feather feather-more-horizontal"></i>
+                                                                        </a>
+                                                                        <ul class="dropdown-menu">
+                                                                            <li>
+                                                                                <a class="dropdown-item" href="javascript:void(0)">
+                                                                                    <i class="feather feather-edit-3 me-3"></i>
+                                                                                    <span>Edit</span>
+                                                                                </a>
+                                                                            </li>
+                                                                            <li>
+                                                                                <a class="dropdown-item printBTN" href="javascript:void(0)">
+                                                                                    <i class="feather feather-printer me-3"></i>
+                                                                                    <span>Print</span>
+                                                                                </a>
+                                                                            </li>
+                                                                            <li>
+                                                                                <a class="dropdown-item" href="javascript:void(0)">
+                                                                                    <i class="feather feather-clock me-3"></i>
+                                                                                    <span>Remind</span>
+                                                                                </a>
+                                                                            </li>
+                                                                            <li class="dropdown-divider"></li>
+                                                                            <li>
+                                                                                <a class="dropdown-item" href="javascript:void(0)">
+                                                                                    <i class="feather feather-archive me-3"></i>
+                                                                                    <span>Archive</span>
+                                                                                </a>
+                                                                            </li>
+                                                                            <li>
+                                                                                <a class="dropdown-item" href="javascript:void(0)">
+                                                                                    <i class="feather feather-alert-octagon me-3"></i>
+                                                                                    <span>Report Spam</span>
+                                                                                </a>
+                                                                            </li>
+                                                                            <li class="dropdown-divider"></li>
+                                                                            <li>
+                                                                                <a class="dropdown-item" href="javascript:void(0)">
+                                                                                    <i class="feather feather-trash-2 me-3"></i>
+                                                                                    <span>Delete</span>
+                                                                                </a>
+                                                                            </li>
+                                                                        </ul>
+                                                                    </div>
+                                                                <?php endif; ?>
                                                             </div>
                                                         </td>
                                                     </tr>
@@ -864,7 +880,7 @@ function formatDate($date) {
         <!-- Footer -->
         <footer class="footer">
             <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
-                <span>Copyright ©</span>
+                <span>Copyright ï¿½</span>
                 <script>
                     document.write(new Date().getFullYear());
                 </script>
@@ -890,4 +906,3 @@ function formatDate($date) {
 </body>
 
 </html>
-

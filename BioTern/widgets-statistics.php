@@ -70,7 +70,7 @@
                         </a>
                         <ul class="nxl-submenu">
                             <li class="nxl-item"><a class="nxl-link" href="reports-sales.php">Sales Report</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="reports-ojt.php">Leads Report</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="reports-ojt.php">OJT Report</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="reports-project.php">Project Report</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="reports-timesheets.php">Timesheets Report</a></li>
                         </ul>
@@ -553,7 +553,7 @@
                                 </div>
                                 <div class="pt-4">
                                     <div class="d-flex align-items-center justify-content-between">
-                                        <a href="javascript:void(0);" class="fs-12 fw-medium text-muted text-truncate-1-line">Converted Leads </a>
+                                        <a href="javascript:void(0);" class="fs-12 fw-medium text-muted text-truncate-1-line">Converted OJT </a>
                                         <div class="w-100 text-end">
                                             <span class="fs-12 text-dark">52 Completed</span>
                                             <span class="fs-11 text-muted">(63%)</span>

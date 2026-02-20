@@ -10,6 +10,126 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
+function parse_time_seconds($time_value) {
+    if (empty($time_value)) {
+        return null;
+    }
+    $ts = strtotime($time_value);
+    return $ts === false ? null : $ts;
+}
+
+function calculate_attendance_hours(array $row) {
+    $total_seconds = 0;
+
+    $morning_in = parse_time_seconds($row['morning_time_in'] ?? null);
+    $morning_out = parse_time_seconds($row['morning_time_out'] ?? null);
+    if ($morning_in !== null && $morning_out !== null && $morning_out > $morning_in) {
+        $total_seconds += ($morning_out - $morning_in);
+    }
+
+    $afternoon_in = parse_time_seconds($row['afternoon_time_in'] ?? null);
+    $afternoon_out = parse_time_seconds($row['afternoon_time_out'] ?? null);
+    if ($afternoon_in !== null && $afternoon_out !== null && $afternoon_out > $afternoon_in) {
+        $total_seconds += ($afternoon_out - $afternoon_in);
+    }
+
+    $break_in = parse_time_seconds($row['break_time_in'] ?? null);
+    $break_out = parse_time_seconds($row['break_time_out'] ?? null);
+    if ($break_in !== null && $break_out !== null && $break_out > $break_in) {
+        $total_seconds -= ($break_out - $break_in);
+    }
+
+    if ($total_seconds < 0) {
+        $total_seconds = 0;
+    }
+
+    return round($total_seconds / 3600, 2);
+}
+
+function sync_student_hours(mysqli $conn, int $student_id) {
+    // Recompute total rendered hours from non-rejected attendance records.
+    $sum_stmt = $conn->prepare("
+        SELECT COALESCE(SUM(total_hours), 0) AS rendered
+        FROM attendances
+        WHERE student_id = ? AND (status IS NULL OR status <> 'rejected')
+    ");
+    $sum_stmt->bind_param("i", $student_id);
+    $sum_stmt->execute();
+    $sum_result = $sum_stmt->get_result()->fetch_assoc();
+    $rendered = isset($sum_result['rendered']) ? (float)$sum_result['rendered'] : 0.0;
+    $sum_stmt->close();
+
+    // Update ongoing internship rendered/completion.
+    $intern_stmt = $conn->prepare("
+        SELECT id, required_hours
+        FROM internships
+        WHERE student_id = ? AND status = 'ongoing'
+        ORDER BY id DESC
+        LIMIT 1
+    ");
+    $intern_stmt->bind_param("i", $student_id);
+    $intern_stmt->execute();
+    $intern = $intern_stmt->get_result()->fetch_assoc();
+    $intern_stmt->close();
+
+    if ($intern) {
+        $required = max(0, (int)$intern['required_hours']);
+        $percentage = $required > 0 ? round(($rendered / $required) * 100, 2) : 0.0;
+        if ($percentage > 100) {
+            $percentage = 100.0;
+        }
+        $upd_intern = $conn->prepare("
+            UPDATE internships
+            SET rendered_hours = ?, completion_percentage = ?, updated_at = NOW()
+            WHERE id = ?
+        ");
+        $upd_intern->bind_param("ddi", $rendered, $percentage, $intern['id']);
+        $upd_intern->execute();
+        $upd_intern->close();
+    }
+
+    // Update students remaining based on current assignment track.
+    $student_stmt = $conn->prepare("
+        SELECT assignment_track, internal_total_hours, external_total_hours
+        FROM students
+        WHERE id = ?
+        LIMIT 1
+    ");
+    $student_stmt->bind_param("i", $student_id);
+    $student_stmt->execute();
+    $student = $student_stmt->get_result()->fetch_assoc();
+    $student_stmt->close();
+
+    if ($student) {
+        $track = strtolower((string)($student['assignment_track'] ?? 'internal'));
+        $internal_total = max(0, (int)($student['internal_total_hours'] ?? 0));
+        $external_total = max(0, (int)($student['external_total_hours'] ?? 0));
+        $rounded_rendered = (int)floor($rendered);
+
+        if ($track === 'external') {
+            $external_remaining = max(0, $external_total - $rounded_rendered);
+            $upd_student = $conn->prepare("
+                UPDATE students
+                SET external_total_hours_remaining = ?, updated_at = NOW()
+                WHERE id = ?
+            ");
+            $upd_student->bind_param("ii", $external_remaining, $student_id);
+            $upd_student->execute();
+            $upd_student->close();
+        } else {
+            $internal_remaining = max(0, $internal_total - $rounded_rendered);
+            $upd_student = $conn->prepare("
+                UPDATE students
+                SET internal_total_hours_remaining = ?, updated_at = NOW()
+                WHERE id = ?
+            ");
+            $upd_student->bind_param("ii", $internal_remaining, $student_id);
+            $upd_student->execute();
+            $upd_student->close();
+        }
+    }
+}
+
 // Handle clock in/out submission
 $message = '';
 $message_type = '';
@@ -77,6 +197,29 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $update_query = "UPDATE attendances SET $db_column = '$clock_time', updated_at = NOW() 
                                     WHERE student_id = $student_id AND attendance_date = '$clock_date'";
                     if ($conn->query($update_query)) {
+                        // Recompute and persist attendance total_hours for this date.
+                        $att_stmt = $conn->prepare("
+                            SELECT id, morning_time_in, morning_time_out, break_time_in, break_time_out, afternoon_time_in, afternoon_time_out
+                            FROM attendances
+                            WHERE student_id = ? AND attendance_date = ?
+                            LIMIT 1
+                        ");
+                        $att_stmt->bind_param("is", $student_id, $clock_date);
+                        $att_stmt->execute();
+                        $att_row = $att_stmt->get_result()->fetch_assoc();
+                        $att_stmt->close();
+
+                        if ($att_row) {
+                            $computed_hours = calculate_attendance_hours($att_row);
+                            $upd_total = $conn->prepare("UPDATE attendances SET total_hours = ?, updated_at = NOW() WHERE id = ?");
+                            $upd_total->bind_param("di", $computed_hours, $att_row['id']);
+                            $upd_total->execute();
+                            $upd_total->close();
+                        }
+
+                        // Sync student/internship accumulated progress so it does not reset daily.
+                        sync_student_hours($conn, $student_id);
+
                         $message = "âœ“ " . ucfirst(str_replace('_', ' ', $clock_type)) . " recorded at " . date('h:i A', strtotime($clock_time));
                         $message_type = "success";
                     } else {
@@ -530,7 +673,7 @@ if ($attendance_today->num_rows > 0) {
                         </a>
                         <ul class="nxl-submenu">
                             <li class="nxl-item"><a class="nxl-link" href="reports-sales.php">Sales Report</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="reports-ojt.php">Leads Report</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="reports-ojt.php">OJT Report</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="reports-project.php">Project Report</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="reports-timesheets.php">Timesheets Report</a></li>
                         </ul>

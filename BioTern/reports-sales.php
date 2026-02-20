@@ -67,7 +67,7 @@
                         </a>
                         <ul class="nxl-submenu">
                             <li class="nxl-item"><a class="nxl-link" href="reports-sales.php">Sales Report</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="reports-ojt.php">Leads Report</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="reports-ojt.php">OJT Report</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="reports-project.php">Project Report</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="reports-timesheets.php">Timesheets Report</a></li>
                         </ul>
@@ -850,7 +850,7 @@
                                             <div class="avatar-text bg-gray-200 mx-auto mb-2">
                                                 <i class="feather-check-circle"></i>
                                             </div>
-                                            <h2 class="fs-13 tx-spacing-1">Leads Goal</h2>
+                                            <h2 class="fs-13 tx-spacing-1">OJT Goal</h2>
                                             <div class="fs-11 text-muted">$850/$950 USD</div>
                                         </div>
                                     </div>

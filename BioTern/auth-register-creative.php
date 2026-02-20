@@ -430,7 +430,7 @@
                                 <div class="row g-3">
                                     <div class="col-6 mb-2">
                                         <label class="form-label fs-12">Total Hours</label>
-                                        <input type="number" name="total_hours" class="form-control" placeholder="Total Hours" min="0">
+                                        <input type="number" name="internal_total_hours" class="form-control" placeholder="Internal Total Hours" min="0">
                                     </div>
                                 </div>
                             </div>

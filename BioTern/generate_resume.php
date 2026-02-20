@@ -97,7 +97,7 @@ $address = $student['address'] ?? '';
             <div class="section">
                 <h3>Academic:</h3>
                 <p><strong>Course:</strong> <?php echo htmlspecialchars($student['course_name'] ?? '-'); ?></p>
-                <p><strong>Total Hours:</strong> <?php echo htmlspecialchars($student['total_hours'] ?? '-'); ?></p>
+                <p><strong>Total Hours:</strong> <?php echo htmlspecialchars($student['internal_total_hours'] ?? '-'); ?></p>
             </div>
 
             <div class="section">
