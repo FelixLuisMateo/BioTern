@@ -125,7 +125,6 @@ $student_query = "
         s.biometric_registered,
         s.biometric_registered_at,
         s.created_at,
-        s.total_hours,
         s.supervisor_name,
         s.coordinator_name,
         c.name as course_name,
@@ -204,7 +203,8 @@ if ($attendance_record) {
 
 // Calculate hours remaining and completion percentage
 $hours_rendered = $student['rendered_hours'] ?? 0;
-$total_hours = $student['total_hours'] ?? 600;
+$total_hours = $student['required_hours'] ?? 600;
+$total_hours = $total_hours > 0 ? $total_hours : 600;
 $hours_remaining = max(0, $total_hours - $hours_rendered);
 $completion_percentage = ($hours_rendered / $total_hours) * 100;
 
@@ -238,81 +238,93 @@ while ($row = $activity_result->fetch_assoc()) {
 }
 
 // Helper functions
-function formatDate($date) {
-    if ($date) {
-        return date('M d, Y', strtotime($date));
-    }
-    return 'N/A';
-}
-
-function formatDateTime($date) {
-    if ($date) {
-        return date('M d, Y h:i A', strtotime($date));
-    }
-    return 'N/A';
-}
-
-function getStatusBadge($status) {
-    if ($status == 1 || $status == 'ongoing') {
-        return '<span class="badge bg-soft-success text-success">Active</span>';
-    } elseif ($status == 'approved') {
-        return '<span class="badge bg-soft-success text-success">Approved</span>';
-    } elseif ($status == 'pending') {
-        return '<span class="badge bg-soft-warning text-warning">Pending</span>';
-    } elseif ($status == 'rejected') {
-        return '<span class="badge bg-soft-danger text-danger">Rejected</span>';
-    } else {
-        return '<span class="badge bg-soft-danger text-danger">Inactive</span>';
+if (!function_exists('formatDate')) {
+    function formatDate($date) {
+        if ($date) {
+            return date('M d, Y', strtotime($date));
+        }
+        return '';
     }
 }
 
-function getActivityTypeClass($status) {
-    $status = strtolower($status);
-    if ($status == 'approved') {
-        return 'feed-item-success';
-    } elseif ($status == 'pending') {
-        return 'feed-item-warning';
-    } elseif ($status == 'rejected') {
-        return 'feed-item-danger';
+if (!function_exists('formatDateTime')) {
+    function formatDateTime($date) {
+        if ($date) {
+            return date('M d, Y h:i A', strtotime($date));
+        }
+        return 'N/A';
     }
-    return 'feed-item-info';
 }
 
-function formatTimeRange($time_in, $time_out) {
-    if ($time_in && $time_out) {
-        return date('h:i A', strtotime($time_in)) . ' - ' . date('h:i A', strtotime($time_out));
+if (!function_exists('getStatusBadge')) {
+    function getStatusBadge($status) {
+        if ($status == 1 || $status == 'ongoing') {
+            return '<span class="badge bg-soft-success text-success">Active</span>';
+        } elseif ($status == 'approved') {
+            return '<span class="badge bg-soft-success text-success">Approved</span>';
+        } elseif ($status == 'pending') {
+            return '<span class="badge bg-soft-warning text-warning">Pending</span>';
+        } elseif ($status == 'rejected') {
+            return '<span class="badge bg-soft-danger text-danger">Rejected</span>';
+        } else {
+            return '<span class="badge bg-soft-danger text-danger">Inactive</span>';
+        }
     }
-    if ($time_in) {
-        return date('h:i A', strtotime($time_in)) . ' ✓';
-    }
-    if ($time_out) {
-        return 'Out: ' . date('h:i A', strtotime($time_out));
-    }
-    return '-';
 }
 
-function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $afternoon_in, $afternoon_out) {
-    $total = 0;
-
-    // Morning hours
-    if ($morning_in && $morning_out) {
-        $morning_time = strtotime($morning_out) - strtotime($morning_in);
-        $total += $morning_time / 3600;
+if (!function_exists('getActivityTypeClass')) {
+    function getActivityTypeClass($status) {
+        $status = strtolower($status);
+        if ($status == 'approved') {
+            return 'feed-item-success';
+        } elseif ($status == 'pending') {
+            return 'feed-item-warning';
+        } elseif ($status == 'rejected') {
+            return 'feed-item-danger';
+        }
+        return 'feed-item-info';
     }
+}
 
-    // Afternoon hours
-    if ($afternoon_in && $afternoon_out) {
-        $afternoon_time = strtotime($afternoon_out) - strtotime($afternoon_in);
-        $total += $afternoon_time / 3600;
+if (!function_exists('formatTimeRange')) {
+    function formatTimeRange($time_in, $time_out) {
+        if ($time_in && $time_out) {
+            return date('h:i A', strtotime($time_in)) . ' - ' . date('h:i A', strtotime($time_out));
+        }
+        if ($time_in) {
+            return date('h:i A', strtotime($time_in)) . ' ✓';
+        }
+        if ($time_out) {
+            return 'Out: ' . date('h:i A', strtotime($time_out));
+        }
+        return '-';
     }
+}
 
-    // Subtract break time
-    if ($break_in && $break_out) {
-        $break_time = strtotime($break_out) - strtotime($break_in);
-        $total -= $break_time / 3600;
+if (!function_exists('calculateTotalHours')) {
+    function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $afternoon_in, $afternoon_out) {
+        $total = 0;
+
+        // Morning hours
+        if ($morning_in && $morning_out) {
+            $morning_time = strtotime($morning_out) - strtotime($morning_in);
+            $total += $morning_time / 3600;
+        }
+
+        // Afternoon hours
+        if ($afternoon_in && $afternoon_out) {
+            $afternoon_time = strtotime($afternoon_out) - strtotime($afternoon_in);
+            $total += $afternoon_time / 3600;
+        }
+
+        // Subtract break time
+        if ($break_in && $break_out) {
+            $break_time = strtotime($break_out) - strtotime($break_in);
+            $total -= $break_time / 3600;
+        }
+
+        return round(max(0, $total), 2);
     }
-
-    return round(max(0, $total), 2);
 }
 
 ?>
@@ -2957,5 +2969,3 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
 <?php
 $conn->close();
 ?>
-
-
