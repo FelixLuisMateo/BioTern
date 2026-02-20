@@ -14,6 +14,34 @@ try {
     die("Database Error: " . $e->getMessage());
 }
 
+// Handle attendance actions (approve/reject/delete)
+$action_message = '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'])) {
+    $action = trim($_POST['action']);
+    $attendance_id = intval($_POST['id']);
+    $current_user_id = \Illuminate\Support\Facades\Auth::id();
+
+    if ($attendance_id > 0) {
+        if ($action === 'approve') {
+            $q = "UPDATE attendances SET status = 'approved', approved_by = " . ($current_user_id ? intval($current_user_id) : 'NULL') . ", approved_at = NOW(), updated_at = NOW() WHERE id = " . $attendance_id;
+            if ($conn->query($q)) {
+                $action_message = 'Attendance approved successfully.';
+            }
+        } elseif ($action === 'reject') {
+            $remarks = isset($_POST['remarks']) ? $conn->real_escape_string(trim($_POST['remarks'])) : '';
+            $q = "UPDATE attendances SET status = 'rejected', remarks = '" . $remarks . "', approved_by = " . ($current_user_id ? intval($current_user_id) : 'NULL') . ", approved_at = NOW(), updated_at = NOW() WHERE id = " . $attendance_id;
+            if ($conn->query($q)) {
+                $action_message = 'Attendance rejected successfully.';
+            }
+        } elseif ($action === 'delete') {
+            $q = "DELETE FROM attendances WHERE id = " . $attendance_id;
+            if ($conn->query($q)) {
+                $action_message = 'Attendance deleted successfully.';
+            }
+        }
+    }
+}
+
 // Fetch Attendance Statistics
 $stats_query = "
     SELECT
@@ -2557,6 +2585,11 @@ function getAttendanceStatus($morning_time_in) {
                 </div>
             </div>
             <div class="main-content">
+                <?php if (!empty($action_message)): ?>
+                    <div class="alert alert-success mx-3 mt-2" role="alert">
+                        <?php echo htmlspecialchars($action_message); ?>
+                    </div>
+                <?php endif; ?>
                 <div class="row">
                     <div class="col-lg-12">
                         <div class="card stretch stretch-full">
@@ -3012,27 +3045,49 @@ function getAttendanceStatus($morning_time_in) {
             // You can implement a modal or redirect to detail page
         }
 
+        const attendanceActionUrl = "{{ url('/attendance') }}";
+        const csrfToken = "{{ csrf_token() }}";
+
+        function submitAttendanceAction(action, id, remarks) {
+            var form = document.createElement('form');
+            form.method = 'POST';
+            form.action = attendanceActionUrl;
+
+            var token = document.createElement('input');
+            token.type = 'hidden';
+            token.name = '_token';
+            token.value = csrfToken;
+
+            var input1 = document.createElement('input');
+            input1.type = 'hidden';
+            input1.name = 'action';
+            input1.value = action;
+
+            var input2 = document.createElement('input');
+            input2.type = 'hidden';
+            input2.name = 'id';
+            input2.value = id;
+
+            form.appendChild(token);
+            form.appendChild(input1);
+            form.appendChild(input2);
+
+            if (remarks !== undefined && remarks !== null) {
+                var input3 = document.createElement('input');
+                input3.type = 'hidden';
+                input3.name = 'remarks';
+                input3.value = remarks;
+                form.appendChild(input3);
+            }
+
+            document.body.appendChild(form);
+            form.submit();
+        }
+
         // Approve attendance function
         function approveAttendance(id) {
             if (confirm('Are you sure you want to approve this attendance?')) {
-                var form = document.createElement('form');
-                form.method = 'POST';
-                form.action = 'process_attendance.php';
-
-                var input1 = document.createElement('input');
-                input1.type = 'hidden';
-                input1.name = 'action';
-                input1.value = 'approve';
-
-                var input2 = document.createElement('input');
-                input2.type = 'hidden';
-                input2.name = 'id';
-                input2.value = id;
-
-                form.appendChild(input1);
-                form.appendChild(input2);
-                document.body.appendChild(form);
-                form.submit();
+                submitAttendanceAction('approve', id);
             }
         }
 
@@ -3040,71 +3095,33 @@ function getAttendanceStatus($morning_time_in) {
         function rejectAttendance(id) {
             var remarks = prompt('Enter rejection reason:');
             if (remarks !== null && remarks.trim() !== '') {
-                var form = document.createElement('form');
-                form.method = 'POST';
-                form.action = 'process_attendance.php';
-
-                var input1 = document.createElement('input');
-                input1.type = 'hidden';
-                input1.name = 'action';
-                input1.value = 'reject';
-
-                var input2 = document.createElement('input');
-                input2.type = 'hidden';
-                input2.name = 'id';
-                input2.value = id;
-
-                var input3 = document.createElement('input');
-                input3.type = 'hidden';
-                input3.name = 'remarks';
-                input3.value = remarks;
-
-                form.appendChild(input1);
-                form.appendChild(input2);
-                form.appendChild(input3);
-                document.body.appendChild(form);
-                form.submit();
+                submitAttendanceAction('reject', id, remarks.trim());
             }
         }
 
         // Edit attendance function
         function editAttendance(id) {
-            window.location.href = 'edit_attendance.php?id=' + id;
+            alert('Edit action is not connected yet for Attendance ID: ' + id);
         }
 
         // Print attendance function
         function printAttendance(id) {
-            window.open('print_attendance.php?id=' + id, 'Print', 'height=600,width=800');
+            window.print();
         }
 
         // Send notification function
         function sendNotification(id) {
-            alert('Sending notification for Attendance ID: ' + id);
-            // Implement your notification logic here
+            alert('Notification action is not connected yet for Attendance ID: ' + id);
         }
 
         // Delete attendance function
         function deleteAttendance(id) {
             if (confirm('Are you sure you want to delete this attendance record? This action cannot be undone.')) {
-                var form = document.createElement('form');
-                form.method = 'POST';
-                form.action = 'process_attendance.php';
+                submitAttendanceAction('delete', id);
+            }
+        }
+    </script>
+</body>
 
-                var input1 = document.createElement('input');
-                input1.type = 'hidden';
-                input1.name = 'action';
-                input1.value = 'delete';
-
-                var input2 = document.createElement('input');
-                input2.type = 'hidden';
-                input2.name = 'id';
-                input2.value = id;
-
-                form.appendChild(input1);
-                form.appendChild(input2);
-                document.body.appendChild(form);
-
-
-
-
+</html>
 

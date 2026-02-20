@@ -2532,6 +2532,7 @@ if ($attendance_today->num_rows > 0) {
                     </div>
 
                     <form method="POST" action="">
+                        <?php echo csrf_field(); ?>
                         <!-- Student Selection -->
                         <div class="form-group-custom">
                             <label for="student_id">
@@ -2691,7 +2692,7 @@ if ($attendance_today->num_rows > 0) {
 
                 <!-- View Full Attendance -->
                 <div style="text-align: center; margin-top: 30px;">
-                    <a href="attendance.php" class="btn btn-primary" style="padding: 12px 30px; border-radius: 8px; text-decoration: none; display: inline-block;">
+                    <a href="{{ url('/attendance') }}" class="btn btn-primary" style="padding: 12px 30px; border-radius: 8px; text-decoration: none; display: inline-block;">
                         <i class="feather-arrow-right"></i> View Full Attendance Report
                     </a>
                 </div>
@@ -2778,7 +2779,6 @@ if ($attendance_today->num_rows > 0) {
     <!--! BEGIN: Theme Customizer  !-->
     <script src="{{ asset('frontend/assets/js/theme-customizer-init.min.js') }}"></script>
     <!--! END: Theme Customizer !-->
-</body>
 </body>
 
 </html>
