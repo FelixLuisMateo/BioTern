@@ -585,7 +585,7 @@ try {
                                         </a>
                                         <a href="ojt-create.php" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                            <span>Leads Create</span>
+                                            <span>OJT Create</span>
                                         </a>
                                     </div>
                                 </div>

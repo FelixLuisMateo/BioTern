@@ -40,7 +40,11 @@ $student_query = "
         s.biometric_registered,
         s.biometric_registered_at,
         s.created_at,
-        s.total_hours,
+        s.internal_total_hours,
+        s.internal_total_hours_remaining,
+        s.external_total_hours,
+        s.external_total_hours_remaining,
+        s.assignment_track,
         s.supervisor_name,
         s.coordinator_name,
         c.name as course_name,
@@ -117,11 +121,53 @@ if ($attendance_record) {
     }
 }
 
+$open_clock_in_time = null;
+if ($attendance_record) {
+    if (!empty($attendance_record['afternoon_time_in']) && empty($attendance_record['afternoon_time_out'])) {
+        $open_clock_in_time = $attendance_record['afternoon_time_in'];
+    } elseif (!empty($attendance_record['morning_time_in']) && empty($attendance_record['morning_time_out'])) {
+        $open_clock_in_time = $attendance_record['morning_time_in'];
+    }
+}
+
 // Calculate hours remaining and completion percentage
-$hours_rendered = $student['rendered_hours'] ?? 0;
-$total_hours = $student['total_hours'] ?? 600;
-$hours_remaining = max(0, $total_hours - $hours_rendered);
-$completion_percentage = ($hours_rendered / $total_hours) * 100;
+$hours_rendered = isset($student['rendered_hours']) ? (float)$student['rendered_hours'] : 0.0;
+$internal_total_hours = isset($student['internal_total_hours']) ? intval($student['internal_total_hours']) : 600;
+if ($internal_total_hours < 0) {
+    $internal_total_hours = 0;
+}
+$external_total_hours = isset($student['external_total_hours']) ? intval($student['external_total_hours']) : 0;
+if ($external_total_hours < 0) {
+    $external_total_hours = 0;
+}
+if ($internal_total_hours <= 0) {
+    // Prevent division by zero and keep dashboard usable when hours are not configured yet.
+    $internal_total_hours = 600;
+}
+$assignment_track = strtolower((string)($student['assignment_track'] ?? 'internal'));
+$stored_internal_remaining = isset($student['internal_total_hours_remaining']) && $student['internal_total_hours_remaining'] !== null
+    ? (int)$student['internal_total_hours_remaining']
+    : null;
+$stored_external_remaining = isset($student['external_total_hours_remaining']) && $student['external_total_hours_remaining'] !== null
+    ? (int)$student['external_total_hours_remaining']
+    : null;
+
+if ($assignment_track === 'external' && $stored_external_remaining !== null) {
+    $hours_remaining = max(0, $stored_external_remaining);
+} elseif ($stored_internal_remaining !== null) {
+    $hours_remaining = max(0, $stored_internal_remaining);
+} else {
+    $hours_remaining = max(0, $internal_total_hours - $hours_rendered);
+}
+
+$remaining_seconds = (int)max(0, round($hours_remaining * 3600));
+$internal_remaining_display = $stored_internal_remaining !== null
+    ? max(0, $stored_internal_remaining)
+    : max(0, (int)floor($internal_total_hours - $hours_rendered));
+$external_remaining_display = $stored_external_remaining !== null
+    ? max(0, $stored_external_remaining)
+    : max(0, (int)floor($external_total_hours - $hours_rendered));
+$completion_percentage = ($hours_rendered / $internal_total_hours) * 100;
 
 // Fetch Attendance Records for activity
 $activity_query = "
@@ -662,16 +708,25 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                                         <div class="flex-fill py-3 px-4 rounded-1 d-none d-sm-block border border-dashed border-gray-5">
                                             <h6 class="fs-15 fw-bolder" id="hoursRemaining">
                                                 <?php 
-                                                $hours = floor($hours_remaining);
-                                                $mins = floor(($hours_remaining - $hours) * 60);
-                                                echo $hours . 'h:' . str_pad($mins, 2, '0', STR_PAD_LEFT) . 'm:00s';
+                                                $hours = intdiv($remaining_seconds, 3600);
+                                                $mins = intdiv(($remaining_seconds % 3600), 60);
+                                                $secs = $remaining_seconds % 60;
+                                                echo $hours . 'h:' . str_pad((string)$mins, 2, '0', STR_PAD_LEFT) . 'm:' . str_pad((string)$secs, 2, '0', STR_PAD_LEFT) . 's';
                                                 ?>
                                             </h6>
                                             <p class="fs-12 text-muted mb-0">Hours Remaining</p>
                                         </div>
                                         <div class="flex-fill py-3 px-4 rounded-1 d-none d-sm-block border border-dashed border-gray-5">
-                                            <h6 class="fs-15 fw-bolder"><?php echo intval($hours_rendered); ?>/<?php echo intval($total_hours); ?></h6>
+                                            <h6 class="fs-15 fw-bolder"><?php echo intval($hours_rendered); ?>/<?php echo intval($internal_total_hours); ?></h6>
                                             <p class="fs-12 text-muted mb-0">Hours Total</p>
+                                        </div>
+                                        <div class="flex-fill py-3 px-4 rounded-1 d-none d-sm-block border border-dashed border-gray-5">
+                                            <h6 class="fs-15 fw-bolder"><?php echo intval($internal_remaining_display); ?>/<?php echo intval($internal_total_hours); ?></h6>
+                                            <p class="fs-12 text-muted mb-0">Internal Hours</p>
+                                        </div>
+                                        <div class="flex-fill py-3 px-4 rounded-1 d-none d-sm-block border border-dashed border-gray-5">
+                                            <h6 class="fs-15 fw-bolder"><?php echo intval($external_remaining_display); ?>/<?php echo intval($external_total_hours); ?></h6>
+                                            <p class="fs-12 text-muted mb-0">External Hours</p>
                                         </div>
                                         <div class="flex-fill py-3 px-4 rounded-1 d-none d-sm-block border border-dashed border-gray-5">
                                             <h6 class="fs-15 fw-bolder"><?php echo number_format($completion_percentage, 2); ?>%</h6>
@@ -761,6 +816,14 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                                         <div class="row g-0 mb-4">
                                             <div class="col-sm-6 text-muted">Course:</div>
                                             <div class="col-sm-6 fw-semibold"><?php echo htmlspecialchars($student['course_name'] ?? 'N/A'); ?></div>
+                                        </div>
+                                        <div class="row g-0 mb-4">
+                                            <div class="col-sm-6 text-muted">Internal Hours (Remaining/Total):</div>
+                                            <div class="col-sm-6 fw-semibold"><?php echo intval($internal_remaining_display); ?> / <?php echo intval($internal_total_hours); ?></div>
+                                        </div>
+                                        <div class="row g-0 mb-4">
+                                            <div class="col-sm-6 text-muted">External Hours (Remaining/Total):</div>
+                                            <div class="col-sm-6 fw-semibold"><?php echo intval($external_remaining_display); ?> / <?php echo intval($external_total_hours); ?></div>
                                         </div>
                                         <div class="row g-0 mb-4">
                                             <div class="col-sm-6 text-muted">Email Address:</div>
@@ -914,133 +977,43 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
     <script src="assets/js/theme-customizer-init.min.js"></script>
 
     <script>
-        // Timer with localStorage persistence
         function initializeTimer() {
-            const studentId = <?php echo $student['id']; ?>;
-            const isActiveToday = <?php echo $is_active_today ? 'true' : 'false'; ?>;
-            const isClockedIn = <?php echo $is_clocked_in ? 'true' : 'false'; ?>;
-            const hoursRemaining = <?php echo $hours_remaining; ?>;
             const timerElement = document.getElementById('hoursRemaining');
-            const storageKey = `student_timer_${studentId}`;
-            const statusKey = `student_active_${studentId}`;
-            
-            // Check if student is active today
-            if (!isActiveToday) {
-                timerElement.textContent = 'Student not active today';
-                return;
+            if (!timerElement) return;
+
+            let remainingSeconds = <?php echo (int)$remaining_seconds; ?>;
+            const isClockedIn = <?php echo $is_clocked_in ? 'true' : 'false'; ?>;
+            const openClockInRaw = <?php echo $open_clock_in_time ? json_encode($open_clock_in_time) : 'null'; ?>;
+
+            function formatHMS(totalSeconds) {
+                const safe = Math.max(0, Math.floor(totalSeconds));
+                const h = Math.floor(safe / 3600);
+                const m = Math.floor((safe % 3600) / 60);
+                const s = safe % 60;
+                return h + 'h:' + String(m).padStart(2, '0') + 'm:' + String(s).padStart(2, '0') + 's';
             }
-            
-            // Check if student is clocked in
-            if (!isClockedIn) {
-                timerElement.textContent = 'Student not clocked in';
-                return;
+
+            if (isClockedIn && openClockInRaw) {
+                const now = new Date();
+                const parts = String(openClockInRaw).split(':');
+                if (parts.length >= 2) {
+                    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), parseInt(parts[0], 10), parseInt(parts[1], 10), parseInt(parts[2] || '0', 10));
+                    const elapsed = Math.max(0, Math.floor((now.getTime() - start.getTime()) / 1000));
+                    remainingSeconds = Math.max(0, remainingSeconds - elapsed);
+                }
             }
-            
-            // Get stored remaining seconds or initialize
-            let storedData = localStorage.getItem(storageKey);
-            let remainingSeconds;
-            
-            if (storedData) {
-                const data = JSON.parse(storedData);
-                const storedTime = data.timestamp;
-                const storedSeconds = data.seconds;
-                const currentTime = new Date().getTime();
-                const elapsed = (currentTime - storedTime) / 1000;
-                remainingSeconds = Math.max(0, storedSeconds - elapsed);
-            } else {
-                // Initialize with current hours remaining
-                remainingSeconds = hoursRemaining * 3600;
-                saveTimerState(remainingSeconds, storageKey);
-            }
-            
-            // Update display and save state
+
             function updateTimer() {
-                if (remainingSeconds > 0) {
+                timerElement.textContent = formatHMS(remainingSeconds);
+                if (isClockedIn && remainingSeconds > 0) {
                     remainingSeconds--;
-                    
-                    const hours = Math.floor(remainingSeconds / 3600);
-                    const minutes = Math.floor((remainingSeconds % 3600) / 60);
-                    const seconds = remainingSeconds % 60;
-                    
-                    timerElement.textContent = 
-                        hours + 'h:' + 
-                        (minutes < 10 ? '0' : '') + minutes + 'm:' + 
-                        (seconds < 10 ? '0' : '') + seconds + 's';
-                    
-                    // Save state every 10 seconds to avoid excessive storage writes
-                    if (remainingSeconds % 10 === 0) {
-                        saveTimerState(remainingSeconds, storageKey);
-                    }
-                } else {
-                    timerElement.textContent = '0h:00m:00s';
-                    localStorage.removeItem(storageKey);
                 }
             }
-            
-            // Check if student is still clocked in (every 30 seconds)
-            function checkClockInStatus() {
-                fetch('get_clock_status.php?student_id=' + studentId)
-                    .then(response => response.json())
-                    .then(data => {
-                        if (!data.is_clocked_in) {
-                            // Student has clocked out, stop timer
-                            timerElement.textContent = 'Student clocked out';
-                            clearInterval(timerInterval);
-                        }
-                    })
-                    .catch(error => {
-                        // Silently fail on network errors
-                        console.log('Clock status check failed');
-                    });
-            }
-            
-            // Save timer state to localStorage
-            function saveTimerState(seconds, key) {
-                const data = {
-                    timestamp: new Date().getTime(),
-                    seconds: seconds
-                };
-                localStorage.setItem(key, JSON.stringify(data));
-            }
-            
-            // Clear expired timers (older than 24 hours)
-            function clearExpiredTimers() {
-                const currentTime = new Date().getTime();
-                for (let key in localStorage) {
-                    if (key.startsWith('student_timer_')) {
-                        try {
-                            const data = JSON.parse(localStorage.getItem(key));
-                            const age = currentTime - data.timestamp;
-                            if (age > 86400000) { // 24 hours in milliseconds
-                                localStorage.removeItem(key);
-                            }
-                        } catch (e) {
-                            localStorage.removeItem(key);
-                        }
-                    }
-                }
-            }
-            
-            // Initial display
+
             updateTimer();
-            
-            // Update every second
-            const timerInterval = setInterval(updateTimer, 1000);
-            
-            // Check clock in status every 30 seconds
-            const clockCheckInterval = setInterval(checkClockInStatus, 30000);
-            
-            // Clear on page unload
-            window.addEventListener('beforeunload', function() {
-                saveTimerState(remainingSeconds, storageKey);
-                clearExpiredTimers();
-            });
-            
-            // Clear expired timers on init
-            clearExpiredTimers();
+            setInterval(updateTimer, 1000);
         }
-        
-        // Initialize timer when DOM is ready
+
         document.addEventListener('DOMContentLoaded', initializeTimer);
     </script>
 </body>

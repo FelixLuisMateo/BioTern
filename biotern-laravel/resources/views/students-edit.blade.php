@@ -715,11 +715,11 @@ function formatDateTime($date) {
                                         </a>
                                         <a href="{{ url('/ojt-view') }}" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                            <span>Leads View</span>
+                                            <span>OJT View</span>
                                         </a>
                                         <a href="{{ url('/ojt-create') }}" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                            <span>Leads Create</span>
+                                            <span>OJT Create</span>
                                         </a>
                                     </div>
                                 </div>

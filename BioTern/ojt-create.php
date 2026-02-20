@@ -10,7 +10,7 @@
     <meta name="author" content="ACT 2A Group 5">
     <!--! The above 6 meta tags *must* come first in the head; any other head content must come *after* these tags !-->
     <!--! BEGIN: Apps Title-->
-    <title>BioTern || Leads Create</title>
+    <title>BioTern || OJT Create</title>
     <!--! END:  Apps Title-->
     <!--! BEGIN: Favicon-->
     <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">

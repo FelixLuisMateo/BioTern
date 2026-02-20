@@ -6,6 +6,8 @@ $db_name = 'biotern_db';
 
 $conn = null;
 $view_user_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
+$selected_student_id = $view_user_id;
+$selected_user_id = 0;
 $flash_message = '';
 $flash_type = 'success';
 $student = null;
@@ -160,7 +162,8 @@ try {
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_application_letter'])) {
         $posted_user_id = isset($_POST['user_id']) ? intval($_POST['user_id']) : 0;
         if ($posted_user_id > 0) {
-            $date_val = isset($_POST['date']) && $_POST['date'] !== '' ? $_POST['date'] : null;
+            // Keep compatible with schemas where `application_letter.date` is NOT NULL.
+            $date_val = isset($_POST['date']) && $_POST['date'] !== '' ? $_POST['date'] : date('Y-m-d');
             $person_val = trim($_POST['application_person'] ?? '');
             $position_val = trim($_POST['position'] ?? '');
             $company_name_val = trim($_POST['company_name'] ?? '');
@@ -270,17 +273,60 @@ try {
     }
 
     if ($view_user_id > 0) {
-        $stmt_student = $conn->prepare("SELECT s.*, c.name AS course_name FROM students s LEFT JOIN courses c ON s.course_id = c.id WHERE s.id = ? LIMIT 1");
-        $stmt_student->bind_param('i', $view_user_id);
-        $stmt_student->execute();
-        $res_student = $stmt_student->get_result();
-        $student = $res_student ? $res_student->fetch_assoc() : null;
+        // Resolve student robustly across varying schemas/data imports.
+        $student_cols = [];
+        $col_res = $conn->query("SHOW COLUMNS FROM students");
+        if ($col_res) {
+            while ($col = $col_res->fetch_assoc()) {
+                $student_cols[] = $col['Field'] ?? '';
+            }
+        }
 
-        $stmt_app = $conn->prepare("SELECT * FROM application_letter WHERE user_id = ? LIMIT 1");
-        $stmt_app->bind_param('i', $view_user_id);
-        $stmt_app->execute();
-        $res_app = $stmt_app->get_result();
-        $row = $res_app ? $res_app->fetch_assoc() : null;
+        $candidate_wheres = [];
+        $candidate_wheres[] = "s.id = " . intval($view_user_id);
+        if (in_array('user_id', $student_cols, true)) {
+            $candidate_wheres[] = "s.user_id = " . intval($view_user_id);
+        }
+        if (in_array('student_id', $student_cols, true)) {
+            $candidate_wheres[] = "s.student_id = '" . $conn->real_escape_string((string)$view_user_id) . "'";
+        }
+        $candidate_sql = implode(' OR ', array_unique($candidate_wheres));
+        // Priority order is critical:
+        // 1) exact students.id match, 2) user_id match, 3) student_id string match.
+        $student_sql = "SELECT s.*, c.name AS course_name
+            FROM students s
+            LEFT JOIN courses c ON s.course_id = c.id
+            WHERE (" . $candidate_sql . ")
+            ORDER BY
+                CASE
+                    WHEN s.id = " . intval($view_user_id) . " THEN 1
+                    " . (in_array('user_id', $student_cols, true) ? "WHEN s.user_id = " . intval($view_user_id) . " THEN 2" : "") . "
+                    " . (in_array('student_id', $student_cols, true) ? "WHEN s.student_id = '" . $conn->real_escape_string((string)$view_user_id) . "' THEN 3" : "") . "
+                    ELSE 99
+                END
+            LIMIT 1";
+        $res_student = $conn->query($student_sql);
+        $student = $res_student ? $res_student->fetch_assoc() : null;
+        if ($student) {
+            $selected_student_id = intval($student['id'] ?? $view_user_id);
+            $selected_user_id = intval($student['user_id'] ?? 0);
+        }
+
+        $doc_lookup_ids = array_values(array_unique(array_filter([
+            $selected_student_id,
+            $selected_user_id,
+            $view_user_id
+        ], function ($v) { return intval($v) > 0; })));
+
+        $row = null;
+        foreach ($doc_lookup_ids as $lookup_id) {
+            $stmt_app = $conn->prepare("SELECT * FROM application_letter WHERE user_id = ? LIMIT 1");
+            $stmt_app->bind_param('i', $lookup_id);
+            $stmt_app->execute();
+            $res_app = $stmt_app->get_result();
+            $row = $res_app ? $res_app->fetch_assoc() : null;
+            if ($row) break;
+        }
         if ($row) {
             $app_letter['date'] = $row['date'] ?? '';
             $app_letter['application_person'] = $row['application_person'] ?? '';
@@ -289,11 +335,15 @@ try {
             $app_letter['company_address'] = $row['company_address'] ?? '';
         }
 
-        $stmt_moa = $conn->prepare("SELECT * FROM moa WHERE user_id = ? LIMIT 1");
-        $stmt_moa->bind_param('i', $view_user_id);
-        $stmt_moa->execute();
-        $res_moa = $stmt_moa->get_result();
-        $moa_row = $res_moa ? $res_moa->fetch_assoc() : null;
+        $moa_row = null;
+        foreach ($doc_lookup_ids as $lookup_id) {
+            $stmt_moa = $conn->prepare("SELECT * FROM moa WHERE user_id = ? LIMIT 1");
+            $stmt_moa->bind_param('i', $lookup_id);
+            $stmt_moa->execute();
+            $res_moa = $stmt_moa->get_result();
+            $moa_row = $res_moa ? $res_moa->fetch_assoc() : null;
+            if ($moa_row) break;
+        }
         if ($moa_row) {
             if (!isset($moa_row['school_position']) || $moa_row['school_position'] === '' || $moa_row['school_position'] === null) {
                 $moa_row['school_position'] = $moa_row['school_posistion'] ?? '';
@@ -319,7 +369,7 @@ try {
     <meta name="author" content="ACT 2A Group 5">
     <!--! The above 6 meta tags *must* come first in the head; any other head content must come *after* these tags !-->
     <!--! BEGIN: Apps Title-->
-    <title>BioTern || Leads View</title>
+    <title>BioTern || OJT View</title>
     <!--! END:  Apps Title-->
     <!--! BEGIN: Favicon-->
     <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
@@ -907,11 +957,11 @@ try {
                                 </div>
                                 <div class="row mb-4">
                                     <div class="col-lg-2 fw-medium">Total Hours</div>
-                                    <div class="col-lg-10"><?php echo htmlspecialchars(display_text($student['total_hours'] ?? '')); ?></div>
+                                    <div class="col-lg-10"><?php echo htmlspecialchars(display_text($student['internal_total_hours'] ?? '')); ?></div>
                                 </div>
                                 <div class="row mb-4">
                                     <div class="col-lg-2 fw-medium">Hours Remaining</div>
-                                    <div class="col-lg-10"><?php echo htmlspecialchars(display_text($student['total_hours_remaining'] ?? '')); ?></div>
+                                    <div class="col-lg-10"><?php echo htmlspecialchars(display_text($student['internal_total_hours_remaining'] ?? '')); ?></div>
                                 </div>
                                 <div class="row mb-4">
                                     <div class="col-lg-2 fw-medium">Biometric Registered</div>
@@ -955,9 +1005,9 @@ try {
                                     <span class="text-muted">(ID: <?php echo intval($view_user_id); ?>)</span>
                                 </div>
 
-                                <form method="post" action="ojt-view.php?id=<?php echo intval($view_user_id); ?>">
+                                <form method="post" action="ojt-view.php?id=<?php echo intval($selected_student_id); ?>">
                                     <input type="hidden" name="save_application_letter" value="1">
-                                    <input type="hidden" name="user_id" value="<?php echo intval($view_user_id); ?>">
+                                    <input type="hidden" name="user_id" value="<?php echo intval($selected_student_id); ?>">
 
                                     <div class="row g-3">
                                         <div class="col-md-4">
@@ -984,7 +1034,7 @@ try {
 
                                     <div class="mt-3 d-flex gap-2">
                                         <button type="submit" class="btn btn-primary">Save Application Data</button>
-                                        <a href="document_application.php?id=<?php echo intval($view_user_id); ?>" class="btn btn-success">Open Application Letter</a>
+                                        <a href="document_application.php?id=<?php echo intval($selected_student_id); ?>" class="btn btn-success">Open Application Letter</a>
                                     </div>
                                 </form>
                             <?php endif; ?>
@@ -999,9 +1049,9 @@ try {
                                     <h5 class="fw-bold mb-1">MOA Autofill</h5>
                                     <p class="text-muted mb-0">Saved data here will be used by <code>document_moa.php</code> when this student is selected.</p>
                                 </div>
-                                <form method="post" action="ojt-view.php?id=<?php echo intval($view_user_id); ?>">
+                                <form method="post" action="ojt-view.php?id=<?php echo intval($selected_student_id); ?>">
                                     <input type="hidden" name="save_moa" value="1">
-                                    <input type="hidden" name="user_id" value="<?php echo intval($view_user_id); ?>">
+                                    <input type="hidden" name="user_id" value="<?php echo intval($selected_student_id); ?>">
 
                                     <div class="row g-3">
                                         <div class="col-md-6">
@@ -1092,7 +1142,7 @@ try {
 
                                     <div class="mt-3 d-flex gap-2">
                                         <button type="submit" class="btn btn-primary">Save MOA Data</button>
-                                        <a href="document_moa.php?id=<?php echo intval($view_user_id); ?>" class="btn btn-success">Open MOA</a>
+                                        <a href="document_moa.php?id=<?php echo intval($selected_student_id); ?>" class="btn btn-success">Open MOA</a>
                                     </div>
                                 </form>
                             <?php endif; ?>
