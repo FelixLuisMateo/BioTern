@@ -277,10 +277,10 @@ function formatDate($date) {
             color: #ffffff !important;
         }
 
-        html.app-skin-dark select.form-control,
+        html.app-skin-light select.form-control,
         html.app-skin-dark select.form-select {
             color: #f0f0f0 !important;
-            background-color: #2d3748 !important;
+            background-color: #0f172a !important;
             border-color: #4a5568 !important;
         }
 

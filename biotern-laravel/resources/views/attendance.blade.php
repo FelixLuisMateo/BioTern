@@ -2453,16 +2453,16 @@ function getAttendanceStatus($morning_time_in) {
             <!-- [ page-header ] end -->
             <!-- [ Main Content ] start -->
             <!-- Filters -->
-            <div class="row mb-1 px-3">
+           <div class="row mb-1 px-3">
                 <div class="col-12">
                     <form method="GET" class="row g-2 align-items-end filter-form">
                         <div class="col-sm-2">
-                            <label class="form-label">Date</label>
-                            <input type="date" name="date" class="form-control" value="<?php echo htmlspecialchars($filter_date); ?>">
+                            <label class="form-label" for="filter-date">Date</label>
+                            <input id="filter-date" type="date" name="date" class="form-control" value="<?php echo htmlspecialchars($_GET['date'] ?? ''); ?>">
                         </div>
                         <div class="col-sm-2">
-                            <label class="form-label">Course</label>
-                            <select name="course_id" class="form-control">
+                            <label class="form-label" for="filter-course">Course</label>
+                            <select id="filter-course" name="course_id" class="form-control">
                                 <option value="0">-- All Courses --</option>
                                 <?php foreach ($courses as $course): ?>
                                     <option value="<?php echo $course['id']; ?>" <?php echo $filter_course == $course['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($course['name']); ?></option>
@@ -2470,8 +2470,8 @@ function getAttendanceStatus($morning_time_in) {
                             </select>
                         </div>
                         <div class="col-sm-2">
-                            <label class="form-label">Department</label>
-                            <select name="department_id" class="form-control">
+                            <label class="form-label" for="filter-department">Department</label>
+                            <select id="filter-department" name="department_id" class="form-control">
                                 <option value="0">-- All Departments --</option>
                                 <?php foreach ($departments as $dept): ?>
                                     <option value="<?php echo $dept['id']; ?>" <?php echo $filter_department == $dept['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($dept['name']); ?></option>
@@ -2479,8 +2479,8 @@ function getAttendanceStatus($morning_time_in) {
                             </select>
                         </div>
                         <div class="col-sm-2">
-                            <label class="form-label">Supervisor</label>
-                            <select name="supervisor" class="form-control">
+                            <label class="form-label" for="filter-supervisor">Supervisor</label>
+                            <select id="filter-supervisor" name="supervisor" class="form-control">
                                 <option value="">-- Any Supervisor --</option>
                                 <?php foreach ($supervisors as $sup): ?>
                                     <option value="<?php echo htmlspecialchars($sup); ?>" <?php echo $filter_supervisor == $sup ? 'selected' : ''; ?>><?php echo htmlspecialchars($sup); ?></option>
@@ -2488,8 +2488,8 @@ function getAttendanceStatus($morning_time_in) {
                             </select>
                         </div>
                         <div class="col-sm-2">
-                            <label class="form-label">Coordinator</label>
-                            <select name="coordinator" class="form-control">
+                            <label class="form-label" for="filter-coordinator">Coordinator</label>
+                            <select id="filter-coordinator" name="coordinator" class="form-control">
                                 <option value="">-- Any Coordinator --</option>
                                 <?php foreach ($coordinators as $coor): ?>
                                     <option value="<?php echo htmlspecialchars($coor); ?>" <?php echo $filter_coordinator == $coor ? 'selected' : ''; ?>><?php echo htmlspecialchars($coor); ?></option>
@@ -2500,7 +2500,7 @@ function getAttendanceStatus($morning_time_in) {
                             <label class="form-label d-block invisible">Actions</label>
                             <div class="filter-actions">
                                 <button type="submit" class="btn btn-primary">Filter</button>
-                                <a href="{{ url('/attendance') }}" class="btn btn-outline-secondary">Reset</a>
+                                <a href="{{ url('/students') }}" class="btn btn-outline-secondary">Reset</a>
                             </div>
                         </div>
                     </form>
@@ -2715,7 +2715,56 @@ function getAttendanceStatus($morning_time_in) {
         /* Allow dropdowns to overflow parent containers */
         .page-header, .page-header-right { overflow: visible !important; }
 
-        /* Filter row alignment */
+        /* Dark mode select and Select2 styling */
+        select.form-control,
+        select.form-select,
+        .select2-container--default .select2-selection--single,
+        .select2-container--default .select2-selection--multiple {
+            color: #333;
+            background-color: #ffffff;
+        }
+
+        /* Dark mode support for Select2 - using app-skin-dark class */
+        html.app-skin-dark .select2-container--default .select2-selection--single,
+        html.app-skin-dark .select2-container--default .select2-selection--multiple {
+            color: #f0f0f0 !important;
+            background-color: #2d3748 !important;
+            border-color: #4a5568 !important;
+        }
+
+        html.app-skin-dark .select2-container--default .select2-selection--single .select2-selection__rendered {
+            color: #f0f0f0 !important;
+        }
+
+        /* Dark mode dropdown menu */
+        html.app-skin-dark .select2-container--default.select2-container--open .select2-dropdown {
+            background-color: #2d3748 !important;
+            border-color: #4a5568 !important;
+        }
+
+        html.app-skin-dark .select2-results__option {
+            color: #f0f0f0 !important;
+            background-color: #2d3748 !important;
+        }
+
+        html.app-skin-dark .select2-results__option--highlighted[aria-selected] {
+            background-color: #667eea !important;
+            color: #ffffff !important;
+        }
+
+        html.app-skin-light select.form-control,
+        html.app-skin-dark select.form-select {
+            color: #f0f0f0 !important;
+            background-color: #0f172a !important;
+            border-color: #4a5568 !important;
+        }
+
+        html.app-skin-dark select.form-control option,
+        html.app-skin-dark select.form-select option {
+            color: #f0f0f0 !important;
+            background-color: #2d3748 !important;
+        }
+ /* Filter row alignment */
         .filter-form .form-label {
             margin-bottom: 0.35rem;
         }
@@ -2974,5 +3023,6 @@ function getAttendanceStatus($morning_time_in) {
                 form.appendChild(input1);
                 form.appendChild(input2);
                 document.body.appendChild(form);
+
 
 
