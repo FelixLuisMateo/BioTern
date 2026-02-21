@@ -61,13 +61,23 @@ if ($dept_res && $dept_res->num_rows) {
 }
 
 $supervisors = [];
-$sup_res = $conn->query("SELECT DISTINCT supervisor_name FROM students WHERE supervisor_name IS NOT NULL AND supervisor_name <> '' ORDER BY supervisor_name ASC");
+$sup_res = $conn->query("
+    SELECT DISTINCT TRIM(CONCAT_WS(' ', first_name, middle_name, last_name)) AS supervisor_name
+    FROM supervisors
+    WHERE TRIM(CONCAT_WS(' ', first_name, middle_name, last_name)) <> ''
+    ORDER BY supervisor_name ASC
+");
 if ($sup_res && $sup_res->num_rows) {
     while ($r = $sup_res->fetch_assoc()) $supervisors[] = $r['supervisor_name'];
 }
 
 $coordinators = [];
-$coor_res = $conn->query("SELECT DISTINCT coordinator_name FROM students WHERE coordinator_name IS NOT NULL AND coordinator_name <> '' ORDER BY coordinator_name ASC");
+$coor_res = $conn->query("
+    SELECT DISTINCT TRIM(CONCAT_WS(' ', first_name, middle_name, last_name)) AS coordinator_name
+    FROM coordinators
+    WHERE TRIM(CONCAT_WS(' ', first_name, middle_name, last_name)) <> ''
+    ORDER BY coordinator_name ASC
+");
 if ($coor_res && $coor_res->num_rows) {
     while ($r = $coor_res->fetch_assoc()) $coordinators[] = $r['coordinator_name'];
 }
@@ -81,10 +91,18 @@ if ($filter_department > 0) {
     $where[] = "i.department_id = " . intval($filter_department);
 }
 if (!empty($filter_supervisor)) {
-    $where[] = "(s.supervisor_name LIKE '%" . $conn->real_escape_string($filter_supervisor) . "%' OR i.supervisor_id IN (SELECT id FROM users WHERE name LIKE '%" . $conn->real_escape_string($filter_supervisor) . "%'))";
+    $esc_sup = $conn->real_escape_string($filter_supervisor);
+    $where[] = "(
+        TRIM(CONCAT_WS(' ', sup.first_name, sup.middle_name, sup.last_name)) LIKE '%{$esc_sup}%'
+        OR s.supervisor_name LIKE '%{$esc_sup}%'
+    )";
 }
 if (!empty($filter_coordinator)) {
-    $where[] = "(s.coordinator_name LIKE '%" . $conn->real_escape_string($filter_coordinator) . "%' OR i.coordinator_id IN (SELECT id FROM users WHERE name LIKE '%" . $conn->real_escape_string($filter_coordinator) . "%'))";
+    $esc_coor = $conn->real_escape_string($filter_coordinator);
+    $where[] = "(
+        TRIM(CONCAT_WS(' ', coor.first_name, coor.middle_name, coor.last_name)) LIKE '%{$esc_coor}%'
+        OR s.coordinator_name LIKE '%{$esc_coor}%'
+    )";
 }
 if ($filter_status >= 0) {
     if (intval($filter_status) === 1) {
@@ -132,8 +150,6 @@ $students_query = "
             ) THEN 1
             ELSE 0
         END as live_clock_status,
-        s.supervisor_name,
-        s.coordinator_name,
         s.biometric_registered,
         s.created_at,
         s.profile_picture,
@@ -141,13 +157,21 @@ $students_query = "
         c.id as course_id,
         i.supervisor_id,
         i.coordinator_id,
-        u_supervisor.name as supervisor_name,
-        u_coordinator.name as coordinator_name
+        COALESCE(
+            NULLIF(TRIM(CONCAT_WS(' ', sup.first_name, sup.middle_name, sup.last_name)), ''),
+            NULLIF(TRIM(s.supervisor_name), ''),
+            '-'
+        ) AS supervisor_name,
+        COALESCE(
+            NULLIF(TRIM(CONCAT_WS(' ', coor.first_name, coor.middle_name, coor.last_name)), ''),
+            NULLIF(TRIM(s.coordinator_name), ''),
+            '-'
+        ) AS coordinator_name
     FROM students s
     LEFT JOIN courses c ON s.course_id = c.id
     LEFT JOIN internships i ON s.id = i.student_id AND i.status = 'ongoing'
-    LEFT JOIN users u_supervisor ON i.supervisor_id = u_supervisor.id
-    LEFT JOIN users u_coordinator ON i.coordinator_id = u_coordinator.id
+    LEFT JOIN supervisors sup ON i.supervisor_id = sup.id
+    LEFT JOIN coordinators coor ON i.coordinator_id = coor.id
     " . (count($where) > 0 ? "WHERE " . implode(' AND ', $where) : "") . "
     ORDER BY s.first_name ASC
     LIMIT 100
