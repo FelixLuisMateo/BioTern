@@ -53,10 +53,10 @@
                     <li class="nxl-item nxl-hasmenu">
                         <a href="javascript:void(0);" class="nxl-link">
                             <span class="nxl-micon"><i class="feather-airplay"></i></span>
-                            <span class="nxl-mtext">Dashboards</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                            <span class="nxl-mtext">Home</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="index.php">CRM</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="index.php">Overview</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="analytics.php">Analytics</a></li>
                         </ul>
                     </li>
@@ -674,7 +674,7 @@
                                     <div class="hstack gap-3">
                                         <div class="wd-7 ht-7 bg-danger rounded-circle"></div>
                                         <div class="ps-3 border-start border-3 border-danger rounded">
-                                            <a href="javascript:void(0);" class="fw-bold text-truncate-1-line">CRM Admin</a>
+                                            <a href="javascript:void(0);" class="fw-bold text-truncate-1-line">Overview Admin</a>
                                             <a href="javascript:void(0);" class="fs-12 fw-medium text-muted">13/15 Tasks</a>
                                         </div>
                                     </div>
@@ -706,7 +706,7 @@
                                     <div class="hstack gap-3">
                                         <div class="wd-7 ht-7 bg-danger rounded-circle"></div>
                                         <div class="ps-3 border-start border-3 border-danger rounded">
-                                            <a href="javascript:void(0);" class="fw-bold text-truncate-1-line">CRM Admin</a>
+                                            <a href="javascript:void(0);" class="fw-bold text-truncate-1-line">Overview Admin</a>
                                             <a href="javascript:void(0);" class="fs-12 fw-medium text-muted">13/15 Tasks</a>
                                         </div>
                                     </div>
@@ -760,7 +760,7 @@
                                     <div class="hstack gap-3">
                                         <div class="wd-7 ht-7 bg-danger rounded-circle"></div>
                                         <div class="ps-3 border-start border-3 border-danger rounded">
-                                            <a href="javascript:void(0);" class="fw-bold text-truncate-1-line">CRM Admin</a>
+                                            <a href="javascript:void(0);" class="fw-bold text-truncate-1-line">Overview Admin</a>
                                             <a href="javascript:void(0);" class="fs-12 fw-medium text-muted">13/15 Tasks</a>
                                         </div>
                                     </div>
@@ -1178,7 +1178,7 @@
                         <div class="d-flex align-items-center justify-content-between mb-4">
                             <a href="javascript:void(0);" class="d-flex align-items-start gap-3">
                                 <i class="feather-airplay fs-5"></i>
-                                <div class="fs-13 fw-semibold">CRM dashboard redesign</div>
+                                <div class="fs-13 fw-semibold">Overview Home redesign</div>
                             </a>
                             <a href="javascript:void(0);" class="badge border rounded text-dark">/<i class="feather-command ms-1"></i></a>
                         </div>
@@ -1240,7 +1240,7 @@
                         <div class="d-flex align-items-center justify-content-between mb-4">
                             <a href="javascript:void(0);" class="d-flex align-items-start gap-3">
                                 <i class="feather-folder-plus fs-5"></i>
-                                <div class="fs-13 fw-semibold">CRM Desing Project <span class="fs-12 fw-normal text-muted">(56.74 MB)</span></div>
+                                <div class="fs-13 fw-semibold">Overview Design Project <span class="fs-12 fw-normal text-muted">(56.74 MB)</span></div>
                             </a>
                             <a href="javascript:void(0);" class="file-download"><i class="feather-download"></i></a>
                         </div>
@@ -1254,7 +1254,7 @@
                         <div class="d-flex align-items-center justify-content-between">
                             <a href="javascript:void(0);" class="d-flex align-items-start gap-3">
                                 <i class="feather-folder-plus fs-5"></i>
-                                <div class="fs-13 fw-semibold">CRM Dashboard Project <span class="fs-12 fw-normal text-muted">(68.59 MB)</span></div>
+                                <div class="fs-13 fw-semibold">Overview Home Project <span class="fs-12 fw-normal text-muted">(68.59 MB)</span></div>
                             </a>
                             <a href="javascript:void(0);" class="file-download"><i class="feather-download"></i></a>
                         </div>

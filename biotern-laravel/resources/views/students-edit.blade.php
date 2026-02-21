@@ -317,21 +317,8 @@ if (!function_exists('formatDateTime')) {
                         </a>
                         <ul class="nxl-submenu">
                             <li class="nxl-item"><a class="nxl-link" href="{{ url('/students') }}">Students</a></li>
-                            <li class="nxl-divider"></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/attendance') }}"><i class="feather-calendar me-2"></i>Attendance Records</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/demo-biometric') }}"><i class="feather-activity me-2"></i>Biometric Demo</a></li>
-                        </ul>
-                    </li>
-                    <li class="nxl-item nxl-hasmenu">
-                        <a href="javascript:void(0);" class="nxl-link">
-                            <span class="nxl-micon"><i class="feather-file-text"></i></span>
-                            <span class="nxl-mtext">Documents</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                        </a>
-                        <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/document_application') }}">Application Letter</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/generate_endorsement_letter') }}">Endorsement Letter</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/document_moa') }}">MOA</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/generate_resume') }}">Resume</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/students/view') }}">Students View</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/students/create') }}">Students Create</a></li>
                         </ul>
                     </li>
                     <li class="nxl-item nxl-hasmenu">

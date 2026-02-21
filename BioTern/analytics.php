@@ -40,6 +40,47 @@ try {
     $approved_attendances = $approved_att ? (int)$approved_att->fetch_assoc()['count'] : 0;
     $conversion_rate = ($total_attendances > 0) ? round(($approved_attendances / $total_attendances) * 100, 2) : 0;
     
+    // Additional analytics for Goal Progress and other widgets
+    // New students in last 30 days
+    $new_std_q = $conn->query("SELECT COUNT(*) as count FROM students WHERE deleted_at IS NULL AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)");
+    $new_students_30 = $new_std_q ? (int)$new_std_q->fetch_assoc()['count'] : 0;
+
+    // Coordinators and supervisors counts
+    $coord_q = $conn->query("SELECT COUNT(*) as count FROM coordinators WHERE deleted_at IS NULL AND is_active = 1");
+    $coordinators_count = $coord_q ? (int)$coord_q->fetch_assoc()['count'] : 0;
+    $sup_q = $conn->query("SELECT COUNT(*) as count FROM supervisors WHERE deleted_at IS NULL AND is_active = 1");
+    $supervisors_count = $sup_q ? (int)$sup_q->fetch_assoc()['count'] : 0;
+
+    // Internship hours totals for OJT Goal
+    $hours_q = $conn->query("SELECT COALESCE(SUM(required_hours),0) as total_required, COALESCE(SUM(rendered_hours),0) as total_rendered FROM internships WHERE deleted_at IS NULL");
+    $total_required_hours = 0;
+    $total_rendered_hours = 0;
+    if ($hours_q) {
+        $hrow = $hours_q->fetch_assoc();
+        if ($hrow) {
+            $total_required_hours = (int)$hrow['total_required'];
+            $total_rendered_hours = (int)$hrow['total_rendered'];
+        }
+    }
+
+    // Ensure totals exist to avoid division by zero elsewhere
+    $total_students = isset($total_students) ? (int)$total_students : 0;
+    $total_attendances = isset($total_attendances) ? (int)$total_attendances : 0;
+
+    // Goal widgets: define goals and current values from DB
+    $marketing_goal = 1250;
+    $marketing_current = isset($new_students_30) ? (int)$new_students_30 : 0;
+    $teams_goal = 1250;
+    $teams_current = (isset($coordinators_count) ? (int)$coordinators_count : 0) + (isset($supervisors_count) ? (int)$supervisors_count : 0);
+    $ojt_goal_hours = max(1, (int)$total_required_hours);
+    $ojt_current_hours = (int)$total_rendered_hours;
+    $revenue_goal = 12500;
+    $revenue_current = (int)$total_students;
+    // compute simple percentages for client-side progress if needed
+    $marketing_progress = $marketing_goal > 0 ? round(min(100, ($marketing_current / $marketing_goal) * 100), 2) : 0;
+    $teams_progress = $teams_goal > 0 ? round(min(100, ($teams_current / $teams_goal) * 100), 2) : 0;
+    $ojt_progress = $ojt_goal_hours > 0 ? round(min(100, ($ojt_current_hours / $ojt_goal_hours) * 100), 2) : 0;
+    $revenue_progress = $revenue_goal > 0 ? round(min(100, ($revenue_current / $revenue_goal) * 100), 2) : 0;
 } catch (Exception $e) {
     // Database error - fallback to 0 values
 }
@@ -104,10 +145,10 @@ try {
                     <li class="nxl-item nxl-hasmenu">
                         <a href="javascript:void(0);" class="nxl-link">
                             <span class="nxl-micon"><i class="feather-airplay"></i></span>
-                            <span class="nxl-mtext">Dashboards</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                            <span class="nxl-mtext">Home</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="index.php">CRM</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="index.php">Overview</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="analytics.php">Analytics</a></li>
                         </ul>
                     </li>
@@ -148,6 +189,10 @@ try {
                             <li class="nxl-item"><a class="nxl-link" href="students.php">Students</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="students-view.php">Students View</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="students-create.php">Students Create</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="students-edit.php">Students Edit</a></li>
+                            <li class="nxl-divider"></li>
+                            <li class="nxl-item"><a class="nxl-link" href="attendance.php"><i class="feather-calendar me-2"></i>Attendance DTR</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="demo-biometric.php"><i class="feather-activity me-2"></i>Demo Biometric</a></li>
                         </ul>
                     </li>
                     <li class="nxl-item nxl-hasmenu">
@@ -918,8 +963,8 @@ try {
                                             <div class="mx-auto mb-4">
                                                 <div class="goal-progress-1"></div>
                                             </div>
-                                            <h2 class="fs-13 tx-spacing-1">Marketing Gaol</h2>
-                                            <div class="fs-11 text-muted text-truncate-1-line">$550/$1250 USD</div>
+                                            <h2 class="fs-13 tx-spacing-1">Marketing Goal</h2>
+                                            <div class="fs-11 text-muted text-truncate-1-line"><?php echo $marketing_current; ?>/<?php echo $marketing_goal; ?> Users (<?php echo $marketing_progress; ?>%)</div>
                                         </div>
                                     </div>
                                     <div class="col-sm-6">
@@ -928,7 +973,7 @@ try {
                                                 <div class="goal-progress-2"></div>
                                             </div>
                                             <h2 class="fs-13 tx-spacing-1">Teams Goal</h2>
-                                            <div class="fs-11 text-muted text-truncate-1-line">$550/$1250 USD</div>
+                                            <div class="fs-11 text-muted text-truncate-1-line"><?php echo $teams_current; ?>/<?php echo $teams_goal; ?> Members (<?php echo $teams_progress; ?>%)</div>
                                         </div>
                                     </div>
                                     <div class="col-sm-6">
@@ -937,7 +982,7 @@ try {
                                                 <div class="goal-progress-3"></div>
                                             </div>
                                             <h2 class="fs-13 tx-spacing-1">OJT Goal</h2>
-                                            <div class="fs-11 text-muted text-truncate-1-line">$850/$950 USD</div>
+                                            <div class="fs-11 text-muted text-truncate-1-line"><?php echo $ojt_current_hours; ?>/<?php echo $ojt_goal_hours; ?> hrs (<?php echo $ojt_progress; ?>%)</div>
                                         </div>
                                     </div>
                                     <div class="col-sm-6">
@@ -946,7 +991,7 @@ try {
                                                 <div class="goal-progress-4"></div>
                                             </div>
                                             <h2 class="fs-13 tx-spacing-1">Revenue Goal</h2>
-                                            <div class="fs-11 text-muted text-truncate-1-line">$5,655/$12,500 USD</div>
+                                            <div class="fs-11 text-muted text-truncate-1-line"><?php echo $revenue_current; ?>/<?php echo $revenue_goal; ?> (<?php echo $revenue_progress; ?>%)</div>
                                         </div>
                                     </div>
                                 </div>
@@ -1095,7 +1140,7 @@ try {
                                                         <span class="wd-10 ht-10 bg-gray-400 rounded-circle d-inline-block me-2 lh-base"></span>
                                                         <div class="border-3 border-start rounded ps-3">
                                                             <a href="javascript:void(0);" class="mb-2 d-block">
-                                                                <span>CRM Dashboard Redesign</span>
+                                                                <span>Overview Home Redesign</span>
                                                             </a>
                                                             <p class="fs-12 text-muted mb-0">Management of project under "BioTern" brand</p>
                                                         </div>
@@ -1129,9 +1174,9 @@ try {
                                                         <span class="wd-10 ht-10 bg-gray-400 rounded-circle d-inline-block me-2 lh-base"></span>
                                                         <div class="border-3 border-start rounded ps-3">
                                                             <a href="javascript:void(0);" class="mb-2 d-block">
-                                                                <span>BioTern CRM Admin Project</span>
+                                                                <span>BioTern Overview Admin Project</span>
                                                             </a>
-                                                            <p class="fs-12 text-muted mb-0">BioTern CRM Dashbaord Project</p>
+                                                            <p class="fs-12 text-muted mb-0">BioTern Overview Home Project</p>
                                                         </div>
                                                     </div>
                                                 </td>
@@ -1197,9 +1242,9 @@ try {
                                                         <span class="wd-10 ht-10 bg-gray-400 rounded-circle d-inline-block me-2 lh-base"></span>
                                                         <div class="border-3 border-start rounded ps-3">
                                                             <a href="javascript:void(0);" class="mb-2 d-block">
-                                                                <span>BioTern CRM Dashbaord Project</span>
+                                                                <span>BioTern Overview Home Project</span>
                                                             </a>
-                                                            <p class="fs-12 text-muted mb-0">BioTern CRM Dashbaord Project</p>
+                                                            <p class="fs-12 text-muted mb-0">BioTern Overview Home Project</p>
                                                         </div>
                                                     </div>
                                                 </td>

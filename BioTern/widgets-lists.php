@@ -55,10 +55,10 @@
                     <li class="nxl-item nxl-hasmenu">
                         <a href="javascript:void(0);" class="nxl-link">
                             <span class="nxl-micon"><i class="feather-airplay"></i></span>
-                            <span class="nxl-mtext">Dashboards</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                            <span class="nxl-mtext">Home</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="index.php">CRM</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="index.php">Overview</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="analytics.php">Analytics</a></li>
                         </ul>
                     </li>
@@ -1445,7 +1445,7 @@
                                     </div>
                                     <div class="d-flex align-items-center justify-content-between border-3 border-start border-warning rounded w-100">
                                         <div class="mx-3">
-                                            <a href="javascript:void(0);" class="fw-semibold mb-1 text-truncate-1-line">Create BioTern CRM Logo</a>
+                                            <a href="javascript:void(0);" class="fw-semibold mb-1 text-truncate-1-line">Create BioTern Overview Logo</a>
                                             <div class="fs-12 fw-normal text-muted text-truncate-1-line">Due in 2 days</div>
                                         </div>
                                         <a href="javascript:void(0);" class="badge bg-soft-warning text-warning">New</a>

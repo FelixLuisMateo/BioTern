@@ -56,7 +56,7 @@
                     <li class="nxl-item nxl-hasmenu">
                         <a href="javascript:void(0);" class="nxl-link">
                             <span class="nxl-micon"><i class="feather-airplay"></i></span>
-                            <span class="nxl-mtext">Dashboards</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                            <span class="nxl-mtext">Home</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
                             <li class="nxl-item"><a class="nxl-link" href="index.php">Overview</a></li>
@@ -917,7 +917,7 @@
                                     <div class="hstack gap-3">
                                         <div class="wd-7 ht-7 bg-danger rounded-circle"></div>
                                         <div class="ps-3 border-start border-3 border-danger rounded">
-                                            <a href="javascript:void(0);" class="fw-semibold text-truncate-1-line">CRM Admin</a>
+                                            <a href="javascript:void(0);" class="fw-semibold text-truncate-1-line">Overview Admin</a>
                                             <a href="javascript:void(0);" class="fs-12 fw-medium text-muted">13/15 Tasks</a>
                                         </div>
                                     </div>
@@ -949,7 +949,7 @@
                                     <div class="hstack gap-3">
                                         <div class="wd-7 ht-7 bg-danger rounded-circle"></div>
                                         <div class="ps-3 border-start border-3 border-danger rounded">
-                                            <a href="javascript:void(0);" class="fw-semibold text-truncate-1-line">CRM Admin</a>
+                                            <a href="javascript:void(0);" class="fw-semibold text-truncate-1-line">Overview Admin</a>
                                             <a href="javascript:void(0);" class="fs-12 fw-medium text-muted">13/15 Tasks</a>
                                         </div>
                                     </div>
@@ -1003,7 +1003,7 @@
                                     <div class="hstack gap-3">
                                         <div class="wd-7 ht-7 bg-danger rounded-circle"></div>
                                         <div class="ps-3 border-start border-3 border-danger rounded">
-                                            <a href="javascript:void(0);" class="fw-semibold text-truncate-1-line">CRM Admin</a>
+                                            <a href="javascript:void(0);" class="fw-semibold text-truncate-1-line">Overview Admin</a>
                                             <a href="javascript:void(0);" class="fs-12 fw-medium text-muted">13/15 Tasks</a>
                                         </div>
                                     </div>
