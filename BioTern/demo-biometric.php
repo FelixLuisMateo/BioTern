@@ -130,6 +130,16 @@ function sync_student_hours(mysqli $conn, int $student_id) {
     }
 }
 
+function sync_student_active_status(mysqli $conn, int $student_id, string $clock_type) {
+    $is_clock_in = (substr($clock_type, -3) === '_in');
+    $new_status = $is_clock_in ? 1 : 0;
+    $upd = $conn->prepare("UPDATE students SET status = ?, updated_at = NOW() WHERE id = ?");
+    if (!$upd) return;
+    $upd->bind_param("ii", $new_status, $student_id);
+    $upd->execute();
+    $upd->close();
+}
+
 // Handle clock in/out submission
 $message = '';
 $message_type = '';
@@ -178,6 +188,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $insert_query = "INSERT INTO attendances (student_id, attendance_date, $db_column, status, created_at, updated_at) 
                                 VALUES ($student_id, '$clock_date', '$clock_time', 'pending', NOW(), NOW())";
                 if ($conn->query($insert_query)) {
+                    sync_student_active_status($conn, $student_id, $clock_type);
                     $message = "âœ“ " . ucfirst(str_replace('_', ' ', $clock_type)) . " recorded at " . date('h:i A', strtotime($clock_time));
                     $message_type = "success";
                 } else {
@@ -219,6 +230,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
                         // Sync student/internship accumulated progress so it does not reset daily.
                         sync_student_hours($conn, $student_id);
+                        sync_student_active_status($conn, $student_id, $clock_type);
 
                         $message = "âœ“ " . ucfirst(str_replace('_', ' ', $clock_type)) . " recorded at " . date('h:i A', strtotime($clock_time));
                         $message_type = "success";

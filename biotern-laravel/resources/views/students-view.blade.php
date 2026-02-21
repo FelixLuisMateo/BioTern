@@ -257,7 +257,13 @@ $internal_remaining_display = $stored_internal_remaining !== null
 $external_remaining_display = $stored_external_remaining !== null
     ? max(0, $stored_external_remaining)
     : max(0, (int)floor($external_total_hours - $hours_rendered));
-$completion_percentage = ($hours_rendered / $internal_total_hours) * 100;
+$internal_completed_hours = max(0, $internal_total_hours - $internal_remaining_display);
+$completion_percentage = $internal_total_hours > 0
+    ? ($internal_completed_hours / $internal_total_hours) * 100
+    : 0;
+if ($completion_percentage > 100) {
+    $completion_percentage = 100;
+}
 
 // Fetch Attendance Records for activity
 $activity_query = "
@@ -492,6 +498,37 @@ if (!function_exists('calculateTotalHours')) {
         body[data-bs-theme="dark"] select.form-select option {
             color: #f0f0f0;
             background-color: #2d3748;
+        }
+
+        .contact-meta-list {
+            margin: 0;
+            padding: 0;
+        }
+        .contact-meta-item {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+        .contact-meta-item:last-child {
+            margin-bottom: 0;
+        }
+        .contact-meta-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex: 0 0 118px;
+            min-width: 118px;
+        }
+        .contact-meta-value {
+            flex: 1 1 auto;
+            min-width: 0;
+            text-align: right;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+            white-space: normal;
+            line-height: 1.35;
         }
     </style>
 </head>
@@ -2589,18 +2626,18 @@ if (!function_exists('calculateTotalHours')) {
                                         </div>
                                     <?php endif; ?>
                                 </div>
-                                <ul class="list-unstyled mb-4">
-                                    <li class="hstack justify-content-between mb-4">
-                                        <span class="text-muted fw-medium hstack gap-3"><i class="feather-map-pin"></i>Location</span>
-                                        <a href="javascript:void(0);" class="float-end"><?php echo htmlspecialchars($student['address'] ?? 'N/A'); ?></a>
+                                <ul class="list-unstyled mb-4 contact-meta-list">
+                                    <li class="contact-meta-item">
+                                        <span class="text-muted fw-medium contact-meta-label"><i class="feather-map-pin"></i>Location</span>
+                                        <span class="contact-meta-value"><?php echo htmlspecialchars($student['address'] ?? 'N/A'); ?></span>
                                     </li>
-                                    <li class="hstack justify-content-between mb-4">
-                                        <span class="text-muted fw-medium hstack gap-3"><i class="feather-phone"></i>Mobile Phone</span>
-                                        <a href="javascript:void(0);" class="float-end"><?php echo htmlspecialchars($student['phone'] ?? 'N/A'); ?></a>
+                                    <li class="contact-meta-item">
+                                        <span class="text-muted fw-medium contact-meta-label"><i class="feather-phone"></i>Mobile Phone</span>
+                                        <span class="contact-meta-value"><?php echo htmlspecialchars($student['phone'] ?? 'N/A'); ?></span>
                                     </li>
-                                    <li class="hstack justify-content-between mb-0">
-                                        <span class="text-muted fw-medium hstack gap-3"><i class="feather-mail"></i>Email</span>
-                                        <a href="javascript:void(0);" class="float-end"><?php echo htmlspecialchars($student['email']); ?></a>
+                                    <li class="contact-meta-item">
+                                        <span class="text-muted fw-medium contact-meta-label"><i class="feather-mail"></i>Email</span>
+                                        <span class="contact-meta-value"><?php echo htmlspecialchars($student['email']); ?></span>
                                     </li>
                                 </ul>
                                 <div class="d-grid gap-2 text-center pt-4">

@@ -30,9 +30,21 @@ Route::get('/students/view', function () {
     return view('students-view');
 })->name('students.view');
 
-Route::match(['get', 'post'], '/students-edit', function () {
-    return view('students-edit');
-})->name('students.edit');
+use Illuminate\Http\Request;
+use App\Http\Controllers\StudentController;
+
+// Backwards-compatible legacy endpoint: redirect to the new controller route
+Route::get('/students-edit', function (Request $request) {
+    $id = $request->query('id');
+    if (!$id) {
+        abort(404);
+    }
+    return redirect()->route('students.edit', ['id' => $id]);
+});
+
+// Student edit/update using controller
+Route::get('/students/{id}/edit', [StudentController::class, 'edit'])->name('students.edit');
+Route::post('/students/{id}', [StudentController::class, 'update'])->name('students.update');
 
 Route::get('/students/create', function () {
     return view('students');

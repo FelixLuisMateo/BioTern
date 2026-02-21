@@ -116,22 +116,42 @@ if ($courses_result->num_rows > 0) {
     }
 }
 
-// Fetch all supervisors and coordinators for dropdowns
-$supervisors_query = "SELECT DISTINCT supervisor_name FROM students WHERE supervisor_name IS NOT NULL ORDER BY supervisor_name ASC";
+// Fetch supervisors and coordinators strictly from their own tables
+$supervisors_query = "
+    SELECT 
+        id,
+        TRIM(CONCAT_WS(' ', first_name, middle_name, last_name)) AS name
+    FROM supervisors
+    WHERE TRIM(CONCAT_WS(' ', first_name, middle_name, last_name)) <> ''
+    ORDER BY name ASC
+";
 $supervisors_result = $conn->query($supervisors_query);
 $supervisors = [];
 if ($supervisors_result->num_rows > 0) {
     while ($row = $supervisors_result->fetch_assoc()) {
-        $supervisors[] = ['name' => $row['supervisor_name']];
+        $supervisors[] = [
+            'id' => (int)$row['id'],
+            'name' => $row['name']
+        ];
     }
 }
 
-$coordinators_query = "SELECT DISTINCT coordinator_name FROM students WHERE coordinator_name IS NOT NULL ORDER BY coordinator_name ASC";
+$coordinators_query = "
+    SELECT 
+        id,
+        TRIM(CONCAT_WS(' ', first_name, middle_name, last_name)) AS name
+    FROM coordinators
+    WHERE TRIM(CONCAT_WS(' ', first_name, middle_name, last_name)) <> ''
+    ORDER BY name ASC
+";
 $coordinators_result = $conn->query($coordinators_query);
 $coordinators = [];
 if ($coordinators_result->num_rows > 0) {
     while ($row = $coordinators_result->fetch_assoc()) {
-        $coordinators[] = ['name' => $row['coordinator_name']];
+        $coordinators[] = [
+            'id' => (int)$row['id'],
+            'name' => $row['name']
+        ];
     }
 }
 
@@ -186,8 +206,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $emergency_contact = isset($_POST['emergency_contact']) ? trim($_POST['emergency_contact']) : '';
     $course_id = isset($_POST['course_id']) ? intval($_POST['course_id']) : 0;
     $status = isset($_POST['status']) ? intval($_POST['status']) : 1;
-    $supervisor_id = isset($_POST['supervisor_id']) ? trim($_POST['supervisor_id']) : '';
-    $coordinator_id = isset($_POST['coordinator_id']) ? trim($_POST['coordinator_id']) : '';
+    $supervisor_id = isset($_POST['supervisor_id']) && $_POST['supervisor_id'] !== '' ? intval($_POST['supervisor_id']) : null;
+    $coordinator_id = isset($_POST['coordinator_id']) && $_POST['coordinator_id'] !== '' ? intval($_POST['coordinator_id']) : null;
     $student_id_code = isset($_POST['student_id']) ? trim($_POST['student_id']) : ($student['student_id'] ?? '');
     $internal_total_hours = isset($_POST['internal_total_hours']) && $_POST['internal_total_hours'] !== '' ? intval($_POST['internal_total_hours']) : null;
     $internal_total_hours_remaining = isset($_POST['internal_total_hours_remaining']) && $_POST['internal_total_hours_remaining'] !== '' ? intval($_POST['internal_total_hours_remaining']) : null;
@@ -206,6 +226,44 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     if (!in_array($assignment_track, ['internal', 'external'], true)) {
         $assignment_track = 'internal';
+    }
+
+    $selected_supervisor_name = null;
+    if ($supervisor_id !== null) {
+        $sup_name_stmt = $conn->prepare("
+            SELECT TRIM(CONCAT_WS(' ', first_name, middle_name, last_name)) AS name
+            FROM supervisors
+            WHERE id = ?
+            LIMIT 1
+        ");
+        if ($sup_name_stmt) {
+            $sup_name_stmt->bind_param("i", $supervisor_id);
+            $sup_name_stmt->execute();
+            $sup_name_res = $sup_name_stmt->get_result();
+            if ($sup_name_res && $sup_name_res->num_rows > 0) {
+                $selected_supervisor_name = $sup_name_res->fetch_assoc()['name'];
+            }
+            $sup_name_stmt->close();
+        }
+    }
+
+    $selected_coordinator_name = null;
+    if ($coordinator_id !== null) {
+        $coor_name_stmt = $conn->prepare("
+            SELECT TRIM(CONCAT_WS(' ', first_name, middle_name, last_name)) AS name
+            FROM coordinators
+            WHERE id = ?
+            LIMIT 1
+        ");
+        if ($coor_name_stmt) {
+            $coor_name_stmt->bind_param("i", $coordinator_id);
+            $coor_name_stmt->execute();
+            $coor_name_res = $coor_name_stmt->get_result();
+            if ($coor_name_res && $coor_name_res->num_rows > 0) {
+                $selected_coordinator_name = $coor_name_res->fetch_assoc()['name'];
+            }
+            $coor_name_stmt->close();
+        }
     }
 
     // Validation
@@ -276,13 +334,110 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $assignment_track,
                     $course_id,
                     $status,
-                    $supervisor_id,
-                    $coordinator_id,
+                    $selected_supervisor_name,
+                    $selected_coordinator_name,
                     $profile_picture_path,
                     $student_id
                 );
 
                 if ($update_stmt->execute()) {
+                    // Keep assignment IDs in internships table as single source of truth.
+                    if (!empty($student['internship_id'])) {
+                        $internship_update = $conn->prepare("
+                            UPDATE internships
+                            SET supervisor_id = ?, coordinator_id = ?, status = 'ongoing', updated_at = NOW()
+                            WHERE id = ?
+                        ");
+                        if ($internship_update) {
+                            $internship_update->bind_param("iii", $supervisor_id, $coordinator_id, $student['internship_id']);
+                            $internship_update->execute();
+                            $internship_update->close();
+                        }
+                    } else {
+                        // If no internship row was linked by the ongoing join, update latest row if present.
+                        $latest_internship_id = null;
+                        $latest_stmt = $conn->prepare("
+                            SELECT id
+                            FROM internships
+                            WHERE student_id = ?
+                            ORDER BY (status = 'ongoing') DESC, id DESC
+                            LIMIT 1
+                        ");
+                        if ($latest_stmt) {
+                            $latest_stmt->bind_param("i", $student_id);
+                            $latest_stmt->execute();
+                            $latest_res = $latest_stmt->get_result();
+                            if ($latest_res && $latest_res->num_rows > 0) {
+                                $latest_internship_id = (int)$latest_res->fetch_assoc()['id'];
+                            }
+                            $latest_stmt->close();
+                        }
+
+                        if ($latest_internship_id) {
+                            $internship_update = $conn->prepare("
+                                UPDATE internships
+                                SET supervisor_id = ?, coordinator_id = ?, status = 'ongoing', updated_at = NOW()
+                                WHERE id = ?
+                            ");
+                            if ($internship_update) {
+                                $internship_update->bind_param("iii", $supervisor_id, $coordinator_id, $latest_internship_id);
+                                $internship_update->execute();
+                                $internship_update->close();
+                            }
+                        } elseif ($coordinator_id !== null) {
+                            // Create a minimal internship row when none exists yet.
+                            $department_id = null;
+                            $dept_stmt = $conn->query("SELECT id FROM departments ORDER BY id ASC LIMIT 1");
+                            if ($dept_stmt && $dept_stmt->num_rows > 0) {
+                                $department_id = (int)$dept_stmt->fetch_assoc()['id'];
+                            }
+
+                            $course_for_intern = $course_id > 0 ? $course_id : (int)($student['course_id'] ?? 0);
+                            if ($course_for_intern > 0 && $department_id !== null) {
+                                $today = date('Y-m-d');
+                                $year = (int)date('Y');
+                                $school_year = $year . '-' . ($year + 1);
+                                $type = ($assignment_track === 'external') ? 'external' : 'internal';
+                                $required_hours = ($assignment_track === 'external')
+                                    ? (int)($external_total_hours ?? 250)
+                                    : (int)($internal_total_hours ?? 600);
+                                if ($required_hours <= 0) {
+                                    $required_hours = ($assignment_track === 'external') ? 250 : 600;
+                                }
+                                $remaining = ($assignment_track === 'external')
+                                    ? (int)($external_total_hours_remaining ?? $required_hours)
+                                    : (int)($internal_total_hours_remaining ?? $required_hours);
+                                $rendered_hours = max(0, $required_hours - max(0, $remaining));
+                                $completion_pct = $required_hours > 0 ? min(100, ($rendered_hours / $required_hours) * 100) : 0;
+
+                                $insert_intern = $conn->prepare("
+                                    INSERT INTO internships
+                                    (student_id, course_id, department_id, coordinator_id, supervisor_id, type, start_date, status, school_year, required_hours, rendered_hours, completion_percentage, created_at, updated_at)
+                                    VALUES
+                                    (?, ?, ?, ?, ?, ?, ?, 'ongoing', ?, ?, ?, ?, NOW(), NOW())
+                                ");
+                                if ($insert_intern) {
+                                    $insert_intern->bind_param(
+                                        "iiiiisssiid",
+                                        $student_id,
+                                        $course_for_intern,
+                                        $department_id,
+                                        $coordinator_id,
+                                        $supervisor_id,
+                                        $type,
+                                        $today,
+                                        $school_year,
+                                        $required_hours,
+                                        $rendered_hours,
+                                        $completion_pct
+                                    );
+                                    $insert_intern->execute();
+                                    $insert_intern->close();
+                                }
+                            }
+                        }
+                    }
+
                     $success_message = "âœ“ Student information updated successfully!";
                     // Refresh student data
                     $stmt = $conn->prepare($student_query);
@@ -517,6 +672,41 @@ function formatDateTime($date) {
         html.app-skin-dark select.form-select option {
             color: #f0f0f0 !important;
             background-color: #2d3748 !important;
+        }
+
+        /* Dropdown design sync from students-edit.blade.php */
+        .select2-container--default .select2-selection--single {
+            border: 1px solid #e5e7eb;
+            border-radius: 0.375rem;
+            min-height: 40px;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 38px;
+            padding-left: 0.75rem;
+            padding-right: 2rem;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 38px;
+            right: 8px;
+        }
+
+        .select2-container--default .select2-dropdown {
+            border: 1px solid #e5e7eb;
+            border-radius: 0.375rem;
+            overflow: hidden;
+            z-index: 1060;
+        }
+
+        .select2-container--default.select2-container--open .select2-selection--single {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.15);
+        }
+
+        .select2-selection__clear {
+            margin-right: 0.25rem;
+            color: #6b7280;
         }
     </style>
 </head>
@@ -960,10 +1150,10 @@ function formatDateTime($date) {
                                             <div class="col-md-6 mb-4">
                                                 <label for="supervisor_id" class="form-label fw-semibold">Supervisor</label>
                                                 <select class="form-control" id="supervisor_id" name="supervisor_id">
-                                                    <option value="">-- Select Supervisor --</option>
+                                                    <option value=""></option>
                                                     <?php foreach ($supervisors as $supervisor): ?>
-                                                        <option value="<?php echo htmlspecialchars($supervisor['name']); ?>" 
-                                                            <?php echo (isset($student['supervisor_name']) && $student['supervisor_name'] == $supervisor['name']) ? 'selected' : ''; ?>>
+                                                        <option value="<?php echo (int)$supervisor['id']; ?>"
+                                                            <?php echo ((int)($student['supervisor_id'] ?? 0) === (int)$supervisor['id']) ? 'selected' : ''; ?>>
                                                             <?php echo htmlspecialchars($supervisor['name']); ?>
                                                         </option>
                                                     <?php endforeach; ?>
@@ -972,10 +1162,10 @@ function formatDateTime($date) {
                                             <div class="col-md-6 mb-4">
                                                 <label for="coordinator_id" class="form-label fw-semibold">Coordinator</label>
                                                 <select class="form-control" id="coordinator_id" name="coordinator_id">
-                                                    <option value="">-- Select Coordinator --</option>
+                                                    <option value=""></option>
                                                     <?php foreach ($coordinators as $coordinator): ?>
-                                                        <option value="<?php echo htmlspecialchars($coordinator['name']); ?>" 
-                                                            <?php echo (isset($student['coordinator_name']) && $student['coordinator_name'] == $coordinator['name']) ? 'selected' : ''; ?>>
+                                                        <option value="<?php echo (int)$coordinator['id']; ?>"
+                                                            <?php echo ((int)($student['coordinator_id'] ?? 0) === (int)$coordinator['id']) ? 'selected' : ''; ?>>
                                                             <?php echo htmlspecialchars($coordinator['name']); ?>
                                                         </option>
                                                     <?php endforeach; ?>
@@ -1126,13 +1316,31 @@ function formatDateTime($date) {
         // Initialize form elements
         document.addEventListener('DOMContentLoaded', function() {
             // Initialize select2 for dropdowns
-            $('#course_id, #status, #gender, #supervisor_id, #coordinator_id').each(function() {
+            $('#course_id, #status, #gender').each(function() {
                 $(this).select2({
                     allowClear: true,
                     width: 'resolve',
                     dropdownAutoWidth: false,
                     theme: 'default'
                 });
+            });
+
+            $('#supervisor_id').select2({
+                placeholder: 'Search supervisor',
+                allowClear: true,
+                minimumResultsForSearch: 0,
+                width: 'resolve',
+                dropdownAutoWidth: false,
+                theme: 'default'
+            });
+
+            $('#coordinator_id').select2({
+                placeholder: 'Search coordinator',
+                allowClear: true,
+                minimumResultsForSearch: 0,
+                width: 'resolve',
+                dropdownAutoWidth: false,
+                theme: 'default'
             });
 
             // Initialize datepicker for date fields

@@ -1,341 +1,28 @@
-<?php
-// Database Connection
-$host = 'localhost';
-$db_user = 'root';
-$db_password = '';
-$db_name = 'biotern_db';
+@php
+// Data for this view is provided by `StudentController@edit`.
+// Backwards-compatible: check for flashed session messages.
+$success_message = session('success_message') ?? '';
+$error_message = session('error_message') ?? '';
 
-try {
-    $conn = new mysqli($host, $db_user, $db_password, $db_name);
-    if ($conn->connect_error) {
-        die("Connection failed: " . $conn->connect_error);
-    }
-} catch (Exception $e) {
-    die("Database Error: " . $e->getMessage());
-}
-
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-$current_role = strtolower(trim((string) (
-    $_SESSION['role'] ??
-    $_SESSION['user_role'] ??
-    $_SESSION['account_role'] ??
-    $_SESSION['user_type'] ??
-    $_SESSION['type'] ??
-    ''
-)));
-$can_edit_sensitive_hours = $current_role === '' || in_array($current_role, ['admin', 'coordinator', 'supervisor'], true);
-
-$conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS internal_total_hours INT(11) DEFAULT NULL");
-$conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS internal_total_hours_remaining INT(11) DEFAULT NULL");
-$conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS external_total_hours INT(11) DEFAULT NULL");
-$conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS external_total_hours_remaining INT(11) DEFAULT NULL");
-$conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS assignment_track VARCHAR(20) NOT NULL DEFAULT 'internal'");
-
-// Get student ID from URL parameter
-$student_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
-
-if ($student_id == 0) {
-    die("Invalid student ID");
-}
-
-// Create uploads directory if it doesn't exist
-$uploads_dir = public_path('uploads/profile_pictures');
-if (!is_dir($uploads_dir)) {
-    mkdir($uploads_dir, 0755, true);
-}
-// Ensure other upload folders exist
-$uploads_documents = public_path('uploads/documents');
-if (!is_dir($uploads_documents)) {
-    mkdir($uploads_documents, 0755, true);
-}
-
-// Fetch Student Details
-$student_query = "
-    SELECT
-        s.id,
-        s.student_id,
-        s.profile_picture,
-        s.first_name,
-        s.last_name,
-        s.middle_name,
-        s.email,
-        s.phone,
-        s.date_of_birth,
-        s.gender,
-        s.address,
-        s.emergency_contact,
-        s.internal_total_hours,
-        s.internal_total_hours_remaining,
-        s.external_total_hours,
-        s.external_total_hours_remaining,
-        s.assignment_track,
-        s.status,
-        s.biometric_registered,
-        s.biometric_registered_at,
-        s.created_at,
-        s.supervisor_name,
-        s.coordinator_name,
-        c.name as course_name,
-        c.id as course_id,
-        i.id as internship_id,
-        i.supervisor_id,
-        i.coordinator_id
-    FROM students s
-    LEFT JOIN courses c ON s.course_id = c.id
-    LEFT JOIN internships i ON s.id = i.student_id AND i.status = 'ongoing'
-    WHERE s.id = ?
-    LIMIT 1
-";
-
-$stmt = $conn->prepare($student_query);
-$stmt->bind_param("i", $student_id);
-$stmt->execute();
-$result = $stmt->get_result();
-
-if ($result->num_rows == 0) {
-    die("Student not found");
-}
-
-$student = $result->fetch_assoc();
-
-// Fetch all courses for dropdown
-$courses_query = "SELECT id, name FROM courses WHERE is_active = 1 ORDER BY name ASC";
-$courses_result = $conn->query($courses_query);
-$courses = [];
-if ($courses_result->num_rows > 0) {
-    while ($row = $courses_result->fetch_assoc()) {
-        $courses[] = $row;
-    }
-}
-
-// Fetch all supervisors and coordinators for dropdowns
-$supervisors_query = "SELECT DISTINCT supervisor_name FROM students WHERE supervisor_name IS NOT NULL ORDER BY supervisor_name ASC";
-$supervisors_result = $conn->query($supervisors_query);
-$supervisors = [];
-if ($supervisors_result->num_rows > 0) {
-    while ($row = $supervisors_result->fetch_assoc()) {
-        $supervisors[] = ['name' => $row['supervisor_name']];
-    }
-}
-
-$coordinators_query = "SELECT DISTINCT coordinator_name FROM students WHERE coordinator_name IS NOT NULL ORDER BY coordinator_name ASC";
-$coordinators_result = $conn->query($coordinators_query);
-$coordinators = [];
-if ($coordinators_result->num_rows > 0) {
-    while ($row = $coordinators_result->fetch_assoc()) {
-        $coordinators[] = ['name' => $row['coordinator_name']];
-    }
-}
-
-// Handle form submission
-$success_message = '';
-$error_message = '';
-
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    // Handle profile picture upload
-    $action = isset($_POST['action']) ? trim($_POST['action']) : 'update_profile';
-    $profile_picture_path = $student['profile_picture'] ?? '';
-
-    if (($action === 'update_profile' || $action === 'upload_profile_picture') && isset($_FILES['profile_picture']) && $_FILES['profile_picture']['error'] == UPLOAD_ERR_OK) {
-        $file_tmp = $_FILES['profile_picture']['tmp_name'];
-        $file_name = $_FILES['profile_picture']['name'];
-        $file_size = $_FILES['profile_picture']['size'];
-        $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
-
-        // Validate file type and size
-        $allowed_types = ['jpg', 'jpeg', 'png', 'gif'];
-        $max_file_size = 5 * 1024 * 1024; // 5MB
-
-        if (in_array($file_ext, $allowed_types) && $file_size <= $max_file_size) {
-            // Create unique filename
-            $unique_name = 'student_' . $student_id . '_' . time() . '.' . $file_ext;
-            $file_path = $uploads_dir . '/' . $unique_name;
-
-            // Delete old profile picture if exists
-            if (!empty($profile_picture_path) && is_file(public_path($profile_picture_path))) {
-                @unlink(public_path($profile_picture_path));
-            }
-
-            // Move uploaded file
-            if (move_uploaded_file($file_tmp, $file_path)) {
-                $profile_picture_path = 'uploads/profile_pictures/' . $unique_name;
-            } else {
-                $error_message = "Failed to upload profile picture. Please try again.";
-            }
-        } else {
-            $error_message = "Invalid file type or file size exceeds 5MB. Allowed types: JPG, PNG, GIF.";
+// Provide helper functions used in the template (guarded to avoid redeclare)
+if (!function_exists('formatDate')) {
+    function formatDate($date) {
+        if ($date) {
+            return date('Y-m-d', strtotime($date));
         }
+        return '';
     }
+}
 
-    if ($action === 'upload_profile_picture' && empty($error_message) && !empty($profile_picture_path)) {
-        $upd = $conn->prepare("UPDATE students SET profile_picture = ?, updated_at = NOW() WHERE id = ?");
-        if ($upd) {
-            $upd->bind_param("si", $profile_picture_path, $student_id);
-            if ($upd->execute()) {
-                $success_message = "✓ Profile picture uploaded successfully.";
-            } else {
-                $error_message = "Failed to save profile picture path.";
-            }
-            $upd->close();
-        } else {
-            $error_message = "Prepare failed while saving profile picture.";
+if (!function_exists('formatDateTime')) {
+    function formatDateTime($date) {
+        if ($date) {
+            return date('M d, Y h:i A', strtotime($date));
         }
+        return 'N/A';
     }
-
-    if ($action === 'update_profile') {
-    // Sanitize and validate inputs
-    $first_name = isset($_POST['first_name']) ? trim($_POST['first_name']) : '';
-    $last_name = isset($_POST['last_name']) ? trim($_POST['last_name']) : '';
-    $middle_name = isset($_POST['middle_name']) ? trim($_POST['middle_name']) : '';
-    $email = isset($_POST['email']) ? trim($_POST['email']) : '';
-    $phone = isset($_POST['phone']) ? trim($_POST['phone']) : '';
-    $date_of_birth = isset($_POST['date_of_birth']) ? trim($_POST['date_of_birth']) : '';
-    $gender = isset($_POST['gender']) ? trim($_POST['gender']) : '';
-    $address = isset($_POST['address']) ? trim($_POST['address']) : '';
-    $emergency_contact = isset($_POST['emergency_contact']) ? trim($_POST['emergency_contact']) : '';
-    $course_id = isset($_POST['course_id']) ? intval($_POST['course_id']) : 0;
-    $status = isset($_POST['status']) ? intval($_POST['status']) : 1;
-    $supervisor_id = isset($_POST['supervisor_id']) ? trim($_POST['supervisor_id']) : '';
-    $coordinator_id = isset($_POST['coordinator_id']) ? trim($_POST['coordinator_id']) : '';
-    $student_id_code = isset($_POST['student_id']) ? trim($_POST['student_id']) : ($student['student_id'] ?? '');
-    $internal_total_hours = isset($_POST['internal_total_hours']) && $_POST['internal_total_hours'] !== '' ? intval($_POST['internal_total_hours']) : null;
-    $internal_total_hours_remaining = isset($_POST['internal_total_hours_remaining']) && $_POST['internal_total_hours_remaining'] !== '' ? intval($_POST['internal_total_hours_remaining']) : null;
-    $external_total_hours = isset($_POST['external_total_hours']) && $_POST['external_total_hours'] !== '' ? intval($_POST['external_total_hours']) : null;
-    $external_total_hours_remaining = isset($_POST['external_total_hours_remaining']) && $_POST['external_total_hours_remaining'] !== '' ? intval($_POST['external_total_hours_remaining']) : null;
-    $assignment_track = isset($_POST['assignment_track']) ? trim($_POST['assignment_track']) : 'internal';
-
-    if (!$can_edit_sensitive_hours) {
-        $student_id_code = (string)($student['student_id'] ?? '');
-        $internal_total_hours = isset($student['internal_total_hours']) ? intval($student['internal_total_hours']) : null;
-        $internal_total_hours_remaining = isset($student['internal_total_hours_remaining']) ? intval($student['internal_total_hours_remaining']) : null;
-        $external_total_hours = isset($student['external_total_hours']) ? intval($student['external_total_hours']) : null;
-        $external_total_hours_remaining = isset($student['external_total_hours_remaining']) ? intval($student['external_total_hours_remaining']) : null;
-        $assignment_track = (string)($student['assignment_track'] ?? 'internal');
-    }
-
-    if (!in_array($assignment_track, ['internal', 'external'], true)) {
-        $assignment_track = 'internal';
-    }
-
-    // Validation
-    if (empty($first_name) || empty($last_name) || empty($email)) {
-        $error_message = "First Name, Last Name, and Email are required fields!";
-    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $error_message = "Invalid email format!";
-    } elseif ($assignment_track === 'external' && ($internal_total_hours_remaining === null || $internal_total_hours_remaining > 0)) {
-        $error_message = "Cannot assign student to External unless Internal is completed (Internal Total Hours Remaining must be 0).";
-    } else {
-        // Check if email already exists (excluding current student)
-        $email_check = $conn->prepare("SELECT id FROM students WHERE email = ? AND id != ?");
-        $email_check->bind_param("si", $email, $student_id);
-        $email_check->execute();
-        $email_result = $email_check->get_result();
-
-        if ($email_result->num_rows > 0) {
-            $error_message = "Email address already exists!";
-        } else {
-            // Update student in database
-            $update_query = "
-                UPDATE students
-                SET
-                    student_id = ?,
-                    first_name = ?,
-                    last_name = ?,
-                    middle_name = ?,
-                    email = ?,
-                    phone = ?,
-                    date_of_birth = ?,
-                    gender = ?,
-                    address = ?,
-                    emergency_contact = ?,
-                    internal_total_hours = ?,
-                    internal_total_hours_remaining = ?,
-                    external_total_hours = ?,
-                    external_total_hours_remaining = ?,
-                    assignment_track = ?,
-                    course_id = NULLIF(?, 0),
-                    status = ?,
-                    supervisor_name = ?,
-                    coordinator_name = ?,
-                    profile_picture = ?,
-                    updated_at = NOW()
-                WHERE id = ?
-            ";
-
-            $update_stmt = $conn->prepare($update_query);
-            if (!$update_stmt) {
-                $error_message = "Prepare failed: " . $conn->error;
-            } else {
-                $update_stmt->bind_param(
-                    "ssssssssssiiiisiisssi",
-                    $student_id_code,
-                    $first_name,
-                    $last_name,
-                    $middle_name,
-                    $email,
-                    $phone,
-                    $date_of_birth,
-                    $gender,
-                    $address,
-                    $emergency_contact,
-                    $internal_total_hours,
-                    $internal_total_hours_remaining,
-                    $external_total_hours,
-                    $external_total_hours_remaining,
-                    $assignment_track,
-                    $course_id,
-                    $status,
-                    $supervisor_id,
-                    $coordinator_id,
-                    $profile_picture_path,
-                    $student_id
-                );
-
-                if ($update_stmt->execute()) {
-                    $success_message = "✓ Student information updated successfully!";
-                    // Refresh student data
-                    $stmt = $conn->prepare($student_query);
-                    $stmt->bind_param("i", $student_id);
-                    $stmt->execute();
-                    $result = $stmt->get_result();
-                    $student = $result->fetch_assoc();
-                } else {
-                    $error_message = "Error updating student: " . $update_stmt->error;
-                }
-
-                $update_stmt->close();
-            }
-        }
-    }
-    }
-
-    // Refresh student data after any action
-    $stmt = $conn->prepare($student_query);
-    $stmt->bind_param("i", $student_id);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $student = $result->fetch_assoc();
 }
-
-// Helper functions
-function formatDate($date) {
-    if ($date) {
-        return date('Y-m-d', strtotime($date));
-    }
-    return '';
-}
-
-function formatDateTime($date) {
-    if ($date) {
-        return date('M d, Y h:i A', strtotime($date));
-    }
-    return 'N/A';
-}
-
-?>
+@endphp
 
 <!DOCTYPE html>
 <html lang="zxx">
@@ -585,7 +272,7 @@ function formatDateTime($date) {
             <div class="navbar-content">
                 <ul class="nxl-navbar">
                     <li class="nxl-item nxl-caption">
-                        <span class="nav-caption">Navigation</span>
+                        <label>Navigation</label>
                     </li>
                     <li class="nxl-item nxl-hasmenu">
                         <a href="javascript:void(0);" class="nxl-link">
@@ -632,9 +319,6 @@ function formatDateTime($date) {
                             <li class="nxl-item"><a class="nxl-link" href="{{ url('/students') }}">Students</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="{{ url('/students/view') }}">Students View</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="{{ url('/students/create') }}">Students Create</a></li>
-                            <li class="nxl-divider"></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/attendance') }}"><i class="feather-calendar me-2"></i>Attendance Records</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ url('/demo-biometric') }}"><i class="feather-activity me-2"></i>Biometric Demo</a></li>
                         </ul>
                     </li>
                     <li class="nxl-item nxl-hasmenu">
@@ -2321,7 +2005,7 @@ function formatDateTime($date) {
                                     <div class="col-lg-6" id="upload-profile-picture">
                                         <div class="border rounded p-3 h-100">
                                             <h6 class="fw-bold mb-3"><i class="feather-image me-2"></i>Upload Profile Picture</h6>
-                                            <form method="POST" action="" enctype="multipart/form-data">
+                                            <form method="POST" action="<?php echo route('students.update', ['id' => $student['id'] ?? ($student['id'] ?? null)]); ?>" enctype="multipart/form-data">
                                                 <?php echo csrf_field(); ?>
                                                 <input type="hidden" name="action" value="upload_profile_picture">
                                                 <div class="mb-3">
@@ -2338,7 +2022,7 @@ function formatDateTime($date) {
                                 </div>
 
                                 <!-- Edit Form -->
-                                <form method="POST" action="" id="editStudentForm" enctype="multipart/form-data">
+                                <form method="POST" action="<?php echo route('students.update', ['id' => $student['id'] ?? ($student['id'] ?? null)]); ?>" id="editStudentForm" enctype="multipart/form-data">
                                     <?php echo csrf_field(); ?>
                                     <input type="hidden" name="action" value="update_profile">
                                     <!-- Personal Information Section -->
@@ -2418,8 +2102,13 @@ function formatDateTime($date) {
                                                 <label for="profile_picture" class="form-label fw-semibold">Profile Picture</label>
                                                 <div class="mb-2">
                                                     <?php if (!empty($student['profile_picture'])): ?>
+                                                        <?php $pp = $student['profile_picture']; $ppPath = public_path($pp); ?>
                                                         <div class="mb-2">
-                                                            <img src="<?php echo asset($student['profile_picture']) . '?v=' . filemtime(public_path($student['profile_picture'])); ?>" alt="Profile" class="img-thumbnail" style="max-width: 150px; max-height: 150px;">
+                                                            <?php if (file_exists($ppPath) && is_file($ppPath)): ?>
+                                                                <img src="<?php echo asset($pp) . '?v=' . filemtime($ppPath); ?>" alt="Profile" class="img-thumbnail" style="max-width: 150px; max-height: 150px;">
+                                                            <?php else: ?>
+                                                                <div class="alert alert-warning mb-2 py-2 px-3">Profile picture not found on disk</div>
+                                                            <?php endif; ?>
                                                         </div>
                                                     <?php else: ?>
                                                         <div class="alert alert-info mb-2 py-2 px-3">No profile picture uploaded</div>
@@ -2444,10 +2133,10 @@ function formatDateTime($date) {
                                             <div class="col-md-6 mb-4">
                                                 <label for="supervisor_id" class="form-label fw-semibold">Supervisor</label>
                                                 <select class="form-control" id="supervisor_id" name="supervisor_id">
-                                                    <option value="">-- Select Supervisor --</option>
+                                                    <option value=""></option>
                                                     <?php foreach ($supervisors as $supervisor): ?>
-                                                        <option value="<?php echo htmlspecialchars($supervisor['name']); ?>"
-                                                            <?php echo (isset($student['supervisor_name']) && $student['supervisor_name'] == $supervisor['name']) ? 'selected' : ''; ?>>
+                                                        <option value="<?php echo (int)$supervisor['id']; ?>"
+                                                            <?php echo ((int)($student['supervisor_id'] ?? 0) === (int)$supervisor['id']) ? 'selected' : ''; ?>>
                                                             <?php echo htmlspecialchars($supervisor['name']); ?>
                                                         </option>
                                                     <?php endforeach; ?>
@@ -2456,10 +2145,10 @@ function formatDateTime($date) {
                                             <div class="col-md-6 mb-4">
                                                 <label for="coordinator_id" class="form-label fw-semibold">Coordinator</label>
                                                 <select class="form-control" id="coordinator_id" name="coordinator_id">
-                                                    <option value="">-- Select Coordinator --</option>
+                                                    <option value=""></option>
                                                     <?php foreach ($coordinators as $coordinator): ?>
-                                                        <option value="<?php echo htmlspecialchars($coordinator['name']); ?>"
-                                                            <?php echo (isset($student['coordinator_name']) && $student['coordinator_name'] == $coordinator['name']) ? 'selected' : ''; ?>>
+                                                        <option value="<?php echo (int)$coordinator['id']; ?>"
+                                                            <?php echo ((int)($student['coordinator_id'] ?? 0) === (int)$coordinator['id']) ? 'selected' : ''; ?>>
                                                             <?php echo htmlspecialchars($coordinator['name']); ?>
                                                         </option>
                                                     <?php endforeach; ?>
@@ -2611,7 +2300,7 @@ function formatDateTime($date) {
         // Initialize form elements
         document.addEventListener('DOMContentLoaded', function() {
             // Initialize select2 for dropdowns
-            $('#course_id, #status, #gender, #supervisor_id, #coordinator_id, #assignment_track').each(function() {
+            $('#course_id, #status, #gender, #assignment_track').each(function() {
                 $(this).select2({
                     allowClear: false,
                     width: 'resolve',
@@ -2619,6 +2308,24 @@ function formatDateTime($date) {
                     dropdownParent: $(this).parent(),
                     theme: 'default'
                 });
+            });
+
+            $('#supervisor_id').select2({
+                placeholder: 'Search supervisor',
+                allowClear: true,
+                minimumResultsForSearch: 0,
+                width: 'resolve',
+                dropdownAutoWidth: false,
+                theme: 'default'
+            });
+
+            $('#coordinator_id').select2({
+                placeholder: 'Search coordinator',
+                allowClear: true,
+                minimumResultsForSearch: 0,
+                width: 'resolve',
+                dropdownAutoWidth: false,
+                theme: 'default'
             });
 
             // Initialize datepicker for date fields
@@ -2666,6 +2373,4 @@ function formatDateTime($date) {
 
 </html>
 
-<?php
-$conn->close();
-?>
+<!-- Connection closed in controller; nothing to close in view -->

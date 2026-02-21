@@ -61,13 +61,23 @@ if ($dept_res && $dept_res->num_rows) {
 }
 
 $supervisors = [];
-$sup_res = $conn->query("SELECT DISTINCT supervisor_name FROM students WHERE supervisor_name IS NOT NULL AND supervisor_name <> '' ORDER BY supervisor_name ASC");
+$sup_res = $conn->query("
+    SELECT DISTINCT TRIM(CONCAT_WS(' ', first_name, middle_name, last_name)) AS supervisor_name
+    FROM supervisors
+    WHERE TRIM(CONCAT_WS(' ', first_name, middle_name, last_name)) <> ''
+    ORDER BY supervisor_name ASC
+");
 if ($sup_res && $sup_res->num_rows) {
     while ($r = $sup_res->fetch_assoc()) $supervisors[] = $r['supervisor_name'];
 }
 
 $coordinators = [];
-$coor_res = $conn->query("SELECT DISTINCT coordinator_name FROM students WHERE coordinator_name IS NOT NULL AND coordinator_name <> '' ORDER BY coordinator_name ASC");
+$coor_res = $conn->query("
+    SELECT DISTINCT TRIM(CONCAT_WS(' ', first_name, middle_name, last_name)) AS coordinator_name
+    FROM coordinators
+    WHERE TRIM(CONCAT_WS(' ', first_name, middle_name, last_name)) <> ''
+    ORDER BY coordinator_name ASC
+");
 if ($coor_res && $coor_res->num_rows) {
     while ($r = $coor_res->fetch_assoc()) $coordinators[] = $r['coordinator_name'];
 }
@@ -81,13 +91,41 @@ if ($filter_department > 0) {
     $where[] = "i.department_id = " . intval($filter_department);
 }
 if (!empty($filter_supervisor)) {
-    $where[] = "(s.supervisor_name LIKE '%" . $conn->real_escape_string($filter_supervisor) . "%' OR i.supervisor_id IN (SELECT id FROM users WHERE name LIKE '%" . $conn->real_escape_string($filter_supervisor) . "%'))";
+    $esc_sup = $conn->real_escape_string($filter_supervisor);
+    $where[] = "(
+        TRIM(CONCAT_WS(' ', sup.first_name, sup.middle_name, sup.last_name)) LIKE '%{$esc_sup}%'
+        OR s.supervisor_name LIKE '%{$esc_sup}%'
+    )";
 }
 if (!empty($filter_coordinator)) {
-    $where[] = "(s.coordinator_name LIKE '%" . $conn->real_escape_string($filter_coordinator) . "%' OR i.coordinator_id IN (SELECT id FROM users WHERE name LIKE '%" . $conn->real_escape_string($filter_coordinator) . "%'))";
+    $esc_coor = $conn->real_escape_string($filter_coordinator);
+    $where[] = "(
+        TRIM(CONCAT_WS(' ', coor.first_name, coor.middle_name, coor.last_name)) LIKE '%{$esc_coor}%'
+        OR s.coordinator_name LIKE '%{$esc_coor}%'
+    )";
 }
 if ($filter_status >= 0) {
-    $where[] = "s.status = " . intval($filter_status);
+    if (intval($filter_status) === 1) {
+        $where[] = "EXISTS (
+            SELECT 1 FROM attendances a_live
+            WHERE a_live.student_id = s.id
+              AND a_live.attendance_date = CURDATE()
+              AND (
+                    (a_live.morning_time_in IS NOT NULL AND a_live.morning_time_out IS NULL)
+                 OR (a_live.afternoon_time_in IS NOT NULL AND a_live.afternoon_time_out IS NULL)
+              )
+        )";
+    } else {
+        $where[] = "NOT EXISTS (
+            SELECT 1 FROM attendances a_live
+            WHERE a_live.student_id = s.id
+              AND a_live.attendance_date = CURDATE()
+              AND (
+                    (a_live.morning_time_in IS NOT NULL AND a_live.morning_time_out IS NULL)
+                 OR (a_live.afternoon_time_in IS NOT NULL AND a_live.afternoon_time_out IS NULL)
+              )
+        )";
+    }
 }
 
 // Fetch Students with Related Information
@@ -100,8 +138,18 @@ $students_query = "
         s.email,
         s.phone,
         s.status,
-        s.supervisor_name,
-        s.coordinator_name,
+        CASE
+            WHEN EXISTS (
+                SELECT 1 FROM attendances a_live
+                WHERE a_live.student_id = s.id
+                  AND a_live.attendance_date = CURDATE()
+                  AND (
+                        (a_live.morning_time_in IS NOT NULL AND a_live.morning_time_out IS NULL)
+                     OR (a_live.afternoon_time_in IS NOT NULL AND a_live.afternoon_time_out IS NULL)
+                  )
+            ) THEN 1
+            ELSE 0
+        END as live_clock_status,
         s.biometric_registered,
         s.created_at,
         s.profile_picture,
@@ -109,13 +157,21 @@ $students_query = "
         c.id as course_id,
         i.supervisor_id,
         i.coordinator_id,
-        u_supervisor.name as supervisor_name,
-        u_coordinator.name as coordinator_name
+        COALESCE(
+            NULLIF(TRIM(CONCAT_WS(' ', sup.first_name, sup.middle_name, sup.last_name)), ''),
+            NULLIF(TRIM(s.supervisor_name), ''),
+            '-'
+        ) AS supervisor_name,
+        COALESCE(
+            NULLIF(TRIM(CONCAT_WS(' ', coor.first_name, coor.middle_name, coor.last_name)), ''),
+            NULLIF(TRIM(s.coordinator_name), ''),
+            '-'
+        ) AS coordinator_name
     FROM students s
     LEFT JOIN courses c ON s.course_id = c.id
     LEFT JOIN internships i ON s.id = i.student_id AND i.status = 'ongoing'
-    LEFT JOIN users u_supervisor ON i.supervisor_id = u_supervisor.id
-    LEFT JOIN users u_coordinator ON i.coordinator_id = u_coordinator.id
+    LEFT JOIN supervisors sup ON i.supervisor_id = sup.id
+    LEFT JOIN coordinators coor ON i.coordinator_id = coor.id
     " . (count($where) > 0 ? "WHERE " . implode(' AND ', $where) : "") . "
     ORDER BY s.first_name ASC
     LIMIT 100
@@ -236,6 +292,91 @@ function formatDate($date) {
         html.app-skin-dark select.form-select option {
             color: #f0f0f0 !important;
             background-color: #2d3748 !important;
+        }
+
+        /* Filter row alignment */
+        .filter-form .form-label {
+            margin-bottom: 0.35rem;
+        }
+
+        /* Calendar input design */
+        .filter-form input[type="date"].form-control {
+            min-height: 42px;
+            border-radius: 8px;
+            padding-right: 2.25rem;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .filter-form input[type="date"].form-control:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.2);
+        }
+
+        html.app-skin-dark .filter-form input[type="date"].form-control {
+            color: #f0f0f0 !important;
+            background-color: #2d3748 !important;
+            border-color: #4a5568 !important;
+        }
+
+        html.app-skin-dark .filter-form input[type="date"].form-control::-webkit-calendar-picker-indicator {
+            filter: invert(1) brightness(1.2);
+            opacity: 0.9;
+            cursor: pointer;
+        }
+
+        html.app-skin-dark .filter-form input[type="date"].form-control::-webkit-datetime-edit,
+        html.app-skin-dark .filter-form input[type="date"].form-control::-webkit-datetime-edit-text,
+        html.app-skin-dark .filter-form input[type="date"].form-control::-webkit-datetime-edit-month-field,
+        html.app-skin-dark .filter-form input[type="date"].form-control::-webkit-datetime-edit-day-field,
+        html.app-skin-dark .filter-form input[type="date"].form-control::-webkit-datetime-edit-year-field {
+            color: #f0f0f0;
+        }
+
+        .filter-form .select2-container .select2-selection--single {
+            min-height: 42px;
+            display: flex;
+            align-items: center;
+        }
+
+        .filter-form .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 40px;
+        }
+
+        .filter-form .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 40px;
+        }
+
+        .filter-form .filter-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1.55rem;
+        }
+
+        .filter-form .filter-actions .btn {
+            min-height: 42px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Match ALL filter dropboxes with date picker color */
+        html.app-skin-dark .filter-form select.form-control,
+        html.app-skin-dark .filter-form select.form-select,
+        html.app-skin-dark .filter-form .select2-container--default .select2-selection--single {
+            color: #f0f0f0 !important;
+            background-color: #2d3748 !important;
+            border-color: #4a5568 !important;
+        }
+
+        html.app-skin-dark .filter-form .select2-container--default .select2-selection--single .select2-selection__rendered {
+            color: #f0f0f0 !important;
+        }
+
+        html.app-skin-dark .filter-form .select2-container--default.select2-container--open .select2-dropdown,
+        html.app-skin-dark .filter-form .select2-results__option {
+            background-color: #2d3748 !important;
+            color: #f0f0f0 !important;
+            border-color: #4a5568 !important;
         }
     </style>
 </head>
@@ -617,12 +758,16 @@ function formatDate($date) {
             </div>
 
             <!-- Filters -->
-            <div class="row mb-3 px-3">
+            <div class="row mb-1 px-3">
                 <div class="col-12">
-                    <form method="GET" class="row g-2">
+                    <form method="GET" class="row g-2 align-items-end filter-form">
                         <div class="col-sm-2">
-                            <label class="form-label">Course</label>
-                            <select name="course_id" class="form-control">
+                            <label class="form-label" for="filter-date">Date</label>
+                            <input id="filter-date" type="date" name="date" class="form-control" value="<?php echo htmlspecialchars($_GET['date'] ?? ''); ?>">
+                        </div>
+                        <div class="col-sm-2">
+                            <label class="form-label" for="filter-course">Course</label>
+                            <select id="filter-course" name="course_id" class="form-control">
                                 <option value="0">-- All Courses --</option>
                                 <?php foreach ($courses as $course): ?>
                                     <option value="<?php echo $course['id']; ?>" <?php echo $filter_course == $course['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($course['name']); ?></option>
@@ -630,8 +775,8 @@ function formatDate($date) {
                             </select>
                         </div>
                         <div class="col-sm-2">
-                            <label class="form-label">Department</label>
-                            <select name="department_id" class="form-control">
+                            <label class="form-label" for="filter-department">Department</label>
+                            <select id="filter-department" name="department_id" class="form-control">
                                 <option value="0">-- All Departments --</option>
                                 <?php foreach ($departments as $dept): ?>
                                     <option value="<?php echo $dept['id']; ?>" <?php echo $filter_department == $dept['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($dept['name']); ?></option>
@@ -639,8 +784,8 @@ function formatDate($date) {
                             </select>
                         </div>
                         <div class="col-sm-2">
-                            <label class="form-label">Supervisor</label>
-                            <select name="supervisor" class="form-control">
+                            <label class="form-label" for="filter-supervisor">Supervisor</label>
+                            <select id="filter-supervisor" name="supervisor" class="form-control">
                                 <option value="">-- Any Supervisor --</option>
                                 <?php foreach ($supervisors as $sup): ?>
                                     <option value="<?php echo htmlspecialchars($sup); ?>" <?php echo $filter_supervisor == $sup ? 'selected' : ''; ?>><?php echo htmlspecialchars($sup); ?></option>
@@ -648,17 +793,20 @@ function formatDate($date) {
                             </select>
                         </div>
                         <div class="col-sm-2">
-                            <label class="form-label">Coordinator</label>
-                            <select name="coordinator" class="form-control">
+                            <label class="form-label" for="filter-coordinator">Coordinator</label>
+                            <select id="filter-coordinator" name="coordinator" class="form-control">
                                 <option value="">-- Any Coordinator --</option>
                                 <?php foreach ($coordinators as $coor): ?>
                                     <option value="<?php echo htmlspecialchars($coor); ?>" <?php echo $filter_coordinator == $coor ? 'selected' : ''; ?>><?php echo htmlspecialchars($coor); ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        <div class="col-sm-2 d-flex gap-1" style="align-items: flex-end;">
-                            <button type="submit" class="btn btn-primary btn-sm px-3 py-1" style="font-size: 0.85rem;">Filter</button>
-                            <a href="students.php" class="btn btn-outline-secondary btn-sm px-3 py-1" style="font-size: 0.85rem;">Reset</a>
+                        <div class="col-sm-2">
+                            <label class="form-label d-block invisible">Actions</label>
+                            <div class="filter-actions">
+                                <button type="submit" class="btn btn-primary">Filter</button>
+                                <a href="students.php" class="btn btn-outline-secondary">Reset</a>
+                            </div>
                         </div>
                     </form>
                 </div>
@@ -803,7 +951,7 @@ function formatDate($date) {
                                                         <td><a href="javascript:void(0);"><?php echo htmlspecialchars($student['supervisor_name'] ?? '-'); ?></a></td>
                                                         <td><a href="javascript:void(0);"><?php echo htmlspecialchars($student['coordinator_name'] ?? '-'); ?></a></td>
                                                         <td><?php echo formatDate($student['created_at']); ?></td>
-                                                        <td><?php echo getStatusBadge($student['status']); ?></td>
+                                                        <td><?php echo getStatusBadge($student['live_clock_status']); ?></td>
                                                         <td>
                                                             <div class="hstack gap-2 justify-content-end">
                                                                 <a href="students-view.php?id=<?php echo $student['id']; ?>" class="avatar-text avatar-md" title="View">
@@ -903,6 +1051,19 @@ function formatDate($date) {
     <script src="assets/js/common-init.min.js"></script>
     <script src="assets/js/customers-init.min.js"></script>
     <script src="assets/js/theme-customizer-init.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            ['#filter-course', '#filter-department', '#filter-supervisor', '#filter-coordinator'].forEach(function (selector) {
+                if (window.jQuery && $(selector).length) {
+                    $(selector).select2({
+                        width: '100%',
+                        allowClear: false,
+                        dropdownAutoWidth: false
+                    });
+                }
+            });
+        });
+    </script>
 </body>
 
 </html>
