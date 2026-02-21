@@ -307,10 +307,10 @@ if (!function_exists('formatDate')) {
             color: #ffffff !important;
         }
 
-        html.app-skin-light select.form-control,
+        html.app-skin-dark select.form-control,
         html.app-skin-dark select.form-select {
             color: #f0f0f0 !important;
-            background-color: #0f172a !important;
+            background-color: #2d3748 !important;
             border-color: #4a5568 !important;
         }
 
@@ -339,7 +339,7 @@ if (!function_exists('formatDate')) {
             box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.2);
         }
 
-        html.app-skin-light .filter-form input[type="date"].form-control {
+        html.app-skin-dark .filter-form input[type="date"].form-control {
             color: #f0f0f0 !important;
             background-color: #2d3748 !important;
             border-color: #4a5568 !important;
@@ -384,6 +384,26 @@ if (!function_exists('formatDate')) {
             display: inline-flex;
             align-items: center;
             justify-content: center;
+        }
+
+        /* Match ALL filter dropboxes with date picker color */
+        html.app-skin-dark .filter-form select.form-control,
+        html.app-skin-dark .filter-form select.form-select,
+        html.app-skin-dark .filter-form .select2-container--default .select2-selection--single {
+            color: #f0f0f0 !important;
+            background-color: #2d3748 !important;
+            border-color: #4a5568 !important;
+        }
+
+        html.app-skin-dark .filter-form .select2-container--default .select2-selection--single .select2-selection__rendered {
+            color: #f0f0f0 !important;
+        }
+
+        html.app-skin-dark .filter-form .select2-container--default.select2-container--open .select2-dropdown,
+        html.app-skin-dark .filter-form .select2-results__option {
+            background-color: #2d3748 !important;
+            color: #f0f0f0 !important;
+            border-color: #4a5568 !important;
         }
     </style>
 </head>

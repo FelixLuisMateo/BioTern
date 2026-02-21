@@ -293,6 +293,91 @@ function formatDate($date) {
             color: #f0f0f0 !important;
             background-color: #2d3748 !important;
         }
+
+        /* Filter row alignment */
+        .filter-form .form-label {
+            margin-bottom: 0.35rem;
+        }
+
+        /* Calendar input design */
+        .filter-form input[type="date"].form-control {
+            min-height: 42px;
+            border-radius: 8px;
+            padding-right: 2.25rem;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .filter-form input[type="date"].form-control:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.2);
+        }
+
+        html.app-skin-dark .filter-form input[type="date"].form-control {
+            color: #f0f0f0 !important;
+            background-color: #2d3748 !important;
+            border-color: #4a5568 !important;
+        }
+
+        html.app-skin-dark .filter-form input[type="date"].form-control::-webkit-calendar-picker-indicator {
+            filter: invert(1) brightness(1.2);
+            opacity: 0.9;
+            cursor: pointer;
+        }
+
+        html.app-skin-dark .filter-form input[type="date"].form-control::-webkit-datetime-edit,
+        html.app-skin-dark .filter-form input[type="date"].form-control::-webkit-datetime-edit-text,
+        html.app-skin-dark .filter-form input[type="date"].form-control::-webkit-datetime-edit-month-field,
+        html.app-skin-dark .filter-form input[type="date"].form-control::-webkit-datetime-edit-day-field,
+        html.app-skin-dark .filter-form input[type="date"].form-control::-webkit-datetime-edit-year-field {
+            color: #f0f0f0;
+        }
+
+        .filter-form .select2-container .select2-selection--single {
+            min-height: 42px;
+            display: flex;
+            align-items: center;
+        }
+
+        .filter-form .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 40px;
+        }
+
+        .filter-form .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 40px;
+        }
+
+        .filter-form .filter-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1.55rem;
+        }
+
+        .filter-form .filter-actions .btn {
+            min-height: 42px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Match ALL filter dropboxes with date picker color */
+        html.app-skin-dark .filter-form select.form-control,
+        html.app-skin-dark .filter-form select.form-select,
+        html.app-skin-dark .filter-form .select2-container--default .select2-selection--single {
+            color: #f0f0f0 !important;
+            background-color: #2d3748 !important;
+            border-color: #4a5568 !important;
+        }
+
+        html.app-skin-dark .filter-form .select2-container--default .select2-selection--single .select2-selection__rendered {
+            color: #f0f0f0 !important;
+        }
+
+        html.app-skin-dark .filter-form .select2-container--default.select2-container--open .select2-dropdown,
+        html.app-skin-dark .filter-form .select2-results__option {
+            background-color: #2d3748 !important;
+            color: #f0f0f0 !important;
+            border-color: #4a5568 !important;
+        }
     </style>
 </head>
 
@@ -673,12 +758,16 @@ function formatDate($date) {
             </div>
 
             <!-- Filters -->
-            <div class="row mb-3 px-3">
+            <div class="row mb-1 px-3">
                 <div class="col-12">
-                    <form method="GET" class="row g-2">
+                    <form method="GET" class="row g-2 align-items-end filter-form">
                         <div class="col-sm-2">
-                            <label class="form-label">Course</label>
-                            <select name="course_id" class="form-control">
+                            <label class="form-label" for="filter-date">Date</label>
+                            <input id="filter-date" type="date" name="date" class="form-control" value="<?php echo htmlspecialchars($_GET['date'] ?? ''); ?>">
+                        </div>
+                        <div class="col-sm-2">
+                            <label class="form-label" for="filter-course">Course</label>
+                            <select id="filter-course" name="course_id" class="form-control">
                                 <option value="0">-- All Courses --</option>
                                 <?php foreach ($courses as $course): ?>
                                     <option value="<?php echo $course['id']; ?>" <?php echo $filter_course == $course['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($course['name']); ?></option>
@@ -686,8 +775,8 @@ function formatDate($date) {
                             </select>
                         </div>
                         <div class="col-sm-2">
-                            <label class="form-label">Department</label>
-                            <select name="department_id" class="form-control">
+                            <label class="form-label" for="filter-department">Department</label>
+                            <select id="filter-department" name="department_id" class="form-control">
                                 <option value="0">-- All Departments --</option>
                                 <?php foreach ($departments as $dept): ?>
                                     <option value="<?php echo $dept['id']; ?>" <?php echo $filter_department == $dept['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($dept['name']); ?></option>
@@ -695,8 +784,8 @@ function formatDate($date) {
                             </select>
                         </div>
                         <div class="col-sm-2">
-                            <label class="form-label">Supervisor</label>
-                            <select name="supervisor" class="form-control">
+                            <label class="form-label" for="filter-supervisor">Supervisor</label>
+                            <select id="filter-supervisor" name="supervisor" class="form-control">
                                 <option value="">-- Any Supervisor --</option>
                                 <?php foreach ($supervisors as $sup): ?>
                                     <option value="<?php echo htmlspecialchars($sup); ?>" <?php echo $filter_supervisor == $sup ? 'selected' : ''; ?>><?php echo htmlspecialchars($sup); ?></option>
@@ -704,17 +793,20 @@ function formatDate($date) {
                             </select>
                         </div>
                         <div class="col-sm-2">
-                            <label class="form-label">Coordinator</label>
-                            <select name="coordinator" class="form-control">
+                            <label class="form-label" for="filter-coordinator">Coordinator</label>
+                            <select id="filter-coordinator" name="coordinator" class="form-control">
                                 <option value="">-- Any Coordinator --</option>
                                 <?php foreach ($coordinators as $coor): ?>
                                     <option value="<?php echo htmlspecialchars($coor); ?>" <?php echo $filter_coordinator == $coor ? 'selected' : ''; ?>><?php echo htmlspecialchars($coor); ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        <div class="col-sm-2 d-flex gap-1" style="align-items: flex-end;">
-                            <button type="submit" class="btn btn-primary btn-sm px-3 py-1" style="font-size: 0.85rem;">Filter</button>
-                            <a href="students.php" class="btn btn-outline-secondary btn-sm px-3 py-1" style="font-size: 0.85rem;">Reset</a>
+                        <div class="col-sm-2">
+                            <label class="form-label d-block invisible">Actions</label>
+                            <div class="filter-actions">
+                                <button type="submit" class="btn btn-primary">Filter</button>
+                                <a href="students.php" class="btn btn-outline-secondary">Reset</a>
+                            </div>
                         </div>
                     </form>
                 </div>
@@ -959,6 +1051,19 @@ function formatDate($date) {
     <script src="assets/js/common-init.min.js"></script>
     <script src="assets/js/customers-init.min.js"></script>
     <script src="assets/js/theme-customizer-init.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            ['#filter-course', '#filter-department', '#filter-supervisor', '#filter-coordinator'].forEach(function (selector) {
+                if (window.jQuery && $(selector).length) {
+                    $(selector).select2({
+                        width: '100%',
+                        allowClear: false,
+                        dropdownAutoWidth: false
+                    });
+                }
+            });
+        });
+    </script>
 </body>
 
 </html>
