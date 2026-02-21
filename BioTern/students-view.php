@@ -862,6 +862,16 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                                         <span>Edit Profile</span>
                                     </a>
                                 </div>
+                                <div class="d-grid gap-2 text-center pt-2">
+                                    <a href="students-edit.php?id=<?php echo $student['id']; ?>#upload-profile-picture" class="btn btn-info">
+                                        <i class="feather-image me-2"></i>
+                                        <span>Upload Profile Picture</span>
+                                    </a>
+                                    <a href="generate_resume.php?id=<?php echo $student['id']; ?>" class="btn btn-success" target="_blank">
+                                        <i class="feather-file-text me-2"></i>
+                                        <span>Generate Resume</span>
+                                    </a>
+                                </div>
                             </div>
                         </div>
                     </div>

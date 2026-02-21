@@ -673,6 +673,41 @@ function formatDateTime($date) {
             color: #f0f0f0 !important;
             background-color: #2d3748 !important;
         }
+
+        /* Dropdown design sync from students-edit.blade.php */
+        .select2-container--default .select2-selection--single {
+            border: 1px solid #e5e7eb;
+            border-radius: 0.375rem;
+            min-height: 40px;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 38px;
+            padding-left: 0.75rem;
+            padding-right: 2rem;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 38px;
+            right: 8px;
+        }
+
+        .select2-container--default .select2-dropdown {
+            border: 1px solid #e5e7eb;
+            border-radius: 0.375rem;
+            overflow: hidden;
+            z-index: 1060;
+        }
+
+        .select2-container--default.select2-container--open .select2-selection--single {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.15);
+        }
+
+        .select2-selection__clear {
+            margin-right: 0.25rem;
+            color: #6b7280;
+        }
     </style>
 </head>
 
