@@ -56,7 +56,7 @@
                     <li class="nxl-item nxl-hasmenu">
                         <a href="javascript:void(0);" class="nxl-link">
                             <span class="nxl-micon"><i class="feather-airplay"></i></span>
-                            <span class="nxl-mtext">Dashboards</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                            <span class="nxl-mtext">Home</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
                             <li class="nxl-item"><a class="nxl-link" href="index.php">Overview</a></li>
@@ -864,7 +864,7 @@
                                                         <span class="wd-10 ht-10 bg-gray-400 rounded-circle d-inline-block me-2 lh-base"></span>
                                                         <div class="border-3 border-start rounded ps-3">
                                                             <a href="javascript:void(0);" class="mb-2 d-block">
-                                                                <span>CRM Dashboard Redesign</span>
+                                                                <span>Overview Home Redesign</span>
                                                             </a>
                                                             <p class="fs-12 text-muted mb-0">Management of project under "BioTern" brand</p>
                                                         </div>
