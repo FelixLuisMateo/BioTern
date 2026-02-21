@@ -3061,16 +3061,18 @@ try {
                         </div>
                     </div>
                     <!--! END: [Project Status] !-->
-                    <!--! BEGIN: [Team Progress] !-->
-                    <div class="col-xxl-4">
+                    <!--! BEGIN: [Admin Quick Actions] !-->
+                    @php
+                        $__role = strtolower(optional(Auth::user())->role ?? '');
+                        $__force = request()->query('qa') == '1' || request()->query('qa') == 'true';
+                    @endphp
+                    @if(Auth::check() && ($__force || in_array($__role, ['admin','coordinator','supervisor'])))
+                    <div class="col-xxl-6">
                         <div class="card stretch stretch-full">
                             <div class="card-header">
-                                <h5 class="card-title">Team Progress</h5>
+                                <h5 class="card-title">Admin Quick Actions</h5>
                                 <div class="card-header-action">
                                     <div class="card-header-btn">
-                                        <div data-bs-toggle="tooltip" title="Delete">
-                                            <a href="javascript:void(0);" class="avatar-text avatar-xs bg-danger" data-bs-toggle="remove"> </a>
-                                        </div>
                                         <div data-bs-toggle="tooltip" title="Refresh">
                                             <a href="javascript:void(0);" class="avatar-text avatar-xs bg-warning" data-bs-toggle="refresh"> </a>
                                         </div>
@@ -3078,78 +3080,67 @@ try {
                                             <a href="javascript:void(0);" class="avatar-text avatar-xs bg-success" data-bs-toggle="expand"> </a>
                                         </div>
                                     </div>
-                                    <div class="dropdown">
-                                        <a href="javascript:void(0);" class="avatar-text avatar-sm" data-bs-toggle="dropdown" data-bs-offset="25, 25">
-                                            <div data-bs-toggle="tooltip" title="Options">
-                                                <i class="feather-more-vertical"></i>
-                                            </div>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                @php
+                                    use Illuminate\Support\Facades\DB;
+                                    use Illuminate\Support\Facades\Schema;
+                                    $qa_total_students = Schema::hasTable('students') ? DB::table('students')->count() : 0;
+                                    $qa_total_internships = Schema::hasTable('internships') ? DB::table('internships')->count() : 0;
+                                    $qa_attendance_today = 0;
+                                    if (Schema::hasTable('attendances')) {
+                                        if (Schema::hasColumn('attendances','date')) {
+                                            $qa_attendance_today = DB::table('attendances')->whereDate('date', now())->count();
+                                        } elseif (Schema::hasColumn('attendances','log_time')) {
+                                            $qa_attendance_today = DB::table('attendances')->whereDate('log_time', now())->count();
+                                        }
+                                    }
+                                    $qa_biometric_registered = (Schema::hasTable('students') && Schema::hasColumn('students','biometric_registered')) ? DB::table('students')->where('biometric_registered',1)->count() : 0;
+                                @endphp
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <a href="{{ url('/students') }}" class="btn btn-primary btn-lg w-100 d-flex align-items-center justify-content-center">
+                                            <i class="feather-users me-2"></i> Students
+                                            <span class="badge bg-white text-dark ms-3">{{ $qa_total_students }}</span>
                                         </a>
-                                        <div class="dropdown-menu dropdown-menu-end">
-                                            <a href="javascript:void(0);" class="dropdown-item"><i class="feather-at-sign"></i>New</a>
-                                            <a href="javascript:void(0);" class="dropdown-item"><i class="feather-calendar"></i>Event</a>
-                                            <a href="javascript:void(0);" class="dropdown-item"><i class="feather-bell"></i>Snoozed</a>
-                                            <a href="javascript:void(0);" class="dropdown-item"><i class="feather-trash-2"></i>Deleted</a>
-                                            <div class="dropdown-divider"></div>
-                                            <a href="javascript:void(0);" class="dropdown-item"><i class="feather-settings"></i>Settings</a>
-                                            <a href="javascript:void(0);" class="dropdown-item"><i class="feather-life-buoy"></i>Tips & Tricks</a>
-                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <a href="{{ url('/students/create') }}" class="btn btn-success btn-lg w-100 d-flex align-items-center justify-content-center">
+                                            <i class="feather-plus-circle me-2"></i> Add Student
+                                        </a>
+                                    </div>
+                                    <div class="col-6">
+                                        <a href="{{ url('/ojt') }}" class="btn btn-info btn-lg w-100 d-flex align-items-center justify-content-center">
+                                            <i class="feather-briefcase me-2"></i> OJT List
+                                            <span class="badge bg-white text-dark ms-3">{{ $qa_total_internships }}</span>
+                                        </a>
+                                    </div>
+                                    <div class="col-6">
+                                        <a href="{{ url('/attendance') }}" class="btn btn-warning btn-lg w-100 d-flex align-items-center justify-content-center">
+                                            <i class="feather-calendar me-2"></i> Attendance Today
+                                            <span class="badge bg-white text-dark ms-3">{{ $qa_attendance_today }}</span>
+                                        </a>
+                                    </div>
+                                    <div class="col-6">
+                                        <a href="{{ url('/demo-biometric') }}" class="btn btn-secondary btn-lg w-100 d-flex align-items-center justify-content-center">
+                                            <i class="feather-activity me-2"></i> Biometric Demo
+                                            <span class="badge bg-white text-dark ms-3">{{ $qa_biometric_registered }}</span>
+                                        </a>
+                                    </div>
+                                    <div class="col-6">
+                                        <a href="{{ url('/reports-timesheets') }}" class="btn btn-dark btn-lg w-100 d-flex align-items-center justify-content-center">
+                                            <i class="feather-file-text me-2"></i> Reports
+                                        </a>
                                     </div>
                                 </div>
                             </div>
-                            <div class="card-body custom-card-action">
-                                <div class="hstack justify-content-between border border-dashed rounded-3 p-3 mb-3">
-                                    <div class="hstack gap-3">
-                                        <div class="avatar-image">
-                                            <img src="{{ asset('frontend/assets/images/avatar/1.png') }}" alt="" class="img-fluid" />
-                                        </div>
-                                        <div>
-                                            <a href="javascript:void(0);">Felix Luis Mateo</a>
-                                            <div class="fs-11 text-muted">Frontend Developer</div>
-                                        </div>
-                                    </div>
-                                    <div class="team-progress-1"></div>
-                                </div>
-                                <div class="hstack justify-content-between border border-dashed rounded-3 p-3 mb-3">
-                                    <div class="hstack gap-3">
-                                        <div class="avatar-image">
-                                            <img src="{{ asset('frontend/assets/images/avatar/2.png') }}" alt="" class="img-fluid" />
-                                        </div>
-                                        <div>
-                                            <a href="javascript:void(0);">Archie Cantones</a>
-                                            <div class="fs-11 text-muted">UI/UX Designer</div>
-                                        </div>
-                                    </div>
-                                    <div class="team-progress-2"></div>
-                                </div>
-                                <div class="hstack justify-content-between border border-dashed rounded-3 p-3 mb-3">
-                                    <div class="hstack gap-3">
-                                        <div class="avatar-image">
-                                            <img src="{{ asset('frontend/assets/images/avatar/3.png') }}" alt="" class="img-fluid" />
-                                        </div>
-                                        <div>
-                                            <a href="javascript:void(0);">Malanie Hanvey</a>
-                                            <div class="fs-11 text-muted">Backend Developer</div>
-                                        </div>
-                                    </div>
-                                    <div class="team-progress-3"></div>
-                                </div>
-                                <div class="hstack justify-content-between border border-dashed rounded-3 p-3 mb-2">
-                                    <div class="hstack gap-3">
-                                        <div class="avatar-image">
-                                            <img src="{{ asset('frontend/assets/images/avatar/4.png') }}" alt="" class="img-fluid" />
-                                        </div>
-                                        <div>
-                                            <a href="javascript:void(0);">Kenneth Hune</a>
-                                            <div class="fs-11 text-muted">Digital Marketer</div>
-                                        </div>
-                                    </div>
-                                    <div class="team-progress-4"></div>
-                                </div>
-                            </div>
-                            <a href="javascript:void(0);" class="card-footer fs-11 fw-bold text-uppercase text-center">Update 30 Min Ago</a>
+                            <a href="javascript:void(0);" class="card-footer fs-11 fw-bold text-uppercase text-center">Admin quick actions</a>
                         </div>
                     </div>
-                    <!--! END: [Team Progress] !-->
+                    </div>
+                    @endif
+                    <!--! END: [Admin Quick Actions] !-->
                     <!--! BEGIN: [Coordinators List] !-->
                     <div class="col-xxl-4">
                         <div class="card stretch stretch-full">
@@ -3236,6 +3227,88 @@ try {
                         </div>
                     </div>
                     <!--! END: [Supervisors List] !-->
+                    <!--! BEGIN: [Analytics Summary] !-->
+                    <div class="col-xxl-8">
+                        <div class="card stretch stretch-full">
+                            <div class="card-header">
+                                <h5 class="card-title">Email Reports</h5>
+                                <div class="card-header-action">
+                                    <a href="javascript:void(0);" class="btn btn-light-brand">View All</a>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <?php
+                                // Recompute safe analytics values for this view
+                                $erp_total_students = 0;
+                                $erp_with_email = 0;
+                                $erp_biometric = 0;
+                                $erp_new30 = 0;
+                                $erp_att_today = 0;
+                                $active_internships = 0;
+                                if (isset($conn)) {
+                                    $q_tot = $conn->query("SELECT COUNT(*) as cnt FROM students WHERE deleted_at IS NULL");
+                                    $erp_total_students = $q_tot ? (int)$q_tot->fetch_assoc()['cnt'] : 0;
+                                    $q_email = $conn->query("SELECT COUNT(*) as cnt FROM students WHERE deleted_at IS NULL AND COALESCE(email,'') <> ''");
+                                    $erp_with_email = $q_email ? (int)$q_email->fetch_assoc()['cnt'] : 0;
+                                    $q_bio = $conn->query("SELECT COUNT(*) as cnt FROM students WHERE biometric_registered = 1 AND deleted_at IS NULL");
+                                    $erp_biometric = $q_bio ? (int)$q_bio->fetch_assoc()['cnt'] : 0;
+                                    $q_new = $conn->query("SELECT COUNT(*) as cnt FROM students WHERE deleted_at IS NULL AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)");
+                                    $erp_new30 = $q_new ? (int)$q_new->fetch_assoc()['cnt'] : 0;
+                                    $q_att = $conn->query("SELECT COUNT(DISTINCT student_id) as cnt FROM attendances WHERE DATE(attendance_date) = CURDATE()");
+                                    if (! $q_att) {
+                                        $q_att = $conn->query("SELECT COUNT(DISTINCT student_id) as cnt FROM attendances WHERE DATE(log_time) = CURDATE()");
+                                    }
+                                    $erp_att_today = $q_att ? (int)$q_att->fetch_assoc()['cnt'] : 0;
+                                    $q_acti = $conn->query("SELECT COUNT(*) as cnt FROM internships WHERE status = 'ongoing'");
+                                    $active_internships = $q_acti ? (int)$q_acti->fetch_assoc()['cnt'] : 0;
+                                }
+                                $p_email = $erp_total_students>0? round(($erp_with_email/$erp_total_students)*100,2):0;
+                                $p_bio = $erp_total_students>0? round(($erp_biometric/$erp_total_students)*100,2):0;
+                                $p_new30 = $erp_total_students>0? round(($erp_new30/$erp_total_students)*100,2):0;
+                                $p_att_today = $erp_total_students>0? round(($erp_att_today/$erp_total_students)*100,2):0;
+                                ?>
+                                <div class="row mb-3">
+                                    <div class="col-lg-2 col-md-4 col-sm-6 mb-2">
+                                        <div class="card p-2 text-center">
+                                            <div class="fs-5 fw-bold"><?php echo number_format($erp_total_students); ?></div>
+                                            <div class="fs-12 text-muted">Total Students</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-2 col-md-4 col-sm-6 mb-2">
+                                        <div class="card p-2 text-center">
+                                            <div class="fs-5 fw-bold"><?php echo number_format($erp_with_email); ?></div>
+                                            <div class="fs-12 text-muted">With Email (<?php echo $p_email; ?>%)</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-2 col-md-4 col-sm-6 mb-2">
+                                        <div class="card p-2 text-center">
+                                            <div class="fs-5 fw-bold"><?php echo number_format($erp_biometric); ?></div>
+                                            <div class="fs-12 text-muted">Biometric (<?php echo $p_bio; ?>%)</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-2 col-md-4 col-sm-6 mb-2">
+                                        <div class="card p-2 text-center">
+                                            <div class="fs-5 fw-bold"><?php echo number_format($erp_new30); ?></div>
+                                            <div class="fs-12 text-muted">New (30d) (<?php echo $p_new30; ?>%)</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-2 col-md-4 col-sm-6 mb-2">
+                                        <div class="card p-2 text-center">
+                                            <div class="fs-5 fw-bold"><?php echo number_format($erp_att_today); ?></div>
+                                            <div class="fs-12 text-muted">Attended Today (<?php echo $p_att_today; ?>%)</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-2 col-md-4 col-sm-6 mb-2">
+                                        <div class="card p-2 text-center">
+                                            <div class="fs-5 fw-bold"><?php echo number_format($active_internships); ?></div>
+                                            <div class="fs-12 text-muted">Active Internships</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!--! END: [Analytics Summary] !-->
                     <!--! BEGIN: [Recent Activities] !-->
                     <div class="col-xxl-8">
                         <div class="card stretch stretch-full">
