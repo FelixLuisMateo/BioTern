@@ -58,11 +58,25 @@ class StudentController extends Controller
             return (array) $c;
         })->all();
 
-        $supervisorsRaw = DB::table('students')->whereNotNull('supervisor_name')->distinct()->orderBy('supervisor_name')->pluck('supervisor_name')->all();
-        $supervisors = array_map(function ($s) { return ['name' => $s]; }, $supervisorsRaw);
+        $supervisors = DB::table('supervisors')
+            ->selectRaw("id, TRIM(CONCAT_WS(' ', first_name, middle_name, last_name)) AS name")
+            ->whereRaw("TRIM(CONCAT_WS(' ', first_name, middle_name, last_name)) <> ''")
+            ->orderBy('name')
+            ->get()
+            ->map(function ($s) {
+                return ['id' => (int) $s->id, 'name' => $s->name];
+            })
+            ->all();
 
-        $coordinatorsRaw = DB::table('students')->whereNotNull('coordinator_name')->distinct()->orderBy('coordinator_name')->pluck('coordinator_name')->all();
-        $coordinators = array_map(function ($c) { return ['name' => $c]; }, $coordinatorsRaw);
+        $coordinators = DB::table('coordinators')
+            ->selectRaw("id, TRIM(CONCAT_WS(' ', first_name, middle_name, last_name)) AS name")
+            ->whereRaw("TRIM(CONCAT_WS(' ', first_name, middle_name, last_name)) <> ''")
+            ->orderBy('name')
+            ->get()
+            ->map(function ($c) {
+                return ['id' => (int) $c->id, 'name' => $c->name];
+            })
+            ->all();
 
         // Determine role from session (compatibility with original app)
         $currentRole = strtolower(trim((string) (session('role') ?? session('user_role') ?? session('account_role') ?? session('user_type') ?? session('type') ?? '')));
@@ -104,6 +118,41 @@ class StudentController extends Controller
             $profilePath = 'uploads/profile_pictures/' . $name;
         }
 
+        $supervisorId = $request->input('supervisor_id') !== '' ? intval($request->input('supervisor_id')) : null;
+        $coordinatorId = $request->input('coordinator_id') !== '' ? intval($request->input('coordinator_id')) : null;
+
+        $selectedSupervisorName = null;
+        if ($supervisorId !== null) {
+            $selectedSupervisorName = DB::table('supervisors')
+                ->where('id', $supervisorId)
+                ->selectRaw("TRIM(CONCAT_WS(' ', first_name, middle_name, last_name)) AS name")
+                ->value('name');
+        }
+
+        $selectedCoordinatorName = null;
+        if ($coordinatorId !== null) {
+            $selectedCoordinatorName = DB::table('coordinators')
+                ->where('id', $coordinatorId)
+                ->selectRaw("TRIM(CONCAT_WS(' ', first_name, middle_name, last_name)) AS name")
+                ->value('name');
+        }
+
+        $assignmentTrack = in_array($request->input('assignment_track'), ['internal', 'external'], true)
+            ? $request->input('assignment_track')
+            : 'internal';
+        $courseId = $request->input('course_id') ? intval($request->input('course_id')) : null;
+        $status = $request->filled('status') ? intval($request->input('status')) : 1;
+        $internalTotalHours = $request->input('internal_total_hours') !== '' ? intval($request->input('internal_total_hours')) : null;
+        $internalTotalHoursRemaining = $request->input('internal_total_hours_remaining') !== '' ? intval($request->input('internal_total_hours_remaining')) : null;
+        $externalTotalHours = $request->input('external_total_hours') !== '' ? intval($request->input('external_total_hours')) : null;
+        $externalTotalHoursRemaining = $request->input('external_total_hours_remaining') !== '' ? intval($request->input('external_total_hours_remaining')) : null;
+
+        if ($assignmentTrack === 'external' && ($internalTotalHoursRemaining === null || $internalTotalHoursRemaining > 0)) {
+            return back()
+                ->with('error_message', 'Cannot assign student to External unless Internal is completed (Internal Total Hours Remaining must be 0).')
+                ->withInput();
+        }
+
         $data = [
             'student_id' => $request->input('student_id'),
             'first_name' => $request->input('first_name'),
@@ -115,15 +164,15 @@ class StudentController extends Controller
             'gender' => $request->input('gender'),
             'address' => $request->input('address'),
             'emergency_contact' => $request->input('emergency_contact'),
-            'internal_total_hours' => $request->input('internal_total_hours') !== '' ? intval($request->input('internal_total_hours')) : null,
-            'internal_total_hours_remaining' => $request->input('internal_total_hours_remaining') !== '' ? intval($request->input('internal_total_hours_remaining')) : null,
-            'external_total_hours' => $request->input('external_total_hours') !== '' ? intval($request->input('external_total_hours')) : null,
-            'external_total_hours_remaining' => $request->input('external_total_hours_remaining') !== '' ? intval($request->input('external_total_hours_remaining')) : null,
-            'assignment_track' => in_array($request->input('assignment_track'), ['internal','external']) ? $request->input('assignment_track') : 'internal',
-            'course_id' => $request->input('course_id') ? intval($request->input('course_id')) : null,
-            'status' => $request->input('status') ? intval($request->input('status')) : 1,
-            'supervisor_name' => $request->input('supervisor_id'),
-            'coordinator_name' => $request->input('coordinator_id'),
+            'internal_total_hours' => $internalTotalHours,
+            'internal_total_hours_remaining' => $internalTotalHoursRemaining,
+            'external_total_hours' => $externalTotalHours,
+            'external_total_hours_remaining' => $externalTotalHoursRemaining,
+            'assignment_track' => $assignmentTrack,
+            'course_id' => $courseId,
+            'status' => $status,
+            'supervisor_name' => $selectedSupervisorName,
+            'coordinator_name' => $selectedCoordinatorName,
             'updated_at' => DB::raw('NOW()'),
         ];
 
@@ -132,6 +181,81 @@ class StudentController extends Controller
         }
 
         DB::table('students')->where('id', $id)->update($data);
+
+        // Keep supervisor/coordinator IDs in internships as source of truth.
+        $student = DB::table('students')->where('id', $id)->first();
+        $ongoingInternship = DB::table('internships')
+            ->where('student_id', $id)
+            ->where('status', 'ongoing')
+            ->orderByDesc('id')
+            ->first();
+
+        if ($ongoingInternship) {
+            DB::table('internships')
+                ->where('id', $ongoingInternship->id)
+                ->update([
+                    'supervisor_id' => $supervisorId,
+                    'coordinator_id' => $coordinatorId,
+                    'status' => 'ongoing',
+                    'updated_at' => DB::raw('NOW()'),
+                ]);
+        } else {
+            $latestInternship = DB::table('internships')
+                ->where('student_id', $id)
+                ->orderByRaw("(status = 'ongoing') DESC")
+                ->orderByDesc('id')
+                ->first();
+
+            if ($latestInternship) {
+                DB::table('internships')
+                    ->where('id', $latestInternship->id)
+                    ->update([
+                        'supervisor_id' => $supervisorId,
+                        'coordinator_id' => $coordinatorId,
+                        'status' => 'ongoing',
+                        'updated_at' => DB::raw('NOW()'),
+                    ]);
+            } elseif ($coordinatorId !== null) {
+                $department = DB::table('departments')->orderBy('id')->first();
+                $courseForIntern = $courseId ?: intval($student->course_id ?? 0);
+
+                if ($department && $courseForIntern > 0) {
+                    $today = date('Y-m-d');
+                    $year = intval(date('Y'));
+                    $schoolYear = $year . '-' . ($year + 1);
+                    $type = $assignmentTrack === 'external' ? 'external' : 'internal';
+                    $requiredHours = $assignmentTrack === 'external'
+                        ? intval($externalTotalHours ?? 250)
+                        : intval($internalTotalHours ?? 600);
+                    if ($requiredHours <= 0) {
+                        $requiredHours = $assignmentTrack === 'external' ? 250 : 600;
+                    }
+
+                    $remaining = $assignmentTrack === 'external'
+                        ? intval($externalTotalHoursRemaining ?? $requiredHours)
+                        : intval($internalTotalHoursRemaining ?? $requiredHours);
+                    $renderedHours = max(0, $requiredHours - max(0, $remaining));
+                    $completionPct = $requiredHours > 0 ? min(100, ($renderedHours / $requiredHours) * 100) : 0;
+
+                    DB::table('internships')->insert([
+                        'student_id' => $id,
+                        'course_id' => $courseForIntern,
+                        'department_id' => intval($department->id),
+                        'coordinator_id' => $coordinatorId,
+                        'supervisor_id' => $supervisorId,
+                        'type' => $type,
+                        'start_date' => $today,
+                        'status' => 'ongoing',
+                        'school_year' => $schoolYear,
+                        'required_hours' => $requiredHours,
+                        'rendered_hours' => $renderedHours,
+                        'completion_percentage' => $completionPct,
+                        'created_at' => DB::raw('NOW()'),
+                        'updated_at' => DB::raw('NOW()'),
+                    ]);
+                }
+            }
+        }
 
         return redirect()->route('students.edit', ['id' => $id])->with('success_message', '✓ Student information updated successfully!');
     }

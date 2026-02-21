@@ -2146,10 +2146,10 @@ if (!function_exists('formatDateTime')) {
                                             <div class="col-md-6 mb-4">
                                                 <label for="supervisor_id" class="form-label fw-semibold">Supervisor</label>
                                                 <select class="form-control" id="supervisor_id" name="supervisor_id">
-                                                    <option value="">-- Select Supervisor --</option>
+                                                    <option value=""></option>
                                                     <?php foreach ($supervisors as $supervisor): ?>
-                                                        <option value="<?php echo htmlspecialchars($supervisor['name']); ?>"
-                                                            <?php echo (isset($student['supervisor_name']) && $student['supervisor_name'] == $supervisor['name']) ? 'selected' : ''; ?>>
+                                                        <option value="<?php echo (int)$supervisor['id']; ?>"
+                                                            <?php echo ((int)($student['supervisor_id'] ?? 0) === (int)$supervisor['id']) ? 'selected' : ''; ?>>
                                                             <?php echo htmlspecialchars($supervisor['name']); ?>
                                                         </option>
                                                     <?php endforeach; ?>
@@ -2158,10 +2158,10 @@ if (!function_exists('formatDateTime')) {
                                             <div class="col-md-6 mb-4">
                                                 <label for="coordinator_id" class="form-label fw-semibold">Coordinator</label>
                                                 <select class="form-control" id="coordinator_id" name="coordinator_id">
-                                                    <option value="">-- Select Coordinator --</option>
+                                                    <option value=""></option>
                                                     <?php foreach ($coordinators as $coordinator): ?>
-                                                        <option value="<?php echo htmlspecialchars($coordinator['name']); ?>"
-                                                            <?php echo (isset($student['coordinator_name']) && $student['coordinator_name'] == $coordinator['name']) ? 'selected' : ''; ?>>
+                                                        <option value="<?php echo (int)$coordinator['id']; ?>"
+                                                            <?php echo ((int)($student['coordinator_id'] ?? 0) === (int)$coordinator['id']) ? 'selected' : ''; ?>>
                                                             <?php echo htmlspecialchars($coordinator['name']); ?>
                                                         </option>
                                                     <?php endforeach; ?>
@@ -2313,7 +2313,7 @@ if (!function_exists('formatDateTime')) {
         // Initialize form elements
         document.addEventListener('DOMContentLoaded', function() {
             // Initialize select2 for dropdowns
-            $('#course_id, #status, #gender, #supervisor_id, #coordinator_id, #assignment_track').each(function() {
+            $('#course_id, #status, #gender, #assignment_track').each(function() {
                 $(this).select2({
                     allowClear: false,
                     width: 'resolve',
@@ -2321,6 +2321,24 @@ if (!function_exists('formatDateTime')) {
                     dropdownParent: $(this).parent(),
                     theme: 'default'
                 });
+            });
+
+            $('#supervisor_id').select2({
+                placeholder: 'Search supervisor',
+                allowClear: true,
+                minimumResultsForSearch: 0,
+                width: 'resolve',
+                dropdownAutoWidth: false,
+                theme: 'default'
+            });
+
+            $('#coordinator_id').select2({
+                placeholder: 'Search coordinator',
+                allowClear: true,
+                minimumResultsForSearch: 0,
+                width: 'resolve',
+                dropdownAutoWidth: false,
+                theme: 'default'
             });
 
             // Initialize datepicker for date fields
