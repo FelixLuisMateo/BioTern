@@ -213,6 +213,19 @@ try {
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/daterangepicker.min.css" />
     <!--! END: Vendors CSS-->
     <!--! BEGIN: Custom CSS-->
+    <script>
+        // Apply saved skin as early as possible to avoid flash-of-unstyled (FOUS)
+        (function(){
+            try {
+                var skin = localStorage.getItem('app-skin-dark');
+                if (skin === 'app-skin-dark') {
+                    document.documentElement.classList.add('app-skin-dark');
+                }
+            } catch (e) {
+                /* ignore */
+            }
+        })();
+    </script>
     <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css" />
     <!--! END: Custom CSS-->
     <!--! HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries !-->
@@ -436,14 +449,27 @@ try {
                 </div>
                 <!--! [End] nxl-navigation-toggle !-->
                 <!--! [Start] nxl-lavel-mega-menu-toggle !-->
-            
+                <div class="nxl-lavel-mega-menu-toggle d-flex d-lg-none">
+                    <a href="javascript:void(0);" id="nxl-lavel-mega-menu-open">
+                        <i class="feather-align-left"></i>
+                    </a>
+                </div>
                 <!--! [End] nxl-lavel-mega-menu-toggle !-->
                 <!--! [Start] nxl-lavel-mega-menu !-->
                 <div class="nxl-drp-link nxl-lavel-mega-menu">
+                    <div class="nxl-lavel-mega-menu-toggle d-flex d-lg-none">
+                        <a href="javascript:void(0)" id="nxl-lavel-mega-menu-hide">
+                            <i class="feather-arrow-left me-2"></i>
+                            <span>Back</span>
+                        </a>
+                    </div>
                     <!--! [Start] nxl-lavel-mega-menu-wrapper !-->
                     <div class="nxl-lavel-mega-menu-wrapper d-flex gap-3">
                         <!--! [Start] nxl-lavel-menu !-->
-                        <div class="dropdown nxl-h-item nxl-lavel-menu">                            </a>
+                        <div class="dropdown nxl-h-item nxl-lavel-menu">
+                            <a href="javascript:void(0);" class="avatar-text avatar-md bg-primary text-white" data-bs-toggle="dropdown" data-bs-auto-close="outside">
+                                <i class="feather-plus"></i>
+                            </a>
                             <div class="dropdown-menu nxl-h-dropdown">
                                 <div class="dropdown nxl-level-menu">
                                     <a href="javascript:void(0);" class="dropdown-item">
@@ -813,6 +839,7 @@ try {
                         <!--! [End] nxl-lavel-menu !-->
                         <!--! [Start] nxl-h-item nxl-mega-menu !-->
                         <div class="dropdown nxl-h-item nxl-mega-menu">
+                            <a href="javascript:void(0);" class="btn btn-light-brand" data-bs-toggle="dropdown" data-bs-auto-close="outside"> Mega Menu </a>
                             <div class="dropdown-menu nxl-h-dropdown" id="mega-menu-dropdown">
                                 <div class="d-lg-flex align-items-start">
                                     <!--! [Start] nxl-mega-menu-tabs !-->
@@ -2037,6 +2064,8 @@ try {
                         </div>
                     </div>
                     <div class="dropdown nxl-h-item nxl-header-language d-none d-sm-flex">
+                        <a href="javascript:void(0);" class="nxl-head-link me-0 nxl-language-link" data-bs-toggle="dropdown" data-bs-auto-close="outside">
+                            <img src="assets/vendors/img/flags/4x3/us.svg" alt="" class="img-fluid wd-20" />
                         </a>
                         <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-language-dropdown">
                             <div class="dropdown-divider mt-0"></div>

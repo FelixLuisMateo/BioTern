@@ -117,8 +117,19 @@ if ($attendance_today->num_rows > 0) {
     <meta name="author" content="ACT 2A Group 5">
     <title>BioTern || Biometric Demo</title>
     <link rel="shortcut icon" type="image/x-icon" href="{{ asset('frontend/assets/images/favicon.ico') }}">
+    <script>
+        (function(){
+            try{
+                var s = localStorage.getItem('app-skin-dark') || localStorage.getItem('app-skin') || localStorage.getItem('app_skin') || localStorage.getItem('theme');
+                if (s && (s.indexOf && s.indexOf('dark') !== -1 || s === 'app-skin-dark')) {
+                    document.documentElement.classList.add('app-skin-dark');
+                }
+            }catch(e){}
+        })();
+    </script>
     <link rel="stylesheet" type="text/css" href="{{ asset('frontend/assets/css/bootstrap.min.css') }}">
     <link rel="stylesheet" type="text/css" href="{{ asset('frontend/assets/vendors/css/vendors.min.css') }}">
+    <script>try{var s=localStorage.getItem('app-skin')||localStorage.getItem('app_skin')||localStorage.getItem('theme'); if(s&&s.indexOf('dark')!==-1)document.documentElement.classList.add('app-skin-dark');}catch(e){};</script>
     <link rel="stylesheet" type="text/css" href="{{ asset('frontend/assets/css/theme.min.css') }}">
     <style>
         .biometric-container {
