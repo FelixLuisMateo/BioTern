@@ -307,10 +307,12 @@ try {
             LIMIT 1";
         $res_student = $conn->query($student_sql);
         $student = $res_student ? $res_student->fetch_assoc() : null;
-        if ($student) {
-            $selected_student_id = intval($student['id'] ?? $view_user_id);
-            $selected_user_id = intval($student['user_id'] ?? 0);
+        if (!$student) {
+            header('Location: idnotfound-404.php?source=ojt-view&id=' . urlencode($view_user_id));
+            exit;
         }
+        $selected_student_id = intval($student['id'] ?? $view_user_id);
+        $selected_user_id = intval($student['user_id'] ?? 0);
 
         $doc_lookup_ids = array_values(array_unique(array_filter([
             $selected_student_id,

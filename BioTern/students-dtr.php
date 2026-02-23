@@ -15,7 +15,8 @@ try {
 
 $student_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 if ($student_id <= 0) {
-    die("Invalid student ID");
+    header('Location: idnotfound-404.php?source=students-dtr&id=' . urlencode($student_id));
+    exit;
 }
 
 $month_input = isset($_GET['month']) ? trim((string)$_GET['month']) : date('Y-m');
@@ -57,7 +58,8 @@ $student = $student_stmt->get_result()->fetch_assoc();
 $student_stmt->close();
 
 if (!$student) {
-    die("Student not found");
+    header('Location: idnotfound-404.php?source=students-dtr&id=' . urlencode($student_id));
+    exit;
 }
 
 $att_stmt = $conn->prepare("

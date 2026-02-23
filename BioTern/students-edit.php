@@ -39,7 +39,8 @@ $conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS assignment_track VAR
 $student_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 
 if ($student_id == 0) {
-    die("Invalid student ID");
+    header('Location: idnotfound-404.php?source=students-edit&id=' . urlencode($student_id));
+    exit;
 }
 
 // Create uploads directory if it doesn't exist
@@ -101,7 +102,8 @@ $stmt->execute();
 $result = $stmt->get_result();
 
 if ($result->num_rows == 0) {
-    die("Student not found");
+    header('Location: idnotfound-404.php?source=students-edit&id=' . urlencode($student_id));
+    exit;
 }
 
 $student = $result->fetch_assoc();

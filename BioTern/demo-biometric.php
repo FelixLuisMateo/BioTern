@@ -173,8 +173,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         // Check if student exists
         $student_check = $conn->query("SELECT id FROM students WHERE id = $student_id");
         if ($student_check->num_rows == 0) {
-            $message = "Student ID not found!";
-            $message_type = "danger";
+            // Redirect to a friendly 404 page when student ID is not found
+            header('Location: idnotfound-404.php?source=demo-biometric&id=' . urlencode($student_id));
+            exit;
         } else {
             // Escape values for security
             $clock_date = $conn->real_escape_string($clock_date);
