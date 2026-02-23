@@ -1028,12 +1028,6 @@ function formatDate($date) {
                                                         </td>
                                                     </tr>
                                                 <?php endforeach; ?>
-                                            <?php else: ?>
-                                                <tr>
-                                                    <td colspan="9" class="text-center py-5">
-                                                        <p class="text-muted">No students found in database</p>
-                                                    </td>
-                                                </tr>
                                             <?php endif; ?>
                                         </tbody>
                                     </table>
@@ -1073,6 +1067,13 @@ function formatDate($date) {
     <!-- Theme Customizer removed -->
     <script>
         document.addEventListener('DOMContentLoaded', function () {
+            if (window.jQuery && $('#customerList').length && $.fn.DataTable) {
+                var dt = $('#customerList').DataTable();
+                if (dt) {
+                    dt.settings()[0].oLanguage.sEmptyTable = 'No students found in database';
+                    dt.draw(false);
+                }
+            }
             ['#filter-course', '#filter-department', '#filter-supervisor', '#filter-coordinator'].forEach(function (selector) {
                 if (window.jQuery && $(selector).length) {
                     $(selector).select2({
