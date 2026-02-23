@@ -1,4 +1,8 @@
 ﻿<?php
+// Start session early to avoid headers-sent warnings
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 // Include database connection
 include_once 'config/db.php';
 
@@ -45,10 +49,34 @@ try {
         $student_count = (int)$students_query->fetch_assoc()['count'];
     }
     
-    // Internship count
-    $internships_query = $conn->query("SELECT COUNT(*) as count FROM internships WHERE status = 'ongoing'");
-    if ($internships_query) {
-        $internship_count = (int)$internships_query->fetch_assoc()['count'];
+    // OJT / Internships overview counts (safe queries)
+    $ojt_status_counts = array('pending' => 0, 'ongoing' => 0, 'completed' => 0, 'cancelled' => 0);
+    $ojt_type_counts = array('internal' => 0, 'external' => 0);
+    $avg_completion_percentage = 0.0;
+    $internship_count = 0;
+
+    $ojt_query = $conn->query("SELECT status, type, COUNT(*) as cnt FROM internships WHERE deleted_at IS NULL GROUP BY status, type");
+    if ($ojt_query && $ojt_query->num_rows > 0) {
+        while ($r = $ojt_query->fetch_assoc()) {
+            $status = isset($r['status']) ? $r['status'] : null;
+            $type = isset($r['type']) ? $r['type'] : null;
+            $cnt = isset($r['cnt']) ? (int)$r['cnt'] : 0;
+            if ($status && array_key_exists($status, $ojt_status_counts)) {
+                $ojt_status_counts[$status] += $cnt;
+            }
+            if ($type && array_key_exists($type, $ojt_type_counts)) {
+                $ojt_type_counts[$type] += $cnt;
+            }
+            $internship_count += $cnt;
+        }
+    }
+
+    $avg_query = $conn->query("SELECT AVG(completion_percentage) as avg_completion FROM internships WHERE deleted_at IS NULL");
+    if ($avg_query) {
+        $avg_row = $avg_query->fetch_assoc();
+        if ($avg_row && $avg_row['avg_completion'] !== null) {
+            $avg_completion_percentage = round((float)$avg_row['avg_completion'], 2);
+        }
     }
     
     // Biometric registered students
@@ -185,6 +213,19 @@ try {
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/daterangepicker.min.css" />
     <!--! END: Vendors CSS-->
     <!--! BEGIN: Custom CSS-->
+    <script>
+        // Apply saved skin as early as possible to avoid flash-of-unstyled (FOUS)
+        (function(){
+            try {
+                var skin = localStorage.getItem('app-skin-dark');
+                if (skin === 'app-skin-dark') {
+                    document.documentElement.classList.add('app-skin-dark');
+                }
+            } catch (e) {
+                /* ignore */
+            }
+        })();
+    </script>
     <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css" />
     <!--! END: Custom CSS-->
     <!--! HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries !-->
@@ -216,7 +257,7 @@ try {
                     <li class="nxl-item nxl-hasmenu">
                         <a href="javascript:void(0);" class="nxl-link">
                             <span class="nxl-micon"><i class="feather-airplay"></i></span>
-                            <span class="nxl-mtext">Dashboards</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                            <span class="nxl-mtext">Home</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
                             <li class="nxl-item"><a class="nxl-link" href="index.php">Overview</a></li>
@@ -1084,7 +1125,7 @@ try {
                                                     <div class="row g-4">
                                                         <div class="col-lg-4">
                                                             <h6 class="dropdown-item-title">Navigation</h6>
-                                                            <a href="javascript:void(0);" class="dropdown-item">CRM</a>
+                                                            <a href="javascript:void(0);" class="dropdown-item">Overview</a>
                                                             <a href="javascript:void(0);" class="dropdown-item">Analytics</a>
                                                             <a href="javascript:void(0);" class="dropdown-item">Sales</a>
                                                             <a href="javascript:void(0);" class="dropdown-item">Leads</a>
@@ -2518,11 +2559,11 @@ try {
                         </div>
                     </div>
                     <!-- [Biometric Registration] end -->
-                    <!-- [Payment Records] start -->
+                    <!-- [Recent Activities & Logs] start (replaces Payment Record) -->
                     <div class="col-xxl-8">
                         <div class="card stretch stretch-full">
                             <div class="card-header">
-                                <h5 class="card-title">Payment Record</h5>
+                                <h5 class="card-title">Recent Activities & Logs</h5>
                                 <div class="card-header-action">
                                     <div class="card-header-btn">
                                         <div data-bs-toggle="tooltip" title="Delete">
@@ -2542,63 +2583,58 @@ try {
                                             </div>
                                         </a>
                                         <div class="dropdown-menu dropdown-menu-end">
-                                            <a href="javascript:void(0);" class="dropdown-item"><i class="feather-at-sign"></i>New</a>
-                                            <a href="javascript:void(0);" class="dropdown-item"><i class="feather-calendar"></i>Event</a>
-                                            <a href="javascript:void(0);" class="dropdown-item"><i class="feather-bell"></i>Snoozed</a>
-                                            <a href="javascript:void(0);" class="dropdown-item"><i class="feather-trash-2"></i>Deleted</a>
+                                            <a href="javascript:void(0);" class="dropdown-item"><i class="feather-sliders"></i>Filter</a>
+                                            <a href="javascript:void(0);" class="dropdown-item"><i class="feather-download"></i>Export</a>
                                             <div class="dropdown-divider"></div>
                                             <a href="javascript:void(0);" class="dropdown-item"><i class="feather-settings"></i>Settings</a>
-                                            <a href="javascript:void(0);" class="dropdown-item"><i class="feather-life-buoy"></i>Tips & Tricks</a>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                             <div class="card-body custom-card-action p-0">
-                                <div id="payment-records-chart"></div>
-                            </div>
-                            <div class="card-footer">
-                                <div class="row g-4">
-                                    <div class="col-lg-3">
-                                        <div class="p-3 border border-dashed rounded">
-                                            <div class="fs-12 text-muted mb-1">Awaiting Approval</div>
-                                            <h6 class="fw-bold text-dark"><?php echo $attendance_awaiting; ?></h6>
-                                            <div class="progress mt-2 ht-3">
-                                                <div class="progress-bar bg-primary" role="progressbar" style="width: <?php echo ($attendance_total > 0) ? intval(($attendance_awaiting / $attendance_total) * 100) : 0; ?>%"></div>
+                                <div style="max-height: 400px; overflow-y: auto;">
+                                    <?php if (count($recent_activities) > 0): ?>
+                                        <?php foreach ($recent_activities as $activity): ?>
+                                        <div class="d-flex align-items-center gap-3 p-3 border-bottom">
+                                            <div class="avatar-text avatar-sm rounded-circle" 
+                                                style="background-color: <?php 
+                                                    echo ($activity['activity_type'] === 'student_created') ? '#e3f2fd' : 
+                                                         (($activity['activity_type'] === 'attendance_recorded') ? '#f3e5f5' : '#e8f5e9');
+                                                ?>">
+                                                <i class="feather-<?php 
+                                                    echo ($activity['activity_type'] === 'student_created') ? 'user-plus' : 
+                                                         (($activity['activity_type'] === 'attendance_recorded') ? 'clock' : 'check-circle');
+                                                ?>" style="font-size: 14px;"></i>
                                             </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-lg-3">
-                                        <div class="p-3 border border-dashed rounded">
-                                            <div class="fs-12 text-muted mb-1">Approved</div>
-                                            <h6 class="fw-bold text-dark"><?php echo $attendance_completed; ?></h6>
-                                            <div class="progress mt-2 ht-3">
-                                                <div class="progress-bar bg-success" role="progressbar" style="width: <?php echo ($attendance_total > 0) ? intval(($attendance_completed / $attendance_total) * 100) : 0; ?>%"></div>
+                                            <div class="flex-grow-1">
+                                                <a href="javascript:void(0);" class="fw-semibold text-dark d-block">
+                                                    <?php echo htmlspecialchars($activity['activity']); ?>
+                                                </a>
+                                                <span class="fs-12 text-muted">
+                                                    <?php if ($activity['activity_date']): ?>
+                                                        <?php echo date('M d, Y H:i', strtotime($activity['activity_date'])); ?>
+                                                    <?php else: ?>
+                                                        No date
+                                                    <?php endif; ?>
+                                                </span>
                                             </div>
+                                            <span class="badge <?php 
+                                                echo ($activity['activity_type'] === 'student_created') ? 'bg-soft-info text-info' : 
+                                                     (($activity['activity_type'] === 'attendance_recorded') ? 'bg-soft-warning text-warning' : 'bg-soft-success text-success');
+                                            ?> fs-10">
+                                                <?php echo str_replace('_', ' ', ucfirst($activity['activity_type'])); ?>
+                                            </span>
                                         </div>
-                                    </div>
-                                    <div class="col-lg-3">
-                                        <div class="p-3 border border-dashed rounded">
-                                            <div class="fs-12 text-muted mb-1">Rejected</div>
-                                            <h6 class="fw-bold text-dark"><?php echo $attendance_rejected; ?></h6>
-                                            <div class="progress mt-2 ht-3">
-                                                <div class="progress-bar bg-danger" role="progressbar" style="width: <?php echo ($attendance_total > 0) ? intval(($attendance_rejected / $attendance_total) * 100) : 0; ?>%"></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-lg-3">
-                                        <div class="p-3 border border-dashed rounded">
-                                            <div class="fs-12 text-muted mb-1">Total Records</div>
-                                            <h6 class="fw-bold text-dark"><?php echo $attendance_total; ?></h6>
-                                            <div class="progress mt-2 ht-3">
-                                                <div class="progress-bar bg-dark" role="progressbar" style="width: 100%"></div>
-                                            </div>
-                                        </div>
-                                    </div>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <p class="text-muted text-center py-4">No recent activities found</p>
+                                    <?php endif; ?>
                                 </div>
                             </div>
+                            <a href="javascript:void(0);" class="card-footer fs-11 fw-bold text-uppercase text-center py-3">View All Activities</a>
                         </div>
                     </div>
-                    <!-- [Payment Records] end -->
+                    <!-- [Recent Activities & Logs] end -->
                     <!-- [Total Students] start -->
                     <div class="col-xxl-4">
                         <div class="card stretch stretch-full overflow-hidden">
@@ -2752,59 +2788,77 @@ try {
                             <div class="card-body custom-card-action">
                                 <div id="leads-overview-donut"></div>
                                 <div class="row g-2">
-                                    <div class="col-4">
-                                        <a href="javascript:void(0);" class="p-2 hstack gap-2 rounded border border-dashed border-gray-5">
-                                            <span class="wd-7 ht-7 rounded-circle d-inline-block" style="background-color: #3454d1"></span>
-                                            <span>New<span class="fs-10 text-muted ms-1">(20K)</span></span>
-                                        </a>
+                                    <div class="col-6">
+                                        <div class="p-2 hstack gap-2 rounded border border-dashed border-gray-5">
+                                            <div class="flex-grow-1">
+                                                <div class="fs-12 text-muted">Pending</div>
+                                                <h6 class="fw-bold text-dark"><?php echo isset($ojt_status_counts['pending']) ? intval($ojt_status_counts['pending']) : 0; ?></h6>
+                                            </div>
+                                            <div class="text-nowrap"><span class="badge bg-soft-warning text-warning">Status</span></div>
+                                        </div>
                                     </div>
-                                    <div class="col-4">
-                                        <a href="javascript:void(0);" class="p-2 hstack gap-2 rounded border border-dashed border-gray-5">
-                                            <span class="wd-7 ht-7 rounded-circle d-inline-block" style="background-color: #0d519e"></span>
-                                            <span>Contacted<span class="fs-10 text-muted ms-1">(15K)</span></span>
-                                        </a>
+                                    <div class="col-6">
+                                        <div class="p-2 hstack gap-2 rounded border border-dashed border-gray-5">
+                                            <div class="flex-grow-1">
+                                                <div class="fs-12 text-muted">Ongoing</div>
+                                                <h6 class="fw-bold text-dark"><?php echo isset($ojt_status_counts['ongoing']) ? intval($ojt_status_counts['ongoing']) : 0; ?></h6>
+                                            </div>
+                                            <div class="text-nowrap"><span class="badge bg-soft-info text-info">Status</span></div>
+                                        </div>
                                     </div>
-                                    <div class="col-4">
-                                        <a href="javascript:void(0);" class="p-2 hstack gap-2 rounded border border-dashed border-gray-5">
-                                            <span class="wd-7 ht-7 rounded-circle d-inline-block" style="background-color: #1976d2"></span>
-                                            <span>Qualified<span class="fs-10 text-muted ms-1">(10K)</span></span>
-                                        </a>
+                                    <div class="col-6">
+                                        <div class="p-2 hstack gap-2 rounded border border-dashed border-gray-5">
+                                            <div class="flex-grow-1">
+                                                <div class="fs-12 text-muted">Completed</div>
+                                                <h6 class="fw-bold text-dark"><?php echo isset($ojt_status_counts['completed']) ? intval($ojt_status_counts['completed']) : 0; ?></h6>
+                                            </div>
+                                            <div class="text-nowrap"><span class="badge bg-soft-success text-success">Status</span></div>
+                                        </div>
                                     </div>
-                                    <div class="col-4">
-                                        <a href="javascript:void(0);" class="p-2 hstack gap-2 rounded border border-dashed border-gray-5">
-                                            <span class="wd-7 ht-7 rounded-circle d-inline-block" style="background-color: #1e88e5"></span>
-                                            <span>Working<span class="fs-10 text-muted ms-1">(18K)</span></span>
-                                        </a>
+                                    <div class="col-6">
+                                        <div class="p-2 hstack gap-2 rounded border border-dashed border-gray-5">
+                                            <div class="flex-grow-1">
+                                                <div class="fs-12 text-muted">Cancelled</div>
+                                                <h6 class="fw-bold text-dark"><?php echo isset($ojt_status_counts['cancelled']) ? intval($ojt_status_counts['cancelled']) : 0; ?></h6>
+                                            </div>
+                                            <div class="text-nowrap"><span class="badge bg-soft-danger text-danger">Status</span></div>
+                                        </div>
                                     </div>
-                                    <div class="col-4">
-                                        <a href="javascript:void(0);" class="p-2 hstack gap-2 rounded border border-dashed border-gray-5">
-                                            <span class="wd-7 ht-7 rounded-circle d-inline-block" style="background-color: #2196f3"></span>
-                                            <span>Student<span class="fs-10 text-muted ms-1">(10K)</span></span>
-                                        </a>
+                                    <div class="col-6">
+                                        <div class="p-2 hstack gap-2 rounded border border-dashed border-gray-5">
+                                            <div class="flex-grow-1">
+                                                <div class="fs-12 text-muted">Internal</div>
+                                                <h6 class="fw-bold text-dark"><?php echo isset($ojt_type_counts['internal']) ? intval($ojt_type_counts['internal']) : 0; ?></h6>
+                                            </div>
+                                            <div class="text-nowrap"><span class="badge bg-soft-primary text-primary">Type</span></div>
+                                        </div>
                                     </div>
-                                    <div class="col-4">
-                                        <a href="javascript:void(0);" class="p-2 hstack gap-2 rounded border border-dashed border-gray-5">
-                                            <span class="wd-7 ht-7 rounded-circle d-inline-block" style="background-color: #42a5f5"></span>
-                                            <span>Proposal<span class="fs-10 text-muted ms-1">(15K)</span></span>
-                                        </a>
+                                    <div class="col-6">
+                                        <div class="p-2 hstack gap-2 rounded border border-dashed border-gray-5">
+                                            <div class="flex-grow-1">
+                                                <div class="fs-12 text-muted">External</div>
+                                                <h6 class="fw-bold text-dark"><?php echo isset($ojt_type_counts['external']) ? intval($ojt_type_counts['external']) : 0; ?></h6>
+                                            </div>
+                                            <div class="text-nowrap"><span class="badge bg-soft-secondary text-dark">Type</span></div>
+                                        </div>
                                     </div>
-                                    <div class="col-4">
-                                        <a href="javascript:void(0);" class="p-2 hstack gap-2 rounded border border-dashed border-gray-5">
-                                            <span class="wd-7 ht-7 rounded-circle d-inline-block" style="background-color: #64b5f6"></span>
-                                            <span>Leads<span class="fs-10 text-muted ms-1">(16K)</span></span>
-                                        </a>
+                                    <div class="col-6">
+                                        <div class="p-2 hstack gap-2 rounded border border-dashed border-gray-5">
+                                            <div class="flex-grow-1">
+                                                <div class="fs-12 text-muted">Total Internships</div>
+                                                <h6 class="fw-bold text-dark"><?php echo intval($internship_count); ?></h6>
+                                            </div>
+                                            <div class="text-nowrap"><span class="badge bg-dark text-white">Total</span></div>
+                                        </div>
                                     </div>
-                                    <div class="col-4">
-                                        <a href="javascript:void(0);" class="p-2 hstack gap-2 rounded border border-dashed border-gray-5">
-                                            <span class="wd-7 ht-7 rounded-circle d-inline-block" style="background-color: #90caf9"></span>
-                                            <span>Progress<span class="fs-10 text-muted ms-1">(14K)</span></span>
-                                        </a>
-                                    </div>
-                                    <div class="col-4">
-                                        <a href="javascript:void(0);" class="p-2 hstack gap-2 rounded border border-dashed border-gray-5">
-                                            <span class="wd-7 ht-7 rounded-circle d-inline-block" style="background-color: #aad6fa"></span>
-                                            <span>Others<span class="fs-10 text-muted ms-1">(10K)</span></span>
-                                        </a>
+                                    <div class="col-6">
+                                        <div class="p-2 hstack gap-2 rounded border border-dashed border-gray-5">
+                                            <div class="flex-grow-1">
+                                                <div class="fs-12 text-muted">Avg Completion</div>
+                                                <h6 class="fw-bold text-dark"><?php echo htmlspecialchars($avg_completion_percentage); ?>%</h6>
+                                            </div>
+                                            <div class="text-nowrap"><span class="badge bg-soft-info text-info">Metric</span></div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -3119,16 +3173,14 @@ try {
                         </div>
                     </div>
                     <!--! END: [Project Status] !-->
-                    <!--! BEGIN: [Team Progress] !-->
-                    <div class="col-xxl-4">
+                    <!--! BEGIN: [Admin Quick Actions] !-->
+                    <?php // Admin Quick Actions: always visible for this deployment ?>
+                    <div class="col-xxl-6">
                         <div class="card stretch stretch-full">
                             <div class="card-header">
-                                <h5 class="card-title">Team Progress</h5>
+                                <h5 class="card-title">Admin Quick Actions</h5>
                                 <div class="card-header-action">
                                     <div class="card-header-btn">
-                                        <div data-bs-toggle="tooltip" title="Delete">
-                                            <a href="javascript:void(0);" class="avatar-text avatar-xs bg-danger" data-bs-toggle="remove"> </a>
-                                        </div>
                                         <div data-bs-toggle="tooltip" title="Refresh">
                                             <a href="javascript:void(0);" class="avatar-text avatar-xs bg-warning" data-bs-toggle="refresh"> </a>
                                         </div>
@@ -3136,78 +3188,89 @@ try {
                                             <a href="javascript:void(0);" class="avatar-text avatar-xs bg-success" data-bs-toggle="expand"> </a>
                                         </div>
                                     </div>
-                                    <div class="dropdown">
-                                        <a href="javascript:void(0);" class="avatar-text avatar-sm" data-bs-toggle="dropdown" data-bs-offset="25, 25">
-                                            <div data-bs-toggle="tooltip" title="Options">
-                                                <i class="feather-more-vertical"></i>
-                                            </div>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <?php
+                                $qa_total_students = 0;
+                                $qa_total_internships = 0;
+                                $qa_attendance_today = 0;
+                                $qa_biometric_registered = 0;
+                                if (isset($conn)) {
+                                    function _safe_count($conn, $table, $where = '1') {
+                                        $safe = 0;
+                                        $res = $conn->query("SHOW TABLES LIKE '" . $conn->real_escape_string($table) . "'");
+                                        if ($res && $res->num_rows > 0) {
+                                            $q = $conn->query("SELECT COUNT(*) AS cnt FROM `" . $conn->real_escape_string($table) . "` WHERE {$where}");
+                                            if ($q) {
+                                                $r = $q->fetch_assoc();
+                                                $safe = (int)
+                                                ($r['cnt'] ?? 0);
+                                            }
+                                        }
+                                        return $safe;
+                                    }
+                                    $qa_total_students = _safe_count($conn, 'students', '1');
+                                    $qa_total_internships = _safe_count($conn, 'internships', '1');
+                                    // try common attendance date columns safely
+                                    $qa_attendance_today = 0;
+                                    $res = $conn->query("SHOW COLUMNS FROM `attendances` LIKE 'date'");
+                                    if ($res && $res->num_rows > 0) {
+                                        $qa_attendance_today = _safe_count($conn, 'attendances', 'date = CURDATE()');
+                                    } else {
+                                        $res2 = $conn->query("SHOW COLUMNS FROM `attendances` LIKE 'log_time'");
+                                        if ($res2 && $res2->num_rows > 0) {
+                                            $qa_attendance_today = _safe_count($conn, 'attendances', 'DATE(log_time) = CURDATE()');
+                                        }
+                                    }
+                                    $res3 = $conn->query("SHOW COLUMNS FROM `students` LIKE 'biometric_registered'");
+                                    if ($res3 && $res3->num_rows > 0) {
+                                        $qa_biometric_registered = _safe_count($conn, 'students', 'biometric_registered = 1');
+                                    }
+                                }
+                                ?>
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <a href="students.php" class="btn btn-primary btn-lg w-100 d-flex align-items-center justify-content-center">
+                                            <i class="feather-users me-2"></i> Students
+                                            <span class="badge bg-white text-dark ms-3"><?php echo $qa_total_students; ?></span>
                                         </a>
-                                        <div class="dropdown-menu dropdown-menu-end">
-                                            <a href="javascript:void(0);" class="dropdown-item"><i class="feather-at-sign"></i>New</a>
-                                            <a href="javascript:void(0);" class="dropdown-item"><i class="feather-calendar"></i>Event</a>
-                                            <a href="javascript:void(0);" class="dropdown-item"><i class="feather-bell"></i>Snoozed</a>
-                                            <a href="javascript:void(0);" class="dropdown-item"><i class="feather-trash-2"></i>Deleted</a>
-                                            <div class="dropdown-divider"></div>
-                                            <a href="javascript:void(0);" class="dropdown-item"><i class="feather-settings"></i>Settings</a>
-                                            <a href="javascript:void(0);" class="dropdown-item"><i class="feather-life-buoy"></i>Tips & Tricks</a>
-                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <a href="students-edit.php" class="btn btn-success btn-lg w-100 d-flex align-items-center justify-content-center">
+                                            <i class="feather-plus-circle me-2"></i> Add Student
+                                        </a>
+                                    </div>
+                                    <div class="col-6">
+                                        <a href="ojt.php" class="btn btn-info btn-lg w-100 d-flex align-items-center justify-content-center">
+                                            <i class="feather-briefcase me-2"></i> OJT List
+                                            <span class="badge bg-white text-dark ms-3"><?php echo $qa_total_internships; ?></span>
+                                        </a>
+                                    </div>
+                                    <div class="col-6">
+                                        <a href="attendance.php" class="btn btn-warning btn-lg w-100 d-flex align-items-center justify-content-center">
+                                            <i class="feather-calendar me-2"></i> Attendance Today
+                                            <span class="badge bg-white text-dark ms-3"><?php echo $qa_attendance_today; ?></span>
+                                        </a>
+                                    </div>
+                                    <div class="col-6">
+                                        <a href="demo-biometric.php" class="btn btn-secondary btn-lg w-100 d-flex align-items-center justify-content-center">
+                                            <i class="feather-activity me-2"></i> Biometric Demo
+                                            <span class="badge bg-white text-dark ms-3"><?php echo $qa_biometric_registered; ?></span>
+                                        </a>
+                                    </div>
+                                    <div class="col-6">
+                                        <a href="reports-timesheets.php" class="btn btn-dark btn-lg w-100 d-flex align-items-center justify-content-center">
+                                            <i class="feather-file-text me-2"></i> Reports
+                                        </a>
                                     </div>
                                 </div>
                             </div>
-                            <div class="card-body custom-card-action">
-                                <div class="hstack justify-content-between border border-dashed rounded-3 p-3 mb-3">
-                                    <div class="hstack gap-3">
-                                        <div class="avatar-image">
-                                            <img src="assets/images/avatar/1.png" alt="" class="img-fluid" />
-                                        </div>
-                                        <div>
-                                            <a href="javascript:void(0);">Felix Luis Mateo</a>
-                                            <div class="fs-11 text-muted">Frontend Developer</div>
-                                        </div>
-                                    </div>
-                                    <div class="team-progress-1"></div>
-                                </div>
-                                <div class="hstack justify-content-between border border-dashed rounded-3 p-3 mb-3">
-                                    <div class="hstack gap-3">
-                                        <div class="avatar-image">
-                                            <img src="assets/images/avatar/2.png" alt="" class="img-fluid" />
-                                        </div>
-                                        <div>
-                                            <a href="javascript:void(0);">Archie Cantones</a>
-                                            <div class="fs-11 text-muted">UI/UX Designer</div>
-                                        </div>
-                                    </div>
-                                    <div class="team-progress-2"></div>
-                                </div>
-                                <div class="hstack justify-content-between border border-dashed rounded-3 p-3 mb-3">
-                                    <div class="hstack gap-3">
-                                        <div class="avatar-image">
-                                            <img src="assets/images/avatar/3.png" alt="" class="img-fluid" />
-                                        </div>
-                                        <div>
-                                            <a href="javascript:void(0);">Malanie Hanvey</a>
-                                            <div class="fs-11 text-muted">Backend Developer</div>
-                                        </div>
-                                    </div>
-                                    <div class="team-progress-3"></div>
-                                </div>
-                                <div class="hstack justify-content-between border border-dashed rounded-3 p-3 mb-2">
-                                    <div class="hstack gap-3">
-                                        <div class="avatar-image">
-                                            <img src="assets/images/avatar/4.png" alt="" class="img-fluid" />
-                                        </div>
-                                        <div>
-                                            <a href="javascript:void(0);">Kenneth Hune</a>
-                                            <div class="fs-11 text-muted">Digital Marketer</div>
-                                        </div>
-                                    </div>
-                                    <div class="team-progress-4"></div>
-                                </div>
-                            </div>
-                            <a href="javascript:void(0);" class="card-footer fs-11 fw-bold text-uppercase text-center">Update 30 Min Ago</a>
+                            <a href="javascript:void(0);" class="card-footer fs-11 fw-bold text-uppercase text-center">Admin quick actions</a>
                         </div>
                     </div>
-                    <!--! END: [Team Progress] !-->
+                    
+                    <!--! END: [Admin Quick Actions] !-->
                     <!--! BEGIN: [Coordinators List] !-->
                     <div class="col-xxl-4">
                         <div class="card stretch stretch-full">
@@ -3294,82 +3357,7 @@ try {
                         </div>
                     </div>
                     <!--! END: [Supervisors List] !-->
-                    <!--! BEGIN: [Recent Activities] !-->
-                    <div class="col-xxl-8">
-                        <div class="card stretch stretch-full">
-                            <div class="card-header">
-                                <h5 class="card-title">Recent Activities & Logs</h5>
-                                <div class="card-header-action">
-                                    <div class="card-header-btn">
-                                        <div data-bs-toggle="tooltip" title="Delete">
-                                            <a href="javascript:void(0);" class="avatar-text avatar-xs bg-danger" data-bs-toggle="remove"> </a>
-                                        </div>
-                                        <div data-bs-toggle="tooltip" title="Refresh">
-                                            <a href="javascript:void(0);" class="avatar-text avatar-xs bg-warning" data-bs-toggle="refresh"> </a>
-                                        </div>
-                                        <div data-bs-toggle="tooltip" title="Maximize/Minimize">
-                                            <a href="javascript:void(0);" class="avatar-text avatar-xs bg-success" data-bs-toggle="expand"> </a>
-                                        </div>
-                                    </div>
-                                    <div class="dropdown">
-                                        <a href="javascript:void(0);" class="avatar-text avatar-sm" data-bs-toggle="dropdown" data-bs-offset="25, 25">
-                                            <div data-bs-toggle="tooltip" title="Options">
-                                                <i class="feather-more-vertical"></i>
-                                            </div>
-                                        </a>
-                                        <div class="dropdown-menu dropdown-menu-end">
-                                            <a href="javascript:void(0);" class="dropdown-item"><i class="feather-sliders"></i>Filter</a>
-                                            <a href="javascript:void(0);" class="dropdown-item"><i class="feather-download"></i>Export</a>
-                                            <div class="dropdown-divider"></div>
-                                            <a href="javascript:void(0);" class="dropdown-item"><i class="feather-settings"></i>Settings</a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="card-body custom-card-action p-0">
-                                <div style="max-height: 400px; overflow-y: auto;">
-                                    <?php if (count($recent_activities) > 0): ?>
-                                        <?php foreach ($recent_activities as $activity): ?>
-                                        <div class="d-flex align-items-center gap-3 p-3 border-bottom">
-                                            <div class="avatar-text avatar-sm rounded-circle" 
-                                                style="background-color: <?php 
-                                                    echo ($activity['activity_type'] === 'student_created') ? '#e3f2fd' : 
-                                                         (($activity['activity_type'] === 'attendance_recorded') ? '#f3e5f5' : '#e8f5e9');
-                                                ?>">
-                                                <i class="feather-<?php 
-                                                    echo ($activity['activity_type'] === 'student_created') ? 'user-plus' : 
-                                                         (($activity['activity_type'] === 'attendance_recorded') ? 'clock' : 'check-circle');
-                                                ?>" style="font-size: 14px;"></i>
-                                            </div>
-                                            <div class="flex-grow-1">
-                                                <a href="javascript:void(0);" class="fw-semibold text-dark d-block">
-                                                    <?php echo htmlspecialchars($activity['activity']); ?>
-                                                </a>
-                                                <span class="fs-12 text-muted">
-                                                    <?php if ($activity['activity_date']): ?>
-                                                        <?php echo date('M d, Y H:i', strtotime($activity['activity_date'])); ?>
-                                                    <?php else: ?>
-                                                        No date
-                                                    <?php endif; ?>
-                                                </span>
-                                            </div>
-                                            <span class="badge <?php 
-                                                echo ($activity['activity_type'] === 'student_created') ? 'bg-soft-info text-info' : 
-                                                     (($activity['activity_type'] === 'attendance_recorded') ? 'bg-soft-warning text-warning' : 'bg-soft-success text-success');
-                                            ?> fs-10">
-                                                <?php echo str_replace('_', ' ', ucfirst($activity['activity_type'])); ?>
-                                            </span>
-                                        </div>
-                                        <?php endforeach; ?>
-                                    <?php else: ?>
-                                        <p class="text-muted text-center py-4">No recent activities found</p>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                            <a href="javascript:void(0);" class="card-footer fs-11 fw-bold text-uppercase text-center py-3">View All Activities</a>
-                        </div>
-                    </div>
-                    <!--! END: [Recent Activities] !-->
+                    <!-- Duplicate Recent Activities removed (now shown in the top section) -->
                 </div>
             </div>
             <!-- [ Main Content ] end -->

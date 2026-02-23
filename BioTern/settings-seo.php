@@ -55,10 +55,10 @@
                     <li class="nxl-item nxl-hasmenu">
                         <a href="javascript:void(0);" class="nxl-link">
                             <span class="nxl-micon"><i class="feather-airplay"></i></span>
-                            <span class="nxl-mtext">Dashboards</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                            <span class="nxl-mtext">Home</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="index.php">CRM</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="index.php">Overview</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="analytics.php">Analytics</a></li>
                         </ul>
                     </li>
@@ -513,12 +513,12 @@
                                 <div class="mb-5">
                                     <label class="form-label">Site Title <span class="text-danger">*</span></label>
                                     <input type="text" class="form-control" maxlength="75" placeholder="Site Title">
-                                    <small class="form-text text-muted">SEO Title [Ex: CRM Application & Admin Dashboard]</small>
+                                    <small class="form-text text-muted">SEO Title [Ex: Overview Application & Admin Home]</small>
                                 </div>
                                 <div class="mb-5">
                                     <label class="form-label">Site Slug <span class="fw-normal text-muted text-capitalize">(Optional)</span></label>
                                     <input type="text" class="form-control" maxlength="30" placeholder="Site Slug">
-                                    <small class="form-text text-muted">SEO Slug [Ex: crm-adpplication-and-admin-dashboard]</small>
+                                    <small class="form-text text-muted">SEO Slug [Ex: overview-application-and-admin-home]</small>
                                 </div>
                                 <div class="mb-5">
                                     <label class="form-label">Meta Description (max 160 chars) <span class="text-danger">*</span></label>
@@ -528,7 +528,7 @@
                                 <div class="mb-5">
                                     <label class="form-label">Meta Keywords (max 15 keywords) <span class="text-danger">*</span></label>
                                     <textarea rows="10" class="form-control" maxlength="160" placeholder="Meta Description (max 160 chars)"></textarea>
-                                    <small class="form-text text-muted">Meta Keywords (max 15 keywords) [Ex: CRM, Admin, Dashbard, webapp]</small>
+                                    <small class="form-text text-muted">Meta Keywords (max 15 keywords) [Ex: Overview, Admin, Home, webapp]</small>
                                 </div>
                                 <div class="mb-5">
                                     <label class="form-label">URL Rewriting?</label>

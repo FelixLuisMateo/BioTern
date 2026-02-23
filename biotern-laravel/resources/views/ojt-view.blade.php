@@ -1,4 +1,363 @@
-﻿<!DOCTYPE html>
+﻿<?php
+$host = 'localhost';
+$db_user = 'root';
+$db_password = '';
+$db_name = 'biotern_db';
+
+$conn = null;
+$view_user_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
+$selected_student_id = $view_user_id;
+$selected_user_id = 0;
+$flash_message = '';
+$flash_type = 'success';
+$student = null;
+$app_letter = [
+    'date' => '',
+    'application_person' => '',
+    'position' => '',
+    'company_name' => '',
+    'company_address' => ''
+];
+$moa_data = [
+    'company_name' => '',
+    'company_address' => '',
+    'company_receipt' => '',
+    'doc_no' => '',
+    'page_no' => '',
+    'book_no' => '',
+    'series_no' => '',
+    'total_hours' => '',
+    'moa_address' => '',
+    'moa_date' => '',
+    'coordinator' => '',
+    'school_position' => '',
+    'position' => '',
+    'partner_representative' => '',
+    'school_administrator' => '',
+    'school_admin_position' => '',
+    'notary_address' => '',
+    'witness' => '',
+    'acknowledgement_date' => '',
+    'acknowledgement_address' => ''
+];
+
+function display_text($value, $fallback = '-')
+{
+    $text = trim((string)$value);
+    return $text !== '' ? $text : $fallback;
+}
+
+function format_dt($value)
+{
+    if (!$value) return '-';
+    $ts = strtotime((string)$value);
+    if (!$ts) return '-';
+    return date('M d, Y h:i A', $ts);
+}
+
+function status_badge_html($status)
+{
+    $raw = trim((string)$status);
+    if ($raw === '1' || strcasecmp($raw, 'active') === 0 || strcasecmp($raw, 'ongoing') === 0) {
+        return '<span class="badge bg-soft-success text-success">Active</span>';
+    }
+    if ($raw === '0' || strcasecmp($raw, 'inactive') === 0) {
+        return '<span class="badge bg-soft-danger text-danger">Inactive</span>';
+    }
+    return '<span class="badge bg-soft-primary text-primary">' . htmlspecialchars($raw !== '' ? ucfirst($raw) : 'Unknown') . '</span>';
+}
+
+try {
+    $conn = new mysqli($host, $db_user, $db_password, $db_name);
+    if ($conn->connect_error) {
+        throw new Exception($conn->connect_error);
+    }
+
+    $conn->query("CREATE TABLE IF NOT EXISTS application_letter (
+        id INT(11) NOT NULL AUTO_INCREMENT,
+        user_id INT(11) NOT NULL,
+        date DATE DEFAULT NULL,
+        application_person VARCHAR(255) DEFAULT NULL,
+        position VARCHAR(255) DEFAULT NULL,
+        company_name VARCHAR(255) DEFAULT NULL,
+        company_address VARCHAR(255) DEFAULT NULL,
+        PRIMARY KEY (id),
+        UNIQUE KEY user_id (user_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
+    $conn->query("CREATE TABLE IF NOT EXISTS moa (
+        id INT(11) NOT NULL AUTO_INCREMENT,
+        user_id INT(11) NOT NULL,
+        company_name VARCHAR(255) NOT NULL,
+        company_address VARCHAR(255) NOT NULL,
+        company_receipt VARCHAR(255) NOT NULL,
+        doc_no VARCHAR(100) NOT NULL,
+        page_no VARCHAR(100) NOT NULL,
+        book_no VARCHAR(100) NOT NULL,
+        series_no VARCHAR(100) NOT NULL,
+        total_hours VARCHAR(50) NOT NULL,
+        moa_address VARCHAR(255) NOT NULL,
+        moa_date DATE DEFAULT NULL,
+        coordinator VARCHAR(255) NOT NULL,
+        school_posistion VARCHAR(255) NOT NULL,
+        position VARCHAR(255) NOT NULL,
+        partner_representative VARCHAR(255) NOT NULL,
+        school_administrator VARCHAR(255) NOT NULL,
+        school_admin_position VARCHAR(255) NOT NULL,
+        notary_address VARCHAR(255) NOT NULL,
+        witness VARCHAR(255) NOT NULL,
+        acknowledgement_date DATE DEFAULT NULL,
+        acknowledgement_address VARCHAR(255) NOT NULL,
+        PRIMARY KEY (id),
+        UNIQUE KEY user_id (user_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
+    // Ensure acknowledgement_date is DATE even if previously created as VARCHAR.
+    $ack_col = $conn->query("SHOW COLUMNS FROM moa LIKE 'acknowledgement_date'");
+    if ($ack_col && $ack_col->num_rows > 0) {
+        $ack_meta = $ack_col->fetch_assoc();
+        if (isset($ack_meta['Type']) && stripos($ack_meta['Type'], 'date') === false) {
+            $conn->query("ALTER TABLE moa MODIFY acknowledgement_date DATE DEFAULT NULL");
+        }
+    }
+    $hours_col = $conn->query("SHOW COLUMNS FROM moa LIKE 'total_hours'");
+    if (!$hours_col || $hours_col->num_rows === 0) {
+        $conn->query("ALTER TABLE moa ADD COLUMN total_hours VARCHAR(50) NOT NULL AFTER company_receipt");
+    }
+    $doc_col = $conn->query("SHOW COLUMNS FROM moa LIKE 'doc_no'");
+    if (!$doc_col || $doc_col->num_rows === 0) {
+        $conn->query("ALTER TABLE moa ADD COLUMN doc_no VARCHAR(100) NOT NULL AFTER company_receipt");
+    }
+    $page_col = $conn->query("SHOW COLUMNS FROM moa LIKE 'page_no'");
+    if (!$page_col || $page_col->num_rows === 0) {
+        $conn->query("ALTER TABLE moa ADD COLUMN page_no VARCHAR(100) NOT NULL AFTER doc_no");
+    }
+    $book_col = $conn->query("SHOW COLUMNS FROM moa LIKE 'book_no'");
+    if (!$book_col || $book_col->num_rows === 0) {
+        $conn->query("ALTER TABLE moa ADD COLUMN book_no VARCHAR(100) NOT NULL AFTER page_no");
+    }
+    $series_col = $conn->query("SHOW COLUMNS FROM moa LIKE 'series_no'");
+    if (!$series_col || $series_col->num_rows === 0) {
+        $conn->query("ALTER TABLE moa ADD COLUMN series_no VARCHAR(100) NOT NULL AFTER book_no");
+    }
+    $school_pos_col = $conn->query("SHOW COLUMNS FROM moa LIKE 'school_posistion'");
+    if (!$school_pos_col || $school_pos_col->num_rows === 0) {
+        $conn->query("ALTER TABLE moa ADD COLUMN school_posistion VARCHAR(255) NOT NULL AFTER coordinator");
+    }
+    $school_admin_pos_col = $conn->query("SHOW COLUMNS FROM moa LIKE 'school_admin_position'");
+    if (!$school_admin_pos_col || $school_admin_pos_col->num_rows === 0) {
+        $conn->query("ALTER TABLE moa ADD COLUMN school_admin_position VARCHAR(255) NOT NULL AFTER school_administrator");
+    }
+
+    $res_col = $conn->query("SHOW COLUMNS FROM application_letter LIKE 'company_address'");
+    if (!$res_col || $res_col->num_rows === 0) {
+        $conn->query("ALTER TABLE application_letter ADD COLUMN company_address VARCHAR(255) DEFAULT NULL");
+    }
+    $res_type = $conn->query("SHOW COLUMNS FROM application_letter LIKE 'company_name'");
+    if ($res_type && $res_type->num_rows > 0) {
+        $col = $res_type->fetch_assoc();
+        if (isset($col['Type']) && stripos($col['Type'], 'int') !== false) {
+            $conn->query("ALTER TABLE application_letter MODIFY company_name VARCHAR(255) DEFAULT NULL");
+        }
+    }
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_application_letter'])) {
+        $posted_user_id = isset($_POST['user_id']) ? intval($_POST['user_id']) : 0;
+        if ($posted_user_id > 0) {
+            // Keep compatible with schemas where `application_letter.date` is NOT NULL.
+            $date_val = isset($_POST['date']) && $_POST['date'] !== '' ? $_POST['date'] : date('Y-m-d');
+            $person_val = trim($_POST['application_person'] ?? '');
+            $position_val = trim($_POST['position'] ?? '');
+            $company_name_val = trim($_POST['company_name'] ?? '');
+            $company_address_val = trim($_POST['company_address'] ?? '');
+
+            $stmt = $conn->prepare("INSERT INTO application_letter (user_id, date, application_person, position, company_name, company_address)
+                VALUES (?, ?, ?, ?, ?, ?)
+                ON DUPLICATE KEY UPDATE
+                    date = VALUES(date),
+                    application_person = VALUES(application_person),
+                    position = VALUES(position),
+                    company_name = VALUES(company_name),
+                    company_address = VALUES(company_address)");
+            $stmt->bind_param('isssss', $posted_user_id, $date_val, $person_val, $position_val, $company_name_val, $company_address_val);
+            if ($stmt->execute()) {
+                $flash_message = 'Application Letter autofill data saved.';
+                $flash_type = 'success';
+            } else {
+                $flash_message = 'Failed to save Application Letter data.';
+                $flash_type = 'danger';
+            }
+            $view_user_id = $posted_user_id;
+        }
+    }
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_moa'])) {
+        $posted_user_id = isset($_POST['user_id']) ? intval($_POST['user_id']) : 0;
+        if ($posted_user_id > 0) {
+            $company_name = trim($_POST['company_name'] ?? '');
+            $company_address = trim($_POST['company_address'] ?? '');
+            $company_receipt = trim($_POST['company_receipt'] ?? '');
+            $doc_no = trim($_POST['doc_no'] ?? '');
+            $page_no = trim($_POST['page_no'] ?? '');
+            $book_no = trim($_POST['book_no'] ?? '');
+            $series_no = trim($_POST['series_no'] ?? '');
+            $total_hours = trim($_POST['total_hours'] ?? '');
+            $moa_address = trim($_POST['moa_address'] ?? '');
+            $moa_date = isset($_POST['moa_date']) && $_POST['moa_date'] !== '' ? $_POST['moa_date'] : null;
+            $coordinator = trim($_POST['coordinator'] ?? '');
+            $school_posistion = trim($_POST['school_position'] ?? ($_POST['school_posistion'] ?? ''));
+            $position = trim($_POST['position'] ?? '');
+            $partner_representative = trim($_POST['partner_representative'] ?? '');
+            $school_administrator = trim($_POST['school_administrator'] ?? '');
+            $school_admin_position = trim($_POST['school_admin_position'] ?? '');
+            $notary_address = trim($_POST['notary_address'] ?? '');
+            $witness = trim($_POST['witness'] ?? '');
+            $acknowledgement_date = isset($_POST['acknowledgement_date']) && $_POST['acknowledgement_date'] !== '' ? $_POST['acknowledgement_date'] : null;
+            $acknowledgement_address = trim($_POST['acknowledgement_address'] ?? '');
+
+            $stmt = $conn->prepare("INSERT INTO moa (user_id, company_name, company_address, company_receipt, doc_no, page_no, book_no, series_no, total_hours, moa_address, moa_date, coordinator, school_posistion, position, partner_representative, school_administrator, school_admin_position, notary_address, witness, acknowledgement_date, acknowledgement_address)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON DUPLICATE KEY UPDATE
+                    company_name = VALUES(company_name),
+                    company_address = VALUES(company_address),
+                    company_receipt = VALUES(company_receipt),
+                    doc_no = VALUES(doc_no),
+                    page_no = VALUES(page_no),
+                    book_no = VALUES(book_no),
+                    series_no = VALUES(series_no),
+                    total_hours = VALUES(total_hours),
+                    moa_address = VALUES(moa_address),
+                    moa_date = VALUES(moa_date),
+                    coordinator = VALUES(coordinator),
+                    school_posistion = VALUES(school_posistion),
+                    position = VALUES(position),
+                    partner_representative = VALUES(partner_representative),
+                    school_administrator = VALUES(school_administrator),
+                    school_admin_position = VALUES(school_admin_position),
+                    notary_address = VALUES(notary_address),
+                    witness = VALUES(witness),
+                    acknowledgement_date = VALUES(acknowledgement_date),
+                    acknowledgement_address = VALUES(acknowledgement_address)");
+            $types = 'i' . str_repeat('s', 20);
+            $stmt->bind_param(
+                $types,
+                $posted_user_id,
+                $company_name,
+                $company_address,
+                $company_receipt,
+                $doc_no,
+                $page_no,
+                $book_no,
+                $series_no,
+                $total_hours,
+                $moa_address,
+                $moa_date,
+                $coordinator,
+                $school_posistion,
+                $position,
+                $partner_representative,
+                $school_administrator,
+                $school_admin_position,
+                $notary_address,
+                $witness,
+                $acknowledgement_date,
+                $acknowledgement_address
+            );
+            if ($stmt->execute()) {
+                $flash_message = 'MOA autofill data saved.';
+                $flash_type = 'success';
+            } else {
+                $flash_message = 'Failed to save MOA data.';
+                $flash_type = 'danger';
+            }
+            $view_user_id = $posted_user_id;
+        }
+    }
+
+    if ($view_user_id > 0) {
+        // Resolve student robustly across varying schemas/data imports.
+        $student_cols = [];
+        $col_res = $conn->query("SHOW COLUMNS FROM students");
+        if ($col_res) {
+            while ($col = $col_res->fetch_assoc()) {
+                $student_cols[] = $col['Field'] ?? '';
+            }
+        }
+
+        $candidate_wheres = [];
+        $candidate_wheres[] = "s.id = " . intval($view_user_id);
+        if (in_array('user_id', $student_cols, true)) {
+            $candidate_wheres[] = "s.user_id = " . intval($view_user_id);
+        }
+        if (in_array('student_id', $student_cols, true)) {
+            $candidate_wheres[] = "s.student_id = '" . $conn->real_escape_string((string)$view_user_id) . "'";
+        }
+        $candidate_sql = implode(' OR ', array_unique($candidate_wheres));
+        // Priority order is critical:
+        // 1) exact students.id match, 2) user_id match, 3) student_id string match.
+        $student_sql = "SELECT s.*, c.name AS course_name
+            FROM students s
+            LEFT JOIN courses c ON s.course_id = c.id
+            WHERE (" . $candidate_sql . ")
+            ORDER BY
+                CASE
+                    WHEN s.id = " . intval($view_user_id) . " THEN 1
+                    " . (in_array('user_id', $student_cols, true) ? "WHEN s.user_id = " . intval($view_user_id) . " THEN 2" : "") . "
+                    " . (in_array('student_id', $student_cols, true) ? "WHEN s.student_id = '" . $conn->real_escape_string((string)$view_user_id) . "' THEN 3" : "") . "
+                    ELSE 99
+                END
+            LIMIT 1";
+        $res_student = $conn->query($student_sql);
+        $student = $res_student ? $res_student->fetch_assoc() : null;
+        if ($student) {
+            $selected_student_id = intval($student['id'] ?? $view_user_id);
+            $selected_user_id = intval($student['user_id'] ?? 0);
+        }
+
+        $doc_lookup_ids = array_values(array_unique(array_filter([
+            $selected_student_id,
+            $selected_user_id,
+            $view_user_id
+        ], function ($v) { return intval($v) > 0; })));
+
+        $row = null;
+        foreach ($doc_lookup_ids as $lookup_id) {
+            $stmt_app = $conn->prepare("SELECT * FROM application_letter WHERE user_id = ? LIMIT 1");
+            $stmt_app->bind_param('i', $lookup_id);
+            $stmt_app->execute();
+            $res_app = $stmt_app->get_result();
+            $row = $res_app ? $res_app->fetch_assoc() : null;
+            if ($row) break;
+        }
+        if ($row) {
+            $app_letter['date'] = $row['date'] ?? '';
+            $app_letter['application_person'] = $row['application_person'] ?? '';
+            $app_letter['position'] = $row['position'] ?? '';
+            $app_letter['company_name'] = isset($row['company_name']) ? (string)$row['company_name'] : '';
+            $app_letter['company_address'] = $row['company_address'] ?? '';
+        }
+
+        $moa_row = null;
+        foreach ($doc_lookup_ids as $lookup_id) {
+            $stmt_moa = $conn->prepare("SELECT * FROM moa WHERE user_id = ? LIMIT 1");
+            $stmt_moa->bind_param('i', $lookup_id);
+            $stmt_moa->execute();
+            $res_moa = $stmt_moa->get_result();
+            $moa_row = $res_moa ? $res_moa->fetch_assoc() : null;
+            if ($moa_row) break;
+        }
+        if ($moa_row) {
+            if (!isset($moa_row['school_position']) || $moa_row['school_position'] === '' || $moa_row['school_position'] === null) {
+                $moa_row['school_position'] = $moa_row['school_posistion'] ?? '';
+            }
+            foreach ($moa_data as $k => $v) {
+                $moa_data[$k] = isset($moa_row[$k]) ? (string)$moa_row[$k] : '';
+            }
+        }
+    }
+} catch (Exception $e) {
+    $flash_message = 'Database error: ' . $e->getMessage();
+    $flash_type = 'danger';
+}
+?><!DOCTYPE html>
 <html lang="zxx">
 
 <head>
@@ -10,7 +369,7 @@
     <meta name="author" content="ACT 2A Group 5">
     <!--! The above 6 meta tags *must* come first in the head; any other head content must come *after* these tags !-->
     <!--! BEGIN: Apps Title-->
-    <title>BioTern || Email Settings</title>
+    <title>BioTern || OJT View</title>
     <!--! END:  Apps Title-->
     <!--! BEGIN: Favicon-->
     <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
@@ -24,6 +383,7 @@
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2-theme.min.css">
     <!--! END: Vendors CSS-->
     <!--! BEGIN: Custom CSS-->
+    <script>try{var s=localStorage.getItem('app-skin')||localStorage.getItem('app_skin')||localStorage.getItem('theme'); if(s&&s.indexOf('dark')!==-1)document.documentElement.classList.add('app-skin-dark');}catch(e){};</script>
     <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css">
     <!--! END: Custom CSS-->
     <!--! HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries !-->
@@ -88,8 +448,8 @@
                             <li class="nxl-item"><a class="nxl-link" href="apps-calendar.php">Calendar</a></li>
                         </ul>
                     </li>
-                    
-                    
+
+
                     <li class="nxl-item nxl-hasmenu">
                         <a href="javascript:void(0);" class="nxl-link">
                             <span class="nxl-micon"><i class="feather-users"></i></span>
@@ -112,7 +472,7 @@
                             <li class="nxl-item"><a class="nxl-link" href="ojt-create.php">OJT Create</a></li>
                         </ul>
                     </li>
-                    
+
                     <li class="nxl-item nxl-hasmenu">
                         <a href="javascript:void(0);" class="nxl-link">
                             <span class="nxl-micon"><i class="feather-layout"></i></span>
@@ -139,11 +499,11 @@
                             <li class="nxl-item"><a class="nxl-link" href="settings-tasks.php">Tasks</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="settings-ojt.php">Leads</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="settings-support.php">Support</a></li>
-                            
-                            
+
+
                             <li class="nxl-item"><a class="nxl-link" href="settings-students.php">Students</a></li>
 
-                            
+
                             <li class="nxl-item"><a class="nxl-link" href="settings-miscellaneous.php">Miscellaneous</a></li>
                         </ul>
                     </li>
@@ -215,7 +575,7 @@
                         </ul>
                     </li>
                 </ul>
-                
+
             </div>
         </div>
     </nav>
@@ -414,425 +774,430 @@
     <!--! ================================================================ !-->
     <!--! [Start] Main Content !-->
     <!--! ================================================================ !-->
-    <main class="nxl-container apps-container">
-        <div class="nxl-content without-header nxl-full-content">
-            <!-- [ Main Content ] start -->
-            <div class="main-content d-flex">
-                <!-- [ Content Sidebar ] start -->
-                <div class="content-sidebar content-sidebar-md" data-scrollbar-target="#psScrollbarInit">
-                    <div class="content-sidebar-header bg-white sticky-top hstack justify-content-between">
-                        <h4 class="fw-bolder mb-0">Settings</h4>
-                        <a href="javascript:void(0);" class="app-sidebar-close-trigger d-flex">
-                            <i class="feather-x"></i>
+    <main class="nxl-container">
+        <div class="nxl-content">
+            <!-- [ page-header ] start -->
+            <div class="page-header">
+                <div class="page-header-left d-flex align-items-center">
+                    <div class="page-header-title">
+                        <h5 class="m-b-10">Leads</h5>
+                    </div>
+                    <ul class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="index.php">Home</a></li>
+                        <li class="breadcrumb-item">View</li>
+                    </ul>
+                </div>
+                <div class="page-header-right ms-auto">
+                    <div class="page-header-right-items">
+                        <div class="d-flex d-md-none">
+                            <a href="javascript:void(0)" class="page-header-right-close-toggle">
+                                <i class="feather-arrow-left me-2"></i>
+                                <span>Back</span>
+                            </a>
+                        </div>
+                        <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
+                            <a href="javascript:void(0);" class="btn btn-icon btn-light-brand">
+                                <i class="feather-printer"></i>
+                            </a>
+                            <a href="ojt-create.php" class="btn btn-icon btn-light-brand">
+                                <i class="feather-edit"></i>
+                            </a>
+                            <div class="dropdown">
+                                <a class="btn btn-icon btn-light-brand" data-bs-toggle="dropdown" data-bs-offset="0, 10" data-bs-auto-close="outside">
+                                    <i class="feather-more-horizontal"></i>
+                                </a>
+                                <div class="dropdown-menu dropdown-menu-end">
+                                    <a href="javascript:void(0);" class="dropdown-item">
+                                        <i class="feather-user-x me-3"></i>
+                                        <span>Make as Lost</span>
+                                    </a>
+                                    <a href="javascript:void(0);" class="dropdown-item">
+                                        <i class="feather-delete me-3"></i>
+                                        <span>Make as Junk</span>
+                                    </a>
+                                    <div class="dropdown-divider"></div>
+                                    <a href="javascript:void(0);" class="dropdown-item">
+                                        <i class="feather-trash-2 me-3"></i>
+                                        <span>Delete as Lead</span>
+                                    </a>
+                                </div>
+                            </div>
+                            <a href="javascript:void(0);" class="btn btn-primary successAlertMessage">
+                                <i class="feather-plus me-2"></i>
+                                <span>Make as Student</span>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="d-md-none d-flex align-items-center">
+                        <a href="javascript:void(0)" class="page-header-right-open-toggle">
+                            <i class="feather-align-right fs-20"></i>
                         </a>
                     </div>
-                    <div class="content-sidebar-body">
-                        <ul class="nav flex-column nxl-content-sidebar-item">
-                            <li class="nav-item">
-                                <a class="nav-link" href="settings-general.php">
-                                    <i class="feather-airplay"></i>
-                                    <span>General</span>
-                                </a>
+                </div>
+            </div>
+            <!-- [ page-header ] end -->
+            <div class="bg-white py-3 border-bottom rounded-0 p-md-0 mb-0">
+                <div class="d-md-none d-flex">
+                    <a href="javascript:void(0)" class="page-content-left-open-toggle">
+                        <i class="feather-align-left fs-20"></i>
+                    </a>
+                </div>
+                <div class="d-flex align-items-center justify-content-between">
+                    <div class="nav-tabs-wrapper page-content-left-sidebar-wrapper">
+                        <div class="d-flex d-md-none">
+                            <a href="javascript:void(0)" class="page-content-left-close-toggle">
+                                <i class="feather-arrow-left me-2"></i>
+                                <span>Back</span>
+                            </a>
+                        </div>
+                        <ul class="nav nav-tabs nav-tabs-custom-style" id="myTab" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#profileTab">Profile</button>
                             </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="settings-seo.php">
-                                    <i class="feather-search"></i>
-                                    <span>SEO</span>
-                                </a>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#applicationTab">Application Letter</button>
                             </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="settings-tags.php">
-                                    <i class="feather-tag"></i>
-                                    <span>Tags</span>
-                                </a>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#moaTab">MOA</button>
                             </li>
-                            <li class="nav-item">
-                                <a class="nav-link active" href="settings-email.php">
-                                    <i class="feather-mail"></i>
-                                    <span>Email</span>
-                                </a>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#endorsementTab">Endorsement Letter</button>
                             </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="settings-tasks.php">
-                                    <i class="feather-check-circle"></i>
-                                    <span>Tasks</span>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="settings-ojt.php">
-                                    <i class="feather-crosshair"></i>
-                                    <span>Leads</span>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="settings-support.php">
-                                    <i class="feather-life-buoy"></i>
-                                    <span>Support</span>
-                                </a>
-                            </li>
-
-                            <li class="nav-item">
-                                <a class="nav-link" href="settings-students.php">
-                                    <i class="feather-users"></i>
-                                    <span>Students</span>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="settings-miscellaneous.php">
-                                    <i class="feather-cast"></i>
-                                    <span>Miscellaneous</span>
-                                </a>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#commentTab">Comments</button>
                             </li>
                         </ul>
                     </div>
                 </div>
-                <!-- [ Content Sidebar  ] end -->
-                <!-- [ Main Area  ] start -->
-                <div class="content-area" data-scrollbar-target="#psScrollbarInit">
-                    <div class="content-area-header bg-white sticky-top">
-                        <div class="page-header-left">
-                            <a href="javascript:void(0);" class="app-sidebar-open-trigger me-2">
-                                <i class="feather-align-left fs-24"></i>
-                            </a>
-                        </div>
-                        <div class="page-header-right ms-auto">
-                            <div class="d-flex align-items-center gap-3 page-header-right-items-wrapper">
-                                <a href="javascript:void(0);" class="text-danger">Cancel</a>
-                                <a href="javascript:void(0);" class="btn btn-primary successAlertMessage">
-                                    <i class="feather-save me-2"></i>
-                                    <span>Save Changes</span>
-                                </a>
+            </div>
+            <!-- [ Main Content ] start -->
+            <div class="main-content">
+                <div class="tab-content">
+                    <div class="tab-pane fade show active" id="profileTab" role="tabpanel">
+                        <?php if (!$student): ?>
+                            <div class="card card-body">
+                                <div class="alert alert-warning mb-0">No student found for this ID.</div>
                             </div>
-                        </div>
+                        <?php else: ?>
+                            <?php
+                            $full_name = trim(($student['first_name'] ?? '') . ' ' . ($student['middle_name'] ?? '') . ' ' . ($student['last_name'] ?? ''));
+                            $profile_picture = trim((string)($student['profile_picture'] ?? ''));
+                            $profile_img_src = 'assets/images/avatar/1.png';
+                            if ($profile_picture !== '' && file_exists(__DIR__ . '/' . $profile_picture)) {
+                                $profile_img_src = $profile_picture . '?v=' . filemtime(__DIR__ . '/' . $profile_picture);
+                            }
+                            ?>
+                            <div class="card card-body lead-info">
+                                <div class="mb-4 d-flex align-items-center justify-content-between">
+                                    <h5 class="fw-bold mb-0">
+                                        <span class="d-block mb-2">Student Information :</span>
+                                        <span class="fs-12 fw-normal text-muted d-block">Live data from students table</span>
+                                    </h5>
+                                    <a href="students-view.php?id=<?php echo intval($student['id']); ?>" class="btn btn-sm btn-light-brand">Open Student View</a>
+                                </div>
+                                <div class="row mb-4">
+                                    <div class="col-lg-2 fw-medium">Profile</div>
+                                    <div class="col-lg-10"><img src="<?php echo htmlspecialchars($profile_img_src); ?>" alt="profile" class="img-fluid rounded-circle" style="width:56px;height:56px;object-fit:cover;"></div>
+                                </div>
+                                <div class="row mb-4">
+                                    <div class="col-lg-2 fw-medium">Name</div>
+                                    <div class="col-lg-10"><?php echo htmlspecialchars(display_text($full_name)); ?></div>
+                                </div>
+                                <div class="row mb-4">
+                                    <div class="col-lg-2 fw-medium">Student ID</div>
+                                    <div class="col-lg-10"><?php echo htmlspecialchars(display_text($student['student_id'] ?? '')); ?></div>
+                                </div>
+                                <div class="row mb-4">
+                                    <div class="col-lg-2 fw-medium">Course</div>
+                                    <div class="col-lg-10"><?php echo htmlspecialchars(display_text($student['course_name'] ?? '')); ?></div>
+                                </div>
+                                <div class="row mb-4">
+                                    <div class="col-lg-2 fw-medium">Email</div>
+                                    <div class="col-lg-10"><?php echo htmlspecialchars(display_text($student['email'] ?? '')); ?></div>
+                                </div>
+                                <div class="row mb-4">
+                                    <div class="col-lg-2 fw-medium">Phone</div>
+                                    <div class="col-lg-10"><?php echo htmlspecialchars(display_text($student['phone'] ?? '')); ?></div>
+                                </div>
+                                <div class="row mb-4">
+                                    <div class="col-lg-2 fw-medium">Gender</div>
+                                    <div class="col-lg-10"><?php echo htmlspecialchars(display_text(isset($student['gender']) ? ucfirst((string)$student['gender']) : '')); ?></div>
+                                </div>
+                                <div class="row mb-4">
+                                    <div class="col-lg-2 fw-medium">Date of Birth</div>
+                                    <div class="col-lg-10"><?php echo htmlspecialchars(display_text($student['date_of_birth'] ?? '')); ?></div>
+                                </div>
+                                <div class="row mb-0">
+                                    <div class="col-lg-2 fw-medium">Address</div>
+                                    <div class="col-lg-10"><?php echo htmlspecialchars(display_text($student['address'] ?? '')); ?></div>
+                                </div>
+                            </div>
+                            <hr>
+                            <div class="card card-body general-info">
+                                <div class="mb-4 d-flex align-items-center justify-content-between">
+                                    <h5 class="fw-bold mb-0">
+                                        <span class="d-block mb-2">General Information :</span>
+                                        <span class="fs-12 fw-normal text-muted d-block">Live data from students table</span>
+                                    </h5>
+                                </div>
+                                <div class="row mb-4">
+                                    <div class="col-lg-2 fw-medium">Status</div>
+                                    <div class="col-lg-10"><?php echo status_badge_html($student['status'] ?? ''); ?></div>
+                                </div>
+                                <div class="row mb-4">
+                                    <div class="col-lg-2 fw-medium">Supervisor</div>
+                                    <div class="col-lg-10"><?php echo htmlspecialchars(display_text($student['supervisor_name'] ?? '')); ?></div>
+                                </div>
+                                <div class="row mb-4">
+                                    <div class="col-lg-2 fw-medium">Coordinator</div>
+                                    <div class="col-lg-10"><?php echo htmlspecialchars(display_text($student['coordinator_name'] ?? '')); ?></div>
+                                </div>
+                                <div class="row mb-4">
+                                    <div class="col-lg-2 fw-medium">Emergency Contact</div>
+                                    <div class="col-lg-10"><?php echo htmlspecialchars(display_text($student['emergency_contact'] ?? '')); ?></div>
+                                </div>
+                                <div class="row mb-4">
+                                    <div class="col-lg-2 fw-medium">Total Hours</div>
+                                    <div class="col-lg-10"><?php echo htmlspecialchars(display_text($student['internal_total_hours'] ?? '')); ?></div>
+                                </div>
+                                <div class="row mb-4">
+                                    <div class="col-lg-2 fw-medium">Hours Remaining</div>
+                                    <div class="col-lg-10"><?php echo htmlspecialchars(display_text($student['internal_total_hours_remaining'] ?? '')); ?></div>
+                                </div>
+                                <div class="row mb-4">
+                                    <div class="col-lg-2 fw-medium">Biometric Registered</div>
+                                    <div class="col-lg-10"><?php echo !empty($student['biometric_registered']) ? 'Yes' : 'No'; ?></div>
+                                </div>
+                                <div class="row mb-4">
+                                    <div class="col-lg-2 fw-medium">Biometric Registered At</div>
+                                    <div class="col-lg-10"><?php echo htmlspecialchars(format_dt($student['biometric_registered_at'] ?? '')); ?></div>
+                                </div>
+                                <div class="row mb-4">
+                                    <div class="col-lg-2 fw-medium">Created At</div>
+                                    <div class="col-lg-10"><?php echo htmlspecialchars(format_dt($student['created_at'] ?? '')); ?></div>
+                                </div>
+                                <div class="row mb-0">
+                                    <div class="col-lg-2 fw-medium">Updated At</div>
+                                    <div class="col-lg-10"><?php echo htmlspecialchars(format_dt($student['updated_at'] ?? '')); ?></div>
+                                </div>
+                            </div>
+                        <?php endif; ?>
                     </div>
-                    <div class="content-area-body">
-                        <div class="card mb-0">
-                            <div class="card-body">
-                                <div class="mb-5">
-                                    <h4 class="fw-bold">SMTP Settings</h4>
-                                    <div class="fs-12 text-muted">SMTP setup main email</div>
-                                </div>
-                                <div class="mb-5">
-                                    <label class="form-label">Mail Engine <span class="text-danger">*</span></label>
-                                    <select class="form-select" data-select2-selector="default">
-                                        <option selected>HPMailer</option>
-                                        <option value="">CodeIgniter</option>
-                                    </select>
-                                    <small class="form-text text-muted">Mail Engine [Ex: HPMailer/CodeIgniter]</small>
-                                </div>
-                                <div class="mb-5">
-                                    <label class="form-label">Email Protocol</label>
-                                    <select class="form-select" data-select2-selector="default">
-                                        <option value="">Mail</option>
-                                        <option selected>SMTP</option>
-                                        <option value="">Sendmail</option>
-                                    </select>
-                                    <small class="form-text text-muted">Email Protocol [Ex: Mail/SMTP/Sendmail]</small>
-                                </div>
-                                <div class="mb-5">
-                                    <label class="form-label">Email</label>
-                                    <input type="text" class="form-control" placeholder="Email">
-                                    <small class="form-text text-muted">Email [Ex: support@theme_ocean.com]</small>
-                                </div>
-                                <div class="mb-5">
-                                    <label class="form-label">Email Charset</label>
-                                    <input type="text" class="form-control" placeholder="Email Charset">
-                                    <small class="form-text text-muted">Email [Ex: utf-8]</small>
-                                </div>
-                                <div class="mb-5">
-                                    <label class="form-label">Email Signature</label>
-                                    <textarea class="form-control" rows="10" placeholder="Email Signature"></textarea>
-                                    <small class="form-text text-muted">Email Signature [Ex: theme_ocean]</small>
-                                </div>
-                                <div class="mb-5">
-                                    <label class="form-label">Predefined Header</label>
-                                    <textarea class="form-control" rows="10" placeholder="Predefined Header"></textarea>
-                                    <small class="form-text text-muted">Predefined Header [Ex: Email template header code]</small>
-                                </div>
-                                <div class="mb-0">
-                                    <label class="form-label">Predefined Footer</label>
-                                    <textarea class="form-control" rows="10" placeholder="Predefined Footer"></textarea>
-                                    <small class="form-text text-muted">Predefined Footer [Ex: Email template footer code]</small>
-                                </div>
-                                <hr class="my-5">
+                    <div class="tab-pane fade" id="applicationTab" role="tabpanel">
+                        <div class="card card-body">
+                            <?php if ($flash_message !== ''): ?>
+                                <div class="alert alert-<?php echo htmlspecialchars($flash_type); ?> mb-3"><?php echo htmlspecialchars($flash_message); ?></div>
+                            <?php endif; ?>
+
+                            <?php if ($view_user_id <= 0): ?>
+                                <div class="alert alert-warning mb-0">Open this page from OJT List using a specific student row so document data can be linked by user ID.</div>
+                            <?php else: ?>
                                 <div class="mb-4">
-                                    <h4 class="fw-bold">Email Queue</h4>
-                                    <div class="fs-12 text-muted">Email queue setup</div>
+                                    <h5 class="fw-bold mb-1">Application Letter Autofill</h5>
+                                    <p class="text-muted mb-0">Saved data here will be used by <code>document_application.php</code> when this student is selected.</p>
                                 </div>
-                                <div class="mb-5">
-                                    <label class="form-label">
-                                        <span class="me-2">Enable Email Queue</span>
-                                        <span data-bs-toggle="tooltip" title="To speed up the emailing process, the system will add the emails in queue and will send them via cron job, make sure that the cron job is properly configured in order to use this feature."><i class="feather-info fs-13 text-muted"></i></span>
-                                    </label>
-                                    <select class="form-select" data-select2-selector="icon">
-                                        <option value="" data-icon="feather-check text-success" selected>Yes</option>
-                                        <option value="" data-icon="feather-x text-danger">No</option>
-                                    </select>
-                                    <small class="form-text text-muted">Enable Email Queue [Ex: YES/NO]</small>
+
+                                <div class="mb-3">
+                                    <strong>Student:</strong>
+                                    <?php
+                                    $student_name = $student ? trim(($student['first_name'] ?? '') . ' ' . ($student['middle_name'] ?? '') . ' ' . ($student['last_name'] ?? '')) : 'Unknown';
+                                    echo htmlspecialchars($student_name);
+                                    ?>
+                                    <span class="text-muted">(ID: <?php echo intval($view_user_id); ?>)</span>
                                 </div>
-                                <div class="mb-0">
-                                    <label class="form-label">
-                                        <span class="me-2">Do not add emails with attachments in the queue?</span>
-                                        <span data-bs-toggle="tooltip" title="Most likely you will encounter problems with the email queue if the system needs to add big files to the queue."><i class="feather-info fs-13 text-muted"></i></span>
-                                    </label>
-                                    <select class="form-select" data-select2-selector="icon">
-                                        <option value="" data-icon="feather-check text-success" selected>Yes</option>
-                                        <option value="" data-icon="feather-x text-danger">No</option>
-                                    </select>
-                                    <small class="form-text text-muted">Do not add emails with attachments in the queue? [Ex: YES/NO]</small>
-                                </div>
-                                <hr class="my-5">
-                                <div class="mb-5">
-                                    <h4 class="fw-bold">Send Test Email</h4>
-                                    <div class="fs-12 text-muted">Send test email to make sure that your SMTP settings is set correctly.</div>
-                                </div>
-                                <div class="mb-0">
-                                    <label class="form-label">Test Email</label>
-                                    <div class="input-group">
-                                        <input type="text" class="form-control" placeholder="Send Test Email">
-                                        <a href="javascript:void(0);" class="input-group-text">Send Test</a>
+
+                                <form method="post" action="ojt-view.php?id=<?php echo intval($selected_student_id); ?>">
+                                    <input type="hidden" name="save_application_letter" value="1">
+                                    <input type="hidden" name="user_id" value="<?php echo intval($selected_student_id); ?>">
+
+                                    <div class="row g-3">
+                                        <div class="col-md-4">
+                                            <label class="form-label">Date</label>
+                                            <input type="date" name="date" class="form-control" value="<?php echo htmlspecialchars($app_letter['date']); ?>">
+                                        </div>
+                                        <div class="col-md-8">
+                                            <label class="form-label">Mr./Ms. (as to appear)</label>
+                                            <input type="text" name="application_person" class="form-control" value="<?php echo htmlspecialchars($app_letter['application_person']); ?>" placeholder="Recipient full name">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Position</label>
+                                            <input type="text" name="position" class="form-control" value="<?php echo htmlspecialchars($app_letter['position']); ?>" placeholder="Position">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Company Name</label>
+                                            <input type="text" name="company_name" class="form-control" value="<?php echo htmlspecialchars($app_letter['company_name']); ?>" placeholder="Company name">
+                                        </div>
+                                        <div class="col-12">
+                                            <label class="form-label">Company Address</label>
+                                            <textarea name="company_address" class="form-control" rows="2" placeholder="Company address"><?php echo htmlspecialchars($app_letter['company_address']); ?></textarea>
+                                        </div>
                                     </div>
-                                    <small class="form-text text-muted">Send Test Email [Ex: test_1@email.com, test_2@email.com, test_3@email.com]</small>
+
+                                    <div class="mt-3 d-flex gap-2">
+                                        <button type="submit" class="btn btn-primary">Save Application Data</button>
+                                        <a href="document_application.php?id=<?php echo intval($selected_student_id); ?>" class="btn btn-success">Open Application Letter</a>
+                                    </div>
+                                </form>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="moaTab" role="tabpanel">
+                        <div class="card card-body">
+                            <?php if ($view_user_id <= 0): ?>
+                                <div class="alert alert-warning mb-0">Open this page from OJT List using a specific student row so document data can be linked by user ID.</div>
+                            <?php else: ?>
+                                <div class="mb-4">
+                                    <h5 class="fw-bold mb-1">MOA Autofill</h5>
+                                    <p class="text-muted mb-0">Saved data here will be used by <code>document_moa.php</code> when this student is selected.</p>
+                                </div>
+                                <form method="post" action="ojt-view.php?id=<?php echo intval($selected_student_id); ?>">
+                                    <input type="hidden" name="save_moa" value="1">
+                                    <input type="hidden" name="user_id" value="<?php echo intval($selected_student_id); ?>">
+
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label">Company Name</label>
+                                            <input type="text" name="company_name" class="form-control" value="<?php echo htmlspecialchars($moa_data['company_name']); ?>">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Company Address</label>
+                                            <input type="text" name="company_address" class="form-control" value="<?php echo htmlspecialchars($moa_data['company_address']); ?>">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label">Partner Representative</label>
+                                            <input type="text" name="partner_representative" class="form-control" value="<?php echo htmlspecialchars($moa_data['partner_representative']); ?>">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label">Partner Representative Position</label>
+                                            <input type="text" name="position" class="form-control" value="<?php echo htmlspecialchars($moa_data['position']); ?>">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label">Coordinator / School Rep</label>
+                                            <input type="text" name="coordinator" class="form-control" value="<?php echo htmlspecialchars($moa_data['coordinator']); ?>">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label">Coordinator / School Rep Position</label>
+                                            <input type="text" name="school_position" class="form-control" value="<?php echo htmlspecialchars($moa_data['school_position']); ?>">
+                                        </div>
+
+
+
+
+                                        <div class="col-md-4">
+                                            <label class="form-label">MOA Date</label>
+                                            <input type="date" name="moa_date" class="form-control" value="<?php echo htmlspecialchars($moa_data['moa_date']); ?>">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label">MOA Address / Signing Place</label>
+                                            <input type="text" name="moa_address" class="form-control" value="<?php echo htmlspecialchars($moa_data['moa_address']); ?>">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label">School Administrator</label>
+                                            <input type="text" name="school_administrator" class="form-control" value="<?php echo htmlspecialchars($moa_data['school_administrator']); ?>">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label">School Administrator Position</label>
+                                            <input type="text" name="school_admin_position" class="form-control" value="<?php echo htmlspecialchars($moa_data['school_admin_position']); ?>">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label">Witness</label>
+                                            <input type="text" name="witness" class="form-control" value="<?php echo htmlspecialchars($moa_data['witness']); ?>">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label">Notary Address/City</label>
+                                            <input type="text" name="notary_address" class="form-control" value="<?php echo htmlspecialchars($moa_data['notary_address']); ?>">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label">Acknowledgement Date</label>
+                                            <input type="date" name="acknowledgement_date" class="form-control" value="<?php echo htmlspecialchars($moa_data['acknowledgement_date']); ?>">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Acknowledgement Address</label>
+                                            <input type="text" name="acknowledgement_address" class="form-control" value="<?php echo htmlspecialchars($moa_data['acknowledgement_address']); ?>">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Company Receipt / Ref.</label>
+                                            <input type="text" name="company_receipt" class="form-control" value="<?php echo htmlspecialchars($moa_data['company_receipt']); ?>">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">Doc No.</label>
+                                            <input type="text" name="doc_no" class="form-control" value="<?php echo htmlspecialchars($moa_data['doc_no']); ?>">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">Page No.</label>
+                                            <input type="text" name="page_no" class="form-control" value="<?php echo htmlspecialchars($moa_data['page_no']); ?>">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">Book No.</label>
+                                            <input type="text" name="book_no" class="form-control" value="<?php echo htmlspecialchars($moa_data['book_no']); ?>">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">Series of</label>
+                                            <input type="text" name="series_no" class="form-control" value="<?php echo htmlspecialchars($moa_data['series_no']); ?>">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Total Hours (Clause #10)</label>
+                                            <input type="number" name="total_hours" class="form-control" min="1" step="1" value="<?php echo htmlspecialchars($moa_data['total_hours']); ?>">
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-3 d-flex gap-2">
+                                        <button type="submit" class="btn btn-primary">Save MOA Data</button>
+                                        <a href="document_moa.php?id=<?php echo intval($selected_student_id); ?>" class="btn btn-success">Open MOA</a>
+                                    </div>
+                                </form>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="endorsementTab" role="tabpanel">
+                        <div class="card card-body">
+                            <div class="d-flex align-items-center justify-content-center" style="height: calc(100vh - 315px)">
+                                <div class="text-center">
+                                    <h2 class="fs-16 fw-semibold">No notes yet!</h2>
+                                    <p class="fs-12 text-muted">There is no notes create yet.</p>
+                                    <a href="javascript:void(0);" class="avatar-text bg-soft-primary text-primary mx-auto" data-bs-toggle="tooltip" title="Create Notes">
+                                        <i class="feather-plus"></i>
+                                    </a>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <!-- [ Footer ] start -->
-                    <footer class="footer">
-                        <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
-                            <span>Copyright ©</span>
-                            <script>
-                                document.write(new Date().getFullYear());
-                            </script>
-                        </p>
-                        <div class="d-flex align-items-center gap-4">
-                            <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Help</a>
-                            <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Terms</a>
-                            <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Privacy</a>
+                    <div class="tab-pane fade" id="commentTab" role="tabpanel">
+                        <div class="card card-body">
+                            <div class="d-flex align-items-center justify-content-center" style="height: calc(100vh - 315px)">
+                                <div class="text-center">
+                                    <h2 class="fs-16 fw-semibold">No comments yet!</h2>
+                                    <p class="fs-12 text-muted">There is no comments posted yet.</p>
+                                    <a href="javascript:void(0);" class="avatar-text bg-soft-primary text-primary mx-auto" data-bs-toggle="tooltip" title="Add Comments">
+                                        <i class="feather-plus"></i>
+                                    </a>
+                                </div>
+                            </div>
                         </div>
-                    </footer>
-                    <!-- [ Footer ] end -->
+                    </div>
                 </div>
-                <!-- [ Content Area ] end -->
             </div>
             <!-- [ Main Content ] end -->
         </div>
+        <!-- [ Footer ] start -->
+        <footer class="footer">
+            <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
+                <span>Copyright ©</span>
+                <script>
+                    document.write(new Date().getFullYear());
+                </script>
+            </p>
+            <p><span>By: <a target="_blank" href="" target="_blank">ACT 2A</a> </span><span>Distributed by: <a target="_blank" href="" target="_blank">Group 5</a></span></p>
+            <div class="d-flex align-items-center gap-4">
+                <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Help</a>
+                <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Terms</a>
+                <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Privacy</a>
+            </div>
+        </footer>
+        <!-- [ Footer ] end -->
     </main>
     <!--! ================================================================ !-->
     <!--! [End] Main Content !-->
-    <!--! ================================================================ !-->
-    <!--! ================================================================ !-->
-    <!--! BEGIN: Compose Mail Modal !-->
-    <!--! ================================================================ !-->
-    <div class="modal fade-scale" id="composeMail" tabindex="-1" aria-labelledby="composeMail" aria-hidden="true" data-bs-dismiss="ou">
-        <div class="modal-dialog modal-dialog-centered modal-xl" role="document">
-            <div class="modal-content">
-                <!--! BEGIN: [modal-header] !-->
-                <div class="modal-header">
-                    <h2 class="d-flex flex-column mb-0">
-                        <span class="fs-18 fw-bold mb-1">Compose Mail</span>
-                        <small class="d-block fs-11 fw-normal text-muted">Compose Your Message</small>
-                    </h2>
-                    <a href="javascript:void(0)" class="avatar-text avatar-md bg-soft-danger close-icon" data-bs-dismiss="modal">
-                        <i class="feather-x text-danger"></i>
-                    </a>
-                </div>
-                <!--! BEGIN: [modal-body] !-->
-                <div class="modal-body p-0">
-                    <div class="position-relative border-bottom">
-                        <div class="px-2 d-flex align-items-center">
-                            <div class="p-0 w-100">
-                                <input class="form-control border-0 text-dark" name="tomailmodal" placeholder="TO">
-                            </div>
-                        </div>
-                        <a href="javascript:void(0)" class="position-absolute top-50 end-0 translate-middle badge bg-gray-100 border border-gray-3 fs-10 fw-semibold text-uppercase text-dark rounded-pill c-pointer z-index-100" id="ccbccToggleModal"><span data-bs-toggle="tooltip" data-bs-trigger="hover" title="CC / BCC" style="font-size: 9px !important">CC / BCC</span></a>
-                    </div>
-                    <div class="border-bottom mail-cc-bcc-fields" id="ccbccToggleModalFileds" style="display: none">
-                        <div class="px-2 w-100 d-flex align-items-center border-bottom">
-                            <input class="form-control border-0 text-dark" name="ccmailmodal" placeholder="CC">
-                        </div>
-                        <div class="px-2 w-100 d-flex align-items-center">
-                            <input class="form-control border-0 text-dark" name="bccmailmodal" placeholder="BCC">
-                        </div>
-                    </div>
-                    <div class="px-3 w-100 d-flex align-items-center">
-                        <input class="form-control border-0 my-1 w-100 shadow-none" type="email" placeholder="Subject">
-                    </div>
-                    <div class="editor w-100 m-0">
-                        <div class="ht-300 border-bottom-0" id="mailEditorModal"></div>
-                    </div>
-                </div>
-                <!--! BEGIN: [modal-footer] !-->
-                <div class="modal-footer d-flex align-items-center justify-content-between">
-                    <!--! BEGIN: [mail-editor-action-left] !-->
-                    <div class="d-flex align-items-center">
-                        <div class="dropdown me-2">
-                            <a href="javascript:void(0)" data-bs-toggle="dropdown" data-bs-offset="0, 0">
-                                <span class="btn btn-primary dropdown-toggle" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Send Message"> Send </span>
-                            </a>
-                            <div class="dropdown-menu">
-                                <a href="javascript:void(0)" class="dropdown-item" data-action-target="#mailActionMessage">
-                                    <i class="feather-send me-3"></i>
-                                    <span>Instant Send</span>
-                                </a>
-                                <a href="javascript:void(0);" class="dropdown-item successAlertMessage">
-                                    <i class="feather-clock me-3"></i>
-                                    <span>Schedule Send</span>
-                                </a>
-                                <div class="dropdown-divider"></div>
-                                <a href="javascript:void(0)" class="dropdown-item successAlertMessage">
-                                    <i class="feather-x me-3"></i>
-                                    <span>Discard Now</span>
-                                </a>
-                                <a href="javascript:void(0)" class="dropdown-item successAlertMessage">
-                                    <i class="feather-edit-3 me-3"></i>
-                                    <span>Save as Draft</span>
-                                </a>
-                            </div>
-                        </div>
-                        <div class="dropdown me-2 d-none d-sm-block">
-                            <a href="javascript:void(0)" data-bs-toggle="dropdown" data-bs-offset="0, 0">
-                                <span class="btn btn-icon" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Pick Template">
-                                    <i class="feather-hash"></i>
-                                </span>
-                            </a>
-                            <div class="dropdown-menu wd-300">
-                                <a href="javascript:void(0)" class="dropdown-item">
-                                    <i class="feather-file-text me-3"></i>
-                                    <span>Welcome you message</span>
-                                </a>
-                                <a href="javascript:void(0)" class="dropdown-item">
-                                    <i class="feather-file-text me-3"></i>
-                                    <span>Your issues solved</span>
-                                </a>
-                                <a href="javascript:void(0)" class="dropdown-item">
-                                    <i class="feather-file-text me-3"></i>
-                                    <span>Thank you message</span>
-                                </a>
-                                <a href="javascript:void(0)" class="dropdown-item">
-                                    <i class="feather-file-text me-3"></i>
-                                    <span>Make a offer message</span>
-                                </a>
-                                <a href="javascript:void(0)" class="dropdown-item">
-                                    <i class="feather-file-text me-3"></i>
-                                    <span>Add the Unsubscribe option</span>
-                                </a>
-                                <a href="javascript:void(0)" class="dropdown-item">
-                                    <i class="feather-file-text me-3"></i>
-                                    <span>Thank your customer for joining</span>
-                                </a>
-                                <div class="dropdown-divider"></div>
-                                <a href="javascript:void(0)" class="dropdown-item">
-                                    <i class="feather-save me-3"></i>
-                                    <span>Save as Template</span>
-                                </a>
-                                <a href="javascript:void(0)" class="dropdown-item">
-                                    <i class="feather-sun me-3"></i>
-                                    <span>Manage Template</span>
-                                </a>
-                            </div>
-                        </div>
-                        <div class="dropdown">
-                            <a href="javascript:void(0)" data-bs-toggle="dropdown" data-bs-offset="0, 0">
-                                <span class="btn btn-icon" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Upload Attachments">
-                                    <i class="feather-upload"></i>
-                                </span>
-                            </a>
-                            <div class="dropdown-menu">
-                                <a href="javascript:void(0)" class="dropdown-item">
-                                    <i class="feather-image me-3"></i>
-                                    <span>Upload Images</span>
-                                </a>
-                                <a href="javascript:void(0)" class="dropdown-item">
-                                    <i class="feather-video me-3"></i>
-                                    <span>Upload Videos</span>
-                                </a>
-                                <a href="javascript:void(0)" class="dropdown-item">
-                                    <i class="feather-mic me-3"></i>
-                                    <span>Upload Musics</span>
-                                </a>
-                                <a href="javascript:void(0)" class="dropdown-item">
-                                    <i class="feather-file-text me-3"></i>
-                                    <span>Upload Documents</span>
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                    <!--! BEGIN: [mail-editor-action-right] !-->
-                    <div class="d-flex align-items-center">
-                        <div class="dropdown me-2">
-                            <a href="javascript:void(0)" data-bs-toggle="dropdown" data-bs-offset="0, 0">
-                                <span class="btn btn-icon" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Editing Actions">
-                                    <i class="feather-more-horizontal"></i>
-                                </span>
-                            </a>
-                            <ul class="dropdown-menu">
-                                <li>
-                                    <a href="javascript:void(0)" class="dropdown-item">
-                                        <i class="feather-type me-3"></i>
-                                        <span>Plain Text Mode</span>
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="javascript:void(0)" class="dropdown-item">
-                                        <i class="feather-check me-3"></i>
-                                        <span>Check Spelling</span>
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="javascript:void(0)" class="dropdown-item">
-                                        <i class="feather-compass me-3"></i>
-                                        <span>Smart Compose</span>
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="javascript:void(0)" class="dropdown-item">
-                                        <i class="feather-feather me-3"></i>
-                                        <span>Manage Signature</span>
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                        <a href="javascript:void(0);" data-bs-dismiss="modal">
-                            <span class="btn btn-icon" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Delete Message">
-                                <i class="feather-x"></i>
-                            </span>
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <!--! ================================================================ !-->
-    <!--! END: Compose Mail Modal !-->
-    <!--! ================================================================ !-->
-
-    <!--! ================================================================ !-->
- 
-    <!--! ================================================================ !-->
-    <!--! BEGIN: Downloading Toast !-->
-    <!--! ================================================================ !-->
-    <div class="position-fixed" style="right: 5px; bottom: 5px; z-index: 999999">
-        <div id="toast" class="toast bg-black hide" data-bs-delay="3000" role="alert" aria-live="assertive" aria-atomic="true">
-            <div class="toast-header px-3 bg-transparent d-flex align-items-center justify-content-between border-bottom border-light border-opacity-10">
-                <div class="text-white mb-0 mr-auto">Downloading...</div>
-                <a href="javascript:void(0)" class="ms-2 mb-1 close fw-normal" data-bs-dismiss="toast" aria-label="Close">
-                    <span class="text-white">&times;</span>
-                </a>
-            </div>
-            <div class="toast-body p-3 text-white">
-                <h6 class="fs-13 text-white">Project.zip</h6>
-                <span class="text-light fs-11">4.2mb of 5.5mb</span>
-            </div>
-            <div class="toast-footer p-3 pt-0 border-top border-light border-opacity-10">
-                <div class="progress mt-3" style="height: 5px">
-                    <div class="progress-bar progress-bar-striped progress-bar-animated w-75 bg-dark" role="progressbar" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <!--! ================================================================ !-->
-    <!--! END: Downloading Toast !-->
     <!--! ================================================================ !-->
     <!--! ================================================================ !-->
     <!--! BEGIN: Theme Customizer !-->
@@ -1017,7 +1382,7 @@
     <!--! END: Vendors JS !-->
     <!--! BEGIN: Apps Init  !-->
     <script src="assets/js/common-init.min.js"></script>
-    <script src="assets/js/settings-init.min.js"></script>
+    <script src="assets/js/leads-view-init.min.js"></script>
     <!--! END: Apps Init !-->
     <!--! BEGIN: Theme Customizer  !-->
     <script src="assets/js/theme-customizer-init.min.js"></script>
@@ -1025,4 +1390,5 @@
 </body>
 
 </html>
+
 

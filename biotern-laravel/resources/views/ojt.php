@@ -10,7 +10,7 @@
     <meta name="author" content="ACT 2A Group 5">
     <!--! The above 6 meta tags *must* come first in the head; any other head content must come *after* these tags !-->
     <!--! BEGIN: Apps Title-->
-    <title>BioTern || Tags Settings</title>
+    <title>BioTern || OJT</title>
     <!--! END:  Apps Title-->
     <!--! BEGIN: Favicon-->
     <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
@@ -20,6 +20,9 @@
     <!--! END: Bootstrap CSS-->
     <!--! BEGIN: Vendors CSS-->
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/vendors.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/vendors/css/dataTables.bs5.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2-theme.min.css">
     <!--! END: Vendors CSS-->
     <!--! BEGIN: Custom CSS-->
     <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css">
@@ -33,6 +36,66 @@
 </head>
 
 <body>
+    <?php
+    $host = 'localhost';
+    $db_user = 'root';
+    $db_password = '';
+    $db_name = 'biotern_db';
+
+    try {
+        $conn = new mysqli($host, $db_user, $db_password, $db_name);
+        if ($conn->connect_error) {
+            die("Connection failed: " . $conn->connect_error);
+        }
+    } catch (Exception $e) {
+        die("Database Error: " . $e->getMessage());
+    }
+
+    $students = [];
+    $students_query = "
+        SELECT
+            s.id,
+            s.student_id,
+            s.first_name,
+            s.last_name,
+            s.email,
+            s.phone,
+            s.status,
+            s.created_at,
+            s.profile_picture,
+            c.name AS course_name,
+            COALESCE(u_supervisor.name, s.supervisor_name) AS supervisor_name,
+            COALESCE(u_coordinator.name, s.coordinator_name) AS coordinator_name
+        FROM students s
+        LEFT JOIN courses c ON s.course_id = c.id
+        LEFT JOIN internships i ON s.id = i.student_id AND i.status = 'ongoing'
+        LEFT JOIN users u_supervisor ON i.supervisor_id = u_supervisor.id
+        LEFT JOIN users u_coordinator ON i.coordinator_id = u_coordinator.id
+        ORDER BY s.first_name ASC
+        LIMIT 100
+    ";
+    $students_result = $conn->query($students_query);
+    if ($students_result && $students_result->num_rows > 0) {
+        while ($row = $students_result->fetch_assoc()) {
+            $students[] = $row;
+        }
+    }
+
+    function getStatusBadge($status)
+    {
+        return intval($status) === 1
+            ? '<span class="badge bg-soft-success text-success">Active</span>'
+            : '<span class="badge bg-soft-danger text-danger">Inactive</span>';
+    }
+
+    function formatDate($date)
+    {
+        if ($date) {
+            return date('M d, Y h:i A', strtotime($date));
+        }
+        return '-';
+    }
+    ?>
     <!--! ================================================================ !-->
     <!--! [Start] Navigation Manu !-->
     <!--! ================================================================ !-->
@@ -86,8 +149,8 @@
                             <li class="nxl-item"><a class="nxl-link" href="apps-calendar.php">Calendar</a></li>
                         </ul>
                     </li>
-                    
-                    
+
+
                     <li class="nxl-item nxl-hasmenu">
                         <a href="javascript:void(0);" class="nxl-link">
                             <span class="nxl-micon"><i class="feather-users"></i></span>
@@ -110,7 +173,7 @@
                             <li class="nxl-item"><a class="nxl-link" href="ojt-create.php">OJT Create</a></li>
                         </ul>
                     </li>
-                    
+
                     <li class="nxl-item nxl-hasmenu">
                         <a href="javascript:void(0);" class="nxl-link">
                             <span class="nxl-micon"><i class="feather-layout"></i></span>
@@ -135,13 +198,13 @@
                             <li class="nxl-item"><a class="nxl-link" href="settings-tags.php">Tags</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="settings-email.php">Email</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="settings-tasks.php">Tasks</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-ojt.php">Leads</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="settings-ojt.php">OJT</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="settings-support.php">Support</a></li>
-                            
-                            
+
+
                             <li class="nxl-item"><a class="nxl-link" href="settings-students.php">Students</a></li>
 
-                            
+
                             <li class="nxl-item"><a class="nxl-link" href="settings-miscellaneous.php">Miscellaneous</a></li>
                         </ul>
                     </li>
@@ -213,7 +276,7 @@
                         </ul>
                     </li>
                 </ul>
-                
+
             </div>
         </div>
     </nav>
@@ -412,614 +475,315 @@
     <!--! ================================================================ !-->
     <!--! [Start] Main Content !-->
     <!--! ================================================================ !-->
-    <main class="nxl-container apps-container">
-        <div class="nxl-content without-header nxl-full-content">
-            <!-- [ Main Content ] start -->
-            <div class="main-content d-flex">
-                <!-- [ Content Sidebar ] start -->
-                <div class="content-sidebar content-sidebar-md" data-scrollbar-target="#psScrollbarInit">
-                    <div class="content-sidebar-header bg-white sticky-top hstack justify-content-between">
-                        <h4 class="fw-bolder mb-0">Settings</h4>
-                        <a href="javascript:void(0);" class="app-sidebar-close-trigger d-flex">
-                            <i class="feather-x"></i>
-                        </a>
+    <main class="nxl-container">
+        <div class="nxl-content">
+            <!-- [ page-header ] start -->
+            <div class="page-header">
+                <div class="page-header-left d-flex align-items-center">
+                    <div class="page-header-title">
+                        <h5 class="m-b-10">OJT</h5>
                     </div>
-                    <div class="content-sidebar-body">
-                        <ul class="nav flex-column nxl-content-sidebar-item">
-                            <li class="nav-item">
-                                <a class="nav-link" href="settings-general.php">
-                                    <i class="feather-airplay"></i>
-                                    <span>General</span>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="settings-seo.php">
-                                    <i class="feather-search"></i>
-                                    <span>SEO</span>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link active" href="settings-tags.php">
-                                    <i class="feather-tag"></i>
-                                    <span>Tags</span>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="settings-email.php">
-                                    <i class="feather-mail"></i>
-                                    <span>Email</span>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="settings-tasks.php">
-                                    <i class="feather-check-circle"></i>
-                                    <span>Tasks</span>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="settings-ojt.php">
-                                    <i class="feather-crosshair"></i>
-                                    <span>Leads</span>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="settings-support.php">
-                                    <i class="feather-life-buoy"></i>
-                                    <span>Support</span>
-                                </a>
-                            </li>
-
-                            <li class="nav-item">
-                                <a class="nav-link" href="settings-students.php">
-                                    <i class="feather-users"></i>
-                                    <span>Students</span>
-                                </a>
-                            </li>
-
-
-                            <li class="nav-item">
-                                <a class="nav-link" href="settings-miscellaneous.php">
-                                    <i class="feather-cast"></i>
-                                    <span>Miscellaneous</span>
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
+                    <ul class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="index.php">Home</a></li>
+                        <li class="breadcrumb-item">OJT</li>
+                    </ul>
                 </div>
-                <!-- [ Content Sidebar  ] end -->
-                <!-- [ Main Area  ] start -->
-                <div class="content-area" data-scrollbar-target="#psScrollbarInit">
-                    <div class="content-area-header bg-white sticky-top">
-                        <div class="page-header-left">
-                            <a href="javascript:void(0);" class="app-sidebar-open-trigger me-2">
-                                <i class="feather-align-left fs-24"></i>
+                <div class="page-header-right ms-auto">
+                    <div class="page-header-right-items">
+                        <div class="d-flex d-md-none">
+                            <a href="javascript:void(0)" class="page-header-right-close-toggle">
+                                <i class="feather-arrow-left me-2"></i>
+                                <span>Back</span>
                             </a>
                         </div>
-                        <div class="page-header-right ms-auto">
-                            <div class="d-flex align-items-center gap-3 page-header-right-items-wrapper">
-                                <a href="javascript:void(0);" class="text-danger">Cancel</a>
-                                <a href="javascript:void(0);" class="btn btn-primary successAlertMessage">
-                                    <i class="feather-save me-2"></i>
-                                    <span>Save Changes</span>
+                        <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
+                            <a href="javascript:void(0);" class="btn btn-icon btn-light-brand" data-bs-toggle="collapse" data-bs-target="#collapseOne">
+                                <i class="feather-bar-chart"></i>
+                            </a>
+                            <div class="dropdown">
+                                <a class="btn btn-icon btn-light-brand" data-bs-toggle="dropdown" data-bs-offset="0, 10" data-bs-auto-close="outside">
+                                    <i class="feather-filter"></i>
                                 </a>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="content-area-body">
-                        <div class="card mb-0">
-                            <div class="card-body">
-                                <div class="input-group dropdown mb-4">
-                                    <span class="input-group-text text-success">
-                                        <i class="feather-tag"></i>
-                                    </span>
-                                    <input type="text" class="form-control" aria-label="Text input with segmented dropdown button" value="VIP">
-                                    <button type="button" class="btn btn-light-brand dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown"></button>
-                                    <ul class="dropdown-menu dropdown-menu-end">
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Edit</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Color</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Order</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Status</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Priority</a></li>
-                                        <li>
-                                            <hr class="dropdown-divider">
-                                        </li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Delete</a></li>
-                                    </ul>
-                                    <button type="button" class="btn btn-light-brand">
-                                        <i class="feather-x"></i>
-                                    </button>
-                                </div>
-                                <div class="input-group dropdown mb-4">
-                                    <span class="input-group-text text-danger">
-                                        <i class="feather-tag"></i>
-                                    </span>
-                                    <input type="text" class="form-control" aria-label="Text input with segmented dropdown button" value="Bugs">
-                                    <button type="button" class="btn btn-light-brand dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown"></button>
-                                    <ul class="dropdown-menu dropdown-menu-end">
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Edit</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Color</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Order</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Status</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Priority</a></li>
-                                        <li>
-                                            <hr class="dropdown-divider">
-                                        </li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Delete</a></li>
-                                    </ul>
-                                    <button type="button" class="btn btn-light-brand">
-                                        <i class="feather-x"></i>
-                                    </button>
-                                </div>
-                                <div class="input-group dropdown mb-4">
-                                    <span class="input-group-text text-primary">
-                                        <i class="feather-tag"></i>
-                                    </span>
-                                    <input type="text" class="form-control" aria-label="Text input with segmented dropdown button" value="Team">
-                                    <button type="button" class="btn btn-light-brand dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown"></button>
-                                    <ul class="dropdown-menu dropdown-menu-end">
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Edit</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Color</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Order</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Status</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Priority</a></li>
-                                        <li>
-                                            <hr class="dropdown-divider">
-                                        </li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Delete</a></li>
-                                    </ul>
-                                    <button type="button" class="btn btn-light-brand">
-                                        <i class="feather-x"></i>
-                                    </button>
-                                </div>
-                                <div class="input-group dropdown mb-4">
-                                    <span class="input-group-text text-primary">
-                                        <i class="feather-tag"></i>
-                                    </span>
-                                    <input type="text" class="form-control" aria-label="Text input with segmented dropdown button" value="Primary">
-                                    <button type="button" class="btn btn-light-brand dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown"></button>
-                                    <ul class="dropdown-menu dropdown-menu-end">
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Edit</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Color</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Order</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Status</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Priority</a></li>
-                                        <li>
-                                            <hr class="dropdown-divider">
-                                        </li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Delete</a></li>
-                                    </ul>
-                                    <button type="button" class="btn btn-light-brand">
-                                        <i class="feather-x"></i>
-                                    </button>
-                                </div>
-                                <div class="input-group dropdown mb-4">
-                                    <span class="input-group-text text-success">
-                                        <i class="feather-tag"></i>
-                                    </span>
-                                    <input type="text" class="form-control" aria-label="Text input with segmented dropdown button" value="Updates">
-                                    <button type="button" class="btn btn-light-brand dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown"></button>
-                                    <ul class="dropdown-menu dropdown-menu-end">
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Edit</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Color</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Order</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Status</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Priority</a></li>
-                                        <li>
-                                            <hr class="dropdown-divider">
-                                        </li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Delete</a></li>
-                                    </ul>
-                                    <button type="button" class="btn btn-light-brand">
-                                        <i class="feather-x"></i>
-                                    </button>
-                                </div>
-                                <div class="input-group dropdown mb-4">
-                                    <span class="input-group-text text-warning">
-                                        <i class="feather-tag"></i>
-                                    </span>
-                                    <input type="text" class="form-control" aria-label="Text input with segmented dropdown button" value="Personal">
-                                    <button type="button" class="btn btn-light-brand dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown"></button>
-                                    <ul class="dropdown-menu dropdown-menu-end">
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Edit</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Color</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Order</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Status</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Priority</a></li>
-                                        <li>
-                                            <hr class="dropdown-divider">
-                                        </li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Delete</a></li>
-                                    </ul>
-                                    <button type="button" class="btn btn-light-brand">
-                                        <i class="feather-x"></i>
-                                    </button>
-                                </div>
-                                <div class="input-group dropdown mb-4">
-                                    <span class="input-group-text text-danger">
-                                        <i class="feather-tag"></i>
-                                    </span>
-                                    <input type="text" class="form-control" aria-label="Text input with segmented dropdown button" value="Promotion">
-                                    <button type="button" class="btn btn-light-brand dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown"></button>
-                                    <ul class="dropdown-menu dropdown-menu-end">
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Edit</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Color</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Order</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Status</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Priority</a></li>
-                                        <li>
-                                            <hr class="dropdown-divider">
-                                        </li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Delete</a></li>
-                                    </ul>
-                                    <button type="button" class="btn btn-light-brand">
-                                        <i class="feather-x"></i>
-                                    </button>
-                                </div>
-                                <div class="input-group dropdown mb-4">
-                                    <span class="input-group-text text-teal">
-                                        <i class="feather-tag"></i>
-                                    </span>
-                                    <input type="text" class="form-control" aria-label="Text input with segmented dropdown button" value="Custom">
-                                    <button type="button" class="btn btn-light-brand dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown"></button>
-                                    <ul class="dropdown-menu dropdown-menu-end">
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Edit</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Color</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Order</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Status</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Priority</a></li>
-                                        <li>
-                                            <hr class="dropdown-divider">
-                                        </li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Delete</a></li>
-                                    </ul>
-                                    <button type="button" class="btn btn-light-brand">
-                                        <i class="feather-x"></i>
-                                    </button>
-                                </div>
-                                <div class="input-group dropdown mb-4">
-                                    <span class="input-group-text text-indigo">
-                                        <i class="feather-tag"></i>
-                                    </span>
-                                    <input type="text" class="form-control" aria-label="Text input with segmented dropdown button" value="Wholesale">
-                                    <button type="button" class="btn btn-light-brand dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown"></button>
-                                    <ul class="dropdown-menu dropdown-menu-end">
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Edit</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Color</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Order</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Status</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Priority</a></li>
-                                        <li>
-                                            <hr class="dropdown-divider">
-                                        </li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Delete</a></li>
-                                    </ul>
-                                    <button type="button" class="btn btn-light-brand">
-                                        <i class="feather-x"></i>
-                                    </button>
-                                </div>
-                                <div class="input-group dropdown mb-4">
-                                    <span class="input-group-text text-danger">
-                                        <i class="feather-tag"></i>
-                                    </span>
-                                    <input type="text" class="form-control" aria-label="Text input with segmented dropdown button" value="Low Budgets">
-                                    <button type="button" class="btn btn-light-brand dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown"></button>
-                                    <ul class="dropdown-menu dropdown-menu-end">
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Edit</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Color</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Order</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Status</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Priority</a></li>
-                                        <li>
-                                            <hr class="dropdown-divider">
-                                        </li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Delete</a></li>
-                                    </ul>
-                                    <button type="button" class="btn btn-light-brand">
-                                        <i class="feather-x"></i>
-                                    </button>
-                                </div>
-                                <div class="input-group dropdown mb-4">
-                                    <span class="input-group-text text-success">
-                                        <i class="feather-tag"></i>
-                                    </span>
-                                    <input type="text" class="form-control" aria-label="Text input with segmented dropdown button" value="High Budgets">
-                                    <button type="button" class="btn btn-light-brand dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown"></button>
-                                    <ul class="dropdown-menu dropdown-menu-end">
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Edit</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Color</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Order</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Status</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Priority</a></li>
-                                        <li>
-                                            <hr class="dropdown-divider">
-                                        </li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Delete</a></li>
-                                    </ul>
-                                    <button type="button" class="btn btn-light-brand">
-                                        <i class="feather-x"></i>
-                                    </button>
-                                </div>
-                                <div class="input-group dropdown mb-4">
-                                    <span class="input-group-text text-dark">
-                                        <i class="feather-tag"></i>
-                                    </span>
-                                    <input type="text" class="form-control" aria-label="Text input with segmented dropdown button" value="Important">
-                                    <button type="button" class="btn btn-light-brand dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown"></button>
-                                    <ul class="dropdown-menu dropdown-menu-end">
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Edit</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Color</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Order</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Status</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Priority</a></li>
-                                        <li>
-                                            <hr class="dropdown-divider">
-                                        </li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Delete</a></li>
-                                    </ul>
-                                    <button type="button" class="btn btn-light-brand">
-                                        <i class="feather-x"></i>
-                                    </button>
-                                </div>
-                                <div class="input-group dropdown mb-0">
-                                    <span class="input-group-text text-warning">
-                                        <i class="feather-tag"></i>
-                                    </span>
-                                    <input type="text" class="form-control" aria-label="Text input with segmented dropdown button" value="Review">
-                                    <button type="button" class="btn btn-light-brand dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown"></button>
-                                    <ul class="dropdown-menu dropdown-menu-end">
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Edit</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Color</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Order</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Status</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Priority</a></li>
-                                        <li>
-                                            <hr class="dropdown-divider">
-                                        </li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Delete</a></li>
-                                    </ul>
-                                    <button type="button" class="btn btn-light-brand">
-                                        <i class="feather-x"></i>
-                                    </button>
+                                <div class="dropdown-menu dropdown-menu-end">
+                                    <a href="javascript:void(0);" class="dropdown-item">
+                                        <span class="wd-7 ht-7 bg-primary rounded-circle d-inline-block me-3"></span>
+                                        <span>New</span>
+                                    </a>
+                                    <a href="javascript:void(0);" class="dropdown-item">
+                                        <span class="wd-7 ht-7 bg-warning rounded-circle d-inline-block me-3"></span>
+                                        <span>Working</span>
+                                    </a>
+                                    <a href="javascript:void(0);" class="dropdown-item">
+                                        <span class="wd-7 ht-7 bg-success rounded-circle d-inline-block me-3"></span>
+                                        <span>Qualified</span>
+                                    </a>
+                                    <a href="javascript:void(0);" class="dropdown-item">
+                                        <span class="wd-7 ht-7 bg-danger rounded-circle d-inline-block me-3"></span>
+                                        <span>Declined</span>
+                                    </a>
+                                    <a href="javascript:void(0);" class="dropdown-item">
+                                        <span class="wd-7 ht-7 bg-teal rounded-circle d-inline-block me-3"></span>
+                                        <span>Student</span>
+                                    </a>
+                                    <a href="javascript:void(0);" class="dropdown-item">
+                                        <span class="wd-7 ht-7 bg-indigo rounded-circle d-inline-block me-3"></span>
+                                        <span>Contacted</span>
+                                    </a>
+                                    <div class="dropdown-divider"></div>
+                                    <a href="javascript:void(0);" class="dropdown-item">
+                                        <span class="wd-7 ht-7 bg-warning rounded-circle d-inline-block me-3"></span>
+                                        <span>Pending</span>
+                                    </a>
+                                    <a href="javascript:void(0);" class="dropdown-item">
+                                        <span class="wd-7 ht-7 bg-success rounded-circle d-inline-block me-3"></span>
+                                        <span>Approved</span>
+                                    </a>
+                                    <a href="javascript:void(0);" class="dropdown-item">
+                                        <span class="wd-7 ht-7 bg-teal rounded-circle d-inline-block me-3"></span>
+                                        <span>In Progress</span>
+                                    </a>
                                 </div>
                             </div>
+                            <div class="dropdown">
+                                <a class="btn btn-icon btn-light-brand" data-bs-toggle="dropdown" data-bs-offset="0, 10" data-bs-auto-close="outside">
+                                    <i class="feather-paperclip"></i>
+                                </a>
+                                <div class="dropdown-menu dropdown-menu-end">
+                                    <a href="javascript:void(0);" class="dropdown-item">
+                                        <i class="bi bi-filetype-pdf me-3"></i>
+                                        <span>PDF</span>
+                                    </a>
+                                    <a href="javascript:void(0);" class="dropdown-item">
+                                        <i class="bi bi-filetype-csv me-3"></i>
+                                        <span>CSV</span>
+                                    </a>
+                                    <a href="javascript:void(0);" class="dropdown-item">
+                                        <i class="bi bi-filetype-xml me-3"></i>
+                                        <span>XML</span>
+                                    </a>
+                                    <a href="javascript:void(0);" class="dropdown-item">
+                                        <i class="bi bi-filetype-txt me-3"></i>
+                                        <span>Text</span>
+                                    </a>
+                                    <a href="javascript:void(0);" class="dropdown-item">
+                                        <i class="bi bi-filetype-exe me-3"></i>
+                                        <span>Excel</span>
+                                    </a>
+                                    <div class="dropdown-divider"></div>
+                                    <a href="javascript:void(0);" class="dropdown-item">
+                                        <i class="bi bi-printer me-3"></i>
+                                        <span>Print</span>
+                                    </a>
+                                </div>
+                            </div>
+                            <a href="ojt-create.php" class="btn btn-primary">
+                                <i class="feather-plus me-2"></i>
+                                <span>Create OJT</span>
+                            </a>
                         </div>
                     </div>
-                    <!-- [ Footer ] start -->
-                    <footer class="footer">
-                        <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
-                            <span>Copyright ©</span>
-                            <script>
-                                document.write(new Date().getFullYear());
-                            </script>
-                        </p>
-                        <div class="d-flex align-items-center gap-4">
-                            <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Help</a>
-                            <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Terms</a>
-                            <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Privacy</a>
-                        </div>
-                    </footer>
-                    <!-- [ Footer ] end -->
+                    <div class="d-md-none d-flex align-items-center">
+                        <a href="javascript:void(0)" class="page-header-right-open-toggle">
+                            <i class="feather-align-right fs-20"></i>
+                        </a>
+                    </div>
                 </div>
-                <!-- [ Content Area ] end -->
+            </div>
+            <div id="collapseOne" class="accordion-collapse collapse page-header-collapse">
+                <div class="accordion-body pb-2">
+                    <div class="row">
+                        <div class="col-xxl-3 col-md-6">
+                            <div class="card stretch stretch-full">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <div class="d-flex align-items-center gap-3">
+                                            <div class="avatar-text avatar-xl rounded">
+                                                <i class="feather-users"></i>
+                                            </div>
+                                            <a href="javascript:void(0);" class="fw-bold d-block">
+                                                <span class="d-block">Total OJTs</span>
+                                                <span class="fs-24 fw-bolder d-block">26,595</span>
+                                            </a>
+                                        </div>
+                                        <div class="badge bg-soft-success text-success">
+                                            <i class="feather-arrow-up fs-10 me-1"></i>
+                                            <span>36.85%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-xxl-3 col-md-6">
+                            <div class="card stretch stretch-full">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <div class="d-flex align-items-center gap-3">
+                                            <div class="avatar-text avatar-xl rounded">
+                                                <i class="feather-user-check"></i>
+                                            </div>
+                                            <a href="javascript:void(0);" class="fw-bold d-block">
+                                                <span class="d-block">Active OJTs</span>
+                                                <span class="fs-24 fw-bolder d-block">2,245</span>
+                                            </a>
+                                        </div>
+                                        <div class="badge bg-soft-danger text-danger">
+                                            <i class="feather-arrow-down fs-10 me-1"></i>
+                                            <span>24.56%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-xxl-3 col-md-6">
+                            <div class="card stretch stretch-full">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <div class="d-flex align-items-center gap-3">
+                                            <div class="avatar-text avatar-xl rounded">
+                                                <i class="feather-user-plus"></i>
+                                            </div>
+                                            <a href="javascript:void(0);" class="fw-bold d-block">
+                                                <span class="d-block">New OJTs</span>
+                                                <span class="fs-24 fw-bolder d-block">1,254</span>
+                                            </a>
+                                        </div>
+                                        <div class="badge bg-soft-success text-success">
+                                            <i class="feather-arrow-up fs-10 me-1"></i>
+                                            <span>33.29%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-xxl-3 col-md-6">
+                            <div class="card stretch stretch-full">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <div class="d-flex align-items-center gap-3">
+                                            <div class="avatar-text avatar-xl rounded">
+                                                <i class="feather-user-minus"></i>
+                                            </div>
+                                            <a href="javascript:void(0);" class="fw-bold d-block">
+                                                <span class="d-block">Inactive OJTs</span>
+                                                <span class="fs-24 fw-bolder d-block">4,586</span>
+                                            </a>
+                                        </div>
+                                        <div class="badge bg-soft-danger text-danger">
+                                            <i class="feather-arrow-down fs-10 me-1"></i>
+                                            <span>42.47%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- [ page-header ] end -->
+            <!-- [ Main Content ] start -->
+            <div class="main-content">
+                <div class="row">
+                    <div class="col-lg-12">
+                        <div class="card stretch stretch-full">
+                            <div class="card-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-hover" id="leadList">
+    <thead>
+        <tr>
+            <th class="wd-30">
+                <div class="btn-group mb-1">
+                    <div class="custom-control custom-checkbox ms-1">
+                        <input type="checkbox" class="custom-control-input" id="checkAllLead">
+                        <label class="custom-control-label" for="checkAllLead"></label>
+                    </div>
+                </div>
+            </th>
+            <th>Name</th>
+            <th>Student ID</th>
+            <th>Course</th>
+            <th>Supervisor</th>
+            <th>Coordinator</th>
+            <th class="text-end">Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        <?php if (count($students) > 0): ?>
+            <?php foreach ($students as $index => $student): ?>
+                <tr class="single-item">
+                    <td>
+                        <div class="item-checkbox ms-1">
+                            <div class="custom-control custom-checkbox">
+                                <input type="checkbox" class="custom-control-input checkbox" id="checkBox_<?php echo $student['id']; ?>">
+                                <label class="custom-control-label" for="checkBox_<?php echo $student['id']; ?>"></label>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <a href="ojt-view.php?id=<?php echo $student['id']; ?>" class="hstack gap-3">
+                            <div class="avatar-image avatar-md">
+                                <?php
+                                $pp = $student['profile_picture'] ?? '';
+                                if ($pp && file_exists(__DIR__ . '/' . $pp)) {
+                                    $vb = filemtime(__DIR__ . '/' . $pp);
+                                    echo '<img src="' . htmlspecialchars($pp) . '?v=' . $vb . '" alt="" class="img-fluid">';
+                                } else {
+                                    echo '<img src="assets/images/avatar/' . (($index % 5) + 1) . '.png" alt="" class="img-fluid">';
+                                }
+                                ?>
+                            </div>
+                            <div>
+                                <span class="text-truncate-1-line"><?php echo htmlspecialchars($student['first_name'] . ' ' . $student['last_name']); ?></span>
+                            </div>
+                        </a>
+                    </td>
+                    <td><a href="ojt-view.php?id=<?php echo $student['id']; ?>"><?php echo htmlspecialchars($student['student_id']); ?></a></td>
+                    <td><?php echo htmlspecialchars($student['course_name'] ?? 'N/A'); ?></td>
+                    <td><?php echo htmlspecialchars($student['supervisor_name'] ?? '-'); ?></td>
+                    <td><?php echo htmlspecialchars($student['coordinator_name'] ?? '-'); ?></td>
+                    <td>
+                        <div class="hstack gap-2 justify-content-end">
+                            <a href="ojt-view.php?id=<?php echo $student['id']; ?>" class="btn btn-sm btn-outline-primary">Internal</a>
+                            <a href="ojt-view.php?id=<?php echo $student['id']; ?>" class="btn btn-sm btn-primary">OJT</a>
+                        </div>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+        <?php else: ?>
+            <tr>
+                <td colspan="7" class="text-center py-5">
+                    <p class="text-muted">No students found in database</p>
+                </td>
+            </tr>
+        <?php endif; ?>
+    </tbody>
+</table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
             <!-- [ Main Content ] end -->
         </div>
+        <!-- [ Footer ] start -->
+        <footer class="footer">
+            <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
+                <span>Copyright ©</span>
+                <script>
+                    document.write(new Date().getFullYear());
+                </script>
+            </p>
+            <p><span>By: <a target="_blank" href="" target="_blank">ACT 2A</a> </span><span>Distributed by: <a target="_blank" href="" target="_blank">Group 5</a></span></p>
+            <div class="d-flex align-items-center gap-4">
+                <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Help</a>
+                <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Terms</a>
+                <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Privacy</a>
+            </div>
+        </footer>
+        <!-- [ Footer ] end -->
     </main>
     <!--! ================================================================ !-->
     <!--! [End] Main Content !-->
-    <!--! ================================================================ !-->
-    <!--! ================================================================ !-->
-    <!--! BEGIN: Compose Mail Modal !-->
-    <!--! ================================================================ !-->
-    <div class="modal fade-scale" id="composeMail" tabindex="-1" aria-labelledby="composeMail" aria-hidden="true" data-bs-dismiss="ou">
-        <div class="modal-dialog modal-dialog-centered modal-xl" role="document">
-            <div class="modal-content">
-                <!--! BEGIN: [modal-header] !-->
-                <div class="modal-header">
-                    <h2 class="d-flex flex-column mb-0">
-                        <span class="fs-18 fw-bold mb-1">Compose Mail</span>
-                        <small class="d-block fs-11 fw-normal text-muted">Compose Your Message</small>
-                    </h2>
-                    <a href="javascript:void(0)" class="avatar-text avatar-md bg-soft-danger close-icon" data-bs-dismiss="modal">
-                        <i class="feather-x text-danger"></i>
-                    </a>
-                </div>
-                <!--! BEGIN: [modal-body] !-->
-                <div class="modal-body p-0">
-                    <div class="position-relative border-bottom">
-                        <div class="px-2 d-flex align-items-center">
-                            <div class="p-0 w-100">
-                                <input class="form-control border-0 text-dark" name="tomailmodal" placeholder="TO">
-                            </div>
-                        </div>
-                        <a href="javascript:void(0)" class="position-absolute top-50 end-0 translate-middle badge bg-gray-100 border border-gray-3 fs-10 fw-semibold text-uppercase text-dark rounded-pill c-pointer z-index-100" id="ccbccToggleModal"><span data-bs-toggle="tooltip" data-bs-trigger="hover" title="CC / BCC" style="font-size: 9px !important">CC / BCC</span></a>
-                    </div>
-                    <div class="border-bottom mail-cc-bcc-fields" id="ccbccToggleModalFileds" style="display: none">
-                        <div class="px-2 w-100 d-flex align-items-center border-bottom">
-                            <input class="form-control border-0 text-dark" name="ccmailmodal" placeholder="CC">
-                        </div>
-                        <div class="px-2 w-100 d-flex align-items-center">
-                            <input class="form-control border-0 text-dark" name="bccmailmodal" placeholder="BCC">
-                        </div>
-                    </div>
-                    <div class="px-3 w-100 d-flex align-items-center">
-                        <input class="form-control border-0 my-1 w-100 shadow-none" type="email" placeholder="Subject">
-                    </div>
-                    <div class="editor w-100 m-0">
-                        <div class="ht-300 border-bottom-0" id="mailEditorModal"></div>
-                    </div>
-                </div>
-                <!--! BEGIN: [modal-footer] !-->
-                <div class="modal-footer d-flex align-items-center justify-content-between">
-                    <!--! BEGIN: [mail-editor-action-left] !-->
-                    <div class="d-flex align-items-center">
-                        <div class="dropdown me-2">
-                            <a href="javascript:void(0)" data-bs-toggle="dropdown" data-bs-offset="0, 0">
-                                <span class="btn btn-primary dropdown-toggle" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Send Message"> Send </span>
-                            </a>
-                            <div class="dropdown-menu">
-                                <a href="javascript:void(0)" class="dropdown-item" data-action-target="#mailActionMessage">
-                                    <i class="feather-send me-3"></i>
-                                    <span>Instant Send</span>
-                                </a>
-                                <a href="javascript:void(0);" class="dropdown-item successAlertMessage">
-                                    <i class="feather-clock me-3"></i>
-                                    <span>Schedule Send</span>
-                                </a>
-                                <div class="dropdown-divider"></div>
-                                <a href="javascript:void(0)" class="dropdown-item successAlertMessage">
-                                    <i class="feather-x me-3"></i>
-                                    <span>Discard Now</span>
-                                </a>
-                                <a href="javascript:void(0)" class="dropdown-item successAlertMessage">
-                                    <i class="feather-edit-3 me-3"></i>
-                                    <span>Save as Draft</span>
-                                </a>
-                            </div>
-                        </div>
-                        <div class="dropdown me-2 d-none d-sm-block">
-                            <a href="javascript:void(0)" data-bs-toggle="dropdown" data-bs-offset="0, 0">
-                                <span class="btn btn-icon" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Pick Template">
-                                    <i class="feather-hash"></i>
-                                </span>
-                            </a>
-                            <div class="dropdown-menu wd-300">
-                                <a href="javascript:void(0)" class="dropdown-item">
-                                    <i class="feather-file-text me-3"></i>
-                                    <span>Welcome you message</span>
-                                </a>
-                                <a href="javascript:void(0)" class="dropdown-item">
-                                    <i class="feather-file-text me-3"></i>
-                                    <span>Your issues solved</span>
-                                </a>
-                                <a href="javascript:void(0)" class="dropdown-item">
-                                    <i class="feather-file-text me-3"></i>
-                                    <span>Thank you message</span>
-                                </a>
-                                <a href="javascript:void(0)" class="dropdown-item">
-                                    <i class="feather-file-text me-3"></i>
-                                    <span>Make a offer message</span>
-                                </a>
-                                <a href="javascript:void(0)" class="dropdown-item">
-                                    <i class="feather-file-text me-3"></i>
-                                    <span>Add the Unsubscribe option</span>
-                                </a>
-                                <a href="javascript:void(0)" class="dropdown-item">
-                                    <i class="feather-file-text me-3"></i>
-                                    <span>Thank your customer for joining</span>
-                                </a>
-                                <div class="dropdown-divider"></div>
-                                <a href="javascript:void(0)" class="dropdown-item">
-                                    <i class="feather-save me-3"></i>
-                                    <span>Save as Template</span>
-                                </a>
-                                <a href="javascript:void(0)" class="dropdown-item">
-                                    <i class="feather-sun me-3"></i>
-                                    <span>Manage Template</span>
-                                </a>
-                            </div>
-                        </div>
-                        <div class="dropdown">
-                            <a href="javascript:void(0)" data-bs-toggle="dropdown" data-bs-offset="0, 0">
-                                <span class="btn btn-icon" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Upload Attachments">
-                                    <i class="feather-upload"></i>
-                                </span>
-                            </a>
-                            <div class="dropdown-menu">
-                                <a href="javascript:void(0)" class="dropdown-item">
-                                    <i class="feather-image me-3"></i>
-                                    <span>Upload Images</span>
-                                </a>
-                                <a href="javascript:void(0)" class="dropdown-item">
-                                    <i class="feather-video me-3"></i>
-                                    <span>Upload Videos</span>
-                                </a>
-                                <a href="javascript:void(0)" class="dropdown-item">
-                                    <i class="feather-mic me-3"></i>
-                                    <span>Upload Musics</span>
-                                </a>
-                                <a href="javascript:void(0)" class="dropdown-item">
-                                    <i class="feather-file-text me-3"></i>
-                                    <span>Upload Documents</span>
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                    <!--! BEGIN: [mail-editor-action-right] !-->
-                    <div class="d-flex align-items-center">
-                        <div class="dropdown me-2">
-                            <a href="javascript:void(0)" data-bs-toggle="dropdown" data-bs-offset="0, 0">
-                                <span class="btn btn-icon" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Editing Actions">
-                                    <i class="feather-more-horizontal"></i>
-                                </span>
-                            </a>
-                            <ul class="dropdown-menu">
-                                <li>
-                                    <a href="javascript:void(0)" class="dropdown-item">
-                                        <i class="feather-type me-3"></i>
-                                        <span>Plain Text Mode</span>
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="javascript:void(0)" class="dropdown-item">
-                                        <i class="feather-check me-3"></i>
-                                        <span>Check Spelling</span>
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="javascript:void(0)" class="dropdown-item">
-                                        <i class="feather-compass me-3"></i>
-                                        <span>Smart Compose</span>
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="javascript:void(0)" class="dropdown-item">
-                                        <i class="feather-feather me-3"></i>
-                                        <span>Manage Signature</span>
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                        <a href="javascript:void(0);" data-bs-dismiss="modal">
-                            <span class="btn btn-icon" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Delete Message">
-                                <i class="feather-x"></i>
-                            </span>
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <!--! ================================================================ !-->
-    <!--! END: Compose Mail Modal !-->
-    <!--! ================================================================ !-->
-
-    <!--! ================================================================ !-->
- 
-    <!--! ================================================================ !-->
-    <!--! BEGIN: Downloading Toast !-->
-    <!--! ================================================================ !-->
-    <div class="position-fixed" style="right: 5px; bottom: 5px; z-index: 999999">
-        <div id="toast" class="toast bg-black hide" data-bs-delay="3000" role="alert" aria-live="assertive" aria-atomic="true">
-            <div class="toast-header px-3 bg-transparent d-flex align-items-center justify-content-between border-bottom border-light border-opacity-10">
-                <div class="text-white mb-0 mr-auto">Downloading...</div>
-                <a href="javascript:void(0)" class="ms-2 mb-1 close fw-normal" data-bs-dismiss="toast" aria-label="Close">
-                    <span class="text-white">&times;</span>
-                </a>
-            </div>
-            <div class="toast-body p-3 text-white">
-                <h6 class="fs-13 text-white">Project.zip</h6>
-                <span class="text-light fs-11">4.2mb of 5.5mb</span>
-            </div>
-            <div class="toast-footer p-3 pt-0 border-top border-light border-opacity-10">
-                <div class="progress mt-3" style="height: 5px">
-                    <div class="progress-bar progress-bar-striped progress-bar-animated w-75 bg-dark" role="progressbar" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <!--! ================================================================ !-->
-    <!--! END: Downloading Toast !-->
     <!--! ================================================================ !-->
     <!--! ================================================================ !-->
     <!--! BEGIN: Theme Customizer !-->
@@ -1199,10 +963,14 @@
     <!--! BEGIN: Vendors JS !-->
     <script src="assets/vendors/js/vendors.min.js"></script>
     <!-- vendors.min.js {always must need to be top} -->
+    <script src="assets/vendors/js/dataTables.min.js"></script>
+    <script src="assets/vendors/js/dataTables.bs5.min.js"></script>
+    <script src="assets/vendors/js/select2.min.js"></script>
+    <script src="assets/vendors/js/select2-active.min.js"></script>
     <!--! END: Vendors JS !-->
     <!--! BEGIN: Apps Init  !-->
     <script src="assets/js/common-init.min.js"></script>
-    <script src="assets/js/settings-init.min.js"></script>
+    <script src="assets/js/leads-init.min.js"></script>
     <!--! END: Apps Init !-->
     <!--! BEGIN: Theme Customizer  !-->
     <script src="assets/js/theme-customizer-init.min.js"></script>
@@ -1210,4 +978,5 @@
 </body>
 
 </html>
+
 

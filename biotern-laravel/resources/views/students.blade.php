@@ -94,23 +94,13 @@ if ($dept_res && $dept_res->num_rows) {
 }
 
 $supervisors = [];
-$sup_res = $conn->query("
-    SELECT DISTINCT TRIM(CONCAT_WS(' ', first_name, middle_name, last_name)) AS supervisor_name
-    FROM supervisors
-    WHERE TRIM(CONCAT_WS(' ', first_name, middle_name, last_name)) <> ''
-    ORDER BY supervisor_name ASC
-");
+$sup_res = $conn->query("SELECT DISTINCT supervisor_name FROM students WHERE supervisor_name IS NOT NULL AND supervisor_name <> '' ORDER BY supervisor_name ASC");
 if ($sup_res && $sup_res->num_rows) {
     while ($r = $sup_res->fetch_assoc()) $supervisors[] = $r['supervisor_name'];
 }
 
 $coordinators = [];
-$coor_res = $conn->query("
-    SELECT DISTINCT TRIM(CONCAT_WS(' ', first_name, middle_name, last_name)) AS coordinator_name
-    FROM coordinators
-    WHERE TRIM(CONCAT_WS(' ', first_name, middle_name, last_name)) <> ''
-    ORDER BY coordinator_name ASC
-");
+$coor_res = $conn->query("SELECT DISTINCT coordinator_name FROM students WHERE coordinator_name IS NOT NULL AND coordinator_name <> '' ORDER BY coordinator_name ASC");
 if ($coor_res && $coor_res->num_rows) {
     while ($r = $coor_res->fetch_assoc()) $coordinators[] = $r['coordinator_name'];
 }
@@ -124,18 +114,10 @@ if ($filter_department > 0) {
     $where[] = "i.department_id = " . intval($filter_department);
 }
 if (!empty($filter_supervisor)) {
-    $esc_sup = $conn->real_escape_string($filter_supervisor);
-    $where[] = "(
-        TRIM(CONCAT_WS(' ', sup.first_name, sup.middle_name, sup.last_name)) LIKE '%{$esc_sup}%'
-        OR s.supervisor_name LIKE '%{$esc_sup}%'
-    )";
+    $where[] = "(s.supervisor_name LIKE '%" . $conn->real_escape_string($filter_supervisor) . "%' OR i.supervisor_id IN (SELECT id FROM users WHERE name LIKE '%" . $conn->real_escape_string($filter_supervisor) . "%'))";
 }
 if (!empty($filter_coordinator)) {
-    $esc_coor = $conn->real_escape_string($filter_coordinator);
-    $where[] = "(
-        TRIM(CONCAT_WS(' ', coor.first_name, coor.middle_name, coor.last_name)) LIKE '%{$esc_coor}%'
-        OR s.coordinator_name LIKE '%{$esc_coor}%'
-    )";
+    $where[] = "(s.coordinator_name LIKE '%" . $conn->real_escape_string($filter_coordinator) . "%' OR i.coordinator_id IN (SELECT id FROM users WHERE name LIKE '%" . $conn->real_escape_string($filter_coordinator) . "%'))";
 }
 if ($filter_status >= 0) {
     $where[] = "s.status = " . intval($filter_status);
@@ -154,6 +136,8 @@ $students_query = "
         s.email,
         s.phone,
         s.status,
+        s.supervisor_name,
+        s.coordinator_name,
         s.biometric_registered,
         s.created_at,
         s.profile_picture,
@@ -161,23 +145,15 @@ $students_query = "
         c.id as course_id,
         i.supervisor_id,
         i.coordinator_id,
-        COALESCE(
-            NULLIF(TRIM(CONCAT_WS(' ', sup.first_name, sup.middle_name, sup.last_name)), ''),
-            NULLIF(TRIM(s.supervisor_name), ''),
-            '-'
-        ) AS supervisor_name,
-        COALESCE(
-            NULLIF(TRIM(CONCAT_WS(' ', coor.first_name, coor.middle_name, coor.last_name)), ''),
-            NULLIF(TRIM(s.coordinator_name), ''),
-            '-'
-        ) AS coordinator_name
+        u_supervisor.name as supervisor_name,
+        u_coordinator.name as coordinator_name
     FROM students s
     LEFT JOIN courses c ON s.course_id = c.id
     LEFT JOIN internships i ON i.id = (
         SELECT id FROM internships WHERE student_id = s.id AND status = 'ongoing' ORDER BY id DESC LIMIT 1
     )
-    LEFT JOIN supervisors sup ON i.supervisor_id = sup.id
-    LEFT JOIN coordinators coor ON i.coordinator_id = coor.id
+    LEFT JOIN users u_supervisor ON i.supervisor_id = u_supervisor.id
+    LEFT JOIN users u_coordinator ON i.coordinator_id = u_coordinator.id
     " . (count($where) > 0 ? "WHERE " . implode(' AND ', $where) : "") . "
     ORDER BY s.first_name ASC
     LIMIT 100
@@ -218,13 +194,11 @@ function getStatusBadge($status) {
 }
 
 // Helper function to format date
-if (!function_exists('formatDate')) {
-    function formatDate($date) {
-        if ($date) {
-            return date('M d, Y h:i A', strtotime($date));
-        }
-        return '-';
+function formatDate($date) {
+    if ($date) {
+        return date('M d, Y h:i A', strtotime($date));
     }
+    return '-';
 }
 
 ?>
@@ -241,11 +215,22 @@ if (!function_exists('formatDate')) {
     <meta name="author" content="ACT 2A Group 5">
     <title>BioTern || Students</title>
     <link rel="shortcut icon" type="image/x-icon" href="{{ asset('frontend/assets/images/favicon.ico') }}">
+    <script>
+        (function(){
+            try{
+                var s = localStorage.getItem('app-skin-dark') || localStorage.getItem('app-skin') || localStorage.getItem('app_skin') || localStorage.getItem('theme');
+                if (s && (s.indexOf && s.indexOf('dark') !== -1 || s === 'app-skin-dark')) {
+                    document.documentElement.classList.add('app-skin-dark');
+                }
+            }catch(e){}
+        })();
+    </script>
     <link rel="stylesheet" type="text/css" href="{{ asset('frontend/assets/css/bootstrap.min.css') }}">
     <link rel="stylesheet" type="text/css" href="{{ asset('frontend/assets/vendors/css/vendors.min.css') }}">
     <link rel="stylesheet" type="text/css" href="{{ asset('frontend/assets/vendors/css/dataTables.bs5.min.css') }}">
     <link rel="stylesheet" type="text/css" href="{{ asset('frontend/assets/vendors/css/select2.min.css') }}">
     <link rel="stylesheet" type="text/css" href="{{ asset('frontend/assets/vendors/css/select2-theme.min.css') }}">
+    <script>try{var s=localStorage.getItem('app-skin')||localStorage.getItem('app_skin')||localStorage.getItem('theme'); if(s&&s.indexOf('dark')!==-1)document.documentElement.classList.add('app-skin-dark');}catch(e){};</script>
     <link rel="stylesheet" type="text/css" href="{{ asset('frontend/assets/css/theme.min.css') }}">
     <style>
         html, body {
@@ -280,7 +265,7 @@ if (!function_exists('formatDate')) {
         }
 
         /* Dark mode support for Select2 - using app-skin-dark class */
-        html.app-skin-dark .select2-container--default .select2-selection--single,
+        html.app-skin-light .select2-container--default .select2-selection--single,
         html.app-skin-dark .select2-container--default .select2-selection--multiple {
             color: #f0f0f0 !important;
             background-color: #2d3748 !important;
@@ -307,10 +292,10 @@ if (!function_exists('formatDate')) {
             color: #ffffff !important;
         }
 
-        html.app-skin-dark select.form-control,
+        html.app-skin-light select.form-control,
         html.app-skin-dark select.form-select {
             color: #f0f0f0 !important;
-            background-color: #2d3748 !important;
+            background-color: #0f172a !important;
             border-color: #4a5568 !important;
         }
 
@@ -339,7 +324,7 @@ if (!function_exists('formatDate')) {
             box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.2);
         }
 
-        html.app-skin-dark .filter-form input[type="date"].form-control {
+        html.app-skin-light .filter-form input[type="date"].form-control {
             color: #f0f0f0 !important;
             background-color: #2d3748 !important;
             border-color: #4a5568 !important;
@@ -384,26 +369,6 @@ if (!function_exists('formatDate')) {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-        }
-
-        /* Match ALL filter dropboxes with date picker color */
-        html.app-skin-dark .filter-form select.form-control,
-        html.app-skin-dark .filter-form select.form-select,
-        html.app-skin-dark .filter-form .select2-container--default .select2-selection--single {
-            color: #f0f0f0 !important;
-            background-color: #2d3748 !important;
-            border-color: #4a5568 !important;
-        }
-
-        html.app-skin-dark .filter-form .select2-container--default .select2-selection--single .select2-selection__rendered {
-            color: #f0f0f0 !important;
-        }
-
-        html.app-skin-dark .filter-form .select2-container--default.select2-container--open .select2-dropdown,
-        html.app-skin-dark .filter-form .select2-results__option {
-            background-color: #2d3748 !important;
-            color: #f0f0f0 !important;
-            border-color: #4a5568 !important;
         }
     </style>
 </head>

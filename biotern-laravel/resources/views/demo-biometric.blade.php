@@ -117,135 +117,362 @@ if ($attendance_today->num_rows > 0) {
     <meta name="author" content="ACT 2A Group 5">
     <title>BioTern || Biometric Demo</title>
     <link rel="shortcut icon" type="image/x-icon" href="{{ asset('frontend/assets/images/favicon.ico') }}">
+    <script>
+        (function(){
+            try{
+                var s = localStorage.getItem('app-skin-dark') || localStorage.getItem('app-skin') || localStorage.getItem('app_skin') || localStorage.getItem('theme');
+                if (s && (s.indexOf && s.indexOf('dark') !== -1 || s === 'app-skin-dark')) {
+                    document.documentElement.classList.add('app-skin-dark');
+                }
+            }catch(e){}
+        })();
+    </script>
     <link rel="stylesheet" type="text/css" href="{{ asset('frontend/assets/css/bootstrap.min.css') }}">
     <link rel="stylesheet" type="text/css" href="{{ asset('frontend/assets/vendors/css/vendors.min.css') }}">
+    <script>try{var s=localStorage.getItem('app-skin')||localStorage.getItem('app_skin')||localStorage.getItem('theme'); if(s&&s.indexOf('dark')!==-1)document.documentElement.classList.add('app-skin-dark');}catch(e){};</script>
     <link rel="stylesheet" type="text/css" href="{{ asset('frontend/assets/css/theme.min.css') }}">
     <style>
         .biometric-container {
-            max-width: 900px;
+            max-width: 1080px;
             margin: 0 auto;
-            padding: 20px;
+            padding: 18px;
+        }
+
+        .bio-hero {
+            position: relative;
+            overflow: hidden;
+            border-radius: 20px;
+            padding: 28px;
+            background:
+                radial-gradient(circle at 88% -10%, rgba(244, 183, 64, 0.28), transparent 36%),
+                radial-gradient(circle at -8% 118%, rgba(10, 178, 229, 0.2), transparent 38%),
+                linear-gradient(135deg, #041c3b 0%, #0d2c58 48%, #12456e 100%);
+            color: #f7fbff;
+            box-shadow: 0 24px 44px rgba(8, 22, 46, 0.34);
+            margin-bottom: 1.25rem;
+        }
+
+        .bio-hero h2 {
+            margin: 0 0 0.4rem;
+            font-weight: 800;
+            letter-spacing: 0.3px;
+            color: #ffffff;
+        }
+
+        .bio-hero p {
+            margin: 0;
+            color: rgba(240, 248, 255, 0.86);
+        }
+
+        .bio-hero-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.35rem 0.8rem;
+            border-radius: 999px;
+            border: 1px solid rgba(255, 255, 255, 0.28);
+            background: rgba(255, 255, 255, 0.1);
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            margin-bottom: 0.75rem;
+        }
+
+        .bio-layout {
+            display: grid;
+            grid-template-columns: 290px minmax(0, 1fr);
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .scanner-card,
+        .clock-section,
+        .record-section {
+            border-radius: 18px;
+            border: 1px solid rgba(18, 57, 95, 0.12);
+            background: #ffffff;
+            box-shadow: 0 12px 28px rgba(13, 30, 58, 0.1);
+        }
+
+        .scanner-card {
+            padding: 1.1rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            background:
+                linear-gradient(0deg, rgba(14, 66, 117, 0.04), rgba(14, 66, 117, 0.04)),
+                #ffffff;
         }
 
         .fingerprint-image {
             text-align: center;
-            margin: 30px 0;
+            margin: 0;
+            padding: 1.2rem 0.4rem 0.7rem;
         }
 
         .fingerprint-image img {
-            max-width: 300px;
+            width: 180px;
+            max-width: 100%;
             height: auto;
-            filter: grayscale(100%);
+            filter: contrast(1.05);
+        }
+
+        .scan-label {
+            margin-top: 0.9rem;
+            margin-bottom: 0;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 1.3px;
+            color: #2b5681;
+        }
+
+        .scanner-stat {
+            border-radius: 12px;
+            border: 1px dashed rgba(18, 73, 121, 0.35);
+            background: rgba(9, 92, 156, 0.05);
+            padding: 0.85rem;
+            text-align: center;
+            color: #18426a;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
         }
 
         .clock-section {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 15px;
-            padding: 30px;
-            color: white;
-            margin: 20px 0;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            padding: 1.25rem;
+            color: #0b2748;
         }
 
-        .clock-section h2 {
-            margin-bottom: 25px;
-            font-weight: 700;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        .clock-section h3 {
+            margin-bottom: 1rem;
+            font-weight: 800;
+            color: #0b2748;
         }
 
         .form-group-custom {
-            margin-bottom: 20px;
+            margin-bottom: 0.95rem;
         }
 
         .form-group-custom label {
             display: block;
-            font-weight: 600;
-            margin-bottom: 8px;
-            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 0.45rem;
+            font-size: 12px;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.8px;
+            color: #2d4f72;
         }
 
         .form-group-custom input,
         .form-group-custom select {
             width: 100%;
-            padding: 12px 15px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 8px;
-            background-color: rgba(255, 255, 255, 0.1);
-            color: white;
-            font-size: 16px;
-            transition: all 0.3s ease;
+            padding: 0.68rem 0.85rem;
+            border: 1px solid #c7d6e5;
+            border-radius: 11px;
+            background-color: #f8fbff;
+            color: #0f3154;
+            font-size: 14px;
+            transition: 0.2s ease;
         }
 
-        .form-group-custom input::placeholder {
-            color: rgba(255, 255, 255, 0.7);
+        .form-group-custom select {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            padding-right: 2.25rem;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2322486f' d='M6 9L1.5 4.5h9z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.7rem center;
+            background-size: 12px 12px;
+        }
+
+        .form-group-custom select::-ms-expand {
+            display: none;
         }
 
         .form-group-custom input:focus,
         .form-group-custom select:focus {
             outline: none;
-            background-color: rgba(255, 255, 255, 0.2);
-            border-color: rgba(255, 255, 255, 0.6);
-            box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+            border-color: #2f86ce;
+            box-shadow: 0 0 0 4px rgba(47, 134, 206, 0.16);
+            background: #ffffff;
         }
 
-        .form-group-custom select {
-            appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='white' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 15px center;
-            padding-right: 40px;
-            cursor: pointer;
+        /* Dark mode form surface + readable controls */
+        html.app-skin-dark .clock-section {
+            background: #0b1f35;
+            border-color: rgba(160, 195, 230, 0.18);
+            color: #eaf4ff;
+        }
+
+        html.app-skin-dark .scanner-card,
+        html.app-skin-dark .record-section {
+            background: #0b1f35;
+            border-color: rgba(160, 195, 230, 0.18);
+            color: #eaf4ff;
+        }
+
+        html.app-skin-dark .scan-label,
+        html.app-skin-dark .scanner-stat {
+            color: #cfe6ff;
+        }
+
+        html.app-skin-dark .scanner-stat {
+            background: rgba(58, 118, 173, 0.14);
+            border-color: rgba(145, 190, 230, 0.45);
+        }
+
+        html.app-skin-dark .clock-section h3,
+        html.app-skin-dark .form-group-custom label {
+            color: #cfe6ff;
+        }
+
+        html.app-skin-dark .time-display {
+            background: #163655;
+            border-color: #4e82b4;
+            color: #f6fbff;
+        }
+
+        html.app-skin-dark .form-group-custom input,
+        html.app-skin-dark .form-group-custom select {
+            background: #122d49 !important;
+            border-color: #365a7f !important;
+            color: #f8fbff !important;
+            -webkit-text-fill-color: #f8fbff !important;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23d9edff' d='M6 9L1.5 4.5h9z'/%3E%3C/svg%3E");
+        }
+
+        html.app-skin-dark .form-group-custom input:focus,
+        html.app-skin-dark .form-group-custom select:focus {
+            background: #163655 !important;
+            border-color: #6aa7de !important;
+            box-shadow: 0 0 0 4px rgba(70, 145, 212, 0.2) !important;
+        }
+
+        html.app-skin-dark .form-group-custom select option {
+            background: #122d49;
+            color: #f8fbff;
+        }
+
+        html.app-skin-dark .clock-btn {
+            background: #18395a;
+            border-color: #3f678f;
+            color: #d9edff;
+        }
+
+        html.app-skin-dark .clock-btn:hover {
+            background: #214a73;
+            border-color: #73a8dc;
+        }
+
+        /* Force readable text for native date/time controls */
+        .form-group-custom input[type="date"],
+        .form-group-custom input[type="time"] {
+            color: #0f3154 !important;
+            -webkit-text-fill-color: #0f3154 !important;
+        }
+
+        .form-group-custom input[type="date"]::-webkit-datetime-edit,
+        .form-group-custom input[type="date"]::-webkit-datetime-edit-year-field,
+        .form-group-custom input[type="date"]::-webkit-datetime-edit-month-field,
+        .form-group-custom input[type="date"]::-webkit-datetime-edit-day-field,
+        .form-group-custom input[type="date"]::-webkit-datetime-edit-text,
+        .form-group-custom input[type="time"]::-webkit-datetime-edit,
+        .form-group-custom input[type="time"]::-webkit-datetime-edit-hour-field,
+        .form-group-custom input[type="time"]::-webkit-datetime-edit-minute-field,
+        .form-group-custom input[type="time"]::-webkit-datetime-edit-ampm-field,
+        .form-group-custom input[type="time"]::-webkit-datetime-edit-text {
+            color: #0f3154 !important;
+            -webkit-text-fill-color: #0f3154 !important;
+        }
+
+        html.app-skin-dark .form-group-custom input[type="date"],
+        html.app-skin-dark .form-group-custom input[type="time"] {
+            color: #f8fbff !important;
+            -webkit-text-fill-color: #f8fbff !important;
+        }
+
+        html.app-skin-dark .form-group-custom input[type="date"]::-webkit-datetime-edit,
+        html.app-skin-dark .form-group-custom input[type="date"]::-webkit-datetime-edit-year-field,
+        html.app-skin-dark .form-group-custom input[type="date"]::-webkit-datetime-edit-month-field,
+        html.app-skin-dark .form-group-custom input[type="date"]::-webkit-datetime-edit-day-field,
+        html.app-skin-dark .form-group-custom input[type="date"]::-webkit-datetime-edit-text,
+        html.app-skin-dark .form-group-custom input[type="time"]::-webkit-datetime-edit,
+        html.app-skin-dark .form-group-custom input[type="time"]::-webkit-datetime-edit-hour-field,
+        html.app-skin-dark .form-group-custom input[type="time"]::-webkit-datetime-edit-minute-field,
+        html.app-skin-dark .form-group-custom input[type="time"]::-webkit-datetime-edit-ampm-field,
+        html.app-skin-dark .form-group-custom input[type="time"]::-webkit-datetime-edit-text {
+            color: #f8fbff !important;
+            -webkit-text-fill-color: #f8fbff !important;
+        }
+
+        html.app-skin-dark .form-group-custom input[type="date"]::-webkit-calendar-picker-indicator,
+        html.app-skin-dark .form-group-custom input[type="time"]::-webkit-calendar-picker-indicator {
+            filter: invert(1) brightness(1.2);
+            opacity: 0.95;
+        }
+
+        html.app-skin-dark .record-section h3 {
+            color: #d9edff;
+        }
+
+        html.app-skin-dark .record-table th {
+            background: #1a3a5a;
+            color: #dff0ff;
+            border-bottom-color: #32587e;
+        }
+
+        html.app-skin-dark .record-table td {
+            border-bottom-color: #284a6d;
+            color: #cfe6ff;
+        }
+
+        html.app-skin-dark .record-table tbody tr:hover {
+            background: #13314e;
+        }
+
+        html.app-skin-dark .no-records {
+            color: #a8c7e6;
         }
 
         .form-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-
-        @media (max-width: 768px) {
-            .form-row {
-                grid-template-columns: 1fr;
-            }
+            gap: 0.9rem;
         }
 
         .btn-clock {
             width: 100%;
-            padding: 15px;
-            background-color: rgba(255, 255, 255, 0.3);
-            color: white;
-            border: 2px solid white;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
+            padding: 0.82rem 1rem;
+            background: linear-gradient(90deg, #1e6fb0, #2384b8 58%, #2f9bc0);
+            color: #ffffff;
+            border: 0;
+            border-radius: 11px;
+            font-size: 14px;
+            font-weight: 800;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-top: 10px;
+            letter-spacing: 0.7px;
+            margin-top: 0.25rem;
         }
 
         .btn-clock:hover {
-            background-color: white;
-            color: #667eea;
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-        }
-
-        .btn-clock:active {
-            transform: translateY(0);
+            transform: translateY(-1px);
+            box-shadow: 0 10px 22px rgba(22, 93, 144, 0.28);
+            filter: brightness(1.03);
+            color: #ffffff;
         }
 
         .alert-custom {
-            padding: 15px 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
+            padding: 12px 15px;
+            border-radius: 12px;
+            margin-bottom: 1rem;
             display: flex;
             align-items: center;
-            gap: 12px;
-            animation: slideIn 0.3s ease;
+            gap: 10px;
+            animation: slideIn 0.25s ease;
         }
 
         @keyframes slideIn {
@@ -278,74 +505,68 @@ if ($attendance_today->num_rows > 0) {
         .clock-type-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            margin: 20px 0;
-        }
-
-        @media (max-width: 768px) {
-            .clock-type-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
+            gap: 0.65rem;
+            margin: 0.75rem 0 1rem;
         }
 
         .clock-btn {
-            padding: 12px;
-            background-color: rgba(255, 255, 255, 0.2);
-            border: 2px solid rgba(255, 255, 255, 0.4);
-            color: white;
-            border-radius: 8px;
+            padding: 10px 8px;
+            background-color: #f2f7fc;
+            border: 1px solid #d2e0ee;
+            color: #1a4068;
+            border-radius: 10px;
             cursor: pointer;
-            font-weight: 600;
-            font-size: 12px;
+            font-weight: 700;
+            font-size: 11px;
             transition: all 0.3s ease;
         }
 
         .clock-btn:hover {
-            background-color: rgba(255, 255, 255, 0.3);
-            border-color: white;
+            background-color: #e8f2fb;
+            border-color: #8db7dd;
         }
 
         .clock-btn.active {
-            background-color: white;
-            color: #667eea;
-            border-color: white;
+            background: linear-gradient(135deg, #1f6daa, #3192bf);
+            color: #ffffff;
+            border-color: transparent;
+            box-shadow: 0 8px 16px rgba(25, 91, 140, 0.3);
         }
 
         .record-section {
-            background: white;
-            border-radius: 15px;
-            padding: 30px;
-            margin: 30px 0;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            padding: 1.2rem;
+            margin: 1rem 0;
         }
 
         .record-section h3 {
-            color: #333;
-            margin-bottom: 20px;
-            font-weight: 700;
+            color: #102f51;
+            margin-bottom: 0.95rem;
+            font-weight: 800;
         }
 
         .record-table {
             width: 100%;
             border-collapse: collapse;
+            min-width: 830px;
         }
 
         .record-table th {
-            background-color: #f8f9fa;
-            color: #333;
-            padding: 12px;
+            background-color: #edf4fb;
+            color: #254a6f;
+            padding: 11px;
             text-align: left;
-            font-weight: 600;
-            border-bottom: 2px solid #dee2e6;
+            font-weight: 700;
+            border-bottom: 1px solid #d8e4f0;
         }
 
         .record-table td {
-            padding: 12px;
-            border-bottom: 1px solid #dee2e6;
+            padding: 11px;
+            border-bottom: 1px solid #e7eff8;
+            vertical-align: middle;
         }
 
         .record-table tbody tr:hover {
-            background-color: #f8f9fa;
+            background-color: #f9fcff;
         }
 
         .badge-time {
@@ -374,7 +595,7 @@ if ($attendance_today->num_rows > 0) {
         .no-records {
             text-align: center;
             padding: 40px 20px;
-            color: #999;
+            color: #6b839c;
         }
 
         .no-records i {
@@ -384,13 +605,47 @@ if ($attendance_today->num_rows > 0) {
         }
 
         .time-display {
-            font-size: 24px;
-            font-weight: 700;
+            font-size: 28px;
+            font-weight: 800;
             text-align: center;
-            padding: 20px;
-            background-color: rgba(255, 255, 255, 0.15);
-            border-radius: 8px;
-            margin: 20px 0;
+            letter-spacing: 2px;
+            padding: 0.85rem 1rem;
+            border: 1px dashed #9ec2e2;
+            background: linear-gradient(180deg, #f2f8ff 0%, #f8fbff 100%);
+            border-radius: 11px;
+            margin: 0.35rem 0 1rem;
+            color: #0e355a;
+        }
+
+        .bio-link-wrap {
+            text-align: center;
+            margin-top: 1rem;
+        }
+
+        .bio-link-wrap .btn {
+            border-radius: 11px;
+            padding: 0.75rem 1.2rem;
+            font-weight: 700;
+        }
+
+        @media (max-width: 992px) {
+            .bio-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .scanner-card {
+                padding-bottom: 1rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .clock-type-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
         }
     </style>
 </head>
@@ -584,7 +839,7 @@ if ($attendance_today->num_rows > 0) {
     <header class="nxl-header">
         <div class="header-wrapper">
             <!--! [Start] Header Left !-->
-            <div class="header-left d-flex align-items-center gap-4">
+            <div class="header-left d-flex align-items-center gap-2">
                 <!--! [Start] nxl-head-mobile-toggler !-->
                 <a href="javascript:void(0);" class="nxl-head-mobile-toggler" id="mobile-collapse">
                     <div class="hamburger hamburger--arrowturn">
@@ -604,1413 +859,7 @@ if ($attendance_today->num_rows > 0) {
                     </a>
                 </div>
                 <!--! [End] nxl-navigation-toggle !-->
-                <!--! [Start] nxl-lavel-mega-menu-toggle !-->
-                <div class="nxl-lavel-mega-menu-toggle d-flex d-lg-none">
-                    <a href="javascript:void(0);" id="nxl-lavel-mega-menu-open">
-                        <i class="feather-align-left"></i>
-                    </a>
-                </div>
-                <!--! [End] nxl-lavel-mega-menu-toggle !-->
-                <!--! [Start] nxl-lavel-mega-menu !-->
-                <div class="nxl-drp-link nxl-lavel-mega-menu">
-                    <div class="nxl-lavel-mega-menu-toggle d-flex d-lg-none">
-                        <a href="javascript:void(0)" id="nxl-lavel-mega-menu-hide">
-                            <i class="feather-arrow-left me-2"></i>
-                            <span>Back</span>
-                        </a>
-                    </div>
-                    <!--! [Start] nxl-lavel-mega-menu-wrapper !-->
-                    <div class="nxl-lavel-mega-menu-wrapper d-flex gap-3">
-                        <!--! [Start] nxl-lavel-menu !-->
-                        <div class="dropdown nxl-h-item nxl-lavel-menu">
-                            <a href="javascript:void(0);" class="avatar-text avatar-md bg-primary text-white" data-bs-toggle="dropdown" data-bs-auto-close="outside">
-                                <i class="feather-plus"></i>
-                            </a>
-                            <div class="dropdown-menu nxl-h-dropdown">
-                                <div class="dropdown nxl-level-menu">
-                                    <a href="javascript:void(0);" class="dropdown-item">
-                                        <span class="hstack">
-                                            <i class="feather-send"></i>
-                                            <span>Applications</span>
-                                        </span>
-                                        <i class="feather-chevron-right ms-auto me-0"></i>
-                                    </a>
-                                    <div class="dropdown-menu nxl-h-dropdown">
-                                        <a href="{{ url('/apps-chat') }}" class="dropdown-item">
-                                            <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                            <span>Chat</span>
-                                        </a>
-                                        <a href="{{ url('/apps-email') }}" class="dropdown-item">
-                                            <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                            <span>Email</span>
-                                        </a>
-                                        <a href="{{ url('/apps-tasks') }}" class="dropdown-item">
-                                            <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                            <span>Tasks</span>
-                                        </a>
-                                        <a href="{{ url('/apps-notes') }}" class="dropdown-item">
-                                            <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                            <span>Notes</span>
-                                        </a>
-                                        <a href="{{ url('/apps-storage') }}" class="dropdown-item">
-                                            <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                            <span>Storage</span>
-                                        </a>
-                                        <a href="{{ url('/apps-calendar') }}" class="dropdown-item">
-                                            <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                            <span>Calendar</span>
-                                        </a>
-                                    </div>
-                                </div>
-                                <div class="dropdown-divider"></div>
-                                <div class="dropdown nxl-level-menu">
-                                    <a href="javascript:void(0);" class="dropdown-item">
-                                        <span class="hstack">
-                                            <i class="feather-cast"></i>
-                                            <span>Reports</span>
-                                        </span>
-                                        <i class="feather-chevron-right ms-auto me-0"></i>
-                                    </a>
-                                    <div class="dropdown-menu nxl-h-dropdown">
-                                        <a href="{{ url('/reports-sales') }}" class="dropdown-item">
-                                            <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                            <span>Sales Report</span>
-                                        </a>
-                                        <a href="{{ url('/reports-ojt') }}" class="dropdown-item">
-                                            <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                            <span>OJT Report</span>
-                                        </a>
-                                        <a href="{{ url('/reports-project') }}" class="dropdown-item">
-                                            <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                            <span>Project Report</span>
-                                        </a>
-                                        <a href="{{ url('/reports-timesheets') }}" class="dropdown-item">
-                                            <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                            <span>Timesheets Report</span>
-                                        </a>
-                                    </div>
-                                </div>
-                                <div class="dropdown nxl-level-menu">
-                                    <a href="javascript:void(0);" class="dropdown-item">
-                                        <span class="hstack">
-                                            <i class="feather-at-sign"></i>
-                                            <span>Proposal</span>
-                                        </span>
-                                        <i class="feather-chevron-right ms-auto me-0"></i>
-                                    </a>
-                                    <div class="dropdown-menu nxl-h-dropdown">
-                                        <a href="{{ url('/proposal') }}" class="dropdown-item">
-                                            <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                            <span>Proposal</span>
-                                        </a>
-                                        <a href="{{ url('/proposal-view') }}" class="dropdown-item">
-                                            <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                            <span>Proposal View</span>
-                                        </a>
-                                        <a href="{{ url('/proposal-edit') }}" class="dropdown-item">
-                                            <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                            <span>Proposal Edit</span>
-                                        </a>
-                                        <a href="{{ url('/proposal-create') }}" class="dropdown-item">
-                                            <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                            <span>Proposal Create</span>
-                                        </a>
-                                    </div>
-                                </div>
-                                <div class="dropdown nxl-level-menu">
-                                    <a href="javascript:void(0);" class="dropdown-item">
-                                        <span class="hstack">
-                                            <i class="feather-dollar-sign"></i>
-                                            <span>Payment</span>
-                                        </span>
-                                        <i class="feather-chevron-right ms-auto me-0"></i>
-                                    </a>
-                                    <div class="dropdown-menu nxl-h-dropdown">
-                                        <a href="{{ url('/payment') }}" class="dropdown-item">
-                                            <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                            <span>Payment</span>
-                                        </a>
-                                        <a href="{{ url('/invoice-view') }}" class="dropdown-item">
-                                            <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                            <span>Invoice View</span>
-                                        </a>
-                                        <a href="{{ url('/invoice-create') }}" class="dropdown-item">
-                                            <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                            <span>Invoice Create</span>
-                                        </a>
-                                    </div>
-                                </div>
-                                <div class="dropdown nxl-level-menu">
-                                    <a href="javascript:void(0);" class="dropdown-item">
-                                        <span class="hstack">
-                                            <i class="feather-users"></i>
-                                            <span>Students</span>
-                                        </span>
-                                        <i class="feather-chevron-right ms-auto me-0"></i>
-                                    </a>
-                                    <div class="dropdown-menu nxl-h-dropdown">
-                                        <a href="{{ url('/students') }}" class="dropdown-item">
-                                            <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                            <span>Students</span>
-                                        </a>
-                                        <a href="{{ url('/students-view') }}" class="dropdown-item">
-                                            <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                            <span>Students View</span>
-                                        </a>
-                                        <a href="{{ url('/students-create') }}" class="dropdown-item">
-                                            <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                            <span>Students Create</span>
-                                        </a>
-                                    </div>
-                                </div>
-                                <div class="dropdown nxl-level-menu">
-                                    <a href="javascript:void(0);" class="dropdown-item">
-                                        <span class="hstack">
-                                            <i class="feather-alert-circle"></i>
-                                            <span>Leads</span>
-                                        </span>
-                                        <i class="feather-chevron-right ms-auto me-0"></i>
-                                    </a>
-                                    <div class="dropdown-menu nxl-h-dropdown">
-                                        <a href="{{ url('/ojt') }}" class="dropdown-item">
-                                            <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                            <span>Leads</span>
-                                        </a>
-                                        <a href="{{ url('/ojt-view') }}" class="dropdown-item">
-                                            <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                            <span>OJT View</span>
-                                        </a>
-                                        <a href="{{ url('/ojt-create') }}" class="dropdown-item">
-                                            <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                            <span>OJT Create</span>
-                                        </a>
-                                    </div>
-                                </div>
-                                <div class="dropdown nxl-level-menu">
-                                    <a href="javascript:void(0);" class="dropdown-item">
-                                        <span class="hstack">
-                                            <i class="feather-briefcase"></i>
-                                            <span>Projects</span>
-                                        </span>
-                                        <i class="feather-chevron-right ms-auto me-0"></i>
-                                    </a>
-                                    <div class="dropdown-menu nxl-h-dropdown">
-                                        <a href="{{ url('/projects') }}" class="dropdown-item">
-                                            <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                            <span>Projects</span>
-                                        </a>
-                                        <a href="{{ url('/projects-view') }}" class="dropdown-item">
-                                            <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                            <span>Projects View</span>
-                                        </a>
-                                        <a href="{{ url('/projects-create') }}" class="dropdown-item">
-                                            <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                            <span>Projects Create</span>
-                                        </a>
-                                    </div>
-                                </div>
-                                <div class="dropdown nxl-level-menu">
-                                    <a href="javascript:void(0);" class="dropdown-item">
-                                        <span class="hstack">
-                                            <i class="feather-layout"></i>
-                                            <span>Widgets</span>
-                                        </span>
-                                        <i class="feather-chevron-right ms-auto me-0"></i>
-                                    </a>
-                                    <div class="dropdown-menu nxl-h-dropdown">
-                                        <a href="{{ url('/widgets-lists') }}" class="dropdown-item">
-                                            <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                            <span>Lists</span>
-                                        </a>
-                                        <a href="{{ url('/widgets-tables') }}" class="dropdown-item">
-                                            <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                            <span>Tables</span>
-                                        </a>
-                                        <a href="{{ url('/widgets-charts') }}" class="dropdown-item">
-                                            <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                            <span>Charts</span>
-                                        </a>
-                                        <a href="{{ url('/widgets-statistics') }}" class="dropdown-item">
-                                            <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                            <span>Statistics</span>
-                                        </a>
-                                    </div>
-                                </div>
-                                <div class="dropdown nxl-level-menu">
-                                    <a href="javascript:void(0);" class="dropdown-item">
-                                        <span class="hstack">
-                                            <i class="feather-power"></i>
-                                            <span>Authentication</span>
-                                        </span>
-                                        <i class="feather-chevron-right ms-auto me-0"></i>
-                                    </a>
-                                    <div class="dropdown-menu nxl-h-dropdown">
-                                        <div class="dropdown nxl-level-menu">
-                                            <a href="javascript:void(0);" class="dropdown-item">
-                                                <span class="hstack">
-                                                    <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                                    <span>Login</span>
-                                                </span>
-                                                <i class="feather-chevron-right ms-auto me-0"></i>
-                                            </a>
-                                            <div class="dropdown-menu nxl-h-dropdown">
-                                                <a href="{{ url('/auth-login-cover') }}" class="dropdown-item">
-                                                    <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                                    <span>Cover</span>
-                                                </a>
-                                                <a href="{{ url('/auth-login-cover') }}" class="dropdown-item">
-                                                    <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                                    <span>Minimal</span>
-                                                </a>
-                                                <a href="{{ url('/auth-login-creative') }}" class="dropdown-item">
-                                                    <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                                    <span>Creative</span>
-                                                </a>
-                                            </div>
-                                        </div>
-                                        <div class="dropdown nxl-level-menu">
-                                            <a href="javascript:void(0);" class="dropdown-item">
-                                                <span class="hstack">
-                                                    <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                                    <span>Register</span>
-                                                </span>
-                                                <i class="feather-chevron-right ms-auto me-0"></i>
-                                            </a>
-                                            <div class="dropdown-menu nxl-h-dropdown">
-                                                <a href="{{ url('/auth-register-cover') }}" class="dropdown-item">
-                                                    <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                                    <span>Cover</span>
-                                                </a>
-                                                <a href="{{ url('/auth-register-minimal') }}" class="dropdown-item">
-                                                    <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                                    <span>Minimal</span>
-                                                </a>
-                                                <a href="{{ url('/register_submit') }}" class="dropdown-item">
-                                                    <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                                    <span>Creative</span>
-                                                </a>
-                                            </div>
-                                        </div>
-                                        <div class="dropdown nxl-level-menu">
-                                            <a href="javascript:void(0);" class="dropdown-item">
-                                                <span class="hstack">
-                                                    <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                                    <span>Error-404</span>
-                                                </span>
-                                                <i class="feather-chevron-right ms-auto me-0"></i>
-                                            </a>
-                                            <div class="dropdown-menu nxl-h-dropdown">
-                                                <a href="{{ url('/auth-404-cover') }}" class="dropdown-item">
-                                                    <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                                    <span>Cover</span>
-                                                </a>
-                                                <a href="{{ url('/auth-404-minimal') }}" class="dropdown-item">
-                                                    <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                                    <span>Minimal</span>
-                                                </a>
-                                                <a href="{{ url('/auth-404-creative') }}" class="dropdown-item">
-                                                    <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                                    <span>Creative</span>
-                                                </a>
-                                            </div>
-                                        </div>
-                                        <div class="dropdown nxl-level-menu">
-                                            <a href="javascript:void(0);" class="dropdown-item">
-                                                <span class="hstack">
-                                                    <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                                    <span>Reset Pass</span>
-                                                </span>
-                                                <i class="feather-chevron-right ms-auto me-0"></i>
-                                            </a>
-                                            <div class="dropdown-menu nxl-h-dropdown">
-                                                <a href="{{ url('/auth-reset-cover') }}" class="dropdown-item">
-                                                    <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                                    <span>Cover</span>
-                                                </a>
-                                                <a href="{{ url('/auth-reset-minimal') }}" class="dropdown-item">
-                                                    <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                                    <span>Minimal</span>
-                                                </a>
-                                                <a href="{{ url('/auth-reset-creative') }}" class="dropdown-item">
-                                                    <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                                    <span>Creative</span>
-                                                </a>
-                                            </div>
-                                        </div>
-                                        <div class="dropdown nxl-level-menu">
-                                            <a href="javascript:void(0);" class="dropdown-item">
-                                                <span class="hstack">
-                                                    <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                                    <span>Verify OTP</span>
-                                                </span>
-                                                <i class="feather-chevron-right ms-auto me-0"></i>
-                                            </a>
-                                            <div class="dropdown-menu nxl-h-dropdown">
-                                                <a href="{{ url('/auth-verify-cover') }}" class="dropdown-item">
-                                                    <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                                    <span>Cover</span>
-                                                </a>
-                                                <a href="{{ url('/auth-verify-minimal') }}" class="dropdown-item">
-                                                    <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                                    <span>Minimal</span>
-                                                </a>
-                                                <a href="{{ url('/auth-verify-creative') }}" class="dropdown-item">
-                                                    <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                                    <span>Creative</span>
-                                                </a>
-                                            </div>
-                                        </div>
-                                        <div class="dropdown nxl-level-menu">
-                                            <a href="javascript:void(0);" class="dropdown-item">
-                                                <span class="hstack">
-                                                    <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                                    <span>Maintenance</span>
-                                                </span>
-                                                <i class="feather-chevron-right ms-auto me-0"></i>
-                                            </a>
-                                            <div class="dropdown-menu nxl-h-dropdown">
-                                                <a href="{{ url('/auth-maintenance-cover') }}" class="dropdown-item">
-                                                    <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                                    <span>Cover</span>
-                                                </a>
-                                                <a href="{{ url('/auth-maintenance-minimal') }}" class="dropdown-item">
-                                                    <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                                    <span>Minimal</span>
-                                                </a>
-                                                <a href="{{ url('/auth-maintenance-creative') }}" class="dropdown-item">
-                                                    <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                                    <span>Creative</span>
-                                                </a>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="dropdown-divider"></div>
-                                <a href="javascript:void(0);" class="dropdown-item">
-                                    <i class="feather-plus"></i>
-                                    <span>Add New Items</span>
-                                </a>
-                            </div>
-                        </div>
-                        <!--! [End] nxl-lavel-menu !-->
-                        <!--! [Start] nxl-h-item nxl-mega-menu !-->
-                        <div class="dropdown nxl-h-item nxl-mega-menu">
-                            <a href="javascript:void(0);" class="btn btn-light-brand" data-bs-toggle="dropdown" data-bs-auto-close="outside"> Mega Menu </a>
-                            <div class="dropdown-menu nxl-h-dropdown" id="mega-menu-dropdown">
-                                <div class="d-lg-flex align-items-start">
-                                    <!--! [Start] nxl-mega-menu-tabs !-->
-                                    <div class="nav flex-column nxl-mega-menu-tabs" role="tablist" aria-orientation="vertical">
-                                        <button class="nav-link active nxl-mega-menu-sm" data-bs-toggle="pill" data-bs-target="#v-pills-general" type="button" role="tab">
-                                            <span class="menu-icon">
-                                                <i class="feather-airplay"></i>
-                                            </span>
-                                            <span class="menu-title">General</span>
-                                            <span class="menu-arrow">
-                                                <i class="feather-chevron-right"></i>
-                                            </span>
-                                        </button>
-                                        <button class="nav-link nxl-mega-menu-md" data-bs-toggle="pill" data-bs-target="#v-pills-applications" type="button" role="tab">
-                                            <span class="menu-icon">
-                                                <i class="feather-send"></i>
-                                            </span>
-                                            <span class="menu-title">Applications</span>
-                                            <span class="menu-arrow">
-                                                <i class="feather-chevron-right"></i>
-                                            </span>
-                                        </button>
-                                        <button class="nav-link nxl-mega-menu-lg" data-bs-toggle="pill" data-bs-target="#v-pills-integrations" type="button" role="tab">
-                                            <span class="menu-icon">
-                                                <i class="feather-link-2"></i>
-                                            </span>
-                                            <span class="menu-title">Integrations</span>
-                                            <span class="menu-arrow">
-                                                <i class="feather-chevron-right"></i>
-                                            </span>
-                                        </button>
-                                        <button class="nav-link nxl-mega-menu-xl" data-bs-toggle="pill" data-bs-target="#v-pills-components" type="button" role="tab">
-                                            <span class="menu-icon">
-                                                <i class="feather-layers"></i>
-                                            </span>
-                                            <span class="menu-title">Components</span>
-                                            <span class="menu-arrow">
-                                                <i class="feather-chevron-right"></i>
-                                            </span>
-                                        </button>
-                                        <button class="nav-link nxl-mega-menu-xxl" data-bs-toggle="pill" data-bs-target="#v-pills-authentication" type="button" role="tab">
-                                            <span class="menu-icon">
-                                                <i class="feather-cpu"></i>
-                                            </span>
-                                            <span class="menu-title">Authentication</span>
-                                            <span class="menu-arrow">
-                                                <i class="feather-chevron-right"></i>
-                                            </span>
-                                        </button>
-                                        <button class="nav-link nxl-mega-menu-full" data-bs-toggle="pill" data-bs-target="#v-pills-miscellaneous" type="button" role="tab">
-                                            <span class="menu-icon">
-                                                <i class="feather-bluetooth"></i>
-                                            </span>
-                                            <span class="menu-title">Miscellaneous</span>
-                                            <span class="menu-arrow">
-                                                <i class="feather-chevron-right"></i>
-                                            </span>
-                                        </button>
-                                    </div>
-                                    <!--! [End] nxl-mega-menu-tabs !-->
-                                    <!--! [Start] nxl-mega-menu-tabs-content !-->
-                                    <div class="tab-content nxl-mega-menu-tabs-content">
-                                        <!--! [Start] v-pills-general !-->
-                                        <div class="tab-pane fade show active" id="v-pills-general" role="tabpanel">
-                                            <div class="mb-4 rounded-3 border">
-                                                <img src="{{ asset('frontend/assets/images/banner/mockup.png') }}" alt="" class="img-fluid rounded-3" />
-                                            </div>
-                                            <h6 class="fw-bolder">Duralux - Admin Dashboard UiKit</h6>
-                                            <p class="fs-12 fw-normal text-muted text-truncate-3-line">Get started Duralux with Duralux up and running. Duralux bootstrap template docs helps you to get started with simple html codes.</p>
-                                            <a href="javascript:void(0);" class="fs-13 fw-bold text-primary">Get Started &rarr;</a>
-                                        </div>
-                                        <!--! [End] v-pills-general !-->
-                                        <!--! [Start] v-pills-applications !-->
-                                        <div class="tab-pane fade" id="v-pills-applications" role="tabpanel">
-                                            <div class="row g-4">
-                                                <div class="col-lg-6">
-                                                    <h6 class="dropdown-item-title">Applications</h6>
-                                                    <a href="{{ url('/apps-chat') }}" class="dropdown-item">
-                                                        <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                                        <span>Chat</span>
-                                                    </a>
-                                                    <a href="{{ url('/apps-email') }}" class="dropdown-item">
-                                                        <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                                        <span>Email</span>
-                                                    </a>
-                                                    <a href="{{ url('/apps-tasks') }}" class="dropdown-item">
-                                                        <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                                        <span>Tasks</span>
-                                                    </a>
-                                                    <a href="{{ url('/apps-notes') }}" class="dropdown-item">
-                                                        <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                                        <span>Notes</span>
-                                                    </a>
-                                                    <a href="{{ url('/apps-storage') }}" class="dropdown-item">
-                                                        <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                                        <span>Storage</span>
-                                                    </a>
-                                                    <a href="{{ url('/apps-calendar') }}" class="dropdown-item">
-                                                        <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                                        <span>Calendar</span>
-                                                    </a>
-                                                </div>
-                                                <div class="col-lg-6">
-                                                    <div class="nxl-mega-menu-image">
-                                                        <img src="{{ asset('frontend/assets/images/general/full-avatar.png') }}" alt="" class="img-fluid full-user-avtar" />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <hr class="border-top-dashed" />
-                                            <div class="d-lg-flex align-items-center justify-content-between">
-                                                <div>
-                                                    <h6 class="menu-item-heading text-truncate-1-line">Need more application?</h6>
-                                                    <p class="fs-12 text-muted mb-0 text-truncate-3-line">We are ready to build custom applications.</p>
-                                                </div>
-                                                <div class="mt-2 mt-lg-0">
-                                                    <a href="mailto:flexilecode@gmail.com" class="fs-13 fw-bold text-primary">Contact Us &rarr;</a>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <!--! [End] v-pills-applications !-->
-                                        <!--! [Start] v-pills-integrations !-->
-                                        <div class="tab-pane fade" id="v-pills-integrations" role="tabpanel">
-                                            <div class="row g-lg-4 nxl-mega-menu-integrations">
-                                                <div class="col-lg-12 d-lg-flex align-items-center justify-content-between mb-4 mb-lg-0">
-                                                    <div>
-                                                        <h6 class="fw-bolder text-dark">Integrations</h6>
-                                                        <p class="fs-12 text-muted mb-0">Connect amazing apps on your bucket.</p>
-                                                    </div>
-                                                    <div class="mt-2 mt-lg-0">
-                                                        <a href="javascript:void(0);" class="fs-13 text-primary">Add New &rarr;</a>
-                                                    </div>
-                                                </div>
-                                                <div class="col-lg-4">
-                                                    <a href="javascript:void(0);" class="dropdown-item">
-                                                        <div class="menu-item-icon">
-                                                            <img src="{{ asset('frontend/assets/images/brand/app-store.png') }}" alt="" class="img-fluid" />
-                                                        </div>
-                                                        <div class="menu-item-title">App Store</div>
-                                                        <div class="menu-item-arrow">
-                                                            <i class="feather-arrow-right"></i>
-                                                        </div>
-                                                    </a>
-                                                    <a href="javascript:void(0);" class="dropdown-item">
-                                                        <div class="menu-item-icon">
-                                                            <img src="{{ asset('frontend/assets/images/brand/spotify.png') }}" alt="" class="img-fluid" />
-                                                        </div>
-                                                        <div class="menu-item-title">Spotify</div>
-                                                        <div class="menu-item-arrow">
-                                                            <i class="feather-arrow-right"></i>
-                                                        </div>
-                                                    </a>
-                                                    <a href="javascript:void(0);" class="dropdown-item">
-                                                        <div class="menu-item-icon">
-                                                            <img src="{{ asset('frontend/assets/images/brand/figma.png') }}" alt="" class="img-fluid" />
-                                                        </div>
-                                                        <div class="menu-item-title">Figma</div>
-                                                        <div class="menu-item-arrow">
-                                                            <i class="feather-arrow-right"></i>
-                                                        </div>
-                                                    </a>
-                                                    <a href="javascript:void(0);" class="dropdown-item">
-                                                        <div class="menu-item-icon">
-                                                            <img src="{{ asset('frontend/assets/images/brand/shopify.png') }}" alt="" class="img-fluid" />
-                                                        </div>
-                                                        <div class="menu-item-title">Shopify</div>
-                                                        <div class="menu-item-arrow">
-                                                            <i class="feather-arrow-right"></i>
-                                                        </div>
-                                                    </a>
-                                                    <a href="javascript:void(0);" class="dropdown-item">
-                                                        <div class="menu-item-icon">
-                                                            <img src="{{ asset('frontend/assets/images/brand/paypal.png') }}" alt="" class="img-fluid" />
-                                                        </div>
-                                                        <div class="menu-item-title">Paypal</div>
-                                                        <div class="menu-item-arrow">
-                                                            <i class="feather-arrow-right"></i>
-                                                        </div>
-                                                    </a>
-                                                </div>
-                                                <div class="col-lg-4">
-                                                    <a href="javascript:void(0);" class="dropdown-item">
-                                                        <div class="menu-item-icon">
-                                                            <img src="{{ asset('frontend/assets/images/brand/gmail.png') }}" alt="" class="img-fluid" />
-                                                        </div>
-                                                        <div class="menu-item-title">Gmail</div>
-                                                        <div class="menu-item-arrow">
-                                                            <i class="feather-arrow-right"></i>
-                                                        </div>
-                                                    </a>
-                                                    <a href="javascript:void(0);" class="dropdown-item">
-                                                        <div class="menu-item-icon">
-                                                            <img src="{{ asset('frontend/assets/images/brand/dropbox.png') }}" alt="" class="img-fluid" />
-                                                        </div>
-                                                        <div class="menu-item-title">Dropbox</div>
-                                                        <div class="menu-item-arrow">
-                                                            <i class="feather-arrow-right"></i>
-                                                        </div>
-                                                    </a>
-                                                    <a href="javascript:void(0);" class="dropdown-item">
-                                                        <div class="menu-item-icon">
-                                                            <img src="{{ asset('frontend/assets/images/brand/google-drive.png') }}" alt="" class="img-fluid" />
-                                                        </div>
-                                                        <div class="menu-item-title">Google Drive</div>
-                                                        <div class="menu-item-arrow">
-                                                            <i class="feather-arrow-right"></i>
-                                                        </div>
-                                                    </a>
-                                                    <a href="javascript:void(0);" class="dropdown-item">
-                                                        <div class="menu-item-icon">
-                                                            <img src="{{ asset('frontend/assets/images/brand/github.png') }}" alt="" class="img-fluid" />
-                                                        </div>
-                                                        <div class="menu-item-title">Github</div>
-                                                        <div class="menu-item-arrow">
-                                                            <i class="feather-arrow-right"></i>
-                                                        </div>
-                                                    </a>
-                                                    <a href="javascript:void(0);" class="dropdown-item">
-                                                        <div class="menu-item-icon">
-                                                            <img src="{{ asset('frontend/assets/images/brand/gitlab.png') }}" alt="" class="img-fluid" />
-                                                        </div>
-                                                        <div class="menu-item-title">Gitlab</div>
-                                                        <div class="menu-item-arrow">
-                                                            <i class="feather-arrow-right"></i>
-                                                        </div>
-                                                    </a>
-                                                </div>
-                                                <div class="col-lg-4">
-                                                    <a href="javascript:void(0);" class="dropdown-item">
-                                                        <div class="menu-item-icon">
-                                                            <img src="{{ asset('frontend/assets/images/brand/facebook.png') }}" alt="" class="img-fluid" />
-                                                        </div>
-                                                        <div class="menu-item-title">Facebook</div>
-                                                        <div class="menu-item-arrow">
-                                                            <i class="feather-arrow-right"></i>
-                                                        </div>
-                                                    </a>
-                                                    <a href="javascript:void(0);" class="dropdown-item">
-                                                        <div class="menu-item-icon">
-                                                            <img src="{{ asset('frontend/assets/images/brand/pinterest.png') }}" alt="" class="img-fluid" />
-                                                        </div>
-                                                        <div class="menu-item-title">Pinterest</div>
-                                                        <div class="menu-item-arrow">
-                                                            <i class="feather-arrow-right"></i>
-                                                        </div>
-                                                    </a>
-                                                    <a href="javascript:void(0);" class="dropdown-item">
-                                                        <div class="menu-item-icon">
-                                                            <img src="{{ asset('frontend/assets/images/brand/instagram.png') }}" alt="" class="img-fluid" />
-                                                        </div>
-                                                        <div class="menu-item-title">Instagram</div>
-                                                        <div class="menu-item-arrow">
-                                                            <i class="feather-arrow-right"></i>
-                                                        </div>
-                                                    </a>
-                                                    <a href="javascript:void(0);" class="dropdown-item">
-                                                        <div class="menu-item-icon">
-                                                            <img src="{{ asset('frontend/assets/images/brand/twitter.png') }}" alt="" class="img-fluid" />
-                                                        </div>
-                                                        <div class="menu-item-title">Twitter</div>
-                                                        <div class="menu-item-arrow">
-                                                            <i class="feather-arrow-right"></i>
-                                                        </div>
-                                                    </a>
-                                                    <a href="javascript:void(0);" class="dropdown-item">
-                                                        <div class="menu-item-icon">
-                                                            <img src="{{ asset('frontend/assets/images/brand/youtube.png') }}" alt="" class="img-fluid" />
-                                                        </div>
-                                                        <div class="menu-item-title">Youtube</div>
-                                                        <div class="menu-item-arrow">
-                                                            <i class="feather-arrow-right"></i>
-                                                        </div>
-                                                    </a>
-                                                </div>
-                                            </div>
-                                            <hr class="border-top-dashed" />
-                                            <p class="fs-13 text-muted mb-0">Need help? Contact our <a href="javascript:void(0);" class="fst-italic">support center</a></p>
-                                        </div>
-                                        <!--! [End] v-pills-integrations !-->
-                                        <!--! [Start] v-pills-components !-->
-                                        <div class="tab-pane fade" id="v-pills-components" role="tabpanel">
-                                            <div class="row g-4 align-items-center">
-                                                <div class="col-xl-8">
-                                                    <div class="row g-4">
-                                                        <div class="col-lg-4">
-                                                            <h6 class="dropdown-item-title">Navigation</h6>
-                                                            <a href="javascript:void(0);" class="dropdown-item">CRM</a>
-                                                            <a href="javascript:void(0);" class="dropdown-item">Analytics</a>
-                                                            <a href="javascript:void(0);" class="dropdown-item">Sales</a>
-                                                            <a href="javascript:void(0);" class="dropdown-item">Leads</a>
-                                                            <a href="javascript:void(0);" class="dropdown-item">Projects</a>
-                                                            <a href="javascript:void(0);" class="dropdown-item">Timesheets</a>
-                                                        </div>
-                                                        <div class="col-lg-4">
-                                                            <h6 class="dropdown-item-title">Pages</h6>
-                                                            <a href="javascript:void(0);" class="dropdown-item">OJT </a>
-                                                            <a href="javascript:void(0);" class="dropdown-item">Payments</a>
-                                                            <a href="javascript:void(0);" class="dropdown-item">Projects</a>
-                                                            <a href="javascript:void(0);" class="dropdown-item">Proposals</a>
-                                                            <a href="javascript:void(0);" class="dropdown-item">Students</a>
-                                                            <a href="javascript:void(0);" class="dropdown-item">Documentations</a>
-                                                        </div>
-                                                        <div class="col-lg-4">
-                                                            <h6 class="dropdown-item-title">Authentication</h6>
-                                                            <a href="javascript:void(0);" class="dropdown-item">Login</a>
-                                                            <a href="javascript:void(0);" class="dropdown-item">Regiser</a>
-                                                            <a href="javascript:void(0);" class="dropdown-item">Error-404</a>
-                                                            <a href="javascript:void(0);" class="dropdown-item">Reset Pass</a>
-                                                            <a href="javascript:void(0);" class="dropdown-item">Verify OTP</a>
-                                                            <a href="javascript:void(0);" class="dropdown-item">Maintenance</a>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="col-xl-4">
-                                                    <div class="nxl-mega-menu-image">
-                                                        <img src="{{ asset('frontend/assets/images/banner/1.jpg') }}" alt="" class="img-fluid" />
-                                                    </div>
-                                                    <div class="mt-4">
-                                                        <a href="mailto:flexilecode@gmail.com" class="fs-13 fw-bold">View all resources on Duralux &rarr;</a>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <!--! [End] v-pills-components !-->
-                                        <!--! [Start] v-pills-authentication !-->
-                                        <div class="tab-pane fade" id="v-pills-authentication" role="tabpanel">
-                                            <div class="row g-4 align-items-center nxl-mega-menu-authentication">
-                                                <div class="col-xl-8">
-                                                    <div class="row g-4">
-                                                        <div class="col-lg-4">
-                                                            <h6 class="dropdown-item-title">Cover</h6>
-                                                            <a href="{{ url('/auth-login-cover') }}" class="dropdown-item">
-                                                                <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                                                <span>Login</span>
-                                                            </a>
-                                                            <a href="{{ url('/auth-register-cover') }}" class="dropdown-item">
-                                                                <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                                                <span>Register</span>
-                                                            </a>
-                                                            <a href="{{ url('/auth-404-cover') }}" class="dropdown-item">
-                                                                <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                                                <span>Error-404</span>
-                                                            </a>
-                                                            <a href="{{ url('/auth-reset-cover') }}" class="dropdown-item">
-                                                                <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                                                <span>Reset Pass</span>
-                                                            </a>
-                                                            <a href="{{ url('/auth-verify-cover') }}" class="dropdown-item">
-                                                                <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                                                <span>Verify OTP</span>
-                                                            </a>
-                                                            <a href="{{ url('/auth-maintenance-cover') }}" class="dropdown-item">
-                                                                <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                                                <span>Maintenance</span>
-                                                            </a>
-                                                        </div>
-                                                        <div class="col-lg-4">
-                                                            <h6 class="dropdown-item-title">Minimal</h6>
-                                                            <a href="{{ url('/auth-login-cover') }}" class="dropdown-item">
-                                                                <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                                                <span>Login</span>
-                                                            </a>
-                                                            <a href="{{ url('/auth-register-minimal') }}" class="dropdown-item">
-                                                                <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                                                <span>Register</span>
-                                                            </a>
-                                                            <a href="{{ url('/auth-404-minimal') }}" class="dropdown-item">
-                                                                <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                                                <span>Error-404</span>
-                                                            </a>
-                                                            <a href="{{ url('/auth-reset-minimal') }}" class="dropdown-item">
-                                                                <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                                                <span>Reset Pass</span>
-                                                            </a>
-                                                            <a href="{{ url('/auth-verify-minimal') }}" class="dropdown-item">
-                                                                <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                                                <span>Verify OTP</span>
-                                                            </a>
-                                                            <a href="{{ url('/auth-maintenance-minimal') }}" class="dropdown-item">
-                                                                <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                                                <span>Maintenance</span>
-                                                            </a>
-                                                        </div>
-                                                        <div class="col-lg-4">
-                                                            <h6 class="dropdown-item-title">Creative</h6>
-                                                            <a href="{{ url('/auth-login-creative') }}" class="dropdown-item">
-                                                                <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                                                <span>Login</span>
-                                                            </a>
-                                                            <a href="{{ url('/register_submit') }}" class="dropdown-item">
-                                                                <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                                                <span>Register</span>
-                                                            </a>
-                                                            <a href="{{ url('/auth-404-creative') }}" class="dropdown-item">
-                                                                <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                                                <span>Error-404</span>
-                                                            </a>
-                                                            <a href="{{ url('/auth-reset-creative') }}" class="dropdown-item">
-                                                                <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                                                <span>Reset Pass</span>
-                                                            </a>
-                                                            <a href="{{ url('/auth-verify-creative') }}" class="dropdown-item">
-                                                                <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                                                <span>Verify OTP</span>
-                                                            </a>
-                                                            <a href="{{ url('/auth-maintenance-creative') }}" class="dropdown-item">
-                                                                <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                                                <span>Maintenance</span>
-                                                            </a>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="col-xl-4">
-                                                    <div id="carouselResourcesCaptions" class="carousel slide" data-bs-ride="carousel">
-                                                        <div class="carousel-indicators">
-                                                            <button type="button" data-bs-target="#carouselResourcesCaptions" data-bs-slide-to="0" class="active" aria-current="true"></button>
-                                                            <button type="button" data-bs-target="#carouselResourcesCaptions" data-bs-slide-to="1"></button>
-                                                            <button type="button" data-bs-target="#carouselResourcesCaptions" data-bs-slide-to="2"></button>
-                                                            <button type="button" data-bs-target="#carouselResourcesCaptions" data-bs-slide-to="3"></button>
-                                                            <button type="button" data-bs-target="#carouselResourcesCaptions" data-bs-slide-to="4"></button>
-                                                            <button type="button" data-bs-target="#carouselResourcesCaptions" data-bs-slide-to="5"></button>
-                                                        </div>
-                                                        <div class="carousel-inner rounded-3">
-                                                            <div class="carousel-item active">
-                                                                <div class="nxl-mega-menu-image">
-                                                                    <img src="{{ asset('frontend/assets/images/banner/6.jpg') }}" alt="" class="img-fluid d-block w-100" />
-                                                                </div>
-                                                                <div class="carousel-caption">
-                                                                    <h5 class="carousel-caption-title text-truncate-1-line">Shopify eCommerce Store</h5>
-                                                                    <p class="carousel-caption-desc">Some representative placeholder content for the first slide.</p>
-                                                                </div>
-                                                            </div>
-                                                            <div class="carousel-item">
-                                                                <div class="nxl-mega-menu-image">
-                                                                    <img src="{{ asset('frontend/assets/images/banner/5.jpg') }}" alt="" class="img-fluid d-block w-100" />
-                                                                </div>
-                                                                <div class="carousel-caption">
-                                                                    <h5 class="carousel-caption-title text-truncate-1-line">iOS Apps Development</h5>
-                                                                    <p class="carousel-caption-desc">Some representative placeholder content for the second slide.</p>
-                                                                </div>
-                                                            </div>
-                                                            <div class="carousel-item">
-                                                                <div class="nxl-mega-menu-image">
-                                                                    <img src="{{ asset('frontend/assets/images/banner/4.jpg') }}" alt="" class="img-fluid d-block w-100" />
-                                                                </div>
-                                                                <div class="carousel-caption">
-                                                                    <h5 class="carousel-caption-title text-truncate-1-line">Figma Dashboard Design</h5>
-                                                                    <p class="carousel-caption-desc">Some representative placeholder content for the third slide.</p>
-                                                                </div>
-                                                            </div>
-                                                            <div class="carousel-item">
-                                                                <div class="nxl-mega-menu-image">
-                                                                    <img src="{{ asset('frontend/assets/images/banner/3.jpg') }}" alt="" class="img-fluid d-block w-100" />
-                                                                </div>
-                                                                <div class="carousel-caption">
-                                                                    <h5 class="carousel-caption-title text-truncate-1-line">React Dashboard Design</h5>
-                                                                    <p class="carousel-caption-desc">Some representative placeholder content for the third slide.</p>
-                                                                </div>
-                                                            </div>
-                                                            <div class="carousel-item">
-                                                                <div class="nxl-mega-menu-image">
-                                                                    <img src="{{ asset('frontend/assets/images/banner/2.jpg') }}" alt="" class="img-fluid d-block w-100" />
-                                                                </div>
-                                                                <div class="carousel-caption">
-                                                                    <h5 class="carousel-caption-title text-truncate-1-line">Standup Team Meeting</h5>
-                                                                    <p class="carousel-caption-desc">Some representative placeholder content for the third slide.</p>
-                                                                </div>
-                                                            </div>
-                                                            <div class="carousel-item">
-                                                                <div class="nxl-mega-menu-image">
-                                                                    <img src="{{ asset('frontend/assets/images/banner/1.jpg') }}" alt="" class="img-fluid d-block w-100" />
-                                                                </div>
-                                                                <div class="carousel-caption">
-                                                                    <h5 class="carousel-caption-title text-truncate-1-line">Zoom Team Meeting</h5>
-                                                                    <p class="carousel-caption-desc">Some representative placeholder content for the third slide.</p>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        <button class="carousel-control-prev" type="button" data-bs-target="#carouselResourcesCaptions" data-bs-slide="prev">
-                                                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                                                            <span class="visually-hidden">Previous</span>
-                                                        </button>
-                                                        <button class="carousel-control-next" type="button" data-bs-target="#carouselResourcesCaptions" data-bs-slide="next">
-                                                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                                                            <span class="visually-hidden">Next</span>
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <!--! [End] v-pills-authentication !-->
-                                        <!--! [Start] v-pills-miscellaneous !-->
-                                        <div class="tab-pane fade nxl-mega-menu-miscellaneous" id="v-pills-miscellaneous" role="tabpanel">
-                                            <!-- Nav tabs -->
-                                            <ul class="nav nav-tabs flex-column flex-lg-row nxl-mega-menu-miscellaneous-tabs" role="tablist">
-                                                <li class="nav-item" role="presentation">
-                                                    <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#v-pills-projects" type="button" role="tab">
-                                                        <span class="menu-icon">
-                                                            <i class="feather-cast"></i>
-                                                        </span>
-                                                        <span class="menu-title">Projects</span>
-                                                    </button>
-                                                </li>
-                                                <li class="nav-item" role="presentation">
-                                                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#v-pills-services" type="button" role="tab">
-                                                        <span class="menu-icon">
-                                                            <i class="feather-check-square"></i>
-                                                        </span>
-                                                        <span class="menu-title">Services</span>
-                                                    </button>
-                                                </li>
-                                                <li class="nav-item" role="presentation">
-                                                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#v-pills-features" type="button" role="tab">
-                                                        <span class="menu-icon">
-                                                            <i class="feather-airplay"></i>
-                                                        </span>
-                                                        <span class="menu-title">Features</span>
-                                                    </button>
-                                                </li>
-                                                <li class="nav-item" role="presentation">
-                                                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#v-pills-blogs" type="button" role="tab">
-                                                        <span class="menu-icon">
-                                                            <i class="feather-bold"></i>
-                                                        </span>
-                                                        <span class="menu-title">Blogs</span>
-                                                    </button>
-                                                </li>
-                                            </ul>
-                                            <!-- Tab panes -->
-                                            <div class="tab-content nxl-mega-menu-miscellaneous-content">
-                                                <div class="tab-pane fade active show" id="v-pills-projects" role="tabpanel">
-                                                    <div class="row g-4">
-                                                        <div class="col-xxl-2 d-lg-none d-xxl-block">
-                                                            <h6 class="dropdown-item-title">Categories</h6>
-                                                            <a href="javascript:void(0);" class="dropdown-item">Support</a>
-                                                            <a href="javascript:void(0);" class="dropdown-item">Services</a>
-                                                            <a href="javascript:void(0);" class="dropdown-item">Applicatios</a>
-                                                            <a href="javascript:void(0);" class="dropdown-item">eCommerce</a>
-                                                            <a href="javascript:void(0);" class="dropdown-item">Development</a>
-                                                            <a href="javascript:void(0);" class="dropdown-item">Miscellaneous</a>
-                                                        </div>
-                                                        <div class="col-xxl-10">
-                                                            <div class="row g-4">
-                                                                <div class="col-xl-6">
-                                                                    <div class="d-lg-flex align-items-center gap-3">
-                                                                        <div class="wd-150 rounded-3">
-                                                                            <img src="{{ asset('frontend/assets/images/banner/1.jpg') }}" alt="" class="img-fluid rounded-3" />
-                                                                        </div>
-                                                                        <div class="mt-3 mt-lg-0 ms-lg-3 item-text">
-                                                                            <a href="javascript:void(0);">
-                                                                                <h6 class="menu-item-heading text-truncate-1-line">Shopify eCommerce Store</h6>
-                                                                            </a>
-                                                                            <p class="fs-12 fw-normal text-muted mb-0 text-truncate-2-line">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Sint nam ullam iure eum sed rerum libero quis doloremque maiores veritatis?</p>
-                                                                            <div class="hstack gap-2 mt-3">
-                                                                                <div class="avatar-image avatar-sm">
-                                                                                    <img src="{{ asset('frontend/assets/images/avatar/1.png') }}" alt="" class="img-fluid" />
-                                                                                </div>
-                                                                                <a href="javascript:void(0);" class="fs-12">Felix Luis Mateo</a>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div class="col-xl-6">
-                                                                    <div class="d-lg-flex align-items-center gap-3">
-                                                                        <div class="wd-150 rounded-3">
-                                                                            <img src="{{ asset('frontend/assets/images/banner/2.jpg') }}" alt="" class="img-fluid rounded-3" />
-                                                                        </div>
-                                                                        <div class="mt-3 mt-lg-0 ms-lg-3 item-text">
-                                                                            <a href="javascript:void(0);">
-                                                                                <h6 class="menu-item-heading text-truncate-1-line">iOS Apps Development</h6>
-                                                                            </a>
-                                                                            <p class="fs-12 fw-normal text-muted mb-0 text-truncate-2-line">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Sint nam ullam iure eum sed rerum libero quis doloremque maiores veritatis?</p>
-                                                                            <div class="hstack gap-2 mt-3">
-                                                                                <div class="avatar-image avatar-sm">
-                                                                                    <img src="{{ asset('frontend/assets/images/avatar/2.png') }}" alt="" class="img-fluid" />
-                                                                                </div>
-                                                                                <a href="javascript:void(0);" class="fs-12">Green Cute</a>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div class="col-xl-6">
-                                                                    <div class="d-lg-flex align-items-center gap-3">
-                                                                        <div class="wd-150 rounded-3">
-                                                                            <img src="{{ asset('frontend/assets/images/banner/3.jpg') }}" alt="" class="img-fluid rounded-3" />
-                                                                        </div>
-                                                                        <div class="mt-3 mt-lg-0 ms-lg-3 item-text">
-                                                                            <a href="javascript:void(0);">
-                                                                                <h6 class="menu-item-heading text-truncate-1-line">Figma Dashboard Design</h6>
-                                                                            </a>
-                                                                            <p class="fs-12 fw-normal text-muted mb-0 text-truncate-2-line">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Sint nam ullam iure eum sed rerum libero quis doloremque maiores veritatis?</p>
-                                                                            <div class="hstack gap-2 mt-3">
-                                                                                <div class="avatar-image avatar-sm">
-                                                                                    <img src="{{ asset('frontend/assets/images/avatar/3.png') }}" alt="" class="img-fluid" />
-                                                                                </div>
-                                                                                <a href="javascript:void(0);" class="fs-12">Malanie Hanvey</a>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div class="col-xl-6">
-                                                                    <div class="d-lg-flex align-items-center gap-3">
-                                                                        <div class="wd-150 rounded-3">
-                                                                            <img src="{{ asset('frontend/assets/images/banner/4.jpg') }}" alt="" class="img-fluid rounded-3" />
-                                                                        </div>
-                                                                        <div class="mt-3 mt-lg-0 ms-lg-3 item-text">
-                                                                            <a href="javascript:void(0);">
-                                                                                <h6 class="menu-item-heading text-truncate-1-line">React Dashboard Design</h6>
-                                                                            </a>
-                                                                            <p class="fs-12 fw-normal text-muted mb-0 text-truncate-2-line">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Sint nam ullam iure eum sed rerum libero quis doloremque maiores veritatis?</p>
-                                                                            <div class="hstack gap-2 mt-3">
-                                                                                <div class="avatar-image avatar-sm">
-                                                                                    <img src="{{ asset('frontend/assets/images/avatar/4.png') }}" alt="" class="img-fluid" />
-                                                                                </div>
-                                                                                <a href="javascript:void(0);" class="fs-12">Kenneth Hune</a>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="tab-pane fade" id="v-pills-services" role="tabpanel">
-                                                    <div class="row g-4 nxl-mega-menu-miscellaneous-services">
-                                                        <div class="col-xl-8">
-                                                            <div class="row g-4">
-                                                                <div class="col-lg-6">
-                                                                    <div class="d-flex align-items-start gap-3">
-                                                                        <div class="avatar-text avatar-lg rounded bg-primary text-white">
-                                                                            <i class="feather-bar-chart-2 mx-auto"></i>
-                                                                        </div>
-                                                                        <div>
-                                                                            <a href="javascript:void(0);">
-                                                                                <h6 class="menu-item-heading text-truncate-1-line">Analytics Services</h6>
-                                                                            </a>
-                                                                            <p class="fs-12 fw-normal text-muted mb-0 text-truncate-2-line">Lorem ipsum dolor sit amet consectetur adipisicing elit Unde numquam rem dignissimos. elit Unde numquam rem dignissimos.</p>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div class="col-lg-6">
-                                                                    <div class="d-flex align-items-start gap-3">
-                                                                        <div class="avatar-text avatar-lg rounded bg-danger text-white">
-                                                                            <i class="feather-feather mx-auto"></i>
-                                                                        </div>
-                                                                        <div>
-                                                                            <a href="javascript:void(0);">
-                                                                                <h6 class="menu-item-heading text-truncate-1-line">Content Writing</h6>
-                                                                            </a>
-                                                                            <p class="fs-12 fw-normal text-muted mb-0 text-truncate-2-line">Lorem ipsum dolor sit amet consectetur adipisicing elit Unde numquam rem dignissimos. elit Unde numquam rem dignissimos.</p>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div class="col-lg-6">
-                                                                    <div class="d-flex align-items-start gap-3">
-                                                                        <div class="avatar-text avatar-lg rounded bg-warning text-white">
-                                                                            <i class="feather-bell mx-auto"></i>
-                                                                        </div>
-                                                                        <div>
-                                                                            <a href="javascript:void(0);">
-                                                                                <h6 class="menu-item-heading text-truncate-1-line">SEO (Search Engine Optimization)</h6>
-                                                                            </a>
-                                                                            <p class="fs-12 fw-normal text-muted mb-0 text-truncate-2-line">Lorem ipsum dolor sit amet consectetur adipisicing elit Unde numquam rem dignissimos. elit Unde numquam rem dignissimos.</p>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div class="col-lg-6">
-                                                                    <div class="d-flex align-items-start gap-3">
-                                                                        <div class="avatar-text avatar-lg rounded bg-success text-white">
-                                                                            <i class="feather-shield mx-auto"></i>
-                                                                        </div>
-                                                                        <div>
-                                                                            <a href="javascript:void(0);">
-                                                                                <h6 class="menu-item-heading text-truncate-1-line">Security Services</h6>
-                                                                            </a>
-                                                                            <p class="fs-12 fw-normal text-muted mb-0 text-truncate-2-line">Lorem ipsum dolor sit amet consectetur adipisicing elit Unde numquam rem dignissimos. elit Unde numquam rem dignissimos.</p>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div class="col-lg-6">
-                                                                    <div class="d-flex align-items-start gap-3">
-                                                                        <div class="avatar-text avatar-lg rounded bg-teal text-white">
-                                                                            <i class="feather-shopping-cart mx-auto"></i>
-                                                                        </div>
-                                                                        <div>
-                                                                            <a href="javascript:void(0);">
-                                                                                <h6 class="menu-item-heading text-truncate-1-line">eCommerce Services</h6>
-                                                                            </a>
-                                                                            <p class="fs-12 fw-normal text-muted mb-0 text-truncate-2-line">Lorem ipsum dolor sit amet consectetur adipisicing elit Unde numquam rem dignissimos. elit Unde numquam rem dignissimos.</p>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div class="col-lg-6">
-                                                                    <div class="d-flex align-items-start gap-3">
-                                                                        <div class="avatar-text avatar-lg rounded bg-dark text-white">
-                                                                            <i class="feather-life-buoy mx-auto"></i>
-                                                                        </div>
-                                                                        <div>
-                                                                            <a href="javascript:void(0);">
-                                                                                <h6 class="menu-item-heading text-truncate-1-line">Support Services</h6>
-                                                                            </a>
-                                                                            <p class="fs-12 fw-normal text-muted mb-0 text-truncate-2-line">Lorem ipsum dolor sit amet consectetur adipisicing elit Unde numquam rem dignissimos. elit Unde numquam rem dignissimos.</p>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div class="col-lg-12">
-                                                                    <div class="p-3 bg-soft-dark text-dark rounded d-lg-flex align-items-center justify-content-between">
-                                                                        <div class="fs-13">
-                                                                            <i class="feather-star me-2"></i>
-                                                                            <span>View all services on Duralux.</span>
-                                                                        </div>
-                                                                        <div class="mt-2 mt-lg-0">
-                                                                            <a href="javascript:void(0);" class="fs-13 text-primary">Learn More &rarr;</a>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        <div class="col-xl-4">
-                                                            <div id="carouselServicesCaptions" class="carousel slide" data-bs-ride="carousel">
-                                                                <div class="carousel-indicators">
-                                                                    <button type="button" data-bs-target="#carouselServicesCaptions" data-bs-slide-to="0" class="active" aria-current="true"></button>
-                                                                    <button type="button" data-bs-target="#carouselServicesCaptions" data-bs-slide-to="1"></button>
-                                                                    <button type="button" data-bs-target="#carouselServicesCaptions" data-bs-slide-to="2"></button>
-                                                                    <button type="button" data-bs-target="#carouselServicesCaptions" data-bs-slide-to="3"></button>
-                                                                    <button type="button" data-bs-target="#carouselServicesCaptions" data-bs-slide-to="4"></button>
-                                                                    <button type="button" data-bs-target="#carouselServicesCaptions" data-bs-slide-to="5"></button>
-                                                                </div>
-                                                                <div class="carousel-inner rounded-3">
-                                                                    <div class="carousel-item active">
-                                                                        <div class="nxl-mega-menu-image">
-                                                                            <img src="{{ asset('frontend/assets/images/banner/6.jpg') }}" alt="" class="img-fluid d-block w-100" />
-                                                                        </div>
-                                                                        <div class="carousel-caption">
-                                                                            <h5 class="carousel-caption-title text-truncate-1-line">Shopify eCommerce Store</h5>
-                                                                            <p class="carousel-caption-desc">Some representative placeholder content for the first slide.</p>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div class="carousel-item">
-                                                                        <div class="nxl-mega-menu-image">
-                                                                            <img src="{{ asset('frontend/assets/images/banner/5.jpg') }}" alt="" class="img-fluid d-block w-100" />
-                                                                        </div>
-                                                                        <div class="carousel-caption">
-                                                                            <h5 class="carousel-caption-title text-truncate-1-line">iOS Apps Development</h5>
-                                                                            <p class="carousel-caption-desc">Some representative placeholder content for the second slide.</p>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div class="carousel-item">
-                                                                        <div class="nxl-mega-menu-image">
-                                                                            <img src="{{ asset('frontend/assets/images/banner/4.jpg') }}" alt="" class="img-fluid d-block w-100" />
-                                                                        </div>
-                                                                        <div class="carousel-caption">
-                                                                            <h5 class="carousel-caption-title text-truncate-1-line">Figma Dashboard Design</h5>
-                                                                            <p class="carousel-caption-desc">Some representative placeholder content for the third slide.</p>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div class="carousel-item">
-                                                                        <div class="nxl-mega-menu-image">
-                                                                            <img src="{{ asset('frontend/assets/images/banner/3.jpg') }}" alt="" class="img-fluid d-block w-100" />
-                                                                        </div>
-                                                                        <div class="carousel-caption">
-                                                                            <h5 class="carousel-caption-title text-truncate-1-line">React Dashboard Design</h5>
-                                                                            <p class="carousel-caption-desc">Some representative placeholder content for the third slide.</p>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div class="carousel-item">
-                                                                        <div class="nxl-mega-menu-image">
-                                                                            <img src="{{ asset('frontend/assets/images/banner/2.jpg') }}" alt="" class="img-fluid d-block w-100" />
-                                                                        </div>
-                                                                        <div class="carousel-caption">
-                                                                            <h5 class="carousel-caption-title text-truncate-1-line">Standup Team Meeting</h5>
-                                                                            <p class="carousel-caption-desc">Some representative placeholder content for the third slide.</p>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div class="carousel-item">
-                                                                        <div class="nxl-mega-menu-image">
-                                                                            <img src="{{ asset('frontend/assets/images/banner/1.jpg') }}" alt="" class="img-fluid d-block w-100" />
-                                                                        </div>
-                                                                        <div class="carousel-caption">
-                                                                            <h5 class="carousel-caption-title text-truncate-1-line">Zoom Team Meeting</h5>
-                                                                            <p class="carousel-caption-desc">Some representative placeholder content for the third slide.</p>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <button class="carousel-control-prev" type="button" data-bs-target="#carouselServicesCaptions" data-bs-slide="prev">
-                                                                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                                                                    <span class="visually-hidden">Previous</span>
-                                                                </button>
-                                                                <button class="carousel-control-next" type="button" data-bs-target="#carouselServicesCaptions" data-bs-slide="next">
-                                                                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                                                                    <span class="visually-hidden">Next</span>
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="tab-pane fade" id="v-pills-features" role="tabpanel">
-                                                    <div class="row g-4 nxl-mega-menu-miscellaneous-features">
-                                                        <div class="col-xl-8">
-                                                            <div class="row g-4">
-                                                                <div class="col-lg-6">
-                                                                    <div class="d-flex align-items-start gap-3">
-                                                                        <div class="avatar-text avatar-lg bg-soft-primary text-primary border-soft-primary rounded">
-                                                                            <i class="feather-bell mx-auto"></i>
-                                                                        </div>
-                                                                        <div>
-                                                                            <a href="javascript:void(0);">
-                                                                                <h6 class="menu-item-heading text-truncate-1-line">Notifications</h6>
-                                                                            </a>
-                                                                            <p class="fs-12 fw-normal text-muted mb-0 text-truncate-2-line">Lorem ipsum dolor sit amet consectetur adipisicing elit Unde numquam rem dignissimos. elit Unde numquam rem dignissimos.</p>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div class="col-lg-6">
-                                                                    <div class="d-flex align-items-start gap-3">
-                                                                        <div class="avatar-text avatar-lg bg-soft-danger text-danger border-soft-danger rounded">
-                                                                            <i class="feather-bar-chart-2 mx-auto"></i>
-                                                                        </div>
-                                                                        <div>
-                                                                            <a href="javascript:void(0);">
-                                                                                <h6 class="menu-item-heading text-truncate-1-line">Analytics</h6>
-                                                                            </a>
-                                                                            <p class="fs-12 fw-normal text-muted mb-0 text-truncate-2-line">Lorem ipsum dolor sit amet consectetur adipisicing elit Unde numquam rem dignissimos. elit Unde numquam rem dignissimos.</p>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div class="col-lg-6">
-                                                                    <div class="d-flex align-items-start gap-3">
-                                                                        <div class="avatar-text avatar-lg bg-soft-success text-success border-soft-success rounded">
-                                                                            <i class="feather-link-2 mx-auto"></i>
-                                                                        </div>
-                                                                        <div>
-                                                                            <a href="javascript:void(0);">
-                                                                                <h6 class="menu-item-heading text-truncate-1-line">Ingetrations</h6>
-                                                                            </a>
-                                                                            <p class="fs-12 fw-normal text-muted mb-0 text-truncate-2-line">Lorem ipsum dolor sit amet consectetur adipisicing elit Unde numquam rem dignissimos. elit Unde numquam rem dignissimos.</p>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div class="col-lg-6">
-                                                                    <div class="d-flex align-items-start gap-3">
-                                                                        <div class="avatar-text avatar-lg bg-soft-indigo text-indigo border-soft-indigo rounded">
-                                                                            <i class="feather-book mx-auto"></i>
-                                                                        </div>
-                                                                        <div>
-                                                                            <a href="javascript:void(0);">
-                                                                                <h6 class="menu-item-heading text-truncate-1-line">Documentations</h6>
-                                                                            </a>
-                                                                            <p class="fs-12 fw-normal text-muted mb-0 text-truncate-2-line">Lorem ipsum dolor sit amet consectetur adipisicing elit Unde numquam rem dignissimos. elit Unde numquam rem dignissimos.</p>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div class="col-lg-6">
-                                                                    <div class="d-flex align-items-start gap-3">
-                                                                        <div class="avatar-text avatar-lg bg-soft-warning text-warning border-soft-warning rounded">
-                                                                            <i class="feather-shield mx-auto"></i>
-                                                                        </div>
-                                                                        <div>
-                                                                            <a href="javascript:void(0);">
-                                                                                <h6 class="menu-item-heading text-truncate-1-line">Security</h6>
-                                                                            </a>
-                                                                            <p class="fs-12 fw-normal text-muted mb-0 text-truncate-2-line">Lorem ipsum dolor sit amet consectetur adipisicing elit Unde numquam rem dignissimos. elit Unde numquam rem dignissimos.</p>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div class="col-lg-6">
-                                                                    <div class="d-flex align-items-start gap-3">
-                                                                        <div class="avatar-text avatar-lg bg-soft-teal text-teal border-soft-teal rounded">
-                                                                            <i class="feather-life-buoy mx-auto"></i>
-                                                                        </div>
-                                                                        <div>
-                                                                            <a href="javascript:void(0);">
-                                                                                <h6 class="menu-item-heading text-truncate-1-line">Support</h6>
-                                                                            </a>
-                                                                            <p class="fs-12 fw-normal text-muted mb-0 text-truncate-2-line">Lorem ipsum dolor sit amet consectetur adipisicing elit Unde numquam rem dignissimos. elit Unde numquam rem dignissimos.</p>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        <div class="col-xxl-3 offset-xxl-1 col-xl-4">
-                                                            <div class="nxl-mega-menu-image">
-                                                                <img src="{{ asset('frontend/assets/images/banner/1.jpg') }}" alt="" class="img-fluid" />
-                                                            </div>
-                                                            <div class="mt-4">
-                                                                <a href="mailto:flexilecode@gmail.com" class="fs-13 fw-bold">View all features on Duralux &rarr;</a>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="tab-pane fade" id="v-pills-blogs" role="tabpanel">
-                                                    <div class="row g-4">
-                                                        <div class="col-xxl-2 d-lg-none d-xxl-block">
-                                                            <h6 class="dropdown-item-title">Categories</h6>
-                                                            <a href="javascript:void(0);" class="dropdown-item">Support</a>
-                                                            <a href="javascript:void(0);" class="dropdown-item">Services</a>
-                                                            <a href="javascript:void(0);" class="dropdown-item">Applicatios</a>
-                                                            <a href="javascript:void(0);" class="dropdown-item">eCommerce</a>
-                                                            <a href="javascript:void(0);" class="dropdown-item">Development</a>
-                                                            <a href="javascript:void(0);" class="dropdown-item">Miscellaneous</a>
-                                                        </div>
-                                                        <div class="col-xxl-10">
-                                                            <div class="row g-4">
-                                                                <div class="col-xxl-4 col-lg-6">
-                                                                    <div class="d-flex align-items-center gap-3">
-                                                                        <div class="wd-100 rounded-3">
-                                                                            <img src="{{ asset('frontend/assets/images/banner/1.jpg') }}" alt="" class="img-fluid rounded-3 border border-3" />
-                                                                        </div>
-                                                                        <div>
-                                                                            <a href="javascript:void(0);">
-                                                                                <h6 class="menu-item-heading text-truncate-1-line">Lorem ipsum dolor sit</h6>
-                                                                            </a>
-                                                                            <p class="fs-12 fw-normal text-muted mb-0 text-truncate-2-line">Lorem ipsum, dolor sit amet consectetur adipisicing elit. Eius dolor quo commodi nisi animi error minus quia aliquam.</p>
-                                                                            <span class="fs-11 text-gray-500">26 March, 2023</span>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div class="col-xxl-4 col-lg-6">
-                                                                    <div class="d-flex align-items-center gap-3">
-                                                                        <div class="wd-100 rounded-3">
-                                                                            <img src="{{ asset('frontend/assets/images/banner/2.jpg') }}" alt="" class="img-fluid rounded-3 border border-3" />
-                                                                        </div>
-                                                                        <div>
-                                                                            <a href="javascript:void(0);">
-                                                                                <h6 class="menu-item-heading text-truncate-1-line">Lorem ipsum dolor sit</h6>
-                                                                            </a>
-                                                                            <p class="fs-12 fw-normal text-muted mb-0 text-truncate-2-line">Lorem ipsum, dolor sit amet consectetur adipisicing elit. Eius dolor quo commodi nisi animi error minus quia aliquam.</p>
-                                                                            <span class="fs-11 text-gray-500">26 March, 2023</span>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div class="col-xxl-4 col-lg-6">
-                                                                    <div class="d-flex align-items-center gap-3">
-                                                                        <div class="wd-100 rounded-3">
-                                                                            <img src="{{ asset('frontend/assets/images/banner/3.jpg') }}" alt="" class="img-fluid rounded-3 border border-3" />
-                                                                        </div>
-                                                                        <div>
-                                                                            <a href="javascript:void(0);">
-                                                                                <h6 class="menu-item-heading text-truncate-1-line">Lorem ipsum dolor sit</h6>
-                                                                            </a>
-                                                                            <p class="fs-12 fw-normal text-muted mb-0 text-truncate-2-line">Lorem ipsum, dolor sit amet consectetur adipisicing elit. Eius dolor quo commodi nisi animi error minus quia aliquam.</p>
-                                                                            <span class="fs-11 text-gray-500">26 March, 2023</span>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div class="col-xxl-4 col-lg-6">
-                                                                    <div class="d-flex align-items-center gap-3">
-                                                                        <div class="wd-100 rounded-3">
-                                                                            <img src="{{ asset('frontend/assets/images/banner/4.jpg') }}" alt="" class="img-fluid rounded-3 border border-3" />
-                                                                        </div>
-                                                                        <div>
-                                                                            <a href="javascript:void(0);">
-                                                                                <h6 class="menu-item-heading text-truncate-1-line">Lorem ipsum dolor sit</h6>
-                                                                            </a>
-                                                                            <p class="fs-12 fw-normal text-muted mb-0 text-truncate-2-line">Lorem ipsum, dolor sit amet consectetur adipisicing elit. Eius dolor quo commodi nisi animi error minus quia aliquam.</p>
-                                                                            <span class="fs-11 text-gray-500">26 March, 2023</span>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div class="col-xxl-4 col-lg-6">
-                                                                    <div class="d-flex align-items-center gap-3">
-                                                                        <div class="wd-100 rounded-3">
-                                                                            <img src="{{ asset('frontend/assets/images/banner/5.jpg') }}" alt="" class="img-fluid rounded-3 border border-3" />
-                                                                        </div>
-                                                                        <div>
-                                                                            <a href="javascript:void(0);">
-                                                                                <h6 class="menu-item-heading text-truncate-1-line">Lorem ipsum dolor sit</h6>
-                                                                            </a>
-                                                                            <p class="fs-12 fw-normal text-muted mb-0 text-truncate-2-line">Lorem ipsum, dolor sit amet consectetur adipisicing elit. Eius dolor quo commodi nisi animi error minus quia aliquam.</p>
-                                                                            <span class="fs-11 text-gray-500">26 March, 2023</span>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div class="col-xxl-4 col-lg-6">
-                                                                    <div class="d-flex align-items-center gap-3">
-                                                                        <div class="wd-100 rounded-3">
-                                                                            <img src="{{ asset('frontend/assets/images/banner/6.jpg') }}" alt="" class="img-fluid rounded-3 border border-3" />
-                                                                        </div>
-                                                                        <div>
-                                                                            <a href="javascript:void(0);">
-                                                                                <h6 class="menu-item-heading text-truncate-1-line">Lorem ipsum dolor sit</h6>
-                                                                            </a>
-                                                                            <p class="fs-12 fw-normal text-muted mb-0 text-truncate-2-line">Lorem ipsum, dolor sit amet consectetur adipisicing elit. Eius dolor quo commodi nisi animi error minus quia aliquam.</p>
-                                                                            <span class="fs-11 text-gray-500">26 March, 2023</span>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div class="col-lg-12">
-                                                                    <div class="p-3 bg-soft-dark text-dark rounded d-flex align-items-center justify-content-between gap-4">
-                                                                        <div class="fs-13 text-truncate-1-line">
-                                                                            <i class="feather-star me-2"></i>
-                                                                            <strong>Version 2.3.2 is out!</strong>
-                                                                            <span>Learn more about our news and schedule reporting.</span>
-                                                                        </div>
-                                                                        <div class="wd-100 text-end">
-                                                                            <a href="javascript:void(0);" class="fs-13 text-primary">Learn More &rarr;</a>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <!--! [End] v-pills-miscellaneous !-->
-                                    </div>
-                                    <!--! [End] nxl-mega-menu-tabs-content !-->
-                                </div>
-                            </div>
-                        </div>
-                        <!--! [End] nxl-h-item nxl-mega-menu !-->
-                    </div>
-                    <!--! [End] nxl-lavel-mega-menu-wrapper !-->
-                </div>
-                <!--! [End] nxl-lavel-mega-menu !-->
+
             </div>
             <!--! [End] Header Left !-->
             <!--! [Start] Header Right !-->
@@ -2402,12 +1251,10 @@ if ($attendance_today->num_rows > 0) {
     <main class="nxl-container">
         <div class="nxl-content">
             <div class="biometric-container">
-                <!-- Page Header -->
-                <div class="page-header" style="margin-bottom: 30px;">
-                    <h2 style="color: #333; font-weight: 700; margin-bottom: 5px;">
-                        <i class="feather-clock"></i> Biometric Time In/Out Demo
-                    </h2>
-                    <p style="color: #666; margin: 0;">Simulate clock in and out events for attendance tracking</p>
+                <div class="bio-hero">
+                    <span class="bio-hero-chip"><i class="feather-activity"></i> Live Scanner Simulator</span>
+                    <h2><i class="feather-clock me-2"></i>Biometric Time In/Out Demo</h2>
+                    <p>Simulate scan-based clock events and verify same-day attendance updates in real time.</p>
                 </div>
 
                 <!-- Alert Messages -->
@@ -2420,91 +1267,95 @@ if ($attendance_today->num_rows > 0) {
                     </div>
                 <?php endif; ?>
 
-                <!-- Fingerprint Image -->
-                <div class="fingerprint-image">
-                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 250'%3E%3Ccircle cx='100' cy='120' r='80' fill='none' stroke='%23ccc' stroke-width='2'/%3E%3Ccircle cx='100' cy='120' r='70' fill='none' stroke='%23ddd' stroke-width='1'/%3E%3Ccircle cx='100' cy='120' r='60' fill='none' stroke='%23eee' stroke-width='1'/%3E%3Cpath d='M 100 50 Q 120 70 140 100 T 150 150' fill='none' stroke='%23999' stroke-width='1.5'/%3E%3Cpath d='M 100 50 Q 80 70 60 100 T 50 150' fill='none' stroke='%23999' stroke-width='1.5'/%3E%3Cpath d='M 100 50 Q 100 75 100 100 L 100 150' fill='none' stroke='%23aaa' stroke-width='2'/%3E%3C/svg%3E" alt="Fingerprint">
-                    <p style="color: #999; font-size: 12px; margin-top: 10px;">SIMULATE FINGERPRINT SCAN</p>
-                </div>
-
-                <!-- Clock Form Section -->
-                <div class="clock-section">
-                    <h2>
-                        <i class="feather-log-in"></i> Record Time Entry
-                    </h2>
-
-                    <!-- Current Time Display -->
-                    <div class="time-display" id="currentTime">
-                        <?php echo date('H:i:s'); ?>
+                <div class="bio-layout">
+                    <div class="scanner-card">
+                        <div class="fingerprint-image">
+                            <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 250'%3E%3Ccircle cx='100' cy='120' r='80' fill='none' stroke='%2395b6d4' stroke-width='2'/%3E%3Ccircle cx='100' cy='120' r='70' fill='none' stroke='%23aac6df' stroke-width='1.2'/%3E%3Ccircle cx='100' cy='120' r='60' fill='none' stroke='%23bed4e7' stroke-width='1'/%3E%3Cpath d='M 100 50 Q 120 70 140 100 T 150 150' fill='none' stroke='%235b7da2' stroke-width='1.6'/%3E%3Cpath d='M 100 50 Q 80 70 60 100 T 50 150' fill='none' stroke='%235b7da2' stroke-width='1.6'/%3E%3Cpath d='M 100 50 Q 100 75 100 100 L 100 150' fill='none' stroke='%236e8fb1' stroke-width='2'/%3E%3C/svg%3E" alt="Fingerprint">
+                            <p class="scan-label">SIMULATE FINGERPRINT SCAN</p>
+                        </div>
+                        <div class="scanner-stat">
+                            <i class="feather-shield me-1"></i> Smart Scan Integrity Mode
+                        </div>
                     </div>
 
-                    <form method="POST" action="">
-                        <?php echo csrf_field(); ?>
-                        <!-- Student Selection -->
-                        <div class="form-group-custom">
-                            <label for="student_id">
-                                <i class="feather-user"></i> Select Student
-                            </label>
-                            <select name="student_id" id="student_id" required>
-                                <option value="">-- Choose a Student --</option>
-                                <?php foreach ($students as $student): ?>
-                                    <option value="<?php echo $student['id']; ?>">
-                                        <?php echo $student['student_id'] . ' - ' . $student['first_name'] . ' ' . $student['last_name']; ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
+                    <!-- Clock Form Section -->
+                    <div class="clock-section">
+                        <h3><i class="feather-log-in me-2"></i>Record Time Entry</h3>
+
+                        <!-- Current Time Display -->
+                        <div class="time-display" id="currentTime">
+                            <?php echo date('H:i:s'); ?>
                         </div>
 
-                        <div class="form-row">
-                            <!-- Date Input -->
+                        <form method="POST" action="" id="biometricClockForm">
+                            <?php echo csrf_field(); ?>
+                            <!-- Student Selection -->
                             <div class="form-group-custom">
-                                <label for="clock_date">
-                                    <i class="feather-calendar"></i> Date
+                                <label for="student_id">
+                                    <i class="feather-user"></i> Select Student
                                 </label>
-                                <input type="date" name="clock_date" id="clock_date" value="<?php echo date('Y-m-d'); ?>" required>
+                                <select name="student_id" id="student_id" required>
+                                    <option value="">-- Choose a Student --</option>
+                                    <?php foreach ($students as $student): ?>
+                                        <option value="<?php echo $student['id']; ?>">
+                                            <?php echo $student['student_id'] . ' - ' . $student['first_name'] . ' ' . $student['last_name']; ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
                             </div>
 
-                            <!-- Time Input -->
+                            <div class="form-row">
+                                <!-- Date Input -->
+                                <div class="form-group-custom">
+                                    <label for="clock_date">
+                                        <i class="feather-calendar"></i> Date
+                                    </label>
+                                    <input type="date" name="clock_date" id="clock_date" value="<?php echo date('Y-m-d'); ?>" required>
+                                </div>
+
+                                <!-- Time Input -->
+                                <div class="form-group-custom">
+                                    <label for="clock_time">
+                                        <i class="feather-clock"></i> Time
+                                    </label>
+                                    <input type="time" name="clock_time" id="clock_time" value="<?php echo date('H:i'); ?>" required>
+                                </div>
+                            </div>
+
+                            <!-- Clock Type Selection -->
                             <div class="form-group-custom">
-                                <label for="clock_time">
-                                    <i class="feather-clock"></i> Time
+                                <label for="clock_type">
+                                    <i class="feather-target"></i> Clock Type
                                 </label>
-                                <input type="time" name="clock_time" id="clock_time" value="<?php echo date('H:i'); ?>" required>
+                                <div class="clock-type-grid">
+                                    <button type="button" class="clock-btn" data-type="morning_in">
+                                        <i class="feather-sunrise"></i><br>Morning In
+                                    </button>
+                                    <button type="button" class="clock-btn" data-type="morning_out">
+                                        <i class="feather-arrow-up-right"></i><br>Morning Out
+                                    </button>
+                                    <button type="button" class="clock-btn" data-type="break_in">
+                                        <i class="feather-pause"></i><br>Break In
+                                    </button>
+                                    <button type="button" class="clock-btn" data-type="break_out">
+                                        <i class="feather-play"></i><br>Break Out
+                                    </button>
+                                    <button type="button" class="clock-btn" data-type="afternoon_in">
+                                        <i class="feather-sun"></i><br>Afternoon In
+                                    </button>
+                                    <button type="button" class="clock-btn" data-type="afternoon_out">
+                                        <i class="feather-sunset"></i><br>Afternoon Out
+                                    </button>
+                                </div>
+                                <input type="hidden" name="clock_type" id="clock_type" required>
                             </div>
-                        </div>
 
-                        <!-- Clock Type Selection -->
-                        <div class="form-group-custom">
-                            <label for="clock_type">
-                                <i class="feather-target"></i> Clock Type
-                            </label>
-                            <div class="clock-type-grid">
-                                <button type="button" class="clock-btn" data-type="morning_in">
-                                    <i class="feather-sunrise"></i><br>Morning In
-                                </button>
-                                <button type="button" class="clock-btn" data-type="morning_out">
-                                    <i class="feather-arrow-up-right"></i><br>Morning Out
-                                </button>
-                                <button type="button" class="clock-btn" data-type="break_in">
-                                    <i class="feather-pause"></i><br>Break In
-                                </button>
-                                <button type="button" class="clock-btn" data-type="break_out">
-                                    <i class="feather-play"></i><br>Break Out
-                                </button>
-                                <button type="button" class="clock-btn" data-type="afternoon_in">
-                                    <i class="feather-sun"></i><br>Afternoon In
-                                </button>
-                                <button type="button" class="clock-btn" data-type="afternoon_out">
-                                    <i class="feather-sunset"></i><br>Afternoon Out
-                                </button>
-                            </div>
-                            <input type="hidden" name="clock_type" id="clock_type" required>
-                        </div>
-
-                        <!-- Submit Button -->
-                        <button type="submit" class="btn-clock">
-                            <i class="feather-check-circle"></i> Record Time Entry
-                        </button>
-                    </form>
+                            <!-- Submit Button -->
+                            <button type="submit" class="btn-clock">
+                                <i class="feather-check-circle"></i> Record Time Entry
+                            </button>
+                        </form>
+                    </div>
                 </div>
 
                 <!-- Today's Records Section -->
@@ -2597,8 +1448,8 @@ if ($attendance_today->num_rows > 0) {
                 </div>
 
                 <!-- View Full Attendance -->
-                <div style="text-align: center; margin-top: 30px;">
-                    <a href="{{ url('/attendance') }}" class="btn btn-primary" style="padding: 12px 30px; border-radius: 8px; text-decoration: none; display: inline-block;">
+                <div class="bio-link-wrap">
+                    <a href="{{ url('/attendance') }}" class="btn btn-primary">
                         <i class="feather-arrow-right"></i> View Full Attendance Report
                     </a>
                 </div>
@@ -2653,7 +1504,7 @@ if ($attendance_today->num_rows > 0) {
         });
 
         // Form validation
-        document.querySelector('form').addEventListener('submit', function(e) {
+        document.getElementById('biometricClockForm').addEventListener('submit', function(e) {
             const student = document.getElementById('student_id').value;
             const clockType = document.getElementById('clock_type').value;
 
@@ -2692,4 +1543,5 @@ if ($attendance_today->num_rows > 0) {
 <?php
 $conn->close();
 ?>
+
 
