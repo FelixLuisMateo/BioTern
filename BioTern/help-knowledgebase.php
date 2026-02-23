@@ -1129,7 +1129,7 @@ const code = `var data = 1;`;
 const html = Prism.highlight(code, Prism.languages.javascript, 'javascript');
 						</code></pre>
                 </div>
-                <h4 class="fs-13">âŒš Snoozen</h4>
+                <h4 class="fs-13">Snoozen</h4>
                 <p class="text-muted mb-4">Lorem ipsum dolor sit amet consectetur adipisicing elit. Atque officiis minus omnis veniam cupiditate molestiae itaque hic quibusdam fuga modi quam cumque recusandae harum nulla vero, tempore possimus aliquid animi!</p>
                 <div class="mb-5">
                     <pre><code class="language-js">

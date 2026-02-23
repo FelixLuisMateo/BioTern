@@ -438,7 +438,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         }
                     }
 
-                    $success_message = "âœ“ Student information updated successfully!";
+                    $success_message = "“ Student information updated successfully!";
                     // Refresh student data
                     $stmt = $conn->prepare($student_query);
                     $stmt->bind_param("i", $student_id);

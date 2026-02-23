@@ -26,7 +26,7 @@ if (isset($_GET['action'])) {
         $out = [];
         if ($res) {
             while ($r = $res->fetch_assoc()) {
-                $text = trim($r['first_name'] . ' ' . ($r['middle_name'] ? $r['middle_name'] . ' ' : '') . $r['last_name']) . ' â€” ' . $r['student_id'];
+                $text = trim($r['first_name'] . ' ' . ($r['middle_name'] ? $r['middle_name'] . ' ' : '') . $r['last_name']) . '  ' . $r['student_id'];
                 $out[] = ['id' => $r['id'], 'text' => $text];
             }
         }
@@ -84,7 +84,7 @@ if (isset($_GET['action'])) {
         html, body { height: 100%; margin: 0; padding: 0; }
         body { display:flex; flex-direction:column; min-height:100vh; }
         main.nxl-container { flex:1; display:flex; flex-direction:column; }
-        div.nxl-content { flex:1; padding-bottom:24px; }
+        div.nxl-content { flex:1; padding-top: 0 !important; padding-bottom:24px; }
         .doc-preview { background:#fff; border:1px solid #eee; padding:24px; max-width:800px; margin-top:18px; margin-bottom:32px; position:relative; z-index:1; box-shadow:0 6px 20px rgba(0,0,0,0.04); }
         .preview-header{
             position: relative;
@@ -193,7 +193,7 @@ if (isset($_GET['action'])) {
             color: #9fb0c6 !important;
         }
 
-        main.nxl-container { padding-top: 90px; }
+        main.nxl-container { padding-top: 64px; }
         .nxl-header { position: fixed !important; top: 0; left: 0; right: 0; z-index: 2147483647 !important; }
         .nxl-navigation { z-index: 2147483646; }
         footer.footer { margin-top: auto; }
@@ -226,7 +226,7 @@ if (isset($_GET['action'])) {
 <body>
     <main class="nxl-container">
         <div class="nxl-content container">
-            <div class="row mt-3">
+            <div class="row mt-1">
                 <div class="col-12">
                     <h4>Documents</h4>
                     <p class="text-muted">Select a student to auto-fill the Application Letter template. Click Generate to open a printable document.</p>
@@ -431,7 +431,7 @@ if (isset($_GET['action'])) {
                     .then(data => {
                         if (!data) return;
                         const fullname = [data.first_name, data.middle_name, data.last_name].filter(Boolean).join(' ');
-                        // Do NOT set inputName/inputCompany/inputPosition here â€” those are for the recipient/company
+                        // Do NOT set inputName/inputCompany/inputPosition here those are for the recipient/company
                         // Only set student-related preview fields
                         document.getElementById('ap_student').textContent = fullname;
                         document.getElementById('ap_student_name').textContent = fullname;
