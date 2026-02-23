@@ -1773,7 +1773,7 @@ function getAttendanceStatus($morning_time_in) {
             });
         }
     </script>
-    
+
     <!-- Confirmation Modal (used for approve/reject/delete) -->
     <div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
