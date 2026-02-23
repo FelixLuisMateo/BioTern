@@ -366,13 +366,8 @@
                                         </select>
                                     </div>
                                     <div class="col-4 mb-2">
-                                        <label class="form-label fs-12">Department</label>
-                                        <select name="department_id" class="form-control" required>
-                                            <option value="" disabled selected>Select Department</option>
-                                            <option value="1">Information Technology</option>
-                                            <option value="2">Business</option>
-                                            <option value="3">Student Services</option>
-                                        </select>
+                                        <label class="form-label fs-12">Department Code</label>
+                                        <input type="text" name="department_code" class="form-control" placeholder="e.g. DEPT-IT">
                                     </div>
                                     <div class="col-4 mb-2">
                                         <label class="form-label fs-12">Section</label>
@@ -544,13 +539,8 @@
                             <h5 class="fs-14 fw-bold mb-3 mt-4">Department Information</h5>
                             <div class="row g-3">
                                 <div class="col-6 mb-2">
-                                    <label class="form-label fs-12">Department</label>
-                                    <select name="department_id" class="form-control" required>
-                                        <option value="" disabled selected>Select Department</option>
-                                        <option value="1">Information Technology</option>
-                                        <option value="2">Business</option>
-                                        <option value="3">Student Services</option>
-                                    </select>
+                                    <label class="form-label fs-12">Department Code</label>
+                                    <input type="text" name="department_code" class="form-control" placeholder="e.g. DEPT-IT" required>
                                 </div>
                                 <div class="col-6 mb-2">
                                     <label class="form-label fs-12">Position</label>
@@ -713,26 +703,21 @@
                             <div class="row g-3">
                                 <div class="col-6 mb-2">
                                     <label class="form-label fs-12">Admin Level</label>
-                                    <select class="form-control" required>
+                                    <select class="form-control" name="admin_level" required>
                                         <option value="" disabled selected>Select Admin Level</option>
-                                        <option value="super_admin">Super Admin</option>
+                                        <option value="head_admin">Head Admin</option>
                                         <option value="admin">Admin</option>
                                         <option value="staff">Staff</option>
                                     </select>
                                 </div>
                                 <div class="col-6 mb-2">
-                                    <label class="form-label fs-12">Department</label>
-                                    <select class="form-control" required>
-                                        <option value="" disabled selected>Select Department</option>
-                                        <option value="admin_dept">Administration</option>
-                                        <option value="academic_dept">Academic Affairs</option>
-                                        <option value="student_dept">Student Services</option>
-                                    </select>
+                                    <label class="form-label fs-12">Department Code</label>
+                                    <input type="text" name="department_code" class="form-control" placeholder="e.g. DEPT-ADMIN" required>
                                 </div>
                             </div>
                             <div class="row g-3">
                                 <div class="col-12 mb-2">
-                                    <input type="text" class="form-control" placeholder="Official Title/Position" required>
+                                    <input type="text" name="admin_position" class="form-control" placeholder="Official Title/Position" required>
                                 </div>
                             </div>
 

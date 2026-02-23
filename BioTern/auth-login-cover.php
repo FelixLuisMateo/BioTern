@@ -1,4 +1,64 @@
-﻿<!DOCTYPE html>
+<?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+$dbHost = '127.0.0.1';
+$dbUser = 'root';
+$dbPass = '';
+$dbName = 'biotern_db';
+$login_error = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $identifier = isset($_POST['identifier']) ? trim((string)$_POST['identifier']) : '';
+    $password = isset($_POST['password']) ? (string)$_POST['password'] : '';
+
+    if ($identifier === '' || $password === '') {
+        $login_error = 'Please enter your username/email and password.';
+    } else {
+        $mysqli = new mysqli($dbHost, $dbUser, $dbPass, $dbName);
+        if ($mysqli->connect_errno) {
+            $login_error = 'Database connection failed.';
+        } else {
+            $stmt = $mysqli->prepare("
+                SELECT id, name, username, email, password, role, is_active
+                FROM users
+                WHERE (username = ? OR email = ?)
+                LIMIT 1
+            ");
+
+            if ($stmt) {
+                $stmt->bind_param('ss', $identifier, $identifier);
+                $stmt->execute();
+                $user = $stmt->get_result()->fetch_assoc();
+                $stmt->close();
+
+                if (!$user) {
+                    $login_error = 'Invalid username/email or password.';
+                } elseif ((int)($user['is_active'] ?? 0) !== 1) {
+                    $login_error = 'Your account is inactive.';
+                } elseif (!password_verify($password, (string)$user['password'])) {
+                    $login_error = 'Invalid username/email or password.';
+                } else {
+                    $_SESSION['user_id'] = (int)$user['id'];
+                    $_SESSION['name'] = (string)$user['name'];
+                    $_SESSION['username'] = (string)$user['username'];
+                    $_SESSION['email'] = (string)$user['email'];
+                    $_SESSION['role'] = (string)$user['role'];
+                    $_SESSION['logged_in'] = true;
+
+                    header('Location: index.php');
+                    exit;
+                }
+            } else {
+                $login_error = 'Login query preparation failed.';
+            }
+            $mysqli->close();
+        }
+    }
+}
+?>
+<!DOCTYPE html>
 <html lang="zxx">
 
 <head>
@@ -8,34 +68,14 @@
     <meta name="description" content="">
     <meta name="keyword" content="">
     <meta name="author" content="theme_ocean">
-    <!--! The above 6 meta tags *must* come first in the head; any other head content must come *after* these tags !-->
-    <!--! BEGIN: Apps Title-->
     <title>BioTern || Login Cover</title>
-    <!--! END:  Apps Title-->
-    <!--! BEGIN: Favicon-->
     <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
-    <!--! END: Favicon-->
-    <!--! BEGIN: Bootstrap CSS-->
     <link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css">
-    <!--! END: Bootstrap CSS-->
-    <!--! BEGIN: Vendors CSS-->
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/vendors.min.css">
-    <!--! END: Vendors CSS-->
-    <!--! BEGIN: Custom CSS-->
     <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css">
-    <!--! END: Custom CSS-->
-    <!--! HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries !-->
-    <!--! WARNING: Respond.js doesn"t work if you view the page via file: !-->
-    <!--[if lt IE 9]>
-			<script src="https:oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
-			<script src="https:oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
-		<![endif]-->
 </head>
 
 <body>
-    <!--! ================================================================ !-->
-    <!--! [Start] Main Content !-->
-    <!--! ================================================================ !-->
     <main class="auth-cover-wrapper">
         <div class="auth-cover-content-inner">
             <div class="auth-cover-content-wrapper">
@@ -53,12 +93,16 @@
                     <h2 class="fs-25 fw-bolder mb-4">Login</h2>
                     <h4 class="fs-15 fw-bold mb-2">Log in to your Clark College of Science and Technology internship account.</h4>
 
-                    <form action="index.php" class="w-100 mt-4 pt-2">
+                    <?php if ($login_error !== ''): ?>
+                        <div class="alert alert-danger" role="alert"><?php echo htmlspecialchars($login_error); ?></div>
+                    <?php endif; ?>
+
+                    <form action="auth-login-cover.php" method="post" class="w-100 mt-4 pt-2">
                         <div class="mb-4">
-                            <input type="email" class="form-control" placeholder="Email or Username" value="" required>
+                            <input type="text" name="identifier" class="form-control" placeholder="Email or Username" value="<?php echo isset($_POST['identifier']) ? htmlspecialchars((string)$_POST['identifier']) : ''; ?>" required>
                         </div>
                         <div class="mb-3">
-                            <input type="password" class="form-control" placeholder="Password" value="" required>
+                            <input type="password" name="password" class="form-control" placeholder="Password" value="" required>
                         </div>
                         <div class="d-flex align-items-center justify-content-between">
                             <div>
@@ -83,23 +127,9 @@
             </div>
         </div>
     </main>
-    <!--! ================================================================ !-->
-    <!--! [End] Main Content !-->
-    <!--! ================================================================ !-->
-    <!--! ================================================================ !-->
-    <!--! Footer Script !-->
-    <!--! ================================================================ !-->
-    <!--! BEGIN: Vendors JS !-->
     <script src="assets/vendors/js/vendors.min.js"></script>
-    <!-- vendors.min.js {always must need to be top} -->
-    <!--! END: Vendors JS !-->
-    <!--! BEGIN: Apps Init  !-->
     <script src="assets/js/common-init.min.js"></script>
-    <!--! END: Apps Init !-->
-    <!--! BEGIN: Theme Customizer  !-->
     <script src="assets/js/theme-customizer-init.min.js"></script>
-    <!--! END: Theme Customizer !-->
 </body>
 
 </html>
-

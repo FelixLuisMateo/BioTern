@@ -142,8 +142,33 @@ if ($attendance_record) {
     }
 }
 
-// Calculate hours remaining and completion percentage
-$hours_rendered = isset($student['rendered_hours']) ? (float)$student['rendered_hours'] : 0.0;
+// Calculate hours remaining and completion percentage based on real attendance totals
+// so timer stays consistent and does not jump back to preset values.
+$sum_stmt = $conn->prepare("
+    SELECT COALESCE(SUM(total_hours), 0) AS rendered
+    FROM attendances
+    WHERE student_id = ? AND (status IS NULL OR status <> 'rejected')
+");
+$sum_stmt->bind_param("i", $student_id);
+$sum_stmt->execute();
+$sum_row = $sum_stmt->get_result()->fetch_assoc();
+$sum_stmt->close();
+
+$hours_rendered = isset($sum_row['rendered']) ? (float)$sum_row['rendered'] : 0.0;
+if ($hours_rendered <= 0 && isset($student['rendered_hours'])) {
+    $hours_rendered = (float)$student['rendered_hours'];
+}
+
+$open_session_seconds = 0;
+if ($is_clocked_in && !empty($open_clock_in_time)) {
+    $open_ts = strtotime($today . ' ' . $open_clock_in_time);
+    if ($open_ts !== false) {
+        $open_session_seconds = max(0, time() - $open_ts);
+    }
+}
+
+$live_rendered_hours = $hours_rendered + ($open_session_seconds / 3600);
+
 $internal_total_hours = isset($student['internal_total_hours']) ? intval($student['internal_total_hours']) : 600;
 if ($internal_total_hours < 0) {
     $internal_total_hours = 0;
@@ -156,6 +181,7 @@ if ($internal_total_hours <= 0) {
     // Prevent division by zero and keep dashboard usable when hours are not configured yet.
     $internal_total_hours = 600;
 }
+
 $assignment_track = strtolower((string)($student['assignment_track'] ?? 'internal'));
 $stored_internal_remaining = isset($student['internal_total_hours_remaining']) && $student['internal_total_hours_remaining'] !== null
     ? (int)$student['internal_total_hours_remaining']
@@ -164,21 +190,35 @@ $stored_external_remaining = isset($student['external_total_hours_remaining']) &
     ? (int)$student['external_total_hours_remaining']
     : null;
 
-if ($assignment_track === 'external' && $stored_external_remaining !== null) {
-    $hours_remaining = max(0, $stored_external_remaining);
-} elseif ($stored_internal_remaining !== null) {
-    $hours_remaining = max(0, $stored_internal_remaining);
-} else {
-    $hours_remaining = max(0, $internal_total_hours - $hours_rendered);
-}
+$internal_remaining_hours_live = max(0, $internal_total_hours - $live_rendered_hours);
+$external_remaining_hours_live = max(0, $external_total_hours - $live_rendered_hours);
+$hours_remaining = ($assignment_track === 'external') ? $external_remaining_hours_live : $internal_remaining_hours_live;
 
 $remaining_seconds = (int)max(0, round($hours_remaining * 3600));
-$internal_remaining_display = $stored_internal_remaining !== null
-    ? max(0, $stored_internal_remaining)
-    : max(0, (int)floor($internal_total_hours - $hours_rendered));
-$external_remaining_display = $stored_external_remaining !== null
-    ? max(0, $stored_external_remaining)
-    : max(0, (int)floor($external_total_hours - $hours_rendered));
+$internal_remaining_display = max(0, (int)floor($internal_remaining_hours_live));
+$external_remaining_display = max(0, (int)floor($external_remaining_hours_live));
+
+// Keep stored remaining hours aligned with computed remaining to avoid future timer resets.
+$remaining_for_storage = max(0, (int)floor($hours_remaining));
+if ($assignment_track === 'external') {
+    if ($stored_external_remaining === null || $stored_external_remaining !== $remaining_for_storage) {
+        $upd_remaining = $conn->prepare("UPDATE students SET external_total_hours_remaining = ?, updated_at = NOW() WHERE id = ?");
+        if ($upd_remaining) {
+            $upd_remaining->bind_param("ii", $remaining_for_storage, $student_id);
+            $upd_remaining->execute();
+            $upd_remaining->close();
+        }
+    }
+} else {
+    if ($stored_internal_remaining === null || $stored_internal_remaining !== $remaining_for_storage) {
+        $upd_remaining = $conn->prepare("UPDATE students SET internal_total_hours_remaining = ?, updated_at = NOW() WHERE id = ?");
+        if ($upd_remaining) {
+            $upd_remaining->bind_param("ii", $remaining_for_storage, $student_id);
+            $upd_remaining->execute();
+            $upd_remaining->close();
+        }
+    }
+}
 $internal_completed_hours = max(0, $internal_total_hours - $internal_remaining_display);
 $completion_percentage = $internal_total_hours > 0
     ? ($internal_completed_hours / $internal_total_hours) * 100
@@ -1005,7 +1045,7 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                                     <div class="recent-activity p-4 pb-0">
                                         <div class="mb-4 pb-2 d-flex justify-content-between">
                                             <h5 class="fw-bold">Recent Attendance Records:</h5>
-                                            <a href="javascript:void(0);" class="btn btn-sm btn-light-brand">View All</a>
+                                            <a href="students-dtr.php?id=<?php echo intval($student['id']); ?>" class="btn btn-sm btn-light-brand">Open DTR</a>
                                         </div>
                                         <ul class="list-unstyled activity-feed">
                                             <?php if (count($activities) > 0): ?>
@@ -1222,24 +1262,8 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
 
             const saved = loadState();
             if (saved) {
-                // Use the lower value to avoid "resetting up" when DB value is stale.
+                // Use lower value from local state to prevent upward jumps from stale cache/server values.
                 remainingSeconds = Math.min(remainingSeconds, saved.seconds);
-                if (isClockedIn) {
-                    const sameSession = (
-                        saved.sessionDate === todayKey &&
-                        String(saved.clockInRaw || '') === String(openClockInRaw || '')
-                    );
-                    if (sameSession && saved.savedAt && Number.isFinite(saved.savedAt)) {
-                        const elapsedFromLastSave = Math.max(0, Math.floor((Date.now() - saved.savedAt) / 1000));
-                        remainingSeconds = Math.max(0, remainingSeconds - elapsedFromLastSave);
-                    } else {
-                        // New clock-in session (e.g., next day): subtract only today's open session elapsed.
-                        remainingSeconds = Math.max(0, remainingSeconds - elapsedSinceOpenClockIn());
-                    }
-                }
-            } else if (isClockedIn && openClockInRaw) {
-                // First visit in this session: subtract only today's open clock-in elapsed.
-                remainingSeconds = Math.max(0, remainingSeconds - elapsedSinceOpenClockIn());
             }
 
             function updateTimer() {

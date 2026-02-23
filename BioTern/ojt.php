@@ -753,8 +753,58 @@
                     <td><?php echo htmlspecialchars($student['coordinator_name'] ?? '-'); ?></td>
                     <td>
                         <div class="hstack gap-2 justify-content-end">
-                            <a href="ojt-view.php?id=<?php echo $student['id']; ?>" class="btn btn-sm btn-outline-primary">Internal</a>
-                            <a href="ojt-view.php?id=<?php echo $student['id']; ?>" class="btn btn-sm btn-primary">OJT</a>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    Internal
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li>
+                                        <a class="dropdown-item" href="students-view.php?id=<?php echo intval($student['id']); ?>#evaluationTab">
+                                            <i class="feather-clipboard me-2"></i>Evaluation
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="students-dtr.php?id=<?php echo intval($student['id']); ?>">
+                                            <i class="feather-clock me-2"></i>Attendance History
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <a class="dropdown-item" href="students-view.php?id=<?php echo intval($student['id']); ?>">
+                                            <i class="feather-user me-2"></i>Student Profile
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    External
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li>
+                                        <a class="dropdown-item" href="document_application.php?id=<?php echo intval($student['id']); ?>">
+                                            <i class="feather-file-text me-2"></i>Application Letter
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="document_moa.php?id=<?php echo intval($student['id']); ?>">
+                                            <i class="feather-file me-2"></i>MOA Document
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="document_endorsement.php?id=<?php echo intval($student['id']); ?>">
+                                            <i class="feather-edit-3 me-2"></i>Endorsement Letter
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <a class="dropdown-item" href="students-dtr.php?id=<?php echo intval($student['id']); ?>">
+                                            <i class="feather-clock me-2"></i>Attendance History
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
                         </div>
                     </td>
                 </tr>

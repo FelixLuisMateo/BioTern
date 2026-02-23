@@ -698,7 +698,7 @@
                                     <label class="form-label fs-12">Admin Level</label>
                                     <select class="form-control" required>
                                         <option value="" disabled selected>Select Admin Level</option>
-                                        <option value="super_admin">Super Admin</option>
+                                        <option value="Head_admin">Head Admin</option>
                                         <option value="admin">Admin</option>
                                         <option value="staff">Staff</option>
                                     </select>
