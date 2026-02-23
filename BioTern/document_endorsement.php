@@ -72,14 +72,95 @@ if (isset($_GET['action'])) {
         .nxl-navigation { z-index: 2147483646; }
         footer.footer { margin-top: auto; }
 
-        .doc-preview { background:#fff; border:1px solid #eee; padding:24px; margin-top:16px; box-shadow:0 6px 20px rgba(0,0,0,.06); position:relative; z-index:1; }
+        .doc-preview { background:#fff; border:1px solid #eee; padding:24px; max-width:800px; margin-top:18px; margin-bottom:32px; box-shadow:0 6px 20px rgba(0,0,0,.06); position:relative; z-index:1; }
         .preview-header { position:relative; min-height:72px; text-align:center; border-bottom:1px solid #8ab0e6; padding:8px 0 6px; margin-bottom:10px; }
         .preview-header .school-name { font-family:Calibri,Arial,sans-serif; color:#1b4f9c; font-size:20px; margin:0; font-weight:700; }
         .preview-header .school-meta, .preview-header .school-tel { font-family:Calibri,Arial,sans-serif; color:#1b4f9c; font-size:14px; line-height:1.2; }
-        .preview-content { font-family:"Times New Roman", Times, serif; font-size:12pt; line-height:1.45; }
+        .preview-content { font-family:"Times New Roman", Times, serif; font-size:12pt; line-height:1.45; color:#2f3640; }
         .preview-content h5 { text-align:center; margin:8px 0 12px; font-weight:700; }
+        .preview-content p,
+        .preview-content li,
+        .preview-content strong,
+        .preview-content span {
+            color:#2f3640;
+        }
         .signature { margin-top:28px; }
         .card .btn { position: relative; z-index: 5; pointer-events: auto; }
+        .select2-container--open { z-index: 9999999 !important; }
+        .select2-dropdown { z-index: 9999999 !important; }
+        .select2-container .select2-search__field {
+            padding: 4px !important;
+            margin: 0 !important;
+            height: auto !important;
+            border: 0 !important;
+            box-shadow: none !important;
+            background: transparent !important;
+        }
+        .select2-container .select2-selection__rendered,
+        .select2-container .select2-selection__placeholder {
+            visibility: hidden !important;
+        }
+        .select2-overlay-input {
+            position: absolute;
+            inset: 0 40px 0 8px;
+            width: calc(100% - 48px);
+            height: calc(100% - 8px);
+            border: none;
+            background: transparent;
+            padding: 6px 8px;
+            box-sizing: border-box;
+            z-index: 99999999;
+            font: inherit;
+            color: inherit;
+        }
+        .select2-overlay-input:focus { outline: none; }
+
+        html.app-skin-dark .select2-container--default .select2-selection--single {
+            background: #0f172a !important;
+            border-color: #1b2436 !important;
+            color: #dbe5f1 !important;
+        }
+        html.app-skin-dark .select2-overlay-input {
+            color: #dbe5f1 !important;
+        }
+        html.app-skin-dark .select2-overlay-input::placeholder {
+            color: #9fb0c6 !important;
+        }
+        html.app-skin-dark .select2-container--default.select2-container--open .select2-dropdown {
+            background: #0f172a !important;
+            border-color: #1b2436 !important;
+        }
+        html.app-skin-dark .select2-results__option {
+            background: #0f172a !important;
+            color: #dbe5f1 !important;
+        }
+        html.app-skin-dark .select2-results__option--highlighted[aria-selected] {
+            background: #1f2b44 !important;
+            color: #ffffff !important;
+        }
+
+        html.app-skin-dark .doc-preview {
+            background: #0f172a !important;
+            border-color: #1b2436 !important;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+        }
+        html.app-skin-dark .preview-content,
+        html.app-skin-dark .preview-content p,
+        html.app-skin-dark .preview-content li,
+        html.app-skin-dark .preview-content strong,
+        html.app-skin-dark .preview-content span {
+            color: #dbe5f1 !important;
+        }
+        html.app-skin-dark .preview-header {
+            border-bottom-color: #78a7e8 !important;
+        }
+        html.app-skin-dark .preview-header .school-name {
+            color: #f3f8ff !important;
+        }
+        html.app-skin-dark .preview-header .school-meta,
+        html.app-skin-dark .preview-header .school-tel {
+            color: #d0dff7 !important;
+        }
 
         @media (max-width: 1024px) {
             .nxl-navigation,
@@ -88,6 +169,8 @@ if (isset($_GET['action'])) {
             .nxl-header { z-index: 2147483647 !important; }
             .nxl-container { position: relative; z-index: 1; }
             .doc-preview { z-index: 1 !important; }
+            .select2-container--open,
+            .select2-dropdown { z-index: 900 !important; }
         }
     </style>
 </head>
@@ -105,9 +188,9 @@ if (isset($_GET['action'])) {
         <div class="col-lg-6">
             <div class="card p-3">
                 <div class="mt-2">
-                    <label class="form-label">Recommended Students (Autofill, multiple)</label>
-                    <select id="recommended_students_select" multiple="multiple" style="width:100%"></select>
-                    <small class="text-muted">Search and select multiple students.</small>
+                    <label for="student_select" class="form-label">Search Student</label>
+                    <select id="student_select" style="width:100%"></select>
+                    <small class="text-muted">Search and select student.</small>
                 </div>
                 <div class="mt-1">
                     <label class="form-label">Recipient Name</label>
@@ -138,8 +221,8 @@ if (isset($_GET['action'])) {
         </div>
 
         <div class="col-lg-6">
-            <div class="doc-preview">
-                <img src="assets/images/auth/auth-cover-login-bg.png" alt="crest" style="position:absolute; width:70px; height:70px; object-fit:contain;" onerror="this.style.display='none'">
+            <div class="doc-preview" id="letter_preview">
+                <img class="crest-preview" src="assets/images/auth/auth-cover-login-bg.png" alt="crest" style="position:absolute; top:12px; left:12px; width:56px; height:56px; object-fit:contain;" onerror="this.style.display='none'">
                 <div class="preview-header">
                     <p class="school-name">CLARK COLLEGE OF SCIENCE AND TECHNOLOGY</p>
                     <div class="school-meta">SNS Bldg. Aurea St., Samsonville Subd., Dau, Mabalacat, Pampanga</div>
@@ -184,7 +267,7 @@ if (isset($_GET['action'])) {
 <script src="assets/vendors/js/select2.min.js"></script>
 <script>
 (function(){
-    const recommendedSelect = $('#recommended_students_select');
+    const select = $('#student_select');
     const inputRecipient = document.getElementById('input_recipient');
     const inputPosition = document.getElementById('input_position');
     const inputCompany = document.getElementById('input_company');
@@ -205,18 +288,15 @@ if (isset($_GET['action'])) {
         return String(text || '').replace(/\s*-\s*.*$/, '').trim();
     }
 
-    function autofillStudentsFromMultiSelect() {
-        const selected = recommendedSelect.select2('data') || [];
-        const names = selected
-            .map(item => buildNameFromOptionText(item.text))
-            .filter(Boolean);
-        if (names.length) {
-            inputStudents.value = names.join('\n');
-        } else if (!inputStudents.dataset.manualLocked) {
+    function autofillStudentsFromSelected() {
+        const selected = select.select2('data') || [];
+        const first = selected[0] || null;
+        const name = first ? buildNameFromOptionText(first.text) : '';
+        if (name && !inputStudents.dataset.manualLocked) {
+            inputStudents.value = name;
+        } else if (!name && !inputStudents.dataset.manualLocked) {
             inputStudents.value = '';
         }
-        updatePreview();
-        updateLinks();
     }
 
     function updatePreview() {
@@ -243,9 +323,9 @@ if (isset($_GET['action'])) {
 
     function updateLinks() {
         const p = new URLSearchParams();
-        const selectedIds = recommendedSelect.val() || [];
-        if (selectedIds.length > 0) {
-            p.set('id', selectedIds[0]);
+        const selectedId = select.val();
+        if (selectedId) {
+            p.set('id', selectedId);
         } else if (prefillId > 0) {
             p.set('id', String(prefillId));
         }
@@ -261,8 +341,8 @@ if (isset($_GET['action'])) {
         return genUrl;
     }
 
-    recommendedSelect.select2({
-        placeholder: 'Search and select recommended students',
+    select.select2({
+        placeholder: 'Search student by name or ID',
         ajax: {
             url: 'document_endorsement.php',
             dataType: 'json',
@@ -271,11 +351,58 @@ if (isset($_GET['action'])) {
             processResults: function(data){ return { results: data.results || [] }; }
         },
         minimumInputLength: 1,
-        width: 'resolve'
+        width: 'resolve',
+        dropdownCssClass: 'select2-dropdown'
     });
 
-    recommendedSelect.on('select2:select select2:unselect change', function(){
-        autofillStudentsFromMultiSelect();
+    function createSelectOverlay() {
+        if (document.querySelector('.select2-overlay-input')) return;
+        const sel = document.getElementById('student_select');
+        if (!sel) return;
+        const container = sel.nextElementSibling;
+        if (!container || !container.classList || !container.classList.contains('select2')) return;
+        container.style.position = 'relative';
+        const overlay = document.createElement('input');
+        overlay.type = 'text';
+        overlay.className = 'select2-overlay-input';
+        overlay.placeholder = 'Search student by name or ID';
+        overlay.autocomplete = 'off';
+        container.appendChild(overlay);
+        overlay.addEventListener('focus', function(){
+            try { select.select2('open'); } catch(e){}
+            setTimeout(function(){
+                var fld = document.querySelector('.select2-container--open .select2-search__field');
+                if (fld) fld.focus();
+            }, 30);
+        });
+        overlay.addEventListener('input', function(){
+            const v = overlay.value || '';
+            try { select.select2('open'); } catch(e){}
+            setTimeout(function(){
+                var fld = document.querySelector('.select2-container--open .select2-search__field');
+                if (fld) {
+                    fld.value = v;
+                    fld.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            }, 30);
+        });
+        $(document).on('select2:select select2:closing', '#student_select', function(){
+            const txt = $('#student_select').find('option:selected').text() || '';
+            overlay.value = txt;
+        });
+    }
+
+    select.on('select2:open', function() {
+        setTimeout(function() {
+            var field = document.querySelector('.select2-container--open .select2-search__field');
+            if (field) field.focus();
+        }, 0);
+    });
+
+    select.on('select2:select select2:unselect change', function(){
+        autofillStudentsFromSelected();
+        updatePreview();
+        updateLinks();
     });
 
     [inputRecipient, inputPosition, inputCompany, inputCompanyAddress, inputStudents].forEach(el => {
@@ -307,14 +434,16 @@ if (isset($_GET['action'])) {
                 if (full) {
                     const text = full + ' - ' + (data.student_id || '');
                     const o = new Option(text, String(prefillId), true, true);
-                    recommendedSelect.append(o).trigger('change');
-                    autofillStudentsFromMultiSelect();
+                    select.append(o).trigger('change');
+                    autofillStudentsFromSelected();
                 }
                 updatePreview();
                 updateLinks();
+                setTimeout(createSelectOverlay, 60);
             });
     }
 
+    setTimeout(createSelectOverlay, 60);
     updatePreview();
     updateLinks();
 })();
