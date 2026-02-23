@@ -1,4 +1,32 @@
-﻿<!DOCTYPE html>
+﻿<?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+$verify_error = '';
+$masked_contact = isset($_SESSION['password_reset_contact']) ? htmlspecialchars((string)$_SESSION['password_reset_contact']) : '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $code = '';
+    for ($i = 1; $i <= 6; $i++) {
+        $k = 'digit' . $i;
+        $code .= isset($_POST[$k]) ? substr((string)$_POST[$k], 0, 1) : '';
+    }
+
+    $expected = isset($_SESSION['password_reset_code']) ? (string)$_SESSION['password_reset_code'] : '';
+    if ($expected === '') {
+        $verify_error = 'No active password reset request found. Please request a password reset first.';
+    } elseif ($code === $expected) {
+        // mark verified and redirect to reset form
+        $_SESSION['password_reset_verified'] = true;
+        header('Location: auth-reset-cover.php');
+        exit;
+    } else {
+        $verify_error = 'Invalid verification code. Please try again.';
+    }
+}
+
+?><!DOCTYPE html>
 <html lang="zxx">
 
 <head>
@@ -53,21 +81,25 @@
                     <h2 class="fs-20 fw-bolder mb-4">Verify <a href="javascript:void(0);" class="float-end fs-12 text-primary">Change Methord</a></h2>
                     <h4 class="fs-13 fw-bold mb-2">Please enter th e code generated one time password to verify your account.</h4>
                     <p class="fs-12 fw-medium text-muted"><span>A code has been sent to</span> <strong>*******9897</strong></p>
-                    <form action="index.php" class="w-100 mt-4 pt-2">
+                    <?php if ($verify_error !== ''): ?>
+                        <div class="alert alert-danger" role="alert"><?php echo $verify_error; ?></div>
+                    <?php endif; ?>
+
+                    <form method="post" class="w-100 mt-4 pt-2">
                         <div id="otp" class="inputs d-flex flex-row justify-content-center mt-2">
-                            <input class="m-2 text-center form-control rounded" type="text" id="first" maxlength="1" required>
-                            <input class="m-2 text-center form-control rounded" type="text" id="second" maxlength="1" required>
-                            <input class="m-2 text-center form-control rounded" type="text" id="third" maxlength="1" required>
-                            <input class="m-2 text-center form-control rounded" type="text" id="fourth" maxlength="1" required>
-                            <input class="m-2 text-center form-control rounded" type="text" id="fifth" maxlength="1" required>
-                            <input class="m-2 text-center form-control rounded" type="text" id="sixth" maxlength="1" required>
+                            <input name="digit1" class="m-2 text-center form-control rounded" type="text" id="first" maxlength="1" required>
+                            <input name="digit2" class="m-2 text-center form-control rounded" type="text" id="second" maxlength="1" required>
+                            <input name="digit3" class="m-2 text-center form-control rounded" type="text" id="third" maxlength="1" required>
+                            <input name="digit4" class="m-2 text-center form-control rounded" type="text" id="fourth" maxlength="1" required>
+                            <input name="digit5" class="m-2 text-center form-control rounded" type="text" id="fifth" maxlength="1" required>
+                            <input name="digit6" class="m-2 text-center form-control rounded" type="text" id="sixth" maxlength="1" required>
                         </div>
                         <div class="mt-5">
                             <button type="submit" class="btn btn-lg btn-primary w-100">Validate</button>
                         </div>
                         <div class="mt-5 text-muted">
                             <span>Didn't get the code</span>
-                            <a href="javascript:void(0);">Resend(1/3)</a>
+                            <a href="auth-reset-cover.php?resend=1">Resend</a>
                         </div>
                     </form>
                 </div>
