@@ -73,7 +73,7 @@ if ($result->num_rows == 0) {
 
 $student = $result->fetch_assoc();
 
-// Check if student is active today (has any attendance record for today)
+// Check if student has attendance today (any record for today's date).
 $today = date('Y-m-d');
 $active_today_query = "
     SELECT COUNT(*) as count 
@@ -85,7 +85,7 @@ $stmt_active->bind_param("is", $student_id, $today);
 $stmt_active->execute();
 $active_result = $stmt_active->get_result();
 $active_row = $active_result->fetch_assoc();
-$is_active_today = $active_row['count'] > 0 ? true : false;
+$has_attendance_today = $active_row['count'] > 0 ? true : false;
 
 // Check if student is currently clocked in (has morning_time_in but no morning_time_out)
 $clocked_in_query = "
@@ -373,6 +373,15 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
             white-space: nowrap;
             font-size: 1.08rem;
             letter-spacing: 0.01em;
+        }
+        .attendance-clocked-out-alert {
+            background-color: #e8f4ff !important;
+            border: 1px solid #8ec5ff !important;
+            color: #0a3761 !important;
+        }
+        .attendance-clocked-out-alert i,
+        .attendance-clocked-out-alert span {
+            color: #0a3761 !important;
         }
         .profile-contact-item {
             display: flex;
@@ -837,15 +846,20 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                                             <p class="fs-12 text-muted mb-0">External Hours</p>
                                         </div>
                                     </div>
-                                    <?php if ($is_active_today): ?>
+                                    <?php if ($is_clocked_in): ?>
                                         <div class="alert alert-soft-success-message p-2 mb-3" role="alert">
                                             <i class="feather-check-circle me-2"></i>
-                                            <span class="fs-12">Student is active today</span>
+                                            <span class="fs-12">Student is currently clocked in</span>
+                                        </div>
+                                    <?php elseif ($has_attendance_today): ?>
+                                        <div class="alert alert-soft-info-message attendance-clocked-out-alert p-2 mb-3" role="alert">
+                                            <i class="feather-clock me-2"></i>
+                                            <span class="fs-12 fw-bold">Student has attendance today and is currently clocked out</span>
                                         </div>
                                     <?php else: ?>
                                         <div class="alert alert-soft-warning-message p-2 mb-3" role="alert">
                                             <i class="feather-alert-circle me-2"></i>
-                                            <span class="fs-12">Student is not active today</span>
+                                            <span class="fs-12">Student has no attendance today</span>
                                         </div>
                                     <?php endif; ?>
                                 </div>

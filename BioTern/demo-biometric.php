@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // Database Connection
 $host = 'localhost';
 $db_user = 'root';
@@ -189,7 +189,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                 VALUES ($student_id, '$clock_date', '$clock_time', 'pending', NOW(), NOW())";
                 if ($conn->query($insert_query)) {
                     sync_student_active_status($conn, $student_id, $clock_type);
-                    $message = "âœ“ " . ucfirst(str_replace('_', ' ', $clock_type)) . " recorded at " . date('h:i A', strtotime($clock_time));
+                    $message = "" . ucfirst(str_replace('_', ' ', $clock_type)) . " recorded at " . date('h:i A', strtotime($clock_time));
                     $message_type = "success";
                 } else {
                     $message = "Error recording time: " . $conn->error;
@@ -201,7 +201,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 
                 // If the time field is already set, prevent duplicate clock-in
                 if (!empty($record[$db_column])) {
-                    $message = "âœ— " . ucfirst(str_replace('_', ' ', $clock_type)) . " has already been recorded. Cannot clock in twice.";
+                    $message = " — " . ucfirst(str_replace('_', ' ', $clock_type)) . " has already been recorded. Cannot clock in twice.";
                     $message_type = "warning";
                 } else {
                     // Update existing attendance record with this new time
@@ -232,7 +232,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         sync_student_hours($conn, $student_id);
                         sync_student_active_status($conn, $student_id, $clock_type);
 
-                        $message = "âœ“ " . ucfirst(str_replace('_', ' ', $clock_type)) . " recorded at " . date('h:i A', strtotime($clock_time));
+                        $message = " — " . ucfirst(str_replace('_', ' ', $clock_type)) . " recorded at " . date('h:i A', strtotime($clock_time));
                         $message_type = "success";
                     } else {
                         $message = "Error recording time: " . $conn->error;
@@ -1043,7 +1043,7 @@ if ($attendance_today->num_rows > 0) {
                 <?php if (!empty($message)): ?>
                     <div class="alert-custom alert-<?php echo $message_type; ?>">
                         <span class="alert-icon">
-                            <?php echo $message_type === 'success' ? 'âœ“' : 'âœ•'; ?>
+                            <?php echo $message_type === 'success' ? ' — ' : ' — '; ?>
                         </span>
                         <span><?php echo $message; ?></span>
                     </div>

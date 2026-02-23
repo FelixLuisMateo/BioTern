@@ -508,7 +508,7 @@ try {
                             <li class="nxl-item"><a class="nxl-link" href="settings-tags.php">Tags</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="settings-email.php">Email</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="settings-tasks.php">Tasks</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-ojt.php">Leads</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="settings-ojt.php">OJT</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="settings-support.php">Support</a></li>
                             
                             
@@ -791,7 +791,7 @@ try {
             <div class="page-header">
                 <div class="page-header-left d-flex align-items-center">
                     <div class="page-header-title">
-                        <h5 class="m-b-10">Leads</h5>
+                        <h5 class="m-b-10">OJT</h5>
                     </div>
                     <ul class="breadcrumb">
                         <li class="breadcrumb-item"><a href="index.php">Home</a></li>
@@ -848,19 +848,8 @@ try {
             </div>
             <!-- [ page-header ] end -->
             <div class="bg-white py-3 border-bottom rounded-0 p-md-0 mb-0">
-                <div class="d-md-none d-flex">
-                    <a href="javascript:void(0)" class="page-content-left-open-toggle">
-                        <i class="feather-align-left fs-20"></i>
-                    </a>
-                </div>
                 <div class="d-flex align-items-center justify-content-between">
                     <div class="nav-tabs-wrapper page-content-left-sidebar-wrapper">
-                        <div class="d-flex d-md-none">
-                            <a href="javascript:void(0)" class="page-content-left-close-toggle">
-                                <i class="feather-arrow-left me-2"></i>
-                                <span>Back</span>
-                            </a>
-                        </div>
                         <ul class="nav nav-tabs nav-tabs-custom-style" id="myTab" role="tablist">
                             <li class="nav-item" role="presentation">
                                 <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#profileTab">Profile</button>
