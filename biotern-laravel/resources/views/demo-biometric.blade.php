@@ -533,6 +533,14 @@ if ($attendance_today->num_rows > 0) {
             box-shadow: 0 8px 16px rgba(25, 91, 140, 0.3);
         }
 
+        /* Ensure active clock button remains visible in dark mode */
+        html.app-skin-dark .clock-btn.active {
+            background: linear-gradient(135deg, #11405f, #1a5b7e);
+            color: #ffffff !important;
+            border-color: transparent;
+            box-shadow: 0 8px 18px rgba(8, 36, 58, 0.6);
+        }
+
         .record-section {
             padding: 1.2rem;
             margin: 1rem 0;
@@ -1260,9 +1268,6 @@ if ($attendance_today->num_rows > 0) {
                 <!-- Alert Messages -->
                 <?php if (!empty($message)): ?>
                     <div class="alert-custom alert-<?php echo $message_type; ?>">
-                        <span class="alert-icon">
-                            <?php echo $message_type === 'success' ? '✓' : '✕'; ?>
-                        </span>
                         <span><?php echo $message; ?></span>
                     </div>
                 <?php endif; ?>

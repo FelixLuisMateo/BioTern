@@ -1689,8 +1689,6 @@ try {
                             </div>
                             <div class="card-body">
                                 @php
-                                    use Illuminate\Support\Facades\DB;
-                                    use Illuminate\Support\Facades\Schema;
                                     $qa_total_students = Schema::hasTable('students') ? DB::table('students')->count() : 0;
                                     $qa_total_internships = Schema::hasTable('internships') ? DB::table('internships')->count() : 0;
                                     $qa_attendance_today = 0;

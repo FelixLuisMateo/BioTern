@@ -1678,23 +1678,78 @@ function getAttendanceStatus($morning_time_in) {
             form.submit();
         }
 
-        // Approve attendance function
-        function approveAttendance(id) {
-            if (confirm('Are you sure you want to approve this attendance?')) {
-                submitAttendanceAction('approve', id);
+        // Simple modal-based confirmation helper
+        function showConfirmModal(options) {
+            // options: { title, message, showRemarks:false, onConfirm: function(remarks){}}
+            var modalEl = document.getElementById('confirmModal');
+            var modalTitle = modalEl.querySelector('.modal-title');
+            var modalBody = modalEl.querySelector('.modal-body .confirm-message');
+            var remarksWrap = modalEl.querySelector('.modal-body .confirm-remarks-wrap');
+            var remarksInput = modalEl.querySelector('#confirmRemarks');
+            var okBtn = modalEl.querySelector('#confirmModalOk');
+
+            modalTitle.textContent = options.title || 'Confirm';
+            modalBody.textContent = options.message || '';
+            if (options.showRemarks) {
+                remarksWrap.style.display = 'block';
+                remarksInput.value = options.defaultRemarks || '';
+            } else {
+                remarksWrap.style.display = 'none';
+                remarksInput.value = '';
             }
+
+            // remove previous handler
+            okBtn.replaceWith(okBtn.cloneNode(true));
+            okBtn = modalEl.querySelector('#confirmModalOk');
+
+            okBtn.addEventListener('click', function() {
+                var remarks = remarksInput.value.trim();
+                var m = bootstrap.Modal.getInstance(modalEl);
+                if (m) m.hide();
+                if (typeof options.onConfirm === 'function') options.onConfirm(remarks);
+            });
+
+            var bsModal = new bootstrap.Modal(modalEl, { backdrop: 'static' });
+            bsModal.show();
         }
 
-        // Reject attendance function
+        // Approve attendance function using modal
+        function approveAttendance(id) {
+            showConfirmModal({
+                title: 'Approve Attendance',
+                message: 'Are you sure you want to approve this attendance?',
+                showRemarks: false,
+                onConfirm: function() { submitAttendanceAction('approve', id); }
+            });
+        }
+
+        // Reject attendance function using modal with remarks
         function rejectAttendance(id) {
-            var remarks = prompt('Enter rejection reason:');
-            if (remarks !== null && remarks.trim() !== '') {
-                submitAttendanceAction('reject', id, remarks.trim());
-            }
+            showConfirmModal({
+                title: 'Reject Attendance',
+                message: 'Provide a reason for rejection (required):',
+                showRemarks: true,
+                onConfirm: function(remarks) {
+                    if (!remarks) {
+                        // reopen modal to require remarks
+                        setTimeout(function() {
+                            showConfirmModal({
+                                title: 'Reject Attendance',
+                                message: 'Rejection reason is required.',
+                                showRemarks: true,
+                                onConfirm: function(r) { if (r) submitAttendanceAction('reject', id, r); }
+                            });
+                        }, 250);
+                        return;
+                    }
+                    submitAttendanceAction('reject', id, remarks);
+                }
+            });
         }
 
         // Edit attendance function
         function editAttendance(id) {
+            // Hook for future inline edit modal
             alert('Edit action is not connected yet for Attendance ID: ' + id);
         }
 
@@ -1708,13 +1763,39 @@ function getAttendanceStatus($morning_time_in) {
             alert('Notification action is not connected yet for Attendance ID: ' + id);
         }
 
-        // Delete attendance function
+        // Delete attendance function using modal
         function deleteAttendance(id) {
-            if (confirm('Are you sure you want to delete this attendance record? This action cannot be undone.')) {
-                submitAttendanceAction('delete', id);
-            }
+            showConfirmModal({
+                title: 'Delete Attendance',
+                message: 'Are you sure you want to delete this attendance record? This action cannot be undone.',
+                showRemarks: false,
+                onConfirm: function() { submitAttendanceAction('delete', id); }
+            });
         }
     </script>
+
+    <!-- Confirmation Modal (used for approve/reject/delete) -->
+    <div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirm</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="confirm-message"></p>
+                    <div class="confirm-remarks-wrap" style="display:none; margin-top:10px;">
+                        <label for="confirmRemarks" class="form-label">Remarks</label>
+                        <textarea id="confirmRemarks" class="form-control" rows="3" placeholder="Enter remarks here..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" id="confirmModalCancel" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" id="confirmModalOk" class="btn btn-primary">OK</button>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>
