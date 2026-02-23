@@ -18,6 +18,22 @@ function getPost($key) {
     return isset($_POST[$key]) ? trim($_POST[$key]) : null;
 }
 
+function resolveDepartmentIdByCode($mysqli, $departmentCode) {
+    $code = trim((string)$departmentCode);
+    if ($code === '') {
+        return null;
+    }
+    $stmt = $mysqli->prepare("SELECT id FROM departments WHERE code = ? AND deleted_at IS NULL LIMIT 1");
+    if (!$stmt) {
+        return null;
+    }
+    $stmt->bind_param('s', $code);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    return $row ? (int)$row['id'] : null;
+}
+
 $role = getPost('role');
 if (!$role) {
     header('Location: register_submit.php');
@@ -55,7 +71,7 @@ if ($role === 'student') {
     $password = getPost('password');
     $confirm_password = getPost('confirm_password');
     if ($password !== $confirm_password) {
-        header('Location: auth-register-creative.html?registered=error&msg=' . urlencode('Passwords do not match'));
+        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Passwords do not match'));
         exit;
     }
     
@@ -208,9 +224,15 @@ if ($role === 'coordinator') {
     $email = getPost('email');
     $phone = getPost('phone');
     $office_location = getPost('office_location');
-    $department_id = getPost('department_id') ? (int)getPost('department_id') : null;
+    $department_code = getPost('department_code');
+    $department_id = resolveDepartmentIdByCode($mysqli, $department_code);
     $username = getPost('username');
     $account_email = getPost('account_email');
+
+    if (!$department_id) {
+        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Department code not found. Please create it first in Departments page.'));
+        exit;
+    }
 
     $final_email = $account_email ?: $email;
     $userId = createUser($mysqli, $username ?: ($first_name . ' ' . $last_name), $final_email, $password ?: bin2hex(random_bytes(4)), 'coordinator');
@@ -296,9 +318,20 @@ if ($role === 'admin') {
     $phone = getPost('phone');
     $username = getPost('username');
     $account_email = getPost('account_email');
+    $admin_level = getPost('admin_level');
+    $department_code = getPost('department_code');
+    $department_id = resolveDepartmentIdByCode($mysqli, $department_code);
+    $admin_position = getPost('admin_position');
+    $middle_name = getPost('middle_name') ?: '';
+
+    if (!$department_id) {
+        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Department code not found. Please create it first in Departments page.'));
+        exit;
+    }
 
     $final_email = $account_email ?: $email;
-    $userId = createUser($mysqli, $username ?: ($first_name . ' ' . $last_name), $final_email, $password ?: bin2hex(random_bytes(4)), 'admin');
+    $admin_username = $username ?: ($first_name . ' ' . $last_name);
+    $userId = createUser($mysqli, $admin_username, $final_email, $password ?: bin2hex(random_bytes(4)), 'admin');
     
     // if createUser() returned null (possible duplicate/email exists), warn and stop
     if (!$userId) {
@@ -306,19 +339,57 @@ if ($role === 'admin') {
         exit;
     }
 
-    // If you have an admins table, insert here. Otherwise admin data is stored in users table with role='admin'
-    // Example if admins table exists:
-    // $stmt = $mysqli->prepare("INSERT INTO admins (user_id, first_name, last_name, email, phone, is_active, created_at) VALUES (?, ?, ?, ?, ?, 1, NOW())");
-    // if ($stmt) {
-    //     $stmt->bind_param('issss', $userId, $first_name, $last_name, $final_email, $phone);
-    //     if (!$stmt->execute()) {
-    //         $error = $stmt->error;
-    //         $stmt->close();
-    //         header('Location: auth-register-creative.php?registered=error&msg=' . urlencode($error));
-    //         exit;
-    //     }
-    //     $stmt->close();
-    // }
+    // Save admin profile in `admin` table (from admin.sql), while auth stays in `users` table.
+    $admin_pwd_hash = password_hash($password ?: bin2hex(random_bytes(4)), PASSWORD_DEFAULT);
+    $institution_email = $email ?: $final_email;
+    $admin_phone = $phone ?: '';
+    $admin_level = $admin_level ?: 'admin';
+    $admin_position = $admin_position ?: 'Admin';
+
+    $next_admin_id = 1;
+    $next_id_res = $mysqli->query("SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM admin");
+    if ($next_id_res) {
+        $next_id_row = $next_id_res->fetch_assoc();
+        if ($next_id_row && isset($next_id_row['next_id'])) {
+            $next_admin_id = (int)$next_id_row['next_id'];
+        }
+        $next_id_res->close();
+    }
+
+    $stmt_admin = $mysqli->prepare("
+        INSERT INTO admin (
+            id, user_id, first_name, middle_name, institution_email_address, phone_number,
+            admin_level, department_id, admin_position, username, password, email
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ");
+
+    if ($stmt_admin) {
+        $stmt_admin->bind_param(
+            'iisssssissss',
+            $next_admin_id,
+            $userId,
+            $first_name,
+            $middle_name,
+            $institution_email,
+            $admin_phone,
+            $admin_level,
+            $department_id,
+            $admin_position,
+            $admin_username,
+            $admin_pwd_hash,
+            $final_email
+        );
+        if (!$stmt_admin->execute()) {
+            $error = $stmt_admin->error;
+            $stmt_admin->close();
+            header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Admin record error: ' . $error));
+            exit;
+        }
+        $stmt_admin->close();
+    } else {
+        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Admin table statement error: ' . $mysqli->error));
+        exit;
+    }
 
     header('Location: auth-register-creative.php?registered=admin');
     exit;
