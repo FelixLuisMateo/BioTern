@@ -1102,7 +1102,7 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
     <script src="assets/vendors/js/select2.min.js"></script>
     <script src="assets/vendors/js/select2-active.min.js"></script>
     <script src="assets/js/common-init.min.js"></script>
-    <script src="assets/js/theme-customizer-init.min.js"></script>
+    <!-- Theme Customizer removed -->
 
     <script>
         function initializeTimer() {

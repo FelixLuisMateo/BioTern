@@ -2084,9 +2084,7 @@
     <script src="assets/js/common-init.min.js"></script>
     <script src="assets/js/widgets-charts-init.min.js"></script>
     <!--! END: Apps Init !-->
-    <!--! BEGIN: Theme Customizer  !-->
-    <script src="assets/js/theme-customizer-init.min.js"></script>
-    <!--! END: Theme Customizer !-->
+    <!-- Theme Customizer removed -->
 </body>
 
 </html>

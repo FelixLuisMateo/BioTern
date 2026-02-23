@@ -1070,7 +1070,7 @@ function formatDate($date) {
     <script src="assets/vendors/js/select2-active.min.js"></script>
     <script src="assets/js/common-init.min.js"></script>
     <script src="assets/js/customers-init.min.js"></script>
-    <script src="assets/js/theme-customizer-init.min.js"></script>
+    <!-- Theme Customizer removed -->
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             ['#filter-course', '#filter-department', '#filter-supervisor', '#filter-coordinator'].forEach(function (selector) {

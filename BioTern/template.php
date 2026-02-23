@@ -483,7 +483,7 @@
     <script src="assets/js/customers-init.min.js"></script>
     <!--! END: Apps Init !-->
     <!--! BEGIN: Theme Customizer  !-->
-    <script src="assets/js/theme-customizer-init.min.js"></script>
+    <!-- Theme Customizer removed -->
     <!--! END: Theme Customizer !-->
 </body>
 
