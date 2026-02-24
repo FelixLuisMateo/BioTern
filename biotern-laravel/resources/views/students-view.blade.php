@@ -257,7 +257,13 @@ $internal_remaining_display = $stored_internal_remaining !== null
 $external_remaining_display = $stored_external_remaining !== null
     ? max(0, $stored_external_remaining)
     : max(0, (int)floor($external_total_hours - $hours_rendered));
-$completion_percentage = ($hours_rendered / $internal_total_hours) * 100;
+$internal_completed_hours = max(0, $internal_total_hours - $internal_remaining_display);
+$completion_percentage = $internal_total_hours > 0
+    ? ($internal_completed_hours / $internal_total_hours) * 100
+    : 0;
+if ($completion_percentage > 100) {
+    $completion_percentage = 100;
+}
 
 // Fetch Attendance Records for activity
 $activity_query = "

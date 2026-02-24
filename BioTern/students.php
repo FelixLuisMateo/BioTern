@@ -87,7 +87,27 @@ if (!empty($filter_coordinator)) {
     $where[] = "(s.coordinator_name LIKE '%" . $conn->real_escape_string($filter_coordinator) . "%' OR i.coordinator_id IN (SELECT id FROM users WHERE name LIKE '%" . $conn->real_escape_string($filter_coordinator) . "%'))";
 }
 if ($filter_status >= 0) {
-    $where[] = "s.status = " . intval($filter_status);
+    if (intval($filter_status) === 1) {
+        $where[] = "EXISTS (
+            SELECT 1 FROM attendances a_live
+            WHERE a_live.student_id = s.id
+              AND a_live.attendance_date = CURDATE()
+              AND (
+                    (a_live.morning_time_in IS NOT NULL AND a_live.morning_time_out IS NULL)
+                 OR (a_live.afternoon_time_in IS NOT NULL AND a_live.afternoon_time_out IS NULL)
+              )
+        )";
+    } else {
+        $where[] = "NOT EXISTS (
+            SELECT 1 FROM attendances a_live
+            WHERE a_live.student_id = s.id
+              AND a_live.attendance_date = CURDATE()
+              AND (
+                    (a_live.morning_time_in IS NOT NULL AND a_live.morning_time_out IS NULL)
+                 OR (a_live.afternoon_time_in IS NOT NULL AND a_live.afternoon_time_out IS NULL)
+              )
+        )";
+    }
 }
 
 // Fetch Students with Related Information
@@ -100,6 +120,18 @@ $students_query = "
         s.email,
         s.phone,
         s.status,
+        CASE
+            WHEN EXISTS (
+                SELECT 1 FROM attendances a_live
+                WHERE a_live.student_id = s.id
+                  AND a_live.attendance_date = CURDATE()
+                  AND (
+                        (a_live.morning_time_in IS NOT NULL AND a_live.morning_time_out IS NULL)
+                     OR (a_live.afternoon_time_in IS NOT NULL AND a_live.afternoon_time_out IS NULL)
+                  )
+            ) THEN 1
+            ELSE 0
+        END as live_clock_status,
         s.supervisor_name,
         s.coordinator_name,
         s.biometric_registered,
@@ -803,7 +835,7 @@ function formatDate($date) {
                                                         <td><a href="javascript:void(0);"><?php echo htmlspecialchars($student['supervisor_name'] ?? '-'); ?></a></td>
                                                         <td><a href="javascript:void(0);"><?php echo htmlspecialchars($student['coordinator_name'] ?? '-'); ?></a></td>
                                                         <td><?php echo formatDate($student['created_at']); ?></td>
-                                                        <td><?php echo getStatusBadge($student['status']); ?></td>
+                                                        <td><?php echo getStatusBadge($student['live_clock_status']); ?></td>
                                                         <td>
                                                             <div class="hstack gap-2 justify-content-end">
                                                                 <a href="students-view.php?id=<?php echo $student['id']; ?>" class="avatar-text avatar-md" title="View">

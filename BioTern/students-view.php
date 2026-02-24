@@ -121,6 +121,18 @@ if ($attendance_record) {
     }
 }
 
+// Keep student status aligned with actual clock state (clocked-in => active, else inactive).
+$live_clock_status = $is_clocked_in ? 1 : 0;
+if ((int)($student['status'] ?? -1) !== $live_clock_status) {
+    $status_stmt = $conn->prepare("UPDATE students SET status = ?, updated_at = NOW() WHERE id = ?");
+    if ($status_stmt) {
+        $status_stmt->bind_param("ii", $live_clock_status, $student_id);
+        $status_stmt->execute();
+        $status_stmt->close();
+    }
+    $student['status'] = $live_clock_status;
+}
+
 $open_clock_in_time = null;
 if ($attendance_record) {
     if (!empty($attendance_record['afternoon_time_in']) && empty($attendance_record['afternoon_time_out'])) {
@@ -167,7 +179,13 @@ $internal_remaining_display = $stored_internal_remaining !== null
 $external_remaining_display = $stored_external_remaining !== null
     ? max(0, $stored_external_remaining)
     : max(0, (int)floor($external_total_hours - $hours_rendered));
-$completion_percentage = ($hours_rendered / $internal_total_hours) * 100;
+$internal_completed_hours = max(0, $internal_total_hours - $internal_remaining_display);
+$completion_percentage = $internal_total_hours > 0
+    ? ($internal_completed_hours / $internal_total_hours) * 100
+    : 0;
+if ($completion_percentage > 100) {
+    $completion_percentage = 100;
+}
 
 // Fetch Attendance Records for activity
 $activity_query = "
@@ -311,6 +329,52 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
         footer.footer {
             margin-top: auto;
         }
+        .profile-stats {
+            display: grid;
+            grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+            gap: 0.75rem;
+            align-items: stretch;
+        }
+        .profile-stats .stat-card {
+            min-width: 0;
+            padding: 0.55rem 0.6rem !important;
+            min-height: 84px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 0.2rem;
+        }
+        .profile-stats .hours-remaining-card,
+        .profile-stats .completion-card {
+            max-width: none;
+            justify-self: stretch;
+        }
+        .profile-stats .stat-card h6 {
+            margin-bottom: 0;
+            line-height: 1.15;
+        }
+        .profile-stats .stat-card p {
+            margin-bottom: 0;
+            line-height: 1.2;
+            white-space: nowrap;
+        }
+        #hoursRemaining {
+            white-space: nowrap;
+            font-size: 1.08rem;
+            letter-spacing: 0.01em;
+        }
+        .profile-contact-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 0.5rem;
+            margin-bottom: 0.7rem !important;
+        }
+        .profile-contact-item .profile-contact-value {
+            text-align: right;
+            max-width: 62%;
+            word-break: break-word;
+        }
         
         /* Dark mode select and Select2 styling */
         select.form-control,
@@ -371,6 +435,39 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
         body[data-bs-theme="dark"] select.form-select option {
             color: #f0f0f0;
             background-color: #2d3748;
+        }
+
+        @media (max-width: 767.98px) {
+            .profile-stats {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 0.55rem;
+            }
+            .profile-stats .stat-card {
+                min-height: 74px;
+                padding: 0.45rem 0.5rem !important;
+                gap: 0.1rem;
+            }
+            .profile-stats .stat-card h6 {
+                font-size: 1.05rem;
+                line-height: 1.1;
+            }
+            .profile-stats .stat-card p {
+                font-size: 0.78rem;
+                line-height: 1.1;
+            }
+            #hoursRemaining {
+                font-size: 1.05rem;
+            }
+            .profile-contact-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.15rem;
+                margin-bottom: 0.55rem !important;
+            }
+            .profile-contact-item .profile-contact-value {
+                text-align: left;
+                max-width: 100%;
+            }
         }
     </style>
 </head>
@@ -704,10 +801,10 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                                         <a href="javascript:void(0);" class="fs-14 fw-bold d-block"><?php echo htmlspecialchars($student['first_name'] . ' ' . $student['last_name']); ?></a>
                                         <a href="javascript:void(0);" class="fs-12 fw-normal text-muted d-block"><?php echo htmlspecialchars($student['email']); ?></a>
                                     </div>
-                                    <div class="fs-12 fw-normal text-muted text-center d-flex flex-wrap gap-3 mb-4">
-                                        <div class="flex-fill py-3 px-4 rounded-1 d-none d-sm-block border border-dashed border-gray-5">
-                                            <h6 class="fs-15 fw-bolder" id="hoursRemaining">
-                                                <?php 
+                                    <div class="fs-12 fw-normal text-muted text-center profile-stats mb-4">
+                                        <div class="stat-card hours-remaining-card py-3 px-4 rounded-1 border border-dashed border-gray-5">
+                                            <h6 class="fs-15 fw-bolder mb-0" id="hoursRemaining">
+                                                <?php
                                                 $hours = intdiv($remaining_seconds, 3600);
                                                 $mins = intdiv(($remaining_seconds % 3600), 60);
                                                 $secs = $remaining_seconds % 60;
@@ -716,21 +813,17 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                                             </h6>
                                             <p class="fs-12 text-muted mb-0">Hours Remaining</p>
                                         </div>
-                                        <div class="flex-fill py-3 px-4 rounded-1 d-none d-sm-block border border-dashed border-gray-5">
-                                            <h6 class="fs-15 fw-bolder"><?php echo intval($hours_rendered); ?>/<?php echo intval($internal_total_hours); ?></h6>
-                                            <p class="fs-12 text-muted mb-0">Hours Total</p>
+                                        <div class="stat-card completion-card py-3 px-4 rounded-1 border border-dashed border-gray-5">
+                                            <h6 class="fs-15 fw-bolder mb-0" id="completionValue"><?php echo number_format($completion_percentage, 2); ?>%</h6>
+                                            <p class="fs-12 text-muted mb-0">Completion</p>
                                         </div>
-                                        <div class="flex-fill py-3 px-4 rounded-1 d-none d-sm-block border border-dashed border-gray-5">
-                                            <h6 class="fs-15 fw-bolder"><?php echo intval($internal_remaining_display); ?>/<?php echo intval($internal_total_hours); ?></h6>
+                                        <div class="stat-card py-3 px-4 rounded-1 border border-dashed border-gray-5">
+                                            <h6 class="fs-15 fw-bolder" id="internalHoursValue"><?php echo intval($internal_remaining_display); ?>/<?php echo intval($internal_total_hours); ?></h6>
                                             <p class="fs-12 text-muted mb-0">Internal Hours</p>
                                         </div>
-                                        <div class="flex-fill py-3 px-4 rounded-1 d-none d-sm-block border border-dashed border-gray-5">
+                                        <div class="stat-card py-3 px-4 rounded-1 border border-dashed border-gray-5">
                                             <h6 class="fs-15 fw-bolder"><?php echo intval($external_remaining_display); ?>/<?php echo intval($external_total_hours); ?></h6>
                                             <p class="fs-12 text-muted mb-0">External Hours</p>
-                                        </div>
-                                        <div class="flex-fill py-3 px-4 rounded-1 d-none d-sm-block border border-dashed border-gray-5">
-                                            <h6 class="fs-15 fw-bolder"><?php echo number_format($completion_percentage, 2); ?>%</h6>
-                                            <p class="fs-12 text-muted mb-0">Completion</p>
                                         </div>
                                     </div>
                                     <?php if ($is_active_today): ?>
@@ -746,17 +839,17 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                                     <?php endif; ?>
                                 </div>
                                 <ul class="list-unstyled mb-4">
-                                    <li class="hstack justify-content-between mb-4">
+                                    <li class="profile-contact-item mb-4">
                                         <span class="text-muted fw-medium hstack gap-3"><i class="feather-map-pin"></i>Location</span>
-                                        <a href="javascript:void(0);" class="float-end"><?php echo htmlspecialchars($student['address'] ?? 'N/A'); ?></a>
+                                        <a href="javascript:void(0);" class="profile-contact-value"><?php echo htmlspecialchars($student['address'] ?? 'N/A'); ?></a>
                                     </li>
-                                    <li class="hstack justify-content-between mb-4">
+                                    <li class="profile-contact-item mb-4">
                                         <span class="text-muted fw-medium hstack gap-3"><i class="feather-phone"></i>Mobile Phone</span>
-                                        <a href="javascript:void(0);" class="float-end"><?php echo htmlspecialchars($student['phone'] ?? 'N/A'); ?></a>
+                                        <a href="javascript:void(0);" class="profile-contact-value"><?php echo htmlspecialchars($student['phone'] ?? 'N/A'); ?></a>
                                     </li>
-                                    <li class="hstack justify-content-between mb-0">
+                                    <li class="profile-contact-item mb-0">
                                         <span class="text-muted fw-medium hstack gap-3"><i class="feather-mail"></i>Email</span>
-                                        <a href="javascript:void(0);" class="float-end"><?php echo htmlspecialchars($student['email']); ?></a>
+                                        <a href="javascript:void(0);" class="profile-contact-value"><?php echo htmlspecialchars($student['email']); ?></a>
                                     </li>
                                 </ul>
                                 <div class="d-flex gap-2 text-center pt-4">
@@ -819,7 +912,7 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                                         </div>
                                         <div class="row g-0 mb-4">
                                             <div class="col-sm-6 text-muted">Internal Hours (Remaining/Total):</div>
-                                            <div class="col-sm-6 fw-semibold"><?php echo intval($internal_remaining_display); ?> / <?php echo intval($internal_total_hours); ?></div>
+                                            <div class="col-sm-6 fw-semibold" id="internalHoursDetailValue"><?php echo intval($internal_remaining_display); ?> / <?php echo intval($internal_total_hours); ?></div>
                                         </div>
                                         <div class="row g-0 mb-4">
                                             <div class="col-sm-6 text-muted">External Hours (Remaining/Total):</div>
@@ -867,7 +960,7 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                                         </div>
                                         <div class="row g-0 mb-4">
                                             <div class="col-sm-6 text-muted">Status:</div>
-                                            <div class="col-sm-6 fw-semibold"><?php echo getStatusBadge($student['internship_status']); ?></div>
+                                            <div class="col-sm-6 fw-semibold"><?php echo getStatusBadge($student['status']); ?></div>
                                         </div>
                                     </div>
                                 </div>
@@ -980,10 +1073,19 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
         function initializeTimer() {
             const timerElement = document.getElementById('hoursRemaining');
             if (!timerElement) return;
+            const completionElement = document.getElementById('completionValue');
+            const internalHoursElement = document.getElementById('internalHoursValue');
+            const internalHoursDetailElement = document.getElementById('internalHoursDetailValue');
+            const internalTotalHours = <?php echo (int)$internal_total_hours; ?>;
 
+            const studentId = <?php echo (int)$student['id']; ?>;
             let remainingSeconds = <?php echo (int)$remaining_seconds; ?>;
             const isClockedIn = <?php echo $is_clocked_in ? 'true' : 'false'; ?>;
             const openClockInRaw = <?php echo $open_clock_in_time ? json_encode($open_clock_in_time) : 'null'; ?>;
+            const storageKey = 'student_timer_state_' + String(studentId);
+            const todayKey = new Date().toISOString().slice(0, 10);
+            let lastSyncedHour = null;
+            let syncInFlight = false;
 
             function formatHMS(totalSeconds) {
                 const safe = Math.max(0, Math.floor(totalSeconds));
@@ -993,25 +1095,147 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                 return h + 'h:' + String(m).padStart(2, '0') + 'm:' + String(s).padStart(2, '0') + 's';
             }
 
-            if (isClockedIn && openClockInRaw) {
+            function updateCompletionFromSeconds() {
+                if (!completionElement || !Number.isFinite(internalTotalHours) || internalTotalHours <= 0) return;
+                const remainingHoursPrecise = Math.max(0, remainingSeconds / 3600);
+                const completed = Math.max(0, internalTotalHours - remainingHoursPrecise);
+                let pct = (completed / internalTotalHours) * 100;
+                if (pct > 100) pct = 100;
+                completionElement.textContent = pct.toFixed(2) + '%';
+            }
+
+            function updateInternalHoursFromSeconds() {
+                if (!internalHoursElement || !Number.isFinite(internalTotalHours) || internalTotalHours <= 0) return;
+                const remainingWholeHours = Math.max(0, Math.floor(remainingSeconds / 3600));
+                internalHoursElement.textContent = remainingWholeHours + '/' + internalTotalHours;
+                if (internalHoursDetailElement) {
+                    internalHoursDetailElement.textContent = remainingWholeHours + ' / ' + internalTotalHours;
+                }
+            }
+
+            function loadState() {
+                try {
+                    const raw = localStorage.getItem(storageKey);
+                    if (!raw) return null;
+                    const parsed = JSON.parse(raw);
+                    if (!parsed || typeof parsed.seconds === 'undefined') return null;
+                    const sec = parseInt(parsed.seconds, 10);
+                    if (!Number.isFinite(sec)) return null;
+                    return {
+                        seconds: Math.max(0, sec),
+                        savedAt: parsed.savedAt ? parseInt(parsed.savedAt, 10) : null,
+                        sessionDate: parsed.sessionDate || null,
+                        clockInRaw: parsed.clockInRaw || null
+                    };
+                } catch (e) {
+                    return null;
+                }
+            }
+
+            function saveState() {
+                try {
+                    localStorage.setItem(storageKey, JSON.stringify({
+                        seconds: Math.max(0, Math.floor(remainingSeconds)),
+                        savedAt: Date.now(),
+                        sessionDate: isClockedIn ? todayKey : null,
+                        clockInRaw: isClockedIn ? openClockInRaw : null
+                    }));
+                } catch (e) {}
+            }
+
+            function syncRemainingHourToDb() {
+                if (!isClockedIn) return;
+                const currentHour = Math.max(0, Math.floor(remainingSeconds / 3600));
+                if (lastSyncedHour === currentHour) return;
+                if (syncInFlight) return;
+                syncInFlight = true;
+
+                const body = new URLSearchParams();
+                body.set('student_id', String(studentId));
+                body.set('remaining_hours', String(currentHour));
+
+                fetch('update_remaining_hours.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+                    body: body.toString()
+                })
+                .then(function(r){ return r.json(); })
+                .then(function(data){
+                    if (data && data.ok) {
+                        lastSyncedHour = currentHour;
+                    }
+                })
+                .catch(function(){})
+                .finally(function(){ syncInFlight = false; });
+            }
+
+            function elapsedSinceOpenClockIn() {
+                if (!isClockedIn || !openClockInRaw) return 0;
                 const now = new Date();
                 const parts = String(openClockInRaw).split(':');
-                if (parts.length >= 2) {
-                    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), parseInt(parts[0], 10), parseInt(parts[1], 10), parseInt(parts[2] || '0', 10));
-                    const elapsed = Math.max(0, Math.floor((now.getTime() - start.getTime()) / 1000));
-                    remainingSeconds = Math.max(0, remainingSeconds - elapsed);
+                if (parts.length < 2) return 0;
+                const start = new Date(
+                    now.getFullYear(),
+                    now.getMonth(),
+                    now.getDate(),
+                    parseInt(parts[0], 10),
+                    parseInt(parts[1], 10),
+                    parseInt(parts[2] || '0', 10)
+                );
+                return Math.max(0, Math.floor((now.getTime() - start.getTime()) / 1000));
+            }
+
+            const saved = loadState();
+            if (saved) {
+                // Use the lower value to avoid "resetting up" when DB value is stale.
+                remainingSeconds = Math.min(remainingSeconds, saved.seconds);
+                if (isClockedIn) {
+                    const sameSession = (
+                        saved.sessionDate === todayKey &&
+                        String(saved.clockInRaw || '') === String(openClockInRaw || '')
+                    );
+                    if (sameSession && saved.savedAt && Number.isFinite(saved.savedAt)) {
+                        const elapsedFromLastSave = Math.max(0, Math.floor((Date.now() - saved.savedAt) / 1000));
+                        remainingSeconds = Math.max(0, remainingSeconds - elapsedFromLastSave);
+                    } else {
+                        // New clock-in session (e.g., next day): subtract only today's open session elapsed.
+                        remainingSeconds = Math.max(0, remainingSeconds - elapsedSinceOpenClockIn());
+                    }
                 }
+            } else if (isClockedIn && openClockInRaw) {
+                // First visit in this session: subtract only today's open clock-in elapsed.
+                remainingSeconds = Math.max(0, remainingSeconds - elapsedSinceOpenClockIn());
             }
 
             function updateTimer() {
                 timerElement.textContent = formatHMS(remainingSeconds);
+                updateInternalHoursFromSeconds();
+                updateCompletionFromSeconds();
                 if (isClockedIn && remainingSeconds > 0) {
                     remainingSeconds--;
+                }
+                if (isClockedIn && (remainingSeconds % 10 === 0)) {
+                    saveState();
+                }
+                // Sync DB only when timer hits exact whole hour (e.g., 116:00:00).
+                if (isClockedIn && remainingSeconds > 0 && (remainingSeconds % 3600 === 0)) {
+                    syncRemainingHourToDb();
                 }
             }
 
             updateTimer();
             setInterval(updateTimer, 1000);
+
+            // Persist value even when not clocked-in so it won't reset on next day/page load.
+            saveState();
+            document.addEventListener('visibilitychange', function() {
+                if (document.hidden) {
+                    saveState();
+                }
+            });
+            window.addEventListener('beforeunload', function(){
+                saveState();
+            });
         }
 
         document.addEventListener('DOMContentLoaded', initializeTimer);
