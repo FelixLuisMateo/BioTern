@@ -173,8 +173,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         // Check if student exists
         $student_check = $conn->query("SELECT id FROM students WHERE id = $student_id");
         if ($student_check->num_rows == 0) {
-            $message = "Student ID not found!";
-            $message_type = "danger";
+            // Redirect to a friendly 404 page when student ID is not found
+            header('Location: idnotfound-404.php?source=demo-biometric&id=' . urlencode($student_id));
+            exit;
         } else {
             // Escape values for security
             $clock_date = $conn->real_escape_string($clock_date);
@@ -784,62 +785,7 @@ if ($attendance_today->num_rows > 0) {
                             <li class="nxl-item"><a class="nxl-link" href="settings-miscellaneous.php">Miscellaneous</a></li>
                         </ul>
                     </li>
-                    <li class="nxl-item nxl-hasmenu">
-                        <a href="javascript:void(0);" class="nxl-link">
-                            <span class="nxl-micon"><i class="feather-power"></i></span>
-                            <span class="nxl-mtext">Authentication</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                        </a>
-                        <ul class="nxl-submenu">
-                            <li class="nxl-item nxl-hasmenu">
-                                <a href="javascript:void(0);" class="nxl-link">
-                                    <span class="nxl-mtext">Login</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                                </a>
-                                <ul class="nxl-submenu">
-                                    <li class="nxl-item"><a class="nxl-link" href="auth-login-cover.php">Cover</a></li>
-                                </ul>
-                            </li>
-                            <li class="nxl-item nxl-hasmenu">
-                                <a href="javascript:void(0);" class="nxl-link">
-                                    <span class="nxl-mtext">Register</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                                </a>
-                                <ul class="nxl-submenu">
-                                    <li class="nxl-item"><a class="nxl-link" href="auth-register-creative.php">Creative</a></li>
-                                </ul>
-                            </li>
-                            <li class="nxl-item nxl-hasmenu">
-                                <a href="javascript:void(0);" class="nxl-link">
-                                    <span class="nxl-mtext">Error-404</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                                </a>
-                                <ul class="nxl-submenu">
-                                    <li class="nxl-item"><a class="nxl-link" href="auth-404-minimal.php">Minimal</a></li>
-                                </ul>
-                            </li>
-                            <li class="nxl-item nxl-hasmenu">
-                                <a href="javascript:void(0);" class="nxl-link">
-                                    <span class="nxl-mtext">Reset Pass</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                                </a>
-                                <ul class="nxl-submenu">
-                                    <li class="nxl-item"><a class="nxl-link" href="auth-reset-cover.php">Cover</a></li>
-                                </ul>
-                            </li>
-                            <li class="nxl-item nxl-hasmenu">
-                                <a href="javascript:void(0);" class="nxl-link">
-                                    <span class="nxl-mtext">Verify OTP</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                                </a>
-                                <ul class="nxl-submenu">
-                                    <li class="nxl-item"><a class="nxl-link" href="auth-verify-cover.php">Cover</a></li>
-                                </ul>
-                            </li>
-                            <li class="nxl-item nxl-hasmenu">
-                                <a href="javascript:void(0);" class="nxl-link">
-                                    <span class="nxl-mtext">Maintenance</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                                </a>
-                                <ul class="nxl-submenu">
-                                    <li class="nxl-item"><a class="nxl-link" href="auth-maintenance-cover.php">Cover</a></li>
-                                </ul>
-                            </li>
-                        </ul>
-                    </li>
+                    
                     <li class="nxl-item nxl-hasmenu">
                         <a href="javascript:void(0);" class="nxl-link">
                             <span class="nxl-micon"><i class="feather-life-buoy"></i></span>

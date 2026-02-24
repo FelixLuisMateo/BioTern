@@ -45,10 +45,23 @@
                     </div>
                     <div class="card-body p-sm-5 text-center">
                         <h2 class="fw-bolder mb-4" style="font-size: 120px">4<span class="text-danger">0</span>4</h2>
-                        <h4 class="fw-bold mb-2">Page not found</h4>
-                        <p class="fs-12 fw-medium text-muted">Sorry, the page you are looking for can't be found. Please check the URL or try to a different page on our site.</p>
-                        <div class="mt-5">
-                            <a href="index.php" class="btn btn-light-brand w-100">Back Home</a>
+                        <?php
+                            $source = isset($_GET['source']) ? htmlspecialchars((string)$_GET['source']) : '';
+                            $requestedId = isset($_GET['id']) ? htmlspecialchars((string)$_GET['id']) : '';
+                            $label = 'ID not found';
+                            if ($source === 'students-view') {
+                                $label = 'Student not found (Students View)';
+                            } elseif ($source === 'ojt-view') {
+                                $label = 'Student not found (OJT View)';
+                            } elseif ($source === 'demo-biometric') {
+                                $label = 'Student ID not found (Biometric)';
+                            }
+                        ?>
+                        <h4 class="fw-bold mb-2"><?php echo $label; ?></h4>
+                            <p class="fs-12 fw-medium text-muted">Sorry, the requested ID <strong><?php echo $requestedId ?: '-'; ?></strong> could not be found on <?php echo $source ? '<em>' . $source . '</em>' : 'this page'; ?>. Please check the ID or return to a previous page.</p>
+                        <div class="mt-4 d-grid g-2">
+                            <a href="javascript:history.back()" class="btn btn-outline-secondary">Back</a>
+                            <a href="index.php" class="btn btn-light-brand">Back Home</a>
                         </div>
                     </div>
                 </div>
