@@ -118,9 +118,8 @@
                             <li class="nxl-item"><a class="nxl-link" href="apps-calendar.php">Calendar</a></li>
                         </ul>
                     </li>
-                    
-                    
-                    <li class="nxl-item nxl-hasmenu">
+
+                     <li class="nxl-item nxl-hasmenu">
                         <a href="javascript:void(0);" class="nxl-link">
                             <span class="nxl-micon"><i class="feather-users"></i></span>
                             <span class="nxl-mtext">Students</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
@@ -131,10 +130,35 @@
                             <li class="nxl-item"><a class="nxl-link" href="students-create.php">Students Create</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="students-edit.php">Students Edit</a></li>
                             <li class="nxl-divider"></li>
-                            <li class="nxl-item"><a class="nxl-link" href="attendance.php"><i class="feather-calendar me-2"></i>Attendance DTR</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="demo-biometric.php"><i class="feather-activity me-2"></i>Demo Biometric</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="attendance.php">Attendance DTR</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="demo-biometric.php">Demo Biometric</a></li>
                         </ul>
                     </li>
+                    
+                    <li class="nxl-item nxl-hasmenu">
+                        <a href="javascript:void(0);" class="nxl-link">
+                            <span class="nxl-micon"><i class="feather-book-open"></i></span>
+                            <span class="nxl-mtext">Courses</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                        </a>
+                        <ul class="nxl-submenu">
+                            <li class="nxl-item"><a class="nxl-link" href="courses.php">Courses</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="courses-create.php">Courses Create</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="courses-edit.php">Courses Edit</a></li>
+                            </ul>
+                            </li>
+                    
+                    <li class="nxl-item nxl-hasmenu">
+                        <a href="javascript:void(0);" class="nxl-link">
+                            <span class="nxl-micon"><i class="feather-briefcase"></i></span>
+                            <span class="nxl-mtext">Departments</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                        </a>
+                        <ul class="nxl-submenu">
+                            <li class="nxl-item"><a class="nxl-link" href="departments.php">Departments</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="departments-create.php">Departments Create</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="departments-edit.php">Departments Edit</a></li>
+                        </ul>
+                    </li>
+
                     <li class="nxl-item nxl-hasmenu">
                         <a href="javascript:void(0);" class="nxl-link">
                             <span class="nxl-micon"><i class="feather-file-text"></i></span>
@@ -147,6 +171,7 @@
                             <li class="nxl-item"><a class="nxl-link" href="generate_resume.php">Resume</a></li>
                         </ul>
                     </li>
+                    
                     <li class="nxl-item nxl-hasmenu">
                         <a href="javascript:void(0);" class="nxl-link">
                             <span class="nxl-micon"><i class="feather-alert-circle"></i></span>
@@ -431,6 +456,36 @@
     <!--! BEGIN: Theme Customizer  !-->
     <!-- Theme Customizer removed -->
     <!--! END: Theme Customizer !-->
+    <script>
+        (function(){
+            document.addEventListener('DOMContentLoaded', function(){
+                var darkBtn = document.querySelector('.dark-button');
+                var lightBtn = document.querySelector('.light-button');
+
+                function setDark(isDark){
+                    if(isDark){
+                        document.documentElement.classList.add('app-skin-dark');
+                        try{ localStorage.setItem('app-skin','app-skin-dark'); }catch(e){}
+                        if(darkBtn) darkBtn.style.display = 'none';
+                        if(lightBtn) lightBtn.style.display = '';
+                    } else {
+                        document.documentElement.classList.remove('app-skin-dark');
+                        try{ localStorage.setItem('app-skin',''); }catch(e){}
+                        if(darkBtn) darkBtn.style.display = '';
+                        if(lightBtn) lightBtn.style.display = 'none';
+                    }
+                }
+
+                var s = '';
+                try{ s = localStorage.getItem('app-skin') || localStorage.getItem('app_skin') || localStorage.getItem('theme') || localStorage.getItem('app-skin-dark') || ''; }catch(e){}
+                var isDark = (typeof s === 'string' && s.indexOf('dark') !== -1) || document.documentElement.classList.contains('app-skin-dark');
+                setDark(isDark);
+
+                if(darkBtn) darkBtn.addEventListener('click', function(e){ e.preventDefault(); setDark(true); });
+                if(lightBtn) lightBtn.addEventListener('click', function(e){ e.preventDefault(); setDark(false); });
+            });
+        })();
+    </script>
 </body>
 
 </html>

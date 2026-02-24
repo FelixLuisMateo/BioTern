@@ -1,4 +1,68 @@
-﻿<!DOCTYPE html>
+﻿<?php
+$departmentOptions = [];
+$courseOptions = [];
+$dbHost = '127.0.0.1';
+$dbUser = 'root';
+$dbPass = '';
+$dbName = 'biotern_db';
+
+$departmentsConn = new mysqli($dbHost, $dbUser, $dbPass, $dbName);
+if ($departmentsConn && $departmentsConn->connect_errno === 0) {
+    $departmentQuery = "SELECT code, name FROM departments ORDER BY name ASC";
+    $hasIsActive = $departmentsConn->query("SHOW COLUMNS FROM departments LIKE 'is_active'");
+    if ($hasIsActive && $hasIsActive->num_rows > 0) {
+        $departmentQuery = "SELECT code, name FROM departments WHERE is_active = 1 ORDER BY name ASC";
+    }
+
+    $departmentResult = $departmentsConn->query($departmentQuery);
+    if ($departmentResult) {
+        while ($departmentRow = $departmentResult->fetch_assoc()) {
+            $code = isset($departmentRow['code']) ? trim((string)$departmentRow['code']) : '';
+            $name = isset($departmentRow['name']) ? trim((string)$departmentRow['name']) : '';
+            if ($code !== '') {
+                $departmentOptions[] = [
+                    'code' => $code,
+                    'name' => $name
+                ];
+            }
+        }
+    }
+    $departmentsConn->close();
+}
+
+$coursesConn = new mysqli($dbHost, $dbUser, $dbPass, $dbName);
+if ($coursesConn && $coursesConn->connect_errno === 0) {
+    $courseQuery = "SELECT id, code, name FROM courses ORDER BY name ASC";
+    $hasDeletedAt = $coursesConn->query("SHOW COLUMNS FROM courses LIKE 'deleted_at'");
+    if ($hasDeletedAt && $hasDeletedAt->num_rows > 0) {
+        $courseQuery = "SELECT id, code, name FROM courses WHERE deleted_at IS NULL ORDER BY name ASC";
+    }
+
+    $courseResult = $coursesConn->query($courseQuery);
+    if ($courseResult) {
+        while ($courseRow = $courseResult->fetch_assoc()) {
+            $id = isset($courseRow['id']) ? (int) $courseRow['id'] : 0;
+            $code = isset($courseRow['code']) ? trim((string) $courseRow['code']) : '';
+            $name = isset($courseRow['name']) ? trim((string) $courseRow['name']) : '';
+            if ($id > 0) {
+                $courseOptions[] = [
+                    'id' => $id,
+                    'code' => $code,
+                    'name' => $name
+                ];
+            }
+        }
+    }
+    $coursesConn->close();
+}
+    // If this page receives a POST, delegate processing to register_submit.php
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        require_once __DIR__ . '/register_submit.php';
+        // register_submit.php will redirect on success/failure
+        exit;
+    }
+?>
+<!DOCTYPE html>
 <html lang="zxx">
 <style>
     .progress-bar div {
@@ -214,6 +278,8 @@
     <!--! END: Bootstrap CSS-->
     <!--! BEGIN: Vendors CSS-->
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/vendors.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2-theme.min.css">
     <!--! END: Vendors CSS-->
     <!--! BEGIN: Custom CSS-->
     <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css">
@@ -226,6 +292,22 @@
         }
         select.form-control option {
             color: #000 !important;
+        }
+
+        .select2-container--default .select2-selection--single {
+            height: calc(2.25rem + 2px);
+            border: 1px solid #d9d9d9;
+            border-radius: 6px;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: calc(2.25rem + 0px);
+            padding-left: 12px;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: calc(2.25rem + 0px);
+            right: 8px;
         }
     </style>
     <!--! HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries !-->
@@ -315,7 +397,7 @@
                         </div>
 
                         <!-- STUDENT REGISTRATION FORM -->
-                        <form id="studentForm" class="w-100 mt-4 pt-2 hide-form" action="register_submit.php" method="post">
+                        <form id="studentForm" class="w-100 mt-4 pt-2 hide-form" action="auth-register-creative.php" method="post">
                             <input type="hidden" name="role" value="student">
                             <div class="form-section">
                                 <h3 class="fs-18 fw-bold mb-3">Student Registration</h3>
@@ -356,25 +438,45 @@
                                 <div class="row g-3">
                                     <div class="col-4 mb-2">
                                         <label class="form-label fs-12">Course</label>
-                                        <select name="course_id" class="form-control" required>
+                                        <select name="course_id" id="studentCourseSelect" class="form-control dynamic-course-select" data-section-target="studentSectionSelect" required>
                                             <option value="" disabled selected>Select Course</option>
-                                            <option value="1">ACT</option>
-                                            <option value="2">CT</option>
-                                            <option value="3">BSOA</option>
-                                            <option value="4">HRS</option>
-                                            <option value="5">HT</option>
+                                            <?php foreach ($courseOptions as $course): ?>
+                                                <option
+                                                    value="<?php echo htmlspecialchars((string) $course['id']); ?>"
+                                                    data-course-code="<?php echo htmlspecialchars((string) $course['code']); ?>"
+                                                >
+                                                    <?php
+                                                    echo htmlspecialchars(
+                                                        $course['name'] !== '' && $course['code'] !== ''
+                                                            ? ($course['code'] . ' - ' . $course['name'])
+                                                            : ($course['name'] !== '' ? $course['name'] : $course['code'])
+                                                    );
+                                                    ?>
+                                                </option>
+                                            <?php endforeach; ?>
                                         </select>
                                     </div>
                                     <div class="col-4 mb-2">
                                         <label class="form-label fs-12">Department Code</label>
-                                        <input type="text" name="department_code" class="form-control" placeholder="e.g. DEPT-IT">
+                                        <select name="department_code" class="form-control">
+                                            <option value="" selected>Select Department</option>
+                                            <?php foreach ($departmentOptions as $department): ?>
+                                                <option value="<?php echo htmlspecialchars($department['code']); ?>">
+                                                    <?php
+                                                    echo htmlspecialchars(
+                                                        $department['name'] !== ''
+                                                            ? ($department['name'] . ' (' . $department['code'] . ')')
+                                                            : $department['code']
+                                                    );
+                                                    ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
                                     </div>
                                     <div class="col-4 mb-2">
                                         <label class="form-label fs-12">Section</label>
-                                        <select name="section" class="form-control" required>
+                                        <select name="section" id="studentSectionSelect" class="form-control" required>
                                             <option value="" disabled selected>Select Section</option>
-                                            <option value="Section 1">Section 1</option>
-                                            <option value="Section 2">Section 2</option>
                                         </select>
                                     </div>
                                 </div>
@@ -502,12 +604,11 @@
                             </div>
                             <div class="mt-5 d-flex gap-2">
                                 <button type="submit" class="btn btn-lg btn-primary flex-grow-1">Create Account</button>
-                                <button type="button" class="btn btn-lg btn-outline-primary" onclick="registerFingerprint()">Register Fingerprint</button>
                             </div>
                         </form>
 
                         <!-- COORDINATOR REGISTRATION FORM -->
-                        <form id="coordinatorForm" class="w-100 mt-4 pt-2 hide-form" action="register_submit.php" method="post">
+                        <form id="coordinatorForm" class="w-100 mt-4 pt-2 hide-form" action="auth-register-creative.php" method="post">
                             <input type="hidden" name="role" value="coordinator">
                             <div class="form-section">
                                 <h3 class="fs-18 fw-bold mb-3">Coordinator Registration</h3>
@@ -540,7 +641,20 @@
                             <div class="row g-3">
                                 <div class="col-6 mb-2">
                                     <label class="form-label fs-12">Department Code</label>
-                                    <input type="text" name="department_code" class="form-control" placeholder="e.g. DEPT-IT" required>
+                                    <select name="department_code" class="form-control" required>
+                                        <option value="" disabled selected>Select Department</option>
+                                        <?php foreach ($departmentOptions as $department): ?>
+                                            <option value="<?php echo htmlspecialchars($department['code']); ?>">
+                                                <?php
+                                                echo htmlspecialchars(
+                                                    $department['name'] !== ''
+                                                        ? ($department['name'] . ' (' . $department['code'] . ')')
+                                                        : $department['code']
+                                                );
+                                                ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
                                 </div>
                                 <div class="col-6 mb-2">
                                     <label class="form-label fs-12">Position</label>
@@ -583,12 +697,11 @@
                             </div>
                             <div class="mt-5 d-flex gap-2">
                                 <button type="submit" class="btn btn-lg btn-primary flex-grow-1">Create Account</button>
-                                <button type="button" class="btn btn-lg btn-outline-primary" onclick="registerFingerprint()">Register Fingerprint</button>
                             </div>
                         </form>
 
                         <!-- SUPERVISOR REGISTRATION FORM -->
-                        <form id="supervisorForm" class="w-100 mt-4 pt-2 hide-form" action="register_submit.php" method="post">
+                        <form id="supervisorForm" class="w-100 mt-4 pt-2 hide-form" action="auth-register-creative.php" method="post">
                             <input type="hidden" name="role" value="supervisor">
                             <div class="form-section">
                                 <h3 class="fs-18 fw-bold mb-3">Supervisor Registration</h3>
@@ -615,7 +728,7 @@
                             <h5 class="fs-14 fw-bold mb-3 mt-4">Company Information</h5>
                             <div class="row g-3">
                                 <div class="col-6 mb-2">
-                                    <input type="text" name="company_name" class="form-control" placeholder="Company Name" required>
+                                    <input type="text" name="company_name" class="form-control" value="Clark College of Science and Technology" readonly>
                                 </div>
                                 <div class="col-6 mb-2">
                                     <input type="text" name="job_position" class="form-control" placeholder="Job Position" required>
@@ -623,7 +736,20 @@
                             </div>
                             <div class="row g-3">
                                 <div class="col-6 mb-2">
-                                    <input type="text" name="department" class="form-control" placeholder="Department" required>
+                                    <select name="department_code" class="form-control" required>
+                                        <option value="" disabled selected>Select Department</option>
+                                        <?php foreach ($departmentOptions as $department): ?>
+                                            <option value="<?php echo htmlspecialchars($department['code']); ?>">
+                                                <?php
+                                                echo htmlspecialchars(
+                                                    $department['name'] !== ''
+                                                        ? ($department['name'] . ' (' . $department['code'] . ')')
+                                                        : $department['code']
+                                                );
+                                                ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
                                 </div>
                                 <div class="col-6 mb-2">
                                     <input type="text" name="specialization" class="form-control" placeholder="Area of Expertise" required>
@@ -631,7 +757,7 @@
                             </div>
                             <div class="row g-3">
                                 <div class="col-12 mb-2">
-                                    <input type="text" name="company_address" class="form-control" placeholder="Company Address" required>
+                                    <input type="text" name="company_address" class="form-control" value="AUREA ST. SAMSONVILLE, DAU MABALACAT CITY PAMPANGA" readonly>
                                 </div>
                             </div>
 
@@ -670,12 +796,11 @@
                             </div>
                             <div class="mt-5 d-flex gap-2">
                                 <button type="submit" class="btn btn-lg btn-primary flex-grow-1">Create Account</button>
-                                <button type="button" class="btn btn-lg btn-outline-primary" onclick="registerFingerprint()">Register Fingerprint</button>
                             </div>
                         </form>
 
                         <!-- ADMIN REGISTRATION FORM -->
-                        <form id="adminForm" class="w-100 mt-4 pt-2 hide-form" action="register_submit.php" method="post">
+                        <form id="adminForm" class="w-100 mt-4 pt-2 hide-form" action="auth-register-creative.php" method="post">
                             <input type="hidden" name="role" value="admin">
                             <div class="form-section">
                                 <h3 class="fs-18 fw-bold mb-3">Admin Registration</h3>
@@ -712,7 +837,48 @@
                                 </div>
                                 <div class="col-6 mb-2">
                                     <label class="form-label fs-12">Department Code</label>
-                                    <input type="text" name="department_code" class="form-control" placeholder="e.g. DEPT-ADMIN" required>
+                                    <select name="department_code" class="form-control" required>
+                                        <option value="" disabled selected>Select Department</option>
+                                        <?php foreach ($departmentOptions as $department): ?>
+                                            <option value="<?php echo htmlspecialchars($department['code']); ?>">
+                                                <?php
+                                                echo htmlspecialchars(
+                                                    $department['name'] !== ''
+                                                        ? ($department['name'] . ' (' . $department['code'] . ')')
+                                                        : $department['code']
+                                                );
+                                                ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="row g-3">
+                                <div class="col-6 mb-2">
+                                    <label class="form-label fs-12">Course</label>
+                                    <select name="admin_course_id" id="adminCourseSelect" class="form-control dynamic-course-select" data-section-target="adminSectionSelect" required>
+                                        <option value="" disabled selected>Select Course</option>
+                                        <?php foreach ($courseOptions as $course): ?>
+                                            <option
+                                                value="<?php echo htmlspecialchars((string) $course['id']); ?>"
+                                                data-course-code="<?php echo htmlspecialchars((string) $course['code']); ?>"
+                                            >
+                                                <?php
+                                                echo htmlspecialchars(
+                                                    $course['name'] !== '' && $course['code'] !== ''
+                                                        ? ($course['code'] . ' - ' . $course['name'])
+                                                        : ($course['name'] !== '' ? $course['name'] : $course['code'])
+                                                );
+                                                ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                                <div class="col-6 mb-2">
+                                    <label class="form-label fs-12">Section</label>
+                                    <select name="admin_section" id="adminSectionSelect" class="form-control" required>
+                                        <option value="" disabled selected>Select Section</option>
+                                    </select>
                                 </div>
                             </div>
                             <div class="row g-3">
@@ -756,7 +922,6 @@
                             </div>
                             <div class="mt-5 d-flex gap-2">
                                 <button type="submit" class="btn btn-lg btn-primary flex-grow-1">Create Account</button>
-                                <button type="button" class="btn btn-lg btn-outline-primary" onclick="registerFingerprint()">Register Fingerprint</button>
                             </div>
                         </form>
 
@@ -781,6 +946,7 @@
     <!--! ================================================================ !-->
     <!--! BEGIN: Vendors JS !-->
     <script src="assets/vendors/js/vendors.min.js"></script>
+    <script src="assets/vendors/js/select2.min.js"></script>
     <!-- vendors.min.js {always must need to be top} -->
     <script src="assets/vendors/js/lslstrength.min.js"></script>
     <!--! END: Vendors JS !-->
@@ -903,7 +1069,52 @@
             
             // Setup password visibility toggle
             setupPasswordToggle();
+            setupCourseSectionDropdowns();
+
         });
+
+        function buildSectionCodes(courseCode) {
+            if (!courseCode) return [];
+            const suffixes = ['A', 'B', 'C', 'D', 'E', 'F'];
+            return suffixes.map(function(suffix) {
+                return courseCode + '-2' + suffix;
+            });
+        }
+
+        function populateSectionDropdown(sectionSelect, courseCode) {
+            if (!sectionSelect) return;
+            sectionSelect.innerHTML = '';
+
+            const placeholder = document.createElement('option');
+            placeholder.value = '';
+            placeholder.disabled = true;
+            placeholder.selected = true;
+            placeholder.textContent = 'Select Section';
+            sectionSelect.appendChild(placeholder);
+
+            const sectionCodes = buildSectionCodes(courseCode);
+            sectionCodes.forEach(function(sectionCode) {
+                const option = document.createElement('option');
+                option.value = sectionCode;
+                option.textContent = sectionCode;
+                sectionSelect.appendChild(option);
+            });
+        }
+
+        function setupCourseSectionDropdowns() {
+            const courseSelects = document.querySelectorAll('.dynamic-course-select');
+            courseSelects.forEach(function(courseSelect) {
+                const sectionTargetId = courseSelect.getAttribute('data-section-target');
+                const sectionSelect = sectionTargetId ? document.getElementById(sectionTargetId) : null;
+                if (!sectionSelect) return;
+
+                courseSelect.addEventListener('change', function() {
+                    const selectedOption = courseSelect.options[courseSelect.selectedIndex];
+                    const courseCode = selectedOption ? (selectedOption.getAttribute('data-course-code') || '').trim() : '';
+                    populateSectionDropdown(sectionSelect, courseCode);
+                });
+            });
+        }
 
         // New function to handle password visibility toggle for both password and confirm password
         function setupPasswordToggle() {
@@ -941,11 +1152,6 @@
                     }
                 });
             });
-        }
-
-        // Function to handle fingerprint registration
-        function registerFingerprint() {
-            window.location.href = 'register_fingerprint.php';
         }
 
         /* Role carousel: arrow buttons + touch drag support */
@@ -992,4 +1198,7 @@
 </body>
 
 </html>
+
+
+
 

@@ -106,11 +106,29 @@ if ($result->num_rows == 0) {
 
 $student = $result->fetch_assoc();
 
-// Fetch all courses for dropdown
-$courses_query = "SELECT id, name FROM courses WHERE is_active = 1 ORDER BY name ASC";
-$courses_result = $conn->query($courses_query);
+// Fetch all courses for dropdown (be tolerant of differing schema columns)
 $courses = [];
-if ($courses_result->num_rows > 0) {
+$db_esc = $conn->real_escape_string($db_name);
+$has_is_active = false;
+$has_status_col = false;
+$col_check = $conn->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '" . $db_esc . "' AND TABLE_NAME = 'courses' AND COLUMN_NAME IN ('is_active','status')");
+if ($col_check && $col_check->num_rows) {
+    while ($c = $col_check->fetch_assoc()) {
+        if ($c['COLUMN_NAME'] === 'is_active') $has_is_active = true;
+        if ($c['COLUMN_NAME'] === 'status') $has_status_col = true;
+    }
+}
+
+$courses_query = "SELECT id, name FROM courses";
+if ($has_is_active) {
+    $courses_query .= " WHERE is_active = 1";
+} elseif ($has_status_col) {
+    $courses_query .= " WHERE status = 1";
+}
+$courses_query .= " ORDER BY name ASC";
+
+$courses_result = $conn->query($courses_query);
+if ($courses_result && $courses_result->num_rows > 0) {
     while ($row = $courses_result->fetch_assoc()) {
         $courses[] = $row;
     }
@@ -266,6 +284,46 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
     }
 
+    // Map coordinator_id / supervisor_id (which come from coordinators/supervisors tables)
+    // to the users.id that internships expects (if available). Fall back to the raw id if no mapping.
+    $intern_coordinator_user_id = null;
+    $intern_supervisor_user_id = null;
+
+    if ($coordinator_id !== null) {
+        $map_stmt = $conn->prepare("SELECT user_id FROM coordinators WHERE id = ? LIMIT 1");
+        if ($map_stmt) {
+            $map_stmt->bind_param("i", $coordinator_id);
+            $map_stmt->execute();
+            $map_res = $map_stmt->get_result();
+            if ($map_res && $map_res->num_rows > 0) {
+                $tmp = $map_res->fetch_assoc();
+                $intern_coordinator_user_id = !empty($tmp['user_id']) ? (int)$tmp['user_id'] : null;
+            }
+            $map_stmt->close();
+        }
+        if ($intern_coordinator_user_id === null) {
+            // If no mapping, assume coordinator_id may already be a users.id
+            $intern_coordinator_user_id = $coordinator_id;
+        }
+    }
+
+    if ($supervisor_id !== null) {
+        $map_stmt = $conn->prepare("SELECT user_id FROM supervisors WHERE id = ? LIMIT 1");
+        if ($map_stmt) {
+            $map_stmt->bind_param("i", $supervisor_id);
+            $map_stmt->execute();
+            $map_res = $map_stmt->get_result();
+            if ($map_res && $map_res->num_rows > 0) {
+                $tmp = $map_res->fetch_assoc();
+                $intern_supervisor_user_id = !empty($tmp['user_id']) ? (int)$tmp['user_id'] : null;
+            }
+            $map_stmt->close();
+        }
+        if ($intern_supervisor_user_id === null) {
+            $intern_supervisor_user_id = $supervisor_id;
+        }
+    }
+
     // Validation
     if (empty($first_name) || empty($last_name) || empty($email)) {
         $error_message = "First Name, Last Name, and Email are required fields!";
@@ -348,8 +406,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                             SET supervisor_id = ?, coordinator_id = ?, status = 'ongoing', updated_at = NOW()
                             WHERE id = ?
                         ");
-                        if ($internship_update) {
-                            $internship_update->bind_param("iii", $supervisor_id, $coordinator_id, $student['internship_id']);
+                            if ($internship_update) {
+                            $internship_update->bind_param("iii", $intern_supervisor_user_id, $intern_coordinator_user_id, $student['internship_id']);
                             $internship_update->execute();
                             $internship_update->close();
                         }
@@ -380,7 +438,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                 WHERE id = ?
                             ");
                             if ($internship_update) {
-                                $internship_update->bind_param("iii", $supervisor_id, $coordinator_id, $latest_internship_id);
+                                $internship_update->bind_param("iii", $intern_supervisor_user_id, $intern_coordinator_user_id, $latest_internship_id);
                                 $internship_update->execute();
                                 $internship_update->close();
                             }
@@ -422,8 +480,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                         $student_id,
                                         $course_for_intern,
                                         $department_id,
-                                        $coordinator_id,
-                                        $supervisor_id,
+                                        $intern_coordinator_user_id,
+                                        $intern_supervisor_user_id,
                                         $type,
                                         $today,
                                         $school_year,

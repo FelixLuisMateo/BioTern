@@ -34,6 +34,57 @@ function resolveDepartmentIdByCode($mysqli, $departmentCode) {
     return $row ? (int)$row['id'] : null;
 }
 
+function resolveSectionId($mysqli, $sectionValue, $courseId = 0) {
+    $sectionRaw = trim((string)$sectionValue);
+    if ($sectionRaw === '') {
+        return 0;
+    }
+
+    if (ctype_digit($sectionRaw)) {
+        return (int)$sectionRaw;
+    }
+
+    $courseId = (int)$courseId;
+    if ($courseId > 0) {
+        $stmt = $mysqli->prepare("
+            SELECT id
+            FROM sections
+            WHERE deleted_at IS NULL
+              AND course_id = ?
+              AND (code = ? OR name = ?)
+            LIMIT 1
+        ");
+        if ($stmt) {
+            $stmt->bind_param('iss', $courseId, $sectionRaw, $sectionRaw);
+            $stmt->execute();
+            $row = $stmt->get_result()->fetch_assoc();
+            $stmt->close();
+            if ($row && isset($row['id'])) {
+                return (int)$row['id'];
+            }
+        }
+    }
+
+    $stmt = $mysqli->prepare("
+        SELECT id
+        FROM sections
+        WHERE deleted_at IS NULL
+          AND (code = ? OR name = ?)
+        LIMIT 1
+    ");
+    if ($stmt) {
+        $stmt->bind_param('ss', $sectionRaw, $sectionRaw);
+        $stmt->execute();
+        $row = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        if ($row && isset($row['id'])) {
+            return (int)$row['id'];
+        }
+    }
+
+    return 0;
+}
+
 $role = getPost('role');
 if (!$role) {
     header('Location: register_submit.php');
@@ -103,7 +154,7 @@ if ($role === 'student') {
     // Use account_email if provided, otherwise use email
     $final_email = $account_email ?: $email;
     $course_id = (int)$course_id;
-    $section_id = is_numeric($section) ? (int)$section : 0;
+    $section_id = resolveSectionId($mysqli, $section, $course_id);
     $internal_total_hours = $internal_total_hours ? (int)$internal_total_hours : null;
     
     // Ensure username is not empty

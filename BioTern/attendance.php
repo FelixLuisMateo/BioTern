@@ -42,7 +42,27 @@ if (empty($filter_date) && empty($start_date) && empty($end_date) && empty($filt
 
 // Fetch dropdown lists
 $courses = [];
-$courses_res = $conn->query("SELECT id, name FROM courses WHERE is_active = 1 ORDER BY name ASC");
+// Determine which column exists for active flag on courses to avoid schema mismatch errors
+$db_esc = $conn->real_escape_string($db_name);
+$has_is_active = false;
+$has_status_col = false;
+$col_check = $conn->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '" . $db_esc . "' AND TABLE_NAME = 'courses' AND COLUMN_NAME IN ('is_active','status')");
+if ($col_check && $col_check->num_rows) {
+    while ($c = $col_check->fetch_assoc()) {
+        if ($c['COLUMN_NAME'] === 'is_active') $has_is_active = true;
+        if ($c['COLUMN_NAME'] === 'status') $has_status_col = true;
+    }
+}
+
+$courses_query = "SELECT id, name FROM courses";
+if ($has_is_active) {
+    $courses_query .= " WHERE is_active = 1";
+} elseif ($has_status_col) {
+    $courses_query .= " WHERE status = 1";
+}
+$courses_query .= " ORDER BY name ASC";
+
+$courses_res = $conn->query($courses_query);
 if ($courses_res && $courses_res->num_rows) {
     while ($r = $courses_res->fetch_assoc()) $courses[] = $r;
 }
