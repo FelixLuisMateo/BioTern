@@ -194,11 +194,13 @@ function getStatusBadge($status) {
 }
 
 // Helper function to format date
-function formatDate($date) {
-    if ($date) {
-        return date('M d, Y h:i A', strtotime($date));
+if (!function_exists('formatDate')) {
+    function formatDate($date) {
+        if ($date) {
+            return date('M d, Y h:i A', strtotime($date));
+        }
+        return '-';
     }
-    return '-';
 }
 
 ?>
