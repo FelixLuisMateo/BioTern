@@ -853,34 +853,9 @@ if ($coursesConn && $coursesConn->connect_errno === 0) {
                                     </select>
                                 </div>
                             </div>
-                            <div class="row g-3">
-                                <div class="col-6 mb-2">
-                                    <label class="form-label fs-12">Course</label>
-                                    <select name="admin_course_id" id="adminCourseSelect" class="form-control dynamic-course-select" data-section-target="adminSectionSelect" required>
-                                        <option value="" disabled selected>Select Course</option>
-                                        <?php foreach ($courseOptions as $course): ?>
-                                            <option
-                                                value="<?php echo htmlspecialchars((string) $course['id']); ?>"
-                                                data-course-code="<?php echo htmlspecialchars((string) $course['code']); ?>"
-                                            >
-                                                <?php
-                                                echo htmlspecialchars(
-                                                    $course['name'] !== '' && $course['code'] !== ''
-                                                        ? ($course['code'] . ' - ' . $course['name'])
-                                                        : ($course['name'] !== '' ? $course['name'] : $course['code'])
-                                                );
-                                                ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </div>
-                                <div class="col-6 mb-2">
-                                    <label class="form-label fs-12">Section</label>
-                                    <select name="admin_section" id="adminSectionSelect" class="form-control" required>
-                                        <option value="" disabled selected>Select Section</option>
-                                    </select>
-                                </div>
-                            </div>
+                            <!-- Course & Section removed for admin registration (hidden fields preserved) -->
+                            <input type="hidden" name="admin_course_id" value="">
+                            <input type="hidden" name="admin_section" value="">
                             <div class="row g-3">
                                 <div class="col-12 mb-2">
                                     <input type="text" name="admin_position" class="form-control" placeholder="Official Title/Position" required>
