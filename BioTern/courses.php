@@ -54,6 +54,8 @@ if ($listResult) {
     }
 }
 
+$colCount = count($selectFields) + 1; // +1 for Actions column
+
 ob_start();
 ?>
 <div class="page-header">
@@ -75,7 +77,7 @@ ob_start();
     <div class="card stretch stretch-full">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="card-title mb-0">All Courses</h5>
-            <span class="badge bg-light text-dark"><?php echo count($courses); ?> total</span>
+            <span class="badge bg-primary text-white px-3 py-1" style="font-weight:600;"><?php echo count($courses); ?> total</span>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
@@ -89,6 +91,7 @@ ob_start();
                             <?php if ($hasColumn('total_ojt_hours')): ?><th>Total OJT Hours</th><?php endif; ?>
                             <?php if ($hasColumn('is_active')): ?><th>Status</th><?php endif; ?>
                             <?php if ($hasColumn('created_at')): ?><th>Created</th><?php endif; ?>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -116,11 +119,14 @@ ob_start();
                                 <?php if ($hasColumn('created_at')): ?>
                                     <td><?php echo htmlspecialchars((string)($course['created_at'] ?? '-')); ?></td>
                                 <?php endif; ?>
+                                <td>
+                                    <a href="courses-edit.php?id=<?php echo (int)$course['id']; ?>" class="btn btn-sm btn-outline-primary">Edit</a>
+                                </td>
                             </tr>
                         <?php endforeach; ?>
                     <?php else: ?>
                         <tr>
-                            <td colspan="8" class="text-center py-4 text-muted">No courses found.</td>
+                            <td colspan="<?php echo $colCount; ?>" class="text-center py-4 text-muted">No courses found.</td>
                         </tr>
                     <?php endif; ?>
                     </tbody>

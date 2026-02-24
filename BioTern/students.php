@@ -1009,29 +1009,7 @@ function formatDate($date) {
 
     </main>
 
-    <!-- Scripts -->
-    <script src="assets/vendors/js/vendors.min.js"></script>
-    <script src="assets/vendors/js/dataTables.min.js"></script>
-    <script src="assets/vendors/js/dataTables.bs5.min.js"></script>
-    <script src="assets/vendors/js/select2.min.js"></script>
-    <script src="assets/vendors/js/select2-active.min.js"></script>
-    <script src="assets/js/common-init.min.js"></script>
-    <script src="assets/js/customers-init.min.js"></script>
-    <!-- Theme Customizer removed -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            // Do not reinitialize DataTable here; `customers-init.min.js` handles it.
-            ['#filter-course', '#filter-department', '#filter-supervisor', '#filter-coordinator'].forEach(function (selector) {
-                if (window.jQuery && $(selector).length) {
-                    $(selector).select2({
-                        width: '100%',
-                        allowClear: false,
-                        dropdownAutoWidth: false
-                    });
-                }
-            });
-        });
-    </script>
+    <!-- Scripts are included by template.php to avoid duplicate initialization -->
 <?php include 'template.php'; ?>
 </body>
 
