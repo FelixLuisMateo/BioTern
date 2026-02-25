@@ -61,8 +61,8 @@
                         <li class="nxl-item"><a class="nxl-link" href="students-create.php">Students Create</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="students-edit.php">Students Edit</a></li>
                         <li class="nxl-divider"></li>
-                        <li class="nxl-item"><a class="nxl-link" href="attendance.php"><i class="feather-calendar me-2"></i>Attendance Records</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="demo-biometric.php"><i class="feather-activity me-2"></i>Biometric Demo</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="attendance.php">Attendance DTR</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="demo-biometric.php">Demo Biometric</a></li>
                     </ul>
                 </li>
                 <li class="nxl-item nxl-hasmenu">
@@ -130,6 +130,13 @@
                     <ul class="nxl-submenu">
                         <li class="nxl-item"><a class="nxl-link" href="settings-general.php">General</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="settings-seo.php">SEO</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="settings-tags.php">Tags</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="settings-email.php">Email</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="settings-tasks.php">Tasks</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="settings-ojt.php">Leads</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="settings-support.php">Support</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="settings-students.php">Students</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="settings-miscellaneous.php">Miscellaneous</a></li>
                     </ul>
                 </li>
                 <li class="nxl-item nxl-hasmenu">
