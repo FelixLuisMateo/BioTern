@@ -27,6 +27,7 @@ $current_role = strtolower(trim((string) (
     ''
 )));
 $can_edit_sensitive_hours = in_array($current_role, ['admin', 'coordinator', 'supervisor'], true);
+$can_edit_hours = true;
 
 // Ensure new student assignment/hour fields exist.
 $conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS internal_total_hours INT(11) DEFAULT NULL");
@@ -68,6 +69,7 @@ $student_query = "
         s.last_name,
         s.middle_name,
         s.email,
+        s.department_id,
         s.phone,
         s.date_of_birth,
         s.gender,
@@ -87,11 +89,15 @@ $student_query = "
         c.name as course_name,
         c.id as course_id,
         i.id as internship_id,
-        i.supervisor_id,
-        i.coordinator_id
+        i.supervisor_id as internship_supervisor_id,
+        i.coordinator_id as internship_coordinator_id,
+        sv.id as supervisor_id,
+        co.id as coordinator_id
     FROM students s
     LEFT JOIN courses c ON s.course_id = c.id
     LEFT JOIN internships i ON s.id = i.student_id AND i.status = 'ongoing'
+    LEFT JOIN supervisors sv ON (sv.user_id = i.supervisor_id OR sv.id = i.supervisor_id)
+    LEFT JOIN coordinators co ON (co.user_id = i.coordinator_id OR co.id = i.coordinator_id)
     WHERE s.id = ?
     LIMIT 1
 ";
@@ -133,6 +139,15 @@ $courses_result = $conn->query($courses_query);
 if ($courses_result && $courses_result->num_rows > 0) {
     while ($row = $courses_result->fetch_assoc()) {
         $courses[] = $row;
+    }
+}
+
+// Fetch departments for dropdown
+$departments = [];
+$departments_result = $conn->query("SELECT id, name FROM departments ORDER BY name ASC");
+if ($departments_result && $departments_result->num_rows > 0) {
+    while ($row = $departments_result->fetch_assoc()) {
+        $departments[] = $row;
     }
 }
 
@@ -225,6 +240,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $address = isset($_POST['address']) ? trim($_POST['address']) : '';
     $emergency_contact = isset($_POST['emergency_contact']) ? trim($_POST['emergency_contact']) : '';
     $course_id = isset($_POST['course_id']) ? intval($_POST['course_id']) : 0;
+    $department_id = isset($_POST['department_id']) ? trim((string)$_POST['department_id']) : '';
     $status = isset($_POST['status']) ? intval($_POST['status']) : 1;
     $supervisor_id = isset($_POST['supervisor_id']) && $_POST['supervisor_id'] !== '' ? intval($_POST['supervisor_id']) : null;
     $coordinator_id = isset($_POST['coordinator_id']) && $_POST['coordinator_id'] !== '' ? intval($_POST['coordinator_id']) : null;
@@ -237,10 +253,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     if (!$can_edit_sensitive_hours) {
         $student_id_code = (string)($student['student_id'] ?? '');
-        $internal_total_hours = isset($student['internal_total_hours']) ? intval($student['internal_total_hours']) : null;
-        $internal_total_hours_remaining = isset($student['internal_total_hours_remaining']) ? intval($student['internal_total_hours_remaining']) : null;
-        $external_total_hours = isset($student['external_total_hours']) ? intval($student['external_total_hours']) : null;
-        $external_total_hours_remaining = isset($student['external_total_hours_remaining']) ? intval($student['external_total_hours_remaining']) : null;
         $assignment_track = (string)($student['assignment_track'] ?? 'internal');
     }
 
@@ -363,6 +375,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     external_total_hours_remaining = ?,
                     assignment_track = ?,
                     course_id = NULLIF(?, 0),
+                    department_id = NULLIF(?, ''),
                     status = ?,
                     supervisor_name = ?,
                     coordinator_name = ?,
@@ -376,7 +389,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $error_message = "Prepare failed: " . $conn->error;
             } else {
                 $update_stmt->bind_param(
-                    "ssssssssssiiiisiisssi",
+                    "ssssssssssiiiisisisssi",
                     $student_id_code,
                     $first_name,
                     $last_name,
@@ -393,6 +406,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $external_total_hours_remaining,
                     $assignment_track,
                     $course_id,
+                    $department_id,
                     $status,
                     $selected_supervisor_name,
                     $selected_coordinator_name,
@@ -1101,6 +1115,21 @@ function formatDateTime($date) {
                                                 </select>
                                             </div>
                                             <div class="col-md-6 mb-4">
+                                                <label for="department_id" class="form-label fw-semibold">Department</label>
+                                                <select class="form-control" id="department_id" name="department_id">
+                                                    <option value="">-- Select Department --</option>
+                                                    <?php foreach ($departments as $department): ?>
+                                                        <option value="<?php echo htmlspecialchars((string)$department['id']); ?>"
+                                                            <?php echo ((string)($student['department_id'] ?? '') === (string)$department['id']) ? 'selected' : ''; ?>>
+                                                            <?php echo htmlspecialchars($department['name']); ?>
+                                                        </option>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div class="row">
+                                            <div class="col-md-6 mb-4">
                                                 <label for="status" class="form-label fw-semibold">Status</label>
                                                 <select class="form-control" id="status" name="status">
                                                     <option value="1" <?php echo $student['status'] == 1 ? 'selected' : ''; ?>>Active</option>
@@ -1123,19 +1152,19 @@ function formatDateTime($date) {
                                         <div class="row">
                                             <div class="col-md-3 mb-4">
                                                 <label for="internal_total_hours" class="form-label fw-semibold">Internal Total Hours</label>
-                                                <input type="number" class="form-control" id="internal_total_hours" name="internal_total_hours" min="0" step="1" <?php echo $can_edit_sensitive_hours ? '' : 'disabled'; ?> value="<?php echo htmlspecialchars((string)($student['internal_total_hours'] ?? '')); ?>">
+                                                <input type="number" class="form-control" id="internal_total_hours" name="internal_total_hours" min="0" step="1" <?php echo $can_edit_hours ? '' : 'disabled'; ?> value="<?php echo htmlspecialchars((string)($student['internal_total_hours'] ?? '')); ?>">
                                             </div>
                                             <div class="col-md-3 mb-4">
                                                 <label for="internal_total_hours_remaining" class="form-label fw-semibold">Internal Hours Remaining</label>
-                                                <input type="number" class="form-control" id="internal_total_hours_remaining" name="internal_total_hours_remaining" min="0" step="1" <?php echo $can_edit_sensitive_hours ? '' : 'disabled'; ?> value="<?php echo htmlspecialchars((string)($student['internal_total_hours_remaining'] ?? '')); ?>">
+                                                <input type="number" class="form-control" id="internal_total_hours_remaining" name="internal_total_hours_remaining" min="0" step="1" <?php echo $can_edit_hours ? '' : 'disabled'; ?> value="<?php echo htmlspecialchars((string)($student['internal_total_hours_remaining'] ?? '')); ?>">
                                             </div>
                                             <div class="col-md-3 mb-4">
                                                 <label for="external_total_hours" class="form-label fw-semibold">External Total Hours</label>
-                                                <input type="number" class="form-control" id="external_total_hours" name="external_total_hours" min="0" step="1" <?php echo $can_edit_sensitive_hours ? '' : 'disabled'; ?> value="<?php echo htmlspecialchars((string)($student['external_total_hours'] ?? '')); ?>">
+                                                <input type="number" class="form-control" id="external_total_hours" name="external_total_hours" min="0" step="1" <?php echo $can_edit_hours ? '' : 'disabled'; ?> value="<?php echo htmlspecialchars((string)($student['external_total_hours'] ?? '')); ?>">
                                             </div>
                                             <div class="col-md-3 mb-4">
                                                 <label for="external_total_hours_remaining" class="form-label fw-semibold">External Hours Remaining</label>
-                                                <input type="number" class="form-control" id="external_total_hours_remaining" name="external_total_hours_remaining" min="0" step="1" <?php echo $can_edit_sensitive_hours ? '' : 'disabled'; ?> value="<?php echo htmlspecialchars((string)($student['external_total_hours_remaining'] ?? '')); ?>">
+                                                <input type="number" class="form-control" id="external_total_hours_remaining" name="external_total_hours_remaining" min="0" step="1" <?php echo $can_edit_hours ? '' : 'disabled'; ?> value="<?php echo htmlspecialchars((string)($student['external_total_hours_remaining'] ?? '')); ?>">
                                             </div>
                                         </div>
 
@@ -1224,7 +1253,7 @@ function formatDateTime($date) {
         // Initialize form elements
         document.addEventListener('DOMContentLoaded', function() {
             // Initialize select2 for dropdowns
-            $('#course_id, #status, #gender').each(function() {
+            $('#course_id, #department_id, #status, #gender').each(function() {
                 $(this).select2({
                     allowClear: true,
                     width: 'resolve',

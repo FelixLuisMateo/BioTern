@@ -8,19 +8,21 @@ $dbName = 'biotern_db';
 
 $departmentsConn = new mysqli($dbHost, $dbUser, $dbPass, $dbName);
 if ($departmentsConn && $departmentsConn->connect_errno === 0) {
-    $departmentQuery = "SELECT code, name FROM departments ORDER BY name ASC";
+    $departmentQuery = "SELECT id, code, name FROM departments ORDER BY name ASC";
     $hasIsActive = $departmentsConn->query("SHOW COLUMNS FROM departments LIKE 'is_active'");
     if ($hasIsActive && $hasIsActive->num_rows > 0) {
-        $departmentQuery = "SELECT code, name FROM departments WHERE is_active = 1 ORDER BY name ASC";
+        $departmentQuery = "SELECT id, code, name FROM departments WHERE is_active = 1 ORDER BY name ASC";
     }
 
     $departmentResult = $departmentsConn->query($departmentQuery);
     if ($departmentResult) {
         while ($departmentRow = $departmentResult->fetch_assoc()) {
+            $id = isset($departmentRow['id']) ? (int)$departmentRow['id'] : 0;
             $code = isset($departmentRow['code']) ? trim((string)$departmentRow['code']) : '';
             $name = isset($departmentRow['name']) ? trim((string)$departmentRow['name']) : '';
-            if ($code !== '') {
+            if ($id > 0) {
                 $departmentOptions[] = [
+                    'id' => $id,
                     'code' => $code,
                     'name' => $name
                 ];
@@ -457,11 +459,11 @@ if ($coursesConn && $coursesConn->connect_errno === 0) {
                                         </select>
                                     </div>
                                     <div class="col-4 mb-2">
-                                        <label class="form-label fs-12">Department Code</label>
-                                        <select name="department_code" class="form-control">
+                                        <label class="form-label fs-12">Department</label>
+                                        <select name="department_id" class="form-control" required>
                                             <option value="" selected>Select Department</option>
                                             <?php foreach ($departmentOptions as $department): ?>
-                                                <option value="<?php echo htmlspecialchars($department['code']); ?>">
+                                                <option value="<?php echo (int)$department['id']; ?>">
                                                     <?php
                                                     echo htmlspecialchars(
                                                         $department['name'] !== ''
@@ -483,7 +485,7 @@ if ($coursesConn && $coursesConn->connect_errno === 0) {
                                 <div class="row g-3">
                                     <div class="col-6 mb-2">
                                         <label class="form-label fs-12">Coordinator</label>
-                                        <select name="coordinator_id" class="form-control">
+                                        <select name="coordinator_id" class="form-control" required>
                                             <option value="" disabled selected>Select Coordinator</option>
                                             <?php
                                             // Connect to database and fetch coordinators
@@ -506,7 +508,7 @@ if ($coursesConn && $coursesConn->connect_errno === 0) {
                                     </div>
                                     <div class="col-6 mb-2">
                                         <label class="form-label fs-12">Supervisor</label>
-                                        <select name="supervisor_id" class="form-control">
+                                        <select name="supervisor_id" class="form-control" required>
                                             <option value="" disabled selected>Select Supervisor</option>
                                             <?php
                                             // Connect to database and fetch supervisors
@@ -526,8 +528,21 @@ if ($coursesConn && $coursesConn->connect_errno === 0) {
                                 </div>
                                 <div class="row g-3">
                                     <div class="col-6 mb-2">
-                                        <label class="form-label fs-12">Total Hours</label>
+                                        <label class="form-label fs-12">Internal Total Hours</label>
                                         <input type="number" name="internal_total_hours" class="form-control" placeholder="Internal Total Hours" min="0">
+                                    </div>
+                                    <div class="col-6 mb-2">
+                                        <label class="form-label fs-12">Finished Internal?</label>
+                                        <select name="finished_internal" id="finishedInternalSelect" class="form-control">
+                                            <option value="no" selected>No</option>
+                                            <option value="yes">Yes</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="row g-3">
+                                    <div class="col-6 mb-2">
+                                        <label class="form-label fs-12">External Total Hours</label>
+                                        <input type="number" name="external_total_hours" id="externalTotalHoursInput" class="form-control" placeholder="External Total Hours" min="0" value="0">
                                     </div>
                                 </div>
                             </div>
@@ -1045,8 +1060,31 @@ if ($coursesConn && $coursesConn->connect_errno === 0) {
             // Setup password visibility toggle
             setupPasswordToggle();
             setupCourseSectionDropdowns();
+            setupStudentHoursControls();
 
         });
+
+        function setupStudentHoursControls() {
+            const finishedSelect = document.getElementById('finishedInternalSelect');
+            const externalInput = document.getElementById('externalTotalHoursInput');
+            const internalInput = document.querySelector('#studentForm input[name="internal_total_hours"]');
+            if (!finishedSelect || !externalInput || !internalInput) return;
+
+            function syncExternalField() {
+                const finished = (finishedSelect.value || '').toLowerCase() === 'yes';
+                externalInput.disabled = !finished;
+                internalInput.disabled = finished;
+                if (finished) {
+                    internalInput.value = '0';
+                }
+                if (!finished) {
+                    externalInput.value = '0';
+                }
+            }
+
+            finishedSelect.addEventListener('change', syncExternalField);
+            syncExternalField();
+        }
 
         function buildSectionCodes(courseCode) {
             if (!courseCode) return [];
