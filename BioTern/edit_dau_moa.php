@@ -1,9 +1,9 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>BioTern || Edit MOA</title>
+    <title>BioTern || Edit DAU MOA</title>
     <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
     <style>
         body { margin: 0; background: #eceff3; font-family: Arial, sans-serif; color: #111; }
@@ -46,8 +46,8 @@
 <body>
     <div class="topbar">
         <button id="btn_save" class="btn btn-primary" type="button">Save Template</button>
-        <button id="btn_reset" class="btn" type="button">Reset to Generate MOA</button>
-        <a class="btn btn-success" href="document_moa.php">Back to MOA</a>
+        <button id="btn_reset" class="btn" type="button">Reset to Generate DAU MOA</button>
+        <a class="btn btn-success" href="document_dau_moa.php">Back to DAU MOA</a>
         <div class="toolbar">
             <button id="btn_bold" class="btn" type="button"><strong>B</strong></button>
             <button id="btn_italic" class="btn" type="button"><em>I</em></button>
@@ -64,7 +64,7 @@
             <label for="font_color">Color</label>
             <input id="font_color" type="color" value="#000000">
         </div>
-        <span id="msg" class="msg">Edit MOA template and click Save</span>
+        <span id="msg" class="msg">Edit DAU MOA template and click Save</span>
     </div>
 
     <div class="page-wrap">
@@ -75,7 +75,7 @@
 
     <script>
         (function(){
-            var KEY = 'biotern_moa_template_html_v1';
+            var KEY = 'biotern_dau_moa_template_html_v1';
             var editor = document.getElementById('editor');
             var msg = document.getElementById('msg');
             var saveTimer = null;
@@ -147,9 +147,9 @@
 
             function loadFromGenerate() {
                 var params = new URLSearchParams();
-                // Keep generate_moa.php defaults by not forcing empty query values.
+                // Keep generate_dau_moa.php defaults by not forcing empty query values.
                 params.set('use_saved_template', '0');
-                return fetch('generate_moa.php?' + params.toString(), { credentials: 'same-origin' })
+                return fetch('generate_dau_moa.php?' + params.toString(), { credentials: 'same-origin' })
                     .then(function(r){ return r.text(); })
                     .then(function(html){
                         var doc = new DOMParser().parseFromString(html, 'text/html');
@@ -220,3 +220,4 @@
     </script>
 </body>
 </html>
+
