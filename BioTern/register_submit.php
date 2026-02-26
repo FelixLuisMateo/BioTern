@@ -180,6 +180,112 @@ if ($role === 'student') {
     $internal_total_hours_remaining = $finished_internal_yes ? 0 : $internal_total_hours;
     $external_total_hours_remaining = $finished_internal_yes ? $external_total_hours : 0;
     $assignment_track = $finished_internal_yes ? 'external' : 'internal';
+    $coordinator_name = null;
+    $supervisor_name = null;
+
+    // Strict server-side integrity checks for tampered submissions.
+    if ($course_id <= 0 || empty($department_id) || $section_id <= 0 || empty($coordinator_id) || empty($supervisor_id)) {
+        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Invalid academic assignment selection. Please choose course, department, section, coordinator, and supervisor.'));
+        exit;
+    }
+
+    $course_check = $mysqli->prepare("SELECT id FROM courses WHERE id = ? AND deleted_at IS NULL LIMIT 1");
+    if (!$course_check) {
+        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Unable to validate selected course.'));
+        exit;
+    }
+    $course_check->bind_param('i', $course_id);
+    $course_check->execute();
+    $course_ok = $course_check->get_result()->fetch_assoc();
+    $course_check->close();
+    if (!$course_ok) {
+        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Selected course is invalid.'));
+        exit;
+    }
+
+    $department_id_int = (int)$department_id;
+    $dept_check = $mysqli->prepare("SELECT id FROM departments WHERE id = ? AND deleted_at IS NULL LIMIT 1");
+    if (!$dept_check) {
+        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Unable to validate selected department.'));
+        exit;
+    }
+    $dept_check->bind_param('i', $department_id_int);
+    $dept_check->execute();
+    $dept_ok = $dept_check->get_result()->fetch_assoc();
+    $dept_check->close();
+    if (!$dept_ok) {
+        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Selected department is invalid.'));
+        exit;
+    }
+
+    $section_check = $mysqli->prepare("
+        SELECT id
+        FROM sections
+        WHERE id = ?
+          AND course_id = ?
+          AND department_id = ?
+          AND is_active = 1
+          AND deleted_at IS NULL
+        LIMIT 1
+    ");
+    if (!$section_check) {
+        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Unable to validate selected section.'));
+        exit;
+    }
+    $section_check->bind_param('iii', $section_id, $course_id, $department_id_int);
+    $section_check->execute();
+    $section_ok = $section_check->get_result()->fetch_assoc();
+    $section_check->close();
+    if (!$section_ok) {
+        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Selected section does not belong to the selected course and department.'));
+        exit;
+    }
+
+    $coord_check = $mysqli->prepare("
+        SELECT CONCAT(first_name, ' ', last_name) AS full_name
+        FROM coordinators
+        WHERE id = ?
+          AND department_id = ?
+          AND is_active = 1
+          AND deleted_at IS NULL
+        LIMIT 1
+    ");
+    if (!$coord_check) {
+        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Unable to validate selected coordinator.'));
+        exit;
+    }
+    $coord_check->bind_param('ii', $coordinator_id, $department_id_int);
+    $coord_check->execute();
+    $coord_row = $coord_check->get_result()->fetch_assoc();
+    $coord_check->close();
+    if (!$coord_row) {
+        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Selected coordinator is not valid for the chosen department.'));
+        exit;
+    }
+    $coordinator_name = isset($coord_row['full_name']) ? (string)$coord_row['full_name'] : null;
+
+    $sup_check = $mysqli->prepare("
+        SELECT CONCAT(first_name, ' ', last_name) AS full_name
+        FROM supervisors
+        WHERE id = ?
+          AND department_id = ?
+          AND is_active = 1
+          AND deleted_at IS NULL
+        LIMIT 1
+    ");
+    if (!$sup_check) {
+        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Unable to validate selected supervisor.'));
+        exit;
+    }
+    $sup_check->bind_param('ii', $supervisor_id, $department_id_int);
+    $sup_check->execute();
+    $sup_row = $sup_check->get_result()->fetch_assoc();
+    $sup_check->close();
+    if (!$sup_row) {
+        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Selected supervisor is not valid for the chosen department.'));
+        exit;
+    }
+    $supervisor_name = isset($sup_row['full_name']) ? (string)$sup_row['full_name'] : null;
 
     // Ensure username is not empty
     if (!$username) {
@@ -218,32 +324,6 @@ if ($role === 'student') {
     if (!$user_id) {
         header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Failed to create user account'));
         exit;
-    }
-
-    // Look up supervisor and coordinator names from their IDs
-    $supervisor_name = null;
-    $coordinator_name = null;
-    
-    if ($supervisor_id) {
-        $stmt_sup = $mysqli->prepare("SELECT CONCAT(first_name, ' ', last_name) FROM supervisors WHERE id = ? LIMIT 1");
-        if ($stmt_sup) {
-            $stmt_sup->bind_param('i', $supervisor_id);
-            $stmt_sup->execute();
-            $stmt_sup->bind_result($supervisor_name);
-            $stmt_sup->fetch();
-            $stmt_sup->close();
-        }
-    }
-    
-    if ($coordinator_id) {
-        $stmt_coord = $mysqli->prepare("SELECT CONCAT(first_name, ' ', last_name) FROM coordinators WHERE id = ? LIMIT 1");
-        if ($stmt_coord) {
-            $stmt_coord->bind_param('i', $coordinator_id);
-            $stmt_coord->execute();
-            $stmt_coord->bind_result($coordinator_name);
-            $stmt_coord->fetch();
-            $stmt_coord->close();
-        }
     }
 
     // Now insert into students table using the user_id
