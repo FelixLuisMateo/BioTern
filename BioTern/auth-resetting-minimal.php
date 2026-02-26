@@ -110,11 +110,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             </div>
                         <?php else: ?>
                             <form action="auth-resetting-minimal.php" method="post" class="w-100 mt-4 pt-2">
-                                <div class="mb-4">
-                                    <input type="password" name="new_password" class="form-control" placeholder="New Password" minlength="8" required>
+                                <div class="mb-4 input-group">
+                                    <input type="password" name="new_password" id="newPasswordInput" class="form-control" placeholder="New Password" minlength="8" required>
+                                    <button class="btn btn-outline-secondary" type="button" id="toggleNewPassword" aria-label="Show new password"><i></i></button>
                                 </div>
-                                <div class="mb-4">
-                                    <input type="password" name="confirm_password" class="form-control" placeholder="Confirm Password" minlength="8" required>
+                                <div class="mb-4 input-group">
+                                    <input type="password" name="confirm_password" id="confirmPasswordInput" class="form-control" placeholder="Confirm Password" minlength="8" required>
+                                    <button class="btn btn-outline-secondary" type="button" id="toggleConfirmPassword" aria-label="Show confirm password"><i></i></button>
                                 </div>
                                 <div class="mt-5">
                                     <button type="submit" class="btn btn-lg btn-primary w-100" <?php echo (!$isVerified || $contact === '') ? 'disabled' : ''; ?>>Save Change</button>
@@ -135,6 +137,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <script src="assets/vendors/js/vendors.min.js"></script>
     <script src="assets/js/common-init.min.js"></script>
     <script src="assets/js/theme-customizer-init.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const eyeSVG = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>';
+            const eyeOffSVG = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a21.86 21.86 0 0 1 5.06-6.94"></path><path d="M22.54 16.88A21.6 21.6 0 0 0 23 12s-4-8-11-8a10.94 10.94 0 0 0-5.94 1.94"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>';
+
+            function wireToggle(buttonId, inputId) {
+                const btn = document.getElementById(buttonId);
+                const input = document.getElementById(inputId);
+                if (!btn || !input) return;
+                const icon = btn.querySelector('i');
+                if (icon) icon.innerHTML = eyeSVG;
+
+                btn.addEventListener('click', function () {
+                    const isPassword = input.type === 'password';
+                    input.type = isPassword ? 'text' : 'password';
+                    if (icon) icon.innerHTML = isPassword ? eyeOffSVG : eyeSVG;
+                    btn.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+                });
+            }
+
+            wireToggle('toggleNewPassword', 'newPasswordInput');
+            wireToggle('toggleConfirmPassword', 'confirmPasswordInput');
+        });
+    </script>
 </body>
 
 </html>

@@ -146,7 +146,7 @@ if (isset($_GET['resend']) && intval($_GET['resend']) === 1) {
     $email = isset($_SESSION['password_reset_contact']) ? trim((string)$_SESSION['password_reset_contact']) : '';
     $userId = isset($_SESSION['password_reset_user_id']) ? (int)$_SESSION['password_reset_user_id'] : 0;
 
-    if ($email === '' || $userId <= 0) {
+    if ($email === '') {
         $reset_error = 'No active password reset request found to resend.';
     } else {
         $code = generateResetCode();

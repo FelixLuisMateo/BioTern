@@ -174,6 +174,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 });
 
                 input.addEventListener('keydown', function (event) {
+                    if (event.ctrlKey || event.metaKey) {
+                        return;
+                    }
                     if (event.key === 'Backspace' && !this.value && idx > 0) {
                         focusIndex(idx - 1);
                     }

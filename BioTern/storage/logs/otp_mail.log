@@ -8,3 +8,5 @@
 [2026-02-26 08:02:46] [OTP-20260226-080246-377CB1] PHPMailer error: SMTP Error: Could not authenticate.
 [2026-02-26 08:26:51] [OTP-20260226-082651-B92FF1] PHPMailer error: SMTP Error: Could not authenticate.
 [2026-02-26 08:28:02] [OTP-20260226-082802-5C22D0] PHPMailer error: SMTP Error: Could not authenticate.
+[2026-02-26 09:10:08] [OTP-20260226-091008-ECD07A] PHPMailer error: SMTP Error: Could not connect to SMTP host.
+[2026-02-26 09:22:10] [OTP-20260226-092210-7C3431] PHPMailer error: SMTP Error: Could not connect to SMTP host.
