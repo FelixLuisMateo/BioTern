@@ -112,12 +112,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     <form method="post" class="w-100 mt-4 pt-2" autocomplete="one-time-code">
                         <div id="otp" class="inputs d-flex flex-row justify-content-center mt-2">
-                            <input name="digit1" class="m-2 text-center form-control rounded" type="text" inputmode="numeric" pattern="[0-9]" id="digit1" maxlength="1" required>
-                            <input name="digit2" class="m-2 text-center form-control rounded" type="text" inputmode="numeric" pattern="[0-9]" id="digit2" maxlength="1" required>
-                            <input name="digit3" class="m-2 text-center form-control rounded" type="text" inputmode="numeric" pattern="[0-9]" id="digit3" maxlength="1" required>
-                            <input name="digit4" class="m-2 text-center form-control rounded" type="text" inputmode="numeric" pattern="[0-9]" id="digit4" maxlength="1" required>
-                            <input name="digit5" class="m-2 text-center form-control rounded" type="text" inputmode="numeric" pattern="[0-9]" id="digit5" maxlength="1" required>
-                            <input name="digit6" class="m-2 text-center form-control rounded" type="text" inputmode="numeric" pattern="[0-9]" id="digit6" maxlength="1" required>
+                            <input name="digit1" class="m-2 text-center form-control rounded" type="text" inputmode="numeric" pattern="[0-9]" id="digit1" maxlength="6" autocomplete="one-time-code" required>
+                            <input name="digit2" class="m-2 text-center form-control rounded" type="text" inputmode="numeric" pattern="[0-9]" id="digit2" maxlength="6" required>
+                            <input name="digit3" class="m-2 text-center form-control rounded" type="text" inputmode="numeric" pattern="[0-9]" id="digit3" maxlength="6" required>
+                            <input name="digit4" class="m-2 text-center form-control rounded" type="text" inputmode="numeric" pattern="[0-9]" id="digit4" maxlength="6" required>
+                            <input name="digit5" class="m-2 text-center form-control rounded" type="text" inputmode="numeric" pattern="[0-9]" id="digit5" maxlength="6" required>
+                            <input name="digit6" class="m-2 text-center form-control rounded" type="text" inputmode="numeric" pattern="[0-9]" id="digit6" maxlength="6" required>
                         </div>
                         <div class="mt-5">
                             <button type="submit" class="btn btn-lg btn-primary w-100">Validate</button>
@@ -137,8 +137,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <script src="assets/js/theme-customizer-init.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
+            var otpWrap = document.getElementById('otp');
             var inputs = Array.prototype.slice.call(document.querySelectorAll('#otp input'));
             if (!inputs.length) return;
+
+            function fillFromDigits(raw) {
+                var digits = (raw || '').replace(/\D/g, '').slice(0, 6).split('');
+                if (!digits.length) return false;
+
+                for (var i = 0; i < inputs.length; i++) {
+                    inputs[i].value = digits[i] || '';
+                }
+
+                var nextEmpty = inputs.findIndex(function (el) { return !el.value; });
+                focusIndex(nextEmpty === -1 ? inputs.length - 1 : nextEmpty);
+                return true;
+            }
 
             function focusIndex(idx) {
                 if (idx >= 0 && idx < inputs.length) {
@@ -150,6 +164,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             inputs.forEach(function (input, idx) {
                 input.addEventListener('input', function () {
                     var value = (this.value || '').replace(/\D/g, '');
+                    if (value.length > 1 && fillFromDigits(value)) {
+                        return;
+                    }
                     this.value = value ? value.charAt(0) : '';
                     if (this.value && idx < inputs.length - 1) {
                         focusIndex(idx + 1);
@@ -167,18 +184,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 input.addEventListener('paste', function (event) {
                     var pasted = (event.clipboardData || window.clipboardData).getData('text') || '';
-                    var digits = pasted.replace(/\D/g, '').slice(0, 6).split('');
-                    if (!digits.length) return;
+                    if (!pasted) return;
 
                     event.preventDefault();
-                    for (var i = 0; i < inputs.length; i++) {
-                        inputs[i].value = digits[i] || '';
-                    }
-
-                    var nextEmpty = inputs.findIndex(function (el) { return !el.value; });
-                    focusIndex(nextEmpty === -1 ? inputs.length - 1 : nextEmpty);
+                    fillFromDigits(pasted);
                 });
             });
+
+            // Capture paste at container/document level for browsers that skip per-input handlers with maxlength.
+            function handleGlobalPaste(event) {
+                var target = event.target;
+                if (!otpWrap || !target || !otpWrap.contains(target)) return;
+                var pasted = (event.clipboardData || window.clipboardData).getData('text') || '';
+                if (!pasted) return;
+                event.preventDefault();
+                fillFromDigits(pasted);
+            }
+            otpWrap.addEventListener('paste', handleGlobalPaste, true);
+            document.addEventListener('paste', handleGlobalPaste, true);
 
             inputs[0].focus();
         });
