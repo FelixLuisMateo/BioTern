@@ -360,10 +360,7 @@ try {
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Students</span>
                                         </a>
-                                        <a href="students-view.php" class="dropdown-item">
-                                            <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                            <span>Students View</span>
-                                        </a>
+
                                         <a href="students-create.php" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Students Create</span>
