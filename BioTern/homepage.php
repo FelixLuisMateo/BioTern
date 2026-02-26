@@ -205,10 +205,7 @@ $year = date("Y");
 </head>
 <body>
 
-    <!-- Top Sign In Button -->
-    <div class="top-bar">
-        <a href="auth-login-cover.php" class="btn btn-outline-primary btn-sm me-2 text-muted">Sign In</a>
-    </div>
+    <!-- Top Sign In Button removed (CTA moved to center) -->
 
     <!-- Center Welcome Section -->
     <div class="center-content">
@@ -219,7 +216,7 @@ $year = date("Y");
         <p class="lead text-muted" style="color: #ffffff;">Your Biometric Internship Monitoring and Management System</p>
         <p class="text-muted">Manage interns, supervisors, coordinators, attendance and reports in one place.</p>
         <br>
-        <a href="auth-register-creative.php" class="apply-btn">Apply Now</a>
+        <a href="auth-login-cover.php" class="apply-btn">Sign In</a>
     </div>
 
     <footer>

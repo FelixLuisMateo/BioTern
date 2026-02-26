@@ -148,7 +148,6 @@ include 'includes/header.php';
 							<input type="email" name="contact_email" class="form-control" value="<?php echo htmlspecialchars((string)($dept['contact_email'] ?? '')); ?>">
 						</div>
 						<button type="submit" class="btn btn-primary">Save Department</button>
-						<a href="departments.php" class="btn btn-outline-secondary ms-2">View All</a>
 					</form>
 				</div>
 			</div>
@@ -190,6 +189,9 @@ include 'includes/header.php';
 							</tbody>
 						</table>
 					</div>
+				</div>
+				<div class="card-footer text-end">
+					<a href="departments.php" class="btn btn-outline-secondary">View All</a>
 				</div>
 			</div>
 		</div>

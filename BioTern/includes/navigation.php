@@ -5,7 +5,7 @@
     <div class="navbar-wrapper">
         <div class="m-header">
             <a href="index.php" class="b-brand">
-                <img src="assets/images/logo-full.png" alt="" class="logo logo-lg" />
+                <img src="assets/images/logo-full.png" alt="" class="logo logo-lg" width="21100" height="3100" style="width:210px;height:2100px;object-fit:contain;" />
                 <img src="assets/images/logo-abbr.png" alt="" class="logo logo-sm" />
             </a>
         </div>
@@ -57,9 +57,6 @@
                     </a>
                     <ul class="nxl-submenu">
                         <li class="nxl-item"><a class="nxl-link" href="students.php">Students List</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="students-view.php">Students View</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="students-create.php">Students Create</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="students-edit.php">Students Edit</a></li>
                         <li class="nxl-divider"></li>
                         <li class="nxl-item"><a class="nxl-link" href="attendance.php">Attendance DTR</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="demo-biometric.php">Demo Biometric</a></li>
@@ -72,8 +69,6 @@
                     </a>
                     <ul class="nxl-submenu">
                         <li class="nxl-item"><a class="nxl-link" href="courses.php">Courses</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="courses-create.php">Create Course</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="courses-edit.php">Edit Course</a></li>
                     </ul>
                 </li>
                 <li class="nxl-item nxl-hasmenu">
@@ -83,8 +78,6 @@
                     </a>
                     <ul class="nxl-submenu">
                         <li class="nxl-item"><a class="nxl-link" href="departments.php">Departments</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="departments-create.php">Create Department</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="departments-edit.php">Edit Department</a></li>
                     </ul>
                 </li>
                 <li class="nxl-item nxl-hasmenu">
@@ -96,6 +89,7 @@
                         <li class="nxl-item"><a class="nxl-link" href="document_application.php">Application</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="document_endorsement.php">Endorsement</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="document_moa.php">MOA</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="document_dau_moa.php">Dau MOA</a></li>
                     </ul>
                 </li>
                 <li class="nxl-item nxl-hasmenu">
@@ -105,7 +99,6 @@
                     </a>
                     <ul class="nxl-submenu">
                         <li class="nxl-item"><a class="nxl-link" href="ojt.php">OJT List</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="ojt-view.php">OJT View</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="ojt-create.php">OJT Create</a></li>
                     </ul>
                 </li>
@@ -120,6 +113,15 @@
                         <li class="nxl-item"><a class="nxl-link" href="widgets-charts.php">Charts</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="widgets-statistics.php">Statistics</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="widgets-miscellaneous.php">Miscellaneous</a></li>
+                    </ul>
+                </li>
+                <li class="nxl-item nxl-hasmenu">
+                    <a href="javascript:void(0);" class="nxl-link">
+                        <span class="nxl-micon"><i class="feather-alert-circle"></i></span>
+                        <span class="nxl-mtext">Registration</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                    </a>
+                    <ul class="nxl-submenu">
+                        <li class="nxl-item"><a class="nxl-link" href="auth-register-creative.php">User Registration</a></li>
                     </ul>
                 </li>
                 <li class="nxl-item nxl-hasmenu">

@@ -156,7 +156,6 @@ include 'includes/header.php';
                             </div>
                         <?php endif; ?>
                         <button type="submit" class="btn btn-primary">Save Course</button>
-                        <a href="courses.php" class="btn btn-outline-secondary ms-2">View All</a>
                     </form>
                 </div>
             </div>
@@ -201,6 +200,9 @@ include 'includes/header.php';
                             </tbody>
                         </table>
                     </div>
+                </div>
+                <div class="card-footer text-end">
+                    <a href="courses.php" class="btn btn-outline-secondary">View All</a>
                 </div>
             </div>
         </div>

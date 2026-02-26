@@ -1,6 +1,10 @@
 ﻿<?php
 $departmentOptions = [];
 $courseOptions = [];
+$sectionOptions = [];
+$coordinatorOptions = [];
+$supervisorOptions = [];
+$courseDepartmentMap = [];
 $dbHost = '127.0.0.1';
 $dbUser = 'root';
 $dbPass = '';
@@ -8,19 +12,21 @@ $dbName = 'biotern_db';
 
 $departmentsConn = new mysqli($dbHost, $dbUser, $dbPass, $dbName);
 if ($departmentsConn && $departmentsConn->connect_errno === 0) {
-    $departmentQuery = "SELECT code, name FROM departments ORDER BY name ASC";
+    $departmentQuery = "SELECT id, code, name FROM departments ORDER BY name ASC";
     $hasIsActive = $departmentsConn->query("SHOW COLUMNS FROM departments LIKE 'is_active'");
     if ($hasIsActive && $hasIsActive->num_rows > 0) {
-        $departmentQuery = "SELECT code, name FROM departments WHERE is_active = 1 ORDER BY name ASC";
+        $departmentQuery = "SELECT id, code, name FROM departments WHERE is_active = 1 ORDER BY name ASC";
     }
 
     $departmentResult = $departmentsConn->query($departmentQuery);
     if ($departmentResult) {
         while ($departmentRow = $departmentResult->fetch_assoc()) {
+            $id = isset($departmentRow['id']) ? (int)$departmentRow['id'] : 0;
             $code = isset($departmentRow['code']) ? trim((string)$departmentRow['code']) : '';
             $name = isset($departmentRow['name']) ? trim((string)$departmentRow['name']) : '';
-            if ($code !== '') {
+            if ($id > 0) {
                 $departmentOptions[] = [
+                    'id' => $id,
                     'code' => $code,
                     'name' => $name
                 ];
@@ -54,6 +60,105 @@ if ($coursesConn && $coursesConn->connect_errno === 0) {
         }
     }
     $coursesConn->close();
+}
+
+$relationsConn = new mysqli($dbHost, $dbUser, $dbPass, $dbName);
+if ($relationsConn && $relationsConn->connect_errno === 0) {
+    $sectionQuery = "SELECT id, course_id, department_id, code, name FROM sections WHERE 1=1";
+    $hasSectionDeletedAt = $relationsConn->query("SHOW COLUMNS FROM sections LIKE 'deleted_at'");
+    if ($hasSectionDeletedAt && $hasSectionDeletedAt->num_rows > 0) {
+        $sectionQuery .= " AND deleted_at IS NULL";
+    }
+    $hasSectionActive = $relationsConn->query("SHOW COLUMNS FROM sections LIKE 'is_active'");
+    if ($hasSectionActive && $hasSectionActive->num_rows > 0) {
+        $sectionQuery .= " AND is_active = 1";
+    }
+    $sectionQuery .= " ORDER BY course_id ASC, code ASC, name ASC";
+    $sectionResult = $relationsConn->query($sectionQuery);
+    if ($sectionResult) {
+        while ($row = $sectionResult->fetch_assoc()) {
+            $id = isset($row['id']) ? (int)$row['id'] : 0;
+            $courseId = isset($row['course_id']) ? (int)$row['course_id'] : 0;
+            $departmentId = isset($row['department_id']) ? (int)$row['department_id'] : 0;
+            $code = isset($row['code']) ? trim((string)$row['code']) : '';
+            $name = isset($row['name']) ? trim((string)$row['name']) : '';
+            if ($id > 0 && $courseId > 0) {
+                $sectionOptions[] = [
+                    'id' => $id,
+                    'course_id' => $courseId,
+                    'department_id' => $departmentId,
+                    'code' => $code,
+                    'name' => $name
+                ];
+                if ($departmentId > 0) {
+                    if (!isset($courseDepartmentMap[$courseId])) {
+                        $courseDepartmentMap[$courseId] = [];
+                    }
+                    $courseDepartmentMap[$courseId][$departmentId] = true;
+                }
+            }
+        }
+    }
+
+    $coordinatorQuery = "
+        SELECT
+            c.id,
+            c.department_id,
+            CONCAT(c.first_name, ' ', c.last_name) AS full_name,
+            COALESCE(NULLIF(TRIM(c.office_location), ''), 'N/A') AS office_location
+        FROM coordinators c
+        WHERE c.is_active = 1
+    ";
+    $hasCoordinatorDeletedAt = $relationsConn->query("SHOW COLUMNS FROM coordinators LIKE 'deleted_at'");
+    if ($hasCoordinatorDeletedAt && $hasCoordinatorDeletedAt->num_rows > 0) {
+        $coordinatorQuery .= " AND c.deleted_at IS NULL";
+    }
+    $coordinatorQuery .= " ORDER BY c.first_name ASC, c.last_name ASC";
+    $coordinatorResult = $relationsConn->query($coordinatorQuery);
+    if ($coordinatorResult) {
+        while ($row = $coordinatorResult->fetch_assoc()) {
+            $id = isset($row['id']) ? (int)$row['id'] : 0;
+            if ($id > 0) {
+                $coordinatorOptions[] = [
+                    'id' => $id,
+                    'department_id' => isset($row['department_id']) ? (int)$row['department_id'] : 0,
+                    'full_name' => isset($row['full_name']) ? trim((string)$row['full_name']) : '',
+                    'office_location' => isset($row['office_location']) ? trim((string)$row['office_location']) : 'N/A'
+                ];
+            }
+        }
+    }
+
+    $supervisorQuery = "
+        SELECT
+            s.id,
+            s.department_id,
+            CONCAT(s.first_name, ' ', s.last_name) AS full_name,
+            COALESCE(NULLIF(TRIM(d.name), ''), 'N/A') AS office_location
+        FROM supervisors s
+        LEFT JOIN departments d ON d.id = s.department_id
+        WHERE s.is_active = 1
+    ";
+    $hasSupervisorDeletedAt = $relationsConn->query("SHOW COLUMNS FROM supervisors LIKE 'deleted_at'");
+    if ($hasSupervisorDeletedAt && $hasSupervisorDeletedAt->num_rows > 0) {
+        $supervisorQuery .= " AND s.deleted_at IS NULL";
+    }
+    $supervisorQuery .= " ORDER BY s.first_name ASC, s.last_name ASC";
+    $supervisorResult = $relationsConn->query($supervisorQuery);
+    if ($supervisorResult) {
+        while ($row = $supervisorResult->fetch_assoc()) {
+            $id = isset($row['id']) ? (int)$row['id'] : 0;
+            if ($id > 0) {
+                $supervisorOptions[] = [
+                    'id' => $id,
+                    'department_id' => isset($row['department_id']) ? (int)$row['department_id'] : 0,
+                    'full_name' => isset($row['full_name']) ? trim((string)$row['full_name']) : '',
+                    'office_location' => isset($row['office_location']) ? trim((string)$row['office_location']) : 'N/A'
+                ];
+            }
+        }
+    }
+    $relationsConn->close();
 }
     // If this page receives a POST, delegate processing to register_submit.php
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -283,6 +388,7 @@ if ($coursesConn && $coursesConn->connect_errno === 0) {
     <!--! END: Vendors CSS-->
     <!--! BEGIN: Custom CSS-->
     <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css">
+    <script src="assets/js/skin-init.js"></script>
     <!--! END: Custom CSS-->
     <style>
         /* Ensure select text and option text are visible (black) */
@@ -346,6 +452,9 @@ if ($coursesConn && $coursesConn->connect_errno === 0) {
                     </div>
                     <div class="card-body p-sm-5" style="padding: 50px !important; min-height: auto;">
                         <h2 class="fs-20 fw-bolder mb-4">Register</h2>
+                        <div class="mb-3">
+                            <a href="index.php" class="btn btn-sm btn-outline-primary">← Back to Admin Dashboard</a>
+                        </div>
                         <h4 class="fs-13 fw-bold mb-2">Manage your Internship account in one place.</h4>
                         <p class="fs-12 fw-medium text-muted">Let's get you all setup, so you can verify your personal account and begin setting up your profile.</p>
                         <?php
@@ -457,11 +566,14 @@ if ($coursesConn && $coursesConn->connect_errno === 0) {
                                         </select>
                                     </div>
                                     <div class="col-4 mb-2">
-                                        <label class="form-label fs-12">Department Code</label>
-                                        <select name="department_code" class="form-control">
+                                        <label class="form-label fs-12">Department</label>
+                                        <select name="department_id" id="studentDepartmentSelect" class="form-control" required>
                                             <option value="" selected>Select Department</option>
                                             <?php foreach ($departmentOptions as $department): ?>
-                                                <option value="<?php echo htmlspecialchars($department['code']); ?>">
+                                                <option
+                                                    value="<?php echo (int)$department['id']; ?>"
+                                                    data-default-label="<?php echo htmlspecialchars($department['name'] !== '' ? ($department['name'] . ' (' . $department['code'] . ')') : $department['code']); ?>"
+                                                >
                                                     <?php
                                                     echo htmlspecialchars(
                                                         $department['name'] !== ''
@@ -483,51 +595,66 @@ if ($coursesConn && $coursesConn->connect_errno === 0) {
                                 <div class="row g-3">
                                     <div class="col-6 mb-2">
                                         <label class="form-label fs-12">Coordinator</label>
-                                        <select name="coordinator_id" class="form-control">
+                                        <select name="coordinator_id" id="studentCoordinatorSelect" class="form-control" required>
                                             <option value="" disabled selected>Select Coordinator</option>
-                                            <?php
-                                            // Connect to database and fetch coordinators
-                                            $dbHost = '127.0.0.1';
-                                            $dbUser = 'root';
-                                            $dbPass = '';
-                                            $dbName = 'biotern_db';
-                                            $tempConn = new mysqli($dbHost, $dbUser, $dbPass, $dbName);
-                                            if ($tempConn && $tempConn->connect_errno === 0) {
-                                                $result = $tempConn->query("SELECT id, CONCAT(first_name, ' ', last_name) as full_name FROM coordinators WHERE is_active = 1 ORDER BY first_name");
-                                                if ($result) {
-                                                    while ($row = $result->fetch_assoc()) {
-                                                        echo '<option value="' . htmlspecialchars($row['id']) . '">' . htmlspecialchars($row['full_name']) . '</option>';
-                                                    }
-                                                }
-                                                $tempConn->close();
-                                            }
-                                            ?>
+                                            <?php foreach ($coordinatorOptions as $coordinator): ?>
+                                                <?php
+                                                $fullName = (string)$coordinator['full_name'];
+                                                $office = (string)$coordinator['office_location'];
+                                                $defaultLabel = $fullName;
+                                                $actLabel = $fullName . ' - Coordinator | Office: ' . $office;
+                                                ?>
+                                                <option
+                                                    value="<?php echo (int)$coordinator['id']; ?>"
+                                                    data-department-id="<?php echo (int)$coordinator['department_id']; ?>"
+                                                    data-default-label="<?php echo htmlspecialchars($defaultLabel); ?>"
+                                                    data-act-label="<?php echo htmlspecialchars($actLabel); ?>"
+                                                >
+                                                    <?php echo htmlspecialchars($defaultLabel); ?>
+                                                </option>
+                                            <?php endforeach; ?>
                                         </select>
                                     </div>
                                     <div class="col-6 mb-2">
                                         <label class="form-label fs-12">Supervisor</label>
-                                        <select name="supervisor_id" class="form-control">
+                                        <select name="supervisor_id" id="studentSupervisorSelect" class="form-control" required>
                                             <option value="" disabled selected>Select Supervisor</option>
-                                            <?php
-                                            // Connect to database and fetch supervisors
-                                            $tempConn = new mysqli($dbHost, $dbUser, $dbPass, $dbName);
-                                            if ($tempConn && $tempConn->connect_errno === 0) {
-                                                $result = $tempConn->query("SELECT id, CONCAT(first_name, ' ', last_name) as full_name FROM supervisors WHERE is_active = 1 ORDER BY first_name");
-                                                if ($result) {
-                                                    while ($row = $result->fetch_assoc()) {
-                                                        echo '<option value="' . htmlspecialchars($row['id']) . '">' . htmlspecialchars($row['full_name']) . '</option>';
-                                                    }
-                                                }
-                                                $tempConn->close();
-                                            }
-                                            ?>
+                                            <?php foreach ($supervisorOptions as $supervisor): ?>
+                                                <?php
+                                                $fullName = (string)$supervisor['full_name'];
+                                                $office = (string)$supervisor['office_location'];
+                                                $defaultLabel = $fullName;
+                                                $actLabel = $fullName . ' - Supervisor | Office: ' . $office;
+                                                ?>
+                                                <option
+                                                    value="<?php echo (int)$supervisor['id']; ?>"
+                                                    data-department-id="<?php echo (int)$supervisor['department_id']; ?>"
+                                                    data-default-label="<?php echo htmlspecialchars($defaultLabel); ?>"
+                                                    data-act-label="<?php echo htmlspecialchars($actLabel); ?>"
+                                                >
+                                                    <?php echo htmlspecialchars($defaultLabel); ?>
+                                                </option>
+                                            <?php endforeach; ?>
                                         </select>
                                     </div>
                                 </div>
                                 <div class="row g-3">
                                     <div class="col-6 mb-2">
-                                        <label class="form-label fs-12">Total Hours</label>
+                                        <label class="form-label fs-12">Internal Total Hours</label>
                                         <input type="number" name="internal_total_hours" class="form-control" placeholder="Internal Total Hours" min="0">
+                                    </div>
+                                    <div class="col-6 mb-2">
+                                        <label class="form-label fs-12">Finished Internal?</label>
+                                        <select name="finished_internal" id="finishedInternalSelect" class="form-control">
+                                            <option value="no" selected>No</option>
+                                            <option value="yes">Yes</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="row g-3">
+                                    <div class="col-6 mb-2">
+                                        <label class="form-label fs-12">External Total Hours</label>
+                                        <input type="number" name="external_total_hours" id="externalTotalHoursInput" class="form-control" placeholder="External Total Hours" min="0" value="0">
                                     </div>
                                 </div>
                             </div>
@@ -928,7 +1055,7 @@ if ($coursesConn && $coursesConn->connect_errno === 0) {
     <!--! BEGIN: Apps Init  !-->
     <script src="assets/js/common-init.min.js"></script>
     <!--! END: Apps Init !-->
-    <!-- Theme Customizer removed -->
+    <script src="assets/js/theme-customizer-init.min.js"></script>
 
     <script>
         let currentRole = null;
@@ -1044,51 +1171,173 @@ if ($coursesConn && $coursesConn->connect_errno === 0) {
             
             // Setup password visibility toggle
             setupPasswordToggle();
-            setupCourseSectionDropdowns();
+            setupStudentHoursControls();
+            setupAcademicFilters();
 
         });
 
-        function buildSectionCodes(courseCode) {
-            if (!courseCode) return [];
-            const suffixes = ['A', 'B', 'C', 'D', 'E', 'F'];
-            return suffixes.map(function(suffix) {
-                return courseCode + '-2' + suffix;
-            });
+        function setupStudentHoursControls() {
+            const finishedSelect = document.getElementById('finishedInternalSelect');
+            const externalInput = document.getElementById('externalTotalHoursInput');
+            const internalInput = document.querySelector('#studentForm input[name="internal_total_hours"]');
+            if (!finishedSelect || !externalInput || !internalInput) return;
+
+            function syncExternalField() {
+                const finished = (finishedSelect.value || '').toLowerCase() === 'yes';
+                externalInput.disabled = !finished;
+                internalInput.disabled = finished;
+                if (finished) {
+                    internalInput.value = '0';
+                }
+                if (!finished) {
+                    externalInput.value = '0';
+                }
+            }
+
+            finishedSelect.addEventListener('change', syncExternalField);
+            syncExternalField();
         }
 
-        function populateSectionDropdown(sectionSelect, courseCode) {
-            if (!sectionSelect) return;
-            sectionSelect.innerHTML = '';
+        const courseDepartmentMap = <?php echo json_encode($courseDepartmentMap, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+        const sectionRecords = <?php echo json_encode($sectionOptions, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
 
+        function getCourseAllowedDepartmentIds(courseId) {
+            const bucket = courseDepartmentMap[String(courseId)] || {};
+            const ids = Object.keys(bucket).map(function(id) { return String(id); });
+            // Fallback: if no course->department mapping exists yet, keep all departments visible.
+            if (!ids.length) {
+                const deptSelect = document.getElementById('studentDepartmentSelect');
+                if (!deptSelect) return [];
+                return Array.prototype.slice.call(deptSelect.options)
+                    .filter(function(opt, idx) { return idx > 0 && String(opt.value || '').trim() !== ''; })
+                    .map(function(opt) { return String(opt.value); });
+            }
+            return ids;
+        }
+
+        function setSelectPlaceholder(selectEl, text) {
+            if (!selectEl) return;
+            selectEl.innerHTML = '';
             const placeholder = document.createElement('option');
             placeholder.value = '';
             placeholder.disabled = true;
             placeholder.selected = true;
-            placeholder.textContent = 'Select Section';
-            sectionSelect.appendChild(placeholder);
-
-            const sectionCodes = buildSectionCodes(courseCode);
-            sectionCodes.forEach(function(sectionCode) {
-                const option = document.createElement('option');
-                option.value = sectionCode;
-                option.textContent = sectionCode;
-                sectionSelect.appendChild(option);
-            });
+            placeholder.textContent = text;
+            selectEl.appendChild(placeholder);
         }
 
-        function setupCourseSectionDropdowns() {
-            const courseSelects = document.querySelectorAll('.dynamic-course-select');
-            courseSelects.forEach(function(courseSelect) {
-                const sectionTargetId = courseSelect.getAttribute('data-section-target');
-                const sectionSelect = sectionTargetId ? document.getElementById(sectionTargetId) : null;
-                if (!sectionSelect) return;
+        function filterDepartmentOptions(courseId) {
+            const deptSelect = document.getElementById('studentDepartmentSelect');
+            if (!deptSelect) return [];
+            const allowed = getCourseAllowedDepartmentIds(courseId);
 
-                courseSelect.addEventListener('change', function() {
-                    const selectedOption = courseSelect.options[courseSelect.selectedIndex];
-                    const courseCode = selectedOption ? (selectedOption.getAttribute('data-course-code') || '').trim() : '';
-                    populateSectionDropdown(sectionSelect, courseCode);
-                });
+            Array.prototype.slice.call(deptSelect.options).forEach(function(opt, index) {
+                if (index === 0) return; // placeholder
+                const show = allowed.includes(String(opt.value));
+                opt.hidden = !show;
+                opt.disabled = !show;
             });
+
+            if (allowed.length === 1) {
+                deptSelect.value = allowed[0];
+            } else {
+                deptSelect.value = '';
+            }
+
+            return allowed;
+        }
+
+        function filterSectionOptions(courseId, departmentId) {
+            const sectionSelect = document.getElementById('studentSectionSelect');
+            const courseSelect = document.getElementById('studentCourseSelect');
+            if (!sectionSelect) return;
+            setSelectPlaceholder(sectionSelect, 'Select Section');
+
+            const cId = String(courseId || '');
+            const dId = String(departmentId || '');
+            let inserted = 0;
+
+            sectionRecords.forEach(function(rec) {
+                if (String(rec.course_id) !== cId) return;
+                if (dId !== '' && String(rec.department_id) !== dId) return;
+
+                const code = (rec.code || '').trim();
+                const name = (rec.name || '').trim();
+                const label = code && name ? (code + ' - ' + name) : (code || name || ('Section #' + rec.id));
+
+                const option = document.createElement('option');
+                option.value = code || String(rec.id);
+                option.textContent = label;
+                sectionSelect.appendChild(option);
+                inserted++;
+            });
+
+            // Fallback for databases without sections rows yet.
+            if (inserted === 0 && courseSelect) {
+                const selectedOption = courseSelect.options[courseSelect.selectedIndex];
+                const courseCode = selectedOption ? (selectedOption.getAttribute('data-course-code') || '').trim() : '';
+                if (courseCode) {
+                    ['A', 'B', 'C', 'D', 'E', 'F'].forEach(function(suffix) {
+                        const code = courseCode + '-2' + suffix;
+                        const option = document.createElement('option');
+                        option.value = code;
+                        option.textContent = code;
+                        sectionSelect.appendChild(option);
+                    });
+                }
+            }
+        }
+
+        function filterRoleOptionsByDept(selectId, allowedDepartmentIds, selectedDepartmentId, isAct) {
+            const select = document.getElementById(selectId);
+            if (!select) return;
+
+            const selectedDept = String(selectedDepartmentId || '');
+            const allowedSet = new Set((allowedDepartmentIds || []).map(function(v) { return String(v); }));
+
+            Array.prototype.slice.call(select.options).forEach(function(opt, index) {
+                if (index === 0) return; // placeholder
+
+                const deptId = String(opt.getAttribute('data-department-id') || '');
+                let show = true;
+                if (selectedDept !== '') {
+                    show = deptId === selectedDept;
+                } else if (allowedSet.size > 0) {
+                    show = allowedSet.has(deptId);
+                }
+
+                opt.hidden = !show;
+                opt.disabled = !show;
+                const defaultLabel = opt.getAttribute('data-default-label') || opt.textContent;
+                const actLabel = opt.getAttribute('data-act-label') || defaultLabel;
+                opt.textContent = isAct ? actLabel : defaultLabel;
+            });
+
+            select.value = '';
+        }
+
+        function setupAcademicFilters() {
+            const courseSelect = document.getElementById('studentCourseSelect');
+            const deptSelect = document.getElementById('studentDepartmentSelect');
+            if (!courseSelect || !deptSelect) return;
+
+            function applyFilters() {
+                const selectedCourse = courseSelect.options[courseSelect.selectedIndex] || null;
+                const courseId = selectedCourse ? selectedCourse.value : '';
+                const courseCode = selectedCourse ? ((selectedCourse.getAttribute('data-course-code') || '').trim().toUpperCase()) : '';
+                const isAct = courseCode === 'ACT';
+
+                const allowedDeptIds = filterDepartmentOptions(courseId);
+                const selectedDeptId = deptSelect.value || '';
+
+                filterSectionOptions(courseId, selectedDeptId);
+                filterRoleOptionsByDept('studentCoordinatorSelect', allowedDeptIds, selectedDeptId, isAct);
+                filterRoleOptionsByDept('studentSupervisorSelect', allowedDeptIds, selectedDeptId, isAct);
+            }
+
+            courseSelect.addEventListener('change', applyFilters);
+            deptSelect.addEventListener('change', applyFilters);
+            applyFilters();
         }
 
         // New function to handle password visibility toggle for both password and confirm password

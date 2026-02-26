@@ -113,7 +113,7 @@ try {
     }
     
     // Get supervisors (Active)
-    $supervisors_query = $conn->query("\n        SELECT u.id, u.name, u.email, s.phone, s.department, s.created_at\n        FROM users u\n        LEFT JOIN supervisors s ON u.id = s.user_id\n        WHERE u.role = 'supervisor' AND u.is_active = 1\n        ORDER BY u.created_at DESC\n        LIMIT 5\n    ");
+    $supervisors_query = $conn->query("\n        SELECT\n            s.id AS supervisor_id,\n            s.user_id,\n            COALESCE(NULLIF(u.name, ''), TRIM(CONCAT(s.first_name, ' ', s.last_name))) AS name,\n            COALESCE(NULLIF(u.email, ''), s.email) AS email,\n            s.phone,\n            s.department_id,\n            s.specialization,\n            s.created_at\n        FROM supervisors s\n        LEFT JOIN users u ON u.id = s.user_id\n        WHERE s.is_active = 1\n          AND s.deleted_at IS NULL\n          AND (u.id IS NULL OR u.is_active = 1)\n        ORDER BY s.created_at DESC\n        LIMIT 5\n    ");
     
     if ($supervisors_query && $supervisors_query->num_rows > 0) {
         while ($row = $supervisors_query->fetch_assoc()) {
@@ -360,10 +360,7 @@ try {
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Students</span>
                                         </a>
-                                        <a href="students-view.php" class="dropdown-item">
-                                            <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
-                                            <span>Students View</span>
-                                        </a>
+
                                         <a href="students-create.php" class="dropdown-item">
                                             <i class="wd-5 ht-5 bg-gray-500 rounded-circle me-3"></i>
                                             <span>Students Create</span>

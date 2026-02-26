@@ -162,6 +162,29 @@ if (isset($_GET['action'])) {
             .select2-dropdown { z-index: 900 !important; }
             .nxl-navigation { z-index: 2147483648 !important; }
             .nxl-navigation .navbar-wrapper { z-index: 2147483648 !important; }
+            .nxl-navigation .m-header {
+                min-height: 96px;
+                padding: 14px 18px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .nxl-navigation .m-header .b-brand {
+                width: 100%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .nxl-navigation .m-header .logo.logo-lg {
+                display: block !important;
+                width: min(84vw, 240px) !important;
+                height: auto !important;
+                max-height: 56px !important;
+                object-fit: contain;
+            }
+            .nxl-navigation .m-header .logo.logo-sm {
+                display: none !important;
+            }
         }
     </style>
 </head>
