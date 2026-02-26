@@ -57,8 +57,7 @@
                     </a>
                     <ul class="nxl-submenu">
                         <li class="nxl-item"><a class="nxl-link" href="students.php">Students List</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="students-view.php">Students View</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="students-create.php">Students Create</a></li>
+
                         <li class="nxl-item"><a class="nxl-link" href="students-edit.php">Students Edit</a></li>
                         <li class="nxl-divider"></li>
                         <li class="nxl-item"><a class="nxl-link" href="attendance.php">Attendance DTR</a></li>
@@ -105,7 +104,6 @@
                     </a>
                     <ul class="nxl-submenu">
                         <li class="nxl-item"><a class="nxl-link" href="ojt.php">OJT List</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="ojt-view.php">OJT View</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="ojt-create.php">OJT Create</a></li>
                     </ul>
                 </li>
