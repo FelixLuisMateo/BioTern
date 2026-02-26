@@ -1,4 +1,9 @@
 <?php
+require_once __DIR__ . '/lib/ops_helpers.php';
+require_once __DIR__ . '/lib/attendance_rules.php';
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 // Database Connection
 $host = 'localhost';
 $db_user = 'root';
@@ -51,6 +56,9 @@ if ($attendance_id > 0) {
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $attendance_id > 0) {
+    $current_user_id = get_current_user_id_or_zero();
+    $current_role = get_current_user_role();
+    $can_direct_edit = in_array($current_role, ['admin', 'coordinator'], true);
     $morning_in = isset($_POST['morning_time_in']) ? $_POST['morning_time_in'] : $attendance['morning_time_in'];
     $morning_out = isset($_POST['morning_time_out']) ? $_POST['morning_time_out'] : $attendance['morning_time_out'];
     $break_in = isset($_POST['break_time_in']) ? $_POST['break_time_in'] : $attendance['break_time_in'];
@@ -60,37 +68,105 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $attendance_id > 0) {
     $status = isset($_POST['status']) ? $_POST['status'] : $attendance['status'];
     $remarks = isset($_POST['remarks']) ? $_POST['remarks'] : $attendance['remarks'];
     
-    $update_query = "
-        UPDATE attendances SET
-            morning_time_in = ?,
-            morning_time_out = ?,
-            break_time_in = ?,
-            break_time_out = ?,
-            afternoon_time_in = ?,
-            afternoon_time_out = ?,
-            status = ?,
-            remarks = ?,
-            updated_at = NOW()
-        WHERE id = ?
-    ";
-    
-    $stmt = $conn->prepare($update_query);
-    $stmt->bind_param('ssssssssi', $morning_in, $morning_out, $break_in, $break_out, $afternoon_in, $afternoon_out, $status, $remarks, $attendance_id);
-    
-    if ($stmt->execute()) {
-        $success_msg = "Attendance record updated successfully!";
-        // Refresh attendance data
+    $candidate = [
+        'morning_time_in' => $morning_in,
+        'morning_time_out' => $morning_out,
+        'break_time_in' => $break_in,
+        'break_time_out' => $break_out,
+        'afternoon_time_in' => $afternoon_in,
+        'afternoon_time_out' => $afternoon_out
+    ];
+    $validation = attendance_validate_full_record($candidate);
+    if (!$validation['ok']) {
+        $error_msg = $validation['message'];
+    } elseif ($can_direct_edit) {
+        $before_data = $attendance;
+        $update_query = "
+            UPDATE attendances SET
+                morning_time_in = ?,
+                morning_time_out = ?,
+                break_time_in = ?,
+                break_time_out = ?,
+                afternoon_time_in = ?,
+                afternoon_time_out = ?,
+                status = ?,
+                remarks = ?,
+                updated_at = NOW()
+            WHERE id = ?
+        ";
+        
+        $stmt = $conn->prepare($update_query);
+        $stmt->bind_param('ssssssssi', $morning_in, $morning_out, $break_in, $break_out, $afternoon_in, $afternoon_out, $status, $remarks, $attendance_id);
+        
+        if ($stmt->execute()) {
+            $success_msg = "Attendance record updated successfully!";
+            insert_audit_log(
+                $conn,
+                $current_user_id,
+                'attendance_manual_edit',
+                'attendance',
+                $attendance_id,
+                $before_data,
+                $candidate,
+                $_SERVER['REMOTE_ADDR'] ?? '',
+                $_SERVER['HTTP_USER_AGENT'] ?? ''
+            );
+
+            // Refresh attendance data
+            $stmt->close();
+            $query = "SELECT * FROM attendances WHERE id = ?";
+            $stmt = $conn->prepare($query);
+            $stmt->bind_param('i', $attendance_id);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $attendance = $result->fetch_assoc();
+        } else {
+            $error_msg = "Error updating record: " . $stmt->error;
+        }
         $stmt->close();
-        $query = "SELECT * FROM attendances WHERE id = ?";
-        $stmt = $conn->prepare($query);
-        $stmt->bind_param('i', $attendance_id);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        $attendance = $result->fetch_assoc();
     } else {
-        $error_msg = "Error updating record: " . $stmt->error;
+        if (!table_exists($conn, 'attendance_correction_requests')) {
+            $error_msg = "Correction workflow table is missing. Run db_updates_operations.sql first.";
+        } else {
+            $payload = json_encode([
+                'morning_time_in' => $morning_in,
+                'morning_time_out' => $morning_out,
+                'break_time_in' => $break_in,
+                'break_time_out' => $break_out,
+                'afternoon_time_in' => $afternoon_in,
+                'afternoon_time_out' => $afternoon_out,
+                'status' => $status,
+                'remarks' => $remarks
+            ]);
+            $reason = isset($_POST['correction_reason']) ? trim((string)$_POST['correction_reason']) : '';
+            if ($reason === '') {
+                $reason = 'Requested via edit attendance form';
+            }
+            $req_stmt = $conn->prepare("
+                INSERT INTO attendance_correction_requests
+                (attendance_id, requested_by, requester_role, correction_reason, requested_changes, status, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, 'pending', NOW(), NOW())
+            ");
+            $req_stmt->bind_param('iisss', $attendance_id, $current_user_id, $current_role, $reason, $payload);
+            if ($req_stmt->execute()) {
+                $success_msg = "Correction request submitted for approval.";
+                insert_audit_log(
+                    $conn,
+                    $current_user_id,
+                    'attendance_correction_requested',
+                    'attendance_correction_request',
+                    (int)$req_stmt->insert_id,
+                    [],
+                    ['attendance_id' => $attendance_id, 'reason' => $reason],
+                    $_SERVER['REMOTE_ADDR'] ?? '',
+                    $_SERVER['HTTP_USER_AGENT'] ?? ''
+                );
+            } else {
+                $error_msg = "Error submitting correction request: " . $req_stmt->error;
+            }
+            $req_stmt->close();
+        }
     }
-    $stmt->close();
 }
 
 $conn->close();
@@ -205,6 +281,12 @@ $conn->close();
                             <div class="col-md-6">
                                 <label class="form-label">Remarks</label>
                                 <input type="text" name="remarks" class="form-control" value="<?php echo htmlspecialchars($attendance['remarks'] ?? ''); ?>" placeholder="Optional remarks">
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <label class="form-label">Correction Reason (used when direct edit permission is missing)</label>
+                                <input type="text" name="correction_reason" class="form-control" placeholder="Explain why this attendance should be corrected">
                             </div>
                         </div>
                         

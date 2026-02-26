@@ -1,4 +1,10 @@
 <?php
+require_once __DIR__ . '/lib/attendance_rules.php';
+require_once __DIR__ . '/lib/ops_helpers.php';
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+require_roles_page(['admin', 'coordinator', 'supervisor']);
 // Database Connection
 $host = 'localhost';
 $db_user = 'root';
@@ -150,17 +156,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $clock_time = $_POST['clock_time'];
     $clock_type = $_POST['clock_type']; // morning_time_in, morning_time_out, break_time_in, break_time_out, afternoon_time_in, afternoon_time_out
 
-    // Map clock types to correct column names
-    $clock_type_map = array(
-        'morning_in' => 'morning_time_in',
-        'morning_out' => 'morning_time_out',
-        'break_in' => 'break_time_in',
-        'break_out' => 'break_time_out',
-        'afternoon_in' => 'afternoon_time_in',
-        'afternoon_out' => 'afternoon_time_out'
-    );
-
-    $db_column = $clock_type_map[$clock_type] ?? null;
+    $db_column = attendance_action_to_column($clock_type);
 
     // Validate inputs
     if (empty($student_id) || empty($clock_date) || empty($clock_time) || empty($clock_type)) {
@@ -182,26 +178,44 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $clock_time = $conn->real_escape_string($clock_time);
 
             // Check if attendance record exists for this date
-            $date_check = $conn->query("SELECT id, $db_column FROM attendances WHERE student_id = $student_id AND attendance_date = '$clock_date'");
+            $date_check = $conn->query("SELECT id, morning_time_in, morning_time_out, break_time_in, break_time_out, afternoon_time_in, afternoon_time_out FROM attendances WHERE student_id = $student_id AND attendance_date = '$clock_date'");
             
             if ($date_check->num_rows == 0) {
-                // Create new attendance record
-                $insert_query = "INSERT INTO attendances (student_id, attendance_date, $db_column, status, created_at, updated_at) 
-                                VALUES ($student_id, '$clock_date', '$clock_time', 'pending', NOW(), NOW())";
-                if ($conn->query($insert_query)) {
-                    sync_student_active_status($conn, $student_id, $clock_type);
-                    $message = "" . ucfirst(str_replace('_', ' ', $clock_type)) . " recorded at " . date('h:i A', strtotime($clock_time));
-                    $message_type = "success";
+                $empty_record = array(
+                    'morning_time_in' => null,
+                    'morning_time_out' => null,
+                    'break_time_in' => null,
+                    'break_time_out' => null,
+                    'afternoon_time_in' => null,
+                    'afternoon_time_out' => null
+                );
+                $validation = attendance_validate_transition($empty_record, $clock_type, $clock_time);
+                if (!$validation['ok']) {
+                    $message = $validation['message'];
+                    $message_type = "warning";
                 } else {
-                    $message = "Error recording time: " . $conn->error;
-                    $message_type = "danger";
+                    $insert_query = "INSERT INTO attendances (student_id, attendance_date, $db_column, status, created_at, updated_at) 
+                                    VALUES ($student_id, '$clock_date', '$clock_time', 'pending', NOW(), NOW())";
+                    if ($conn->query($insert_query)) {
+                        sync_student_active_status($conn, $student_id, $clock_type);
+                        $message = ucfirst(str_replace('_', ' ', $clock_type)) . " recorded at " . date('h:i A', strtotime($clock_time));
+                        $message_type = "success";
+                    } else {
+                        $message = "Error recording time: " . $conn->error;
+                        $message_type = "danger";
+                    }
                 }
             } else {
                 // Attendance record exists. Check if this specific time field is already filled
                 $record = $date_check->fetch_assoc();
+                $validation = attendance_validate_transition($record, $clock_type, $clock_time);
                 
+                // Prevent morning clock-in when afternoon attendance already exists.
+                if (!$validation['ok']) {
+                    $message = $validation['message'];
+                    $message_type = "warning";
                 // If the time field is already set, prevent duplicate clock-in
-                if (!empty($record[$db_column])) {
+                } elseif (!empty($record[$db_column])) {
                     $message = " — " . ucfirst(str_replace('_', ' ', $clock_type)) . " has already been recorded. Cannot clock in twice.";
                     $message_type = "warning";
                 } else {
@@ -222,23 +236,53 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         $att_stmt->close();
 
                         if ($att_row) {
-                            $computed_hours = calculate_attendance_hours($att_row);
-                            $upd_total = $conn->prepare("UPDATE attendances SET total_hours = ?, updated_at = NOW() WHERE id = ?");
-                            $upd_total->bind_param("di", $computed_hours, $att_row['id']);
-                            $upd_total->execute();
-                            $upd_total->close();
+                            $full_validation = attendance_validate_full_record($att_row);
+                            if (!$full_validation['ok']) {
+                                $message = $full_validation['message'];
+                                $message_type = "warning";
+                            } else {
+                                $computed_hours = calculate_attendance_hours($att_row);
+                                $upd_total = $conn->prepare("UPDATE attendances SET total_hours = ?, updated_at = NOW() WHERE id = ?");
+                                $upd_total->bind_param("di", $computed_hours, $att_row['id']);
+                                $upd_total->execute();
+                                $upd_total->close();
+                            }
                         }
 
                         // Sync student/internship accumulated progress so it does not reset daily.
                         sync_student_hours($conn, $student_id);
                         sync_student_active_status($conn, $student_id, $clock_type);
 
-                        $message = " — " . ucfirst(str_replace('_', ' ', $clock_type)) . " recorded at " . date('h:i A', strtotime($clock_time));
-                        $message_type = "success";
+                        if ($message_type !== "warning") {
+                            $message = ucfirst(str_replace('_', ' ', $clock_type)) . " recorded at " . date('h:i A', strtotime($clock_time));
+                            $message_type = "success";
+                        }
                     } else {
                         $message = "Error recording time: " . $conn->error;
                         $message_type = "danger";
                     }
+                    if (table_exists($conn, 'biometric_event_queue')) {
+                        $q_stmt = $conn->prepare("
+                            INSERT INTO biometric_event_queue (student_id, attendance_date, clock_type, clock_time, event_source, status, retries, created_at, updated_at)
+                            VALUES (?, ?, ?, ?, 'demo-biometric', 'pending', 0, NOW(), NOW())
+                        ");
+                        if ($q_stmt) {
+                            $q_stmt->bind_param("isss", $student_id, $clock_date, $clock_type, $clock_time);
+                            $q_stmt->execute();
+                            $q_stmt->close();
+                        }
+                    }
+                    insert_audit_log(
+                        $conn,
+                        get_current_user_id_or_zero(),
+                        'clock_' . $clock_type,
+                        'attendance',
+                        null,
+                        [],
+                        ['student_id' => $student_id, 'clock_date' => $clock_date, 'clock_time' => $clock_time, 'message' => $message],
+                        $_SERVER['REMOTE_ADDR'] ?? '',
+                        $_SERVER['HTTP_USER_AGENT'] ?? ''
+                    );
                 }
             }
         }

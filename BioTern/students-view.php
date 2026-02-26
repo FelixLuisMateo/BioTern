@@ -32,6 +32,8 @@ $student_query = "
         s.last_name,
         s.middle_name,
         s.email,
+        s.bio,
+        s.department_id,
         s.phone,
         s.date_of_birth,
         s.gender,
@@ -50,6 +52,7 @@ $student_query = "
         s.coordinator_name,
         c.name as course_name,
         c.id as course_id,
+        d.name as department_name,
         i.id as internship_id,
         i.supervisor_id,
         i.coordinator_id,
@@ -58,6 +61,7 @@ $student_query = "
         i.status as internship_status
     FROM students s
     LEFT JOIN courses c ON s.course_id = c.id
+    LEFT JOIN departments d ON d.id = s.department_id
     LEFT JOIN internships i ON s.id = i.student_id AND i.status = 'ongoing'
     WHERE s.id = ?
     LIMIT 1
@@ -99,6 +103,7 @@ $clocked_in_query = "
         afternoon_time_out
     FROM attendances 
     WHERE student_id = ? AND attendance_date = ?
+    ORDER BY id DESC
     LIMIT 1
 ";
 $stmt_clock = $conn->prepare($clocked_in_query);
@@ -195,8 +200,12 @@ $stored_external_remaining = isset($student['external_total_hours_remaining']) &
 $internal_remaining_hours_live = max(0, $internal_total_hours - $live_rendered_hours);
 $external_remaining_hours_live = max(0, $external_total_hours - $live_rendered_hours);
 $hours_remaining = ($assignment_track === 'external') ? $external_remaining_hours_live : $internal_remaining_hours_live;
+$hours_remaining_without_open = ($assignment_track === 'external')
+    ? max(0, $external_total_hours - $hours_rendered)
+    : max(0, $internal_total_hours - $hours_rendered);
 
 $remaining_seconds = (int)max(0, round($hours_remaining * 3600));
+$remaining_seconds_without_open = (int)max(0, round($hours_remaining_without_open * 3600));
 $internal_remaining_display = max(0, (int)floor($internal_remaining_hours_live));
 $external_remaining_display = max(0, (int)floor($external_remaining_hours_live));
 
@@ -795,6 +804,10 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                                             <a href="students-edit.php?id=<?php echo $student['id']; ?>" class="btn btn-sm btn-light-brand">Edit Profile</a>
                                         </div>
                                         <div class="row g-0 mb-4">
+                                            <div class="col-sm-6 text-muted">Career Objective:</div>
+                                            <div class="col-sm-6 fw-semibold"><?php echo htmlspecialchars(!empty($student['bio']) ? $student['bio'] : 'N/A'); ?></div>
+                                        </div>
+                                        <div class="row g-0 mb-4">
                                             <div class="col-sm-6 text-muted">First Name:</div>
                                             <div class="col-sm-6 fw-semibold"><?php echo htmlspecialchars($student['first_name']); ?></div>
                                         </div>
@@ -805,6 +818,10 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                                         <div class="row g-0 mb-4">
                                             <div class="col-sm-6 text-muted">Last Name:</div>
                                             <div class="col-sm-6 fw-semibold"><?php echo htmlspecialchars($student['last_name']); ?></div>
+                                        </div>
+                                        <div class="row g-0 mb-4">
+                                            <div class="col-sm-6 text-muted">Department:</div>
+                                            <div class="col-sm-6 fw-semibold"><?php echo htmlspecialchars($student['department_name'] ?? 'N/A'); ?></div>
                                         </div>
                                         <div class="row g-0 mb-4">
                                             <div class="col-sm-6 text-muted">Student ID:</div>
@@ -984,10 +1001,16 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
 
             const studentId = <?php echo (int)$student['id']; ?>;
             let remainingSeconds = <?php echo (int)$remaining_seconds; ?>;
+            const remainingSecondsWithoutOpen = <?php echo (int)$remaining_seconds_without_open; ?>;
             const isClockedIn = <?php echo $is_clocked_in ? 'true' : 'false'; ?>;
             const openClockInRaw = <?php echo $open_clock_in_time ? json_encode($open_clock_in_time) : 'null'; ?>;
             const storageKey = 'student_timer_state_' + String(studentId);
-            const todayKey = new Date().toISOString().slice(0, 10);
+            const nowRef = new Date();
+            const todayKey = [
+                nowRef.getFullYear(),
+                String(nowRef.getMonth() + 1).padStart(2, '0'),
+                String(nowRef.getDate()).padStart(2, '0')
+            ].join('-');
             let lastSyncedHour = null;
             let syncInFlight = false;
 
@@ -1090,9 +1113,22 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
             }
 
             const saved = loadState();
+            if (isClockedIn) {
+                const elapsed = elapsedSinceOpenClockIn();
+                if (elapsed > 0) {
+                    // Build remaining time from a stable base and live elapsed time to avoid server timezone drift.
+                    remainingSeconds = Math.max(0, remainingSecondsWithoutOpen - elapsed);
+                }
+            }
             if (saved) {
-                // Use lower value from local state to prevent upward jumps from stale cache/server values.
-                remainingSeconds = Math.min(remainingSeconds, saved.seconds);
+                // Only trust cache for the same active session; otherwise it can pin the timer to stale values.
+                const sameSession =
+                    isClockedIn &&
+                    saved.sessionDate === todayKey &&
+                    saved.clockInRaw === openClockInRaw;
+                if (sameSession || !isClockedIn) {
+                    remainingSeconds = Math.min(remainingSeconds, saved.seconds);
+                }
             }
 
             function updateTimer() {

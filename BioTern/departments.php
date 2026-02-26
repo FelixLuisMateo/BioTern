@@ -86,6 +86,7 @@ ob_start();
                             <?php if ($hasColumn('contact_email')): ?><th>Contact Email</th><?php endif; ?>
                             <?php if ($hasColumn('is_active')): ?><th>Status</th><?php endif; ?>
                             <?php if ($hasColumn('created_at')): ?><th>Created</th><?php endif; ?>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -113,11 +114,16 @@ ob_start();
                                 <?php if ($hasColumn('created_at')): ?>
                                     <td><?php echo htmlspecialchars((string)($dept['created_at'] ?? '-')); ?></td>
                                 <?php endif; ?>
+                                <td>
+                                    <a href="departments-edit.php?id=<?php echo (int)$dept['id']; ?>" class="btn btn-sm btn-light-brand">
+                                        Edit
+                                    </a>
+                                </td>
                             </tr>
                         <?php endforeach; ?>
                     <?php else: ?>
                         <tr>
-                            <td colspan="8" class="text-center py-4 text-muted">No courses found.</td>
+                            <td colspan="<?php echo 4 + ($hasColumn('department_head') ? 1 : 0) + ($hasColumn('contact_email') ? 1 : 0) + ($hasColumn('is_active') ? 1 : 0) + ($hasColumn('created_at') ? 1 : 0); ?>" class="text-center py-4 text-muted">No departments found.</td>
                         </tr>
                     <?php endif; ?>
                     </tbody>
