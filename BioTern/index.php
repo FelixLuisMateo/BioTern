@@ -86,13 +86,7 @@ try {
     }
     
     // Get recent students (last 5)
-    $recent_students_query = $conn->query("
-        SELECT s.id, s.student_id, s.first_name, s.last_name, s.email, s.status, s.biometric_registered, s.created_at
-        FROM students s
-        WHERE s.deleted_at IS NULL
-        ORDER BY s.created_at DESC
-        LIMIT 5
-    ");
+    $recent_students_query = $conn->query("\n        SELECT s.id, s.student_id, s.first_name, s.last_name, s.email, s.status, s.biometric_registered, s.created_at\n        FROM students s\n        WHERE s.deleted_at IS NULL\n        ORDER BY s.created_at DESC\n        LIMIT 5\n    ");
     
     if ($recent_students_query && $recent_students_query->num_rows > 0) {
         while ($row = $recent_students_query->fetch_assoc()) {
@@ -101,14 +95,7 @@ try {
     }
     
     // Get recent attendance records (last 10) with student info
-    $recent_attendance_query = $conn->query("
-        SELECT a.id, a.student_id, a.attendance_date, a.morning_time_in, a.morning_time_out, a.status, a.created_at, 
-               s.first_name, s.last_name, s.email, s.student_id as student_num
-        FROM attendances a
-        LEFT JOIN students s ON a.student_id = s.id
-        ORDER BY a.attendance_date DESC, a.created_at DESC
-        LIMIT 10
-    ");
+    $recent_attendance_query = $conn->query("\n        SELECT a.id, a.student_id, a.attendance_date, a.morning_time_in, a.morning_time_out, a.status, a.created_at, \n               s.first_name, s.last_name, s.email, s.student_id as student_num\n        FROM attendances a\n        LEFT JOIN students s ON a.student_id = s.id\n        ORDER BY a.attendance_date DESC, a.created_at DESC\n        LIMIT 10\n    ");
     
     if ($recent_attendance_query && $recent_attendance_query->num_rows > 0) {
         while ($row = $recent_attendance_query->fetch_assoc()) {
@@ -117,14 +104,7 @@ try {
     }
     
     // Get coordinators (Active)
-    $coordinators_query = $conn->query("
-        SELECT u.id, u.name, u.email, c.department_id, c.phone, c.created_at
-        FROM users u
-        LEFT JOIN coordinators c ON u.id = c.user_id
-        WHERE u.role = 'coordinator' AND u.is_active = 1
-        ORDER BY u.created_at DESC
-        LIMIT 5
-    ");
+    $coordinators_query = $conn->query("\n        SELECT u.id, u.name, u.email, c.department_id, c.phone, c.created_at\n        FROM users u\n        LEFT JOIN coordinators c ON u.id = c.user_id\n        WHERE u.role = 'coordinator' AND u.is_active = 1\n        ORDER BY u.created_at DESC\n        LIMIT 5\n    ");
     
     if ($coordinators_query && $coordinators_query->num_rows > 0) {
         while ($row = $coordinators_query->fetch_assoc()) {
@@ -133,14 +113,7 @@ try {
     }
     
     // Get supervisors (Active)
-    $supervisors_query = $conn->query("
-        SELECT u.id, u.name, u.email, s.phone, s.department, s.created_at
-        FROM users u
-        LEFT JOIN supervisors s ON u.id = s.user_id
-        WHERE u.role = 'supervisor' AND u.is_active = 1
-        ORDER BY u.created_at DESC
-        LIMIT 5
-    ");
+    $supervisors_query = $conn->query("\n        SELECT u.id, u.name, u.email, s.phone, s.department, s.created_at\n        FROM users u\n        LEFT JOIN supervisors s ON u.id = s.user_id\n        WHERE u.role = 'supervisor' AND u.is_active = 1\n        ORDER BY u.created_at DESC\n        LIMIT 5\n    ");
     
     if ($supervisors_query && $supervisors_query->num_rows > 0) {
         while ($row = $supervisors_query->fetch_assoc()) {
@@ -149,33 +122,7 @@ try {
     }
     
     // Get recent activities (student registrations, attendance records, etc)
-    $activities_query = $conn->query("
-        SELECT 
-            CONCAT('Student Created: ', s.first_name, ' ', s.last_name) as activity,
-            s.created_at as activity_date,
-            'student_created' as activity_type,
-            s.id as entity_id
-        FROM students s
-        WHERE s.deleted_at IS NULL
-        UNION ALL
-        SELECT 
-            CONCAT('Attendance Recorded for ', s.first_name, ' ', s.last_name) as activity,
-            a.created_at as activity_date,
-            'attendance_recorded' as activity_type,
-            a.id as entity_id
-        FROM attendances a
-        LEFT JOIN students s ON a.student_id = s.id
-        UNION ALL
-        SELECT 
-            CONCAT('Biometric Registered: ', s.first_name, ' ', s.last_name) as activity,
-            s.biometric_registered_at as activity_date,
-            'biometric_registered' as activity_type,
-            s.id as entity_id
-        FROM students s
-        WHERE s.biometric_registered = 1 AND s.biometric_registered_at IS NOT NULL
-        ORDER BY activity_date DESC
-        LIMIT 15
-    ");
+    $activities_query = $conn->query("\n        SELECT \n            CONCAT('Student Created: ', s.first_name, ' ', s.last_name) as activity,\n            s.created_at as activity_date,\n            'student_created' as activity_type,\n            s.id as entity_id\n        FROM students s\n        WHERE s.deleted_at IS NULL\n        UNION ALL\n        SELECT \n            CONCAT('Attendance Recorded for ', s.first_name, ' ', s.last_name) as activity,\n            a.created_at as activity_date,\n            'attendance_recorded' as activity_type,\n            a.id as entity_id\n        FROM attendances a\n        LEFT JOIN students s ON a.student_id = s.id\n        UNION ALL\n        SELECT \n            CONCAT('Biometric Registered: ', s.first_name, ' ', s.last_name) as activity,\n            s.biometric_registered_at as activity_date,\n            'biometric_registered' as activity_type,\n            s.id as entity_id\n        FROM students s\n        WHERE s.biometric_registered = 1 AND s.biometric_registered_at IS NOT NULL\n        ORDER BY activity_date DESC\n        LIMIT 15\n    ");
     
     if ($activities_query && $activities_query->num_rows > 0) {
         while ($row = $activities_query->fetch_assoc()) {
@@ -237,136 +184,7 @@ try {
 </head>
 
 <body>
-    <!--! ================================================================ !-->
-    <!--! [Start] Navigation Manu !-->
-    <!--! ================================================================ !-->
-    <nav class="nxl-navigation">
-        <div class="navbar-wrapper">
-            <div class="m-header">
-                <a href="index.php" class="b-brand">
-                    <!-- ========   change your logo hear   ============ -->
-                    <img src="assets/images/logo-full.png" alt="" class="logo logo-lg" />
-                    <img src="assets/images/logo-abbr.png" alt="" class="logo logo-sm" />
-                </a>
-            </div>
-            <div class="navbar-content">
-                <ul class="nxl-navbar">
-                    <li class="nxl-item nxl-caption">
-                        <label>Navigation</label>
-                    </li>
-                    <li class="nxl-item nxl-hasmenu">
-                        <a href="javascript:void(0);" class="nxl-link">
-                            <span class="nxl-micon"><i class="feather-airplay"></i></span>
-                            <span class="nxl-mtext">Home</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                        </a>
-                        <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="index.php">Overview</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="analytics.php">Analytics</a></li>
-                        </ul>
-                    </li>
-                    <li class="nxl-item nxl-hasmenu">
-                        <a href="javascript:void(0);" class="nxl-link">
-                            <span class="nxl-micon"><i class="feather-cast"></i></span>
-                            <span class="nxl-mtext">Reports</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                        </a>
-                        <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="reports-sales.php">Sales Report</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="reports-ojt.php">OJT Report</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="reports-project.php">Project Report</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="reports-timesheets.php">Timesheets Report</a></li>
-                        </ul>
-                    </li>
-                    <li class="nxl-item nxl-hasmenu">
-                        <a href="javascript:void(0);" class="nxl-link">
-                            <span class="nxl-micon"><i class="feather-send"></i></span>
-                            <span class="nxl-mtext">Applications</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                        </a>
-                        <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="apps-chat.php">Chat</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="apps-email.php">Email</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="apps-tasks.php">Tasks</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="apps-notes.php">Notes</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="apps-storage.php">Storage</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="apps-calendar.php">Calendar</a></li>
-                        </ul>
-                    </li>
-                    <li class="nxl-item nxl-hasmenu">
-                        <a href="javascript:void(0);" class="nxl-link">
-                            <span class="nxl-micon"><i class="feather-users"></i></span>
-                            <span class="nxl-mtext">Students</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                        </a>
-                        <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="students.php">Students List</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="students-view.php">Students View</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="students-create.php">Students Create</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="students-edit.php">Students Edit</a></li>
-                            <li class="nxl-divider"></li>
-                            <li class="nxl-item"><a class="nxl-link" href="attendance.php"><i class="feather-calendar me-2"></i>Attendance Records</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="demo-biometric.php"><i class="feather-activity me-2"></i>Biometric Demo</a></li>
-                        </ul>
-                    </li>
-                    <li class="nxl-item nxl-hasmenu">
-                        <a href="javascript:void(0);" class="nxl-link">
-                            <span class="nxl-micon"><i class="feather-alert-circle"></i></span>
-                            <span class="nxl-mtext">Assign OJT Designation</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                        </a>
-                        <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="ojt.php">OJT List</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="ojt-view.php">OJT View</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="ojt-create.php">OJT Create</a></li>
-                        </ul>
-                    </li>
-                    <li class="nxl-item nxl-hasmenu">
-                        <a href="javascript:void(0);" class="nxl-link">
-                            <span class="nxl-micon"><i class="feather-layout"></i></span>
-                            <span class="nxl-mtext">Widgets</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                        </a>
-                        <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="widgets-lists.php">Lists</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="widgets-tables.php">Tables</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="widgets-charts.php">Charts</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="widgets-statistics.php">Statistics</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="widgets-miscellaneous.php">Miscellaneous</a></li>
-                        </ul>
-                    </li>
-                    <li class="nxl-item nxl-hasmenu">
-                        <a href="javascript:void(0);" class="nxl-link">
-                            <span class="nxl-micon"><i class="feather-settings"></i></span>
-                            <span class="nxl-mtext">Settings</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                        </a>
-                        <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="settings-general.php">General</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-seo.php">SEO</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-tags.php">Tags</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-email.php">Email</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-tasks.php">Tasks</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-ojt.php">Leads</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-support.php">Support</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-students.php">Students</a></li>
-
-                            
-                            <li class="nxl-item"><a class="nxl-link" href="settings-miscellaneous.php">Miscellaneous</a></li>
-                        </ul>
-                    </li>
-                    
-                    <li class="nxl-item nxl-hasmenu">
-                        <a href="javascript:void(0);" class="nxl-link">
-                            <span class="nxl-micon"><i class="feather-life-buoy"></i></span>
-                            <span class="nxl-mtext">Help Center</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                        </a>
-                        <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="#!">Support</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="help-knowledgebase.php">KnowledgeBase</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="/docs/documentations">Documentations</a></li>
-                        </ul>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
-    <!--! ================================================================ !-->
-    <!--! [End]  Navigation Manu !-->
-    <!--! ================================================================ !-->
+    <?php include_once 'includes/navigation.php'; ?>
     <!--! ================================================================ !-->
     <!--! [Start] Header !-->
     <!--! ================================================================ !-->
@@ -2275,142 +2093,209 @@ try {
             <!-- [ Main Content ] start -->
             <div class="main-content">
                 <div class="row">
-                    <!-- [Attendance Awaiting Approval] start -->
-                    <div class="col-xxl-3 col-md-6">
-                        <div class="card stretch stretch-full">
-                            <div class="card-body">
-                                <div class="d-flex align-items-start justify-content-between mb-4">
-                                    <div class="d-flex gap-4 align-items-center">
-                                        <div class="avatar-text avatar-lg bg-gray-200">
-                                            <i class="feather-clock"></i>
+                    <!-- [Top Stats - balanced 4-up] start -->
+                    <div class="col-12">
+                        <div class="row g-3">
+                            <div class="col-xxl-3 col-md-6">
+                                <div class="card stretch stretch-full mb-3">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-start justify-content-between mb-4">
+                                            <div class="d-flex gap-4 align-items-center">
+                                                <div class="avatar-text avatar-lg bg-gray-200"><i class="feather-clock"></i></div>
+                                                <div>
+                                                    <div class="fs-4 fw-bold text-dark"><span class="counter"><?php echo $attendance_awaiting; ?></span>/<span class="counter"><?php echo $attendance_total; ?></span></div>
+                                                    <h3 class="fs-13 fw-semibold text-truncate-1-line">Attendance Awaiting Approval</h3>
+                                                </div>
+                                            </div>
+                                            <a href="attendance.php"><i class="feather-more-vertical"></i></a>
                                         </div>
-                                        <div>
-                                            <div class="fs-4 fw-bold text-dark"><span class="counter"><?php echo $attendance_awaiting; ?></span>/<span class="counter"><?php echo $attendance_total; ?></span></div>
-                                            <h3 class="fs-13 fw-semibold text-truncate-1-line">Attendance Awaiting Approval</h3>
+                                        <div class="pt-4">
+                                            <div class="d-flex align-items-center justify-content-between">
+                                                <a href="attendance.php" class="fs-12 fw-medium text-muted text-truncate-1-line">Pending Records </a>
+                                                <div class="w-100 text-end"><span class="fs-12 text-dark"><?php echo $attendance_awaiting; ?> Pending</span> <span class="fs-11 text-muted"><?php echo ($attendance_total > 0) ? round(($attendance_awaiting / $attendance_total) * 100) : 0; ?>%</span></div>
+                                            </div>
+                                            <div class="progress mt-2 ht-3"><div class="progress-bar bg-primary" role="progressbar" style="width: <?php echo ($attendance_total > 0) ? round(($attendance_awaiting / $attendance_total) * 100) : 0; ?>%"></div></div>
                                         </div>
                                     </div>
-                                    <a href="attendance.php" class="">
-                                        <i class="feather-more-vertical"></i>
-                                    </a>
                                 </div>
-                                <div class="pt-4">
-                                    <div class="d-flex align-items-center justify-content-between">
-                                        <a href="attendance.php" class="fs-12 fw-medium text-muted text-truncate-1-line">Pending Records </a>
-                                        <div class="w-100 text-end">
-                                            <span class="fs-12 text-dark"><?php echo $attendance_awaiting; ?> Pending</span>
-                                            <span class="fs-11 text-muted"><?php echo ($attendance_total > 0) ? round(($attendance_awaiting / $attendance_total) * 100) : 0; ?>%</span>
+                            </div>
+                            <div class="col-xxl-3 col-md-6">
+                                <div class="card stretch stretch-full mb-3">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-start justify-content-between mb-4">
+                                            <div class="d-flex gap-4 align-items-center"><div class="avatar-text avatar-lg bg-gray-200"><i class="feather-check-circle"></i></div>
+                                                <div>
+                                                    <div class="fs-4 fw-bold text-dark"><span class="counter"><?php echo $attendance_completed; ?></span>/<span class="counter"><?php echo $attendance_total; ?></span></div>
+                                                    <h3 class="fs-13 fw-semibold text-truncate-1-line">Attendance Approved</h3>
+                                                </div>
+                                            </div>
+                                            <a href="attendance.php"><i class="feather-more-vertical"></i></a>
+                                        </div>
+                                        <div class="pt-4">
+                                            <div class="d-flex align-items-center justify-content-between">
+                                                <a href="attendance.php" class="fs-12 fw-medium text-muted text-truncate-1-line">Approved Records </a>
+                                                <div class="w-100 text-end"><span class="fs-12 text-dark"><?php echo $attendance_completed; ?> Approved</span> <span class="fs-11 text-muted"><?php echo ($attendance_total > 0) ? round(($attendance_completed / $attendance_total) * 100) : 0; ?>%</span></div>
+                                            </div>
+                                            <div class="progress mt-2 ht-3"><div class="progress-bar bg-success" role="progressbar" style="width: <?php echo ($attendance_total > 0) ? round(($attendance_completed / $attendance_total) * 100) : 0; ?>%"></div></div>
                                         </div>
                                     </div>
-                                    <div class="progress mt-2 ht-3">
-                                        <div class="progress-bar bg-primary" role="progressbar" style="width: <?php echo ($attendance_total > 0) ? round(($attendance_awaiting / $attendance_total) * 100) : 0; ?>%"></div>
+                                </div>
+                            </div>
+                            <div class="col-xxl-3 col-md-6">
+                                <div class="card stretch stretch-full mb-3">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-start justify-content-between mb-4">
+                                            <div class="d-flex gap-4 align-items-center"><div class="avatar-text avatar-lg bg-gray-200"><i class="feather-users"></i></div>
+                                                <div>
+                                                    <div class="fs-4 fw-bold text-dark"><span class="counter"><?php echo $internship_count; ?></span></div>
+                                                    <h3 class="fs-13 fw-semibold text-truncate-1-line">Active Internships</h3>
+                                                </div>
+                                            </div>
+                                            <a href="students.php"><i class="feather-more-vertical"></i></a>
+                                        </div>
+                                        <div class="pt-4">
+                                            <div class="d-flex align-items-center justify-content-between">
+                                                <a href="students.php" class="fs-12 fw-medium text-muted text-truncate-1-line">Ongoing Internships </a>
+                                                <div class="w-100 text-end"><span class="fs-12 text-dark"><?php echo $internship_count; ?> Active</span> <span class="fs-11 text-muted">See List</span></div>
+                                            </div>
+                                            <div class="progress mt-2 ht-3"><div class="progress-bar bg-info" role="progressbar" style="width: 100%"></div></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-xxl-3 col-md-6">
+                                <div class="card stretch stretch-full mb-3">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-start justify-content-between mb-4">
+                                            <div class="d-flex gap-4 align-items-center"><div class="avatar-text avatar-lg bg-gray-200"><i class="feather-activity"></i></div>
+                                                <div>
+                                                    <div class="fs-4 fw-bold text-dark"><span class="counter"><?php echo $biometric_registered; ?></span>/<span class="counter"><?php echo $student_count; ?></span></div>
+                                                    <h3 class="fs-13 fw-semibold text-truncate-1-line">Biometric Registered</h3>
+                                                </div>
+                                            </div>
+                                            <a href="demo-biometric.php"><i class="feather-more-vertical"></i></a>
+                                        </div>
+                                        <div class="pt-4">
+                                            <div class="d-flex align-items-center justify-content-between">
+                                                <a href="demo-biometric.php" class="fs-12 fw-medium text-muted text-truncate-1-line"> Biometric Rate </a>
+                                                <div class="w-100 text-end"><span class="fs-12 text-dark"><?php echo $biometric_registered; ?> Students</span> <span class="fs-11 text-muted"><?php echo ($student_count > 0) ? round(($biometric_registered / $student_count) * 100) : 0; ?>%</span></div>
+                                            </div>
+                                            <div class="progress mt-2 ht-3"><div class="progress-bar bg-danger" role="progressbar" style="width: <?php echo ($student_count > 0) ? round(($biometric_registered / $student_count) * 100) : 0; ?>%"></div></div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <!-- [Attendance Awaiting Approval] end -->
-                    <!-- [Attendance Approved] start -->
-                    <div class="col-xxl-3 col-md-6">
-                        <div class="card stretch stretch-full">
-                            <div class="card-body">
-                                <div class="d-flex align-items-start justify-content-between mb-4">
-                                    <div class="d-flex gap-4 align-items-center">
-                                        <div class="avatar-text avatar-lg bg-gray-200">
-                                            <i class="feather-check-circle"></i>
+                    <!-- [Top Stats - balanced 4-up] end -->
+                    <!-- [Total Students] start (moved below stats) -->
+                    <div class="col-12">
+                        <div class="row">
+                            <div class="col-xxl-4">
+                                <div class="card stretch stretch-full overflow-hidden">
+                                    <div class="bg-primary text-white">
+                                        <div class="p-4">
+                                            <span class="badge bg-light text-primary text-dark float-end"><?php echo $student_count; ?></span>
+                                            <div class="text-start">
+                                                <h4 class="text-reset"><?php echo $student_count; ?></h4>
+                                                <p class="text-reset m-0">Total Students Enrolled</p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <div class="fs-4 fw-bold text-dark"><span class="counter"><?php echo $attendance_completed; ?></span>/<span class="counter"><?php echo $attendance_total; ?></span></div>
-                                            <h3 class="fs-13 fw-semibold text-truncate-1-line">Attendance Approved</h3>
-                                        </div>
+                                        <div id="total-sales-color-graph"></div>
                                     </div>
-                                    <a href="attendance.php" class="">
-                                        <i class="feather-more-vertical"></i>
-                                    </a>
+                                    <div class="card-body">
+                                        <?php if (count($recent_students) > 0): ?>
+                                            <?php foreach (array_slice($recent_students, 0, 3) as $student): ?>
+                                            <div class="d-flex align-items-center justify-content-between mb-3">
+                                                <div class="hstack gap-3">
+                                                    <div class="avatar-text avatar-lg bg-soft-primary text-primary">
+                                                        <?php echo strtoupper(substr($student['first_name'], 0, 1) . substr($student['last_name'], 0, 1)); ?>
+                                                    </div>
+                                                    <div>
+                                                        <a href="students-view.php?id=<?php echo $student['id']; ?>" class="d-block fw-semibold"><?php echo htmlspecialchars($student['first_name'] . ' ' . $student['last_name']); ?></a>
+                                                        <span class="fs-12 text-muted"><?php echo htmlspecialchars($student['student_id']); ?></span>
+                                                    </div>
+                                                </div>
+                                                <div class="text-end">
+                                                    <?php if ($student['biometric_registered']): ?>
+                                                    <span class="badge bg-soft-success text-success fs-10">Biometric ✓</span>
+                                                    <?php else: ?>
+                                                    <span class="badge bg-soft-warning text-warning fs-10">Pending Bio</span>
+                                                    <?php endif; ?>
+                                                </div>
+                                            </div>
+                                            <hr class="border-dashed my-3" />
+                                            <?php endforeach; ?>
+                                        <?php else: ?>
+                                            <p class="text-muted text-center">No recent students found</p>
+                                        <?php endif; ?>
+                                    </div>
+                                    <a href="students.php" class="card-footer fs-11 fw-bold text-uppercase text-center py-4">View All Students</a>
                                 </div>
-                                <div class="pt-4">
-                                    <div class="d-flex align-items-center justify-content-between">
-                                        <a href="attendance.php" class="fs-12 fw-medium text-muted text-truncate-1-line">Approved Records </a>
-                                        <div class="w-100 text-end">
-                                            <span class="fs-12 text-dark"><?php echo $attendance_completed; ?> Approved</span>
-                                            <span class="fs-11 text-muted"><?php echo ($attendance_total > 0) ? round(($attendance_completed / $attendance_total) * 100) : 0; ?>%</span>
+                            </div>
+                            <!-- OJT Overview next to Total Students -->
+                            <div class="col-xxl-4">
+                                <div class="card stretch stretch-full">
+                                    <div class="card-header">
+                                        <h5 class="card-title">OJT Overview</h5>
+                                        <div class="card-header-action">
+                                            <div class="card-header-btn">
+                                                <div data-bs-toggle="tooltip" title="Refresh">
+                                                    <a href="javascript:void(0);" class="avatar-text avatar-xs bg-warning" data-bs-toggle="refresh"> </a>
+                                                </div>
+                                                <div data-bs-toggle="tooltip" title="Maximize/Minimize">
+                                                    <a href="javascript:void(0);" class="avatar-text avatar-xs bg-success" data-bs-toggle="expand"> </a>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
-                                    <div class="progress mt-2 ht-3">
-                                        <div class="progress-bar bg-success" role="progressbar" style="width: <?php echo ($attendance_total > 0) ? round(($attendance_completed / $attendance_total) * 100) : 0; ?>%"></div>
+                                    <div class="card-body custom-card-action">
+                                        <div id="ojt-overview-pie" style="min-height:260px;"></div>
+                                        <div class="row g-2 mt-3">
+                                            <div class="col-6">
+                                                <div class="p-2 hstack gap-2 rounded border border-dashed border-gray-5">
+                                                    <div class="flex-grow-1">
+                                                        <div class="fs-12 text-muted">Pending</div>
+                                                        <h6 class="fw-bold text-dark"><?php echo isset($ojt_status_counts['pending']) ? intval($ojt_status_counts['pending']) : 0; ?></h6>
+                                                    </div>
+                                                    <div class="text-nowrap"><span class="badge bg-soft-warning text-warning">Status</span></div>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="p-2 hstack gap-2 rounded border border-dashed border-gray-5">
+                                                    <div class="flex-grow-1">
+                                                        <div class="fs-12 text-muted">Ongoing</div>
+                                                        <h6 class="fw-bold text-dark"><?php echo isset($ojt_status_counts['ongoing']) ? intval($ojt_status_counts['ongoing']) : 0; ?></h6>
+                                                    </div>
+                                                    <div class="text-nowrap"><span class="badge bg-soft-info text-info">Status</span></div>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="p-2 hstack gap-2 rounded border border-dashed border-gray-5">
+                                                    <div class="flex-grow-1">
+                                                        <div class="fs-12 text-muted">Completed</div>
+                                                        <h6 class="fw-bold text-dark"><?php echo isset($ojt_status_counts['completed']) ? intval($ojt_status_counts['completed']) : 0; ?></h6>
+                                                    </div>
+                                                    <div class="text-nowrap"><span class="badge bg-soft-success text-success">Status</span></div>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="p-2 hstack gap-2 rounded border border-dashed border-gray-5">
+                                                    <div class="flex-grow-1">
+                                                        <div class="fs-12 text-muted">Cancelled</div>
+                                                        <h6 class="fw-bold text-dark"><?php echo isset($ojt_status_counts['cancelled']) ? intval($ojt_status_counts['cancelled']) : 0; ?></h6>
+                                                    </div>
+                                                    <div class="text-nowrap"><span class="badge bg-soft-danger text-danger">Status</span></div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <!-- [Attendance Approved] end -->
-                    <!-- [Active Internships] start -->
-                    <div class="col-xxl-3 col-md-6">
-                        <div class="card stretch stretch-full">
-                            <div class="card-body">
-                                <div class="d-flex align-items-start justify-content-between mb-4">
-                                    <div class="d-flex gap-4 align-items-center">
-                                        <div class="avatar-text avatar-lg bg-gray-200">
-                                            <i class="feather-users"></i>
-                                        </div>
-                                        <div>
-                                            <div class="fs-4 fw-bold text-dark"><span class="counter"><?php echo $internship_count; ?></span></div>
-                                            <h3 class="fs-13 fw-semibold text-truncate-1-line">Active Internships</h3>
-                                        </div>
-                                    </div>
-                                    <a href="students.php" class="">
-                                        <i class="feather-more-vertical"></i>
-                                    </a>
-                                </div>
-                                <div class="pt-4">
-                                    <div class="d-flex align-items-center justify-content-between">
-                                        <a href="students.php" class="fs-12 fw-medium text-muted text-truncate-1-line">Ongoing Internships </a>
-                                        <div class="w-100 text-end">
-                                            <span class="fs-12 text-dark"><?php echo $internship_count; ?> Active</span>
-                                            <span class="fs-11 text-muted">See List</span>
-                                        </div>
-                                    </div>
-                                    <div class="progress mt-2 ht-3">
-                                        <div class="progress-bar bg-info" role="progressbar" style="width: 100%"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- [Active Internships] end -->
-                    <!-- [Biometric Registration] start -->
-                    <div class="col-xxl-3 col-md-6">
-                        <div class="card stretch stretch-full">
-                            <div class="card-body">
-                                <div class="d-flex align-items-start justify-content-between mb-4">
-                                    <div class="d-flex gap-4 align-items-center">
-                                        <div class="avatar-text avatar-lg bg-gray-200">
-                                            <i class="feather-activity"></i>
-                                        </div>
-                                        <div>
-                                            <div class="fs-4 fw-bold text-dark"><span class="counter"><?php echo $biometric_registered; ?></span>/<span class="counter"><?php echo $student_count; ?></span></div>
-                                            <h3 class="fs-13 fw-semibold text-truncate-1-line">Biometric Registered</h3>
-                                        </div>
-                                    </div>
-                                    <a href="demo-biometric.php" class="">
-                                        <i class="feather-more-vertical"></i>
-                                    </a>
-                                </div>
-                                <div class="pt-4">
-                                    <div class="d-flex align-items-center justify-content-between">
-                                        <a href="demo-biometric.php" class="fs-12 fw-medium text-muted text-truncate-1-line"> Biometric Rate </a>
-                                        <div class="w-100 text-end">
-                                            <span class="fs-12 text-dark"><?php echo $biometric_registered; ?> Students</span>
-                                            <span class="fs-11 text-muted"><?php echo ($student_count > 0) ? round(($biometric_registered / $student_count) * 100) : 0; ?>%</span>
-                                        </div>
-                                    </div>
-                                    <div class="progress mt-2 ht-3">
-                                        <div class="progress-bar bg-danger" role="progressbar" style="width: <?php echo ($student_count > 0) ? round(($biometric_registered / $student_count) * 100) : 0; ?>%"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- [Biometric Registration] end -->
+                    <!-- [Total Students] end -->
+
                     <!-- [Recent Activities & Logs] start (replaces Payment Record) -->
                     <div class="col-xxl-8">
                         <div class="card stretch stretch-full">
@@ -2487,50 +2372,103 @@ try {
                         </div>
                     </div>
                     <!-- [Recent Activities & Logs] end -->
-                    <!-- [Total Students] start -->
+
+                    <!-- [Admin Quick Actions] (moved next to Recent Activities) -->
+                    <?php // Admin Quick Actions: moved to be side-by-side with Recent Activities ?>
                     <div class="col-xxl-4">
-                        <div class="card stretch stretch-full overflow-hidden">
-                            <div class="bg-primary text-white">
-                                <div class="p-4">
-                                    <span class="badge bg-light text-primary text-dark float-end"><?php echo $student_count; ?></span>
-                                    <div class="text-start">
-                                        <h4 class="text-reset"><?php echo $student_count; ?></h4>
-                                        <p class="text-reset m-0">Total Students Enrolled</p>
+                        <div class="card stretch stretch-full">
+                            <div class="card-header">
+                                <h5 class="card-title">Admin Quick Actions</h5>
+                                <div class="card-header-action">
+                                    <div class="card-header-btn">
+                                        <div data-bs-toggle="tooltip" title="Refresh">
+                                            <a href="javascript:void(0);" class="avatar-text avatar-xs bg-warning" data-bs-toggle="refresh"> </a>
+                                        </div>
+                                        <div data-bs-toggle="tooltip" title="Maximize/Minimize">
+                                            <a href="javascript:void(0);" class="avatar-text avatar-xs bg-success" data-bs-toggle="expand"> </a>
+                                        </div>
                                     </div>
                                 </div>
-                                <div id="total-sales-color-graph"></div>
                             </div>
                             <div class="card-body">
-                                <?php if (count($recent_students) > 0): ?>
-                                    <?php foreach (array_slice($recent_students, 0, 3) as $student): ?>
-                                    <div class="d-flex align-items-center justify-content-between mb-3">
-                                        <div class="hstack gap-3">
-                                            <div class="avatar-text avatar-lg bg-soft-primary text-primary">
-                                                <?php echo strtoupper(substr($student['first_name'], 0, 1) . substr($student['last_name'], 0, 1)); ?>
-                                            </div>
-                                            <div>
-                                                <a href="students-view.php?id=<?php echo $student['id']; ?>" class="d-block fw-semibold"><?php echo htmlspecialchars($student['first_name'] . ' ' . $student['last_name']); ?></a>
-                                                <span class="fs-12 text-muted"><?php echo htmlspecialchars($student['student_id']); ?></span>
-                                            </div>
-                                        </div>
-                                        <div class="text-end">
-                                            <?php if ($student['biometric_registered']): ?>
-                                            <span class="badge bg-soft-success text-success fs-10">Biometric ✓</span>
-                                            <?php else: ?>
-                                            <span class="badge bg-soft-warning text-warning fs-10">Pending Bio</span>
-                                            <?php endif; ?>
-                                        </div>
+                                <?php
+                                $qa_total_students = 0;
+                                $qa_total_internships = 0;
+                                $qa_attendance_today = 0;
+                                $qa_biometric_registered = 0;
+                                if (isset($conn)) {
+                                    function _safe_count_mov($conn, $table, $where = '1') {
+                                        $safe = 0;
+                                        $res = $conn->query("SHOW TABLES LIKE '" . $conn->real_escape_string($table) . "'");
+                                        if ($res && $res->num_rows > 0) {
+                                            $q = $conn->query("SELECT COUNT(*) AS cnt FROM `" . $conn->real_escape_string($table) . "` WHERE {$where}");
+                                            if ($q) {
+                                                $r = $q->fetch_assoc();
+                                                $safe = (int) ($r['cnt'] ?? 0);
+                                            }
+                                        }
+                                        return $safe;
+                                    }
+                                    $qa_total_students = _safe_count_mov($conn, 'students', '1');
+                                    $qa_total_internships = _safe_count_mov($conn, 'internships', '1');
+                                    $qa_attendance_today = 0;
+                                    $res = $conn->query("SHOW COLUMNS FROM `attendances` LIKE 'date'");
+                                    if ($res && $res->num_rows > 0) {
+                                        $qa_attendance_today = _safe_count_mov($conn, 'attendances', 'date = CURDATE()');
+                                    } else {
+                                        $res2 = $conn->query("SHOW COLUMNS FROM `attendances` LIKE 'log_time'");
+                                        if ($res2 && $res2->num_rows > 0) {
+                                            $qa_attendance_today = _safe_count_mov($conn, 'attendances', 'DATE(log_time) = CURDATE()');
+                                        }
+                                    }
+                                    $res3 = $conn->query("SHOW COLUMNS FROM `students` LIKE 'biometric_registered'");
+                                    if ($res3 && $res3->num_rows > 0) {
+                                        $qa_biometric_registered = _safe_count_mov($conn, 'students', 'biometric_registered = 1');
+                                    }
+                                }
+                                ?>
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <a href="students.php" class="btn btn-primary btn-lg w-100 d-flex align-items-center justify-content-center">
+                                            <i class="feather-users me-2"></i> Students
+                                            <span class="badge bg-white text-dark ms-3"><?php echo $qa_total_students; ?></span>
+                                        </a>
                                     </div>
-                                    <hr class="border-dashed my-3" />
-                                    <?php endforeach; ?>
-                                <?php else: ?>
-                                    <p class="text-muted text-center">No recent students found</p>
-                                <?php endif; ?>
+                                    <div class="col-6">
+                                        <a href="students-edit.php" class="btn btn-success btn-lg w-100 d-flex align-items-center justify-content-center">
+                                            <i class="feather-plus-circle me-2"></i> Add Student
+                                        </a>
+                                    </div>
+                                    <div class="col-6">
+                                        <a href="ojt.php" class="btn btn-info btn-lg w-100 d-flex align-items-center justify-content-center">
+                                            <i class="feather-briefcase me-2"></i> OJT List
+                                            <span class="badge bg-white text-dark ms-3"><?php echo $qa_total_internships; ?></span>
+                                        </a>
+                                    </div>
+                                    <div class="col-6">
+                                        <a href="attendance.php" class="btn btn-warning btn-lg w-100 d-flex align-items-center justify-content-center">
+                                            <i class="feather-calendar me-2"></i> Attendance Today
+                                            <span class="badge bg-white text-dark ms-3"><?php echo $qa_attendance_today; ?></span>
+                                        </a>
+                                    </div>
+                                    <div class="col-6">
+                                        <a href="demo-biometric.php" class="btn btn-secondary btn-lg w-100 d-flex align-items-center justify-content-center">
+                                            <i class="feather-activity me-2"></i> Biometric Demo
+                                            <span class="badge bg-white text-dark ms-3"><?php echo $qa_biometric_registered; ?></span>
+                                        </a>
+                                    </div>
+                                    <div class="col-6">
+                                        <a href="reports-timesheets.php" class="btn btn-dark btn-lg w-100 d-flex align-items-center justify-content-center">
+                                            <i class="feather-file-text me-2"></i> Reports
+                                        </a>
+                                    </div>
+                                </div>
                             </div>
-                            <a href="students.php" class="card-footer fs-11 fw-bold text-uppercase text-center py-4">View All Students</a>
+                            <a href="javascript:void(0);" class="card-footer fs-11 fw-bold text-uppercase text-center">Admin quick actions</a>
                         </div>
                     </div>
-                    <!-- [Total Sales] end !-->
+
+                    
                     <!-- [Mini] start -->
                     <div class="col-lg-4">
                         <div class="card mb-4 stretch stretch-full">
@@ -2602,121 +2540,7 @@ try {
                         </div>
                     </div>
                     <!-- [Mini] end !-->
-                    <!-- [OJT Overview] start -->
-                    <div class="col-xxl-4">
-                        <div class="card stretch stretch-full">
-                            <div class="card-header">
-                                <h5 class="card-title">OJT Overview</h5>
-                                <div class="card-header-action">
-                                    <div class="card-header-btn">
-                                        <div data-bs-toggle="tooltip" title="Delete">
-                                            <a href="javascript:void(0);" class="avatar-text avatar-xs bg-danger" data-bs-toggle="remove"> </a>
-                                        </div>
-                                        <div data-bs-toggle="tooltip" title="Refresh">
-                                            <a href="javascript:void(0);" class="avatar-text avatar-xs bg-warning" data-bs-toggle="refresh"> </a>
-                                        </div>
-                                        <div data-bs-toggle="tooltip" title="Maximize/Minimize">
-                                            <a href="javascript:void(0);" class="avatar-text avatar-xs bg-success" data-bs-toggle="expand"> </a>
-                                        </div>
-                                    </div>
-                                    <div class="dropdown">
-                                        <a href="javascript:void(0);" class="avatar-text avatar-sm" data-bs-toggle="dropdown" data-bs-offset="25, 25">
-                                            <div data-bs-toggle="tooltip" title="Options">
-                                                <i class="feather-more-vertical"></i>
-                                            </div>
-                                        </a>
-                                        <div class="dropdown-menu dropdown-menu-end">
-                                            <a href="javascript:void(0);" class="dropdown-item"><i class="feather-at-sign"></i>New</a>
-                                            <a href="javascript:void(0);" class="dropdown-item"><i class="feather-calendar"></i>Event</a>
-                                            <a href="javascript:void(0);" class="dropdown-item"><i class="feather-bell"></i>Snoozed</a>
-                                            <a href="javascript:void(0);" class="dropdown-item"><i class="feather-trash-2"></i>Deleted</a>
-                                            <div class="dropdown-divider"></div>
-                                            <a href="javascript:void(0);" class="dropdown-item"><i class="feather-settings"></i>Settings</a>
-                                            <a href="javascript:void(0);" class="dropdown-item"><i class="feather-life-buoy"></i>Tips & Tricks</a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="card-body custom-card-action">
-                                <div id="leads-overview-donut"></div>
-                                <div class="row g-2">
-                                    <div class="col-6">
-                                        <div class="p-2 hstack gap-2 rounded border border-dashed border-gray-5">
-                                            <div class="flex-grow-1">
-                                                <div class="fs-12 text-muted">Pending</div>
-                                                <h6 class="fw-bold text-dark"><?php echo isset($ojt_status_counts['pending']) ? intval($ojt_status_counts['pending']) : 0; ?></h6>
-                                            </div>
-                                            <div class="text-nowrap"><span class="badge bg-soft-warning text-warning">Status</span></div>
-                                        </div>
-                                    </div>
-                                    <div class="col-6">
-                                        <div class="p-2 hstack gap-2 rounded border border-dashed border-gray-5">
-                                            <div class="flex-grow-1">
-                                                <div class="fs-12 text-muted">Ongoing</div>
-                                                <h6 class="fw-bold text-dark"><?php echo isset($ojt_status_counts['ongoing']) ? intval($ojt_status_counts['ongoing']) : 0; ?></h6>
-                                            </div>
-                                            <div class="text-nowrap"><span class="badge bg-soft-info text-info">Status</span></div>
-                                        </div>
-                                    </div>
-                                    <div class="col-6">
-                                        <div class="p-2 hstack gap-2 rounded border border-dashed border-gray-5">
-                                            <div class="flex-grow-1">
-                                                <div class="fs-12 text-muted">Completed</div>
-                                                <h6 class="fw-bold text-dark"><?php echo isset($ojt_status_counts['completed']) ? intval($ojt_status_counts['completed']) : 0; ?></h6>
-                                            </div>
-                                            <div class="text-nowrap"><span class="badge bg-soft-success text-success">Status</span></div>
-                                        </div>
-                                    </div>
-                                    <div class="col-6">
-                                        <div class="p-2 hstack gap-2 rounded border border-dashed border-gray-5">
-                                            <div class="flex-grow-1">
-                                                <div class="fs-12 text-muted">Cancelled</div>
-                                                <h6 class="fw-bold text-dark"><?php echo isset($ojt_status_counts['cancelled']) ? intval($ojt_status_counts['cancelled']) : 0; ?></h6>
-                                            </div>
-                                            <div class="text-nowrap"><span class="badge bg-soft-danger text-danger">Status</span></div>
-                                        </div>
-                                    </div>
-                                    <div class="col-6">
-                                        <div class="p-2 hstack gap-2 rounded border border-dashed border-gray-5">
-                                            <div class="flex-grow-1">
-                                                <div class="fs-12 text-muted">Internal</div>
-                                                <h6 class="fw-bold text-dark"><?php echo isset($ojt_type_counts['internal']) ? intval($ojt_type_counts['internal']) : 0; ?></h6>
-                                            </div>
-                                            <div class="text-nowrap"><span class="badge bg-soft-primary text-primary">Type</span></div>
-                                        </div>
-                                    </div>
-                                    <div class="col-6">
-                                        <div class="p-2 hstack gap-2 rounded border border-dashed border-gray-5">
-                                            <div class="flex-grow-1">
-                                                <div class="fs-12 text-muted">External</div>
-                                                <h6 class="fw-bold text-dark"><?php echo isset($ojt_type_counts['external']) ? intval($ojt_type_counts['external']) : 0; ?></h6>
-                                            </div>
-                                            <div class="text-nowrap"><span class="badge bg-soft-secondary text-dark">Type</span></div>
-                                        </div>
-                                    </div>
-                                    <div class="col-6">
-                                        <div class="p-2 hstack gap-2 rounded border border-dashed border-gray-5">
-                                            <div class="flex-grow-1">
-                                                <div class="fs-12 text-muted">Total Internships</div>
-                                                <h6 class="fw-bold text-dark"><?php echo intval($internship_count); ?></h6>
-                                            </div>
-                                            <div class="text-nowrap"><span class="badge bg-dark text-white">Total</span></div>
-                                        </div>
-                                    </div>
-                                    <div class="col-6">
-                                        <div class="p-2 hstack gap-2 rounded border border-dashed border-gray-5">
-                                            <div class="flex-grow-1">
-                                                <div class="fs-12 text-muted">Avg Completion</div>
-                                                <h6 class="fw-bold text-dark"><?php echo htmlspecialchars($avg_completion_percentage); ?>%</h6>
-                                            </div>
-                                            <div class="text-nowrap"><span class="badge bg-soft-info text-info">Metric</span></div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- [OJT Overview] end -->
+                    
                     <!-- [Latest Attendance Records] start -->
                     <div class="col-xxl-8">
                         <div class="card stretch stretch-full">
@@ -3025,104 +2849,7 @@ try {
                         </div>
                     </div>
                     <!--! END: [Project Status] !-->
-                    <!--! BEGIN: [Admin Quick Actions] !-->
-                    <?php // Admin Quick Actions: always visible for this deployment ?>
-                    <div class="col-xxl-6">
-                        <div class="card stretch stretch-full">
-                            <div class="card-header">
-                                <h5 class="card-title">Admin Quick Actions</h5>
-                                <div class="card-header-action">
-                                    <div class="card-header-btn">
-                                        <div data-bs-toggle="tooltip" title="Refresh">
-                                            <a href="javascript:void(0);" class="avatar-text avatar-xs bg-warning" data-bs-toggle="refresh"> </a>
-                                        </div>
-                                        <div data-bs-toggle="tooltip" title="Maximize/Minimize">
-                                            <a href="javascript:void(0);" class="avatar-text avatar-xs bg-success" data-bs-toggle="expand"> </a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="card-body">
-                                <?php
-                                $qa_total_students = 0;
-                                $qa_total_internships = 0;
-                                $qa_attendance_today = 0;
-                                $qa_biometric_registered = 0;
-                                if (isset($conn)) {
-                                    function _safe_count($conn, $table, $where = '1') {
-                                        $safe = 0;
-                                        $res = $conn->query("SHOW TABLES LIKE '" . $conn->real_escape_string($table) . "'");
-                                        if ($res && $res->num_rows > 0) {
-                                            $q = $conn->query("SELECT COUNT(*) AS cnt FROM `" . $conn->real_escape_string($table) . "` WHERE {$where}");
-                                            if ($q) {
-                                                $r = $q->fetch_assoc();
-                                                $safe = (int)
-                                                ($r['cnt'] ?? 0);
-                                            }
-                                        }
-                                        return $safe;
-                                    }
-                                    $qa_total_students = _safe_count($conn, 'students', '1');
-                                    $qa_total_internships = _safe_count($conn, 'internships', '1');
-                                    // try common attendance date columns safely
-                                    $qa_attendance_today = 0;
-                                    $res = $conn->query("SHOW COLUMNS FROM `attendances` LIKE 'date'");
-                                    if ($res && $res->num_rows > 0) {
-                                        $qa_attendance_today = _safe_count($conn, 'attendances', 'date = CURDATE()');
-                                    } else {
-                                        $res2 = $conn->query("SHOW COLUMNS FROM `attendances` LIKE 'log_time'");
-                                        if ($res2 && $res2->num_rows > 0) {
-                                            $qa_attendance_today = _safe_count($conn, 'attendances', 'DATE(log_time) = CURDATE()');
-                                        }
-                                    }
-                                    $res3 = $conn->query("SHOW COLUMNS FROM `students` LIKE 'biometric_registered'");
-                                    if ($res3 && $res3->num_rows > 0) {
-                                        $qa_biometric_registered = _safe_count($conn, 'students', 'biometric_registered = 1');
-                                    }
-                                }
-                                ?>
-                                <div class="row g-2">
-                                    <div class="col-6">
-                                        <a href="students.php" class="btn btn-primary btn-lg w-100 d-flex align-items-center justify-content-center">
-                                            <i class="feather-users me-2"></i> Students
-                                            <span class="badge bg-white text-dark ms-3"><?php echo $qa_total_students; ?></span>
-                                        </a>
-                                    </div>
-                                    <div class="col-6">
-                                        <a href="students-edit.php" class="btn btn-success btn-lg w-100 d-flex align-items-center justify-content-center">
-                                            <i class="feather-plus-circle me-2"></i> Add Student
-                                        </a>
-                                    </div>
-                                    <div class="col-6">
-                                        <a href="ojt.php" class="btn btn-info btn-lg w-100 d-flex align-items-center justify-content-center">
-                                            <i class="feather-briefcase me-2"></i> OJT List
-                                            <span class="badge bg-white text-dark ms-3"><?php echo $qa_total_internships; ?></span>
-                                        </a>
-                                    </div>
-                                    <div class="col-6">
-                                        <a href="attendance.php" class="btn btn-warning btn-lg w-100 d-flex align-items-center justify-content-center">
-                                            <i class="feather-calendar me-2"></i> Attendance Today
-                                            <span class="badge bg-white text-dark ms-3"><?php echo $qa_attendance_today; ?></span>
-                                        </a>
-                                    </div>
-                                    <div class="col-6">
-                                        <a href="demo-biometric.php" class="btn btn-secondary btn-lg w-100 d-flex align-items-center justify-content-center">
-                                            <i class="feather-activity me-2"></i> Biometric Demo
-                                            <span class="badge bg-white text-dark ms-3"><?php echo $qa_biometric_registered; ?></span>
-                                        </a>
-                                    </div>
-                                    <div class="col-6">
-                                        <a href="reports-timesheets.php" class="btn btn-dark btn-lg w-100 d-flex align-items-center justify-content-center">
-                                            <i class="feather-file-text me-2"></i> Reports
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-                            <a href="javascript:void(0);" class="card-footer fs-11 fw-bold text-uppercase text-center">Admin quick actions</a>
-                        </div>
-                    </div>
                     
-                    <!--! END: [Admin Quick Actions] !-->
                     <!--! BEGIN: [Coordinators List] !-->
                     <div class="col-xxl-4">
                         <div class="card stretch stretch-full">
@@ -3419,6 +3146,29 @@ try {
     <script src="assets/js/common-init.min.js"></script>
     <script src="assets/js/dashboard-init.min.js"></script>
     <!--! END: Apps Init !-->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                if (typeof ApexCharts === 'undefined') return;
+                var seriesData = [<?php echo isset($ojt_status_counts['pending']) ? intval($ojt_status_counts['pending']) : 0; ?>, <?php echo isset($ojt_status_counts['ongoing']) ? intval($ojt_status_counts['ongoing']) : 0; ?>, <?php echo isset($ojt_status_counts['completed']) ? intval($ojt_status_counts['completed']) : 0; ?>, <?php echo isset($ojt_status_counts['cancelled']) ? intval($ojt_status_counts['cancelled']) : 0; ?>];
+                var opts = {
+                    chart: { type: 'donut', height: 260 },
+                    series: seriesData,
+                    labels: ['Pending','Ongoing','Completed','Cancelled'],
+                    colors: ['#f6c23e', '#36b9cc', '#1cc88a', '#e74a3b'],
+                    legend: { position: 'bottom' },
+                    responsive: [{ breakpoint: 768, options: { chart: { height: 200 }, legend: { position: 'bottom' } } }]
+                };
+                var el = document.querySelector('#ojt-overview-pie');
+                if (el) {
+                    var chart = new ApexCharts(el, opts);
+                    chart.render();
+                }
+            } catch (e) {
+                console.error('OJT chart init error', e);
+            }
+        });
+    </script>
     <!--! BEGIN: Theme Customizer  !-->
     <script src="assets/js/theme-customizer-init.min.js"></script>
     <!--! END: Theme Customizer !-->
