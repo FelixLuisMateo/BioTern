@@ -160,9 +160,8 @@
                             <li class="nxl-item"><a class="nxl-link" href="apps-calendar.php">Calendar</a></li>
                         </ul>
                     </li>
-                    
-                    
-                    <li class="nxl-item nxl-hasmenu">
+
+                     <li class="nxl-item nxl-hasmenu">
                         <a href="javascript:void(0);" class="nxl-link">
                             <span class="nxl-micon"><i class="feather-users"></i></span>
                             <span class="nxl-mtext">Students</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
@@ -171,8 +170,50 @@
                             <li class="nxl-item"><a class="nxl-link" href="students.php">Students</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="students-view.php">Students View</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="students-create.php">Students Create</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="students-edit.php">Students Edit</a></li>
+                            <li class="nxl-divider"></li>
+                            <li class="nxl-item"><a class="nxl-link" href="attendance.php">Attendance DTR</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="demo-biometric.php">Demo Biometric</a></li>
                         </ul>
                     </li>
+                    
+                    <li class="nxl-item nxl-hasmenu">
+                        <a href="javascript:void(0);" class="nxl-link">
+                            <span class="nxl-micon"><i class="feather-book-open"></i></span>
+                            <span class="nxl-mtext">Courses</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                        </a>
+                        <ul class="nxl-submenu">
+                            <li class="nxl-item"><a class="nxl-link" href="courses.php">Courses</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="courses-create.php">Courses Create</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="courses-edit.php">Courses Edit</a></li>
+                            </ul>
+                            </li>
+                    
+                    <li class="nxl-item nxl-hasmenu">
+                        <a href="javascript:void(0);" class="nxl-link">
+                            <span class="nxl-micon"><i class="feather-briefcase"></i></span>
+                            <span class="nxl-mtext">Departments</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                        </a>
+                        <ul class="nxl-submenu">
+                            <li class="nxl-item"><a class="nxl-link" href="departments.php">Departments</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="departments-create.php">Departments Create</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="departments-edit.php">Departments Edit</a></li>
+                        </ul>
+                    </li>
+
+                    <li class="nxl-item nxl-hasmenu">
+                        <a href="javascript:void(0);" class="nxl-link">
+                            <span class="nxl-micon"><i class="feather-file-text"></i></span>
+                            <span class="nxl-mtext">Documents</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                        </a>
+                        <ul class="nxl-submenu">
+                            <li class="nxl-item"><a class="nxl-link" href="document_application.php">Application Letter</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="document_endorsement.php">Endorsement Letter</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="document_moa.php">MOA</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="generate_resume.php">Resume</a></li>
+                        </ul>
+                    </li>
+                    
                     <li class="nxl-item nxl-hasmenu">
                         <a href="javascript:void(0);" class="nxl-link">
                             <span class="nxl-micon"><i class="feather-alert-circle"></i></span>
@@ -209,7 +250,7 @@
                             <li class="nxl-item"><a class="nxl-link" href="settings-tags.php">Tags</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="settings-email.php">Email</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="settings-tasks.php">Tasks</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-ojt.php">OJT</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="settings-ojt.php">Leads</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="settings-support.php">Support</a></li>
                             
                             

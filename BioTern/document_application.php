@@ -194,9 +194,7 @@ if (isset($_GET['action'])) {
         }
 
         main.nxl-container { padding-top: 64px; }
-        .nxl-header { position: fixed !important; top: 0; left: 0; right: 0; z-index: 2147483647 !important; }
         .nxl-navigation { z-index: 2147483646; }
-        footer.footer { margin-top: auto; }
         #btn_generate.is-disabled { opacity: .65; }
         .card .btn { position: relative; z-index: 2; }
         .file-edit-active #letter_content {
@@ -212,7 +210,6 @@ if (isset($_GET['action'])) {
         @media (max-width: 1024px) {
             .nxl-navigation,
             .nxl-navigation.mob-navigation-active { z-index: 2147483646 !important; }
-            .nxl-header { z-index: 2147483647 !important; }
             .nxl-container { position: relative; z-index: 1; }
             .doc-preview { z-index: 1 !important; }
             .select2-container--open,

@@ -422,8 +422,6 @@ function formatDate($date) {
 </head>
 
 <body>
-<<<<<<< HEAD
-=======
     <!--! Navigation !-->
     <nav class="nxl-navigation">
         <div class="navbar-wrapper">
@@ -652,7 +650,6 @@ function formatDate($date) {
             </div>
         </div>
     </header>
->>>>>>> 06b347e236f39baf29f57621d4ba8842ad7c269f
 
     <!--! Main Content !-->
     <main class="nxl-container">
@@ -1006,7 +1003,22 @@ function formatDate($date) {
                 </div>
             </div>
         </div>
-
+        <!-- [ Footer ] start -->
+        <footer class="footer">
+            <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
+                <span>Copyright ©</span>
+                <script>
+                    document.write(new Date().getFullYear());
+                </script>
+            </p>
+            <p><span>By: <a target="_blank" href="" target="_blank">ACT 2A</a></span> <span>Distributed by: <a target="_blank" href="" target="_blank">Group 5</a></span></p>
+            <div class="d-flex align-items-center gap-4">
+                <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Help</a>
+                <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Terms</a>
+                <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Privacy</a>
+            </div>
+        </footer>
+        <!-- [ Footer ] end -->
     </main>
 
     <!-- Scripts -->
@@ -1032,7 +1044,5 @@ function formatDate($date) {
             });
         });
     </script>
-<?php include 'template.php'; ?>
 </body>
-
 </html>

@@ -260,7 +260,8 @@ if (isset($_GET['action'])) {
             </div>
         </div>
     </div>
-    </div>
+</div>
+    
 </main>
 
 <script src="assets/vendors/js/vendors.min.js"></script>
