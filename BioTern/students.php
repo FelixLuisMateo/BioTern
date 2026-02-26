@@ -876,8 +876,4 @@ function formatDate($date) {
 
     </main>
 
-    <!-- Scripts are included by template.php to avoid duplicate initialization -->
-<?php include 'template.php'; ?>
-</body>
-
-</html>
+<?php include 'includes/footer.php'; ?>

@@ -111,7 +111,8 @@ if ($listResult) {
     }
 }
 
-ob_start();
+$page_title = 'Create Course';
+include 'includes/header.php';
 ?>
 <div class="page-header">
     <div class="page-header-left d-flex align-items-center">
@@ -206,7 +207,6 @@ ob_start();
     </div>
 </div>
 <?php
-$template_page_content = ob_get_clean();
-include 'template.php';
+include 'includes/footer.php';
 $conn->close();
 ?>

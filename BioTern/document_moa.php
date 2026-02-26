@@ -716,6 +716,7 @@ if (isset($_GET['action'])) {
 
         })();
     </script>
-    <?php include 'template.php'; ?>
+    <?php include 'includes/header.php';?>
+    <?php include 'includes/footer.php'; ?>
 </body>
 </html>

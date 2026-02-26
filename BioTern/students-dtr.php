@@ -291,7 +291,8 @@ function status_badge($status) {
     </main>
     <script src="assets/vendors/js/vendors.min.js"></script>
     <script src="assets/js/common-init.min.js"></script>
-    <?php include 'template.php'; ?>
+    <?php include 'includes/header.php';?>
+    <?php include 'includes/footer.php'; ?>
 </body>
 </html>
 <?php $conn->close(); ?>
