@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // Database Connection
 $host = 'localhost';
 $db_user = 'root';
@@ -369,15 +369,15 @@ function getAttendanceStatus($morning_time_in) {
         html.app-skin-dark .select2-container--default .select2-selection--single,
         html.app-skin-dark .select2-container--default .select2-selection--multiple {
             color: #f0f0f0 !important;
-            background-color: #2d3748 !important;
+            background-color: #0f172a !important;
             border-color: #4a5568 !important;
         }
         
         html.app-skin-dark .select2-container--default.select2-container--focus .select2-selection--single,
         html.app-skin-dark .select2-container--default.select2-container--focus .select2-selection--multiple {
             color: #f0f0f0 !important;
-            background-color: #2d3748 !important;
-            border-color: #667eea !important;
+            background-color: #0f172a !important;
+            border-color: #4a5568 !important;
         }
         
         html.app-skin-dark .select2-container--default .select2-selection--single .select2-selection__rendered {
@@ -390,17 +390,17 @@ function getAttendanceStatus($morning_time_in) {
         
         /* Dark mode dropdown menu */
         html.app-skin-dark .select2-container--default.select2-container--open .select2-dropdown {
-            background-color: #2d3748 !important;
+            background-color: #0f172a !important;
             border-color: #4a5568 !important;
         }
         
         html.app-skin-dark .select2-results {
-            background-color: #2d3748 !important;
+            background-color: #0f172a !important;
         }
         
         html.app-skin-dark .select2-results__option {
             color: #f0f0f0 !important;
-            background-color: #2d3748 !important;
+            background-color: #0f172a !important;
         }
         
         html.app-skin-dark .select2-results__option--highlighted[aria-selected] {
@@ -409,13 +409,13 @@ function getAttendanceStatus($morning_time_in) {
         }
         
         html.app-skin-dark .select2-container--default {
-            background-color: #2d3748 !important;
+            background-color: #0f172a !important;
         }
         
         html.app-skin-dark select.form-control,
         html.app-skin-dark select.form-select {
             color: #f0f0f0 !important;
-            background-color: #2d3748 !important;
+            background-color: #0f172a !important;
             border-color: #4a5568 !important;
         }
         
@@ -1016,7 +1016,7 @@ function getAttendanceStatus($morning_time_in) {
                     document.write(new Date().getFullYear());
                 </script>
             </p>
-            <p><span>By: <a target="_blank" href="" target="_blank">ACT 2A</a> </span><span>Distributed by: <a target="_blank" href="" target="_blank">Group 5</a></span></p>
+            <p class="footer-meta fs-12 mb-0"><span>By: <a href="javascript:void(0);">ACT 2A</a></span> <span>Distributed by: <a href="javascript:void(0);">Group 5</a></span></p>
             <div class="d-flex align-items-center gap-4">
                 <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Help</a>
                 <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Terms</a>
@@ -1135,9 +1135,13 @@ function getAttendanceStatus($morning_time_in) {
         $(document).ready(function() {
             initAttendanceDataTable();
 
-            // Initialize Select2
             // Initialize Select2 for filter selects
-            $('select[name="course_id"], select[name="department_id"], select[name="supervisor"], select[name="coordinator"]').select2({
+            $('select[name="course_id"], select[name="department_id"]').select2({
+                width: 'resolve',
+                theme: 'bootstrap-5',
+                minimumResultsForSearch: Infinity
+            });
+            $('select[name="supervisor"], select[name="coordinator"]').select2({
                 width: 'resolve',
                 theme: 'bootstrap-5'
             });

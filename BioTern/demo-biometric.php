@@ -913,188 +913,7 @@ foreach ($today_records as $tr) {
 </head>
 
 <body>
-    <!--! ================================================================ !-->
-    <!--! [Start] Navigation Manu !-->
-    <!--! ================================================================ !-->
-    <nav class="nxl-navigation">
-        <div class="navbar-wrapper">
-            <div class="m-header">
-                <a href="index.php" class="b-brand">
-                    <!-- ========   change your logo hear   ============ -->
-                    <img src="assets/images/logo-full.png" alt="" class="logo logo-lg" />
-                    <img src="assets/images/logo-abbr.png" alt="" class="logo logo-sm" />
-                </a>
-            </div>
-            <div class="navbar-content">
-                <ul class="nxl-navbar">
-                    <li class="nxl-item nxl-caption">
-                        <label>Navigation</label>
-                    </li>
-                    <li class="nxl-item nxl-hasmenu">
-                        <a href="javascript:void(0);" class="nxl-link">
-                            <span class="nxl-micon"><i class="feather-airplay"></i></span>
-                            <span class="nxl-mtext">Dashboards</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                        </a>
-                        <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="index.php">Overview</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="analytics.php">Analytics</a></li>
-                        </ul>
-                    </li>
-                    <li class="nxl-item nxl-hasmenu">
-                        <a href="javascript:void(0);" class="nxl-link">
-                            <span class="nxl-micon"><i class="feather-cast"></i></span>
-                            <span class="nxl-mtext">Reports</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                        </a>
-                        <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="reports-sales.php">Sales Report</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="reports-ojt.php">OJT Report</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="reports-project.php">Project Report</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="reports-timesheets.php">Timesheets Report</a></li>
-                        </ul>
-                    </li>
-                    <li class="nxl-item nxl-hasmenu">
-                        <a href="javascript:void(0);" class="nxl-link">
-                            <span class="nxl-micon"><i class="feather-send"></i></span>
-                            <span class="nxl-mtext">Applications</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                        </a>
-                        <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="apps-chat.php">Chat</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="apps-email.php">Email</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="apps-tasks.php">Tasks</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="apps-notes.php">Notes</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="apps-storage.php">Storage</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="apps-calendar.php">Calendar</a></li>
-                        </ul>
-                    </li>
-                    <li class="nxl-item nxl-hasmenu">
-                        <a href="javascript:void(0);" class="nxl-link">
-                            <span class="nxl-micon"><i class="feather-users"></i></span>
-                            <span class="nxl-mtext">Students</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                        </a>
-                        <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="students.php">Students List</a></li>
-                            <li class="nxl-divider"></li>
-                            <li class="nxl-item"><a class="nxl-link" href="attendance.php"><i class="feather-calendar me-2"></i>Attendance Records</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="demo-biometric.php"><i class="feather-activity me-2"></i>Biometric Demo</a></li>
-                        </ul>
-                    </li>
-                    <li class="nxl-item nxl-hasmenu">
-                        <a href="javascript:void(0);" class="nxl-link">
-                            <span class="nxl-micon"><i class="feather-alert-circle"></i></span>
-                            <span class="nxl-mtext">Assign OJT Designation</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                        </a>
-                        <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="ojt.php">OJT List</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="ojt-view.php">OJT View</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="ojt-create.php">OJT Create</a></li>
-                        </ul>
-                    </li>
-                    <li class="nxl-item nxl-hasmenu">
-                        <a href="javascript:void(0);" class="nxl-link">
-                            <span class="nxl-micon"><i class="feather-layout"></i></span>
-                            <span class="nxl-mtext">Widgets</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                        </a>
-                        <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="widgets-lists.php">Lists</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="widgets-tables.php">Tables</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="widgets-charts.php">Charts</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="widgets-statistics.php">Statistics</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="widgets-miscellaneous.php">Miscellaneous</a></li>
-                        </ul>
-                    </li>
-                    <li class="nxl-item nxl-hasmenu">
-                        <a href="javascript:void(0);" class="nxl-link">
-                            <span class="nxl-micon"><i class="feather-settings"></i></span>
-                            <span class="nxl-mtext">Settings</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                        </a>
-                        <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="settings-general.php">General</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-seo.php">SEO</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-tags.php">Tags</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-email.php">Email</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-tasks.php">Tasks</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-ojt.php">Leads</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-support.php">Support</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-students.php">Students</a></li>
-
-
-                            <li class="nxl-item"><a class="nxl-link" href="settings-miscellaneous.php">Miscellaneous</a></li>
-                        </ul>
-                    </li>
-                    <li class="nxl-item nxl-hasmenu">
-                        <a href="javascript:void(0);" class="nxl-link">
-                            <span class="nxl-micon"><i class="feather-power"></i></span>
-                            <span class="nxl-mtext">Authentication</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                        </a>
-                        <ul class="nxl-submenu">
-                            <li class="nxl-item nxl-hasmenu">
-                                <a href="javascript:void(0);" class="nxl-link">
-                                    <span class="nxl-mtext">Login</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                                </a>
-                                <ul class="nxl-submenu">
-                                    <li class="nxl-item"><a class="nxl-link" href="auth-login-cover.php">Cover</a></li>
-                                </ul>
-                            </li>
-                            <li class="nxl-item nxl-hasmenu">
-                                <a href="javascript:void(0);" class="nxl-link">
-                                    <span class="nxl-mtext">Register</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                                </a>
-                                <ul class="nxl-submenu">
-                                    <li class="nxl-item"><a class="nxl-link" href="auth-register-creative.php">Creative</a></li>
-                                </ul>
-                            </li>
-                            <li class="nxl-item nxl-hasmenu">
-                                <a href="javascript:void(0);" class="nxl-link">
-                                    <span class="nxl-mtext">Error-404</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                                </a>
-                                <ul class="nxl-submenu">
-                                    <li class="nxl-item"><a class="nxl-link" href="auth-404-minimal.php">Minimal</a></li>
-                                </ul>
-                            </li>
-                            <li class="nxl-item nxl-hasmenu">
-                                <a href="javascript:void(0);" class="nxl-link">
-                                    <span class="nxl-mtext">Reset Pass</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                                </a>
-                                <ul class="nxl-submenu">
-                                    <li class="nxl-item"><a class="nxl-link" href="auth-reset-cover.php">Cover</a></li>
-                                </ul>
-                            </li>
-                            <li class="nxl-item nxl-hasmenu">
-                                <a href="javascript:void(0);" class="nxl-link">
-                                    <span class="nxl-mtext">Verify OTP</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                                </a>
-                                <ul class="nxl-submenu">
-                                    <li class="nxl-item"><a class="nxl-link" href="auth-verify-cover.php">Cover</a></li>
-                                </ul>
-                            </li>
-                            <li class="nxl-item nxl-hasmenu">
-                                <a href="javascript:void(0);" class="nxl-link">
-                                    <span class="nxl-mtext">Maintenance</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                                </a>
-                                <ul class="nxl-submenu">
-                                    <li class="nxl-item"><a class="nxl-link" href="auth-maintenance-cover.php">Cover</a></li>
-                                </ul>
-                            </li>
-                        </ul>
-                    </li>
-                    <li class="nxl-item nxl-hasmenu">
-                        <a href="javascript:void(0);" class="nxl-link">
-                            <span class="nxl-micon"><i class="feather-life-buoy"></i></span>
-                            <span class="nxl-mtext">Help Center</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                        </a>
-                        <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="#!">Support</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="help-knowledgebase.php">KnowledgeBase</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="/docs/documentations">Documentations</a></li>
-                        </ul>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
-    <!--! ================================================================ !-->
-    <!--! [End]  Navigation Manu !-->
-    <!--! ================================================================ !-->
+    <?php include_once 'includes/navigation.php'; ?>
     <!--! ================================================================ !-->
     <!--! [Start] Header !-->
     <!--! ================================================================ !-->
@@ -1136,7 +955,7 @@ foreach ($today_records as $tr) {
                                 <span class="input-group-text">
                                     <i class="feather-search fs-6 text-muted"></i>
                                 </span>
-                                <input type="text" class="form-control search-input-field" placeholder="Search...." />
+                                <input type="text" id="headerSearchInput" name="header_search" class="form-control search-input-field" placeholder="Search...." />
                                 <span class="input-group-text">
                                     <button type="button" class="btn-close"></button>
                                 </span>
@@ -1583,7 +1402,7 @@ foreach ($today_records as $tr) {
 
                             <!-- Clock Type Selection -->
                             <div class="form-group-custom">
-                                <label for="clock_type">
+                                <label>
                                     <i class="feather-target"></i> Clock Type
                                 </label>
                                 <div class="clock-type-grid">
@@ -1724,10 +1543,6 @@ foreach ($today_records as $tr) {
             <p><span>By: <a target="_blank" href="">ACT 2A</a></span> • <span>Distributed by: <a target="_blank" href="">Group 5</a></span></p>
         </footer>
     </main>
-
-    <!-- Scripts -->
-    <script src="assets/vendors/js/vendors.min.js"></script>
-    <script src="assets/js/common-init.min.js"></script>
 
     <script>
         // Update current time every second
