@@ -423,7 +423,6 @@ function formatDate($date) {
 
 <body>
     <?php include_once 'includes/navigation.php'; ?>
->>>>>>> 942cc77c4bd731ff3e54c533b5c6ae2fe3b9b4fb
 
     <!--! Header !-->
     <header class="nxl-header">
@@ -891,7 +890,6 @@ function formatDate($date) {
         <!-- [ Footer ] end -->
     </main>
 
-<<<<<<< HEAD
     <!-- Scripts -->
     <script src="assets/vendors/js/vendors.min.js"></script>
     <script src="assets/vendors/js/dataTables.min.js"></script>
@@ -915,9 +913,5 @@ function formatDate($date) {
             });
         });
     </script>
-=======
-    <!-- Scripts are included by template.php to avoid duplicate initialization -->
-<?php include 'template.php'; ?>
->>>>>>> 942cc77c4bd731ff3e54c533b5c6ae2fe3b9b4fb
 </body>
 </html>
