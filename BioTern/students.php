@@ -418,6 +418,52 @@ function formatDate($date) {
             color: #f0f0f0 !important;
             border-color: #4a5568 !important;
         }
+
+        /* Keep filter/select controls below sidebar when mobile nav is open */
+        @media (max-width: 1024px) {
+            .nxl-navigation,
+            .nxl-navigation.mob-navigation-active {
+                z-index: 4000 !important;
+            }
+
+            .select2-container,
+            .select2-container--open,
+            .select2-dropdown,
+            .filter-form,
+            .nxl-content .row.mb-3 {
+                z-index: 1 !important;
+                position: relative;
+            }
+        }
+
+        /* Footer layout fix */
+        .footer {
+            flex-wrap: wrap;
+            row-gap: 0.5rem;
+            column-gap: 1rem;
+        }
+
+        .footer .footer-meta {
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            flex-wrap: wrap;
+        }
+
+        .footer .footer-links {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        @media (max-width: 575.98px) {
+            .footer {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
     </style>
 </head>
 
@@ -612,9 +658,9 @@ function formatDate($date) {
             </div>
 
             <!-- Filters -->
-            <div class="row mb-1 px-3">
+            <div class="row mb-3 px-3">
                 <div class="col-12">
-                    <form method="GET" class="row g-2 align-items-end filter-form">
+                    <form method="GET" class="row g-2 align-items-end">
                         <div class="col-sm-2">
                             <label class="form-label" for="filter-date">Date</label>
                             <input id="filter-date" type="date" name="date" class="form-control" value="<?php echo htmlspecialchars($_GET['date'] ?? ''); ?>">
@@ -657,9 +703,9 @@ function formatDate($date) {
                         </div>
                         <div class="col-sm-2">
                             <label class="form-label d-block invisible">Actions</label>
-                            <div class="filter-actions">
-                                <button type="submit" class="btn btn-primary">Filter</button>
-                                <a href="students.php" class="btn btn-outline-secondary">Reset</a>
+                            <div class="d-flex gap-1" style="align-items: flex-end;">
+                                <button type="submit" class="btn btn-primary btn-sm px-3 py-1" style="font-size: 0.85rem;">Filter</button>
+                                <a href="students.php" class="btn btn-outline-secondary btn-sm px-3 py-1" style="font-size: 0.85rem;">Reset</a>
                             </div>
                         </div>
                     </form>
@@ -880,8 +926,11 @@ function formatDate($date) {
                     document.write(new Date().getFullYear());
                 </script>
             </p>
-            <p><span>By: <a target="_blank" href="" target="_blank">ACT 2A</a></span> <span>Distributed by: <a target="_blank" href="" target="_blank">Group 5</a></span></p>
-            <div class="d-flex align-items-center gap-4">
+            <p class="footer-meta fs-12 mb-0">
+                <span>By: <a href="javascript:void(0);">ACT 2A</a></span>
+                <span>Distributed by: <a href="javascript:void(0);">Group 5</a></span>
+            </p>
+            <div class="footer-links">
                 <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Help</a>
                 <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Terms</a>
                 <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Privacy</a>
