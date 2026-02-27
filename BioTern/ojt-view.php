@@ -40,6 +40,40 @@ $moa_data = [
     'acknowledgement_date' => '',
     'acknowledgement_address' => ''
 ];
+$endorsement_data = [
+    'recipient_name' => '',
+    'recipient_position' => '',
+    'company_name' => '',
+    'company_address' => '',
+    'students_to_endorse' => ''
+];
+$dau_moa_data = [
+    'company_name' => '',
+    'company_address' => '',
+    'partner_representative' => '',
+    'position' => '',
+    'company_receipt' => '',
+    'total_hours' => '',
+    'school_representative' => '',
+    'school_position' => '',
+    'signed_at' => '',
+    'signed_day' => '',
+    'signed_month' => '',
+    'signed_year' => '',
+    'witness_partner' => '',
+    'school_administrator' => '',
+    'school_admin_position' => '',
+    'notary_city' => '',
+    'notary_day' => '',
+    'notary_month' => '',
+    'notary_year' => '',
+    'notary_place' => '',
+    'doc_no' => '',
+    'page_no' => '',
+    'book_no' => '',
+    'series_no' => ''
+];
+$active_tab = 'profileTab';
 
 function display_text($value, $fallback = '-')
 {
@@ -110,6 +144,51 @@ try {
         PRIMARY KEY (id),
         UNIQUE KEY user_id (user_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
+    $conn->query("CREATE TABLE IF NOT EXISTS endorsement_letter (
+        id INT(11) NOT NULL AUTO_INCREMENT,
+        user_id INT(11) NOT NULL,
+        recipient_name VARCHAR(255) DEFAULT NULL,
+        recipient_position VARCHAR(255) DEFAULT NULL,
+        company_name VARCHAR(255) DEFAULT NULL,
+        company_address VARCHAR(255) DEFAULT NULL,
+        students_to_endorse TEXT DEFAULT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY user_id (user_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
+    $conn->query("CREATE TABLE IF NOT EXISTS dau_moa (
+        id INT(11) NOT NULL AUTO_INCREMENT,
+        user_id INT(11) NOT NULL,
+        company_name VARCHAR(255) DEFAULT NULL,
+        company_address VARCHAR(255) DEFAULT NULL,
+        partner_representative VARCHAR(255) DEFAULT NULL,
+        position VARCHAR(255) DEFAULT NULL,
+        company_receipt VARCHAR(255) DEFAULT NULL,
+        total_hours VARCHAR(50) DEFAULT NULL,
+        school_representative VARCHAR(255) DEFAULT NULL,
+        school_position VARCHAR(255) DEFAULT NULL,
+        signed_at VARCHAR(255) DEFAULT NULL,
+        signed_day VARCHAR(20) DEFAULT NULL,
+        signed_month VARCHAR(30) DEFAULT NULL,
+        signed_year VARCHAR(10) DEFAULT NULL,
+        witness_partner VARCHAR(255) DEFAULT NULL,
+        school_administrator VARCHAR(255) DEFAULT NULL,
+        school_admin_position VARCHAR(255) DEFAULT NULL,
+        notary_city VARCHAR(255) DEFAULT NULL,
+        notary_day VARCHAR(20) DEFAULT NULL,
+        notary_month VARCHAR(30) DEFAULT NULL,
+        notary_year VARCHAR(10) DEFAULT NULL,
+        notary_place VARCHAR(255) DEFAULT NULL,
+        doc_no VARCHAR(100) DEFAULT NULL,
+        page_no VARCHAR(100) DEFAULT NULL,
+        book_no VARCHAR(100) DEFAULT NULL,
+        series_no VARCHAR(100) DEFAULT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY user_id (user_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
     // Ensure acknowledgement_date is DATE even if previously created as VARCHAR.
     $ack_col = $conn->query("SHOW COLUMNS FROM moa LIKE 'acknowledgement_date'");
     if ($ack_col && $ack_col->num_rows > 0) {
@@ -160,6 +239,7 @@ try {
     }
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_application_letter'])) {
+        $active_tab = trim((string)($_POST['active_tab'] ?? 'applicationTab'));
         $posted_user_id = isset($_POST['user_id']) ? intval($_POST['user_id']) : 0;
         if ($posted_user_id > 0) {
             // Keep compatible with schemas where `application_letter.date` is NOT NULL.
@@ -190,6 +270,7 @@ try {
     }
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_moa'])) {
+        $active_tab = trim((string)($_POST['active_tab'] ?? 'moaTab'));
         $posted_user_id = isset($_POST['user_id']) ? intval($_POST['user_id']) : 0;
         if ($posted_user_id > 0) {
             $company_name = trim($_POST['company_name'] ?? '');
@@ -266,6 +347,122 @@ try {
                 $flash_type = 'success';
             } else {
                 $flash_message = 'Failed to save MOA data.';
+                $flash_type = 'danger';
+            }
+            $view_user_id = $posted_user_id;
+        }
+    }
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_endorsement_letter'])) {
+        $active_tab = trim((string)($_POST['active_tab'] ?? 'endorsementTab'));
+        $posted_user_id = isset($_POST['user_id']) ? intval($_POST['user_id']) : 0;
+        if ($posted_user_id > 0) {
+            $recipient_name = trim($_POST['recipient_name'] ?? '');
+            $recipient_position = trim($_POST['recipient_position'] ?? '');
+            $company_name = trim($_POST['company_name'] ?? '');
+            $company_address = trim($_POST['company_address'] ?? '');
+            $students_to_endorse = trim($_POST['students_to_endorse'] ?? '');
+
+            $stmt = $conn->prepare("INSERT INTO endorsement_letter (user_id, recipient_name, recipient_position, company_name, company_address, students_to_endorse)
+                VALUES (?, ?, ?, ?, ?, ?)
+                ON DUPLICATE KEY UPDATE
+                    recipient_name = VALUES(recipient_name),
+                    recipient_position = VALUES(recipient_position),
+                    company_name = VALUES(company_name),
+                    company_address = VALUES(company_address),
+                    students_to_endorse = VALUES(students_to_endorse),
+                    updated_at = NOW()");
+            $stmt->bind_param('isssss', $posted_user_id, $recipient_name, $recipient_position, $company_name, $company_address, $students_to_endorse);
+            if ($stmt->execute()) {
+                $flash_message = 'Endorsement autofill data saved.';
+                $flash_type = 'success';
+            } else {
+                $flash_message = 'Failed to save Endorsement data.';
+                $flash_type = 'danger';
+            }
+            $view_user_id = $posted_user_id;
+        }
+    }
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_dau_moa'])) {
+        $active_tab = trim((string)($_POST['active_tab'] ?? 'commentTab'));
+        $posted_user_id = isset($_POST['user_id']) ? intval($_POST['user_id']) : 0;
+        if ($posted_user_id > 0) {
+            $company_name = trim($_POST['company_name'] ?? '');
+            $company_address = trim($_POST['company_address'] ?? '');
+            $partner_representative = trim($_POST['partner_representative'] ?? '');
+            $position = trim($_POST['position'] ?? '');
+            $company_receipt = trim($_POST['company_receipt'] ?? '');
+            $total_hours = trim($_POST['total_hours'] ?? '');
+            $school_representative = trim($_POST['school_representative'] ?? '');
+            $school_position = trim($_POST['school_position'] ?? '');
+            $signed_at = trim($_POST['signed_at'] ?? '');
+            $signed_day = trim($_POST['signed_day'] ?? '');
+            $signed_month = trim($_POST['signed_month'] ?? '');
+            $signed_year = trim($_POST['signed_year'] ?? '');
+            $witness_partner = trim($_POST['witness_partner'] ?? '');
+            $school_administrator = trim($_POST['school_administrator'] ?? '');
+            $school_admin_position = trim($_POST['school_admin_position'] ?? '');
+            $notary_city = trim($_POST['notary_city'] ?? '');
+            $notary_day = trim($_POST['notary_day'] ?? '');
+            $notary_month = trim($_POST['notary_month'] ?? '');
+            $notary_year = trim($_POST['notary_year'] ?? '');
+            $notary_place = trim($_POST['notary_place'] ?? '');
+            $doc_no = trim($_POST['doc_no'] ?? '');
+            $page_no = trim($_POST['page_no'] ?? '');
+            $book_no = trim($_POST['book_no'] ?? '');
+            $series_no = trim($_POST['series_no'] ?? '');
+
+            $stmt = $conn->prepare("INSERT INTO dau_moa (
+                    user_id, company_name, company_address, partner_representative, position, company_receipt, total_hours,
+                    school_representative, school_position, signed_at, signed_day, signed_month, signed_year,
+                    witness_partner, school_administrator, school_admin_position, notary_city, notary_day, notary_month, notary_year, notary_place,
+                    doc_no, page_no, book_no, series_no
+                ) VALUES (
+                    ?, ?, ?, ?, ?, ?, ?,
+                    ?, ?, ?, ?, ?, ?,
+                    ?, ?, ?, ?, ?, ?, ?, ?,
+                    ?, ?, ?, ?
+                )
+                ON DUPLICATE KEY UPDATE
+                    company_name = VALUES(company_name),
+                    company_address = VALUES(company_address),
+                    partner_representative = VALUES(partner_representative),
+                    position = VALUES(position),
+                    company_receipt = VALUES(company_receipt),
+                    total_hours = VALUES(total_hours),
+                    school_representative = VALUES(school_representative),
+                    school_position = VALUES(school_position),
+                    signed_at = VALUES(signed_at),
+                    signed_day = VALUES(signed_day),
+                    signed_month = VALUES(signed_month),
+                    signed_year = VALUES(signed_year),
+                    witness_partner = VALUES(witness_partner),
+                    school_administrator = VALUES(school_administrator),
+                    school_admin_position = VALUES(school_admin_position),
+                    notary_city = VALUES(notary_city),
+                    notary_day = VALUES(notary_day),
+                    notary_month = VALUES(notary_month),
+                    notary_year = VALUES(notary_year),
+                    notary_place = VALUES(notary_place),
+                    doc_no = VALUES(doc_no),
+                    page_no = VALUES(page_no),
+                    book_no = VALUES(book_no),
+                    series_no = VALUES(series_no),
+                    updated_at = NOW()");
+            $types = 'i' . str_repeat('s', 24);
+            $stmt->bind_param(
+                $types,
+                $posted_user_id, $company_name, $company_address, $partner_representative, $position, $company_receipt, $total_hours,
+                $school_representative, $school_position, $signed_at, $signed_day, $signed_month, $signed_year,
+                $witness_partner, $school_administrator, $school_admin_position, $notary_city, $notary_day, $notary_month, $notary_year, $notary_place,
+                $doc_no, $page_no, $book_no, $series_no
+            );
+            if ($stmt->execute()) {
+                $flash_message = 'Dau MOA autofill data saved.';
+                $flash_type = 'success';
+            } else {
+                $flash_message = 'Failed to save Dau MOA data.';
                 $flash_type = 'danger';
             }
             $view_user_id = $posted_user_id;
@@ -353,6 +550,52 @@ try {
             foreach ($moa_data as $k => $v) {
                 $moa_data[$k] = isset($moa_row[$k]) ? (string)$moa_row[$k] : '';
             }
+        }
+
+        $endorsement_row = null;
+        foreach ($doc_lookup_ids as $lookup_id) {
+            $stmt_endorse = $conn->prepare("SELECT * FROM endorsement_letter WHERE user_id = ? LIMIT 1");
+            $stmt_endorse->bind_param('i', $lookup_id);
+            $stmt_endorse->execute();
+            $res_endorse = $stmt_endorse->get_result();
+            $endorsement_row = $res_endorse ? $res_endorse->fetch_assoc() : null;
+            if ($endorsement_row) break;
+        }
+        if ($endorsement_row) {
+            foreach ($endorsement_data as $k => $v) {
+                $endorsement_data[$k] = isset($endorsement_row[$k]) ? (string)$endorsement_row[$k] : '';
+            }
+        }
+
+        $dau_row = null;
+        foreach ($doc_lookup_ids as $lookup_id) {
+            $stmt_dau = $conn->prepare("SELECT * FROM dau_moa WHERE user_id = ? LIMIT 1");
+            $stmt_dau->bind_param('i', $lookup_id);
+            $stmt_dau->execute();
+            $res_dau = $stmt_dau->get_result();
+            $dau_row = $res_dau ? $res_dau->fetch_assoc() : null;
+            if ($dau_row) break;
+        }
+        if ($dau_row) {
+            foreach ($dau_moa_data as $k => $v) {
+                $dau_moa_data[$k] = isset($dau_row[$k]) ? (string)$dau_row[$k] : '';
+            }
+        } else {
+            $dau_moa_data['company_name'] = $moa_data['company_name'];
+            $dau_moa_data['company_address'] = $moa_data['company_address'];
+            $dau_moa_data['partner_representative'] = $moa_data['partner_representative'];
+            $dau_moa_data['position'] = $moa_data['position'];
+            $dau_moa_data['company_receipt'] = $moa_data['company_receipt'];
+            $dau_moa_data['total_hours'] = $moa_data['total_hours'];
+            $dau_moa_data['school_position'] = $moa_data['school_position'];
+            $dau_moa_data['school_administrator'] = $moa_data['school_administrator'];
+            $dau_moa_data['school_admin_position'] = $moa_data['school_admin_position'];
+            $dau_moa_data['doc_no'] = $moa_data['doc_no'];
+            $dau_moa_data['page_no'] = $moa_data['page_no'];
+            $dau_moa_data['book_no'] = $moa_data['book_no'];
+            $dau_moa_data['series_no'] = $moa_data['series_no'];
+            $dau_moa_data['signed_at'] = $moa_data['moa_address'];
+            $dau_moa_data['witness_partner'] = $moa_data['witness'];
         }
     }
 } catch (Exception $e) {
@@ -680,7 +923,7 @@ try {
                                 <button class="nav-link" data-bs-toggle="tab" data-bs-target="#endorsementTab">Endorsement Letter</button>
                             </li>
                             <li class="nav-item" role="presentation">
-                                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#commentTab">Comments</button>
+                                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#commentTab">Dau MOA</button>
                             </li>
                         </ul>
                     </div>
@@ -825,6 +1068,7 @@ try {
                                 <form method="post" action="ojt-view.php?id=<?php echo intval($selected_student_id); ?>">
                                     <input type="hidden" name="save_application_letter" value="1">
                                     <input type="hidden" name="user_id" value="<?php echo intval($selected_student_id); ?>">
+                                    <input type="hidden" name="active_tab" value="applicationTab">
 
                                     <div class="row g-3">
                                         <div class="col-md-4">
@@ -859,6 +1103,9 @@ try {
                     </div>
                     <div class="tab-pane fade" id="moaTab" role="tabpanel">
                         <div class="card card-body">
+                            <?php if ($flash_message !== ''): ?>
+                                <div class="alert alert-<?php echo htmlspecialchars($flash_type); ?> mb-3"><?php echo htmlspecialchars($flash_message); ?></div>
+                            <?php endif; ?>
                             <?php if ($view_user_id <= 0): ?>
                                 <div class="alert alert-warning mb-0">Open this page from OJT List using a specific student row so document data can be linked by user ID.</div>
                             <?php else: ?>
@@ -869,6 +1116,7 @@ try {
                                 <form method="post" action="ojt-view.php?id=<?php echo intval($selected_student_id); ?>">
                                     <input type="hidden" name="save_moa" value="1">
                                     <input type="hidden" name="user_id" value="<?php echo intval($selected_student_id); ?>">
+                                    <input type="hidden" name="active_tab" value="moaTab">
 
                                     <div class="row g-3">
                                         <div class="col-md-6">
@@ -967,28 +1215,172 @@ try {
                     </div>
                     <div class="tab-pane fade" id="endorsementTab" role="tabpanel">
                         <div class="card card-body">
-                            <div class="d-flex align-items-center justify-content-center" style="height: calc(100vh - 315px)">
-                                <div class="text-center">
-                                    <h2 class="fs-16 fw-semibold">No notes yet!</h2>
-                                    <p class="fs-12 text-muted">There is no notes create yet.</p>
-                                    <a href="javascript:void(0);" class="avatar-text bg-soft-primary text-primary mx-auto" data-bs-toggle="tooltip" title="Create Notes">
-                                        <i class="feather-plus"></i>
-                                    </a>
+                            <?php if ($flash_message !== ''): ?>
+                                <div class="alert alert-<?php echo htmlspecialchars($flash_type); ?> mb-3"><?php echo htmlspecialchars($flash_message); ?></div>
+                            <?php endif; ?>
+                            <?php if ($view_user_id <= 0): ?>
+                                <div class="alert alert-warning mb-0">Open this page from OJT List using a specific student row so document data can be linked by user ID.</div>
+                            <?php else: ?>
+                                <div class="mb-4">
+                                    <h5 class="fw-bold mb-1">Endorsement Letter</h5>
+                                    <p class="text-muted mb-0">Select student and prepare the endorsement letter.</p>
                                 </div>
-                            </div>
+                                <form method="post" action="ojt-view.php?id=<?php echo intval($selected_student_id); ?>">
+                                    <input type="hidden" name="save_endorsement_letter" value="1">
+                                    <input type="hidden" name="user_id" value="<?php echo intval($selected_student_id); ?>">
+                                    <input type="hidden" name="active_tab" value="endorsementTab">
+
+                                    <div class="row g-3">
+                                        <div class="col-12">
+                                            <label class="form-label">Recipient Name</label>
+                                            <input type="text" name="recipient_name" class="form-control" value="<?php echo htmlspecialchars($endorsement_data['recipient_name']); ?>" placeholder="e.g. Mr. Mark G. Sison">
+                                        </div>
+                                        <div class="col-12">
+                                            <label class="form-label">Recipient Position</label>
+                                            <input type="text" name="recipient_position" class="form-control" value="<?php echo htmlspecialchars($endorsement_data['recipient_position']); ?>" placeholder="e.g. Supervisor/Manager">
+                                        </div>
+                                        <div class="col-12">
+                                            <label class="form-label">Company Name</label>
+                                            <input type="text" name="company_name" class="form-control" value="<?php echo htmlspecialchars($endorsement_data['company_name']); ?>" placeholder="Company name">
+                                        </div>
+                                        <div class="col-12">
+                                            <label class="form-label">Company Address</label>
+                                            <textarea name="company_address" class="form-control" rows="2" placeholder="Company address"><?php echo htmlspecialchars($endorsement_data['company_address']); ?></textarea>
+                                        </div>
+                                        <div class="col-12">
+                                            <label class="form-label">Students to Endorse (one per line)</label>
+                                            <textarea name="students_to_endorse" class="form-control" rows="3"><?php echo htmlspecialchars($endorsement_data['students_to_endorse']); ?></textarea>
+                                        </div>
+                                    </div>
+                                    <div class="mt-3 d-flex gap-2">
+                                        <button type="submit" class="btn btn-primary">Save Endorsement Data</button>
+                                        <a href="document_endorsement.php?id=<?php echo intval($selected_student_id); ?>" class="btn btn-success">Open Endorsement Letter</a>
+                                    </div>
+                                </form>
+                            <?php endif; ?>
                         </div>
                     </div>
                     <div class="tab-pane fade" id="commentTab" role="tabpanel">
                         <div class="card card-body">
-                            <div class="d-flex align-items-center justify-content-center" style="height: calc(100vh - 315px)">
-                                <div class="text-center">
-                                    <h2 class="fs-16 fw-semibold">No comments yet!</h2>
-                                    <p class="fs-12 text-muted">There is no comments posted yet.</p>
-                                    <a href="javascript:void(0);" class="avatar-text bg-soft-primary text-primary mx-auto" data-bs-toggle="tooltip" title="Add Comments">
-                                        <i class="feather-plus"></i>
-                                    </a>
+                            <?php if ($flash_message !== ''): ?>
+                                <div class="alert alert-<?php echo htmlspecialchars($flash_type); ?> mb-3"><?php echo htmlspecialchars($flash_message); ?></div>
+                            <?php endif; ?>
+                            <?php if ($view_user_id <= 0): ?>
+                                <div class="alert alert-warning mb-0">Open this page from OJT List using a specific student row so document data can be linked by user ID.</div>
+                            <?php else: ?>
+                                <div class="mb-4">
+                                    <h5 class="fw-bold mb-1">Dau MOA</h5>
+                                    <p class="text-muted mb-0">Fill the fields below then continue editing/printing in <code>document_dau_moa.php</code>.</p>
                                 </div>
-                            </div>
+                                <form method="post" action="ojt-view.php?id=<?php echo intval($selected_student_id); ?>">
+                                    <input type="hidden" name="save_dau_moa" value="1">
+                                    <input type="hidden" name="user_id" value="<?php echo intval($selected_student_id); ?>">
+                                    <input type="hidden" name="active_tab" value="commentTab">
+
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label">Barangay Name</label>
+                                            <input type="text" name="company_name" class="form-control" value="<?php echo htmlspecialchars($dau_moa_data['company_name']); ?>" placeholder="Barangay name">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Barangay Address</label>
+                                            <input type="text" name="company_address" class="form-control" value="<?php echo htmlspecialchars($dau_moa_data['company_address']); ?>" placeholder="Barangay address">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Barangay Representative</label>
+                                            <input type="text" name="partner_representative" class="form-control" value="<?php echo htmlspecialchars($dau_moa_data['partner_representative']); ?>" placeholder="Barangay representative">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Barangay Representative Position</label>
+                                            <input type="text" name="position" class="form-control" value="<?php echo htmlspecialchars($dau_moa_data['position']); ?>" placeholder="Position">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Barangay Receipt / Ref.</label>
+                                            <input type="text" name="company_receipt" class="form-control" value="<?php echo htmlspecialchars($dau_moa_data['company_receipt']); ?>">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Total Hours (Clause #10)</label>
+                                            <input type="number" name="total_hours" class="form-control" value="<?php echo htmlspecialchars($dau_moa_data['total_hours']); ?>">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">School Representative</label>
+                                            <input type="text" name="school_representative" class="form-control" value="<?php echo htmlspecialchars($dau_moa_data['school_representative']); ?>" placeholder="e.g. Mr. Jomar G. Sangil">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">School Representative Position</label>
+                                            <input type="text" name="school_position" class="form-control" value="<?php echo htmlspecialchars($dau_moa_data['school_position']); ?>">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Signing Place</label>
+                                            <input type="text" name="signed_at" class="form-control" value="<?php echo htmlspecialchars($dau_moa_data['signed_at']); ?>">
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="form-label">Sign Day</label>
+                                            <input type="text" name="signed_day" class="form-control" value="<?php echo htmlspecialchars($dau_moa_data['signed_day']); ?>">
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="form-label">Sign Month</label>
+                                            <input type="text" name="signed_month" class="form-control" value="<?php echo htmlspecialchars($dau_moa_data['signed_month']); ?>">
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="form-label">Sign Year</label>
+                                            <input type="text" name="signed_year" class="form-control" value="<?php echo htmlspecialchars($dau_moa_data['signed_year']); ?>">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Witness (Barangay)</label>
+                                            <input type="text" name="witness_partner" class="form-control" value="<?php echo htmlspecialchars($dau_moa_data['witness_partner']); ?>">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">School Administrator</label>
+                                            <input type="text" name="school_administrator" class="form-control" value="<?php echo htmlspecialchars($dau_moa_data['school_administrator']); ?>">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">School Admin Position</label>
+                                            <input type="text" name="school_admin_position" class="form-control" value="<?php echo htmlspecialchars($dau_moa_data['school_admin_position']); ?>">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Notary City</label>
+                                            <input type="text" name="notary_city" class="form-control" value="<?php echo htmlspecialchars($dau_moa_data['notary_city']); ?>">
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="form-label">Ack Day</label>
+                                            <input type="text" name="notary_day" class="form-control" value="<?php echo htmlspecialchars($dau_moa_data['notary_day']); ?>">
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="form-label">Ack Month</label>
+                                            <input type="text" name="notary_month" class="form-control" value="<?php echo htmlspecialchars($dau_moa_data['notary_month']); ?>">
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="form-label">Ack Year</label>
+                                            <input type="text" name="notary_year" class="form-control" value="<?php echo htmlspecialchars($dau_moa_data['notary_year']); ?>">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Ack Place</label>
+                                            <input type="text" name="notary_place" class="form-control" value="<?php echo htmlspecialchars($dau_moa_data['notary_place']); ?>">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">Doc No.</label>
+                                            <input type="text" name="doc_no" class="form-control" value="<?php echo htmlspecialchars($dau_moa_data['doc_no']); ?>">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">Page No.</label>
+                                            <input type="text" name="page_no" class="form-control" value="<?php echo htmlspecialchars($dau_moa_data['page_no']); ?>">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">Book No.</label>
+                                            <input type="text" name="book_no" class="form-control" value="<?php echo htmlspecialchars($dau_moa_data['book_no']); ?>">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">Series</label>
+                                            <input type="text" name="series_no" class="form-control" value="<?php echo htmlspecialchars($dau_moa_data['series_no']); ?>">
+                                        </div>
+                                    </div>
+                                    <div class="mt-3 d-flex gap-2">
+                                        <button type="submit" class="btn btn-primary">Save Dau MOA Data</button>
+                                        <a href="document_dau_moa.php?id=<?php echo intval($selected_student_id); ?>" class="btn btn-success">Open Dau MOA</a>
+                                    </div>
+                                </form>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
@@ -1028,6 +1420,27 @@ try {
     <script src="assets/js/common-init.min.js"></script>
     <script src="assets/js/leads-view-init.min.js"></script>
     <!--! END: Apps Init !-->
+    <script>
+        (function () {
+            var preferredTabId = <?php echo json_encode($active_tab); ?>;
+            if (window.location.hash && document.querySelector('button[data-bs-target="' + window.location.hash + '"]')) {
+                preferredTabId = window.location.hash.replace('#', '');
+            }
+            var targetBtn = document.querySelector('button[data-bs-target="#' + preferredTabId + '"]');
+            if (targetBtn && window.bootstrap && bootstrap.Tab) {
+                var tab = new bootstrap.Tab(targetBtn);
+                tab.show();
+            }
+            document.querySelectorAll('button[data-bs-toggle="tab"]').forEach(function (btn) {
+                btn.addEventListener('shown.bs.tab', function (e) {
+                    var selector = e.target.getAttribute('data-bs-target');
+                    if (selector) {
+                        history.replaceState(null, '', selector);
+                    }
+                });
+            });
+        })();
+    </script>
     <!-- Theme Customizer removed -->
 </body>
 

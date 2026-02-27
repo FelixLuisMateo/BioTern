@@ -7,10 +7,10 @@ function q($key, $default = '')
 
 $print_date = q('date', date('F j, Y'));
 $partner_name = q('partner_name', 'DAU BARANGAY HALL');
-$partner_rep = q('partner_rep', 'MR. JUSTIN B. VILLANUEVA');
-$partner_position = q('partner_position', 'Barangay Dau PYAP President');
-$partner_address = q('partner_address', 'SAMSONVILLE SUBDIVISION, LOURDES, BARANGAY DAU, MABALACAT CITY, PAMPANGA');
-$company_receipt = q('company_receipt', 'HON. GLENN DERRICK A. LLANOS DEE');
+$partner_rep = q('partner_rep', '__________________');
+$partner_position = q('partner_position', '__________________');
+$partner_address = q('partner_address', '__________________');
+$company_receipt = q('company_receipt', '______________________');
 $total_hours = q('total_hours', '250');
 $school_rep = q('school_rep', '__________________');
 $school_position = q('school_position', '__________________');
@@ -20,7 +20,7 @@ $signed_day = q('signed_day', '_____');
 $signed_month = q('signed_month', '__________________');
 $signed_year = q('signed_year', '20__');
 
-$presence_partner_rep = q('presence_partner_rep', 'HON. GLENN DERRICK A. LLANOS DEE');
+$presence_partner_rep = q('presence_partner_rep', '______________________');
 $presence_school_admin = q('presence_school_admin', '______________________');
 $presence_school_admin_position = q('presence_school_admin_position', '______________________');
 
@@ -124,13 +124,11 @@ $use_saved_template = q('use_saved_template', '0') === '1';
                 <p style="margin-top:-18px;"><strong><u><?php echo htmlspecialchars($partner_position); ?></u></strong></p>
             </div>
             <div class="col right">
-                <p style="text-align:right;"><strong>For the SCHOOL</strong></p>
                 <p style="margin-top:16px; text-align:right;"><strong><u><?php echo htmlspecialchars($school_rep); ?></u></strong></p>
                 <p style="margin-top:-18px; text-align:right;"><strong><u><?php echo htmlspecialchars($school_position); ?></u></strong></p>
             </div>
         </div>
 
-        <p style="margin-top:-5px; text-align:center;"><strong>SIGNED IN THE PRESENCE OF:</strong></p>
         <div class="row">
             <div class="col">
                 <p style="margin-top:0px;"><strong><u><?php echo htmlspecialchars($company_receipt); ?></u></strong></p>

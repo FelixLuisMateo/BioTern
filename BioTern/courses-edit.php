@@ -180,7 +180,6 @@ ob_start();
 							</div>
 						<?php endif; ?>
 						<button type="submit" class="btn btn-primary">Save Course</button>
-						<a href="courses.php" class="btn btn-outline-secondary ms-2">View All</a>
 					</form>
 				</div>
 			</div>
@@ -226,6 +225,9 @@ ob_start();
 							</tbody>
 						</table>
 					</div>
+				</div>
+				<div class="card-footer bg-transparent border-top-0 pt-3 pb-4 px-3">
+					<a href="courses.php" class="btn btn-outline-secondary w-100">View All</a>
 				</div>
 			</div>
 		</div>

@@ -146,6 +146,37 @@ function sync_student_active_status(mysqli $conn, int $student_id, string $clock
     $upd->close();
 }
 
+function validate_demo_biometric_transition(array $record, string $clock_type, string $clock_time): array {
+    // Allow afternoon time-in as the first entry of the day.
+    if ($clock_type === 'afternoon_in') {
+        $has_morning_or_break = !empty($record['morning_time_in'])
+            || !empty($record['morning_time_out'])
+            || !empty($record['break_time_in'])
+            || !empty($record['break_time_out']);
+        $has_afternoon_in = !empty($record['afternoon_time_in']);
+        $has_afternoon_out = !empty($record['afternoon_time_out']);
+
+        if (!$has_morning_or_break && !$has_afternoon_in && !$has_afternoon_out) {
+            $new_minutes = attendance_time_to_minutes($clock_time);
+            if ($new_minutes === null) {
+                return ['ok' => false, 'message' => 'Invalid clock time format.'];
+            }
+            return ['ok' => true, 'message' => 'OK'];
+        }
+    }
+
+    // Custom rule: if afternoon in already exists, morning in is no longer allowed.
+    if (
+        $clock_type === 'morning_in'
+        && empty($record['morning_time_in'])
+        && !empty($record['afternoon_time_in'])
+    ) {
+        return ['ok' => false, 'message' => 'Cannot record morning in after afternoon in is already recorded.'];
+    }
+
+    return attendance_validate_transition($record, $clock_type, $clock_time);
+}
+
 // Handle clock in/out submission
 $message = '';
 $message_type = '';
@@ -189,7 +220,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     'afternoon_time_in' => null,
                     'afternoon_time_out' => null
                 );
-                $validation = attendance_validate_transition($empty_record, $clock_type, $clock_time);
+                $validation = validate_demo_biometric_transition($empty_record, $clock_type, $clock_time);
                 if (!$validation['ok']) {
                     $message = $validation['message'];
                     $message_type = "warning";
@@ -208,7 +239,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             } else {
                 // Attendance record exists. Check if this specific time field is already filled
                 $record = $date_check->fetch_assoc();
-                $validation = attendance_validate_transition($record, $clock_type, $clock_time);
+                $validation = validate_demo_biometric_transition($record, $clock_type, $clock_time);
                 
                 // Prevent morning clock-in when afternoon attendance already exists.
                 if (!$validation['ok']) {
