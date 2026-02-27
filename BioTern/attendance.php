@@ -195,11 +195,9 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
             echo '<td>' . $status_html . '</td>';
             echo '<td>' . getStatusBadge($attendance['status']) . '</td>';
             // actions (keep minimal for AJAX)
-            echo '<td><div class="hstack gap-2 justify-content-end"><a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="tooltip" title="View Details" onclick="viewDetails(' . $attendance['id'] . ')"><i class="feather feather-eye"></i></a><div class="dropdown"><a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="dropdown" data-bs-offset="0,21"><i class="feather feather-more-horizontal"></i></a><ul class="dropdown-menu"><li><a class="dropdown-item" href="javascript:void(0)" onclick="approveAttendance(' . $attendance['id'] . ')"><i class="feather feather-check-circle me-3"></i><span>Approve</span></a></li><li><a class="dropdown-item" href="javascript:void(0)" onclick="rejectAttendance(' . $attendance['id'] . ')"><i class="feather feather-x-circle me-3"></i><span>Reject</span></a></li><li><a class="dropdown-item" href="javascript:void(0)" onclick="editAttendance(' . $attendance['id'] . ')"><i class="feather feather-edit-3 me-3"></i><span>Edit</span></a></li><li><a class="dropdown-item printBTN" href="javascript:void(0)" onclick="printAttendance(' . $attendance['id'] . ')"><i class="feather feather-printer me-3"></i><span>Print</span></a></li><li><a class="dropdown-item" href="javascript:void(0)" onclick="sendNotification(' . $attendance['id'] . ')"><i class="feather feather-mail me-3"></i><span>Send Notification</span></a></li><li class="dropdown-divider"></li><li><a class="dropdown-item" href="javascript:void(0)" onclick="deleteAttendance(' . $attendance['id'] . ')"><i class="feather feather-trash-2 me-3"></i><span>Delete</span></a></li></ul></div></div></td>';
+            echo '<td><div class="hstack gap-2 justify-content-end"><a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="tooltip" title="View Details" onclick="viewDetails(' . $attendance['id'] . ')"><i class="feather feather-eye"></i></a><div class="dropdown"><a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="dropdown" data-bs-offset="0,21"><i class="feather feather-more-horizontal"></i></a><ul class="dropdown-menu dropdown-menu-end"><li><a class="dropdown-item" href="javascript:void(0)" onclick="approveAttendance(' . $attendance['id'] . ')"><i class="feather feather-check-circle me-3"></i><span>Approve</span></a></li><li><a class="dropdown-item" href="javascript:void(0)" onclick="rejectAttendance(' . $attendance['id'] . ')"><i class="feather feather-x-circle me-3"></i><span>Reject</span></a></li><li><a class="dropdown-item" href="javascript:void(0)" onclick="editAttendance(' . $attendance['id'] . ')"><i class="feather feather-edit-3 me-3"></i><span>Edit</span></a></li><li><a class="dropdown-item printBTN" href="javascript:void(0)" onclick="printAttendance(' . $attendance['id'] . ')"><i class="feather feather-printer me-3"></i><span>Print</span></a></li><li><a class="dropdown-item" href="javascript:void(0)" onclick="sendNotification(' . $attendance['id'] . ')"><i class="feather feather-mail me-3"></i><span>Send Notification</span></a></li><li class="dropdown-divider"></li><li><a class="dropdown-item" href="javascript:void(0)" onclick="deleteAttendance(' . $attendance['id'] . ')"><i class="feather feather-trash-2 me-3"></i><span>Delete</span></a></li></ul></div></div></td>';
             echo '</tr>';
         }
-    } else {
-        echo '<tr><td colspan="13" class="text-center py-5"><p class="text-muted">No attendance records found</p></td></tr>';
     }
     exit;
 }
@@ -834,7 +832,7 @@ function getAttendanceStatus($morning_time_in) {
                             </div>
                         </div>
 
-                        <div class="card stretch stretch-full">
+                        <div class="card stretch stretch-full attendance-table-card">
                             <div class="card-body p-0">
                                 <div class="table-responsive">
                                     <table class="table table-hover" id="attendanceList">
@@ -925,7 +923,7 @@ function getAttendanceStatus($morning_time_in) {
                                                                     <a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="dropdown" data-bs-offset="0,21">
                                                                         <i class="feather feather-more-horizontal"></i>
                                                                     </a>
-                                                                    <ul class="dropdown-menu">
+                                                                    <ul class="dropdown-menu dropdown-menu-end">
                                                                         <li>
                                                                             <a class="dropdown-item" href="javascript:void(0)" onclick="approveAttendance(<?php echo $attendance['id']; ?>)">
                                                                                 <i class="feather feather-check-circle me-3"></i>
@@ -969,12 +967,6 @@ function getAttendanceStatus($morning_time_in) {
                                                         </td>
                                                     </tr>
                                                 <?php endforeach; ?>
-                                            <?php else: ?>
-                                                <tr>
-                                                    <td colspan="11" class="text-center py-5">
-                                                        <p class="text-muted">No attendance records found</p>
-                                                    </td>
-                                                </tr>
                                             <?php endif; ?>
                                         </tbody>
                                     </table>
@@ -1036,37 +1028,32 @@ function getAttendanceStatus($morning_time_in) {
     <script src="assets/vendors/js/vendors.min.js"></script>
     <!-- vendors.min.js {always must need to be top} -->
     <style>
-        /* Ensure header dropdowns are visible above other elements */
+        /* Keep header menus above content */
         .page-header .dropdown-menu,
         .page-header-right .dropdown-menu {
             z-index: 99999 !important;
         }
-        /* Allow dropdowns to overflow parent containers */
-        .page-header, .page-header-right { overflow: visible !important; }
-        
-        /* Fix dropdown visibility in table */
-        .table-responsive {
+        .page-header,
+        .page-header-right {
             overflow: visible !important;
         }
-        
-        .table td {
-            position: relative;
+
+        /* Attendance actions menu should not be clipped by wrappers */
+        .attendance-table-card,
+        .attendance-table-card .card-body,
+        .attendance-table-card .table-responsive,
+        .attendance-table-card .table,
+        .attendance-table-card .table-hover tbody tr,
+        .attendance-table-card td {
             overflow: visible !important;
         }
-        
-        .dropdown {
-            position: static !important;
+
+        .attendance-table-card .dropdown {
+            position: relative !important;
         }
-        
-        .dropdown-menu {
-            position: absolute !important;
-            z-index: 10000 !important;
-        }
-        
-        /* Ensure table doesn't clip dropdowns */
-        .table-hover tbody tr {
-            position: static !important;
-            overflow: visible !important;
+
+        .attendance-table-card .dropdown-menu {
+            z-index: 20000 !important;
         }
     </style>
 
@@ -1077,11 +1064,14 @@ function getAttendanceStatus($morning_time_in) {
     <!--! END: Vendors JS !-->
     
     <style>
-        /* Fix dropdown visibility in scrollable table */
-        .table-responsive .dropdown-menu {
-            position: absolute !important;
-            z-index: 10000 !important;
+        .attendance-table-card .dropdown-menu {
             margin-top: 5px;
+        }
+
+        /* Move bottom DataTable controls slightly lower for better spacing */
+        #attendanceList_wrapper .row:last-child {
+            margin-top: 220px;
+            padding-bottom: 20px;
         }
     </style>
     
@@ -1089,19 +1079,31 @@ function getAttendanceStatus($morning_time_in) {
     <script src="assets/js/common-init.min.js"></script>
     <script src="assets/js/customers-init.min.js"></script>
     <!--! END: Apps Init !-->
-    <!-- Theme Customizer removed -->
+    <script src="assets/js/theme-customizer-init.min.js"></script>
 
     <script>
-        // Initialize DataTable
-        $(document).ready(function() {
-            $('#attendanceList').DataTable({
+        function initAttendanceDataTable() {
+            return $('#attendanceList').DataTable({
                 "pageLength": 10,
                 "ordering": true,
                 "searching": true,
                 "bLengthChange": true,
                 "info": true,
-                "paging": true
+                "paging": true,
+                "autoWidth": false,
+                "order": [[2, "desc"]],
+                "columnDefs": [
+                    { "orderable": false, "targets": [0, 12] }
+                ],
+                "language": {
+                    "emptyTable": "No attendance records found"
+                }
             });
+        }
+
+        // Initialize DataTable
+        $(document).ready(function() {
+            initAttendanceDataTable();
 
             // Initialize Select2
             // Initialize Select2 for filter selects
@@ -1179,11 +1181,7 @@ function getAttendanceStatus($morning_time_in) {
                     }
                     $('#attendanceList tbody').html(html);
                     // re-init DataTable
-                    $('#attendanceList').DataTable({
-                        "pageLength": 10,
-                        "ordering": true,
-                        "searching": true
-                    });
+                    initAttendanceDataTable();
                     // re-init tooltips
                     $('[data-bs-toggle="tooltip"]').each(function() { new bootstrap.Tooltip(this); });
                     // re-init dropdowns
@@ -1278,11 +1276,7 @@ function getAttendanceStatus($morning_time_in) {
                 }
                 var newTbody = $(html).find('#attendanceList tbody').html();
                 $('#attendanceList tbody').html(newTbody);
-                $('#attendanceList').DataTable({
-                    "pageLength": 10,
-                    "ordering": true,
-                    "searching": true
-                });
+                initAttendanceDataTable();
                 // Reinitialize tooltips
                 $('[data-bs-toggle="tooltip"]').each(function() {
                     new bootstrap.Tooltip(this);
@@ -1458,4 +1452,39 @@ function getAttendanceStatus($morning_time_in) {
                 });
             }
         }
+    </script>
+    <script>
+        (function () {
+            document.addEventListener('DOMContentLoaded', function () {
+                var darkBtn = document.querySelector('.dark-button');
+                var lightBtn = document.querySelector('.light-button');
+
+                function setDark(isDark) {
+                    if (isDark) {
+                        document.documentElement.classList.add('app-skin-dark');
+                        try { localStorage.setItem('app-skin', 'app-skin-dark'); } catch (e) {}
+                        if (darkBtn) darkBtn.style.display = 'none';
+                        if (lightBtn) lightBtn.style.display = '';
+                    } else {
+                        document.documentElement.classList.remove('app-skin-dark');
+                        try { localStorage.setItem('app-skin', ''); } catch (e) {}
+                        if (darkBtn) darkBtn.style.display = '';
+                        if (lightBtn) lightBtn.style.display = 'none';
+                    }
+                }
+
+                var skin = '';
+                try {
+                    skin = localStorage.getItem('app-skin') || localStorage.getItem('app_skin') || localStorage.getItem('theme') || localStorage.getItem('app-skin-dark') || '';
+                } catch (e) {}
+                setDark((typeof skin === 'string' && skin.indexOf('dark') !== -1) || document.documentElement.classList.contains('app-skin-dark'));
+
+                if (darkBtn) darkBtn.addEventListener('click', function (e) { e.preventDefault(); setDark(true); });
+                if (lightBtn) lightBtn.addEventListener('click', function (e) { e.preventDefault(); setDark(false); });
+            });
+        })();
+    </script>
+</body>
+
+</html>
 
