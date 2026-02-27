@@ -36,32 +36,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($mysqli->connect_errno) {
                 $reset_error = 'Database connection failed.';
             } else {
-                // Use the verified reset contact (email) as the update key.
-                // This avoids wrong-row updates in databases where id values are not unique.
-                $update = $mysqli->prepare('UPDATE users SET password = ? WHERE email = ? LIMIT 1');
-                if (!$update) {
-                    $reset_error = 'Failed to prepare password update.';
+                $select = $mysqli->prepare('SELECT password FROM users WHERE email = ? LIMIT 1');
+                if (!$select) {
+                    $reset_error = 'Failed to validate account details.';
                 } else {
-                    $passwordHash = password_hash($newPassword, PASSWORD_DEFAULT);
-                    $update->bind_param('ss', $passwordHash, $contact);
-                    if ($update->execute()) {
-                        if ($update->affected_rows < 1) {
-                            $reset_error = 'No account was found for this reset request.';
-                        } else {
-                            $reset_success = 'Your password has been reset successfully. You can now log in.';
+                    $select->bind_param('s', $contact);
+                    if ($select->execute()) {
+                        $select->bind_result($currentPasswordHash);
+                        if ($select->fetch()) {
+                            if (password_verify($newPassword, $currentPasswordHash)) {
+                                $reset_error = 'Your new password must be different from your current password.';
+                            } else {
+                                // Use the verified reset contact (email) as the update key.
+                                // This avoids wrong-row updates in databases where id values are not unique.
+                                $update = $mysqli->prepare('UPDATE users SET password = ? WHERE email = ? LIMIT 1');
+                                if (!$update) {
+                                    $reset_error = 'Failed to prepare password update.';
+                                } else {
+                                    $passwordHash = password_hash($newPassword, PASSWORD_DEFAULT);
+                                    $update->bind_param('ss', $passwordHash, $contact);
+                                    if ($update->execute()) {
+                                        if ($update->affected_rows < 1) {
+                                            $reset_error = 'No account was found for this reset request.';
+                                        } else {
+                                            $reset_success = 'Your password has been reset successfully. You can now log in.';
 
-                            unset($_SESSION['password_reset_contact']);
-                            unset($_SESSION['password_reset_user_id']);
-                            unset($_SESSION['password_reset_code']);
-                            unset($_SESSION['password_reset_code_sent_at']);
-                            unset($_SESSION['password_reset_verified']);
-                            unset($_SESSION['password_reset_last_sent_ok']);
-                            unset($_SESSION['password_reset_last_error_ref']);
+                                            unset($_SESSION['password_reset_contact']);
+                                            unset($_SESSION['password_reset_user_id']);
+                                            unset($_SESSION['password_reset_code']);
+                                            unset($_SESSION['password_reset_code_sent_at']);
+                                            unset($_SESSION['password_reset_verified']);
+                                            unset($_SESSION['password_reset_last_sent_ok']);
+                                            unset($_SESSION['password_reset_last_error_ref']);
+                                        }
+                                    } else {
+                                        $reset_error = 'Unable to update password. Please try again.';
+                                    }
+                                    $update->close();
+                                }
+                            }
+                        } else {
+                            $reset_error = 'No account was found for this reset request.';
                         }
                     } else {
-                        $reset_error = 'Unable to update password. Please try again.';
+                        $reset_error = 'Unable to validate current password. Please try again.';
                     }
-                    $update->close();
+                    $select->close();
                 }
                 $mysqli->close();
             }
