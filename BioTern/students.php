@@ -297,7 +297,7 @@ function formatDate($date) {
         html.app-skin-dark .select2-container--default .select2-selection--single,
         html.app-skin-dark .select2-container--default .select2-selection--multiple {
             color: #f0f0f0 !important;
-            background-color: #2d3748 !important;
+            background-color: #0f172a !important;
             border-color: #4a5568 !important;
         }
         
@@ -307,13 +307,13 @@ function formatDate($date) {
         
         /* Dark mode dropdown menu */
         html.app-skin-dark .select2-container--default.select2-container--open .select2-dropdown {
-            background-color: #2d3748 !important;
+            background-color: #0f172a !important;
             border-color: #4a5568 !important;
         }
         
         html.app-skin-dark .select2-results__option {
             color: #f0f0f0 !important;
-            background-color: #2d3748 !important;
+            background-color: #0f172a !important;
         }
         
         html.app-skin-dark .select2-results__option--highlighted[aria-selected] {
@@ -324,14 +324,14 @@ function formatDate($date) {
         html.app-skin-dark select.form-control,
         html.app-skin-dark select.form-select {
             color: #f0f0f0 !important;
-            background-color: #2d3748 !important;
+            background-color: #0f172a !important;
             border-color: #4a5568 !important;
         }
         
         html.app-skin-dark select.form-control option,
         html.app-skin-dark select.form-select option {
             color: #f0f0f0 !important;
-            background-color: #2d3748 !important;
+            background-color: #0f172a !important;
         }
 
         /* Filter row alignment */
@@ -354,7 +354,7 @@ function formatDate($date) {
 
         html.app-skin-dark .filter-form input[type="date"].form-control {
             color: #f0f0f0 !important;
-            background-color: #2d3748 !important;
+            background-color: #0f172a !important;
             border-color: #4a5568 !important;
         }
 
@@ -404,7 +404,7 @@ function formatDate($date) {
         html.app-skin-dark .filter-form select.form-select,
         html.app-skin-dark .filter-form .select2-container--default .select2-selection--single {
             color: #f0f0f0 !important;
-            background-color: #2d3748 !important;
+            background-color: #0f172a !important;
             border-color: #4a5568 !important;
         }
 
@@ -898,19 +898,58 @@ function formatDate($date) {
     <script src="assets/vendors/js/select2-active.min.js"></script>
     <script src="assets/js/common-init.min.js"></script>
     <script src="assets/js/customers-init.min.js"></script>
-    <!-- Theme Customizer removed -->
+    <script src="assets/js/theme-customizer-init.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             // Do not reinitialize DataTable here; `customers-init.min.js` handles it.
-            ['#filter-course', '#filter-department', '#filter-supervisor', '#filter-coordinator'].forEach(function (selector) {
-                if (window.jQuery && $(selector).length) {
-                    $(selector).select2({
-                        width: '100%',
-                        allowClear: false,
-                        dropdownAutoWidth: false
-                    });
+            if (window.jQuery) {
+                ['#filter-course', '#filter-department'].forEach(function (selector) {
+                    if ($(selector).length) {
+                        $(selector).select2({
+                            width: '100%',
+                            allowClear: false,
+                            dropdownAutoWidth: false,
+                            minimumResultsForSearch: Infinity
+                        });
+                    }
+                });
+
+                ['#filter-supervisor', '#filter-coordinator'].forEach(function (selector) {
+                    if ($(selector).length) {
+                        $(selector).select2({
+                            width: '100%',
+                            allowClear: false,
+                            dropdownAutoWidth: false
+                        });
+                    }
+                });
+            }
+
+            var darkBtn = document.querySelector('.dark-button');
+            var lightBtn = document.querySelector('.light-button');
+
+            function setDark(isDark) {
+                if (isDark) {
+                    document.documentElement.classList.add('app-skin-dark');
+                    try { localStorage.setItem('app-skin', 'app-skin-dark'); } catch (e) {}
+                    if (darkBtn) darkBtn.style.display = 'none';
+                    if (lightBtn) lightBtn.style.display = '';
+                } else {
+                    document.documentElement.classList.remove('app-skin-dark');
+                    try { localStorage.setItem('app-skin', ''); } catch (e) {}
+                    if (darkBtn) darkBtn.style.display = '';
+                    if (lightBtn) lightBtn.style.display = 'none';
                 }
-            });
+            }
+
+            var skin = '';
+            try {
+                skin = localStorage.getItem('app-skin') || localStorage.getItem('app_skin') || localStorage.getItem('theme') || localStorage.getItem('app-skin-dark') || '';
+            } catch (e) {}
+            setDark((typeof skin === 'string' && skin.indexOf('dark') !== -1) || document.documentElement.classList.contains('app-skin-dark'));
+
+            if (darkBtn) darkBtn.addEventListener('click', function (e) { e.preventDefault(); setDark(true); });
+            if (lightBtn) lightBtn.addEventListener('click', function (e) { e.preventDefault(); setDark(false); });
         });
     </script>
 </body>
