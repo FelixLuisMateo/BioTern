@@ -132,7 +132,8 @@ if ($listResult) {
 	}
 }
 
-ob_start();
+$page_title = 'Edit Course';
+include 'includes/header.php';
 ?>
 <div class="page-header">
 	<div class="page-header-left d-flex align-items-center">
@@ -180,7 +181,6 @@ ob_start();
 							</div>
 						<?php endif; ?>
 						<button type="submit" class="btn btn-primary">Save Course</button>
-						<a href="courses.php" class="btn btn-outline-secondary ms-2">View All</a>
 					</form>
 				</div>
 			</div>
@@ -227,13 +227,15 @@ ob_start();
 						</table>
 					</div>
 				</div>
+				<div class="card-footer bg-transparent border-top-0 pt-3 pb-4 px-3">
+					<a href="courses.php" class="btn btn-outline-secondary w-100">View All</a>
+				</div>
 			</div>
 		</div>
 	</div>
 </div>
 <?php
-$template_page_content = ob_get_clean();
-include 'template.php';
+include 'includes/footer.php';
 $conn->close();
 ?>
 

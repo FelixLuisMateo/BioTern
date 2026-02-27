@@ -47,16 +47,25 @@ if (isset($_GET['action'])) {
 
     if ($action === 'get_moa' && isset($_GET['id'])) {
         $id = intval($_GET['id']);
-        $exists = $conn->query("SHOW TABLES LIKE 'moa'");
-        if (!$exists || $exists->num_rows === 0) {
-            echo json_encode(new stdClass());
-            exit;
+        $data = null;
+        $exists_dau = $conn->query("SHOW TABLES LIKE 'dau_moa'");
+        if ($exists_dau && $exists_dau->num_rows > 0) {
+            $stmt = $conn->prepare("SELECT * FROM dau_moa WHERE user_id = ? LIMIT 1");
+            $stmt->bind_param('i', $id);
+            $stmt->execute();
+            $res = $stmt->get_result();
+            $data = $res ? $res->fetch_assoc() : null;
         }
-        $stmt = $conn->prepare("SELECT * FROM moa WHERE user_id = ? LIMIT 1");
-        $stmt->bind_param('i', $id);
-        $stmt->execute();
-        $res = $stmt->get_result();
-        $data = $res->fetch_assoc();
+        if (!$data) {
+            $exists = $conn->query("SHOW TABLES LIKE 'moa'");
+            if ($exists && $exists->num_rows > 0) {
+                $stmt = $conn->prepare("SELECT * FROM moa WHERE user_id = ? LIMIT 1");
+                $stmt->bind_param('i', $id);
+                $stmt->execute();
+                $res = $stmt->get_result();
+                $data = $res ? $res->fetch_assoc() : null;
+            }
+        }
         echo json_encode($data ?: new stdClass());
         exit;
     }
@@ -180,27 +189,27 @@ if (isset($_GET['action'])) {
                     <div class="card p-3">
 
                         <div class="mt-3">
-                            <label class="form-label">Company Name</label>
-                            <input id="moa_partner_name" class="form-control form-control-sm" type="text" placeholder="Partner company name">
+                            <label class="form-label">Barangay Name</label>
+                            <input id="moa_partner_name" class="form-control form-control-sm" type="text" placeholder="Barangay name">
                         </div>
 
                         <div class="mt-2">
-                            <label class="form-label">Company Address</label>
-                            <textarea id="moa_partner_address" class="form-control form-control-sm" rows="2" placeholder="Partner address"></textarea>
+                            <label class="form-label">Barangay Address</label>
+                            <textarea id="moa_partner_address" class="form-control form-control-sm" rows="2" placeholder="Barangay address"></textarea>
                         </div>
 
                         <div class="mt-2">
-                            <label class="form-label">Partner Representative</label>
+                            <label class="form-label">Barangay Representative</label>
                             <input id="moa_partner_rep" class="form-control form-control-sm" type="text" placeholder="Representative (e.g. Mr. Edward Docena)">
                         </div>
 
                         <div class="mt-2">
-                            <label class="form-label">Representative Position</label>
+                            <label class="form-label">Barangay Representative Position</label>
                             <input id="moa_partner_position" class="form-control form-control-sm" type="text" placeholder="Position (e.g. CEO)">
                         </div>
 
                         <div class="mt-2">
-                            <label class="form-label">Company Receipt / Ref.</label>
+                            <label class="form-label">Barangay Receipt / Ref.</label>
                             <input id="moa_company_receipt" class="form-control form-control-sm" type="text" placeholder="Reference / receipt no.">
                         </div>
 
@@ -242,8 +251,8 @@ if (isset($_GET['action'])) {
 
                         <div class="row mt-2 g-2">
                             <div class="col-6">
-                                <label class="form-label">Witness (Partner)</label>
-                                <input id="moa_presence_partner_rep" class="form-control form-control-sm" type="text" placeholder="Witness name for partner side">
+                                <label class="form-label">Witness (Barangay)</label>
+                                <input id="moa_presence_partner_rep" class="form-control form-control-sm" type="text" placeholder="Witness name for barangay side">
                             </div>
                         </div>
                         
@@ -315,7 +324,7 @@ if (isset($_GET['action'])) {
                             <p>This Memorandum of Agreement made and executed between: <strong>CLARK COLLEGE OF SCIENCE AND TECHNOLOGY</strong>a Higher Education Institution, duly organized and existing under Philippine Laws with office/business address at <strong>AUREA ST. SAMSONVILLE, DAU MABALACAT CITY PAMPANGA</strong> represented herein by <strong>MR. JOMAR G. SANGIL (IT, DEPARTMENT HEAD)</strong>, here in after referred to as the Higher Education Institution.<strong></p>
                             And<br>
                             <strong><span id="pv_partner_company_name">__________________________</span></strong> a LOCAL GOVERNMENT UNIT duly organized and existing under Philippine Laws with office/ business address at <strong><span id="pv_partner_address">__________________________</span></strong>represented herein by <strong><span id="pv_partner_name">__________________________</span></strong> herein after referred to as the PARTNER LOCAL GOVERNMENT UNIT.</p>
-                            <p>Company Receipt / Ref.: <span id="pv_company_receipt">__________________________</span></p>
+                            <p>Barangay Receipt / Ref.: <span id="pv_company_receipt">__________________________</span></p>
                             Witnesseth: <br><br>
                             <p>The parties hereby bind themselves to undertake a Memorandum of Agreement for the purpose of supporting the Internship for Learners under the following terms and condition</p>
                             <strong>School:</strong><br>
@@ -540,18 +549,23 @@ if (isset($_GET['action'])) {
                         partnerAddress.value = (data.company_address || '').toString();
                         partnerRep.value = (data.partner_representative || '').toString();
                         partnerPosition.value = (data.position || '').toString();
-                        schoolRep.value = (data.coordinator || '').toString();
+                        schoolRep.value = (data.school_representative || data.coordinator || '').toString();
                         schoolPosition.value = (data.school_posistion || data.school_position || '').toString();
-                        signedAt.value = (data.moa_address || '').toString();
+                        signedAt.value = (data.signed_at || data.moa_address || '').toString();
                         // Witness from MOA data should populate both witness textbox and acknowledgement appeared field.
-                        presencePartnerRep.value = (data.witness || '').toString();
+                        presencePartnerRep.value = (data.witness_partner || data.witness || '').toString();
                         presenceSchoolAdmin.value = (data.school_administrator || '').toString();
                         presenceSchoolAdminPosition.value = (data.school_admin_position || '').toString();
-                        notaryCity.value = (data.notary_address || '').toString();
-                        notaryPlace.value = (data.acknowledgement_address || '').toString();
+                        notaryCity.value = (data.notary_city || data.notary_address || '').toString();
+                        notaryPlace.value = (data.notary_place || data.acknowledgement_address || '').toString();
                         companyReceipt.value = (data.company_receipt || '').toString();
                         totalHours.value = (data.total_hours || '').toString();
 
+                        if (data.signed_day || data.signed_month || data.signed_year) {
+                            signedDay.value = (data.signed_day || '').toString();
+                            signedMonth.value = (data.signed_month || '').toString();
+                            signedYear.value = (data.signed_year || '').toString();
+                        }
                         if (data.moa_date) {
                             const d = new Date(data.moa_date);
                             if (!isNaN(d.getTime())) {
@@ -559,6 +573,11 @@ if (isset($_GET['action'])) {
                                 signedMonth.value = d.toLocaleString('en-US', { month: 'long' });
                                 signedYear.value = String(d.getFullYear());
                             }
+                        }
+                        if (data.notary_day || data.notary_month || data.notary_year) {
+                            notaryDay.value = (data.notary_day || '').toString();
+                            notaryMonth.value = (data.notary_month || '').toString();
+                            notaryYear.value = (data.notary_year || '').toString();
                         }
                         if (data.acknowledgement_date) {
                             const ad = new Date(data.acknowledgement_date);
@@ -570,7 +589,7 @@ if (isset($_GET['action'])) {
                         }
                         // Witness should appear in ACKNOWLEDGEMENT (personally appeared...)
                         if (notaryAppeared1) {
-                            notaryAppeared1.value = (data.witness || '').toString();
+                            notaryAppeared1.value = (data.witness_partner || data.witness || '').toString();
                         }
 
                         updatePreview();

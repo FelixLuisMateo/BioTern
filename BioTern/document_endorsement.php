@@ -47,6 +47,21 @@ if (isset($_GET['action'])) {
         exit;
     }
 
+    if ($action === 'get_endorsement' && isset($_GET['id'])) {
+        $id = intval($_GET['id']);
+        $exists = $conn->query("SHOW TABLES LIKE 'endorsement_letter'");
+        if (!$exists || $exists->num_rows === 0) {
+            echo json_encode(new stdClass());
+            exit;
+        }
+        $stmt = $conn->prepare("SELECT * FROM endorsement_letter WHERE user_id = ? LIMIT 1");
+        $stmt->bind_param('i', $id);
+        $stmt->execute();
+        $row = $stmt->get_result()->fetch_assoc();
+        echo json_encode($row ?: new stdClass());
+        exit;
+    }
+
     echo json_encode(new stdClass());
     exit;
 }
@@ -342,6 +357,33 @@ if (isset($_GET['action'])) {
         return genUrl;
     }
 
+    function applySavedEndorsement(data) {
+        if (!data || typeof data !== 'object') return false;
+        let changed = false;
+        if (data.recipient_name) {
+            inputRecipient.value = String(data.recipient_name);
+            changed = true;
+        }
+        if (data.recipient_position) {
+            inputPosition.value = String(data.recipient_position);
+            changed = true;
+        }
+        if (data.company_name) {
+            inputCompany.value = String(data.company_name);
+            changed = true;
+        }
+        if (data.company_address) {
+            inputCompanyAddress.value = String(data.company_address);
+            changed = true;
+        }
+        if (data.students_to_endorse) {
+            inputStudents.value = String(data.students_to_endorse);
+            inputStudents.dataset.manualLocked = '1';
+            changed = true;
+        }
+        return changed;
+    }
+
     select.select2({
         placeholder: 'Search student by name or ID',
         ajax: {
@@ -428,19 +470,30 @@ if (isset($_GET['action'])) {
     });
 
     if (prefillId > 0) {
-        fetch('document_endorsement.php?action=get_student&id=' + encodeURIComponent(prefillId))
+        fetch('document_endorsement.php?action=get_endorsement&id=' + encodeURIComponent(prefillId))
             .then(r => r.json())
-            .then(data => {
-                const full = [data.first_name, data.middle_name, data.last_name].filter(Boolean).join(' ').trim();
-                if (full) {
-                    const text = full + ' - ' + (data.student_id || '');
-                    const o = new Option(text, String(prefillId), true, true);
-                    select.append(o).trigger('change');
-                    autofillStudentsFromSelected();
+            .then(saved => {
+                const hasSaved = applySavedEndorsement(saved);
+                if (hasSaved) {
+                    updatePreview();
+                    updateLinks();
+                    setTimeout(createSelectOverlay, 60);
+                    return;
                 }
-                updatePreview();
-                updateLinks();
-                setTimeout(createSelectOverlay, 60);
+                fetch('document_endorsement.php?action=get_student&id=' + encodeURIComponent(prefillId))
+                    .then(r => r.json())
+                    .then(data => {
+                        const full = [data.first_name, data.middle_name, data.last_name].filter(Boolean).join(' ').trim();
+                        if (full) {
+                            const text = full + ' - ' + (data.student_id || '');
+                            const o = new Option(text, String(prefillId), true, true);
+                            select.append(o).trigger('change');
+                            autofillStudentsFromSelected();
+                        }
+                        updatePreview();
+                        updateLinks();
+                        setTimeout(createSelectOverlay, 60);
+                    });
             });
     }
 
@@ -449,6 +502,7 @@ if (isset($_GET['action'])) {
     updateLinks();
 })();
 </script>
-<?php include 'template.php'; ?>
+<?php include 'includes/header.php';?>
+<?php include 'includes/footer.php'; ?>
 </body>
 </html>

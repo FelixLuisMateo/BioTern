@@ -423,6 +423,8 @@ function formatDate($date) {
 
 <body>
     <?php include_once 'includes/navigation.php'; ?>
+>>>>>>> 942cc77c4bd731ff3e54c533b5c6ae2fe3b9b4fb
+
     <!--! Header !-->
     <header class="nxl-header">
         <div class="header-wrapper">
@@ -889,6 +891,7 @@ function formatDate($date) {
         <!-- [ Footer ] end -->
     </main>
 
+<<<<<<< HEAD
     <!-- Scripts -->
     <script src="assets/vendors/js/vendors.min.js"></script>
     <script src="assets/vendors/js/dataTables.min.js"></script>
@@ -897,45 +900,24 @@ function formatDate($date) {
     <script src="assets/vendors/js/select2-active.min.js"></script>
     <script src="assets/js/common-init.min.js"></script>
     <script src="assets/js/customers-init.min.js"></script>
-    <script src="assets/js/theme-customizer-init.min.js"></script>
+    <!-- Theme Customizer removed -->
     <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            ["#filter-course", "#filter-department", "#filter-supervisor", "#filter-coordinator"].forEach(function (selector) {
+        document.addEventListener('DOMContentLoaded', function () {
+            // Do not reinitialize DataTable here; `customers-init.min.js` handles it.
+            ['#filter-course', '#filter-department', '#filter-supervisor', '#filter-coordinator'].forEach(function (selector) {
                 if (window.jQuery && $(selector).length) {
                     $(selector).select2({
-                        width: "100%",
+                        width: '100%',
                         allowClear: false,
                         dropdownAutoWidth: false
                     });
                 }
             });
-
-            var darkBtn = document.querySelector(".dark-button");
-            var lightBtn = document.querySelector(".light-button");
-
-            function setDark(isDark) {
-                if (isDark) {
-                    document.documentElement.classList.add("app-skin-dark");
-                    try { localStorage.setItem("app-skin", "app-skin-dark"); } catch (e) {}
-                    if (darkBtn) darkBtn.style.display = "none";
-                    if (lightBtn) lightBtn.style.display = "";
-                } else {
-                    document.documentElement.classList.remove("app-skin-dark");
-                    try { localStorage.setItem("app-skin", ""); } catch (e) {}
-                    if (darkBtn) darkBtn.style.display = "";
-                    if (lightBtn) lightBtn.style.display = "none";
-                }
-            }
-
-            var skin = "";
-            try {
-                skin = localStorage.getItem("app-skin") || localStorage.getItem("app_skin") || localStorage.getItem("theme") || localStorage.getItem("app-skin-dark") || "";
-            } catch (e) {}
-            setDark((typeof skin === "string" && skin.indexOf("dark") !== -1) || document.documentElement.classList.contains("app-skin-dark"));
-
-            if (darkBtn) darkBtn.addEventListener("click", function (e) { e.preventDefault(); setDark(true); });
-            if (lightBtn) lightBtn.addEventListener("click", function (e) { e.preventDefault(); setDark(false); });
         });
     </script>
+=======
+    <!-- Scripts are included by template.php to avoid duplicate initialization -->
+<?php include 'template.php'; ?>
+>>>>>>> 942cc77c4bd731ff3e54c533b5c6ae2fe3b9b4fb
 </body>
 </html>
