@@ -51,7 +51,10 @@ if ($listResult) {
     }
 }
 
-ob_start();
+// set title for header include
+$page_title = 'Departments';
+
+	include 'includes/header.php';
 ?>
 <div class="page-header">
     <div class="page-header-left d-flex align-items-center">
@@ -133,7 +136,4 @@ ob_start();
     </div>
 </div>
 <?php
-$template_page_content = ob_get_clean();
-include 'template.php';
-$conn->close();
-?>
+include 'includes/footer.php';
