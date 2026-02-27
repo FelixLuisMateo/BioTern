@@ -341,6 +341,24 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
         .card { border: 1px solid #e8edf6; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04); }
         .page-subtitle { font-size: 12px; color: #6c7a92; margin-top: -2px; }
         #ojtListTable thead th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; color: #6c7a92; }
+        #ojtListTable { min-width: 980px; }
+        @media (max-width: 991.98px) {
+            .page-header { display: block; }
+            .page-header-left { margin-bottom: 10px; }
+            .page-header-right { width: 100%; display: grid !important; grid-template-columns: 1fr 1fr; gap: 8px !important; }
+            .page-header-right .btn, .page-header-right form .btn { width: 100%; }
+            .filter-card .row > [class*="col-"] { margin-bottom: 4px; }
+            .nxl-content { padding-left: 10px; padding-right: 10px; }
+        }
+        @media (max-width: 575.98px) {
+            .page-header-right { grid-template-columns: 1fr; }
+            .kpi-value { font-size: 1.25rem; }
+            .chip, .risk-pill { font-size: 10px; padding: 2px 8px; }
+            .student-link img { width: 36px !important; height: 36px !important; }
+            .table td, .table th { padding: 0.5rem 0.45rem; font-size: 12px; }
+            .header-right .nxl-h-item { display: none; }
+            .header-right .dark-light-theme { display: block !important; }
+        }
     </style>
 </head>
 <body>
