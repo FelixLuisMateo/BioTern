@@ -1540,7 +1540,7 @@ foreach ($today_records as $tr) {
                 <span>Copyright ©</span>
                 <script>document.write(new Date().getFullYear());</script>
             </p>
-            <p class="footer-meta fs-12 mb-0"><span>By: <a href="javascript:void(0);">ACT 2A</a></span> <span>Distributed by: <a href="javascript:void(0);">Group 5</a></span></p>
+            <p><span>By: <a target="_blank" href="">ACT 2A</a></span> • <span>Distributed by: <a target="_blank" href="">Group 5</a></span></p>
         </footer>
     </main>
 
