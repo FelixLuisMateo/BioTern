@@ -297,7 +297,7 @@ function formatDate($date) {
         html.app-skin-dark .select2-container--default .select2-selection--single,
         html.app-skin-dark .select2-container--default .select2-selection--multiple {
             color: #f0f0f0 !important;
-            background-color: #2d3748 !important;
+            background-color: #0f172a !important;
             border-color: #4a5568 !important;
         }
         
@@ -307,13 +307,13 @@ function formatDate($date) {
         
         /* Dark mode dropdown menu */
         html.app-skin-dark .select2-container--default.select2-container--open .select2-dropdown {
-            background-color: #2d3748 !important;
+            background-color: #0f172a !important;
             border-color: #4a5568 !important;
         }
         
         html.app-skin-dark .select2-results__option {
             color: #f0f0f0 !important;
-            background-color: #2d3748 !important;
+            background-color: #0f172a !important;
         }
         
         html.app-skin-dark .select2-results__option--highlighted[aria-selected] {
@@ -324,14 +324,14 @@ function formatDate($date) {
         html.app-skin-dark select.form-control,
         html.app-skin-dark select.form-select {
             color: #f0f0f0 !important;
-            background-color: #2d3748 !important;
+            background-color: #0f172a !important;
             border-color: #4a5568 !important;
         }
         
         html.app-skin-dark select.form-control option,
         html.app-skin-dark select.form-select option {
             color: #f0f0f0 !important;
-            background-color: #2d3748 !important;
+            background-color: #0f172a !important;
         }
 
         /* Filter row alignment */
@@ -354,7 +354,7 @@ function formatDate($date) {
 
         html.app-skin-dark .filter-form input[type="date"].form-control {
             color: #f0f0f0 !important;
-            background-color: #2d3748 !important;
+            background-color: #0f172a !important;
             border-color: #4a5568 !important;
         }
 
@@ -404,7 +404,7 @@ function formatDate($date) {
         html.app-skin-dark .filter-form select.form-select,
         html.app-skin-dark .filter-form .select2-container--default .select2-selection--single {
             color: #f0f0f0 !important;
-            background-color: #2d3748 !important;
+            background-color: #0f172a !important;
             border-color: #4a5568 !important;
         }
 
@@ -418,146 +418,153 @@ function formatDate($date) {
             color: #f0f0f0 !important;
             border-color: #4a5568 !important;
         }
+
+        /* Keep filter/select controls below sidebar when mobile nav is open */
+        @media (max-width: 1024px) {
+            .nxl-navigation,
+            .nxl-navigation.mob-navigation-active {
+                z-index: 4000 !important;
+            }
+
+            .select2-container,
+            .select2-container--open,
+            .select2-dropdown,
+            .filter-form,
+            .nxl-content .row.mb-3 {
+                z-index: 1 !important;
+                position: relative;
+            }
+        }
+
+        /* Footer layout fix */
+        .footer {
+            flex-wrap: wrap;
+            row-gap: 0.5rem;
+            column-gap: 1rem;
+        }
+
+        .footer .footer-meta {
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            flex-wrap: wrap;
+        }
+
+        .footer .footer-links {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        @media (max-width: 575.98px) {
+            .footer {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
     </style>
 </head>
 
 <body>
-<<<<<<< HEAD
-    <!--! Navigation !-->
-    <nav class="nxl-navigation">
-        <div class="navbar-wrapper">
-            <div class="m-header">
-                <a href="index.php" class="b-brand">
-                    <img src="assets/images/logo-full.png" alt="" class="logo logo-lg">
-                    <img src="assets/images/logo-abbr.png" alt="" class="logo logo-sm">
+    <?php include_once 'includes/navigation.php'; ?>
+
+    <!--! Header !-->
+    <header class="nxl-header">
+        <div class="header-wrapper">
+            <div class="header-left d-flex align-items-center gap-4">
+                <a href="javascript:void(0);" class="nxl-head-mobile-toggler" id="mobile-collapse">
+                    <div class="hamburger hamburger--arrowturn">
+                        <div class="hamburger-box">
+                            <div class="hamburger-inner"></div>
+                        </div>
+                    </div>
                 </a>
+                <div class="nxl-navigation-toggle">
+                    <a href="javascript:void(0);" id="menu-mini-button">
+                        <i class="feather-align-left"></i>
+                    </a>
+                    <a href="javascript:void(0);" id="menu-expend-button" style="display: none">
+                        <i class="feather-arrow-right"></i>
+                    </a>
+                </div>
             </div>
-            <div class="navbar-content">
-                <ul class="nxl-navbar">
-                    <li class="nxl-item nxl-caption">
-                        <label>Navigation</label>
-                    </li>
-                    <li class="nxl-item nxl-hasmenu">
-                        <a href="javascript:void(0);" class="nxl-link">
-                            <span class="nxl-micon"><i class="feather-airplay"></i></span>
-                            <span class="nxl-mtext">Home</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+            <div class="header-right ms-auto">
+                <div class="d-flex align-items-center">
+                    <div class="dropdown nxl-h-item nxl-header-search">
+                        <a href="javascript:void(0);" class="nxl-head-link me-0" data-bs-toggle="dropdown" data-bs-auto-close="outside">
+                            <i class="feather-search"></i>
                         </a>
-                        <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="index.php">Overview</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="analytics.php">Analytics</a></li>
-                        </ul>
-                    </li>
-                    <li class="nxl-item nxl-hasmenu">
-                        <a href="javascript:void(0);" class="nxl-link">
-                            <span class="nxl-micon"><i class="feather-cast"></i></span>
-                            <span class="nxl-mtext">Reports</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                        <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-search-dropdown">
+                            <div class="input-group search-form">
+                                <span class="input-group-text">
+                                    <i class="feather-search fs-6 text-muted"></i>
+                                </span>
+                                <input type="text" class="form-control search-input-field" placeholder="Search....">
+                                <span class="input-group-text">
+                                    <button type="button" class="btn-close"></button>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="nxl-h-item d-none d-sm-flex">
+                        <div class="full-screen-switcher">
+                            <a href="javascript:void(0);" class="nxl-head-link me-0" onclick="$('body').fullScreenHelper('toggle');">
+                                <i class="feather-maximize maximize"></i>
+                                <i class="feather-minimize minimize"></i>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="nxl-h-item dark-light-theme">
+                        <a href="javascript:void(0);" class="nxl-head-link me-0 dark-button">
+                            <i class="feather-moon"></i>
                         </a>
-                        <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="reports-sales.php">Sales Report</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="reports-ojt.php">OJT Report</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="reports-project.php">Project Report</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="reports-timesheets.php">Timesheets Report</a></li>
-                        </ul>
-                    </li>
-                    <li class="nxl-item nxl-hasmenu">
-                        <a href="javascript:void(0);" class="nxl-link">
-                            <span class="nxl-micon"><i class="feather-send"></i></span>
-                            <span class="nxl-mtext">Applications</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                        <a href="javascript:void(0);" class="nxl-head-link me-0 light-button" style="display: none">
+                            <i class="feather-sun"></i>
                         </a>
-                        <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="apps-chat.php">Chat</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="apps-email.php">Email</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="apps-tasks.php">Tasks</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="apps-notes.php">Notes</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="apps-storage.php">Storage</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="apps-calendar.php">Calendar</a></li>
-                        </ul>
-                    </li>
-                    <li class="nxl-item nxl-hasmenu">
-                        <a href="javascript:void(0);" class="nxl-link">
-                            <span class="nxl-micon"><i class="feather-users"></i></span>
-                            <span class="nxl-mtext">Students</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                    </div>
+                    <div class="dropdown nxl-h-item">
+                        <a class="nxl-head-link me-3" data-bs-toggle="dropdown" href="#" role="button" data-bs-auto-close="outside">
+                            <i class="feather-bell"></i>
+                            <span class="badge bg-danger nxl-h-badge">3</span>
                         </a>
-                        <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="students.php">Students</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="students-view.php">Students View</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="students-create.php">Students Create</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="attendance.php">Attendance DTR</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="demo-biometric.php">Demo Biometric</a></li>
-                        </ul>
-                    </li>
-                    <li class="nxl-item nxl-hasmenu">
-                        <a href="javascript:void(0);" class="nxl-link">
-                            <span class="nxl-micon"><i class="feather-file-text"></i></span>
-                            <span class="nxl-mtext">Documents</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                        <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-notifications-menu">
+                            <div class="d-flex justify-content-between align-items-center notifications-head">
+                                <h6 class="fw-bold text-dark mb-0">Notifications</h6>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="dropdown nxl-h-item">
+                        <a href="javascript:void(0);" data-bs-toggle="dropdown" role="button" data-bs-auto-close="outside">
+                            <img src="assets/images/avatar/1.png" alt="user-image" class="img-fluid user-avtar me-0">
                         </a>
-                        <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="document_application.php">Application Letter</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="generate_endorsement_letter.php">Endorsement Letter</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="document_moa.php">MOA</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="generate_resume.php">Resume</a></li>
-                        </ul>
-                    </li>
-                    <li class="nxl-item nxl-hasmenu">
-                        <a href="javascript:void(0);" class="nxl-link">
-                            <span class="nxl-micon"><i class="feather-alert-circle"></i></span>
-                            <span class="nxl-mtext">Assign OJT Designation</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                        </a>
-                        <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="ojt.php">OJT List</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="ojt-view.php">OJT View</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="ojt-create.php">OJT Create</a></li>
-                        </ul>
-                    </li>
-                    <li class="nxl-item nxl-hasmenu">
-                        <a href="javascript:void(0);" class="nxl-link">
-                            <span class="nxl-micon"><i class="feather-layout"></i></span>
-                            <span class="nxl-mtext">Widgets</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                        </a>
-                        <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="widgets-lists.php">Lists</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="widgets-tables.php">Tables</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="widgets-charts.php">Charts</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="widgets-statistics.php">Statistics</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="widgets-miscellaneous.php">Miscellaneous</a></li>
-                        </ul>
-                    </li>
-                    <li class="nxl-item nxl-hasmenu">
-                        <a href="javascript:void(0);" class="nxl-link">
-                            <span class="nxl-micon"><i class="feather-settings"></i></span>
-                            <span class="nxl-mtext">Settings</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                        </a>
-                        <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="settings-general.php">General</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-seo.php">SEO</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-tags.php">Tags</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-email.php">Email</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-tasks.php">Tasks</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-ojt.php">Leads</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-support.php">Support</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-students.php">Students</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-miscellaneous.php">Miscellaneous</a></li>
-                        </ul>
-                    </li>
-                    
-                    <li class="nxl-item nxl-hasmenu">
-                        <a href="javascript:void(0);" class="nxl-link">
-                            <span class="nxl-micon"><i class="feather-life-buoy"></i></span>
-                            <span class="nxl-mtext">Help Center</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                        </a>
-                        <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="#!">Support</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="help-knowledgebase.php">KnowledgeBase</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="/docs/documentations">Documentations</a></li>
-                        </ul>
-                    </li>
-                </ul>
+                        <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-user-dropdown">
+                            <div class="dropdown-header">
+                                <div class="d-flex align-items-center">
+                                    <img src="assets/images/avatar/1.png" alt="user-image" class="img-fluid user-avtar">
+                                    <div>
+                                        <h6 class="text-dark mb-0">Felix Luis Mateo</h6>
+                                        <span class="fs-12 fw-medium text-muted">felixluismateo@example.com</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="dropdown-divider"></div>
+                            <a href="javascript:void(0);" class="dropdown-item">
+                                <i class="feather-settings"></i>
+                                <span>Account Settings</span>
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <a href="./auth-login-cover.php" class="dropdown-item">
+                                <i class="feather-log-out"></i>
+                                <span>Logout</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-    </nav>
-=======
-    <?php include_once 'includes/navigation.php'; ?>
->>>>>>> 06b347e236f39baf29f57621d4ba8842ad7c269f
+    </header>
 
     <!--! Main Content !-->
     <main class="nxl-container">
@@ -651,9 +658,9 @@ function formatDate($date) {
             </div>
 
             <!-- Filters -->
-            <div class="row mb-1 px-3">
+            <div class="row mb-3 px-3">
                 <div class="col-12">
-                    <form method="GET" class="row g-2 align-items-end filter-form">
+                    <form method="GET" class="row g-2 align-items-end">
                         <div class="col-sm-2">
                             <label class="form-label" for="filter-date">Date</label>
                             <input id="filter-date" type="date" name="date" class="form-control" value="<?php echo htmlspecialchars($_GET['date'] ?? ''); ?>">
@@ -696,9 +703,9 @@ function formatDate($date) {
                         </div>
                         <div class="col-sm-2">
                             <label class="form-label d-block invisible">Actions</label>
-                            <div class="filter-actions">
-                                <button type="submit" class="btn btn-primary">Filter</button>
-                                <a href="students.php" class="btn btn-outline-secondary">Reset</a>
+                            <div class="d-flex gap-1" style="align-items: flex-end;">
+                                <button type="submit" class="btn btn-primary btn-sm px-3 py-1" style="font-size: 0.85rem;">Filter</button>
+                                <a href="students.php" class="btn btn-outline-secondary btn-sm px-3 py-1" style="font-size: 0.85rem;">Reset</a>
                             </div>
                         </div>
                     </form>
@@ -919,8 +926,11 @@ function formatDate($date) {
                     document.write(new Date().getFullYear());
                 </script>
             </p>
-            <p><span>By: <a target="_blank" href="" target="_blank">ACT 2A</a></span> <span>Distributed by: <a target="_blank" href="" target="_blank">Group 5</a></span></p>
-            <div class="d-flex align-items-center gap-4">
+            <p class="footer-meta fs-12 mb-0">
+                <span>By: <a href="javascript:void(0);">ACT 2A</a></span>
+                <span>Distributed by: <a href="javascript:void(0);">Group 5</a></span>
+            </p>
+            <div class="footer-links">
                 <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Help</a>
                 <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Terms</a>
                 <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Privacy</a>
@@ -928,5 +938,68 @@ function formatDate($date) {
         </footer>
         <!-- [ Footer ] end -->
     </main>
-<?php include 'includes/header.php'; ?>
-<?php include 'includes/footer.php'; ?>
+
+    <!-- Scripts -->
+    <script src="assets/vendors/js/vendors.min.js"></script>
+    <script src="assets/vendors/js/dataTables.min.js"></script>
+    <script src="assets/vendors/js/dataTables.bs5.min.js"></script>
+    <script src="assets/vendors/js/select2.min.js"></script>
+    <script src="assets/vendors/js/select2-active.min.js"></script>
+    <script src="assets/js/common-init.min.js"></script>
+    <script src="assets/js/customers-init.min.js"></script>
+    <script src="assets/js/theme-customizer-init.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Do not reinitialize DataTable here; `customers-init.min.js` handles it.
+            if (window.jQuery) {
+                ['#filter-course', '#filter-department'].forEach(function (selector) {
+                    if ($(selector).length) {
+                        $(selector).select2({
+                            width: '100%',
+                            allowClear: false,
+                            dropdownAutoWidth: false,
+                            minimumResultsForSearch: Infinity
+                        });
+                    }
+                });
+
+                ['#filter-supervisor', '#filter-coordinator'].forEach(function (selector) {
+                    if ($(selector).length) {
+                        $(selector).select2({
+                            width: '100%',
+                            allowClear: false,
+                            dropdownAutoWidth: false
+                        });
+                    }
+                });
+            }
+
+            var darkBtn = document.querySelector('.dark-button');
+            var lightBtn = document.querySelector('.light-button');
+
+            function setDark(isDark) {
+                if (isDark) {
+                    document.documentElement.classList.add('app-skin-dark');
+                    try { localStorage.setItem('app-skin', 'app-skin-dark'); } catch (e) {}
+                    if (darkBtn) darkBtn.style.display = 'none';
+                    if (lightBtn) lightBtn.style.display = '';
+                } else {
+                    document.documentElement.classList.remove('app-skin-dark');
+                    try { localStorage.setItem('app-skin', ''); } catch (e) {}
+                    if (darkBtn) darkBtn.style.display = '';
+                    if (lightBtn) lightBtn.style.display = 'none';
+                }
+            }
+
+            var skin = '';
+            try {
+                skin = localStorage.getItem('app-skin') || localStorage.getItem('app_skin') || localStorage.getItem('theme') || localStorage.getItem('app-skin-dark') || '';
+            } catch (e) {}
+            setDark((typeof skin === 'string' && skin.indexOf('dark') !== -1) || document.documentElement.classList.contains('app-skin-dark'));
+
+            if (darkBtn) darkBtn.addEventListener('click', function (e) { e.preventDefault(); setDark(true); });
+            if (lightBtn) lightBtn.addEventListener('click', function (e) { e.preventDefault(); setDark(false); });
+        });
+    </script>
+</body>
+</html>
