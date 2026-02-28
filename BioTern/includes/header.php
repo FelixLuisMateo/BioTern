@@ -31,6 +31,21 @@ if (!isset($page_title) || trim($page_title) === '') {
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2.min.css">
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2-theme.min.css">
     <!--! END: Vendors CSS-->
+    <!--! BEGIN: Early Skin Script -->
+    <script>
+        // Apply saved skin as early as possible to avoid flash-of-unstyled (FOUS)
+        (function(){
+            try {
+                var skin = localStorage.getItem('app-skin-dark');
+                if (skin === 'app-skin-dark') {
+                    document.documentElement.classList.add('app-skin-dark');
+                }
+            } catch (e) {
+                /* ignore */
+            }
+        })();
+    </script>
+    <!--! END: Early Skin Script -->
     <!--! BEGIN: Custom CSS-->
     <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css" />
     <!--! END: Custom CSS-->
