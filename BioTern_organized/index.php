@@ -1,4 +1,4 @@
 ﻿<?php
 // Organized app entrypoint.
-header('Location: index.php');
+header('Location: analytics.php');
 exit;

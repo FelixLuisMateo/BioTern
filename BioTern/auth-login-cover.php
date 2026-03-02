@@ -42,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['role'] = (string)$user['role'];
                     $_SESSION['logged_in'] = true;
 
-                    header('Location: index.php');
+                    header('Location: homepage.php');
                     exit;
                 }
             } else {
