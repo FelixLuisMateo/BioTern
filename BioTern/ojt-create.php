@@ -37,6 +37,36 @@
     <!--! BEGIN: Custom CSS-->
     <script>try{var s=localStorage.getItem('app-skin')||localStorage.getItem('app_skin')||localStorage.getItem('theme'); if(s&&s.indexOf('dark')!==-1)document.documentElement.classList.add('app-skin-dark');}catch(e){};</script>
     <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css">
+    <style>
+        .app-skin-dark body { background: #0b1220; }
+        .app-skin-dark .card { background: #111a2e; border-color: #253252; }
+        .app-skin-dark .form-control,
+        .app-skin-dark .form-select { background-color: #0f172a; border-color: #2a3a57; color: #d8e2f4; }
+        @media (max-width: 991.98px) {
+            .page-header { display: block; }
+            .page-header-left { margin-bottom: 10px; }
+            .page-header-right-items-wrapper {
+                display: grid !important;
+                grid-template-columns: 1fr 1fr;
+                gap: 8px !important;
+                width: 100%;
+            }
+            .page-header-right-items-wrapper .btn { width: 100%; }
+            .lead-status .row > [class*="col-"],
+            .general-info .row > [class*="col-"] { margin-bottom: 8px; }
+        }
+        @media (max-width: 767.98px) {
+            .nxl-content { padding-left: 8px; padding-right: 8px; }
+            .page-header-right-items-wrapper { grid-template-columns: 1fr; }
+            .card.card-body { border-radius: 14px; padding: 12px; }
+            .lead-status .mb-5.d-flex,
+            .general-info .mb-5.d-flex {
+                flex-direction: column;
+                align-items: flex-start !important;
+                gap: 8px;
+            }
+        }
+    </style>
     <!--! END: Custom CSS-->
     <!--! HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries !-->
     <!--! WARNING: Respond.js doesn"t work if you view the page via file: !-->

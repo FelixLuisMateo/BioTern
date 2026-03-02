@@ -65,21 +65,10 @@ if (isset($_GET['action'])) {
     exit;
 }
 
+$page_title = 'MOA';
+include 'includes/header.php';
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta http-equiv="x-ua-compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>BioTern || MOA</title>
-    <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
-    <link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css">
-    <link rel="stylesheet" type="text/css" href="assets/vendors/css/vendors.min.css">
-    <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2.min.css">
-    <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2-theme.min.css">
-    <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css">
-    <style>
+<style>
         html, body { height: 100%; margin: 0; padding: 0; }
         .moa-main.nxl-container { display:flex; flex-direction:column; }
         .moa-content.nxl-content { flex:1; padding-bottom:24px; }
@@ -187,10 +176,7 @@ if (isset($_GET['action'])) {
             }
         }
     </style>
-</head>
-<body>
-    <main class="nxl-container moa-main">
-        <div class="nxl-content container moa-content">
+        <div class="container moa-content">
             <div class="row mt-3">
                 <div class="col-12">
                     <h4>Memorandum of Agreement</h4>
@@ -406,10 +392,7 @@ if (isset($_GET['action'])) {
                 </div>
             </div>
         </div>
-    </main>
 
-    <script src="assets/vendors/js/vendors.min.js"></script>
-    <script src="assets/vendors/js/select2.min.js"></script>
     <script>
         (function(){
             const MOA_TEMPLATE_STORAGE_KEY = 'biotern_moa_template_html_v1';
@@ -739,7 +722,4 @@ if (isset($_GET['action'])) {
 
         })();
     </script>
-    <?php include 'includes/header.php';?>
     <?php include 'includes/footer.php'; ?>
-</body>
-</html>

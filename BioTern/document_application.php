@@ -65,21 +65,10 @@ if (isset($_GET['action'])) {
     exit;
 }
 
+$page_title = 'Documents';
+include 'includes/header.php';
 ?>
-<!DOCTYPE html>
-<html lang="zxx">
-<head>
-    <meta charset="utf-8">
-    <meta http-equiv="x-ua-compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>BioTern || Documents</title>
-    <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
-    <link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css">
-    <link rel="stylesheet" type="text/css" href="assets/vendors/css/vendors.min.css">
-    <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2.min.css">
-    <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2-theme.min.css">
-    <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css">
-    <style>
+<style>
         /* copy of students.php basic layout styles to match theme */
         html, body { height: 100%; margin: 0; padding: 0; }
         body { display:flex; flex-direction:column; min-height:100vh; }
@@ -219,10 +208,7 @@ if (isset($_GET['action'])) {
         }
     </style>
 
-</head>
-<body>
-    <main class="nxl-container">
-        <div class="nxl-content container">
+    <div class="container">
             <div class="row mt-1">
                 <div class="col-12">
                     <h4>Documents</h4>
@@ -292,10 +278,7 @@ if (isset($_GET['action'])) {
                 </div>
             </div>
         </div>
-    </main>
 
-    <script src="assets/vendors/js/vendors.min.js"></script>
-    <script src="assets/vendors/js/select2.min.js"></script>
     <script>
         (function(){
             const APP_TEMPLATE_STORAGE_KEY = 'biotern_application_template_html_v1';
@@ -585,8 +568,5 @@ if (isset($_GET['action'])) {
 
         })();
     </script>
-<?php include 'includes/header.php'; ?>
 <?php include 'includes/footer.php'; ?>
-</body>
-</html>
 

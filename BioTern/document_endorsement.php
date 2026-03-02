@@ -65,20 +65,10 @@ if (isset($_GET['action'])) {
     echo json_encode(new stdClass());
     exit;
 }
+$page_title = 'Endorsement Letter';
+include 'includes/header.php';
 ?>
-<!doctype html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>BioTern || Endorsement Letter</title>
-    <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
-    <link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css">
-    <link rel="stylesheet" type="text/css" href="assets/vendors/css/vendors.min.css">
-    <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2.min.css">
-    <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2-theme.min.css">
-    <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css">
-    <style>
+<style>
         html, body { height: 100%; margin: 0; padding: 0; }
         body { display:flex; flex-direction:column; min-height:100vh; }
         main.nxl-container { flex:1; display:flex; flex-direction:column; padding-top:90px; }
@@ -188,10 +178,7 @@ if (isset($_GET['action'])) {
             .select2-dropdown { z-index: 900 !important; }
         }
     </style>
-</head>
-<body>
-<main class="nxl-container">
-    <div class="nxl-content container">
+    <div class="container">
     <div class="row mt-3">
         <div class="col-12">
             <h4>Endorsement Letter</h4>
@@ -276,11 +263,7 @@ if (isset($_GET['action'])) {
         </div>
     </div>
 </div>
-    
-</main>
 
-<script src="assets/vendors/js/vendors.min.js"></script>
-<script src="assets/vendors/js/select2.min.js"></script>
 <script>
 (function(){
     const select = $('#student_select');
@@ -502,7 +485,4 @@ if (isset($_GET['action'])) {
     updateLinks();
 })();
 </script>
-<?php include 'includes/header.php';?>
 <?php include 'includes/footer.php'; ?>
-</body>
-</html>

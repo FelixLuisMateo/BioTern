@@ -332,7 +332,7 @@ if ($students_result->num_rows > 0) {
 
 // Get today's attendance for display
 $today = date('Y-m-d');
-$attendance_today_query = "SELECT a.*, s.student_id, s.first_name, s.last_name FROM attendances a 
+$attendance_today_query = "SELECT a.*, s.id AS student_db_id, s.student_id, s.first_name, s.last_name FROM attendances a 
                            LEFT JOIN students s ON a.student_id = s.id 
                            WHERE a.attendance_date = '$today' 
                            ORDER BY a.created_at DESC LIMIT 10";
@@ -1458,7 +1458,8 @@ foreach ($today_records as $tr) {
                                 </thead>
                                 <tbody>
                                     <?php foreach ($today_records as $record): ?>
-                                        <tr>
+                                        <?php $row_student_id = intval($record['student_db_id'] ?? 0); ?>
+                                        <tr <?php if ($row_student_id > 0): ?>onclick="window.location.href='students-dtr.php?id=<?php echo $row_student_id; ?>'" style="cursor: pointer;"<?php endif; ?>>
                                             <td>
                                                 <strong><?php echo ($record['first_name'] ?? 'N/A') . ' ' . ($record['last_name'] ?? 'N/A'); ?></strong>
                                             </td>

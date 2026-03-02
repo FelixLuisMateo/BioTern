@@ -934,6 +934,154 @@ try {
         .nav-tabs-custom-style .nav-link { font-weight: 600; }
         .list-group-item { border-color: #edf1f7; }
         .form-label { font-weight: 600; font-size: 12px; letter-spacing: 0.2px; }
+        .app-skin-dark body { background: #0b1220; }
+        .app-skin-dark .card { border-color: #253252; background: #111a2e; box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35); }
+        .app-skin-dark .list-group-item { border-color: #253252; background: #111a2e; color: #d8e2f4; }
+        .app-skin-dark .text-muted { color: #9ab0d0 !important; }
+        .app-skin-dark .nav-tabs-custom-style .nav-link { color: #c4d3ea; }
+        .app-skin-dark .nav-tabs-custom-style .nav-link.active { color: #fff; background: #22314b; border-color: #314c72; }
+        .app-skin-dark .border { border-color: #253252 !important; }
+        .app-skin-dark .form-control,
+        .app-skin-dark .form-select { background-color: #0f172a; border-color: #2a3a57; color: #d8e2f4; }
+        .app-skin-dark .table { color: #d8e2f4; }
+        .app-skin-dark .table-sm > :not(caption) > * > * { border-color: #253252; }
+        .document-card {
+            border-radius: 14px;
+        }
+        .document-form .form-control,
+        .document-form .form-select {
+            min-height: 42px;
+        }
+        .document-form textarea.form-control {
+            min-height: 88px;
+        }
+        .document-form-actions .btn {
+            min-height: 40px;
+        }
+
+        @media (max-width: 991.98px) {
+            .page-header { display: block; }
+            .page-header-left { margin-bottom: 10px; }
+            .page-header-right-items-wrapper {
+                display: grid !important;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 8px !important;
+                width: 100%;
+            }
+            .page-header-right-items-wrapper .btn { width: 100%; }
+            .nav-tabs-custom-style { flex-wrap: nowrap; overflow-x: auto; white-space: nowrap; padding-bottom: 6px; scrollbar-width: thin; }
+            .nav-tabs-custom-style .nav-item { flex: 0 0 auto; }
+            .nav-tabs-custom-style .nav-link { border-radius: 999px; margin-right: 6px; }
+            .lead-info .row,
+            .general-info .row {
+                margin-bottom: 10px !important;
+                border: 1px solid #e8edf6;
+                border-radius: 12px;
+                padding: 10px;
+                background: #fff;
+            }
+            .app-skin-dark .lead-info .row,
+            .app-skin-dark .general-info .row {
+                border-color: #253252;
+                background: #111a2e;
+            }
+            .lead-info .row .col-lg-2,
+            .general-info .row .col-lg-2 {
+                font-size: 11px;
+                text-transform: uppercase;
+                letter-spacing: .05em;
+                color: #6c7a92;
+                margin-bottom: 4px;
+            }
+            .app-skin-dark .lead-info .row .col-lg-2,
+            .app-skin-dark .general-info .row .col-lg-2 { color: #99abc8; }
+            .overview-actions,
+            .tab-pane .mt-3.d-flex.gap-2,
+            .tab-pane .d-flex.gap-2.align-items-center {
+                flex-wrap: wrap;
+            }
+            .overview-actions .btn,
+            .tab-pane .mt-3.d-flex.gap-2 .btn,
+            .tab-pane .d-flex.gap-2.align-items-center .btn {
+                width: 100%;
+            }
+            .document-pane .document-card {
+                padding: 14px;
+            }
+            .document-pane .row.g-3 {
+                --bs-gutter-x: 0.65rem;
+                --bs-gutter-y: 0.65rem;
+            }
+            .document-pane .document-form-actions {
+                display: grid !important;
+                grid-template-columns: 1fr 1fr;
+                gap: 8px !important;
+            }
+            .document-pane .document-form-actions .btn {
+                width: 100%;
+            }
+        }
+        @media (max-width: 767.98px) {
+            .nxl-content { padding-left: 8px; padding-right: 8px; }
+            .page-header-right-items-wrapper { grid-template-columns: 1fr !important; }
+            .card.card-body { padding: 12px; border-radius: 14px; }
+            .tab-pane .table-responsive table thead { display: none; }
+            .tab-pane .table-responsive table,
+            .tab-pane .table-responsive tbody,
+            .tab-pane .table-responsive tr,
+            .tab-pane .table-responsive td {
+                display: block;
+                width: 100%;
+            }
+            .tab-pane .table-responsive tr {
+                border: 1px solid #e8edf6;
+                border-radius: 12px;
+                padding: 8px;
+                margin-bottom: 8px;
+                background: #fff;
+            }
+            .app-skin-dark .tab-pane .table-responsive tr {
+                border-color: #253252;
+                background: #111a2e;
+            }
+            .tab-pane .table-responsive td {
+                border: 0;
+                padding: 0 0 6px 0;
+            }
+            .tab-pane .table-responsive td::before {
+                content: attr(data-label);
+                display: block;
+                font-size: 11px;
+                text-transform: uppercase;
+                letter-spacing: .05em;
+                color: #6c7a92;
+                margin-bottom: 2px;
+                font-weight: 700;
+            }
+            .app-skin-dark .tab-pane .table-responsive td::before { color: #99abc8; }
+            .document-pane .mb-4,
+            .document-pane .mb-3 {
+                margin-bottom: 10px !important;
+            }
+            .document-pane .document-card {
+                padding: 12px;
+                border-radius: 14px;
+            }
+            .document-pane .document-form .row.g-3 > [class*="col-"] {
+                width: 100%;
+            }
+            .document-pane .document-form .form-label {
+                font-size: 11px;
+                margin-bottom: 4px;
+            }
+            .document-pane .document-form .form-control,
+            .document-pane .document-form .form-select {
+                font-size: 13px;
+            }
+            .document-pane .document-form-actions {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
     <!--! END: Custom CSS-->
     <!--! HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries !-->
@@ -1151,53 +1299,6 @@ try {
                         <li class="breadcrumb-item">View</li>
                     </ul>
                 </div>
-                <div class="page-header-right ms-auto">
-                    <div class="page-header-right-items">
-                        <div class="d-flex d-md-none">
-                            <a href="javascript:void(0)" class="page-header-right-close-toggle">
-                                <i class="feather-arrow-left me-2"></i>
-                                <span>Back</span>
-                            </a>
-                        </div>
-                        <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
-                            <a href="javascript:void(0);" class="btn btn-icon btn-light-brand">
-                                <i class="feather-printer"></i>
-                            </a>
-                            <a href="ojt-edit.php?id=<?php echo intval($selected_student_id); ?>" class="btn btn-icon btn-light-brand">
-                                <i class="feather-edit"></i>
-                            </a>
-                            <div class="dropdown">
-                                <a class="btn btn-icon btn-light-brand" data-bs-toggle="dropdown" data-bs-offset="0, 10" data-bs-auto-close="outside">
-                                    <i class="feather-more-horizontal"></i>
-                                </a>
-                                <div class="dropdown-menu dropdown-menu-end">
-                                    <a href="javascript:void(0);" class="dropdown-item">
-                                        <i class="feather-user-x me-3"></i>
-                                        <span>Make as Lost</span>
-                                    </a>
-                                    <a href="javascript:void(0);" class="dropdown-item">
-                                        <i class="feather-delete me-3"></i>
-                                        <span>Make as Junk</span>
-                                    </a>
-                                    <div class="dropdown-divider"></div>
-                                    <a href="javascript:void(0);" class="dropdown-item">
-                                        <i class="feather-trash-2 me-3"></i>
-                                        <span>Delete as Lead</span>
-                                    </a>
-                                </div>
-                            </div>
-                            <a href="javascript:void(0);" class="btn btn-primary successAlertMessage">
-                                <i class="feather-plus me-2"></i>
-                                <span>Make as Student</span>
-                            </a>
-                        </div>
-                    </div>
-                    <div class="d-md-none d-flex align-items-center">
-                        <a href="javascript:void(0)" class="page-header-right-open-toggle">
-                            <i class="feather-align-right fs-20"></i>
-                        </a>
-                    </div>
-                </div>
             </div>
             <!-- [ page-header ] end -->
             <div class="bg-white py-3 border-bottom rounded-0 p-md-0 mb-0">
@@ -1338,7 +1439,7 @@ try {
                             <div class="card card-body mb-3">
                                 <div class="d-flex justify-content-between align-items-center mb-3">
                                     <h5 class="fw-bold mb-0">Internship Monitoring Overview</h5>
-                                <div class="d-flex gap-2">
+                                <div class="d-flex gap-2 overview-actions">
                                     <a href="ojt-edit.php?id=<?php echo intval($selected_student_id); ?>" class="btn btn-sm btn-outline-primary">Controlled Edit</a>
                                     <a href="students-dtr.php?id=<?php echo intval($selected_student_id); ?>" class="btn btn-sm btn-outline-success">Attendance History</a>
                                     <a href="ojt-workflow-board.php" class="btn btn-sm btn-outline-info">Workflow Board</a>
@@ -1484,10 +1585,10 @@ try {
                                                     <tbody>
                                                         <?php foreach ($attendance_audit_rows as $ar): ?>
                                                             <tr>
-                                                                <td><?php echo htmlspecialchars((string)$ar['attendance_date']); ?></td>
-                                                                <td><?php echo htmlspecialchars((string)$ar['event_source']); ?></td>
-                                                                <td><?php echo htmlspecialchars((string)($ar['status'] ?? 'pending')); ?></td>
-                                                                <td><?php echo htmlspecialchars(format_dt((string)($ar['updated_at'] ?? ''))); ?></td>
+                                                                <td data-label="Date"><?php echo htmlspecialchars((string)$ar['attendance_date']); ?></td>
+                                                                <td data-label="Source"><?php echo htmlspecialchars((string)$ar['event_source']); ?></td>
+                                                                <td data-label="Status"><?php echo htmlspecialchars((string)($ar['status'] ?? 'pending')); ?></td>
+                                                                <td data-label="Updated"><?php echo htmlspecialchars(format_dt((string)($ar['updated_at'] ?? ''))); ?></td>
                                                             </tr>
                                                         <?php endforeach; ?>
                                                     </tbody>
@@ -1524,8 +1625,8 @@ try {
                             </div>
                         <?php endif; ?>
                     </div>
-                    <div class="tab-pane fade" id="applicationTab" role="tabpanel">
-                        <div class="card card-body">
+                    <div class="tab-pane fade document-pane" id="applicationTab" role="tabpanel">
+                        <div class="card card-body document-card">
                             <?php if ($flash_message !== ''): ?>
                                 <div class="alert alert-<?php echo htmlspecialchars($flash_type); ?> mb-3"><?php echo htmlspecialchars($flash_message); ?></div>
                             <?php endif; ?>
@@ -1547,7 +1648,7 @@ try {
                                     <span class="text-muted">(ID: <?php echo intval($view_user_id); ?>)</span>
                                 </div>
 
-                                <form method="post" action="ojt-view.php?id=<?php echo intval($selected_student_id); ?>">
+                                <form method="post" action="ojt-view.php?id=<?php echo intval($selected_student_id); ?>" class="document-form">
                                     <input type="hidden" name="save_application_letter" value="1">
                                     <input type="hidden" name="user_id" value="<?php echo intval($selected_student_id); ?>">
                                     <input type="hidden" name="active_tab" value="applicationTab">
@@ -1575,7 +1676,7 @@ try {
                                         </div>
                                     </div>
 
-                                    <div class="mt-3 d-flex gap-2">
+                                    <div class="mt-3 d-flex gap-2 document-form-actions">
                                         <button type="submit" class="btn btn-primary">Save Application Data</button>
                                         <a href="document_application.php?id=<?php echo intval($selected_student_id); ?>" class="btn btn-success">Open Application Letter</a>
                                     </div>
@@ -1583,8 +1684,8 @@ try {
                             <?php endif; ?>
                         </div>
                     </div>
-                    <div class="tab-pane fade" id="moaTab" role="tabpanel">
-                        <div class="card card-body">
+                    <div class="tab-pane fade document-pane" id="moaTab" role="tabpanel">
+                        <div class="card card-body document-card">
                             <?php if ($flash_message !== ''): ?>
                                 <div class="alert alert-<?php echo htmlspecialchars($flash_type); ?> mb-3"><?php echo htmlspecialchars($flash_message); ?></div>
                             <?php endif; ?>
@@ -1595,7 +1696,7 @@ try {
                                     <h5 class="fw-bold mb-1">MOA Autofill</h5>
                                     <p class="text-muted mb-0">Saved data here will be used by <code>document_moa.php</code> when this student is selected.</p>
                                 </div>
-                                <form method="post" action="ojt-view.php?id=<?php echo intval($selected_student_id); ?>">
+                                <form method="post" action="ojt-view.php?id=<?php echo intval($selected_student_id); ?>" class="document-form">
                                     <input type="hidden" name="save_moa" value="1">
                                     <input type="hidden" name="user_id" value="<?php echo intval($selected_student_id); ?>">
                                     <input type="hidden" name="active_tab" value="moaTab">
@@ -1687,7 +1788,7 @@ try {
                                         </div>
                                     </div>
 
-                                    <div class="mt-3 d-flex gap-2">
+                                    <div class="mt-3 d-flex gap-2 document-form-actions">
                                         <button type="submit" class="btn btn-primary">Save MOA Data</button>
                                         <a href="document_moa.php?id=<?php echo intval($selected_student_id); ?>" class="btn btn-success">Open MOA</a>
                                     </div>
@@ -1695,8 +1796,8 @@ try {
                             <?php endif; ?>
                         </div>
                     </div>
-                    <div class="tab-pane fade" id="endorsementTab" role="tabpanel">
-                        <div class="card card-body">
+                    <div class="tab-pane fade document-pane" id="endorsementTab" role="tabpanel">
+                        <div class="card card-body document-card">
                             <?php if ($flash_message !== ''): ?>
                                 <div class="alert alert-<?php echo htmlspecialchars($flash_type); ?> mb-3"><?php echo htmlspecialchars($flash_message); ?></div>
                             <?php endif; ?>
@@ -1707,7 +1808,7 @@ try {
                                     <h5 class="fw-bold mb-1">Endorsement Letter</h5>
                                     <p class="text-muted mb-0">Prepare and save endorsement details before opening the printable document.</p>
                                 </div>
-                                <form method="post" action="ojt-view.php?id=<?php echo intval($selected_student_id); ?>">
+                                <form method="post" action="ojt-view.php?id=<?php echo intval($selected_student_id); ?>" class="document-form">
                                     <input type="hidden" name="save_endorsement_letter" value="1">
                                     <input type="hidden" name="user_id" value="<?php echo intval($selected_student_id); ?>">
                                     <input type="hidden" name="active_tab" value="endorsementTab">
@@ -1734,7 +1835,7 @@ try {
                                             <textarea name="students_to_endorse" class="form-control" rows="3"><?php echo htmlspecialchars($endorsement_data['students_to_endorse']); ?></textarea>
                                         </div>
                                     </div>
-                                    <div class="mt-3 d-flex gap-2">
+                                    <div class="mt-3 d-flex gap-2 document-form-actions">
                                         <button type="submit" class="btn btn-primary">Save Endorsement Data</button>
                                         <a href="document_endorsement.php?id=<?php echo intval($selected_student_id); ?>" class="btn btn-success">Open Endorsement Letter</a>
                                     </div>
@@ -1742,8 +1843,8 @@ try {
                             <?php endif; ?>
                         </div>
                     </div>
-                    <div class="tab-pane fade" id="commentTab" role="tabpanel">
-                        <div class="card card-body">
+                    <div class="tab-pane fade document-pane" id="commentTab" role="tabpanel">
+                        <div class="card card-body document-card">
                             <?php if ($flash_message !== ''): ?>
                                 <div class="alert alert-<?php echo htmlspecialchars($flash_type); ?> mb-3"><?php echo htmlspecialchars($flash_message); ?></div>
                             <?php endif; ?>
@@ -1754,7 +1855,7 @@ try {
                                     <h5 class="fw-bold mb-1">Dau MOA</h5>
                                     <p class="text-muted mb-0">Fill, save, and review the Barangay DAU MOA details before final printing.</p>
                                 </div>
-                                <form method="post" action="ojt-view.php?id=<?php echo intval($selected_student_id); ?>">
+                                <form method="post" action="ojt-view.php?id=<?php echo intval($selected_student_id); ?>" class="document-form">
                                     <input type="hidden" name="save_dau_moa" value="1">
                                     <input type="hidden" name="user_id" value="<?php echo intval($selected_student_id); ?>">
                                     <input type="hidden" name="active_tab" value="commentTab">
@@ -1857,7 +1958,7 @@ try {
                                             <input type="text" name="series_no" class="form-control" value="<?php echo htmlspecialchars($dau_moa_data['series_no']); ?>">
                                         </div>
                                     </div>
-                                    <div class="mt-3 d-flex gap-2">
+                                    <div class="mt-3 d-flex gap-2 document-form-actions">
                                         <button type="submit" class="btn btn-primary">Save Dau MOA Data</button>
                                         <a href="document_dau_moa.php?id=<?php echo intval($selected_student_id); ?>" class="btn btn-success">Open Dau MOA</a>
                                     </div>

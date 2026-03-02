@@ -342,6 +342,19 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
         .page-subtitle { font-size: 12px; color: #6c7a92; margin-top: -2px; }
         #ojtListTable thead th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; color: #6c7a92; }
         #ojtListTable { min-width: 980px; }
+        .app-skin-dark body { background: #0b1220; }
+        .app-skin-dark .card,
+        .app-skin-dark .filter-card {
+            border-color: #253252;
+            background: #111a2e;
+            box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+        }
+        .app-skin-dark .page-subtitle,
+        .app-skin-dark #ojtListTable thead th {
+            color: #99abc8;
+        }
+        .app-skin-dark .chip { border-color: #314c72; color: #d4e2f9; }
+        .app-skin-dark .risk-pill { background: #3f2e12; border-color: #7d5c1d; color: #ffd793; }
         @media (max-width: 991.98px) {
             .page-header { display: block; }
             .page-header-left { margin-bottom: 10px; }
@@ -358,6 +371,58 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             .table td, .table th { padding: 0.5rem 0.45rem; font-size: 12px; }
             .header-right .nxl-h-item { display: none; }
             .header-right .dark-light-theme { display: block !important; }
+        }
+        @media (max-width: 767.98px) {
+            .nxl-content { padding-left: 8px; padding-right: 8px; }
+            .card { border-radius: 14px; }
+            #ojtListTable { min-width: 100%; }
+            #ojtListTable thead { display: none; }
+            #ojtListTable,
+            #ojtListTable tbody,
+            #ojtListTable tr,
+            #ojtListTable td {
+                display: block;
+                width: 100%;
+            }
+            #ojtListTable tbody tr {
+                margin: 10px;
+                border: 1px solid #e3ebf9;
+                border-radius: 14px;
+                background: #fff;
+                box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+                padding: 10px;
+            }
+            .app-skin-dark #ojtListTable tbody tr {
+                background: #111a2e;
+                border-color: #253252;
+            }
+            #ojtListTable td {
+                border: 0;
+                padding: 0 0 8px 0;
+            }
+            #ojtListTable td::before {
+                content: attr(data-label);
+                display: block;
+                font-size: 11px;
+                text-transform: uppercase;
+                letter-spacing: .05em;
+                color: #6c7a92;
+                margin-bottom: 4px;
+                font-weight: 700;
+            }
+            .app-skin-dark #ojtListTable td::before { color: #99abc8; }
+            #ojtListTable td:last-child { padding-bottom: 0; }
+            #ojtListTable td[colspan] {
+                text-align: center;
+                padding: 14px 8px;
+            }
+            #ojtListTable td[colspan]::before { display: none; }
+            #ojtListTable td:last-child .d-flex {
+                display: grid !important;
+                grid-template-columns: 1fr 1fr 1fr;
+                gap: 6px !important;
+            }
+            #ojtListTable td:last-child .btn { width: 100%; }
         }
     </style>
 </head>
@@ -547,7 +612,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                             if ($rendered <= 0) $rendered = (float)($r['attendance_total_hours'] ?? 0);
                             ?>
                             <tr>
-                                <td>
+                                <td data-label="Student">
                                     <a class="student-link d-flex align-items-center gap-2" href="ojt-view.php?id=<?php echo (int)$r['id']; ?>">
                                         <img src="<?php echo htmlspecialchars($img); ?>" style="width:42px;height:42px;border-radius:50%;object-fit:cover;" alt="profile">
                                         <div>
@@ -556,30 +621,30 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                                         </div>
                                     </a>
                                 </td>
-                                <td>
+                                <td data-label="Pipeline">
                                     <span class="badge <?php echo stage_badge_class($r['stage']); ?>"><?php echo htmlspecialchars($r['stage']); ?></span>
                                     <div class="text-muted fs-12 mt-1">Last biometric: <?php echo htmlspecialchars($r['last_attendance_date'] ?: 'none'); ?></div>
                                 </td>
-                                <td>
+                                <td data-label="Document Progress">
                                     <span class="chip <?php echo !empty($r['has_application']) ? 'ok' : 'miss'; ?>">Application (<?php echo htmlspecialchars($r['wf_application'] ?: 'draft'); ?>)</span>
                                     <span class="chip <?php echo !empty($r['has_endorsement']) ? 'ok' : 'miss'; ?>">Endorsement (<?php echo htmlspecialchars($r['wf_endorsement'] ?: 'draft'); ?>)</span>
                                     <span class="chip <?php echo !empty($r['has_moa']) ? 'ok' : 'miss'; ?>">MOA (<?php echo htmlspecialchars($r['wf_moa'] ?: 'draft'); ?>)</span>
                                     <span class="chip <?php echo !empty($r['has_dau_moa']) ? 'ok' : 'miss'; ?>">DAU MOA (<?php echo htmlspecialchars($r['wf_dau_moa'] ?: 'draft'); ?>)</span>
                                 </td>
-                                <td>
+                                <td data-label="Hours">
                                     <div class="fw-semibold"><?php echo number_format($rendered, 1); ?> / <?php echo number_format($required, 1); ?></div>
                                     <div class="progress" style="height:6px;"><div class="progress-bar" style="width:<?php echo (float)$r['progress_pct']; ?>%"></div></div>
                                     <div class="text-muted fs-12"><?php echo (float)$r['progress_pct']; ?>%</div>
                                 </td>
-                                <td>
+                                <td data-label="Risk">
                                     <?php if (empty($r['risk_flags'])): ?>
                                         <span class="text-success fs-12">No critical flags</span>
                                     <?php else: ?>
                                         <?php foreach ($r['risk_flags'] as $rf): ?><span class="risk-pill"><?php echo htmlspecialchars($rf); ?></span><?php endforeach; ?>
                                     <?php endif; ?>
                                 </td>
-                                <td><span class="badge bg-soft-danger text-danger"><?php echo intval($r['risk_score'] ?? 0); ?></span></td>
-                                <td>
+                                <td data-label="Risk Score"><span class="badge bg-soft-danger text-danger"><?php echo intval($r['risk_score'] ?? 0); ?></span></td>
+                                <td data-label="Actions">
                                     <div class="d-flex gap-2">
                                         <a class="btn btn-sm btn-light" href="ojt-view.php?id=<?php echo (int)$r['id']; ?>">View</a>
                                         <a class="btn btn-sm btn-outline-primary" href="ojt-edit.php?id=<?php echo (int)$r['id']; ?>">Edit</a>

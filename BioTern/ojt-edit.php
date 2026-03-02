@@ -414,6 +414,36 @@ if ($student_id > 0 && ojt_edit_table_exists($conn, 'ojt_supervisor_reviews')) {
         .card { border: 1px solid #e8edf6; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04); }
         .form-label { font-weight: 600; font-size: 12px; letter-spacing: 0.2px; }
         .section-subtitle { font-size: 12px; color: #6c7a92; margin-top: -6px; }
+        .app-skin-dark body { background: #0b1220; }
+        .app-skin-dark .card { border-color: #253252; background: #111a2e; box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35); }
+        .app-skin-dark .section-subtitle,
+        .app-skin-dark .text-muted { color: #99abc8 !important; }
+        .app-skin-dark .form-control,
+        .app-skin-dark .form-select { background: #0f172a; border-color: #2a3a57; color: #d8e2f4; }
+        .app-skin-dark .table { color: #d8e2f4; }
+        .app-skin-dark .table-bordered > :not(caption) > * { border-color: #253252; }
+        @media (max-width: 991.98px) {
+            .page-header { display: block !important; }
+            .page-header .d-flex.gap-2 {
+                margin-top: 8px;
+                display: grid !important;
+                grid-template-columns: 1fr 1fr;
+                gap: 8px !important;
+            }
+            .page-header .d-flex.gap-2 .btn { width: 100%; }
+            .edit-actions {
+                display: grid !important;
+                grid-template-columns: 1fr 1fr;
+                gap: 8px !important;
+            }
+            .edit-actions .btn { width: 100%; }
+        }
+        @media (max-width: 767.98px) {
+            .nxl-content { padding-left: 8px; padding-right: 8px; }
+            .card.card-body { border-radius: 14px; padding: 12px; }
+            .page-header .d-flex.gap-2 { grid-template-columns: 1fr; }
+            .edit-actions { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body>
@@ -589,7 +619,7 @@ if ($student_id > 0 && ojt_edit_table_exists($conn, 'ojt_supervisor_reviews')) {
                         <textarea name="change_reason" class="form-control" rows="2" placeholder="Optional: explain why this OJT update is needed for audit/compliance."></textarea>
                     </div>
                 </div>
-                <div class="mt-3 d-flex gap-2">
+                <div class="mt-3 d-flex gap-2 edit-actions">
                     <button type="submit" class="btn btn-primary" <?php echo $can_edit_controls ? '' : 'disabled'; ?>>Save Controlled Changes</button>
                     <a href="#previous-changes" class="btn btn-outline-info">Previous Changes</a>
                     <a href="ojt-view.php?id=<?php echo (int)$student_id; ?>" class="btn btn-success">Return to OJT View</a>

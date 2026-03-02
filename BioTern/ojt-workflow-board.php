@@ -150,6 +150,23 @@ function status_label(string $s): string {
         .app-skin-dark body { background: #0b1220; }
         .app-skin-dark .wf-card { background: #111a2e; border-color: #253252; }
         .app-skin-dark .wf-meta { color: #a6b4cf; }
+        .app-skin-dark .card { background: #111a2e; border-color: #253252; }
+        .app-skin-dark .form-control,
+        .app-skin-dark .form-select { background-color: #0f172a; border-color: #2a3a57; color: #d8e2f4; }
+        @media (max-width: 991.98px) {
+            .header-right .d-flex { display: grid !important; grid-template-columns: 1fr 1fr; gap: 8px !important; }
+            .header-right .btn { width: 100%; }
+            .board-col { min-height: auto; }
+        }
+        @media (max-width: 767.98px) {
+            .nxl-content { padding-left: 8px; padding-right: 8px; }
+            .header-right .d-flex { grid-template-columns: 1fr !important; }
+            .page-header { display: block !important; }
+            .board-head { font-size: 12px; }
+            .wf-card { border-radius: 14px; padding: 12px; }
+            .wf-card .d-flex.gap-2 { display: grid !important; grid-template-columns: 1fr; }
+            .wf-card .d-flex.gap-2 .btn { width: 100%; }
+        }
     </style>
 </head>
 <body>
