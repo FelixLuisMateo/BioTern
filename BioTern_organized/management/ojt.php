@@ -65,6 +65,19 @@ function stage_badge_class(string $stage): string {
     return $map[$stage] ?? 'bg-soft-secondary text-secondary';
 }
 
+function resolve_profile_image_url(string $profilePath): ?string {
+    $clean = ltrim(str_replace('\\', '/', trim($profilePath)), '/');
+    if ($clean === '') {
+        return null;
+    }
+    $rootPath = dirname(__DIR__) . '/' . $clean;
+    if (!file_exists($rootPath)) {
+        return null;
+    }
+    $mtime = @filemtime($rootPath);
+    return $clean . ($mtime ? ('?v=' . $mtime) : '');
+}
+
 $conn->query("CREATE TABLE IF NOT EXISTS ojt_reminder_queue (
     id INT AUTO_INCREMENT PRIMARY KEY,
     student_id INT NOT NULL,
@@ -604,8 +617,9 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                             <?php
                             $profile = trim((string)($r['profile_picture'] ?? ''));
                             $img = 'assets/images/avatar/' . (($index % 5) + 1) . '.png';
-                            if ($profile !== '' && file_exists(__DIR__ . '/' . $profile)) {
-                                $img = $profile . '?v=' . filemtime(__DIR__ . '/' . $profile);
+                            $profile_url = resolve_profile_image_url($profile);
+                            if ($profile_url !== null) {
+                                $img = $profile_url;
                             }
                             $required = (float)($r['required_hours'] ?? 0);
                             $rendered = (float)($r['rendered_hours'] ?? 0);

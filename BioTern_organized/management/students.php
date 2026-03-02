@@ -221,6 +221,19 @@ function formatDate($date) {
     return '-';
 }
 
+function resolve_profile_image_url(string $profilePath): ?string {
+    $clean = ltrim(str_replace('\\', '/', trim($profilePath)), '/');
+    if ($clean === '') {
+        return null;
+    }
+    $rootPath = dirname(__DIR__) . '/' . $clean;
+    if (!file_exists($rootPath)) {
+        return null;
+    }
+    $mtime = @filemtime($rootPath);
+    return $clean . ($mtime ? ('?v=' . $mtime) : '');
+}
+
 ?>
 
 <!DOCTYPE html>
@@ -833,9 +846,9 @@ function formatDate($date) {
                                                                 <div class="avatar-image avatar-md">
                                                                     <?php
                                                                     $pp = $student['profile_picture'] ?? '';
-                                                                    if ($pp && file_exists(__DIR__ . '/' . $pp)) {
-                                                                        $vb = filemtime(__DIR__ . '/' . $pp);
-                                                                        echo '<img src="' . htmlspecialchars($pp) . '?v=' . $vb . '" alt="" class="img-fluid">';
+                                                                    $pp_url = resolve_profile_image_url($pp);
+                                                                    if ($pp_url !== null) {
+                                                                        echo '<img src="' . htmlspecialchars($pp_url) . '" alt="" class="img-fluid">';
                                                                     } else {
                                                                         echo '<img src="assets/images/avatar/' . (($index % 5) + 1) . '.png" alt="" class="img-fluid">';
                                                                     }

@@ -14,6 +14,19 @@ try {
     die("Database Error: " . $e->getMessage());
 }
 
+function resolve_profile_image_url(string $profilePath): ?string {
+    $clean = ltrim(str_replace('\\', '/', trim($profilePath)), '/');
+    if ($clean === '') {
+        return null;
+    }
+    $rootPath = dirname(__DIR__) . '/' . $clean;
+    if (!file_exists($rootPath)) {
+        return null;
+    }
+    $mtime = @filemtime($rootPath);
+    return $clean . ($mtime ? ('?v=' . $mtime) : '');
+}
+
 // Get student ID from URL parameter
 $student_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 
@@ -685,8 +698,11 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                                 <div class="mb-4 text-center">
                                     <div class="wd-150 ht-150 mx-auto mb-3 position-relative">
                                         <div class="avatar-image wd-150 ht-150 border border-5 border-gray-3">
-                                            <?php if (!empty($student['profile_picture']) && file_exists(__DIR__ . '/' . $student['profile_picture'])): ?>
-                                                <img src="<?php echo htmlspecialchars($student['profile_picture']) . '?v=' . filemtime(__DIR__ . '/' . $student['profile_picture']); ?>" alt="Profile" class="img-fluid">
+                                            <?php
+                                            $profile_img = resolve_profile_image_url((string)($student['profile_picture'] ?? ''));
+                                            if ($profile_img !== null):
+                                            ?>
+                                                <img src="<?php echo htmlspecialchars($profile_img); ?>" alt="Profile" class="img-fluid">
                                             <?php else: ?>
                                                 <img src="assets/images/avatar/<?php echo ($student['id'] % 5) + 1; ?>.png" alt="" class="img-fluid">
                                             <?php endif; ?>

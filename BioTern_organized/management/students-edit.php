@@ -44,17 +44,18 @@ if ($student_id == 0) {
     exit;
 }
 
-// Create uploads directory if it doesn't exist
-$uploads_dir = dirname(__FILE__) . '/uploads/profile_pictures';
+// Use project-root uploads so files resolve from both legacy and organized routes.
+$project_root = dirname(__DIR__);
+$uploads_dir = $project_root . '/uploads/profile_pictures';
 if (!is_dir($uploads_dir)) {
     mkdir($uploads_dir, 0755, true);
 }
 // Ensure other upload folders exist
-$uploads_manual_dtr = dirname(__FILE__) . '/uploads/manual_dtr';
+$uploads_manual_dtr = $project_root . '/uploads/manual_dtr';
 if (!is_dir($uploads_manual_dtr)) {
     mkdir($uploads_manual_dtr, 0755, true);
 }
-$uploads_documents = dirname(__FILE__) . '/uploads/documents';
+$uploads_documents = $project_root . '/uploads/documents';
 if (!is_dir($uploads_documents)) {
     mkdir($uploads_documents, 0755, true);
 }
@@ -214,8 +215,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $file_path = $uploads_dir . '/' . $unique_name;
             
             // Delete old profile picture if exists
-            if (!empty($profile_picture_path) && file_exists(dirname(__FILE__) . '/' . $profile_picture_path)) {
-                unlink(dirname(__FILE__) . '/' . $profile_picture_path);
+            $old_profile_file = $project_root . '/' . ltrim(str_replace('\\', '/', (string)$profile_picture_path), '/');
+            if (!empty($profile_picture_path) && file_exists($old_profile_file)) {
+                unlink($old_profile_file);
             }
             
             // Move uploaded file

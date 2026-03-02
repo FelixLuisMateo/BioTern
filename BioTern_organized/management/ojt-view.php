@@ -141,6 +141,20 @@ function ojt_stage_badge(string $stage): string
     return '<span class="badge ' . $cls . '">' . htmlspecialchars($stage) . '</span>';
 }
 
+function resolve_profile_image_url(string $profilePath): ?string
+{
+    $clean = ltrim(str_replace('\\', '/', trim($profilePath)), '/');
+    if ($clean === '') {
+        return null;
+    }
+    $rootPath = dirname(__DIR__) . '/' . $clean;
+    if (!file_exists($rootPath)) {
+        return null;
+    }
+    $mtime = @filemtime($rootPath);
+    return $clean . ($mtime ? ('?v=' . $mtime) : '');
+}
+
 try {
     $conn = new mysqli($host, $db_user, $db_password, $db_name);
     if ($conn->connect_error) {
@@ -1337,8 +1351,9 @@ try {
                             $full_name = trim(($student['first_name'] ?? '') . ' ' . ($student['middle_name'] ?? '') . ' ' . ($student['last_name'] ?? ''));
                             $profile_picture = trim((string)($student['profile_picture'] ?? ''));
                             $profile_img_src = 'assets/images/avatar/1.png';
-                            if ($profile_picture !== '' && file_exists(__DIR__ . '/' . $profile_picture)) {
-                                $profile_img_src = $profile_picture . '?v=' . filemtime(__DIR__ . '/' . $profile_picture);
+                            $profile_img_url = resolve_profile_image_url($profile_picture);
+                            if ($profile_img_url !== null) {
+                                $profile_img_src = $profile_img_url;
                             }
                             ?>
                             <div class="card card-body lead-info">
