@@ -10,6 +10,34 @@ $conversion_rate = 0;
 $active_students = 0;
 $total_students = 0;
 
+$total_attendances = 0;
+$rejected_attendances = 0;
+$approved_attendances = 0;
+$total_internships = 0;
+$active_internships = 0;
+$biometric_students = 0;
+$new_students_30 = 0;
+$coordinators_count = 0;
+$supervisors_count = 0;
+$total_required_hours = 0;
+$total_rendered_hours = 0;
+
+$visitors_labels = [];
+$visitors_students = [];
+$visitors_attendances = [];
+$visitors_internships = [];
+
+$campaign_labels = [];
+$campaign_internal = [];
+$campaign_external = [];
+
+$sparkline_bounce = [];
+$sparkline_active = [];
+$sparkline_biometric = [];
+$sparkline_approval = [];
+
+$project_remainders = [];
+
 try {
     // Calculate bounce rate based on attendance rejection ratio
     $total_att = $conn->query("SELECT COUNT(*) as count FROM attendances");
@@ -68,19 +96,185 @@ try {
     $total_attendances = isset($total_attendances) ? (int)$total_attendances : 0;
 
     // Goal widgets: define goals and current values from DB
-    $marketing_goal = 1250;
+    $marketing_goal = max(1, $total_students);
     $marketing_current = isset($new_students_30) ? (int)$new_students_30 : 0;
-    $teams_goal = 1250;
+    $teams_goal = max(1, $total_students);
     $teams_current = (isset($coordinators_count) ? (int)$coordinators_count : 0) + (isset($supervisors_count) ? (int)$supervisors_count : 0);
     $ojt_goal_hours = max(1, (int)$total_required_hours);
     $ojt_current_hours = (int)$total_rendered_hours;
-    $revenue_goal = 12500;
-    $revenue_current = (int)$total_students;
+    $revenue_goal = max(1, (int)$total_attendances);
+    $revenue_current = (int)$approved_attendances;
     // compute simple percentages for client-side progress if needed
     $marketing_progress = $marketing_goal > 0 ? round(min(100, ($marketing_current / $marketing_goal) * 100), 2) : 0;
     $teams_progress = $teams_goal > 0 ? round(min(100, ($teams_current / $teams_goal) * 100), 2) : 0;
     $ojt_progress = $ojt_goal_hours > 0 ? round(min(100, ($ojt_current_hours / $ojt_goal_hours) * 100), 2) : 0;
     $revenue_progress = $revenue_goal > 0 ? round(min(100, ($revenue_current / $revenue_goal) * 100), 2) : 0;
+
+    // Visitors Overview (last 7 months)
+    $month_keys = [];
+    $month_labels = [];
+    for ($i = 6; $i >= 0; $i--) {
+        $month_key = date('Y-m', strtotime("-{$i} months"));
+        $month_keys[] = $month_key;
+        $month_labels[] = strtoupper(date('M/y', strtotime("{$month_key}-01")));
+    }
+
+    $students_by_month = array_fill_keys($month_keys, 0);
+    $att_by_month = array_fill_keys($month_keys, 0);
+    $intern_by_month = array_fill_keys($month_keys, 0);
+
+    $start_7m = date('Y-m-01', strtotime('-6 months'));
+
+    $q_students_month = $conn->query("SELECT DATE_FORMAT(created_at, '%Y-%m') AS ym, COUNT(*) AS cnt FROM students WHERE deleted_at IS NULL AND created_at >= '{$start_7m}' GROUP BY ym");
+    if ($q_students_month) {
+        while ($row = $q_students_month->fetch_assoc()) {
+            $ym = $row['ym'];
+            if (isset($students_by_month[$ym])) {
+                $students_by_month[$ym] = (int)$row['cnt'];
+            }
+        }
+    }
+
+    $q_att_month = $conn->query("SELECT DATE_FORMAT(attendance_date, '%Y-%m') AS ym, COUNT(*) AS cnt FROM attendances WHERE attendance_date >= '{$start_7m}' GROUP BY ym");
+    if ($q_att_month) {
+        while ($row = $q_att_month->fetch_assoc()) {
+            $ym = $row['ym'];
+            if (isset($att_by_month[$ym])) {
+                $att_by_month[$ym] = (int)$row['cnt'];
+            }
+        }
+    }
+
+    $q_intern_month = $conn->query("SELECT DATE_FORMAT(created_at, '%Y-%m') AS ym, COUNT(*) AS cnt FROM internships WHERE deleted_at IS NULL AND created_at >= '{$start_7m}' GROUP BY ym");
+    if ($q_intern_month) {
+        while ($row = $q_intern_month->fetch_assoc()) {
+            $ym = $row['ym'];
+            if (isset($intern_by_month[$ym])) {
+                $intern_by_month[$ym] = (int)$row['cnt'];
+            }
+        }
+    }
+
+    $visitors_labels = $month_labels;
+    foreach ($month_keys as $key) {
+        $visitors_students[] = $students_by_month[$key];
+        $visitors_attendances[] = $att_by_month[$key];
+        $visitors_internships[] = $intern_by_month[$key];
+    }
+
+    // Campaign chart (last 12 months, internal vs external internships by start date)
+    $campaign_keys = [];
+    for ($i = 11; $i >= 0; $i--) {
+        $campaign_key = date('Y-m', strtotime("-{$i} months"));
+        $campaign_keys[] = $campaign_key;
+        $campaign_labels[] = date('M', strtotime("{$campaign_key}-01"));
+    }
+    $campaign_internal_map = array_fill_keys($campaign_keys, 0);
+    $campaign_external_map = array_fill_keys($campaign_keys, 0);
+    $start_12m = date('Y-m-01', strtotime('-11 months'));
+
+    $q_campaign = $conn->query("SELECT DATE_FORMAT(start_date, '%Y-%m') AS ym, type, COUNT(*) AS cnt FROM internships WHERE deleted_at IS NULL AND start_date >= '{$start_12m}' GROUP BY ym, type");
+    if ($q_campaign) {
+        while ($row = $q_campaign->fetch_assoc()) {
+            $ym = $row['ym'];
+            $type = $row['type'];
+            $cnt = (int)$row['cnt'];
+            if ($type === 'internal' && isset($campaign_internal_map[$ym])) {
+                $campaign_internal_map[$ym] = $cnt;
+            }
+            if ($type === 'external' && isset($campaign_external_map[$ym])) {
+                $campaign_external_map[$ym] = $cnt;
+            }
+        }
+    }
+    foreach ($campaign_keys as $key) {
+        $campaign_internal[] = $campaign_internal_map[$key];
+        $campaign_external[] = $campaign_external_map[$key];
+    }
+
+    // Sparkline series (last 9 days)
+    $day_keys = [];
+    for ($i = 8; $i >= 0; $i--) {
+        $day_keys[] = date('Y-m-d', strtotime("-{$i} days"));
+    }
+
+    $att_daily = [];
+    $rejected_daily = [];
+    $approved_daily = [];
+    $q_daily_att = $conn->query("SELECT attendance_date AS dt, COUNT(*) AS total_cnt, SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) AS rejected_cnt, SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) AS approved_cnt FROM attendances WHERE attendance_date >= DATE_SUB(CURDATE(), INTERVAL 8 DAY) GROUP BY attendance_date");
+    if ($q_daily_att) {
+        while ($row = $q_daily_att->fetch_assoc()) {
+            $dt = $row['dt'];
+            $att_daily[$dt] = (int)$row['total_cnt'];
+            $rejected_daily[$dt] = (int)$row['rejected_cnt'];
+            $approved_daily[$dt] = (int)$row['approved_cnt'];
+        }
+    }
+
+    $new_students_daily = [];
+    $q_students_daily = $conn->query("SELECT DATE(created_at) AS dt, COUNT(*) AS cnt FROM students WHERE deleted_at IS NULL AND DATE(created_at) >= DATE_SUB(CURDATE(), INTERVAL 8 DAY) GROUP BY DATE(created_at)");
+    if ($q_students_daily) {
+        while ($row = $q_students_daily->fetch_assoc()) {
+            $new_students_daily[$row['dt']] = (int)$row['cnt'];
+        }
+    }
+
+    $biometric_daily = [];
+    $q_bio_daily = $conn->query("SELECT DATE(COALESCE(biometric_registered_at, created_at)) AS dt, COUNT(*) AS cnt FROM students WHERE deleted_at IS NULL AND biometric_registered = 1 AND DATE(COALESCE(biometric_registered_at, created_at)) >= DATE_SUB(CURDATE(), INTERVAL 8 DAY) GROUP BY DATE(COALESCE(biometric_registered_at, created_at))");
+    if ($q_bio_daily) {
+        while ($row = $q_bio_daily->fetch_assoc()) {
+            $biometric_daily[$row['dt']] = (int)$row['cnt'];
+        }
+    }
+
+    $intern_total_daily = [];
+    $intern_ongoing_daily = [];
+    $q_intern_daily = $conn->query("SELECT DATE(created_at) AS dt, COUNT(*) AS total_cnt, SUM(CASE WHEN status = 'ongoing' THEN 1 ELSE 0 END) AS ongoing_cnt FROM internships WHERE deleted_at IS NULL AND DATE(created_at) >= DATE_SUB(CURDATE(), INTERVAL 8 DAY) GROUP BY DATE(created_at)");
+    if ($q_intern_daily) {
+        while ($row = $q_intern_daily->fetch_assoc()) {
+            $dt = $row['dt'];
+            $intern_total_daily[$dt] = (int)$row['total_cnt'];
+            $intern_ongoing_daily[$dt] = (int)$row['ongoing_cnt'];
+        }
+    }
+
+    foreach ($day_keys as $dt) {
+        $day_total_att = $att_daily[$dt] ?? 0;
+        $day_rejected = $rejected_daily[$dt] ?? 0;
+        $day_approved = $approved_daily[$dt] ?? 0;
+        $day_new_students = $new_students_daily[$dt] ?? 0;
+        $day_biometric = $biometric_daily[$dt] ?? 0;
+        $day_total_intern = $intern_total_daily[$dt] ?? 0;
+        $day_ongoing_intern = $intern_ongoing_daily[$dt] ?? 0;
+
+        $sparkline_bounce[] = $day_total_att > 0 ? round(($day_rejected / $day_total_att) * 100, 2) : 0;
+        $sparkline_approval[] = $day_total_att > 0 ? round(($day_approved / $day_total_att) * 100, 2) : 0;
+        $sparkline_biometric[] = $day_new_students > 0 ? round(($day_biometric / $day_new_students) * 100, 2) : 0;
+        $sparkline_active[] = $day_total_intern > 0 ? round(($day_ongoing_intern / $day_total_intern) * 100, 2) : 0;
+    }
+
+    // Project remainders table data (latest internships)
+    $q_projects = $conn->query("SELECT i.id, i.student_id, i.company_name, i.status, i.required_hours, i.rendered_hours, i.completion_percentage, s.first_name, s.last_name FROM internships i LEFT JOIN students s ON s.id = i.student_id WHERE i.deleted_at IS NULL ORDER BY i.updated_at DESC LIMIT 5");
+    if ($q_projects) {
+        while ($row = $q_projects->fetch_assoc()) {
+            $required = (int)($row['required_hours'] ?? 0);
+            $rendered = (int)($row['rendered_hours'] ?? 0);
+            $remaining = max(0, $required - $rendered);
+            $completion = (float)($row['completion_percentage'] ?? 0);
+            if ($required > 0 && $completion <= 0) {
+                $completion = round(($rendered / $required) * 100, 2);
+            }
+            $project_remainders[] = [
+                'id' => (int)$row['id'],
+                'name' => !empty($row['company_name']) ? $row['company_name'] : trim(($row['first_name'] ?? '') . ' ' . ($row['last_name'] ?? '')),
+                'status' => (string)($row['status'] ?? 'pending'),
+                'required_hours' => $required,
+                'rendered_hours' => $rendered,
+                'remaining_hours' => $remaining,
+                'completion' => max(0, min(100, $completion))
+            ];
+        }
+    }
 } catch (Exception $e) {
     // Database error - fallback to 0 values
 }
@@ -416,7 +610,7 @@ try {
                             </div>
                             <div class="col-md-2 col-sm-6">
                                 <div class="card p-3 text-center">
-                                    <div class="fs-5 fw-bold"><?php echo number_format(isset($active_internships)?$active_internships:$active_internships= (isset($active_internships)?$active_internships: (isset($active_internships)?$active_internships:0))); ?></div>
+                                    <div class="fs-5 fw-bold"><?php echo number_format($active_internships); ?></div>
                                     <div class="fs-12 text-muted">Active Internships</div>
                                 </div>
                             </div>
@@ -458,7 +652,6 @@ try {
                                     </div>
                                     <a href="javascript:void(0);" class="btn btn-light-brand">View Alls</a>
                                 </div>
-                                <div class="row">
                                 <?php
                                 // Build student-centric metrics for the Email Reports area
                                 $erp_total_students = isset($total_students) ? (int)$total_students : 0;
@@ -992,176 +1185,58 @@ try {
                                             </tr>
                                         </thead>
                                         <tbody>
+                                            <?php
+                                            $status_class_map = [
+                                                'pending' => 'bg-soft-warning text-warning',
+                                                'ongoing' => 'bg-soft-primary text-primary',
+                                                'completed' => 'bg-soft-success text-success',
+                                                'cancelled' => 'bg-soft-danger text-danger'
+                                            ];
+                                            if (!empty($project_remainders)):
+                                                foreach ($project_remainders as $project):
+                                                    $status = strtolower($project['status']);
+                                                    $badge_class = $status_class_map[$status] ?? 'bg-soft-secondary text-secondary';
+                                                    $stage_steps = (int)round(($project['completion'] / 100) * 6);
+                                            ?>
                                             <tr>
                                                 <td>
                                                     <div class="hstack gap-2">
                                                         <span class="wd-10 ht-10 bg-gray-400 rounded-circle d-inline-block me-2 lh-base"></span>
                                                         <div class="border-3 border-start rounded ps-3">
-                                                            <a href="javascript:void(0);" class="mb-2 d-block">
-                                                                <span>Overview Home Redesign</span>
+                                                            <a href="ojt-view.php?id=<?php echo (int)$project['id']; ?>" class="mb-2 d-block">
+                                                                <span><?php echo htmlspecialchars($project['name'] ?: ('Internship #' . $project['id'])); ?></span>
                                                             </a>
-                                                            <p class="fs-12 text-muted mb-0">Management of project under "BioTern" brand</p>
+                                                            <p class="fs-12 text-muted mb-0">Rendered <?php echo (int)$project['rendered_hours']; ?> / <?php echo (int)$project['required_hours']; ?> hours</p>
                                                         </div>
                                                     </div>
                                                 </td>
                                                 <td>
-                                                    <span class="badge bg-soft-primary text-primary">In Prograss</span>
+                                                    <span class="badge <?php echo $badge_class; ?>"><?php echo ucfirst($status); ?></span>
                                                 </td>
                                                 <td>
-                                                    <div data-time-countdown="countdown_1"></div>
+                                                    <span class="fs-12 fw-semibold"><?php echo (int)$project['remaining_hours']; ?> hrs</span>
                                                 </td>
                                                 <td>
                                                     <div class="hstack gap-1">
-                                                        <div class="wd-15 ht-4 bg-success rounded-pill opacity-75"></div>
-                                                        <div class="wd-15 ht-4 bg-success rounded-pill opacity-75"></div>
-                                                        <div class="wd-15 ht-4 bg-success rounded-pill opacity-75"></div>
-                                                        <div class="wd-15 ht-4 bg-warning rounded-pill opacity-75"></div>
-                                                        <div class="wd-15 ht-4 bg-warning rounded-pill opacity-75"></div>
-                                                        <div class="wd-15 ht-4 bg-gray-300 rounded-pill"></div>
+                                                        <?php for ($i = 1; $i <= 6; $i++): ?>
+                                                            <div class="wd-15 ht-4 rounded-pill <?php echo $i <= $stage_steps ? 'bg-success opacity-75' : 'bg-gray-300'; ?>"></div>
+                                                        <?php endfor; ?>
                                                     </div>
                                                 </td>
                                                 <td>
-                                                    <a href="javascript:void(0);" class="avatar-text avatar-md ms-auto">
+                                                    <a href="ojt-view.php?id=<?php echo (int)$project['id']; ?>" class="avatar-text avatar-md ms-auto">
                                                         <i class="feather-arrow-right"></i>
                                                     </a>
                                                 </td>
                                             </tr>
+                                            <?php
+                                                endforeach;
+                                            else:
+                                            ?>
                                             <tr>
-                                                <td>
-                                                    <div class="hstack gap-2">
-                                                        <span class="wd-10 ht-10 bg-gray-400 rounded-circle d-inline-block me-2 lh-base"></span>
-                                                        <div class="border-3 border-start rounded ps-3">
-                                                            <a href="javascript:void(0);" class="mb-2 d-block">
-                                                                <span>BioTern Overview Admin Project</span>
-                                                            </a>
-                                                            <p class="fs-12 text-muted mb-0">BioTern Overview Home Project</p>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <span class="badge bg-soft-info text-info">Updading</span>
-                                                </td>
-                                                <td>
-                                                    <div data-time-countdown="countdown_2"></div>
-                                                </td>
-                                                <td>
-                                                    <div class="hstack gap-1">
-                                                        <div class="wd-15 ht-4 bg-success rounded-pill opacity-75"></div>
-                                                        <div class="wd-15 ht-4 bg-success rounded-pill opacity-75"></div>
-                                                        <div class="wd-15 ht-4 bg-success rounded-pill opacity-75"></div>
-                                                        <div class="wd-15 ht-4 bg-warning rounded-pill opacity-75"></div>
-                                                        <div class="wd-15 ht-4 bg-warning rounded-pill opacity-75"></div>
-                                                        <div class="wd-15 ht-4 bg-gray-300 rounded-pill"></div>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <a href="javascript:void(0);" class="avatar-text avatar-md ms-auto">
-                                                        <i class="feather-arrow-right"></i>
-                                                    </a>
-                                                </td>
+                                                <td colspan="5" class="text-center text-muted py-4">No internship records found.</td>
                                             </tr>
-                                            <tr>
-                                                <td>
-                                                    <div class="hstack gap-2">
-                                                        <span class="wd-10 ht-10 bg-gray-400 rounded-circle d-inline-block me-2 lh-base"></span>
-                                                        <div class="border-3 border-start rounded ps-3">
-                                                            <a href="javascript:void(0);" class="mb-2 d-block">
-                                                                <span>Website Redesign for Nike</span>
-                                                            </a>
-                                                            <p class="fs-12 text-muted mb-0">Website Redesign for Nike</p>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <span class="badge bg-soft-danger text-danger">Upcoming</span>
-                                                </td>
-                                                <td>
-                                                    <div data-time-countdown="countdown_3"></div>
-                                                </td>
-                                                <td>
-                                                    <div class="hstack gap-1">
-                                                        <div class="wd-15 ht-4 bg-success rounded-pill opacity-75"></div>
-                                                        <div class="wd-15 ht-4 bg-success rounded-pill opacity-75"></div>
-                                                        <div class="wd-15 ht-4 bg-success rounded-pill opacity-75"></div>
-                                                        <div class="wd-15 ht-4 bg-warning rounded-pill opacity-75"></div>
-                                                        <div class="wd-15 ht-4 bg-warning rounded-pill opacity-75"></div>
-                                                        <div class="wd-15 ht-4 bg-gray-300 rounded-pill"></div>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <a href="javascript:void(0);" class="avatar-text avatar-md ms-auto">
-                                                        <i class="feather-arrow-right"></i>
-                                                    </a>
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td>
-                                                    <div class="hstack gap-2">
-                                                        <span class="wd-10 ht-10 bg-gray-400 rounded-circle d-inline-block me-2 lh-base"></span>
-                                                        <div class="border-3 border-start rounded ps-3">
-                                                            <a href="javascript:void(0);" class="mb-2 d-block">
-                                                                <span>BioTern Overview Home Project</span>
-                                                            </a>
-                                                            <p class="fs-12 text-muted mb-0">BioTern Overview Home Project</p>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <span class="badge bg-soft-teal text-teal">Submitted</span>
-                                                </td>
-                                                <td>
-                                                    <div data-time-countdown="countdown_4"></div>
-                                                </td>
-                                                <td>
-                                                    <div class="hstack gap-1">
-                                                        <div class="wd-15 ht-4 bg-success rounded-pill opacity-75"></div>
-                                                        <div class="wd-15 ht-4 bg-success rounded-pill opacity-75"></div>
-                                                        <div class="wd-15 ht-4 bg-success rounded-pill opacity-75"></div>
-                                                        <div class="wd-15 ht-4 bg-warning rounded-pill opacity-75"></div>
-                                                        <div class="wd-15 ht-4 bg-warning rounded-pill opacity-75"></div>
-                                                        <div class="wd-15 ht-4 bg-gray-300 rounded-pill"></div>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <a href="javascript:void(0);" class="avatar-text avatar-md ms-auto">
-                                                        <i class="feather-arrow-right"></i>
-                                                    </a>
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td>
-                                                    <div class="hstack gap-2">
-                                                        <span class="wd-10 ht-10 bg-gray-400 rounded-circle d-inline-block me-2 lh-base"></span>
-                                                        <div class="border-3 border-start rounded ps-3">
-                                                            <a href="javascript:void(0);" class="mb-2 d-block">
-                                                                <span>Update User Flows with UX Feedback</span>
-                                                            </a>
-                                                            <p class="fs-12 text-muted mb-0">Update User Flows with UX Feedback</p>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <span class="badge bg-soft-warning text-warning">Working</span>
-                                                </td>
-                                                <td>
-                                                    <div data-time-countdown="countdown_5"></div>
-                                                </td>
-                                                <td>
-                                                    <div class="hstack gap-1">
-                                                        <div class="wd-15 ht-4 bg-success rounded-pill opacity-75"></div>
-                                                        <div class="wd-15 ht-4 bg-success rounded-pill opacity-75"></div>
-                                                        <div class="wd-15 ht-4 bg-success rounded-pill opacity-75"></div>
-                                                        <div class="wd-15 ht-4 bg-warning rounded-pill opacity-75"></div>
-                                                        <div class="wd-15 ht-4 bg-warning rounded-pill opacity-75"></div>
-                                                        <div class="wd-15 ht-4 bg-gray-300 rounded-pill"></div>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <a href="javascript:void(0);" class="avatar-text avatar-md ms-auto">
-                                                        <i class="feather-arrow-right"></i>
-                                                    </a>
-                                                </td>
-                                            </tr>
+                                            <?php endif; ?>
                                         </tbody>
                                     </table>
                                 </div>
@@ -1489,7 +1564,162 @@ try {
     <!--! END: Vendors JS !-->
     <!--! BEGIN: Apps Init  !-->
     <script src="assets/js/common-init.min.js"></script>
-    <script src="assets/js/analytics-init.min.js"></script>
+    <script>
+        (function () {
+            var sparklineBounce = <?php echo json_encode($sparkline_bounce); ?>;
+            var sparklineActive = <?php echo json_encode($sparkline_active); ?>;
+            var sparklineBiometric = <?php echo json_encode($sparkline_biometric); ?>;
+            var sparklineApproval = <?php echo json_encode($sparkline_approval); ?>;
+
+            var visitorsLabels = <?php echo json_encode($visitors_labels); ?>;
+            var visitorsStudents = <?php echo json_encode($visitors_students); ?>;
+            var visitorsAttendances = <?php echo json_encode($visitors_attendances); ?>;
+            var visitorsInternships = <?php echo json_encode($visitors_internships); ?>;
+
+            var campaignLabels = <?php echo json_encode($campaign_labels); ?>;
+            var campaignInternal = <?php echo json_encode($campaign_internal); ?>;
+            var campaignExternal = <?php echo json_encode($campaign_external); ?>;
+
+            var goalProgress = {
+                marketing: <?php echo json_encode($marketing_progress); ?>,
+                teams: <?php echo json_encode($teams_progress); ?>,
+                ojt: <?php echo json_encode($ojt_progress); ?>,
+                revenue: <?php echo json_encode($revenue_progress); ?>
+            };
+
+            function initDateRange() {
+                if (typeof $ === 'undefined' || typeof moment === 'undefined' || !$('#reportrange').length || !$.fn.daterangepicker) {
+                    return;
+                }
+                var start = moment().subtract(29, 'days');
+                var end = moment();
+                function setRangeLabel(s, e) {
+                    $('#reportrange span').html(s.format('MMM D, YY') + ' - ' + e.format('MMM D, YY'));
+                }
+                $('#reportrange').daterangepicker({
+                    startDate: start,
+                    endDate: end,
+                    ranges: {
+                        'Today': [moment(), moment()],
+                        'Yesterday': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+                        'Last 7 Days': [moment().subtract(6, 'days'), moment()],
+                        'Last 30 Days': [moment().subtract(29, 'days'), moment()],
+                        'This Month': [moment().startOf('month'), moment().endOf('month')],
+                        'Last Month': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
+                    }
+                }, setRangeLabel);
+                setRangeLabel(start, end);
+            }
+
+            function renderSparkline(selector, seriesData, color) {
+                var el = document.querySelector(selector);
+                if (!el || typeof ApexCharts === 'undefined') return;
+                new ApexCharts(el, {
+                    chart: { type: 'area', height: 80, sparkline: { enabled: true } },
+                    series: [{ name: 'Rate', data: seriesData }],
+                    stroke: { width: 1, curve: 'smooth' },
+                    fill: {
+                        opacity: [0.85, 0.25, 1, 1],
+                        gradient: { inverseColors: false, shade: 'light', type: 'vertical', opacityFrom: 0.5, opacityTo: 0.1, stops: [0, 100, 100, 100] }
+                    },
+                    yaxis: { min: 0, max: 100 },
+                    colors: [color],
+                    dataLabels: { enabled: false }
+                }).render();
+            }
+
+            function initCharts() {
+                if (typeof ApexCharts === 'undefined') return;
+
+                renderSparkline('#bounce-rate', sparklineBounce, '#64748a');
+                renderSparkline('#page-views', sparklineActive, '#3454d1');
+                renderSparkline('#site-impressions', sparklineBiometric, '#e49e3d');
+                renderSparkline('#conversions-rate', sparklineApproval, '#25b865');
+
+                var visitorsEl = document.querySelector('#visitors-overview-statistics-chart');
+                if (visitorsEl) {
+                    new ApexCharts(visitorsEl, {
+                        chart: { height: 370, type: 'area', stacked: false, toolbar: { show: false } },
+                        xaxis: {
+                            categories: visitorsLabels,
+                            axisBorder: { show: false },
+                            axisTicks: { show: false },
+                            labels: { style: { fontSize: '11px', colors: '#64748b' } }
+                        },
+                        yaxis: { labels: { style: { fontSize: '11px', color: '#64748b' } } },
+                        stroke: { curve: 'smooth', width: [1, 1, 1], dashArray: [3, 3, 3], lineCap: 'round' },
+                        grid: { padding: { left: 0, right: 0 }, strokeDashArray: 3, borderColor: '#ebebf3', row: { colors: ['#ebebf3', 'transparent'], opacity: 0.02 } },
+                        legend: { show: false },
+                        colors: ['#3454d1', '#25b865', '#d13b4c'],
+                        dataLabels: { enabled: false },
+                        fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.3, stops: [0, 90, 100] } },
+                        series: [
+                            { name: 'New Students', data: visitorsStudents, type: 'area' },
+                            { name: 'Attendance Logs', data: visitorsAttendances, type: 'area' },
+                            { name: 'New Internships', data: visitorsInternships, type: 'area' }
+                        ]
+                    }).render();
+                }
+
+                var campaignEl = document.querySelector('#campaign-alytics-bar-chart');
+                if (campaignEl) {
+                    new ApexCharts(campaignEl, {
+                        chart: { type: 'bar', height: 370, toolbar: { show: false } },
+                        series: [
+                            { name: 'Internal Internships', data: campaignInternal },
+                            { name: 'External Internships', data: campaignExternal }
+                        ],
+                        plotOptions: { bar: { horizontal: false, endingShape: 'rounded', columnWidth: '30%' } },
+                        dataLabels: { enabled: false },
+                        stroke: { show: false, width: 1, colors: ['#fff'] },
+                        colors: ['#E1E3EA', '#3454d1'],
+                        xaxis: {
+                            categories: campaignLabels,
+                            axisBorder: { show: false },
+                            axisTicks: { show: false },
+                            labels: { style: { colors: '#64748b', fontFamily: 'Inter' } }
+                        },
+                        yaxis: { labels: { style: { color: '#64748b', fontFamily: 'Inter' } } },
+                        grid: { strokeDashArray: 3, borderColor: '#e9ecef' },
+                        tooltip: { style: { colors: '#64748b', fontFamily: 'Inter' } },
+                        legend: { show: false }
+                    }).render();
+                }
+            }
+
+            function initGoalProgress() {
+                if (typeof $ === 'undefined' || !$.fn.circleProgress) return;
+                $('.goal-progress-1').circleProgress({ max: 100, value: goalProgress.marketing, textFormat: 'percent' });
+                $('.goal-progress-2').circleProgress({ max: 100, value: goalProgress.teams, textFormat: 'percent' });
+                $('.goal-progress-3').circleProgress({ max: 100, value: goalProgress.ojt, textFormat: 'percent' });
+                $('.goal-progress-4').circleProgress({ max: 100, value: goalProgress.revenue, textFormat: 'percent' });
+            }
+
+            function initCountdowns() {
+                if (typeof $ === 'undefined' || !$.fn.timeTo) return;
+                var base = new Date();
+                $('[data-time-countdown="countdown_1"]').timeTo(new Date(base.getTime() + 10 * 24 * 60 * 60 * 1000));
+                $('[data-time-countdown="countdown_2"]').timeTo(new Date(base.getTime() + 15 * 24 * 60 * 60 * 1000));
+                $('[data-time-countdown="countdown_3"]').timeTo(new Date(base.getTime() + 20 * 24 * 60 * 60 * 1000));
+                $('[data-time-countdown="countdown_4"]').timeTo(new Date(base.getTime() + 25 * 24 * 60 * 60 * 1000));
+                $('[data-time-countdown="countdown_5"]').timeTo(new Date(base.getTime() + 30 * 24 * 60 * 60 * 1000));
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', function () {
+                    initDateRange();
+                    initCharts();
+                    initGoalProgress();
+                    initCountdowns();
+                });
+            } else {
+                initDateRange();
+                initCharts();
+                initGoalProgress();
+                initCountdowns();
+            }
+        })();
+    </script>
     <!--! END: Apps Init !-->
     <!--! BEGIN: Theme Customizer  !-->
     <script src="assets/js/theme-customizer-init.min.js"></script>
