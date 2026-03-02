@@ -1,4 +1,4 @@
-<?php
-// Redirect requests to the non‑Laravel homepage
-header('Location: /biotern/biotern/homepage.php');
+﻿<?php
+// Root entrypoint: always start from organized app index.
+header('Location: BioTern_organized/index.php');
 exit;

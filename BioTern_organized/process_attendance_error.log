@@ -1,0 +1,2 @@
+[02-Mar-2026 06:30:07 Europe/Berlin] PHP Warning:  Cannot modify header information - headers already sent by (output started at C:\xampp\htdocs\BioTern\BioTern\test_process_attendance.php:14) in C:\xampp\htdocs\BioTern\BioTern\process_attendance.php on line 20
+[02-Mar-2026 06:30:30 Europe/Berlin] PHP Warning:  Cannot modify header information - headers already sent by (output started at C:\xampp\htdocs\BioTern\BioTern\test_process_attendance.php:14) in C:\xampp\htdocs\BioTern\BioTern\process_attendance.php on line 20
