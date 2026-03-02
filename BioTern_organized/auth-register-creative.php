@@ -453,7 +453,7 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
                     <div class="card-body p-sm-5" style="padding: 50px !important; min-height: auto;">
                         <h2 class="fs-20 fw-bolder mb-4">Register</h2>
                         <div class="mb-3">
-                            <a href="index.php" class="btn btn-sm btn-outline-primary">← Back to Admin Dashboard</a>
+                            <a href="homepage.php" class="btn btn-sm btn-outline-primary">← Back to Admin Dashboard</a>
                         </div>
                         <h4 class="fs-13 fw-bold mb-2">Manage your Internship account in one place.</h4>
                         <p class="fs-12 fw-medium text-muted">Let's get you all setup, so you can verify your personal account and begin setting up your profile.</p>

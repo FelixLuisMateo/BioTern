@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zxx">
 
 <head>
@@ -62,7 +62,7 @@
                         </a>
                         <ul class="nxl-submenu">
                             <li class="nxl-item"><a class="nxl-link" href="{{ route('index') }}">CRM</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ route('index') }}">Analytics</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="analytics.html">Analytics</a></li>
                         </ul>
                     </li>
                     <li class="nxl-item nxl-hasmenu">
@@ -72,8 +72,8 @@
                         </a>
                         <ul class="nxl-submenu">
                             <li class="nxl-item"><a class="nxl-link" href="{{ route('students.index') }}">Students</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="">Students View</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="{{ route('students.create') }}">Students Create</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="students-view.php">Students View</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="students-create.html">Students Create</a></li>
                         </ul>
                     </li>
                     <li class="nxl-item nxl-hasmenu">
@@ -402,12 +402,12 @@
         <!-- Footer -->
         <footer class="footer">
             <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
-                <span>Copyright Â©</span>
+                <span>Copyright ©</span>
                 <script>
                     document.write(new Date().getFullYear());
                 </script>
             </p>
-            <p><span>By: <a target="_blank" href="">ACT 2A</a></span> â€¢ <span>Distributed by: <a target="_blank" href="">Group 5</a></span></p>
+            <p><span>By: <a target="_blank" href="">ACT 2A</a></span> • <span>Distributed by: <a target="_blank" href="">Group 5</a></span></p>
         </footer>
     </main>
 
@@ -438,4 +438,3 @@
 </body>
 
 </html>
-

@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // Include database connection
 include_once 'config/db.php';
 
@@ -340,7 +340,7 @@ try {
 
 <body>
     <!--! Navigation (central include) -->
-    <?php include_once __DIR__ . '/includes/navigation.php'; ?>
+    <?php include_once 'includes/navigation.php'; ?>
     <!--! ================================================================ !-->
     <!--! [Start] Header !-->
     <!--! ================================================================ !-->
@@ -1334,7 +1334,7 @@ try {
         <!-- [ Footer ] start -->
         <footer class="footer">
             <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
-                <span>Copyright Â©</span>
+                <span>Copyright ©</span>
                 <script>
                     document.write(new Date().getFullYear());
                 </script>
@@ -1727,9 +1727,4 @@ try {
 </body>
 
 </html>
-
-
-
-
-
 
