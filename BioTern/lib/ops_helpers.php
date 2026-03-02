@@ -93,8 +93,8 @@ function create_notification(mysqli $conn, int $user_id, string $title, string $
     }
 
     $stmt = $conn->prepare(
-        "INSERT INTO notifications (user_id, title, message, type, is_read, created_at, updated_at)
-         VALUES (?, ?, ?, 'attendance', 0, NOW(), NOW())"
+        "INSERT INTO notifications (user_id, title, message, is_read, created_at, updated_at)
+         VALUES (?, ?, ?, 0, NOW(), NOW())"
     );
     if (!$stmt) {
         return;

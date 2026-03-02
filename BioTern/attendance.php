@@ -225,7 +225,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
             echo '<td>' . $status_html . '</td>';
             echo '<td>' . getStatusBadge($attendance['status']) . '</td>';
             // actions (keep minimal for AJAX)
-            echo '<td><div class="hstack gap-2 justify-content-end"><a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="tooltip" title="View Details" onclick="viewDetails(' . $attendance['id'] . ')"><i class="feather feather-eye"></i></a><div class="dropdown"><a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="dropdown" data-bs-offset="0,21"><i class="feather feather-more-horizontal"></i></a><ul class="dropdown-menu dropdown-menu-end"><li><a class="dropdown-item" href="javascript:void(0)" onclick="approveAttendance(' . $attendance['id'] . ')"><i class="feather feather-check-circle me-3"></i><span>Approve</span></a></li><li><a class="dropdown-item" href="javascript:void(0)" onclick="rejectAttendance(' . $attendance['id'] . ')"><i class="feather feather-x-circle me-3"></i><span>Reject</span></a></li><li><a class="dropdown-item" href="javascript:void(0)" onclick="editAttendance(' . $attendance['id'] . ')"><i class="feather feather-edit-3 me-3"></i><span>Edit</span></a></li><li><a class="dropdown-item printBTN" href="javascript:void(0)" onclick="printAttendance(' . $attendance['id'] . ')"><i class="feather feather-printer me-3"></i><span>Print</span></a></li><li><a class="dropdown-item" href="javascript:void(0)" onclick="sendNotification(' . $attendance['id'] . ')"><i class="feather feather-mail me-3"></i><span>Send Notification</span></a></li><li class="dropdown-divider"></li><li><a class="dropdown-item" href="javascript:void(0)" onclick="deleteAttendance(' . $attendance['id'] . ')"><i class="feather feather-trash-2 me-3"></i><span>Delete</span></a></li></ul></div></div></td>';
+            echo '<td><div class="hstack gap-2 justify-content-end"><a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="tooltip" title="View Details" onclick="viewDetails(' . intval($attendance['id']) . ')"><i class="feather feather-eye"></i></a><div class="dropdown"><a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="dropdown" data-bs-offset="0,21"><i class="feather feather-more-horizontal"></i></a><ul class="dropdown-menu dropdown-menu-end"><li><a class="dropdown-item" href="javascript:void(0)" onclick="approveAttendanceIndividual(' . intval($attendance['id']) . ')"><i class="feather feather-check-circle me-3"></i><span>Approve</span></a></li><li><a class="dropdown-item" href="javascript:void(0)" onclick="rejectAttendanceIndividual(' . intval($attendance['id']) . ')"><i class="feather feather-x-circle me-3"></i><span>Reject</span></a></li><li><a class="dropdown-item" href="javascript:void(0)" onclick="editAttendance(' . intval($attendance['id']) . ')"><i class="feather feather-edit-3 me-3"></i><span>Edit</span></a></li><li><a class="dropdown-item printBTN" href="javascript:void(0)" onclick="printAttendance(' . intval($attendance['id']) . ')"><i class="feather feather-printer me-3"></i><span>Print</span></a></li><li><a class="dropdown-item" href="javascript:void(0)" onclick="sendNotification(' . intval($attendance['id']) . ')"><i class="feather feather-mail me-3"></i><span>Send Notification</span></a></li><li class="dropdown-divider"></li><li><a class="dropdown-item" href="javascript:void(0)" onclick="deleteAttendanceIndividual(' . intval($attendance['id']) . ')"><i class="feather feather-trash-2 me-3"></i><span>Delete</span></a></li></ul></div></div></td>';
             echo '</tr>';
         }
     }
@@ -356,6 +356,74 @@ function getAttendanceStatus($morning_time_in) {
             margin-top: auto;
         }
         
+        /* Bulk toolbar adapts to theme */
+        .bulk-toolbar {
+            background-color: var(--bs-body-bg);
+            border: 1px solid var(--bs-border-color);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        .bulk-toolbar span {
+            color: var(--bs-body-color);
+        }
+        /* dark theme override when app-skin-dark class present */
+        html.app-skin-dark .bulk-toolbar {
+            background-color: #0f172a;
+            border-color: #1b2436;
+        }
+        html.app-skin-dark .bulk-toolbar span {
+            color: #f0f0f0;
+        }
+        /* enlarge toolbar buttons and adjust spacing */
+        .bulk-toolbar .btn {
+            font-size: 0.95rem;
+            padding: 0.45rem 0.75rem;
+            font-weight: 600;
+            border-radius: 0.35rem;
+            min-width: 90px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .bulk-toolbar .btn i {
+            margin-right: 0.25rem;
+        }
+        /* custom colours to match app theme closely */
+        .bulk-toolbar .btn-success {
+            background: #28a745;
+            border-color: #28a745;
+            color: #fff;
+        }
+        .bulk-toolbar .btn-success:hover {
+            background: #218838;
+            border-color: #1e7e34;
+        }
+        .bulk-toolbar .btn-warning {
+            background: #fd7e14;
+            border-color: #fd7e14;
+            color: #fff;
+        }
+        .bulk-toolbar .btn-warning:hover {
+            background: #e8590c;
+            border-color: #d9480f;
+        }
+        .bulk-toolbar .btn-danger {
+            background: #dc3545;
+            border-color: #dc3545;
+            color: #fff;
+        }
+        .bulk-toolbar .btn-danger:hover {
+            background: #c82333;
+            border-color: #bd2130;
+        }
+        .bulk-toolbar .btn-outline-secondary {
+            background: transparent;
+            border-color: var(--bs-border-color);
+            color: var(--bs-body-color);
+        }
+        .bulk-toolbar .btn-outline-secondary:hover {
+            background: var(--bs-border-color);
+            color: var(--bs-body-color);
+        }
         /* Dark mode select and Select2 styling */
         select.form-control,
         select.form-select,
@@ -783,84 +851,34 @@ function getAttendanceStatus($morning_time_in) {
             </div>
             <!--! end of attendance statistics database !-->
 
-            <!-- [ page-header ] end -->
-            <!-- [ Main Content ] start -->
-            <!-- Filters -->
-            <div class="row mb-3 px-3">
+            <!-- Bulk Actions Toolbar -->
+            <div class="row mb-2 px-3" id="bulkActionsToolbar" style="display: none;">
                 <div class="col-12">
-                    <form method="GET" class="row g-2 align-items-end">
-                        <div class="col-sm-2">
-                            <label for="filterDate" class="form-label">Date</label>
-                            <input type="date" id="filterDate" name="date" class="form-control" value="<?php echo htmlspecialchars($filter_date); ?>">
+                    <div class="d-flex align-items-center justify-content-between p-2 rounded bulk-toolbar">
+                        <span class="fs-6" style="font-weight: 600;">
+                            <i class="feather feather-check me-1" style="font-size: 16px;"></i>
+                            <strong id="selectedCount" style="font-size:1.1rem;">0</strong> record(s) selected
+                        </span>
+                        <div class="d-flex gap-1">
+                            <button type="button" class="btn btn-sm btn-success py-1 px-2" onclick="performBulkAction('approve')" title="Approve selected">
+                                <i class="feather feather-check fs-8 me-1"></i> Approve
+                            </button>
+                            <button type="button" class="btn btn-sm btn-warning py-1 px-2" onclick="performBulkAction('reject')" title="Reject selected">
+                                <i class="feather feather-x fs-8 me-1"></i> Reject
+                            </button>
+                            <button type="button" class="btn btn-sm btn-danger py-1 px-2" onclick="performBulkAction('delete')" title="Delete selected">
+                                <i class="feather feather-trash-2 fs-8 me-1"></i> Delete
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary py-1 px-2" onclick="clearSelection()">
+                                <i class="feather feather-x fs-8 me-1"></i> Clear
+                            </button>
                         </div>
-                        <div class="col-sm-2">
-                            <label for="filterCourse" class="form-label">Course</label>
-                            <select id="filterCourse" name="course_id" class="form-control">
-                                <option value="0">-- All Courses --</option>
-                                <?php foreach ($courses as $course): ?>
-                                    <option value="<?php echo $course['id']; ?>" <?php echo $filter_course == $course['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($course['name']); ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        <div class="col-sm-2">
-                            <label for="filterDepartment" class="form-label">Department</label>
-                            <select id="filterDepartment" name="department_id" class="form-control">
-                                <option value="0">-- All Departments --</option>
-                                <?php foreach ($departments as $dept): ?>
-                                    <option value="<?php echo $dept['id']; ?>" <?php echo $filter_department == $dept['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($dept['name']); ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        <div class="col-sm-2">
-                            <label for="filterSupervisor" class="form-label">Supervisor</label>
-                            <select id="filterSupervisor" name="supervisor" class="form-control">
-                                <option value="">-- Any Supervisor --</option>
-                                <?php foreach ($supervisors as $sup): ?>
-                                    <option value="<?php echo htmlspecialchars($sup); ?>" <?php echo $filter_supervisor == $sup ? 'selected' : ''; ?>><?php echo htmlspecialchars($sup); ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        <div class="col-sm-2">
-                            <label for="filterCoordinator" class="form-label">Coordinator</label>
-                            <select id="filterCoordinator" name="coordinator" class="form-control">
-                                <option value="">-- Any Coordinator --</option>
-                                <?php foreach ($coordinators as $coor): ?>
-                                    <option value="<?php echo htmlspecialchars($coor); ?>" <?php echo $filter_coordinator == $coor ? 'selected' : ''; ?>><?php echo htmlspecialchars($coor); ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        <div class="col-sm-2 d-flex gap-1" style="align-items: flex-end;">
-                            <button type="submit" class="btn btn-primary btn-sm px-3 py-1" style="font-size: 0.85rem;">Filter</button>
-                            <a href="students.php" class="btn btn-outline-secondary btn-sm px-3 py-1" style="font-size: 0.85rem;">Reset</a>
-                        </div>
-                    </form>
+                    </div>
                 </div>
             </div>
             <div class="main-content">
                 <div class="row">
                     <div class="col-lg-12">
-                        <!-- Bulk Actions Toolbar -->
-                        <div class="card stretch stretch-full mb-3" id="bulkActionsToolbar" style="display: none;">
-                            <div class="card-body p-2">
-                                <div class="d-flex align-items-center gap-2 flex-wrap">
-                                    <span class="text-muted"><strong id="selectedCount">0</strong> record(s) selected</span>
-                                    <div class="btn-group" role="group">
-                                        <button type="button" class="btn btn-sm btn-success" onclick="performBulkAction('approve')" title="Approve selected records">
-                                            <i class="feather feather-check-circle me-1"></i> Approve All
-                                        </button>
-                                        <button type="button" class="btn btn-sm btn-warning" onclick="performBulkAction('reject')" title="Reject selected records">
-                                            <i class="feather feather-x-circle me-1"></i> Reject All
-                                        </button>
-                                        <button type="button" class="btn btn-sm btn-danger" onclick="performBulkAction('delete')" title="Delete selected records">
-                                            <i class="feather feather-trash-2 me-1"></i> Delete All
-                                        </button>
-                                    </div>
-                                    <button type="button" class="btn btn-sm btn-secondary ms-auto" onclick="clearSelection()">
-                                        <i class="feather feather-x me-1"></i> Clear
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
 
                         <div class="card stretch stretch-full attendance-table-card">
                             <div class="card-body p-0">
@@ -955,13 +973,13 @@ function getAttendanceStatus($morning_time_in) {
                                                                     </a>
                                                                     <ul class="dropdown-menu dropdown-menu-end">
                                                                         <li>
-                                                                            <a class="dropdown-item" href="javascript:void(0)" onclick="approveAttendance(<?php echo $attendance['id']; ?>)">
+                                                                            <a class="dropdown-item" href="javascript:void(0)" onclick="approveAttendanceIndividual(<?php echo intval($attendance['id']); ?>)">
                                                                                 <i class="feather feather-check-circle me-3"></i>
                                                                                 <span>Approve</span>
                                                                             </a>
                                                                         </li>
                                                                         <li>
-                                                                            <a class="dropdown-item" href="javascript:void(0)" onclick="rejectAttendance(<?php echo $attendance['id']; ?>)">
+                                                                            <a class="dropdown-item" href="javascript:void(0)" onclick="rejectAttendanceIndividual(<?php echo intval($attendance['id']); ?>)">
                                                                                 <i class="feather feather-x-circle me-3"></i>
                                                                                 <span>Reject</span>
                                                                             </a>
@@ -986,7 +1004,7 @@ function getAttendanceStatus($morning_time_in) {
                                                                         </li>
                                                                         <li class="dropdown-divider"></li>
                                                                         <li>
-                                                                            <a class="dropdown-item" href="javascript:void(0)" onclick="deleteAttendance(<?php echo $attendance['id']; ?>)">
+                                                                            <a class="dropdown-item" href="javascript:void(0)" onclick="deleteAttendanceIndividual(<?php echo intval($attendance['id']); ?>)">
                                                                                 <i class="feather feather-trash-2 me-3"></i>
                                                                                 <span>Delete</span>
                                                                             </a>
@@ -1398,15 +1416,29 @@ function getAttendanceStatus($morning_time_in) {
             });
         }
 
-        // Approve attendance function using blade-style modal flow
-        function approveAttendance(id) {
-            var ids = Array.isArray(id) ? id : (id ? [id] : getSelectedIds());
-            
+        // Individual record approval
+        function approveAttendanceIndividual(id) {
+            if (!id || id === 0) {
+                showToast('Invalid attendance record', 'danger');
+                return;
+            }
+            showConfirmModal({
+                title: 'Approve Attendance',
+                message: 'Are you sure you want to approve this attendance record?',
+                showRemarks: false,
+                onConfirm: function() {
+                    submitAttendanceAction('approve', [id]);
+                }
+            });
+        }
+
+        // Bulk approval (from checkboxes)
+        function approveAttendance() {
+            var ids = getSelectedIds();
             if (ids.length === 0) {
                 showToast('Please select at least one attendance record to approve', 'warning');
                 return;
             }
-
             showConfirmModal({
                 title: 'Approve Attendance',
                 message: ids.length === 1 ? 'Are you sure you want to approve this attendance?' : ('Are you sure you want to approve ' + ids.length + ' attendance record(s)?'),
@@ -1417,15 +1449,12 @@ function getAttendanceStatus($morning_time_in) {
             });
         }
 
-        // Reject attendance function using blade-style modal flow
-        function rejectAttendance(id) {
-            var ids = Array.isArray(id) ? id : (id ? [id] : getSelectedIds());
-            
-            if (ids.length === 0) {
-                showToast('Please select at least one attendance record to reject', 'warning');
+        // Individual record rejection
+        function rejectAttendanceIndividual(id) {
+            if (!id || id === 0) {
+                showToast('Invalid attendance record', 'danger');
                 return;
             }
-
             showConfirmModal({
                 title: 'Reject Attendance',
                 message: 'Provide a reason for rejection (required):',
@@ -1438,7 +1467,39 @@ function getAttendanceStatus($morning_time_in) {
                                 message: 'Rejection reason is required.',
                                 showRemarks: true,
                                 onConfirm: function(r) {
-                                    if (r) submitAttendanceAction('reject', ids, r);
+                                    if (!r) return;
+                                    rejectAttendanceIndividual(id);
+                                }
+                            });
+                        }, 250);
+                        return;
+                    }
+                    submitAttendanceAction('reject', [id], remarks);
+                }
+            });
+        }
+
+        // Bulk rejection (from checkboxes)
+        function rejectAttendance() {
+            var ids = getSelectedIds();
+            if (ids.length === 0) {
+                showToast('Please select at least one attendance record to reject', 'warning');
+                return;
+            }
+            showConfirmModal({
+                title: 'Reject Attendance',
+                message: 'Provide a reason for rejection (required):',
+                showRemarks: true,
+                onConfirm: function(remarks) {
+                    if (!remarks) {
+                        setTimeout(function() {
+                            showConfirmModal({
+                                title: 'Reject Attendance',
+                                message: 'Rejection reason is required.',
+                                showRemarks: true,
+                                onConfirm: function(r) {
+                                    if (!r) return;
+                                    rejectAttendance();
                                 }
                             });
                         }, 250);
@@ -1465,15 +1526,29 @@ function getAttendanceStatus($morning_time_in) {
             // Implement your notification logic here
         }
 
-        // Delete attendance function using blade-style modal flow
-        function deleteAttendance(id) {
-            var ids = Array.isArray(id) ? id : (id ? [id] : getSelectedIds());
-            
+        // Individual record deletion
+        function deleteAttendanceIndividual(id) {
+            if (!id || id === 0) {
+                showToast('Invalid attendance record', 'danger');
+                return;
+            }
+            showConfirmModal({
+                title: 'Delete Attendance',
+                message: 'Are you sure you want to delete this attendance record? This action cannot be undone.',
+                showRemarks: false,
+                onConfirm: function() {
+                    submitAttendanceAction('delete', [id]);
+                }
+            });
+        }
+
+        // Bulk deletion (from checkboxes)
+        function deleteAttendance() {
+            var ids = getSelectedIds();
             if (ids.length === 0) {
                 showToast('Please select at least one attendance record to delete', 'warning');
                 return;
             }
-
             showConfirmModal({
                 title: 'Delete Attendance',
                 message: ids.length === 1 ? 'Are you sure you want to delete this attendance record? This action cannot be undone.' : ('Are you sure you want to delete ' + ids.length + ' attendance record(s)? This action cannot be undone.'),
@@ -1494,11 +1569,11 @@ function getAttendanceStatus($morning_time_in) {
             }
 
             if (action === 'approve') {
-                approveAttendance(null);
+                approveAttendance();
             } else if (action === 'reject') {
-                rejectAttendance(null);
+                rejectAttendance();
             } else if (action === 'delete') {
-                deleteAttendance(null);
+                deleteAttendance();
             }
         }
 
