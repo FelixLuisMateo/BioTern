@@ -1,6 +1,6 @@
 <?php
-require_once __DIR__ . '/lib/ops_helpers.php';
-require_once __DIR__ . '/lib/attendance_rules.php';
+require_once dirname(__DIR__) . '/lib/ops_helpers.php';
+require_once dirname(__DIR__) . '/lib/attendance_rules.php';
 // Start session if not already started
 if (session_status() === PHP_SESSION_NONE) {
     session_start();

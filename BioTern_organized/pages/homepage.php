@@ -4,7 +4,7 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 // Include database connection
-include_once 'config/db.php';
+include_once dirname(__DIR__) . '/config/db.php';
 
 // Initialize analytics variables with defaults
 $attendance_awaiting = 0;

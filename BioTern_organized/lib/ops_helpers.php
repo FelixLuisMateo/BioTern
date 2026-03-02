@@ -5,7 +5,13 @@ function get_current_user_role(): string
     if (session_status() === PHP_SESSION_NONE) {
         session_start();
     }
-    return isset($_SESSION['role']) ? (string)$_SESSION['role'] : 'guest';
+    $raw = $_SESSION['role']
+        ?? $_SESSION['user_role']
+        ?? $_SESSION['account_role']
+        ?? $_SESSION['user_type']
+        ?? $_SESSION['type']
+        ?? 'guest';
+    return strtolower(trim((string)$raw));
 }
 
 function get_current_user_id_or_zero(): int
@@ -19,7 +25,10 @@ function get_current_user_id_or_zero(): int
 function require_roles_json(array $allowed_roles): void
 {
     $role = get_current_user_role();
-    if (!in_array($role, $allowed_roles, true)) {
+    $allowed = array_map(static function ($r) {
+        return strtolower(trim((string)$r));
+    }, $allowed_roles);
+    if (!in_array($role, $allowed, true)) {
         http_response_code(403);
         header('Content-Type: application/json');
         echo json_encode(['success' => false, 'message' => 'Forbidden: insufficient role permission.']);
@@ -30,7 +39,10 @@ function require_roles_json(array $allowed_roles): void
 function require_roles_page(array $allowed_roles): void
 {
     $role = get_current_user_role();
-    if (!in_array($role, $allowed_roles, true)) {
+    $allowed = array_map(static function ($r) {
+        return strtolower(trim((string)$r));
+    }, $allowed_roles);
+    if (!in_array($role, $allowed, true)) {
         http_response_code(403);
         echo '<h3>Forbidden</h3><p>You do not have permission to access this page.</p>';
         exit;

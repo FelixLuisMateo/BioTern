@@ -1,10 +1,10 @@
 <?php
-require_once __DIR__ . '/lib/attendance_rules.php';
-require_once __DIR__ . '/lib/ops_helpers.php';
+require_once dirname(__DIR__) . '/lib/attendance_rules.php';
+require_once dirname(__DIR__) . '/lib/ops_helpers.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-require_roles_page(['admin', 'coordinator', 'supervisor']);
+require_roles_page(['admin', 'coordinator', 'supervisor', 'student']);
 // Database Connection
 $host = 'localhost';
 $db_user = 'root';
@@ -180,6 +180,7 @@ function validate_demo_biometric_transition(array $record, string $clock_type, s
 // Handle clock in/out submission
 $message = '';
 $message_type = '';
+$selected_date = isset($_GET['date']) && $_GET['date'] !== '' ? $_GET['date'] : date('Y-m-d');
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $student_id = intval($_POST['student_id']);
@@ -228,9 +229,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $insert_query = "INSERT INTO attendances (student_id, attendance_date, $db_column, status, created_at, updated_at) 
                                     VALUES ($student_id, '$clock_date', '$clock_time', 'pending', NOW(), NOW())";
                     if ($conn->query($insert_query)) {
+                        sync_student_hours($conn, $student_id);
                         sync_student_active_status($conn, $student_id, $clock_type);
-                        $message = ucfirst(str_replace('_', ' ', $clock_type)) . " recorded at " . date('h:i A', strtotime($clock_time));
+                        $message = ucfirst(str_replace('_', ' ', $clock_type)) . " recorded for " . $clock_date . " at " . date('h:i A', strtotime($clock_time));
                         $message_type = "success";
+                        $selected_date = $clock_date;
                     } else {
                         $message = "Error recording time: " . $conn->error;
                         $message_type = "danger";
@@ -285,9 +288,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         sync_student_active_status($conn, $student_id, $clock_type);
 
                         if ($message_type !== "warning") {
-                            $message = ucfirst(str_replace('_', ' ', $clock_type)) . " recorded at " . date('h:i A', strtotime($clock_time));
+                            $message = ucfirst(str_replace('_', ' ', $clock_type)) . " recorded for " . $clock_date . " at " . date('h:i A', strtotime($clock_time));
                             $message_type = "success";
                         }
+                        $selected_date = $clock_date;
                     } else {
                         $message = "Error recording time: " . $conn->error;
                         $message_type = "danger";
@@ -330,8 +334,8 @@ if ($students_result->num_rows > 0) {
     }
 }
 
-// Get today's attendance for display
-$today = date('Y-m-d');
+// Get selected-date attendance for display (defaults to today)
+$today = $selected_date;
 $attendance_today_query = "SELECT a.*, s.id AS student_db_id, s.student_id, s.first_name, s.last_name FROM attendances a 
                            LEFT JOIN students s ON a.student_id = s.id 
                            WHERE a.attendance_date = '$today' 
@@ -1388,7 +1392,7 @@ foreach ($today_records as $tr) {
                                     <label for="clock_date">
                                         <i class="feather-calendar"></i> Date
                                     </label>
-                                    <input type="date" name="clock_date" id="clock_date" value="<?php echo date('Y-m-d'); ?>" required>
+                                    <input type="date" name="clock_date" id="clock_date" value="<?php echo htmlspecialchars($selected_date); ?>" required>
                                 </div>
 
                                 <!-- Time Input -->
@@ -1521,14 +1525,14 @@ foreach ($today_records as $tr) {
                     <?php else: ?>
                         <div class="no-records">
                             <p><i class="feather-inbox"></i></p>
-                            <p>No attendance records for today yet.</p>
+                            <p>No attendance records for <?php echo htmlspecialchars($selected_date); ?> yet.</p>
                         </div>
                     <?php endif; ?>
                 </div>
 
                 <!-- View Full Attendance -->
                 <div class="bio-link-wrap">
-                    <a href="attendance.php" class="btn btn-primary">
+                    <a href="attendance.php?date=<?php echo urlencode($selected_date); ?>" class="btn btn-primary">
                         <i class="feather-arrow-right"></i> View Full Attendance Report
                     </a>
                 </div>

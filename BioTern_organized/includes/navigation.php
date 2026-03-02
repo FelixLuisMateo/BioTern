@@ -12,7 +12,7 @@
         <div class="navbar-content">
             <ul class="nxl-navbar">
                 <li class="nxl-item nxl-caption">
-                    <label>Main</label>
+                    <span>Main</span>
                 </li>
                 <li class="nxl-item nxl-hasmenu">
                     <a href="javascript:void(0);" class="nxl-link">
@@ -26,7 +26,7 @@
                 </li>
 
                 <li class="nxl-item nxl-caption">
-                    <label>Internship</label>
+                    <span>Internship</span>
                 </li>
                 <li class="nxl-item nxl-hasmenu">
                     <a href="javascript:void(0);" class="nxl-link">
@@ -75,7 +75,7 @@
                 </li>
 
                 <li class="nxl-item nxl-caption">
-                    <label>Academic</label>
+                    <span>Academic</span>
                 </li>
                 <li class="nxl-item nxl-hasmenu">
                     <a href="javascript:void(0);" class="nxl-link">
@@ -91,7 +91,7 @@
                 </li>
 
                 <li class="nxl-item nxl-caption">
-                    <label>Workspace</label>
+                    <span>Workspace</span>
                 </li>
                 <li class="nxl-item nxl-hasmenu">
                     <a href="javascript:void(0);" class="nxl-link">
@@ -122,7 +122,7 @@
                 </li>
 
                 <li class="nxl-item nxl-caption">
-                    <label>System</label>
+                    <span>System</span>
                 </li>
                 <li class="nxl-item nxl-hasmenu">
                     <a href="javascript:void(0);" class="nxl-link">

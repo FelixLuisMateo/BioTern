@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/lib/ops_helpers.php';
+require_once dirname(__DIR__) . '/lib/ops_helpers.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }

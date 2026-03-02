@@ -2,8 +2,9 @@
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-if (file_exists(__DIR__ . '/lib/ops_helpers.php')) {
-    require_once __DIR__ . '/lib/ops_helpers.php';
+$ops_helpers = dirname(__DIR__) . '/lib/ops_helpers.php';
+if (file_exists($ops_helpers)) {
+    require_once $ops_helpers;
     if (function_exists('require_roles_page')) {
         require_roles_page(['admin', 'coordinator', 'supervisor']);
     }

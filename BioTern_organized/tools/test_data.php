@@ -1,6 +1,6 @@
 <?php
 // Include database connection
-include_once 'config/db.php';
+include_once dirname(__DIR__) . '/config/db.php';
 
 echo "Testing database connection...<br>";
 
