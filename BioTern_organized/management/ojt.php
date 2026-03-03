@@ -160,7 +160,7 @@ SELECT
     s.phone,
     s.status AS student_status,
     s.created_at,
-    s.profile_picture,
+    COALESCE(NULLIF(u_student.profile_picture, ''), NULLIF(s.profile_picture, '')) AS profile_picture,
     c.name AS course_name,
     COALESCE(NULLIF(sec.code, ''), NULLIF(sec.name, ''), '-') AS section_name,
     i.status AS internship_status,
@@ -182,6 +182,7 @@ SELECT
     COALESCE(att.pending_count, 0) AS pending_logs,
     COALESCE(att.total_hours, 0) AS attendance_total_hours
 FROM students s
+LEFT JOIN users u_student ON s.user_id = u_student.id
 LEFT JOIN courses c ON s.course_id = c.id
 LEFT JOIN sections sec ON s.section_id = sec.id
 LEFT JOIN internships i ON s.id = i.student_id AND i.status IN ('ongoing','completed')

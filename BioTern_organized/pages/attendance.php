@@ -156,7 +156,7 @@ $attendance_query = "
         a.approved_at,
         a.remarks,
         s.id as student_id,
-        s.profile_picture,
+        COALESCE(NULLIF(u_student.profile_picture, ''), NULLIF(s.profile_picture, '')) AS profile_picture,
         s.student_id as student_number,
         s.first_name,
         s.last_name,
@@ -168,6 +168,7 @@ $attendance_query = "
         u.name as approver_name
     FROM attendances a
     LEFT JOIN students s ON a.student_id = s.id
+    LEFT JOIN users u_student ON s.user_id = u_student.id
     LEFT JOIN courses c ON s.course_id = c.id
     LEFT JOIN internships i ON s.id = i.student_id AND i.status = 'ongoing'
     LEFT JOIN supervisors sup ON i.supervisor_id = sup.id
@@ -744,7 +745,7 @@ function getAttendanceStatus($morning_time_in) {
                                 <span>Account Settings</span>
                             </a>
                             <div class="dropdown-divider"></div>
-                            <a href="./auth-login-cover.php" class="dropdown-item">
+                            <a href="./auth-login-cover.php?logout=1" class="dropdown-item">
                                 <i class="feather-log-out"></i>
                                 <span>Logout</span>
                             </a>

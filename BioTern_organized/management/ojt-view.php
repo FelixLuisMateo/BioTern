@@ -623,8 +623,10 @@ try {
         $candidate_sql = implode(' OR ', array_unique($candidate_wheres));
         // Priority order is critical:
         // 1) exact students.id match, 2) user_id match, 3) student_id string match.
-        $student_sql = "SELECT s.*, c.name AS course_name
+        $student_sql = "SELECT s.*, c.name AS course_name,
+                COALESCE(NULLIF(u_student.profile_picture, ''), NULLIF(s.profile_picture, '')) AS user_profile_picture
             FROM students s
+            LEFT JOIN users u_student ON s.user_id = u_student.id
             LEFT JOIN courses c ON s.course_id = c.id
             WHERE (" . $candidate_sql . ")
             ORDER BY
@@ -640,6 +642,9 @@ try {
         if (!$student) {
             header('Location: idnotfound-404.php?source=ojt-view&id=' . urlencode($view_user_id));
             exit;
+        }
+        if (!empty($student['user_profile_picture'])) {
+            $student['profile_picture'] = $student['user_profile_picture'];
         }
         $selected_student_id = intval($student['id'] ?? $view_user_id);
         $selected_user_id = intval($student['user_id'] ?? 0);
@@ -1283,7 +1288,7 @@ try {
                                 <span>Account Settings</span>
                             </a>
                             <div class="dropdown-divider"></div>
-                            <a href="./auth-login-cover.php" class="dropdown-item">
+                            <a href="./auth-login-cover.php?logout=1" class="dropdown-item">
                                 <i class="feather-log-out"></i>
                                 <span>Logout</span>
                             </a>

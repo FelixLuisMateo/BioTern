@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zxx">
 
 <head>
@@ -362,7 +362,7 @@
                                 <span>Account Settings</span>
                             </a>
                             <div class="dropdown-divider"></div>
-                            <a href="./auth-login-cover.php" class="dropdown-item">
+                            <a href="./auth-login-cover.php?logout=1" class="dropdown-item">
                                 <i class="feather-log-out"></i>
                                 <span>Logout</span>
                             </a>
@@ -1055,7 +1055,7 @@
 					</code>
 						</pre>
                 </div>
-                <h4 class="fs-13">ðŸ‘‹ Threds</h4>
+                <h4 class="fs-13">👋 Threds</h4>
                 <p class="text-muted mb-4">Lorem ipsum dolor sit amet consectetur adipisicing elit. Atque officiis minus omnis veniam cupiditate molestiae itaque hic quibusdam fuga modi quam cumque recusandae harum nulla vero, tempore possimus aliquid animi!</p>
                 <div class="mb-5">
                     <pre><code class="language-js">
@@ -1068,7 +1068,7 @@ const code = `var data = 1;`;
 const html = Prism.highlight(code, Prism.languages.javascript, 'javascript');
 						</code></pre>
                 </div>
-                <h4 class="fs-13">ðŸ“Œ Inbox</h4>
+                <h4 class="fs-13">📌 Inbox</h4>
                 <p class="text-muted mb-4">Lorem ipsum dolor sit amet consectetur adipisicing elit. Atque officiis minus omnis veniam cupiditate molestiae itaque hic quibusdam fuga modi quam cumque recusandae harum nulla vero, tempore possimus aliquid animi!</p>
                 <div class="mb-5">
                     <pre><code class="language-js">
@@ -1081,7 +1081,7 @@ const code = `var data = 1;`;
 const html = Prism.highlight(code, Prism.languages.javascript, 'javascript');
 						</code></pre>
                 </div>
-                <h4 class="fs-13">ðŸ‘™ Bundles</h4>
+                <h4 class="fs-13">👙 Bundles</h4>
                 <p class="text-muted mb-4">Lorem ipsum dolor sit amet consectetur adipisicing elit. Atque officiis minus omnis veniam cupiditate molestiae itaque hic quibusdam fuga modi quam cumque recusandae harum nulla vero, tempore possimus aliquid animi!</p>
                 <div class="mb-5">
                     <pre><code class="language-js">
@@ -1107,7 +1107,7 @@ const code = `var data = 1;`;
 const html = Prism.highlight(code, Prism.languages.javascript, 'javascript');
 						</code></pre>
                 </div>
-                <h4 class="fs-13">ðŸŽ‚ Groups</h4>
+                <h4 class="fs-13">🎂 Groups</h4>
                 <p class="text-muted mb-4">Lorem ipsum dolor sit amet consectetur adipisicing elit. Atque officiis minus omnis veniam cupiditate molestiae itaque hic quibusdam fuga modi quam cumque recusandae harum nulla vero, tempore possimus aliquid animi!</p>
                 <div class="mb-5">
                     <pre><code class="language-js">
@@ -1120,7 +1120,7 @@ const code = `var data = 1;`;
 const html = Prism.highlight(code, Prism.languages.javascript, 'javascript');
 						</code></pre>
                 </div>
-                <h4 class="fs-13">ðŸ˜³ Channel</h4>
+                <h4 class="fs-13">😳 Channel</h4>
                 <p class="text-muted mb-4">Lorem ipsum dolor sit amet consectetur adipisicing elit. Atque officiis minus omnis veniam cupiditate molestiae itaque hic quibusdam fuga modi quam cumque recusandae harum nulla vero, tempore possimus aliquid animi!</p>
                 <div class="mb-5">
                     <pre><code class="language-js">
@@ -1133,7 +1133,7 @@ const code = `var data = 1;`;
 const html = Prism.highlight(code, Prism.languages.javascript, 'javascript');
 						</code></pre>
                 </div>
-                <h4 class="fs-13">ðŸŽ‰ Favorite</h4>
+                <h4 class="fs-13">🎉 Favorite</h4>
                 <p class="text-muted mb-4">Lorem ipsum dolor sit amet consectetur adipisicing elit. Atque officiis minus omnis veniam cupiditate molestiae itaque hic quibusdam fuga modi quam cumque recusandae harum nulla vero, tempore possimus aliquid animi!</p>
                 <div>
                     <pre><code class="language-js">

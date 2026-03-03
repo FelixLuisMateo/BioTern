@@ -193,7 +193,7 @@ $students_query = "
         END as live_clock_status,
         s.biometric_registered,
         s.created_at,
-        s.profile_picture,
+        COALESCE(NULLIF(u_student.profile_picture, ''), NULLIF(s.profile_picture, '')) AS profile_picture,
         c.name as course_name,
         COALESCE(NULLIF(sec.code, ''), NULLIF(sec.name, ''), '-') AS section_name,
         c.id as course_id,
@@ -210,6 +210,7 @@ $students_query = "
             '-'
         ) AS coordinator_name
     FROM students s
+    LEFT JOIN users u_student ON s.user_id = u_student.id
     LEFT JOIN courses c ON s.course_id = c.id
     LEFT JOIN sections sec ON s.section_id = sec.id
     LEFT JOIN internships i ON s.id = i.student_id AND i.status = 'ongoing'
@@ -788,7 +789,7 @@ usort($print_students, function ($a, $b) {
                                 <span>Account Settings</span>
                             </a>
                             <div class="dropdown-divider"></div>
-                            <a href="./auth-login-cover.php" class="dropdown-item">
+                            <a href="./auth-login-cover.php?logout=1" class="dropdown-item">
                                 <i class="feather-log-out"></i>
                                 <span>Logout</span>
                             </a>

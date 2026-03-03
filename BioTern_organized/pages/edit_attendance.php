@@ -31,9 +31,10 @@ if ($attendance_id > 0) {
             s.first_name,
             s.last_name,
             s.student_id as student_number,
-            s.profile_picture
+            COALESCE(NULLIF(u_student.profile_picture, ''), NULLIF(s.profile_picture, '')) AS profile_picture
         FROM attendances a
         LEFT JOIN students s ON a.student_id = s.id
+        LEFT JOIN users u_student ON s.user_id = u_student.id
         WHERE a.id = ?
     ";
     

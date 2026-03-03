@@ -1,4 +1,8 @@
 <?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 $map = [
   'students.php' => 'management/students.php',
   'students-create.php' => 'management/students-create.php',
@@ -113,6 +117,69 @@ $target = __DIR__ . '/' . $map[$file];
 if (!is_file($target)) {
     http_response_code(404);
     exit('Not found');
+}
+
+// Global auth guard so all routed pages are tied to a logged-in account.
+$public_files = [
+  'index.php',
+  'auth-login-cover.php',
+  'auth-register-creative.php',
+  'auth-reset-cover.php',
+  'auth-resetting-minimal.php',
+  'auth-verify-cover.php',
+  'auth-404-minimal.php',
+  'idnotfound-404.php',
+  'create_admin.php',
+];
+$is_public = in_array($file, $public_files, true);
+$current_user_id = (int)($_SESSION['user_id'] ?? 0);
+$is_logged_in = ($current_user_id > 0);
+$is_logout_request = ($file === 'auth-login-cover.php' && isset($_GET['logout']) && (string)$_GET['logout'] === '1');
+
+if (!$is_public && !$is_logged_in) {
+  $next = urlencode($file);
+  header('Location: auth-login-cover.php?next=' . $next);
+  exit;
+}
+
+// If already logged in, prevent opening login/register screens by URL.
+if ($is_logged_in && in_array($file, ['auth-login-cover.php', 'auth-register-creative.php'], true) && !$is_logout_request) {
+  header('Location: homepage.php');
+  exit;
+}
+
+// Refresh session fields from DB to keep account info consistent across all pages.
+if ($is_logged_in) {
+  $db = @new mysqli('127.0.0.1', 'root', '', 'biotern_db');
+  if (!$db->connect_errno) {
+    $stmt = $db->prepare("SELECT id, name, username, email, role, is_active, profile_picture FROM users WHERE id = ? LIMIT 1");
+    if ($stmt) {
+      $stmt->bind_param('i', $current_user_id);
+      $stmt->execute();
+      $user = $stmt->get_result()->fetch_assoc();
+      $stmt->close();
+
+      if (!$user || (int)($user['is_active'] ?? 0) !== 1) {
+        $_SESSION = [];
+        if (ini_get('session.use_cookies')) {
+          $params = session_get_cookie_params();
+          setcookie(session_name(), '', time() - 42000, $params['path'], $params['domain'], $params['secure'], $params['httponly']);
+        }
+        session_destroy();
+        header('Location: auth-login-cover.php');
+        exit;
+      }
+
+      $_SESSION['user_id'] = (int)$user['id'];
+      $_SESSION['name'] = (string)($user['name'] ?? '');
+      $_SESSION['username'] = (string)($user['username'] ?? '');
+      $_SESSION['email'] = (string)($user['email'] ?? '');
+      $_SESSION['role'] = (string)($user['role'] ?? '');
+      $_SESSION['profile_picture'] = (string)($user['profile_picture'] ?? '');
+      $_SESSION['logged_in'] = true;
+    }
+    $db->close();
+  }
 }
 
 require $target;
