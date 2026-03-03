@@ -206,19 +206,6 @@ if (count($attendances) > 1) {
     $attendances = $unique_attendances;
 }
 
-function resolve_profile_image_url(string $profilePath): ?string {
-    $clean = ltrim(str_replace('\\', '/', trim($profilePath)), '/');
-    if ($clean === '') {
-        return null;
-    }
-    $rootPath = dirname(__DIR__) . '/' . $clean;
-    if (!file_exists($rootPath)) {
-        return null;
-    }
-    $mtime = @filemtime($rootPath);
-    return $clean . ($mtime ? ('?v=' . $mtime) : '');
-}
-
 // If requested via AJAX, return only the table rows HTML so frontend can replace tbody
 if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
     if (!empty($attendances)) {
@@ -228,9 +215,9 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
             echo '<td><div class="item-checkbox ms-1"><div class="custom-control custom-checkbox"><input type="checkbox" class="custom-control-input checkbox" id="' . $checkboxId . '" data-attendance-id="' . (int)$attendance['id'] . '"><label class="custom-control-label" for="' . $checkboxId . '"></label></div></div></td>';
             // build avatar (use uploaded profile picture when available)
             $avatar_html = '<a href="students-view.php?id=' . $attendance['student_id'] . '" class="hstack gap-3">';
-            $pp_url = resolve_profile_image_url((string)($attendance['profile_picture'] ?? ''));
-            if ($pp_url !== null) {
-                $avatar_html .= '<div class="avatar-image avatar-md"><img src="' . htmlspecialchars($pp_url) . '" alt="" class="img-fluid"></div>';
+            if (!empty($attendance['profile_picture']) && file_exists(__DIR__ . '/' . $attendance['profile_picture'])) {
+                $v = filemtime(__DIR__ . '/' . $attendance['profile_picture']);
+                $avatar_html .= '<div class="avatar-image avatar-md"><img src="' . htmlspecialchars($attendance['profile_picture']) . '?v=' . $v . '" alt="" class="img-fluid"></div>';
             } else {
                 $initials = strtoupper(substr($attendance['first_name'] ?? 'N', 0, 1) . substr($attendance['last_name'] ?? 'A', 0, 1));
                 $avatar_html .= '<div class="avatar-image avatar-md"><div class="avatar-text avatar-md bg-light-primary rounded">' . $initials . '</div></div>';
@@ -1053,9 +1040,9 @@ function getAttendanceStatus($morning_time_in) {
                                                             <a href="students-view.php?id=<?php echo $attendance['student_id']; ?>" class="hstack gap-3">
                                                                 <?php
                                                                 $pp = $attendance['profile_picture'] ?? '';
-                                                                $pp_url = resolve_profile_image_url((string)$pp);
-                                                                if ($pp_url !== null) {
-                                                                    echo '<div class="avatar-image avatar-md"><img src="' . htmlspecialchars($pp_url) . '" alt="" class="img-fluid"></div>';
+                                                                if ($pp && file_exists(__DIR__ . '/' . $pp)) {
+                                                                    $v = filemtime(__DIR__ . '/' . $pp);
+                                                                    echo '<div class="avatar-image avatar-md"><img src="' . htmlspecialchars($pp) . '?v=' . $v . '" alt="" class="img-fluid"></div>';
                                                                 } else {
                                                                     echo '<div class="avatar-image avatar-md"><div class="avatar-text avatar-md bg-light-primary rounded">' . strtoupper(substr($attendance['first_name'] ?? 'N', 0, 1) . substr($attendance['last_name'] ?? 'A', 0, 1)) . '</div></div>';
                                                                 }
