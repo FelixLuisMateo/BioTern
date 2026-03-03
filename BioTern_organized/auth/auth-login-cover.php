@@ -20,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($mysqli->connect_errno) {
             $login_error = 'Database connection failed.';
         } else {
-            $stmt = $mysqli->prepare("SELECT id, name, username, email, password, role, is_active FROM users WHERE (username = ? OR email = ?) LIMIT 1");
+            $stmt = $mysqli->prepare("SELECT id, name, username, email, password, role, is_active, profile_picture FROM users WHERE (username = ? OR email = ?) LIMIT 1");
 
             if ($stmt) {
                 $stmt->bind_param('ss', $identifier, $identifier);
@@ -40,6 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['username'] = (string)$user['username'];
                     $_SESSION['email'] = (string)$user['email'];
                     $_SESSION['role'] = (string)$user['role'];
+                    $_SESSION['profile_picture'] = (string)($user['profile_picture'] ?? '');
                     $_SESSION['logged_in'] = true;
 
                     header('Location: homepage.php');

@@ -3,7 +3,7 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-require_once __DIR__ . '/vendor/autoload.php';
+require_once dirname(__DIR__) . '/vendor/autoload.php';
 
 $dbHost = '127.0.0.1';
 $dbUser = 'root';
@@ -108,7 +108,7 @@ function envValue(string $key, string $default = ''): string
     static $env = null;
     if ($env === null) {
         $env = [];
-        $envPath = __DIR__ . '/.env';
+        $envPath = dirname(__DIR__) . '/.env';
         if (is_file($envPath)) {
             $lines = file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
             if (is_array($lines)) {

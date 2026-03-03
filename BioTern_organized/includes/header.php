@@ -1,11 +1,31 @@
 <?php
 // Shared header include.  Sets up HTML <head> and page header/navigation.
 // Pages can set a $page_title variable before including this file.
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 if (!isset($page_title) || trim($page_title) === '') {
     $page_title = 'BioTern';
 }
 if (!isset($base_href)) {
     $base_href = '';
+}
+
+$header_user_id = (int)($_SESSION['user_id'] ?? 0);
+$header_user_name = trim((string)($_SESSION['name'] ?? $_SESSION['username'] ?? 'BioTern User'));
+$header_user_email = trim((string)($_SESSION['email'] ?? 'admin@biotern.local'));
+$header_user_role = trim((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? ''));
+if ($header_user_name === '') {
+    $header_user_name = 'BioTern User';
+}
+$session_profile = ltrim(str_replace('\\', '/', trim((string)($_SESSION['profile_picture'] ?? ''))), '/');
+$header_avatar = '';
+if ($session_profile !== '' && file_exists(dirname(__DIR__) . '/' . $session_profile)) {
+    $header_avatar = $session_profile;
+}
+if ($header_avatar === '') {
+    $avatar_index = ($header_user_id > 0) ? (($header_user_id % 5) + 1) : 1;
+    $header_avatar = 'assets/images/avatar/' . $avatar_index . '.png';
 }
 ?>
 <!DOCTYPE html>
@@ -153,6 +173,19 @@ if (!isset($base_href)) {
         html.app-skin-dark .select2-container--default .select2-results__option--highlighted[aria-selected] {
             color: #ffffff !important;
         }
+
+        /* Keep topbar/user dropdown avatars perfectly circular */
+        .nxl-header .user-avtar,
+        .nxl-user-dropdown .user-avtar {
+            width: 40px !important;
+            height: 40px !important;
+            min-width: 40px;
+            min-height: 40px;
+            border-radius: 50% !important;
+            object-fit: cover;
+            aspect-ratio: 1 / 1;
+            display: inline-block;
+        }
     </style>
 </head>
 
@@ -233,15 +266,20 @@ if (!isset($base_href)) {
                     </div>
                     <div class="dropdown nxl-h-item">
                         <a href="javascript:void(0);" data-bs-toggle="dropdown" role="button" data-bs-auto-close="outside">
-                            <img src="assets/images/avatar/1.png" alt="user-image" class="img-fluid user-avtar me-0">
+                            <img src="<?php echo htmlspecialchars($header_avatar, ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar me-0">
                         </a>
                         <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-user-dropdown">
                             <div class="dropdown-header">
                                 <div class="d-flex align-items-center">
-                                    <img src="assets/images/avatar/1.png" alt="user-image" class="img-fluid user-avtar">
+                                    <img src="<?php echo htmlspecialchars($header_avatar, ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar">
                                     <div>
-                                        <h6 class="text-dark mb-0">BioTern User</h6>
-                                        <span class="fs-12 fw-medium text-muted">admin@biotern.local</span>
+                                        <h6 class="text-dark mb-0">
+                                            <?php echo htmlspecialchars($header_user_name, ENT_QUOTES, 'UTF-8'); ?>
+                                            <?php if ($header_user_role !== ''): ?>
+                                                <span class="badge bg-soft-success text-success ms-1"><?php echo htmlspecialchars(ucfirst($header_user_role), ENT_QUOTES, 'UTF-8'); ?></span>
+                                            <?php endif; ?>
+                                        </h6>
+                                        <span class="fs-12 fw-medium text-muted"><?php echo htmlspecialchars($header_user_email, ENT_QUOTES, 'UTF-8'); ?></span>
                                     </div>
                                 </div>
                             </div>

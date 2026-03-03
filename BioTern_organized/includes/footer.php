@@ -16,6 +16,15 @@
     .nxl-container .footer {
         margin-top: auto;
     }
+
+    /* Topbar dropdowns: click-only behavior (never open on hover). */
+    .nxl-header .dropdown.nxl-h-item > .dropdown-menu {
+        display: none;
+    }
+
+    .nxl-header .dropdown.nxl-h-item > .dropdown-menu.show {
+        display: block;
+    }
 </style>        </div> <!-- .nxl-content -->
         <!-- [ Footer ] start -->
         <footer class="footer">
@@ -79,6 +88,26 @@
     <!--! BEGIN: Theme Customizer  !-->
     <!-- Theme Customizer removed -->
     <!--! END: Theme Customizer !-->
+    <script>
+        (function () {
+            document.addEventListener('DOMContentLoaded', function () {
+                // Remove template hover listeners from topbar dropdown wrappers
+                // so Bootstrap click behavior is the only trigger.
+                var items = document.querySelectorAll('.nxl-header .dropdown.nxl-h-item:not(.nxl-header-search)');
+                items.forEach(function (node) {
+                    var replacement = node.cloneNode(true);
+                    node.parentNode.replaceChild(replacement, node);
+
+                    var toggle = replacement.querySelector('[data-bs-toggle="dropdown"]');
+                    if (toggle && window.bootstrap && window.bootstrap.Dropdown) {
+                        window.bootstrap.Dropdown.getOrCreateInstance(toggle, {
+                            autoClose: true
+                        });
+                    }
+                });
+            });
+        })();
+    </script>
     <script>
         (function(){
             document.addEventListener('DOMContentLoaded', function(){
