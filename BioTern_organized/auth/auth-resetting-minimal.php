@@ -42,9 +42,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 } else {
                     $select->bind_param('s', $contact);
                     if ($select->execute()) {
+                        $currentPasswordHash = null;
+                        $hasAccount = false;
                         $select->bind_result($currentPasswordHash);
                         if ($select->fetch()) {
-                            if (password_verify($newPassword, $currentPasswordHash)) {
+                            $hasAccount = true;
+                        }
+                        // Important: close SELECT statement before preparing another query on same connection.
+                        $select->free_result();
+                        $select->close();
+                        $select = null;
+
+                        if ($hasAccount) {
+                            if (password_verify($newPassword, (string)$currentPasswordHash)) {
                                 $reset_error = 'Your new password must be different from your current password.';
                             } else {
                                 // Use the verified reset contact (email) as the update key.
@@ -81,7 +91,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     } else {
                         $reset_error = 'Unable to validate current password. Please try again.';
                     }
-                    $select->close();
+                    if ($select instanceof mysqli_stmt) {
+                        $select->close();
+                    }
                 }
                 $mysqli->close();
             }

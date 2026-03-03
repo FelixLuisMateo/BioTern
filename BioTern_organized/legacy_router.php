@@ -12,6 +12,7 @@ $map = [
   'departments-create.php' => 'management/departments-create.php',
   'departments-edit.php' => 'management/departments-edit.php',
   'sections.php' => 'management/sections.php',
+  'sections-create.php' => 'management/sections-create.php',
   'sections-edit.php' => 'management/sections-edit.php',
   'coordinators.php' => 'management/coordinators.php',
   'coordinators-create.php' => 'management/coordinators-create.php',
