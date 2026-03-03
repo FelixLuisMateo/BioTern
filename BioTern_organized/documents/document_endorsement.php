@@ -12,6 +12,14 @@ try {
 }
 
 $prefill_student_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
+$prefill_greeting_pref = strtolower(trim((string)($_GET['greeting_pref'] ?? 'either')));
+if (!in_array($prefill_greeting_pref, ['sir', 'maam', 'either'], true)) {
+    $prefill_greeting_pref = 'either';
+}
+$prefill_recipient_title = strtolower(trim((string)($_GET['recipient_title'] ?? 'auto')));
+if (!in_array($prefill_recipient_title, ['auto', 'mr', 'ms', 'none'], true)) {
+    $prefill_recipient_title = 'auto';
+}
 
 if (isset($_GET['action'])) {
     header('Content-Type: application/json');
@@ -80,8 +88,8 @@ include __DIR__ . '/../includes/header.php';
 
         .doc-preview { background:#fff; border:1px solid #eee; padding:24px; max-width:800px; margin-top:18px; margin-bottom:32px; box-shadow:0 6px 20px rgba(0,0,0,.06); position:relative; z-index:1; }
         .preview-header { position:relative; min-height:72px; text-align:center; border-bottom:1px solid #8ab0e6; padding:8px 0 6px; margin-bottom:10px; }
-        .preview-header .school-name { font-family:Calibri,Arial,sans-serif; color:#1b4f9c; font-size:20px; margin:0; font-weight:700; }
-        .preview-header .school-meta, .preview-header .school-tel { font-family:Calibri,Arial,sans-serif; color:#1b4f9c; font-size:14px; line-height:1.2; }
+        .preview-header .school-name { font-family:'Times New Roman', Times, serif; color:#1b4f9c; font-size:20px; margin:0; font-weight:700; }
+        .preview-header .school-meta, .preview-header .school-tel { font-family:'Times New Roman', Times, serif; color:#1b4f9c; font-size:14px; line-height:1.2; }
         .preview-content { font-family:"Times New Roman", Times, serif; font-size:12pt; line-height:1.45; color:#2f3640; }
         .preview-content h5 { text-align:center; margin:8px 0 12px; font-weight:700; }
         .preview-content p,
@@ -91,6 +99,18 @@ include __DIR__ . '/../includes/header.php';
             color:#2f3640;
         }
         .signature { margin-top:28px; }
+        .ross-signatory { position: relative; margin-top:34px; padding-top:48px; }
+        .ross-signature {
+            position: absolute;
+            top: -26px;
+            left: -6px;
+            width: 300px;
+            max-width: none;
+            height: auto;
+            z-index: 2;
+            pointer-events: none;
+        }
+        .ross-signatory-text { position: relative; z-index: 1; }
         .card .btn { position: relative; z-index: 5; pointer-events: auto; }
         .select2-container--open { z-index: 9999999 !important; }
         .select2-dropdown { z-index: 9999999 !important; }
@@ -200,6 +220,25 @@ include __DIR__ . '/../includes/header.php';
                     <input id="input_recipient" class="form-control form-control-sm" type="text" placeholder="e.g. Mr. Mark G. Sison">
                 </div>
                 <div class="mt-2">
+                    <label class="form-label d-block mb-2">Recipient Title</label>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="recipient_title" id="rt_auto" value="auto">
+                        <label class="form-check-label" for="rt_auto">Auto (AI guess)</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="recipient_title" id="rt_mr" value="mr">
+                        <label class="form-check-label" for="rt_mr">Mr.</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="recipient_title" id="rt_ms" value="ms">
+                        <label class="form-check-label" for="rt_ms">Ms.</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="recipient_title" id="rt_none" value="none">
+                        <label class="form-check-label" for="rt_none">None</label>
+                    </div>
+                </div>
+                <div class="mt-2">
                     <label class="form-label">Recipient Position</label>
                     <input id="input_position" class="form-control form-control-sm" type="text" placeholder="e.g. Supervisor/Manager">
                 </div>
@@ -238,7 +277,7 @@ include __DIR__ . '/../includes/header.php';
                     <span id="pv_company">__________________________</span><br>
                     <span id="pv_company_address">__________________________</span></p>
 
-                    <p>Dear Ma'am,</p>
+                    <p><span id="pv_salutation">Dear Ma'am,</span></p>
 
                     <p>Greetings from Clark College of Science and Technology!</p>
 
@@ -258,9 +297,12 @@ include __DIR__ . '/../includes/header.php';
                         <p><strong>MR. JOMAR G. SANGIL</strong><br>
                         <strong>ICT DEPARTMENT HEAD</strong><br>
                         <strong>Clark College of Science and Technology</strong></p>
-                        <p style="margin-top:36px;"><strong>MR. ROSS CARVEL C. RAMIREZ</strong><br>
-                        <strong>HEAD OF ACADEMIC AFFAIRS</strong><br>
-                        <strong>Clark College of Science and Technology</strong></p>
+                        <div class="ross-signatory">
+                            <img class="ross-signature" src="pages/Ross-Signature.png" alt="Ross signature" onerror="this.style.display='none'">
+                            <p class="ross-signatory-text"><strong>MR. ROSS CARVEL C. RAMIREZ</strong><br>
+                            <strong>HEAD OF ACADEMIC AFFAIRS</strong><br>
+                            <strong>Clark College of Science and Technology</strong></p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -277,15 +319,42 @@ window.addEventListener('load', function() {
     const inputCompany = document.getElementById('input_company');
     const inputCompanyAddress = document.getElementById('input_company_address');
     const inputStudents = document.getElementById('input_students');
+    const recipientTitleRadios = Array.prototype.slice.call(document.querySelectorAll('input[name="recipient_title"]'));
+    const PREFILL_RECIPIENT_TITLE = <?php echo json_encode($prefill_recipient_title); ?>;
+    const greetingRadios = Array.prototype.slice.call(document.querySelectorAll('input[name="greeting_preference"]'));
+    const PREFILL_GREETING_PREF = <?php echo json_encode($prefill_greeting_pref); ?>;
     const btnGenerate = document.getElementById('btn_generate');
     const btnFileEdit = document.getElementById('btn_file_edit');
     const prefillId = <?php echo intval($prefill_student_id); ?>;
+    let selectedStudentId = prefillId > 0 ? String(prefillId) : '';
 
     function sanitizeStudentLines(raw) {
         return String(raw || '')
             .split(/\r?\n/)
             .map(function(x){ return x.trim(); })
             .filter(Boolean);
+    }
+
+    function inferTitleFromName(name) {
+        const n = String(name || '').trim();
+        if (!n) return 'none';
+        const l = n.toLowerCase();
+        if (l.startsWith('mr ') || l.startsWith('mr.') || l.startsWith('sir ')) return 'mr';
+        if (l.startsWith('ms ') || l.startsWith('ms.') || l.startsWith('mrs ') || l.startsWith('mrs.') || l.startsWith('maam') || l.startsWith("ma'am") || l.startsWith('madam')) return 'ms';
+        // Lightweight "AI-like" heuristic by common first names; unknown => manual fallback.
+        const first = l.replace(/[^a-z\s]/g, ' ').trim().split(/\s+/)[0] || '';
+        const likelyMale = ['jomer','jomar','jose','juan','mark','michael','john','james','daniel','paul','peter','kevin','robert','edward','ross','ramirez','sanchez','felix','ivan'];
+        const likelyFemale = ['anna','ana','maria','marie','jane','joy','kim','angel','diana','michelle','grace','sarah','liza','rose','patricia','christine','karen','claire'];
+        if (likelyMale.indexOf(first) !== -1) return 'mr';
+        if (likelyFemale.indexOf(first) !== -1) return 'ms';
+        return 'none';
+    }
+
+    function resolveRecipientTitle() {
+        const checked = recipientTitleRadios.find(function(r){ return r.checked; });
+        const selected = checked ? checked.value : 'auto';
+        if (selected === 'auto') return inferTitleFromName(inputRecipient.value);
+        return selected;
     }
 
     function buildNameFromOptionText(text) {
@@ -302,6 +371,21 @@ window.addEventListener('load', function() {
         return buildNameFromOptionText(txt);
     }
 
+    function detectSalutation(name) {
+        const resolvedTitle = resolveRecipientTitle();
+        if (resolvedTitle === 'mr') return 'Dear Sir,';
+        if (resolvedTitle === 'ms') return 'Dear Ma\'am,';
+
+        const checked = greetingRadios.find(function(r){ return r.checked; });
+        const pref = checked ? checked.value : 'either';
+        if (pref === 'sir') return 'Dear Sir,';
+        if (pref === 'maam') return 'Dear Ma\'am,';
+        const n = String(name || '').toLowerCase().trim();
+        if (n.startsWith('mr ') || n.startsWith('mr.') || n.startsWith('sir')) return 'Dear Sir,';
+        if (n.startsWith('ms ') || n.startsWith('ms.') || n.startsWith('mrs ') || n.startsWith('mrs.') || n.startsWith('maam') || n.startsWith('ma\'am') || n.startsWith('madam')) return 'Dear Ma\'am,';
+        return 'Dear Ma\'am,';
+    }
+
     function appendSelectedStudentToTextarea() {
         const selectedName = getSelectedStudentName();
         if (!selectedName) return;
@@ -312,11 +396,21 @@ window.addEventListener('load', function() {
         }
     }
 
+    function formatRecipientName(name) {
+        const n = String(name || '').trim();
+        if (!n) return '__________________________';
+        const rt = resolveRecipientTitle();
+        if (rt === 'mr') return 'Mr. ' + n;
+        if (rt === 'ms') return 'Ms. ' + n;
+        return n;
+    }
+
     function updatePreview() {
-        document.getElementById('pv_recipient').textContent = inputRecipient.value || '__________________________';
+        document.getElementById('pv_recipient').textContent = formatRecipientName(inputRecipient.value);
         document.getElementById('pv_position').textContent = inputPosition.value || '__________________________';
         document.getElementById('pv_company').textContent = inputCompany.value || '__________________________';
         document.getElementById('pv_company_address').textContent = inputCompanyAddress.value || '__________________________';
+        document.getElementById('pv_salutation').textContent = detectSalutation(inputRecipient.value);
 
         const ul = document.getElementById('pv_students');
         const typed = sanitizeStudentLines(inputStudents.value);
@@ -338,16 +432,20 @@ window.addEventListener('load', function() {
 
     function updateLinks() {
         const p = new URLSearchParams();
-        const selectedId = select.val();
+        const selectedId = select.val() || selectedStudentId;
         if (selectedId) {
-            p.set('id', selectedId);
+            p.set('id', String(selectedId));
         } else if (prefillId > 0) {
             p.set('id', String(prefillId));
         }
         if (inputRecipient.value) p.set('recipient', inputRecipient.value);
+        const rt = recipientTitleRadios.find(function(r){ return r.checked; });
+        if (rt && rt.value) p.set('recipient_title', rt.value);
         if (inputPosition.value) p.set('position', inputPosition.value);
         if (inputCompany.value) p.set('company', inputCompany.value);
         if (inputCompanyAddress.value) p.set('company_address', inputCompanyAddress.value);
+        const checked = greetingRadios.find(function(r){ return r.checked; });
+        if (checked && checked.value) p.set('greeting_pref', checked.value);
         const typed = sanitizeStudentLines(inputStudents.value);
         const selectedName = getSelectedStudentName();
         const studentsValue = typed.length ? typed.join('\n') : selectedName;
@@ -365,6 +463,11 @@ window.addEventListener('load', function() {
             inputRecipient.value = String(data.recipient_name);
             changed = true;
         }
+        if (data.recipient_title) {
+            const rt = String(data.recipient_title).toLowerCase();
+            recipientTitleRadios.forEach(function(r){ r.checked = (r.value === rt); });
+            changed = true;
+        }
         if (data.recipient_position) {
             inputPosition.value = String(data.recipient_position);
             changed = true;
@@ -379,6 +482,11 @@ window.addEventListener('load', function() {
         }
         if (data.students_to_endorse) {
             inputStudents.value = String(data.students_to_endorse);
+            changed = true;
+        }
+        if (data.greeting_preference) {
+            const gp = String(data.greeting_preference).toLowerCase();
+            greetingRadios.forEach(function(r){ r.checked = (r.value === gp); });
             changed = true;
         }
         return changed;
@@ -446,7 +554,19 @@ window.addEventListener('load', function() {
     });
 
     select.on('select2:select', function(){
+        const pickedId = String(select.val() || '');
+        if (pickedId) selectedStudentId = pickedId;
         appendSelectedStudentToTextarea();
+        if (pickedId) {
+            fetch('documents/document_endorsement.php?action=get_endorsement&id=' + encodeURIComponent(pickedId))
+                .then(function(r){ return r.json(); })
+                .then(function(saved){
+                    applySavedEndorsement(saved);
+                    updatePreview();
+                    updateLinks();
+                })
+                .catch(function(){});
+        }
         // Clear current selection so user can search/add another student quickly.
         select.val(null).trigger('change');
         const overlay = document.querySelector('.select2-overlay-input');
@@ -463,6 +583,18 @@ window.addEventListener('load', function() {
 
     [inputRecipient, inputPosition, inputCompany, inputCompanyAddress, inputStudents].forEach(el => {
         el.addEventListener('input', function(){
+            updatePreview();
+            updateLinks();
+        });
+    });
+    recipientTitleRadios.forEach(function(r){
+        r.addEventListener('change', function(){
+            updatePreview();
+            updateLinks();
+        });
+    });
+    greetingRadios.forEach(function(r){
+        r.addEventListener('change', function(){
             updatePreview();
             updateLinks();
         });
@@ -499,6 +631,7 @@ window.addEventListener('load', function() {
                         if (full) {
                             const text = full + ' - ' + (data.student_id || '');
                             const o = new Option(text, String(prefillId), true, true);
+                            selectedStudentId = String(prefillId);
                             select.append(o).trigger('change');
                         }
                         updatePreview();
@@ -509,6 +642,17 @@ window.addEventListener('load', function() {
     }
 
     setTimeout(createSelectOverlay, 60);
+    recipientTitleRadios.forEach(function(r){ r.checked = (r.value === PREFILL_RECIPIENT_TITLE); });
+    if (!recipientTitleRadios.some(function(r){ return r.checked; }) && recipientTitleRadios.length) {
+        const auto = recipientTitleRadios.find(function(r){ return r.value === 'auto'; });
+        if (auto) auto.checked = true;
+    }
+    greetingRadios.forEach(function(r){ r.checked = (r.value === PREFILL_GREETING_PREF); });
+    if (!greetingRadios.some(function(r){ return r.checked; }) && greetingRadios.length) {
+        greetingRadios[0].checked = false;
+        const either = greetingRadios.find(function(r){ return r.value === 'either'; });
+        if (either) either.checked = true;
+    }
     updatePreview();
     updateLinks();
 })();
