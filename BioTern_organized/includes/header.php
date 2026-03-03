@@ -7,9 +7,29 @@ if (!isset($page_title) || trim($page_title) === '') {
 if (!isset($base_href)) {
     $base_href = '';
 }
+$biotern_theme_api_endpoint = $base_href . 'api/theme-customizer.php';
+require_once __DIR__ . '/theme-preferences.php';
+$biotern_theme_preferences = biotern_theme_preferences();
+$html_classes = [];
+if (($biotern_theme_preferences['skin'] ?? 'light') === 'dark') {
+    $html_classes[] = 'app-skin-dark';
+}
+if (($biotern_theme_preferences['menu'] ?? 'auto') === 'mini') {
+    $html_classes[] = 'minimenu';
+}
+if (($biotern_theme_preferences['font'] ?? 'default') !== 'default') {
+    $html_classes[] = $biotern_theme_preferences['font'];
+}
+if (($biotern_theme_preferences['navigation'] ?? 'light') === 'dark') {
+    $html_classes[] = 'app-navigation-dark';
+}
+if (($biotern_theme_preferences['header'] ?? 'light') === 'dark') {
+    $html_classes[] = 'app-header-dark';
+}
+$html_class_attr = implode(' ', $html_classes);
 ?>
 <!DOCTYPE html>
-<html lang="zxx">
+<html lang="zxx"<?php echo $html_class_attr !== '' ? ' class="' . htmlspecialchars($html_class_attr, ENT_QUOTES, 'UTF-8') . '"' : ''; ?>>
 
 <head>
     <meta charset="utf-8">
@@ -37,11 +57,115 @@ if (!isset($base_href)) {
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2.min.css">
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2-theme.min.css">
     <!--! END: Vendors CSS-->
+    <script>
+        window.__bioternThemePrefs = <?php echo json_encode($biotern_theme_preferences, JSON_UNESCAPED_SLASHES); ?>;
+        window.__bioternThemeApi = <?php echo json_encode($biotern_theme_api_endpoint, JSON_UNESCAPED_SLASHES); ?>;
+    </script>
     <!--! BEGIN: Early Skin Script -->
     <script>
-        // Apply saved skin as early as possible to avoid flash-of-unstyled (FOUS)
+        // Apply saved skin + sidebar state as early as possible to avoid initial layout flash.
         (function(){
+            var serverPrefs = window.__bioternThemePrefs || {};
+            var allowedFonts = [
+                'app-font-family-inter',
+                'app-font-family-lato',
+                'app-font-family-rubik',
+                'app-font-family-cinzel',
+                'app-font-family-nunito',
+                'app-font-family-roboto',
+                'app-font-family-ubuntu',
+                'app-font-family-poppins',
+                'app-font-family-raleway',
+                'app-font-family-system-ui',
+                'app-font-family-noto-sans',
+                'app-font-family-fira-sans',
+                'app-font-family-work-sans',
+                'app-font-family-open-sans',
+                'app-font-family-maven-pro',
+                'app-font-family-quicksand',
+                'app-font-family-montserrat',
+                'app-font-family-josefin-sans',
+                'app-font-family-ibm-plex-sans',
+                'app-font-family-montserrat-alt',
+                'app-font-family-roboto-slab',
+                'app-font-family-source-sans-pro'
+            ];
+
+            function clearFontClasses() {
+                try {
+                    var cls = document.documentElement.className || '';
+                    var cleaned = cls.replace(/\bapp-font-family-[^\s]+\b/g, '').replace(/\s{2,}/g, ' ').trim();
+                    document.documentElement.className = cleaned;
+                } catch (e) {
+                }
+            }
+
+            function applyFont(fontClass) {
+                clearFontClasses();
+                if (fontClass && allowedFonts.indexOf(fontClass) !== -1) {
+                    document.documentElement.classList.add(fontClass);
+                }
+            }
+
+            function getSavedFont() {
+                if (typeof serverPrefs.font === 'string' && serverPrefs.font !== '') {
+                    return serverPrefs.font;
+                }
+
+                try {
+                    var legacyFont = localStorage.getItem('font-family');
+                    return legacyFont !== null ? legacyFont : 'default';
+                } catch (e) {
+                    return 'default';
+                }
+            }
+
+            applyFont(getSavedFont());
+
+            function applyNavigationMode(mode) {
+                document.documentElement.classList.remove('app-navigation-dark');
+                if (mode === 'dark') {
+                    document.documentElement.classList.add('app-navigation-dark');
+                }
+            }
+
+            function applyHeaderMode(mode) {
+                document.documentElement.classList.remove('app-header-dark');
+                if (mode === 'dark') {
+                    document.documentElement.classList.add('app-header-dark');
+                }
+            }
+
+            function getSavedNavigationMode() {
+                if (serverPrefs.navigation === 'dark' || serverPrefs.navigation === 'light') {
+                    return serverPrefs.navigation;
+                }
+                try {
+                    var nav = localStorage.getItem('app-navigation');
+                    if (nav === 'app-navigation-dark') return 'dark';
+                } catch (e) {
+                }
+                return 'light';
+            }
+
+            function getSavedHeaderMode() {
+                if (serverPrefs.header === 'dark' || serverPrefs.header === 'light') {
+                    return serverPrefs.header;
+                }
+                try {
+                    var hdr = localStorage.getItem('app-header');
+                    if (hdr === 'app-header-dark') return 'dark';
+                } catch (e) {
+                }
+                return 'light';
+            }
+
+            applyNavigationMode(getSavedNavigationMode());
+            applyHeaderMode(getSavedHeaderMode());
+
             function getSavedSkin() {
+                if (serverPrefs.skin === 'dark') return 'app-skin-dark';
+                if (serverPrefs.skin === 'light') return '';
                 try {
                     // Respect the primary key even when intentionally set to empty (light mode).
                     var primary = localStorage.getItem('app-skin');
@@ -62,6 +186,32 @@ if (!isset($base_href)) {
                 document.documentElement.classList.add('app-skin-dark');
             } else {
                 document.documentElement.classList.remove('app-skin-dark');
+            }
+
+            try {
+                var menuState = localStorage.getItem('nexel-classic-dashboard-menu-mini-theme');
+                if (!menuState) {
+                    if (serverPrefs.menu === 'mini') {
+                        menuState = 'menu-mini-theme';
+                    } else if (serverPrefs.menu === 'expanded') {
+                        menuState = 'menu-expend-theme';
+                    }
+                }
+                var width = window.innerWidth || document.documentElement.clientWidth || 0;
+
+                if (menuState === 'menu-mini-theme') {
+                    document.documentElement.classList.add('minimenu');
+                } else if (menuState === 'menu-expend-theme') {
+                    document.documentElement.classList.remove('minimenu');
+                } else {
+                    if (width >= 1024 && width <= 1600) {
+                        document.documentElement.classList.add('minimenu');
+                    } else if (width > 1600) {
+                        document.documentElement.classList.remove('minimenu');
+                    }
+                }
+            } catch (e) {
+                // ignore localStorage errors
             }
         })();
     </script>
@@ -129,6 +279,12 @@ if (!isset($base_href)) {
 
         html.app-skin-dark .select2-container--default .select2-results__option--highlighted[aria-selected] {
             color: #ffffff !important;
+        }
+
+        .theme-customizer,
+        .customizer-open-trigger,
+        .cutomizer-open-trigger {
+            display: none !important;
         }
     </style>
 </head>

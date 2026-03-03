@@ -16,7 +16,8 @@
     .nxl-container .footer {
         margin-top: auto;
     }
-</style>        </div> <!-- .nxl-content -->
+</style>
+    </div> <!-- .nxl-content -->
         <!-- [ Footer ] start -->
         <footer class="footer">
             <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
@@ -76,15 +77,49 @@
     <script src="assets/js/common-init.min.js"></script>
     <script src="assets/js/customers-init.min.js"></script>
     <!--! END: Apps Init !-->
-    <!--! BEGIN: Theme Customizer  !-->
-    <!-- Theme Customizer removed -->
-    <!--! END: Theme Customizer !-->
     <script>
         (function(){
             document.addEventListener('DOMContentLoaded', function(){
+                var serverPrefs = window.__bioternThemePrefs || {};
                 var darkBtn = document.querySelector('.dark-button');
                 var lightBtn = document.querySelector('.light-button');
+
+                var pageSkinLight = document.getElementById('theme-page-skin-light');
+                var pageSkinDark = document.getElementById('theme-page-skin-dark');
+                var pageMenu = document.getElementById('theme-page-menu');
+                var pageFont = document.getElementById('theme-page-font');
+                var pageNavigation = document.getElementById('theme-page-navigation');
+                var pageHeader = document.getElementById('theme-page-header');
+                var pageSave = document.getElementById('theme-page-save');
+                var pageReset = document.getElementById('theme-page-reset');
+                var allowedFonts = [
+                    'app-font-family-inter',
+                    'app-font-family-lato',
+                    'app-font-family-rubik',
+                    'app-font-family-cinzel',
+                    'app-font-family-nunito',
+                    'app-font-family-roboto',
+                    'app-font-family-ubuntu',
+                    'app-font-family-poppins',
+                    'app-font-family-raleway',
+                    'app-font-family-system-ui',
+                    'app-font-family-noto-sans',
+                    'app-font-family-fira-sans',
+                    'app-font-family-work-sans',
+                    'app-font-family-open-sans',
+                    'app-font-family-montserrat',
+                    'app-font-family-maven-pro',
+                    'app-font-family-quicksand',
+                    'app-font-family-josefin-sans',
+                    'app-font-family-ibm-plex-sans',
+                    'app-font-family-montserrat-alt',
+                    'app-font-family-roboto-slab',
+                    'app-font-family-source-sans-pro'
+                ];
+
                 function getSavedSkin(){
+                    if (serverPrefs.skin === 'dark') return 'app-skin-dark';
+                    if (serverPrefs.skin === 'light') return '';
                     try{
                         // Respect primary key even when value is intentionally empty.
                         var primary = localStorage.getItem('app-skin');
@@ -100,7 +135,164 @@
                     }
                 }
 
-                function setDark(isDark){
+                function getSavedMenuMode() {
+                    try {
+                        var menuState = localStorage.getItem('nexel-classic-dashboard-menu-mini-theme');
+                        if (menuState === 'menu-mini-theme') return 'mini';
+                        if (menuState === 'menu-expend-theme') return 'expanded';
+                    } catch (e) {
+                    }
+
+                    if (serverPrefs.menu === 'mini' || serverPrefs.menu === 'expanded' || serverPrefs.menu === 'auto') {
+                        return serverPrefs.menu;
+                    }
+
+                    return 'auto';
+                }
+
+                function getSavedFont() {
+                    if (typeof serverPrefs.font === 'string' && serverPrefs.font !== '') {
+                        return serverPrefs.font;
+                    }
+                    try {
+                        var legacyFont = localStorage.getItem('font-family');
+                        return legacyFont !== null ? legacyFont : 'default';
+                    } catch (e) {
+                        return 'default';
+                    }
+                }
+
+                function getSavedNavigationMode() {
+                    if (serverPrefs.navigation === 'dark' || serverPrefs.navigation === 'light') {
+                        return serverPrefs.navigation;
+                    }
+                    try {
+                        var nav = localStorage.getItem('app-navigation');
+                        if (nav === 'app-navigation-dark') return 'dark';
+                    } catch (e) {
+                    }
+                    return 'light';
+                }
+
+                function getSavedHeaderMode() {
+                    if (serverPrefs.header === 'dark' || serverPrefs.header === 'light') {
+                        return serverPrefs.header;
+                    }
+                    try {
+                        var hdr = localStorage.getItem('app-header');
+                        if (hdr === 'app-header-dark') return 'dark';
+                    } catch (e) {
+                    }
+                    return 'light';
+                }
+
+                function clearFontClasses() {
+                    var classes = document.documentElement.className || '';
+                    document.documentElement.className = classes.replace(/\bapp-font-family-[^\s]+\b/g, '').replace(/\s{2,}/g, ' ').trim();
+                }
+
+                function applyFont(fontClass) {
+                    var nextFont = (allowedFonts.indexOf(fontClass) !== -1) ? fontClass : 'default';
+                    clearFontClasses();
+                    if (nextFont !== 'default') {
+                        document.documentElement.classList.add(nextFont);
+                    }
+                    try {
+                        if (nextFont === 'default') {
+                            localStorage.removeItem('font-family');
+                        } else {
+                            localStorage.setItem('font-family', nextFont);
+                        }
+                    } catch (e) {
+                    }
+                    return nextFont;
+                }
+
+                function applyNavigationMode(mode) {
+                    var next = mode === 'dark' ? 'dark' : 'light';
+                    document.documentElement.classList.remove('app-navigation-dark');
+                    if (next === 'dark') {
+                        document.documentElement.classList.add('app-navigation-dark');
+                    }
+                    try {
+                        localStorage.setItem('app-navigation', next === 'dark' ? 'app-navigation-dark' : 'app-navigation-light');
+                    } catch (e) {
+                    }
+                    return next;
+                }
+
+                function applyHeaderMode(mode) {
+                    var next = mode === 'dark' ? 'dark' : 'light';
+                    document.documentElement.classList.remove('app-header-dark');
+                    if (next === 'dark') {
+                        document.documentElement.classList.add('app-header-dark');
+                    }
+                    try {
+                        localStorage.setItem('app-header', next === 'dark' ? 'app-header-dark' : 'app-header-light');
+                    } catch (e) {
+                    }
+                    return next;
+                }
+
+                function saveThemePreferences(payload) {
+                    if (!window.fetch) return;
+                    var endpoint = window.__bioternThemeApi || 'api/theme-customizer.php';
+                    fetch(endpoint, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(payload || {})
+                    }).catch(function(){
+                    });
+                }
+
+                function applyMenuMode(mode) {
+                    var nextMode = (mode === 'mini' || mode === 'expanded') ? mode : 'auto';
+                    var width = window.innerWidth || document.documentElement.clientWidth || 0;
+
+                    if (nextMode === 'mini') {
+                        document.documentElement.classList.add('minimenu');
+                        try { localStorage.setItem('nexel-classic-dashboard-menu-mini-theme', 'menu-mini-theme'); } catch (e) {}
+                        return;
+                    }
+
+                    if (nextMode === 'expanded') {
+                        document.documentElement.classList.remove('minimenu');
+                        try { localStorage.setItem('nexel-classic-dashboard-menu-mini-theme', 'menu-expend-theme'); } catch (e) {}
+                        return;
+                    }
+
+                    try { localStorage.removeItem('nexel-classic-dashboard-menu-mini-theme'); } catch (e) {}
+                    if (width >= 1024 && width <= 1600) {
+                        document.documentElement.classList.add('minimenu');
+                    } else {
+                        document.documentElement.classList.remove('minimenu');
+                    }
+                }
+
+                function currentSkinValue() {
+                    return document.documentElement.classList.contains('app-skin-dark') ? 'dark' : 'light';
+                }
+
+                function currentFontValue() {
+                    for (var i = 0; i < allowedFonts.length; i++) {
+                        if (document.documentElement.classList.contains(allowedFonts[i])) {
+                            return allowedFonts[i];
+                        }
+                    }
+                    return 'default';
+                }
+
+                function currentNavigationValue() {
+                    return document.documentElement.classList.contains('app-navigation-dark') ? 'dark' : 'light';
+                }
+
+                function currentHeaderValue() {
+                    return document.documentElement.classList.contains('app-header-dark') ? 'dark' : 'light';
+                }
+
+                function setDark(isDark, persist){
                     if(isDark){
                         document.documentElement.classList.add('app-skin-dark');
                         try{
@@ -110,6 +302,15 @@
                         }catch(e){}
                         if(darkBtn) darkBtn.style.display = 'none';
                         if(lightBtn) lightBtn.style.display = '';
+                        if (persist !== false) {
+                            saveThemePreferences({
+                                skin: 'dark',
+                                menu: getSavedMenuMode(),
+                                font: currentFontValue(),
+                                navigation: currentNavigationValue(),
+                                header: currentHeaderValue()
+                            });
+                        }
                     } else {
                         document.documentElement.classList.remove('app-skin-dark');
                         try{
@@ -121,15 +322,89 @@
                         }catch(e){}
                         if(darkBtn) darkBtn.style.display = '';
                         if(lightBtn) lightBtn.style.display = 'none';
+                        if (persist !== false) {
+                            saveThemePreferences({
+                                skin: 'light',
+                                menu: getSavedMenuMode(),
+                                font: currentFontValue(),
+                                navigation: currentNavigationValue(),
+                                header: currentHeaderValue()
+                            });
+                        }
                     }
+
+                    syncCustomizerInputs();
+                }
+
+                function syncCustomizerInputs() {
+                    var skin = currentSkinValue();
+                    var menu = getSavedMenuMode();
+                    var font = currentFontValue();
+                    var navigation = currentNavigationValue();
+                    var header = currentHeaderValue();
+                    var navLightRadio = document.getElementById('theme-page-navigation-light');
+                    var navDarkRadio = document.getElementById('theme-page-navigation-dark');
+                    var headerLightRadio = document.getElementById('theme-page-header-light');
+                    var headerDarkRadio = document.getElementById('theme-page-header-dark');
+
+                    if (pageSkinDark) pageSkinDark.checked = skin === 'dark';
+                    if (pageSkinLight) pageSkinLight.checked = skin !== 'dark';
+                    if (pageMenu) pageMenu.value = menu;
+                    if (pageFont) pageFont.value = font;
+                    if (pageNavigation) pageNavigation.value = navigation;
+                    if (pageHeader) pageHeader.value = header;
+                    if (navDarkRadio) navDarkRadio.checked = navigation === 'dark';
+                    if (navLightRadio) navLightRadio.checked = navigation !== 'dark';
+                    if (headerDarkRadio) headerDarkRadio.checked = header === 'dark';
+                    if (headerLightRadio) headerLightRadio.checked = header !== 'dark';
                 }
 
                 var s = getSavedSkin();
                 var isDark = (typeof s === 'string' && s.indexOf('dark') !== -1) || document.documentElement.classList.contains('app-skin-dark');
-                setDark(isDark);
+                applyFont(getSavedFont());
+                applyNavigationMode(getSavedNavigationMode());
+                applyHeaderMode(getSavedHeaderMode());
+                setDark(isDark, false);
+                applyMenuMode(getSavedMenuMode());
+                syncCustomizerInputs();
 
-                if(darkBtn) darkBtn.addEventListener('click', function(e){ e.preventDefault(); setDark(true); });
-                if(lightBtn) lightBtn.addEventListener('click', function(e){ e.preventDefault(); setDark(false); });
+                if(darkBtn) darkBtn.addEventListener('click', function(e){ e.preventDefault(); setDark(true, true); });
+                if(lightBtn) lightBtn.addEventListener('click', function(e){ e.preventDefault(); setDark(false, true); });
+
+                function resolveSelectedSkin(lightEl, darkEl) {
+                    if (darkEl && darkEl.checked) return 'dark';
+                    if (lightEl && lightEl.checked) return 'light';
+                    return currentSkinValue();
+                }
+
+                if (pageSave) {
+                    pageSave.addEventListener('click', function () {
+                        var skin = resolveSelectedSkin(pageSkinLight, pageSkinDark);
+                        var menu = pageMenu ? pageMenu.value : getSavedMenuMode();
+                        var font = pageFont ? pageFont.value : currentFontValue();
+                        var navigation = pageNavigation ? pageNavigation.value : currentNavigationValue();
+                        var header = pageHeader ? pageHeader.value : currentHeaderValue();
+                        setDark(skin === 'dark', false);
+                        applyMenuMode(menu);
+                        font = applyFont(font);
+                        navigation = applyNavigationMode(navigation);
+                        header = applyHeaderMode(header);
+                        saveThemePreferences({ skin: skin, menu: menu, font: font, navigation: navigation, header: header });
+                        syncCustomizerInputs();
+                    });
+                }
+
+                if (pageReset) {
+                    pageReset.addEventListener('click', function () {
+                        setDark(false, false);
+                        applyMenuMode('auto');
+                        applyFont('default');
+                        applyNavigationMode('light');
+                        applyHeaderMode('light');
+                        saveThemePreferences({ skin: 'light', menu: 'auto', font: 'default', navigation: 'light', header: 'light' });
+                        syncCustomizerInputs();
+                    });
+                }
             });
         })();
     </script>

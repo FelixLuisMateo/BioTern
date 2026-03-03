@@ -172,6 +172,7 @@
                         <li class="nxl-item"><a class="nxl-link" href="settings-support.php">Support</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="settings-students.php">Students</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="settings-miscellaneous.php">Miscellaneous</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="theme-customizer.php">Theme Customizer</a></li>
                     </ul>
                 </li>
                 <li class="nxl-item nxl-hasmenu">

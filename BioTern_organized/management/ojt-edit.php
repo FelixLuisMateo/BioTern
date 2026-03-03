@@ -713,31 +713,7 @@ if ($student_id > 0 && ojt_edit_table_exists($conn, 'ojt_supervisor_reviews')) {
 </main>
 <script src="assets/vendors/js/vendors.min.js"></script>
 <script src="assets/js/common-init.min.js"></script>
-<script>
-    (function () {
-        var root = document.documentElement;
-        var darkBtn = document.querySelector('.dark-button');
-        var lightBtn = document.querySelector('.light-button');
-        function applyTheme(isDark) {
-            root.classList.toggle('app-skin-dark', isDark);
-            try {
-                localStorage.setItem('app-skin', isDark ? 'app-skin-dark' : 'app-skin-light');
-                localStorage.setItem('app_skin', isDark ? 'app-skin-dark' : 'app-skin-light');
-                localStorage.setItem('theme', isDark ? 'dark' : 'light');
-                if (isDark) localStorage.setItem('app-skin-dark', 'app-skin-dark');
-                else localStorage.removeItem('app-skin-dark');
-            } catch (e) {}
-            if (darkBtn && lightBtn) {
-                darkBtn.style.display = isDark ? 'none' : '';
-                lightBtn.style.display = isDark ? '' : 'none';
-            }
-        }
-        var isDark = root.classList.contains('app-skin-dark');
-        applyTheme(isDark);
-        if (darkBtn) darkBtn.addEventListener('click', function (e) { e.preventDefault(); applyTheme(true); });
-        if (lightBtn) lightBtn.addEventListener('click', function (e) { e.preventDefault(); applyTheme(false); });
-    })();
-</script>
+<script src="assets/js/theme-customizer-init.min.js"></script>
 </body>
 </html>
 <?php $conn->close(); ?>

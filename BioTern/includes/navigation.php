@@ -1,6 +1,28 @@
 <?php
 // Centralized navigation include copied from index.php (updated)
 ?>
+<script>
+    (function(){
+        try {
+            var menuState = localStorage.getItem('nexel-classic-dashboard-menu-mini-theme');
+            var width = window.innerWidth || document.documentElement.clientWidth || 0;
+
+            if (menuState === 'menu-mini-theme') {
+                document.documentElement.classList.add('minimenu');
+            } else if (menuState === 'menu-expend-theme') {
+                document.documentElement.classList.remove('minimenu');
+            } else {
+                if (width >= 1024 && width <= 1600) {
+                    document.documentElement.classList.add('minimenu');
+                } else if (width > 1600) {
+                    document.documentElement.classList.remove('minimenu');
+                }
+            }
+        } catch (e) {
+            // ignore
+        }
+    })();
+</script>
 <nav class="nxl-navigation">
     <div class="navbar-wrapper">
         <div class="m-header">

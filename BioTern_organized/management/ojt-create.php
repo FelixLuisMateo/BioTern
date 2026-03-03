@@ -1341,9 +1341,9 @@
     <!--! END: Vendors JS !-->
     <!--! BEGIN: Apps Init  !-->
     <script src="assets/js/common-init.min.js"></script>
+    <script src="assets/js/theme-customizer-init.min.js"></script>
     <script src="assets/js/leads-view-init.min.js"></script>
     <!--! END: Apps Init !-->
-    <!-- Theme Customizer removed -->
 </body>
 
 </html>

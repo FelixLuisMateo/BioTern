@@ -33,12 +33,31 @@ if (!isset($page_title) || trim($page_title) === '') {
     <!--! END: Vendors CSS-->
     <!--! BEGIN: Early Skin Script -->
     <script>
-        // Apply saved skin as early as possible to avoid flash-of-unstyled (FOUS)
+        // Apply saved skin + sidebar state as early as possible to avoid initial layout flash.
         (function(){
             try {
                 var skin = localStorage.getItem('app-skin-dark');
                 if (skin === 'app-skin-dark') {
                     document.documentElement.classList.add('app-skin-dark');
+                }
+            } catch (e) {
+                /* ignore */
+            }
+
+            try {
+                var menuState = localStorage.getItem('nexel-classic-dashboard-menu-mini-theme');
+                var width = window.innerWidth || document.documentElement.clientWidth || 0;
+
+                if (menuState === 'menu-mini-theme') {
+                    document.documentElement.classList.add('minimenu');
+                } else if (menuState === 'menu-expend-theme') {
+                    document.documentElement.classList.remove('minimenu');
+                } else {
+                    if (width >= 1024 && width <= 1600) {
+                        document.documentElement.classList.add('minimenu');
+                    } else if (width > 1600) {
+                        document.documentElement.classList.remove('minimenu');
+                    }
                 }
             } catch (e) {
                 /* ignore */
