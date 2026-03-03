@@ -41,6 +41,7 @@ $stats_result = $conn->query($stats_query);
 $stats = $stats_result->fetch_assoc();
 
 // Prepare filter inputs
+$filter_date = isset($_GET['date']) ? trim((string)$_GET['date']) : '';
 $filter_course = isset($_GET['course_id']) ? intval($_GET['course_id']) : 0;
 $filter_department = isset($_GET['department_id']) ? intval($_GET['department_id']) : 0;
 $filter_supervisor = isset($_GET['supervisor']) ? trim($_GET['supervisor']) : '';
@@ -104,6 +105,15 @@ if ($coor_res && $coor_res->num_rows) {
 
 // Build WHERE clauses depending on provided filters
 $where = [];
+if ($filter_date !== '') {
+    // Filter students that have attendance logs on the selected date.
+    $safe_date = $conn->real_escape_string($filter_date);
+    $where[] = "EXISTS (
+        SELECT 1 FROM attendances a_date
+        WHERE a_date.student_id = s.id
+          AND a_date.attendance_date = '{$safe_date}'
+    )";
+}
 if ($filter_course > 0) {
     $where[] = "s.course_id = " . intval($filter_course);
 }
@@ -395,6 +405,17 @@ function resolve_profile_image_url(string $profilePath): ?string {
             line-height: 40px;
         }
 
+        .filter-form select.form-control {
+            text-align: left;
+            text-align-last: left;
+        }
+
+        .filter-form .select2-container--default .select2-selection--single .select2-selection__rendered {
+            text-align: left;
+            padding-left: 0.15rem;
+            padding-right: 1.75rem;
+        }
+
         .filter-form .select2-container--default .select2-selection--single .select2-selection__arrow {
             height: 40px;
         }
@@ -673,7 +694,7 @@ function resolve_profile_image_url(string $profilePath): ?string {
             <!-- Filters -->
             <div class="row mb-3 px-3">
                 <div class="col-12">
-                    <form method="GET" class="row g-2 align-items-end">
+                    <form method="GET" class="filter-form row g-2 align-items-end">
                         <div class="col-sm-2">
                             <label class="form-label" for="filter-date">Date</label>
                             <input id="filter-date" type="date" name="date" class="form-control" value="<?php echo htmlspecialchars($_GET['date'] ?? ''); ?>">
