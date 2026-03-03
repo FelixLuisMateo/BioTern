@@ -66,7 +66,8 @@ if (isset($_GET['action'])) {
     exit;
 }
 $page_title = 'Endorsement Letter';
-include 'includes/header.php';
+$base_href = '../';
+include __DIR__ . '/../includes/header.php';
 ?>
 <style>
         html, body { height: 100%; margin: 0; padding: 0; }
@@ -257,6 +258,9 @@ include 'includes/header.php';
                         <p><strong>MR. JOMAR G. SANGIL</strong><br>
                         <strong>ICT DEPARTMENT HEAD</strong><br>
                         <strong>Clark College of Science and Technology</strong></p>
+                        <p style="margin-top:36px;"><strong>MR. ROSS CARVEL C. RAMIREZ</strong><br>
+                        <strong>HEAD OF ACADEMIC AFFAIRS</strong><br>
+                        <strong>Clark College of Science and Technology</strong></p>
                     </div>
                 </div>
             </div>
@@ -265,6 +269,7 @@ include 'includes/header.php';
 </div>
 
 <script>
+window.addEventListener('load', function() {
 (function(){
     const select = $('#student_select');
     const inputRecipient = document.getElementById('input_recipient');
@@ -279,7 +284,7 @@ include 'includes/header.php';
     function sanitizeStudentLines(raw) {
         return String(raw || '')
             .split(/\r?\n/)
-            .map(x => x.trim())
+            .map(function(x){ return x.trim(); })
             .filter(Boolean);
     }
 
@@ -287,14 +292,23 @@ include 'includes/header.php';
         return String(text || '').replace(/\s*-\s*.*$/, '').trim();
     }
 
-    function autofillStudentsFromSelected() {
+    function getSelectedStudentName() {
         const selected = select.select2('data') || [];
         const first = selected[0] || null;
-        const name = first ? buildNameFromOptionText(first.text) : '';
-        if (name && !inputStudents.dataset.manualLocked) {
-            inputStudents.value = name;
-        } else if (!name && !inputStudents.dataset.manualLocked) {
-            inputStudents.value = '';
+        if (first && first.text) {
+            return buildNameFromOptionText(first.text);
+        }
+        const txt = $('#student_select').find('option:selected').text() || '';
+        return buildNameFromOptionText(txt);
+    }
+
+    function appendSelectedStudentToTextarea() {
+        const selectedName = getSelectedStudentName();
+        if (!selectedName) return;
+        const lines = sanitizeStudentLines(inputStudents.value);
+        if (lines.indexOf(selectedName) === -1) {
+            lines.push(selectedName);
+            inputStudents.value = lines.join('\n');
         }
     }
 
@@ -305,7 +319,9 @@ include 'includes/header.php';
         document.getElementById('pv_company_address').textContent = inputCompanyAddress.value || '__________________________';
 
         const ul = document.getElementById('pv_students');
-        const lines = sanitizeStudentLines(inputStudents.value);
+        const typed = sanitizeStudentLines(inputStudents.value);
+        const selectedName = getSelectedStudentName();
+        const lines = typed.length ? typed : (selectedName ? [selectedName] : []);
         ul.innerHTML = '';
         if (!lines.length) {
             const li = document.createElement('li');
@@ -332,11 +348,13 @@ include 'includes/header.php';
         if (inputPosition.value) p.set('position', inputPosition.value);
         if (inputCompany.value) p.set('company', inputCompany.value);
         if (inputCompanyAddress.value) p.set('company_address', inputCompanyAddress.value);
-        if (inputStudents.value) p.set('students', inputStudents.value);
-        p.set('use_saved_template', '1');
-        const genUrl = 'generate_endorsement_letter.php?' + p.toString();
+        const typed = sanitizeStudentLines(inputStudents.value);
+        const selectedName = getSelectedStudentName();
+        const studentsValue = typed.length ? typed.join('\n') : selectedName;
+        if (studentsValue) p.set('students', studentsValue);
+        const genUrl = 'pages/generate_endorsement_letter.php?' + p.toString();
         btnGenerate.href = genUrl;
-        btnFileEdit.href = 'edit_endorsement.php?blank=1';
+        btnFileEdit.href = 'pages/edit_endorsement.php?blank=1';
         return genUrl;
     }
 
@@ -361,16 +379,15 @@ include 'includes/header.php';
         }
         if (data.students_to_endorse) {
             inputStudents.value = String(data.students_to_endorse);
-            inputStudents.dataset.manualLocked = '1';
             changed = true;
         }
         return changed;
     }
 
     select.select2({
-        placeholder: 'Search student by name or ID',
+        placeholder: '',
         ajax: {
-            url: 'document_endorsement.php',
+            url: 'documents/document_endorsement.php',
             dataType: 'json',
             delay: 250,
             data: function(params){ return { action: 'search_students', q: params.term }; },
@@ -378,6 +395,7 @@ include 'includes/header.php';
         },
         minimumInputLength: 1,
         width: 'resolve',
+        dropdownParent: $(document.body),
         dropdownCssClass: 'select2-dropdown'
     });
 
@@ -391,49 +409,60 @@ include 'includes/header.php';
         const overlay = document.createElement('input');
         overlay.type = 'text';
         overlay.className = 'select2-overlay-input';
-        overlay.placeholder = 'Search student by name or ID';
+        overlay.placeholder = sel.getAttribute('data-placeholder') || 'Search by name or student id';
         overlay.autocomplete = 'off';
         container.appendChild(overlay);
-        overlay.addEventListener('focus', function(){
+
+        function openAndSync(){
             try { select.select2('open'); } catch(e){}
             setTimeout(function(){
                 var fld = document.querySelector('.select2-container--open .select2-search__field');
-                if (fld) fld.focus();
-            }, 30);
-        });
+                if (!fld) return;
+                fld.value = overlay.value || '';
+                fld.dispatchEvent(new Event('input', { bubbles: true }));
+            }, 0);
+        }
+
         overlay.addEventListener('input', function(){
-            const v = overlay.value || '';
-            try { select.select2('open'); } catch(e){}
-            setTimeout(function(){
-                var fld = document.querySelector('.select2-container--open .select2-search__field');
-                if (fld) {
-                    fld.value = v;
-                    fld.dispatchEvent(new Event('input', { bubbles: true }));
-                }
-            }, 30);
+            openAndSync();
         });
+        overlay.addEventListener('keydown', function(e){
+            if (e.key && (e.key.length === 1 || e.key === 'Backspace')) {
+                openAndSync();
+            }
+        });
+
         $(document).on('select2:select select2:closing', '#student_select', function(){
-            const txt = $('#student_select').find('option:selected').text() || '';
-            overlay.value = txt;
+            setTimeout(function(){
+                const txt = $('#student_select').find('option:selected').text() || '';
+                overlay.value = buildNameFromOptionText(txt);
+            }, 0);
         });
+        container.addEventListener('click', function(){ overlay.focus(); });
     }
 
     select.on('select2:open', function() {
-        setTimeout(function() {
-            var field = document.querySelector('.select2-container--open .select2-search__field');
-            if (field) field.focus();
-        }, 0);
+        // keep overlay input focused for direct typing behavior
     });
 
-    select.on('select2:select select2:unselect change', function(){
-        autofillStudentsFromSelected();
+    select.on('select2:select', function(){
+        appendSelectedStudentToTextarea();
+        // Clear current selection so user can search/add another student quickly.
+        select.val(null).trigger('change');
+        const overlay = document.querySelector('.select2-overlay-input');
+        if (overlay) overlay.value = '';
+        setTimeout(function(){ if (overlay) overlay.focus(); }, 0);
+        updatePreview();
+        updateLinks();
+    });
+
+    select.on('select2:unselect change', function(){
         updatePreview();
         updateLinks();
     });
 
     [inputRecipient, inputPosition, inputCompany, inputCompanyAddress, inputStudents].forEach(el => {
         el.addEventListener('input', function(){
-            if (el === inputStudents) inputStudents.dataset.manualLocked = '1';
             updatePreview();
             updateLinks();
         });
@@ -441,7 +470,7 @@ include 'includes/header.php';
 
     btnFileEdit.addEventListener('click', function(e){
         e.preventDefault();
-        const href = btnFileEdit.href || 'edit_endorsement.php?blank=1';
+        const href = btnFileEdit.href || 'pages/edit_endorsement.php?blank=1';
         window.location.href = href;
     });
 
@@ -453,7 +482,7 @@ include 'includes/header.php';
     });
 
     if (prefillId > 0) {
-        fetch('document_endorsement.php?action=get_endorsement&id=' + encodeURIComponent(prefillId))
+        fetch('documents/document_endorsement.php?action=get_endorsement&id=' + encodeURIComponent(prefillId))
             .then(r => r.json())
             .then(saved => {
                 const hasSaved = applySavedEndorsement(saved);
@@ -463,7 +492,7 @@ include 'includes/header.php';
                     setTimeout(createSelectOverlay, 60);
                     return;
                 }
-                fetch('document_endorsement.php?action=get_student&id=' + encodeURIComponent(prefillId))
+                fetch('documents/document_endorsement.php?action=get_student&id=' + encodeURIComponent(prefillId))
                     .then(r => r.json())
                     .then(data => {
                         const full = [data.first_name, data.middle_name, data.last_name].filter(Boolean).join(' ').trim();
@@ -471,7 +500,6 @@ include 'includes/header.php';
                             const text = full + ' - ' + (data.student_id || '');
                             const o = new Option(text, String(prefillId), true, true);
                             select.append(o).trigger('change');
-                            autofillStudentsFromSelected();
                         }
                         updatePreview();
                         updateLinks();
@@ -484,5 +512,6 @@ include 'includes/header.php';
     updatePreview();
     updateLinks();
 })();
+});
 </script>
-<?php include 'includes/footer.php'; ?>
+<?php include __DIR__ . '/../includes/footer.php'; ?>

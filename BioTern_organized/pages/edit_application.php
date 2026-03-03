@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 $force_blank = isset($_GET['blank']) && $_GET['blank'] === '1';
 ?>
 <!doctype html>
@@ -98,7 +98,7 @@ $force_blank = isset($_GET['blank']) && $_GET['blank'] === '1';
 
     <template id="default_template">
         <div class="container">
-            <img class="crest" src="assets/images/auth/auth-cover-login-bg.png" alt="crest" onerror="this.style.display='none'">
+            <img class="crest" src="../assets/images/auth/auth-cover-login-bg.png" alt="crest" onerror="this.style.display='none'">
             <div class="header">
                 <h2>CLARK COLLEGE OF SCIENCE AND TECHNOLOGY</h2>
                 <div class="meta">SNS Bldg. Aurea St., Samsonville Subd., Dau, Mabalacat, Pampanga</div>
@@ -367,7 +367,7 @@ $force_blank = isset($_GET['blank']) && $_GET['blank'] === '1';
                 save();
             });
             document.getElementById('btn_back').addEventListener('click', function(){
-                window.location.href = 'document_application.php';
+                window.location.href = '../documents/document_application.php';
             });
             ['btn_bold','btn_italic','btn_underline','btn_indent','btn_outdent','btn_left','btn_center','btn_right','btn_justify','btn_apply_size']
                 .forEach(function(id){

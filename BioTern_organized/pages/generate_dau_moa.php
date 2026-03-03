@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // Generate printable Dau Barangay Hall Memorandum of Agreement (MOA)
 function q($key, $default = '')
 {
@@ -177,7 +177,7 @@ $use_saved_template = q('use_saved_template', '0') === '1';
                     window.history.back();
                     return;
                 }
-                window.location.href = 'document_dau_moa.php';
+                window.location.href = '../documents/document_dau_moa.php';
             }, 80);
         });
     })();

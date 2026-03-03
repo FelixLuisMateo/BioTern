@@ -187,11 +187,15 @@ include __DIR__ . '/../includes/header.php';
         border-radius: 14px;
         box-shadow: 0 10px 24px rgba(2, 6, 23, 0.06);
     }
+    .users-admin-page {
+        padding-top: 0.1rem;
+    }
     .users-admin-page .stat-label {
-        font-size: 0.76rem;
+        font-size: 0.7rem;
         letter-spacing: 0.03em;
         text-transform: uppercase;
         color: #6b7280;
+        margin-bottom: 0.05rem;
     }
     .users-admin-page .users-panel {
         border: 1px solid rgba(15, 23, 42, 0.1);
@@ -203,7 +207,18 @@ include __DIR__ . '/../includes/header.php';
     .users-admin-page .users-panel .card-header {
         background: linear-gradient(180deg, rgba(248, 250, 252, 0.95) 0%, rgba(241, 245, 249, 0.9) 100%);
         border-bottom: 1px solid rgba(148, 163, 184, 0.25);
-        padding: 1rem 1.1rem;
+        padding: 0.5rem 0.75rem;
+    }
+    .users-admin-page .users-panel .card-header .form-label {
+        margin-bottom: 0.2rem !important;
+        font-size: 0.78rem;
+    }
+    .users-admin-page .users-panel .card-header .form-control,
+    .users-admin-page .users-panel .card-header .form-select,
+    .users-admin-page .users-panel .card-header .btn {
+        height: 34px;
+        padding-top: 0.3rem;
+        padding-bottom: 0.3rem;
     }
     .users-admin-page .users-table {
         width: max-content;
@@ -241,7 +256,6 @@ include __DIR__ . '/../includes/header.php';
         align-items: center;
         flex-wrap: nowrap;
         gap: 0.45rem;
-        align-items: center;
         min-width: 330px;
     }
     .users-admin-page .actions-group .role-form {
@@ -254,13 +268,23 @@ include __DIR__ . '/../includes/header.php';
     .users-admin-page .actions-group .form-select,
     .users-admin-page .actions-group .btn {
         height: 32px;
-        font-size: 0.72rem;
+        font-size: 0.78rem;
         border-radius: 8px;
     }
     .users-admin-page .actions-group .role-form .form-select {
         width: 100%;
         border-color: rgba(100, 116, 139, 0.25);
         background-color: rgba(255, 255, 255, 0.88);
+        color: #1f2937 !important;
+        -webkit-text-fill-color: #1f2937 !important;
+        opacity: 1 !important;
+        font-weight: 600;
+        line-height: 1.25;
+        padding-top: 0.42rem;
+        padding-bottom: 0.42rem;
+    }
+    .users-admin-page .actions-group .role-form .form-select option {
+        color: #111827;
     }
     .users-admin-page .actions-group .btn {
         padding: 0.35rem 0.7rem;
@@ -300,10 +324,31 @@ include __DIR__ . '/../includes/header.php';
         background: rgba(15, 23, 42, 0.55);
         color: #cbd5e1;
     }
+    .app-skin-dark .users-admin-page .form-select {
+        background-color: rgba(15, 23, 42, 0.72) !important;
+        border-color: rgba(148, 163, 184, 0.28) !important;
+        color: #f8fafc !important;
+        -webkit-text-fill-color: #f8fafc !important;
+        opacity: 1 !important;
+    }
+    .app-skin-dark .users-admin-page .form-select:focus {
+        border-color: #3b82f6 !important;
+        box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.25) !important;
+    }
+    .app-skin-dark .users-admin-page .form-select option {
+        background-color: #0f172a !important;
+        color: #e2e8f0 !important;
+    }
     .app-skin-dark .users-admin-page .actions-group .role-form .form-select {
         background-color: rgba(15, 23, 42, 0.55);
         border-color: rgba(148, 163, 184, 0.2);
+        color: #f8fafc !important;
+        -webkit-text-fill-color: #f8fafc !important;
+        opacity: 1 !important;
+    }
+    .app-skin-dark .users-admin-page .actions-group .role-form .form-select option {
         color: #e2e8f0;
+        background-color: #0f172a;
     }
     .app-skin-dark .users-admin-page .actions-group .btn-action-toggle {
         border-color: #f59e0b;
@@ -341,36 +386,36 @@ include __DIR__ . '/../includes/header.php';
         <div class="alert alert-<?php echo e($flash_type); ?> py-2"><?php echo e($flash_message); ?></div>
     <?php endif; ?>
 
-    <div class="row g-3 mb-4">
+    <div class="row g-1 mb-1">
         <div class="col-md-3">
             <div class="card stat-card">
-                <div class="card-body py-3">
+                <div class="card-body py-1 px-3">
                     <div class="stat-label">Total Users</div>
-                    <div class="h4 mb-0"><?php echo $stats['total']; ?></div>
+                    <div class="h5 mb-0"><?php echo $stats['total']; ?></div>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
             <div class="card stat-card">
-                <div class="card-body py-3">
+                <div class="card-body py-1 px-3">
                     <div class="stat-label">Active</div>
-                    <div class="h4 mb-0 text-success"><?php echo $stats['active']; ?></div>
+                    <div class="h5 mb-0 text-success"><?php echo $stats['active']; ?></div>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
             <div class="card stat-card">
-                <div class="card-body py-3">
+                <div class="card-body py-1 px-3">
                     <div class="stat-label">Inactive</div>
-                    <div class="h4 mb-0 text-danger"><?php echo $stats['inactive']; ?></div>
+                    <div class="h5 mb-0 text-danger"><?php echo $stats['inactive']; ?></div>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
             <div class="card stat-card">
-                <div class="card-body py-3">
+                <div class="card-body py-1 px-3">
                     <div class="stat-label">Admins</div>
-                    <div class="h4 mb-0"><?php echo $stats['admins']; ?></div>
+                    <div class="h5 mb-0"><?php echo $stats['admins']; ?></div>
                 </div>
             </div>
         </div>

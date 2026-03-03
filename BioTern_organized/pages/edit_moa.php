@@ -47,7 +47,7 @@
     <div class="topbar">
         <button id="btn_save" class="btn btn-primary" type="button">Save Template</button>
         <button id="btn_reset" class="btn" type="button">Reset to Generate MOA</button>
-        <a class="btn btn-success" href="document_moa.php">Back to MOA</a>
+        <a class="btn btn-success" href="../documents/document_moa.php">Back to MOA</a>
         <div class="toolbar">
             <button id="btn_bold" class="btn" type="button"><strong>B</strong></button>
             <button id="btn_italic" class="btn" type="button"><em>I</em></button>

@@ -230,7 +230,7 @@ $use_saved_template = q('use_saved_template', '0') === '1';
                     window.history.back();
                     return;
                 }
-                window.location.href = 'document_moa.php';
+                window.location.href = '../documents/document_moa.php';
             }, 80);
         });
     })();

@@ -66,7 +66,8 @@ if (isset($_GET['action'])) {
 }
 
 $page_title = 'MOA';
-include 'includes/header.php';
+$base_href = '../';
+include __DIR__ . '/../includes/header.php';
 ?>
 <style>
         html, body { height: 100%; margin: 0; padding: 0; }
@@ -394,6 +395,7 @@ include 'includes/header.php';
         </div>
 
     <script>
+        window.addEventListener('load', function() {
         (function(){
             const MOA_TEMPLATE_STORAGE_KEY = 'biotern_moa_template_html_v1';
             const PREFILL_STUDENT_ID = <?php echo intval($prefill_student_id); ?>;
@@ -467,7 +469,7 @@ include 'includes/header.php';
 
             function openMoaEditor(e) {
                 if (e && typeof e.preventDefault === 'function') e.preventDefault();
-                window.open('edit_moa.php', '_blank');
+                window.open('pages/edit_moa.php', '_blank');
                 return false;
             }
             document.addEventListener('click', function(e){
@@ -479,7 +481,7 @@ include 'includes/header.php';
             select.select2({
                 placeholder: '',
                 ajax: {
-                    url: 'document_moa.php',
+                    url: 'documents/document_moa.php',
                     dataType: 'json',
                     delay: 250,
                     data: function(params){ return { action: 'search_students', q: params.term }; },
@@ -526,7 +528,7 @@ include 'includes/header.php';
             $('#student_select').on('select2:select', function(e){
                 const id = select.val();
                 if (!id) return;
-                fetch('document_moa.php?action=get_student&id=' + encodeURIComponent(id))
+                fetch('documents/document_moa.php?action=get_student&id=' + encodeURIComponent(id))
                     .then(r => r.json())
                     .then(data => {
                         if (!data) return;
@@ -538,7 +540,7 @@ include 'includes/header.php';
 
             function loadMoaData(id){
                 if (!id) return;
-                fetch('document_moa.php?action=get_moa&id=' + encodeURIComponent(id))
+                fetch('documents/document_moa.php?action=get_moa&id=' + encodeURIComponent(id))
                     .then(r => r.json())
                     .then(data => {
                         if (!data || typeof data !== 'object') return;
@@ -587,7 +589,7 @@ include 'includes/header.php';
 
             function prefillByStudentId(id){
                 if (!id) return;
-                fetch('document_moa.php?action=get_student&id=' + encodeURIComponent(id))
+                fetch('documents/document_moa.php?action=get_student&id=' + encodeURIComponent(id))
                     .then(r => r.json())
                     .then(data => {
                         if (!data || !data.id) return;
@@ -668,7 +670,7 @@ include 'includes/header.php';
                 if (bookNo.value) params.set('book_no', bookNo.value);
                 if (seriesNo.value) params.set('series_no', seriesNo.value);
                 params.set('date', new Date().toLocaleDateString());
-                const url = 'generate_moa.php?' + params.toString();
+                const url = 'pages/generate_moa.php?' + params.toString();
                 btnGenerate.dataset.url = url;
                 return url;
             }
@@ -721,5 +723,6 @@ include 'includes/header.php';
             if (PREFILL_STUDENT_ID > 0) prefillByStudentId(PREFILL_STUDENT_ID);
 
         })();
+        });
     </script>
-    <?php include 'includes/footer.php'; ?>
+    <?php include __DIR__ . '/../includes/footer.php'; ?>

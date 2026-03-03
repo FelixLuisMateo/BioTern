@@ -65,7 +65,7 @@ $force_blank = isset($_GET['blank']) && $_GET['blank'] === '1';
 
     <template id="default_template">
         <div class="header" style="position:relative; min-height:72px; text-align:center; border-bottom:1px solid #8ab0e6; padding:8px 0 6px; margin-bottom:10px;">
-            <img class="crest" src="assets/images/auth/auth-cover-login-bg.png" alt="crest" style="position:absolute; left:6px; top:2px; width:70px; height:70px; object-fit:contain;" onerror="this.style.display='none'">
+            <img class="crest" src="../assets/images/auth/auth-cover-login-bg.png" alt="crest" style="position:absolute; left:6px; top:2px; width:70px; height:70px; object-fit:contain;" onerror="this.style.display='none'">
             <p style="font-family:Calibri,Arial,sans-serif;color:#1b4f9c;font-size:20px;margin:0;font-weight:700;">CLARK COLLEGE OF SCIENCE AND TECHNOLOGY</p>
             <div style="font-family:Calibri,Arial,sans-serif;color:#1b4f9c;font-size:14px;">SNS Bldg. Aurea St., Samsonville Subd., Dau, Mabalacat, Pampanga</div>
             <div style="font-family:Calibri,Arial,sans-serif;color:#1b4f9c;font-size:14px;">Telefax No.: (045) 624-0215</div>
@@ -170,7 +170,7 @@ $force_blank = isset($_GET['blank']) && $_GET['blank'] === '1';
             msg.textContent = 'Reset to default';
         });
         document.getElementById('btn_back').addEventListener('click', function(){
-            window.location.href = 'document_endorsement.php';
+            window.location.href = '../documents/document_endorsement.php';
         });
 
         ['btn_bold','btn_italic','btn_underline','btn_indent','btn_outdent','btn_left','btn_center','btn_right','btn_justify','btn_apply_size']

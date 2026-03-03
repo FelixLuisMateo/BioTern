@@ -124,7 +124,7 @@ if ($do_download_pdf || $do_download_html) ob_start();
 <body>
 <div class="container">
     <!-- crest at top-left (auth-cover-login-bg.png if available) -->
-    <img class="crest" src="assets/images/auth/auth-cover-login-bg.png" alt="crest" onerror="this.style.display='none'">
+    <img class="crest" src="../assets/images/auth/auth-cover-login-bg.png" alt="crest" onerror="this.style.display='none'">
     <div class="header">
         <h2>CLARK COLLEGE OF SCIENCE AND TECHNOLOGY</h2>
         <div class="meta">SNS Bldg. Aurea St., Samsonville Subd., Dau, Mabalacat, Pampanga &middot;</div>
@@ -221,7 +221,7 @@ if ($do_download_pdf || $do_download_html) ob_start();
                 window.history.back();
                 return;
             }
-            window.location.href = 'document_application.php';
+            window.location.href = '../documents/document_application.php';
         });
     })();
 
