@@ -64,26 +64,26 @@ if ($do_download_pdf || $do_download_html) ob_start();
                     @page { size: Letter portrait; margin: 0.5in; }
                     html,body{ height:100%; margin:0; padding:0; }
                     /* document body uses Times New Roman per spec */
-                    body{ font-family: 'Times New Roman', Times, serif; color:#111; background:#fff; font-size:11pt; }
+                    body{ font-family: 'Times New Roman', Times, serif; color:#111; background:#fff; font-size:13pt; }
           /* fit printable area: printable width = A4 width - page margins (210mm - 20mm = 190mm)
                             container total (max-width + left/right padding) should not exceed printable width */
                     .container{ width:100%; max-width:7.5in; margin:0 auto; padding:0.4in; box-sizing:border-box; position:relative; }
                     .header{
                         position: relative;
-                        min-height: 0.9in;
+                        min-height: 60px;
                         text-align:center;
-                        border-bottom:1px solid #8ab0e6;
-                        padding: 0.08in 0 0.06in 0;
+                        border-bottom:2px solid #1c5ab1;
+                        padding: 0 0 0.04in 0;
                         margin-bottom:10px;
                     }
                     /* logo size requested: 0.77in x 0.76in */
-                    .crest{ position:absolute; top:0.22in; left:0.22in; width:0.77in; height:0.76in; object-fit:contain; }
+                    .crest{ position:absolute; top:0.24in; left:0.12in; width:0.82in; height:0.80in; object-fit:contain; }
         /* Header styles as specified: Calibri (Body), blue colors and sizes */
-        .header h2 { font-family: Calibri, 'Calibri', Arial, sans-serif; color: #1b4f9c; font-size:14pt; margin:6px 0 2px 0; }
-        .header .meta { font-family: Calibri, 'Calibri', Arial, sans-serif; color:#1b4f9c; font-size:10pt; }
-        .header .tel { font-family: Calibri, 'Calibri', Arial, sans-serif; color:#1b4f9c; font-size:12pt; }
+        .header h2 { font-family: 'Times New Roman', Times, serif; color: #1b4f9c; font-size:14pt; margin:4px 0 2px 0; }
+        .header .meta { font-family: 'Times New Roman', Times, serif; color:#1b4f9c; font-size:10pt; font-weight:700; }
+        .header .tel { font-family: 'Times New Roman', Times, serif; color:#1b4f9c; font-size:12pt; font-weight:700; }
         /* Main content font sizes: heading 12pt Times New Roman, body 11pt Times New Roman */
-        h3{ font-family: 'Times New Roman', Times, serif; font-size:13pt; color:#000; margin:6px 0; text-align:center; }
+        h3{ font-family: 'Times New Roman', Times, serif; font-size:11pt; color:#000; margin:6px 0; text-align:center; }
         #application_doc_content h3{
             text-align:center !important;
             width:100%;
@@ -91,8 +91,8 @@ if ($do_download_pdf || $do_download_html) ob_start();
             margin-left:auto;
             margin-right:auto;
         }
-        .content{ margin-top:8px; line-height:1.45; font-size:12pt; font-family: 'Times New Roman', Times, serif; }
-        .small{ font-size:13px; }
+        .content{ margin-top:8px; line-height:1.45; font-size:14pt; font-family: 'Times New Roman', Times, serif; }
+        .small{ font-size:15px; }
         .signature{ margin-top:28px; }
         /* hide print-value spans on screen, show on print */
         .print-val{ display:none; }
@@ -101,7 +101,7 @@ if ($do_download_pdf || $do_download_html) ob_start();
             .print-val{ display:inline !important; }
             /* reduce spacing on print to better fit one page */
             .header{ padding-bottom:6px; margin-bottom:6px }
-            .content{ margin-top:6px; font-size:13px }
+            .content{ margin-top:16px; font-size:15px }
             .signature{ margin-top:18px }
             body { background: #fff; }
             .no-print { display: none !important; }
@@ -116,7 +116,7 @@ if ($do_download_pdf || $do_download_html) ob_start();
             p { orphans: 3; widows: 3; }
         }
         /* Simple inputs styling for editable blanks */
-        .blank-input{ border:none; border-bottom:1px solid #000; display:inline-block; min-width:120px; padding:2px 4px; font-size:11pt }
+        .blank-input{ border:none; border-bottom:1px solid #000; display:inline-block; min-width:120px; padding:2px 4px; font-size:13pt }
         .field-block{ margin:6px 0; }
         .actions{ margin-top:12px; }
     </style>
