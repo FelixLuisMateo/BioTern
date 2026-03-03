@@ -122,6 +122,7 @@
                     </a>
                     <ul class="nxl-submenu">
                         <li class="nxl-item"><a class="nxl-link" href="auth-register-creative.php">User Registration</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="users.php">Users Account</a></li>
                     </ul>
                 </li>
                 <li class="nxl-item nxl-hasmenu">

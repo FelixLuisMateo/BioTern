@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // Documents page - provides UI to generate student documents (Application Letter etc.)
 
 $host = 'localhost';
@@ -66,7 +66,8 @@ if (isset($_GET['action'])) {
 }
 
 $page_title = 'Documents';
-include 'includes/header.php';
+$base_href = '../';
+include __DIR__ . '/../includes/header.php';
 ?>
 <style>
         /* copy of students.php basic layout styles to match theme */
@@ -280,6 +281,7 @@ include 'includes/header.php';
         </div>
 
     <script>
+        window.addEventListener('load', function() {
         (function(){
             const APP_TEMPLATE_STORAGE_KEY = 'biotern_application_template_html_v1';
             const PREFILL_STUDENT_ID = <?php echo intval($prefill_student_id); ?>;
@@ -326,14 +328,14 @@ include 'includes/header.php';
             function openApplicationEditor(e) {
                 if (e && typeof e.preventDefault === 'function') e.preventDefault();
                 // Always open editor with blank/default template, no student autofill carry-over.
-                window.location.href = 'edit_application.php?blank=1';
+                window.location.href = 'pages/edit_application.php?blank=1';
                 return false;
             }
 
             select.select2({
                 placeholder: '',
                 ajax: {
-                    url: 'document_application.php',
+                    url: 'documents/document_application.php',
                     dataType: 'json',
                     delay: 250,
                     data: function(params){ return { action: 'search_students', q: params.term }; },
@@ -384,7 +386,7 @@ include 'includes/header.php';
                 $(document).on('select2:select select2:closing', '#student_select', function(e){
                     setTimeout(function(){
                         var txt = $('#student_select').find('option:selected').text() || '';
-                        overlay.value = txt.replace(/\s+â€”\s+.*$/,'');
+                        overlay.value = txt.replace(/\s+—\s+.*$/,'');
                     }, 0);
                 });
 
@@ -406,7 +408,7 @@ include 'includes/header.php';
                 if (!id) return;
                 selectedStudentId = id;
                 // auto-fill student info (NOT recipient/company fields)
-                fetch('document_application.php?action=get_student&id=' + encodeURIComponent(id))
+                fetch('documents/document_application.php?action=get_student&id=' + encodeURIComponent(id))
                     .then(r => r.json())
                     .then(data => {
                         if (!data) return;
@@ -430,7 +432,7 @@ include 'includes/header.php';
 
             function loadApplicationLetterData(id){
                 if (!id) return;
-                fetch('document_application.php?action=get_application_letter&id=' + encodeURIComponent(id))
+                fetch('documents/document_application.php?action=get_application_letter&id=' + encodeURIComponent(id))
                     .then(r => r.json())
                     .then(data => {
                         if (!data || typeof data !== 'object') return;
@@ -448,7 +450,7 @@ include 'includes/header.php';
             function prefillByStudentId(id){
                 if (!id) return;
                 selectedStudentId = id;
-                fetch('document_application.php?action=get_student&id=' + encodeURIComponent(id))
+                fetch('documents/document_application.php?action=get_student&id=' + encodeURIComponent(id))
                     .then(r => r.json())
                     .then(data => {
                         if (!data || !data.id) return;
@@ -509,7 +511,7 @@ include 'includes/header.php';
                     }
                 } catch (err) {}
                 params.set('date', new Date().toLocaleDateString());
-                const url = 'generate_application_letter.php?' + params.toString();
+                const url = 'pages/generate_application_letter.php?' + params.toString();
                 gen.dataset.url = url;
                 return url;
             }
@@ -567,6 +569,7 @@ include 'includes/header.php';
             if (PREFILL_STUDENT_ID > 0) prefillByStudentId(PREFILL_STUDENT_ID);
 
         })();
+        });
     </script>
-<?php include 'includes/footer.php'; ?>
+<?php include __DIR__ . '/../includes/footer.php'; ?>
 

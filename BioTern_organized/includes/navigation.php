@@ -76,10 +76,10 @@
                         <span class="nxl-mtext">Documents</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                     </a>
                     <ul class="nxl-submenu">
-                        <li class="nxl-item"><a class="nxl-link" href="document_application.php">Application</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="document_endorsement.php">Endorsement</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="document_moa.php">MOA</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="document_dau_moa.php">Dau MOA</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="documents/document_application.php">Application</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="documents/document_endorsement.php">Endorsement</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="documents/document_moa.php">MOA</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="documents/document_dau_moa.php">Dau MOA</a></li>
                     </ul>
                 </li>
                 <li class="nxl-item nxl-hasmenu">
@@ -153,6 +153,7 @@
                     </a>
                     <ul class="nxl-submenu">
                         <li class="nxl-item"><a class="nxl-link" href="auth-register-creative.php">User Registration</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="auth/users.php">Users</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="create_admin.php">Create Admin</a></li>
                     </ul>
                 </li>

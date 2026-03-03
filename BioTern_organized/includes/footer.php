@@ -84,23 +84,47 @@
             document.addEventListener('DOMContentLoaded', function(){
                 var darkBtn = document.querySelector('.dark-button');
                 var lightBtn = document.querySelector('.light-button');
+                function getSavedSkin(){
+                    try{
+                        // Respect primary key even when value is intentionally empty.
+                        var primary = localStorage.getItem('app-skin');
+                        if (primary !== null) return primary;
+                        var alt = localStorage.getItem('app_skin');
+                        if (alt !== null) return alt;
+                        var theme = localStorage.getItem('theme');
+                        if (theme !== null) return theme;
+                        var legacy = localStorage.getItem('app-skin-dark');
+                        return legacy !== null ? legacy : '';
+                    }catch(e){
+                        return '';
+                    }
+                }
 
                 function setDark(isDark){
                     if(isDark){
                         document.documentElement.classList.add('app-skin-dark');
-                        try{ localStorage.setItem('app-skin','app-skin-dark'); }catch(e){}
+                        try{
+                            localStorage.setItem('app-skin','app-skin-dark');
+                            // Keep legacy key in sync for older scripts.
+                            localStorage.setItem('app-skin-dark','app-skin-dark');
+                        }catch(e){}
                         if(darkBtn) darkBtn.style.display = 'none';
                         if(lightBtn) lightBtn.style.display = '';
                     } else {
                         document.documentElement.classList.remove('app-skin-dark');
-                        try{ localStorage.setItem('app-skin',''); }catch(e){}
+                        try{
+                            localStorage.setItem('app-skin','');
+                            localStorage.setItem('app-skin-dark','');
+                            // Remove alternate legacy keys to prevent stale dark fallback.
+                            localStorage.removeItem('app_skin');
+                            localStorage.removeItem('theme');
+                        }catch(e){}
                         if(darkBtn) darkBtn.style.display = '';
                         if(lightBtn) lightBtn.style.display = 'none';
                     }
                 }
 
-                var s = '';
-                try{ s = localStorage.getItem('app-skin') || localStorage.getItem('app_skin') || localStorage.getItem('theme') || localStorage.getItem('app-skin-dark') || ''; }catch(e){}
+                var s = getSavedSkin();
                 var isDark = (typeof s === 'string' && s.indexOf('dark') !== -1) || document.documentElement.classList.contains('app-skin-dark');
                 setDark(isDark);
 

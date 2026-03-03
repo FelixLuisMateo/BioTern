@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // Documents page - UI to prepare Memorandum of Agreement (MOA)
 
 $host = 'localhost';
@@ -26,7 +26,7 @@ if (isset($_GET['action'])) {
         $out = [];
         if ($res) {
             while ($r = $res->fetch_assoc()) {
-                $text = trim($r['first_name'] . ' ' . ($r['middle_name'] ? $r['middle_name'] . ' ' : '') . $r['last_name']) . ' â€” ' . $r['student_id'];
+                $text = trim($r['first_name'] . ' ' . ($r['middle_name'] ? $r['middle_name'] . ' ' : '') . $r['last_name']) . ' — ' . $r['student_id'];
                 $out[] = ['id' => $r['id'], 'text' => $text];
             }
         }
@@ -75,7 +75,8 @@ if (isset($_GET['action'])) {
 }
 
 $page_title = 'DAU MOA';
-include 'includes/header.php';
+$base_href = '../';
+include __DIR__ . '/../includes/header.php';
 ?>
 <style>
         html, body { height: 100%; margin: 0; padding: 0; }
@@ -317,16 +318,16 @@ include 'includes/header.php';
                             <ol>
                                 <li>The <b>Clark College of Science and Technology</b> shall be responsible for briefing the Learners as part of the CCST orientation and induction program;</li>
                                 <li>The <b>Clark College of Science and Technology</b> shall provide the learner undergoing the OJT/Internship with the basic orientation on work values, behavior, and discipline to ensure smooth cooperation with the <strong>PARTNER LOCAL GOVERNMENT UNIT</strong>.</li>
-                                <li>The <b>Clark College of Science and Technology</b> shall issue and official endorsement vouching for the well-being of the Learner which shall be used by the <strong>PARTNER LOCAL GOVERNMENT UNIT</strong>. for the processing the learnerâ€™s application for OJT/Internship;</li>
+                                <li>The <b>Clark College of Science and Technology</b> shall issue and official endorsement vouching for the well-being of the Learner which shall be used by the <strong>PARTNER LOCAL GOVERNMENT UNIT</strong>. for the processing the learner’s application for OJT/Internship;</li>
                                 <li>The <b>Clark College of Science and Technology</b> shall voluntarily withdraw a Learner who of the PARTNER LOCAL GOVERNMENT UNIT can impose necessary HEI sanctions to the said learner;</li>
-                                <li>The <b>Clark College of Science and Technology</b> through its Industry Coordinator shall make onsite sit/follow ups to the <strong>PARTNER LOCAL GOVERNMENT UNIT</strong> during the training period and evaluate the Learnerâ€™s progress based on the training plan and discuss training problems;</li>
+                                <li>The <b>Clark College of Science and Technology</b> through its Industry Coordinator shall make onsite sit/follow ups to the <strong>PARTNER LOCAL GOVERNMENT UNIT</strong> during the training period and evaluate the Learner’s progress based on the training plan and discuss training problems;</li>
                                 <li>The <b>Clark College of Science and Technology</b> has the discretion to pull out the Learner if there is an apparent risk and/or exploitation on the rights of the Learner;</li>
                                 <li>The <b>Clark College of Science and Technology</b> shall ensure that the Learner shall ensure that the Learner has an on-and off the campus insurance coverage within the duration of the training as part of their training fee.</li>
                                 <li>The <b>Clark College of Science and Technology</b> shall ensure Learner shall be personally responsible for any and all liabilities arising from negligence in the performance of his/her duties and functions while under OJT/Internship;</li>
                                 <li>There is no employer-employee relationship between the <strong>PARTNER LOCAL GOVERNMENT UNIT</strong> and the Learner;</li>
                                 <li>The duration of the program shall be equivalent to <span id="pv_total_hours">250</span> working hours unless otherwise agreed upon by the <strong>PARTNER LOCAL GOVERNMENT UNIT</strong> and the Clark College of Science and Technology;</li>
                                 <li>Any violation of the foregoing covenants will warrant the cancellation of the Memorandum of Agreement by the <strong>PARTNER LOCAL GOVERNMENT UNIT</strong> within thirty (30) days upon notice to the Clark College of Science and Technology.</li>
-                                <li>The <strong>PARTNER LOCAL GOVERNMENT UNIT</strong> may grant allowance to Learner in accordance with the PARTNER ENTERPISEâ€™S existing rules and regulations;</li>
+                                <li>The <strong>PARTNER LOCAL GOVERNMENT UNIT</strong> may grant allowance to Learner in accordance with the PARTNER ENTERPISE’S existing rules and regulations;</li>
                                 <li>The <strong>PARTNER LOCAL GOVERNMENT UNIT</strong> is not allowed to employ Learner within the OJT/Internship period in order for the Learner to graduate from the program he/she is enrolled in.</li>
                             </ol>
 
@@ -380,6 +381,7 @@ include 'includes/header.php';
         </div>
 
     <script>
+        window.addEventListener('load', function() {
         (function(){
             const MOA_TEMPLATE_STORAGE_KEY = 'biotern_dau_moa_template_html_v1';
             const PREFILL_STUDENT_ID = <?php echo intval($prefill_student_id); ?>;
@@ -453,7 +455,7 @@ include 'includes/header.php';
 
             function openMoaEditor(e) {
                 if (e && typeof e.preventDefault === 'function') e.preventDefault();
-                window.open('edit_dau_moa.php', '_blank');
+                window.open('pages/edit_dau_moa.php', '_blank');
                 return false;
             }
             document.addEventListener('click', function(e){
@@ -465,7 +467,7 @@ include 'includes/header.php';
             select.select2({
                 placeholder: '',
                 ajax: {
-                    url: 'document_dau_moa.php',
+                    url: 'documents/document_dau_moa.php',
                     dataType: 'json',
                     delay: 250,
                     data: function(params){ return { action: 'search_students', q: params.term }; },
@@ -504,7 +506,7 @@ include 'includes/header.php';
                 overlay.addEventListener('input', function(){ openAndSync(); });
                 overlay.addEventListener('keydown', function(e){ if (e.key && (e.key.length === 1 || e.key === 'Backspace')) openAndSync(); });
 
-                $(document).on('select2:select select2:closing', '#student_select', function(e){ setTimeout(function(){ var txt = $('#student_select').find('option:selected').text() || ''; overlay.value = txt.replace(/\s+â€”\s+.*$/,''); }, 0); });
+                $(document).on('select2:select select2:closing', '#student_select', function(e){ setTimeout(function(){ var txt = $('#student_select').find('option:selected').text() || ''; overlay.value = txt.replace(/\s+—\s+.*$/,''); }, 0); });
                 container.addEventListener('click', function(){ overlay.focus(); });
             })();
 
@@ -512,7 +514,7 @@ include 'includes/header.php';
             $('#student_select').on('select2:select', function(e){
                 const id = select.val();
                 if (!id) return;
-                fetch('document_dau_moa.php?action=get_student&id=' + encodeURIComponent(id))
+                fetch('documents/document_dau_moa.php?action=get_student&id=' + encodeURIComponent(id))
                     .then(r => r.json())
                     .then(data => {
                         if (!data) return;
@@ -524,7 +526,7 @@ include 'includes/header.php';
 
             function loadMoaData(id){
                 if (!id) return;
-                fetch('document_dau_moa.php?action=get_moa&id=' + encodeURIComponent(id))
+                fetch('documents/document_dau_moa.php?action=get_moa&id=' + encodeURIComponent(id))
                     .then(r => r.json())
                     .then(data => {
                         if (!data || typeof data !== 'object') return;
@@ -583,14 +585,14 @@ include 'includes/header.php';
 
             function prefillByStudentId(id){
                 if (!id) return;
-                fetch('document_dau_moa.php?action=get_student&id=' + encodeURIComponent(id))
+                fetch('documents/document_dau_moa.php?action=get_student&id=' + encodeURIComponent(id))
                     .then(r => r.json())
                     .then(data => {
                         if (!data || !data.id) return;
                         // select2 may not be present in this page layout; guard usage
                         if (select && select.length) {
                             const fullname = [data.first_name, data.middle_name, data.last_name].filter(Boolean).join(' ');
-                            const label = (fullname || 'Student') + ' â€” ' + (data.student_id || id);
+                            const label = (fullname || 'Student') + ' — ' + (data.student_id || id);
                             const option = new Option(label, String(id), true, true);
                             select.append(option).trigger('change');
                         }
@@ -664,7 +666,7 @@ include 'includes/header.php';
                 if (bookNo.value) params.set('book_no', bookNo.value);
                 if (seriesNo.value) params.set('series_no', seriesNo.value);
                 params.set('date', new Date().toLocaleDateString());
-                const url = 'generate_dau_moa.php?' + params.toString();
+                const url = 'pages/generate_dau_moa.php?' + params.toString();
                 btnGenerate.dataset.url = url;
                 return url;
             }
@@ -717,8 +719,9 @@ include 'includes/header.php';
             if (PREFILL_STUDENT_ID > 0) prefillByStudentId(PREFILL_STUDENT_ID);
 
         })();
+        });
     </script>
-    <?php include 'includes/footer.php'; ?>
+    <?php include __DIR__ . '/../includes/footer.php'; ?>
 
 
 

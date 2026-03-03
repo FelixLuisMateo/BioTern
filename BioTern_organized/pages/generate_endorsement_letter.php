@@ -27,7 +27,7 @@ $position = isset($_GET['position']) ? trim($_GET['position']) : '';
 $company = isset($_GET['company']) ? trim($_GET['company']) : '';
 $company_address = isset($_GET['company_address']) ? trim($_GET['company_address']) : '';
 $students_raw = isset($_GET['students']) ? trim($_GET['students']) : '';
-$use_saved_template = isset($_GET['use_saved_template']) && $_GET['use_saved_template'] === '1';
+$use_saved_template = false;
 
 $students = [];
 if ($students_raw !== '') {
@@ -64,7 +64,7 @@ if (empty($students)) {
 </head>
 <body>
 <div class="container">
-    <img class="crest" src="assets/images/auth/auth-cover-login-bg.png" alt="crest" onerror="this.style.display='none'">
+    <img class="crest" src="../assets/images/auth/auth-cover-login-bg.png" alt="crest" onerror="this.style.display='none'">
     <div class="header">
         <h2>CLARK COLLEGE OF SCIENCE AND TECHNOLOGY</h2>
         <div class="meta">SNS Bldg. Aurea St., Samsonville Subd., Dau, Mabalacat, Pampanga</div>
@@ -117,7 +117,7 @@ if (empty($students)) {
     document.getElementById('btn_close').addEventListener('click', function(){
         if (window.opener && !window.opener.closed) { window.close(); return; }
         if (window.history.length > 1) { window.history.back(); return; }
-        window.location.href = 'document_endorsement.php';
+        window.location.href = '../documents/document_endorsement.php';
     });
 })();
 
