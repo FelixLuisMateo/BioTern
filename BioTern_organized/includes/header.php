@@ -4,6 +4,9 @@
 if (!isset($page_title) || trim($page_title) === '') {
     $page_title = 'BioTern';
 }
+if (!isset($base_href)) {
+    $base_href = '';
+}
 ?>
 <!DOCTYPE html>
 <html lang="zxx">
@@ -15,6 +18,9 @@ if (!isset($page_title) || trim($page_title) === '') {
     <meta name="description" content="">
     <meta name="keyword" content="">
     <meta name="author" content="ACT 2A Group 5">
+    <?php if ($base_href !== ''): ?>
+        <base href="<?php echo htmlspecialchars($base_href, ENT_QUOTES, 'UTF-8'); ?>">
+    <?php endif; ?>
     <!--! The above 6 meta tags *must* come first in the head; any other head content must come *after* these tags !-->
     <!--! BEGIN: Apps Title-->
     <title><?php echo htmlspecialchars($page_title, ENT_QUOTES, 'UTF-8'); ?></title>
@@ -35,13 +41,27 @@ if (!isset($page_title) || trim($page_title) === '') {
     <script>
         // Apply saved skin as early as possible to avoid flash-of-unstyled (FOUS)
         (function(){
-            try {
-                var skin = localStorage.getItem('app-skin-dark');
-                if (skin === 'app-skin-dark') {
-                    document.documentElement.classList.add('app-skin-dark');
+            function getSavedSkin() {
+                try {
+                    // Respect the primary key even when intentionally set to empty (light mode).
+                    var primary = localStorage.getItem('app-skin');
+                    if (primary !== null) return primary;
+                    var alt = localStorage.getItem('app_skin');
+                    if (alt !== null) return alt;
+                    var theme = localStorage.getItem('theme');
+                    if (theme !== null) return theme;
+                    var legacy = localStorage.getItem('app-skin-dark');
+                    return legacy !== null ? legacy : '';
+                } catch (e) {
+                    return '';
                 }
-            } catch (e) {
-                /* ignore */
+            }
+
+            var skin = getSavedSkin();
+            if (typeof skin === 'string' && skin.indexOf('dark') !== -1) {
+                document.documentElement.classList.add('app-skin-dark');
+            } else {
+                document.documentElement.classList.remove('app-skin-dark');
             }
         })();
     </script>

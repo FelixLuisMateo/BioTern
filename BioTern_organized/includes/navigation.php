@@ -131,6 +131,7 @@
                     </a>
                     <ul class="nxl-submenu">
                         <li class="nxl-item"><a class="nxl-link" href="auth-register-creative.php">User Registration</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="auth/users.php">Users</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="create_admin.php">Create Admin</a></li>
                     </ul>
                 </li>
