@@ -59,6 +59,16 @@ $colCount = count($selectFields) + 1; // +1 for Actions column
 $page_title = 'Courses';
 include 'includes/header.php';
 ?>
+<style>
+    /* Prevent last-row action button border from getting visually clipped. */
+    .courses-table tbody tr:last-child td {
+        padding-bottom: 14px;
+    }
+
+    .courses-table .action-cell .btn {
+        line-height: 1.2;
+    }
+</style>
 <div class="page-header">
     <div class="page-header-left d-flex align-items-center">
         <div class="page-header-title">
@@ -75,14 +85,14 @@ include 'includes/header.php';
 </div>
 
 <div class="main-content">
-    <div class="card stretch stretch-full">
+    <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="card-title mb-0">All Courses</h5>
             <span class="badge bg-primary text-white px-3 py-1" style="font-weight:600;"><?php echo count($courses); ?> total</span>
         </div>
-        <div class="card-body p-0">
+        <div class="card-body p-0 pb-3">
             <div class="table-responsive">
-                <table class="table table-hover mb-0">
+                <table class="table table-hover mb-0 courses-table">
                     <thead>
                         <tr>
                             <th>ID</th>
@@ -120,7 +130,7 @@ include 'includes/header.php';
                                 <?php if ($hasColumn('created_at')): ?>
                                     <td><?php echo htmlspecialchars((string)($course['created_at'] ?? '-')); ?></td>
                                 <?php endif; ?>
-                                <td>
+                                <td class="action-cell">
                                     <a href="courses-edit.php?id=<?php echo (int)$course['id']; ?>" class="btn btn-sm btn-outline-primary">Edit</a>
                                 </td>
                             </tr>

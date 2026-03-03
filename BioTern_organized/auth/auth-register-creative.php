@@ -160,9 +160,9 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
     }
     $relationsConn->close();
 }
-    // If this page receives a POST, delegate processing to register_submit.php
+    // If this page receives a POST, delegate processing to api/register_submit.php
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        require_once __DIR__ . '/register_submit.php';
+        require_once dirname(__DIR__) . '/api/register_submit.php';
         // register_submit.php will redirect on success/failure
         exit;
     }

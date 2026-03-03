@@ -49,6 +49,34 @@ if (!isset($page_title) || trim($page_title) === '') {
     <!--! BEGIN: Custom CSS-->
     <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css" />
     <!--! END: Custom CSS-->
+    <style>
+        html.app-skin-dark .filter-form input.form-control,
+        html.app-skin-dark .filter-form select.form-control,
+        html.app-skin-dark .filter-form select.form-select,
+        html.app-skin-dark .filter-form .select2-container--default .select2-selection--single,
+        html.app-skin-dark .filter-form .select2-container--default .select2-selection--multiple {
+            color: #ffffff !important;
+        }
+
+        html.app-skin-dark .filter-form input.form-control::placeholder {
+            color: #d1dcf0 !important;
+            opacity: 1;
+        }
+
+        html.app-skin-dark .filter-form .select2-container--default .select2-selection--single .select2-selection__rendered,
+        html.app-skin-dark .filter-form .select2-container--default .select2-selection--multiple .select2-selection__rendered {
+            color: #ffffff !important;
+        }
+
+        html.app-skin-dark .select2-container--default.select2-container--open .select2-dropdown,
+        html.app-skin-dark .select2-container--default .select2-results__option {
+            color: #ffffff !important;
+        }
+
+        html.app-skin-dark .select2-container--default .select2-results__option--highlighted[aria-selected] {
+            color: #ffffff !important;
+        }
+    </style>
 </head>
 
 <body>
@@ -77,10 +105,23 @@ if (!isset($page_title) || trim($page_title) === '') {
             </div>
             <div class="header-right ms-auto">
                 <div class="d-flex align-items-center">
-                    <div class="nxl-h-item d-none d-sm-flex">
-                        <a href="javascript:void(0);" class="nxl-head-link me-0">
+                    <div class="dropdown nxl-h-item nxl-header-search d-none d-sm-flex">
+                        <a href="javascript:void(0);" class="nxl-head-link me-0" data-bs-toggle="dropdown" data-bs-auto-close="outside">
                             <i class="feather-search"></i>
                         </a>
+                        <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-search-dropdown">
+                            <div class="input-group search-form">
+                                <span class="input-group-text">
+                                    <i class="feather-search fs-6 text-muted"></i>
+                                </span>
+                                <input type="text" id="headerSearchInput" name="header_search" class="form-control search-input-field" placeholder="Search page...">
+                                <span class="input-group-text">
+                                    <button type="button" class="btn-close" id="headerSearchClear"></button>
+                                </span>
+                            </div>
+                            <div class="dropdown-divider mt-0"></div>
+                            <div class="px-3 py-2 fs-12 text-muted">Type and press Enter to open first matching menu page.</div>
+                        </div>
                     </div>
                     <div class="nxl-h-item d-none d-sm-flex">
                         <div class="full-screen-switcher">

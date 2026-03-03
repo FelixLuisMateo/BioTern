@@ -44,6 +44,7 @@ $stats = $stats_result->fetch_assoc();
 $filter_date = isset($_GET['date']) ? trim((string)$_GET['date']) : '';
 $filter_course = isset($_GET['course_id']) ? intval($_GET['course_id']) : 0;
 $filter_department = isset($_GET['department_id']) ? intval($_GET['department_id']) : 0;
+$filter_section = isset($_GET['section_id']) ? intval($_GET['section_id']) : 0;
 $filter_supervisor = isset($_GET['supervisor']) ? trim($_GET['supervisor']) : '';
 $filter_coordinator = isset($_GET['coordinator']) ? trim($_GET['coordinator']) : '';
 $filter_status = isset($_GET['status']) ? intval($_GET['status']) : -1;
@@ -79,6 +80,12 @@ $departments = [];
 $dept_res = $conn->query("SELECT id, name FROM departments ORDER BY name ASC");
 if ($dept_res && $dept_res->num_rows) {
     while ($r = $dept_res->fetch_assoc()) $departments[] = $r;
+}
+
+$sections = [];
+$section_res = $conn->query("SELECT id, COALESCE(NULLIF(code, ''), name) AS section_label FROM sections ORDER BY section_label ASC");
+if ($section_res && $section_res->num_rows) {
+    while ($r = $section_res->fetch_assoc()) $sections[] = $r;
 }
 
 $supervisors = [];
@@ -119,6 +126,9 @@ if ($filter_course > 0) {
 }
 if ($filter_department > 0) {
     $where[] = "i.department_id = " . intval($filter_department);
+}
+if ($filter_section > 0) {
+    $where[] = "s.section_id = " . intval($filter_section);
 }
 if (!empty($filter_supervisor)) {
     $esc_sup = $conn->real_escape_string($filter_supervisor);
@@ -164,6 +174,7 @@ $students_query = "
         s.id,
         s.student_id,
         s.first_name,
+        s.middle_name,
         s.last_name,
         s.email,
         s.phone,
@@ -184,6 +195,7 @@ $students_query = "
         s.created_at,
         s.profile_picture,
         c.name as course_name,
+        COALESCE(NULLIF(sec.code, ''), NULLIF(sec.name, ''), '-') AS section_name,
         c.id as course_id,
         i.supervisor_id,
         i.coordinator_id,
@@ -199,6 +211,7 @@ $students_query = "
         ) AS coordinator_name
     FROM students s
     LEFT JOIN courses c ON s.course_id = c.id
+    LEFT JOIN sections sec ON s.section_id = sec.id
     LEFT JOIN internships i ON s.id = i.student_id AND i.status = 'ongoing'
     LEFT JOIN supervisors sup ON i.supervisor_id = sup.id
     LEFT JOIN coordinators coor ON i.coordinator_id = coor.id
@@ -243,6 +256,39 @@ function resolve_profile_image_url(string $profilePath): ?string {
     $mtime = @filemtime($rootPath);
     return $clean . ($mtime ? ('?v=' . $mtime) : '');
 }
+
+$selected_section_label = 'ALL';
+if ($filter_section > 0) {
+    foreach ($sections as $sec) {
+        if ((int)$sec['id'] === (int)$filter_section) {
+            $selected_section_label = (string)$sec['section_label'];
+            break;
+        }
+    }
+}
+
+$selected_adviser = 'N/A';
+if ($filter_supervisor !== '') {
+    $selected_adviser = $filter_supervisor;
+} else {
+    foreach ($students as $srow) {
+        $candidate = trim((string)($srow['supervisor_name'] ?? ''));
+        if ($candidate !== '' && $candidate !== '-') {
+            $selected_adviser = $candidate;
+            break;
+        }
+    }
+}
+
+$print_students = $students;
+usort($print_students, function ($a, $b) {
+    $a_last = strtolower((string)($a['last_name'] ?? ''));
+    $b_last = strtolower((string)($b['last_name'] ?? ''));
+    if ($a_last === $b_last) {
+        return strcasecmp((string)($a['first_name'] ?? ''), (string)($b['first_name'] ?? ''));
+    }
+    return strcmp($a_last, $b_last);
+});
 
 ?>
 
@@ -498,10 +544,163 @@ function resolve_profile_image_url(string $profilePath): ?string {
                 align-items: flex-start;
             }
         }
+
+        .student-list-print-sheet {
+            display: none;
+        }
+
+        @media print {
+            body * {
+                visibility: hidden !important;
+            }
+
+            .student-list-print-sheet,
+            .student-list-print-sheet * {
+                visibility: visible !important;
+            }
+
+            .student-list-print-sheet {
+                display: block !important;
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                background: #ffffff;
+                color: #111111;
+                font-family: Arial, Helvetica, sans-serif;
+                font-size: 12px;
+                padding: 18px 24px;
+            }
+
+            .student-list-print-sheet .header {
+                position: relative;
+                min-height: 0.9in;
+                text-align: center;
+                border-bottom: 1px solid #8ab0e6;
+                padding: 0.08in 0 0.06in 0;
+                margin-bottom: 14px;
+            }
+
+            .student-list-print-sheet .crest {
+                position: absolute;
+                top: 0.22in;
+                left: 0.22in;
+                width: 0.77in;
+                height: 0.76in;
+                object-fit: contain;
+            }
+
+            .student-list-print-sheet .header h2 {
+                font-family: Calibri, Arial, sans-serif;
+                color: #1b4f9c;
+                font-size: 14pt;
+                margin: 6px 0 2px 0;
+                font-weight: 700;
+                text-transform: uppercase;
+            }
+
+            .student-list-print-sheet .header .meta {
+                font-family: Calibri, Arial, sans-serif;
+                color: #1b4f9c;
+                font-size: 10pt;
+            }
+
+            .student-list-print-sheet .header .tel {
+                font-family: Calibri, Arial, sans-serif;
+                color: #1b4f9c;
+                font-size: 12pt;
+            }
+
+            .student-list-print-sheet .print-title {
+                text-align: center;
+                font-size: 34px;
+                letter-spacing: 1px;
+                font-weight: 700;
+                margin: 26px 0 22px;
+            }
+
+            .student-list-print-sheet .print-meta {
+                margin-bottom: 14px;
+                font-size: 13px;
+            }
+
+            .student-list-print-sheet .print-meta strong {
+                min-width: 76px;
+                display: inline-block;
+            }
+
+            .student-list-print-sheet table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 12px;
+            }
+
+            .student-list-print-sheet th,
+            .student-list-print-sheet td {
+                border: 1px solid #d9d9d9;
+                padding: 8px 8px;
+                text-align: left;
+            }
+
+            .student-list-print-sheet th {
+                text-transform: uppercase;
+                font-weight: 700;
+                background: #f8f8f8;
+            }
+
+            .student-list-print-sheet td.col-index,
+            .student-list-print-sheet th.col-index {
+                width: 46px;
+                text-align: center;
+            }
+        }
     </style>
 </head>
 
 <body>
+    <section class="student-list-print-sheet">
+        <img class="crest" src="assets/images/auth/auth-cover-login-bg.png" alt="crest" onerror="this.style.display='none'">
+        <div class="header">
+            <h2>CLARK COLLEGE OF SCIENCE AND TECHNOLOGY</h2>
+            <div class="meta">SNS Bldg. Aurea St., Samsonville Subd., Dau, Mabalacat, Pampanga &middot;</div>
+            <div class="tel">Telefax No.: (045) 624-0215</div>
+        </div>
+        <div class="print-title">STUDENT SECTION LIST</div>
+        <div class="print-meta"><strong>SECTION:</strong> <?php echo htmlspecialchars($selected_section_label); ?></div>
+        <div class="print-meta"><strong>ADVISER:</strong> <?php echo htmlspecialchars($selected_adviser); ?></div>
+        <table>
+            <thead>
+                <tr>
+                    <th class="col-index">#</th>
+                    <th>Student No.</th>
+                    <th>Last Name</th>
+                    <th>First Name</th>
+                    <th>Middle Name</th>
+                    <th>Remarks</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (!empty($print_students)): ?>
+                    <?php foreach ($print_students as $i => $student): ?>
+                        <tr>
+                            <td class="col-index"><?php echo (int)$i + 1; ?></td>
+                            <td><?php echo htmlspecialchars((string)($student['student_id'] ?? '')); ?></td>
+                            <td><?php echo htmlspecialchars((string)($student['last_name'] ?? '')); ?></td>
+                            <td><?php echo htmlspecialchars((string)($student['first_name'] ?? '')); ?></td>
+                            <td><?php echo htmlspecialchars((string)($student['middle_name'] ?? '')); ?></td>
+                            <td></td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <tr>
+                        <td class="col-index">1</td>
+                        <td colspan="5">No students found for current filter.</td>
+                    </tr>
+                <?php endif; ?>
+            </tbody>
+        </table>
+    </section>
+
     <?php include_once 'includes/navigation.php'; ?>
 
     <!--! Header !-->
@@ -671,12 +870,16 @@ function resolve_profile_image_url(string $profilePath): ?string {
                                         <span>Excel</span>
                                     </a>
                                     <div class="dropdown-divider"></div>
-                                    <a href="javascript:void(0);" class="dropdown-item">
+                                    <a href="javascript:void(0);" class="dropdown-item js-print-page">
                                         <i class="bi bi-printer me-3"></i>
                                         <span>Print</span>
                                     </a>
                                 </div>
                             </div>
+                            <button type="button" class="btn btn-light js-print-page">
+                                <i class="feather-printer me-2"></i>
+                                <span>Print List</span>
+                            </button>
                             <a href="students-create.php" class="btn btn-primary">
                                 <i class="feather-plus me-2"></i>
                                 <span>Create Students</span>
@@ -694,12 +897,12 @@ function resolve_profile_image_url(string $profilePath): ?string {
             <!-- Filters -->
             <div class="row mb-3 px-3">
                 <div class="col-12">
-                    <form method="GET" class="filter-form row g-2 align-items-end">
-                        <div class="col-sm-2">
+                    <form method="GET" class="filter-form row g-2 align-items-end" id="studentsFilterForm">
+                        <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
                             <label class="form-label" for="filter-date">Date</label>
                             <input id="filter-date" type="date" name="date" class="form-control" value="<?php echo htmlspecialchars($_GET['date'] ?? ''); ?>">
                         </div>
-                        <div class="col-sm-2">
+                        <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
                             <label class="form-label" for="filter-course">Course</label>
                             <select id="filter-course" name="course_id" class="form-control">
                                 <option value="0">-- All Courses --</option>
@@ -708,7 +911,7 @@ function resolve_profile_image_url(string $profilePath): ?string {
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        <div class="col-sm-2">
+                        <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
                             <label class="form-label" for="filter-department">Department</label>
                             <select id="filter-department" name="department_id" class="form-control">
                                 <option value="0">-- All Departments --</option>
@@ -717,7 +920,16 @@ function resolve_profile_image_url(string $profilePath): ?string {
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        <div class="col-sm-2">
+                        <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
+                            <label class="form-label" for="filter-section">Section</label>
+                            <select id="filter-section" name="section_id" class="form-control">
+                                <option value="0">-- All Sections --</option>
+                                <?php foreach ($sections as $section): ?>
+                                    <option value="<?php echo (int)$section['id']; ?>" <?php echo $filter_section == $section['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($section['section_label']); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
                             <label class="form-label" for="filter-supervisor">Supervisor</label>
                             <select id="filter-supervisor" name="supervisor" class="form-control">
                                 <option value="">-- Any Supervisor --</option>
@@ -726,7 +938,7 @@ function resolve_profile_image_url(string $profilePath): ?string {
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        <div class="col-sm-2">
+                        <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
                             <label class="form-label" for="filter-coordinator">Coordinator</label>
                             <select id="filter-coordinator" name="coordinator" class="form-control">
                                 <option value="">-- Any Coordinator --</option>
@@ -735,10 +947,9 @@ function resolve_profile_image_url(string $profilePath): ?string {
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        <div class="col-sm-2">
+                        <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
                             <label class="form-label d-block invisible">Actions</label>
                             <div class="d-flex gap-1" style="align-items: flex-end;">
-                                <button type="submit" class="btn btn-primary btn-sm px-3 py-1" style="font-size: 0.85rem;">Filter</button>
                                 <a href="students.php" class="btn btn-outline-secondary btn-sm px-3 py-1" style="font-size: 0.85rem;">Reset</a>
                             </div>
                         </div>
@@ -843,6 +1054,7 @@ function resolve_profile_image_url(string $profilePath): ?string {
                                                 <th>Name</th>
                                                 <th>Student ID</th>
                                                 <th>Course</th>
+                                                <th>Section</th>
                                                 <th>Supervisor</th>
                                                 <th>Coordinator</th>
                                                 <th>Last Logged</th>
@@ -882,6 +1094,7 @@ function resolve_profile_image_url(string $profilePath): ?string {
                                                         </td>
                                                         <td><a href="students-view.php?id=<?php echo $student['id']; ?>"><?php echo htmlspecialchars($student['student_id']); ?></a></td>
                                                         <td><a href="javascript:void(0);"><?php echo htmlspecialchars($student['course_name'] ?? 'N/A'); ?></a></td>
+                                                        <td><a href="javascript:void(0);"><?php echo htmlspecialchars($student['section_name'] ?? '-'); ?></a></td>
                                                         <td><a href="javascript:void(0);"><?php echo htmlspecialchars($student['supervisor_name'] ?? '-'); ?></a></td>
                                                         <td><a href="javascript:void(0);"><?php echo htmlspecialchars($student['coordinator_name'] ?? '-'); ?></a></td>
                                                         <td><?php echo formatDate($student['created_at']); ?></td>
@@ -986,7 +1199,7 @@ function resolve_profile_image_url(string $profilePath): ?string {
         document.addEventListener('DOMContentLoaded', function () {
             // Do not reinitialize DataTable here; `customers-init.min.js` handles it.
             if (window.jQuery) {
-                ['#filter-course', '#filter-department'].forEach(function (selector) {
+                ['#filter-course', '#filter-department', '#filter-section'].forEach(function (selector) {
                     if ($(selector).length) {
                         $(selector).select2({
                             width: '100%',
@@ -1033,6 +1246,29 @@ function resolve_profile_image_url(string $profilePath): ?string {
 
             if (darkBtn) darkBtn.addEventListener('click', function (e) { e.preventDefault(); setDark(true); });
             if (lightBtn) lightBtn.addEventListener('click', function (e) { e.preventDefault(); setDark(false); });
+
+            var filterForm = document.getElementById('studentsFilterForm');
+            function submitFilters() {
+                if (filterForm) filterForm.submit();
+            }
+            ['filter-date', 'filter-course', 'filter-department', 'filter-section', 'filter-supervisor', 'filter-coordinator'].forEach(function (id) {
+                var el = document.getElementById(id);
+                if (el) el.addEventListener('change', submitFilters);
+            });
+            if (window.jQuery) {
+                ['#filter-course', '#filter-department', '#filter-section', '#filter-supervisor', '#filter-coordinator'].forEach(function (selector) {
+                    if ($(selector).length) {
+                        $(selector).on('select2:select select2:clear', submitFilters);
+                    }
+                });
+            }
+
+            document.querySelectorAll('.js-print-page').forEach(function (btn) {
+                btn.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    window.print();
+                });
+            });
         });
     </script>
 </body>

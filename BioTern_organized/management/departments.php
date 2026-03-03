@@ -75,7 +75,7 @@ $page_title = 'Departments';
     <div class="card stretch stretch-full">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="card-title mb-0">All Departments</h5>
-            <span class="badge bg-light text-dark"><?php echo count($departments); ?> total</span>
+            <span class="badge bg-primary text-white px-3 py-1" style="font-weight:600;"><?php echo count($departments); ?> total</span>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
@@ -118,7 +118,7 @@ $page_title = 'Departments';
                                     <td><?php echo htmlspecialchars((string)($dept['created_at'] ?? '-')); ?></td>
                                 <?php endif; ?>
                                 <td>
-                                    <a href="departments-edit.php?id=<?php echo (int)$dept['id']; ?>" class="btn btn-sm btn-light-brand">
+                                    <a href="departments-edit.php?id=<?php echo (int)$dept['id']; ?>" class="btn btn-sm btn-outline-primary">
                                         Edit
                                     </a>
                                 </td>

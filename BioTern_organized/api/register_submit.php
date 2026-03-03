@@ -85,6 +85,69 @@ function resolveSectionId($mysqli, $sectionValue, $courseId = 0) {
     return 0;
 }
 
+function tableHasColumn($mysqli, $tableName, $columnName) {
+    $table = trim((string)$tableName);
+    $column = trim((string)$columnName);
+    if ($table === '' || $column === '') {
+        return false;
+    }
+
+    $sql = "SHOW COLUMNS FROM `" . $mysqli->real_escape_string($table) . "` LIKE ?";
+    $stmt = $mysqli->prepare($sql);
+    if (!$stmt) {
+        return false;
+    }
+    $stmt->bind_param('s', $column);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    $has = ($res && $res->num_rows > 0);
+    $stmt->close();
+    return $has;
+}
+
+function ensureSectionId($mysqli, $sectionValue, $courseId, $departmentId) {
+    $sectionRaw = trim((string)$sectionValue);
+    $courseId = (int)$courseId;
+    $departmentId = (int)$departmentId;
+    if ($sectionRaw === '' || $courseId <= 0 || $departmentId <= 0) {
+        return 0;
+    }
+
+    $existing = resolveSectionId($mysqli, $sectionRaw, $courseId);
+    if ($existing > 0) {
+        return $existing;
+    }
+
+    // Some forms generate fallback section codes (e.g. ACT-2A). Create them on-demand.
+    $escCode = $mysqli->real_escape_string($sectionRaw);
+    $escName = $mysqli->real_escape_string($sectionRaw);
+
+    $columns = ['course_id', 'department_id', 'code', 'name'];
+    $values = [(string)$courseId, (string)$departmentId, "'" . $escCode . "'", "'" . $escName . "'"];
+
+    if (tableHasColumn($mysqli, 'sections', 'is_active')) {
+        $columns[] = 'is_active';
+        $values[] = '1';
+    }
+    if (tableHasColumn($mysqli, 'sections', 'created_at')) {
+        $columns[] = 'created_at';
+        $values[] = 'NOW()';
+    }
+    if (tableHasColumn($mysqli, 'sections', 'updated_at')) {
+        $columns[] = 'updated_at';
+        $values[] = 'NOW()';
+    }
+
+    $insertSql = "INSERT INTO sections (" . implode(', ', $columns) . ") VALUES (" . implode(', ', $values) . ")";
+    $ok = $mysqli->query($insertSql);
+    if ($ok) {
+        return (int)$mysqli->insert_id;
+    }
+
+    // If insert failed due to duplicate or constraints, try resolving again.
+    return resolveSectionId($mysqli, $sectionRaw, $courseId);
+}
+
 $role = getPost('role');
 if (!$role) {
     header('Location: register_submit.php');
@@ -165,12 +228,15 @@ if ($role === 'student') {
     // Use account_email if provided, otherwise use email
     $final_email = $account_email ?: $email;
     $course_id = (int)$course_id;
-    $section_id = resolveSectionId($mysqli, $section, $course_id);
     $department_id = null;
     if ($department_id_raw !== null && $department_id_raw !== '' && ctype_digit((string)$department_id_raw)) {
         $department_id = (int)$department_id_raw;
     } else {
         $department_id = resolveDepartmentIdByCode($mysqli, $department_code);
+    }
+    $section_id = resolveSectionId($mysqli, $section, $course_id);
+    if ($section_id <= 0 && !empty($department_id)) {
+        $section_id = ensureSectionId($mysqli, $section, $course_id, (int)$department_id);
     }
     $internal_total_hours = $internal_total_hours ? (int)$internal_total_hours : 0;
     $external_total_hours = $external_total_hours ? (int)$external_total_hours : 0;

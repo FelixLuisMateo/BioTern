@@ -79,6 +79,31 @@ function resolve_profile_image_url(string $profilePath): ?string {
     return $clean . ($mtime ? ('?v=' . $mtime) : '');
 }
 
+function normalize_person_name(string $name): string {
+    $clean = trim(preg_replace('/\s+/', ' ', $name));
+    if ($clean === '') {
+        return '';
+    }
+    if (strpos($clean, ' ') === false) {
+        $clean = preg_replace('/(?<=[a-z])(?=[A-Z])/', ' ', $clean);
+    }
+    return trim($clean);
+}
+
+function to_last_name_first(string $name): string {
+    $clean = normalize_person_name($name);
+    if ($clean === '') {
+        return '';
+    }
+    $parts = preg_split('/\s+/', $clean);
+    if (!$parts || count($parts) < 2) {
+        return $clean;
+    }
+    $last = array_pop($parts);
+    $first = trim(implode(' ', $parts));
+    return $last . ', ' . $first;
+}
+
 $conn->query("CREATE TABLE IF NOT EXISTS ojt_reminder_queue (
     id INT AUTO_INCREMENT PRIMARY KEY,
     student_id INT NOT NULL,
@@ -105,6 +130,7 @@ $conn->query("CREATE TABLE IF NOT EXISTS document_workflow (
 
 $search = trim((string)($_GET['search'] ?? ''));
 $course_filter = trim((string)($_GET['course'] ?? ''));
+$section_filter = trim((string)($_GET['section'] ?? ''));
 $status_filter = trim((string)($_GET['stage'] ?? ''));
 $risk_filter = trim((string)($_GET['risk'] ?? 'all'));
 
@@ -113,6 +139,14 @@ $cres = $conn->query('SELECT id, name FROM courses ORDER BY name');
 if ($cres) {
     while ($c = $cres->fetch_assoc()) {
         $courses[] = $c;
+    }
+}
+
+$sections = [];
+$sres = $conn->query("SELECT id, COALESCE(NULLIF(code, ''), name) AS section_label FROM sections ORDER BY section_label");
+if ($sres) {
+    while ($s = $sres->fetch_assoc()) {
+        $sections[] = $s;
     }
 }
 
@@ -128,6 +162,7 @@ SELECT
     s.created_at,
     s.profile_picture,
     c.name AS course_name,
+    COALESCE(NULLIF(sec.code, ''), NULLIF(sec.name, ''), '-') AS section_name,
     i.status AS internship_status,
     i.required_hours,
     i.rendered_hours,
@@ -148,6 +183,7 @@ SELECT
     COALESCE(att.total_hours, 0) AS attendance_total_hours
 FROM students s
 LEFT JOIN courses c ON s.course_id = c.id
+LEFT JOIN sections sec ON s.section_id = sec.id
 LEFT JOIN internships i ON s.id = i.student_id AND i.status IN ('ongoing','completed')
 LEFT JOIN users u_supervisor ON i.supervisor_id = u_supervisor.id
 LEFT JOIN users u_coordinator ON i.coordinator_id = u_coordinator.id
@@ -222,6 +258,9 @@ if ($res) {
             continue;
         }
         if ($course_filter !== '' && strcasecmp((string)($row['course_name'] ?? ''), $course_filter) !== 0) {
+            continue;
+        }
+        if ($section_filter !== '' && strcasecmp((string)($row['section_name'] ?? ''), $section_filter) !== 0) {
             continue;
         }
         if ($status_filter !== '' && strcasecmp($row['stage'], $status_filter) !== 0) {
@@ -319,6 +358,17 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
     fclose($out);
     exit;
 }
+
+$print_ojt_rows = $rows;
+usort($print_ojt_rows, function ($a, $b) {
+    $a_last = strtolower((string)($a['last_name'] ?? ''));
+    $b_last = strtolower((string)($b['last_name'] ?? ''));
+    if ($a_last === $b_last) {
+        return strcasecmp((string)($a['first_name'] ?? ''), (string)($b['first_name'] ?? ''));
+    }
+    return strcmp($a_last, $b_last);
+});
+$print_section_label = $section_filter !== '' ? $section_filter : 'ALL';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -438,9 +488,151 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             }
             #ojtListTable td:last-child .btn { width: 100%; }
         }
+
+        .ojt-print-sheet { display: none; }
+        @media print {
+            body * { visibility: hidden !important; }
+            .ojt-print-sheet, .ojt-print-sheet * { visibility: visible !important; }
+            .ojt-print-sheet {
+                display: block !important;
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                max-width: 7.45in;
+                background: #fff;
+                color: #111;
+                font-family: Arial, Helvetica, sans-serif;
+                font-size: 12px;
+                margin: 0 auto;
+                padding: 12px 14px;
+            }
+            .ojt-print-sheet .header {
+                position: relative;
+                min-height: 0.9in;
+                text-align: center;
+                border-bottom: 1px solid #8ab0e6;
+                padding: 0.08in 0 0.06in 0;
+                margin-bottom: 14px;
+            }
+            .ojt-print-sheet .crest {
+                position: absolute;
+                top: 0.22in;
+                left: 0.22in;
+                width: 0.77in;
+                height: 0.76in;
+                object-fit: contain;
+            }
+            .ojt-print-sheet .header h2 {
+                font-family: Calibri, Arial, sans-serif;
+                color: #1b4f9c;
+                font-size: 14pt;
+                margin: 6px 0 2px 0;
+                font-weight: 700;
+                text-transform: uppercase;
+            }
+            .ojt-print-sheet .header .meta {
+                font-family: Calibri, Arial, sans-serif;
+                color: #1b4f9c;
+                font-size: 10pt;
+            }
+            .ojt-print-sheet .header .tel {
+                font-family: Calibri, Arial, sans-serif;
+                color: #1b4f9c;
+                font-size: 12pt;
+            }
+            .ojt-print-sheet .print-title {
+                text-align: center;
+                font-size: 24px;
+                letter-spacing: 1px;
+                font-weight: 700;
+                margin: 18px 0 16px;
+            }
+            .ojt-print-sheet .print-meta {
+                margin-bottom: 14px;
+                font-size: 13px;
+            }
+            .ojt-print-sheet .print-meta strong {
+                min-width: 76px;
+                display: inline-block;
+            }
+            .ojt-print-sheet table {
+                width: 100%;
+                min-width: 100%;
+                border-collapse: collapse;
+                font-size: 12.5px;
+                table-layout: auto;
+            }
+            .ojt-print-sheet th, .ojt-print-sheet td {
+                border: 1px solid #d9d9d9;
+                padding: 9px 8px;
+                text-align: left;
+            }
+            .ojt-print-sheet th {
+                text-transform: uppercase;
+                font-weight: 700;
+                background: #f8f8f8;
+            }
+            .ojt-print-sheet td.col-index,
+            .ojt-print-sheet th.col-index {
+                width: 46px;
+                text-align: center;
+            }
+        }
     </style>
 </head>
 <body>
+<section class="ojt-print-sheet">
+    <img class="crest" src="assets/images/auth/auth-cover-login-bg.png" alt="crest" onerror="this.style.display='none'">
+    <div class="header">
+        <h2>CLARK COLLEGE OF SCIENCE AND TECHNOLOGY</h2>
+        <div class="meta">SNS Bldg. Aurea St., Samsonville Subd., Dau, Mabalacat, Pampanga &middot;</div>
+        <div class="tel">Telefax No.: (045) 624-0215</div>
+    </div>
+    <div class="print-title">OJT STUDENT LIST</div>
+    <div class="print-meta"><strong>SECTION:</strong> <?php echo htmlspecialchars($print_section_label); ?></div>
+    <table>
+        <thead>
+            <tr>
+                <th class="col-index">#</th>
+                <th>Student No.</th>
+                <th>Student Name</th>
+                <th>Course</th>
+                <th>Section</th>
+                <th>Supervisor</th>
+                <th>Coordinator</th>
+                <th>Remarks</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php if (!empty($print_ojt_rows)): ?>
+                <?php foreach ($print_ojt_rows as $i => $r): ?>
+                    <tr>
+                        <td class="col-index"><?php echo (int)$i + 1; ?></td>
+                        <td><?php echo htmlspecialchars((string)($r['student_id'] ?? '')); ?></td>
+                        <?php
+                        $student_last = normalize_person_name((string)($r['last_name'] ?? ''));
+                        $student_first = normalize_person_name((string)($r['first_name'] ?? ''));
+                        $student_name_lf = trim($student_last . ($student_last !== '' && $student_first !== '' ? ', ' : '') . $student_first);
+                        ?>
+                        <td><?php echo htmlspecialchars($student_name_lf); ?></td>
+                        <td><?php echo htmlspecialchars((string)($r['course_name'] ?? '')); ?></td>
+                        <td><?php echo htmlspecialchars((string)($r['section_name'] ?? '')); ?></td>
+                        <td><?php echo htmlspecialchars(to_last_name_first((string)($r['supervisor_name'] ?? ''))); ?></td>
+                        <td><?php echo htmlspecialchars(to_last_name_first((string)($r['coordinator_name'] ?? ''))); ?></td>
+                        <td></td>
+                    </tr>
+                <?php endforeach; ?>
+            <?php else: ?>
+                <tr>
+                    <td class="col-index">1</td>
+                    <td colspan="7">No OJT students found for current filter.</td>
+                </tr>
+            <?php endif; ?>
+        </tbody>
+    </table>
+</section>
+
 <?php include_once 'includes/navigation.php'; ?>
 <header class="nxl-header">
     <div class="header-wrapper">
@@ -531,6 +723,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                 </button>
                 <a href="ojt-workflow-board.php" class="btn btn-outline-primary"><i class="feather-kanban me-1"></i>Workflow Board</a>
                 <a href="ojt.php?<?php echo http_build_query(array_merge($_GET, ['export' => 'csv'])); ?>" class="btn btn-light"><i class="feather-download me-1"></i>Export CSV Report</a>
+                <button type="button" class="btn btn-light" id="ojtPrintBtn"><i class="feather-printer me-1"></i>Print List</button>
                 <form method="post" class="d-inline">
                     <button type="submit" name="queue_reminders" value="1" class="btn btn-warning"><i class="feather-bell me-1"></i>Queue Risk Reminders</button>
                 </form>
@@ -557,14 +750,14 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
         </div>
 
         <div class="card card-body filter-card mb-3">
-            <form method="get" class="row g-2 align-items-end">
+            <form method="get" class="row g-2 align-items-end" id="ojtFilterForm">
                 <div class="col-md-3">
                     <label class="form-label">Search Student</label>
-                    <input type="text" name="search" class="form-control" value="<?php echo htmlspecialchars($search); ?>" placeholder="Name / Student ID / Course">
+                    <input type="text" name="search" id="ojtFilterSearch" class="form-control" value="<?php echo htmlspecialchars($search); ?>" placeholder="Name / Student ID / Course">
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label class="form-label">Course</label>
-                    <select name="course" class="form-select">
+                    <select name="course" id="ojtFilterCourse" class="form-select">
                         <option value="">All</option>
                         <?php foreach ($courses as $course): ?>
                             <option value="<?php echo htmlspecialchars($course['name']); ?>" <?php echo ($course_filter === $course['name']) ? 'selected' : ''; ?>><?php echo htmlspecialchars($course['name']); ?></option>
@@ -572,8 +765,17 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                     </select>
                 </div>
                 <div class="col-md-2">
+                    <label class="form-label">Section</label>
+                    <select name="section" id="ojtFilterSection" class="form-select">
+                        <option value="">All</option>
+                        <?php foreach ($sections as $section): ?>
+                            <option value="<?php echo htmlspecialchars($section['section_label']); ?>" <?php echo ($section_filter === $section['section_label']) ? 'selected' : ''; ?>><?php echo htmlspecialchars($section['section_label']); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="col-md-2">
                     <label class="form-label">Stage</label>
-                    <select name="stage" class="form-select">
+                    <select name="stage" id="ojtFilterStage" class="form-select">
                         <option value="">All</option>
                         <?php foreach (['Applied','Endorsed','Accepted','Ongoing','Completed'] as $st): ?>
                             <option value="<?php echo $st; ?>" <?php echo ($status_filter === $st) ? 'selected' : ''; ?>><?php echo $st; ?></option>
@@ -582,14 +784,13 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">Risk</label>
-                    <select name="risk" class="form-select">
+                    <select name="risk" id="ojtFilterRisk" class="form-select">
                         <option value="all" <?php echo ($risk_filter === 'all') ? 'selected' : ''; ?>>All</option>
                         <option value="at_risk" <?php echo ($risk_filter === 'at_risk') ? 'selected' : ''; ?>>At Risk</option>
                         <option value="clean" <?php echo ($risk_filter === 'clean') ? 'selected' : ''; ?>>Clean</option>
                     </select>
                 </div>
-                <div class="col-md-2 d-flex gap-2">
-                    <button class="btn btn-primary w-100" type="submit">Apply</button>
+                <div class="col-md-1 d-flex gap-2">
                     <a href="ojt.php" class="btn btn-light w-100">Reset</a>
                 </div>
             </form>
@@ -602,6 +803,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                         <thead>
                         <tr>
                             <th>Student</th>
+                            <th>Section</th>
                             <th>Pipeline</th>
                             <th>Document Progress</th>
                             <th>Hours</th>
@@ -612,7 +814,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                         </thead>
                         <tbody>
                         <?php if (!$rows): ?>
-                            <tr><td colspan="7" class="text-center py-4 text-muted">No records found.</td></tr>
+                            <tr><td colspan="8" class="text-center py-4 text-muted">No records found.</td></tr>
                         <?php endif; ?>
                         <?php foreach ($rows as $index => $r): ?>
                             <?php
@@ -636,6 +838,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                                         </div>
                                     </a>
                                 </td>
+                                <td data-label="Section"><?php echo htmlspecialchars($r['section_name'] ?? '-'); ?></td>
                                 <td data-label="Pipeline">
                                     <span class="badge <?php echo stage_badge_class($r['stage']); ?>"><?php echo htmlspecialchars($r['stage']); ?></span>
                                     <div class="text-muted fs-12 mt-1">Last biometric: <?php echo htmlspecialchars($r['last_attendance_date'] ?: 'none'); ?></div>
@@ -678,6 +881,32 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
 <script src="assets/vendors/js/vendors.min.js"></script>
 <script src="assets/js/common-init.min.js"></script>
 <script>
+    (function () {
+        var filterForm = document.getElementById('ojtFilterForm');
+        var searchInput = document.getElementById('ojtFilterSearch');
+        var submitTimer;
+        function submitFilters() {
+            if (filterForm) filterForm.submit();
+        }
+        function debounceSubmit() {
+            clearTimeout(submitTimer);
+            submitTimer = setTimeout(submitFilters, 350);
+        }
+        ['ojtFilterCourse', 'ojtFilterSection', 'ojtFilterStage', 'ojtFilterRisk'].forEach(function (id) {
+            var el = document.getElementById(id);
+            if (el) el.addEventListener('change', submitFilters);
+        });
+        if (searchInput) searchInput.addEventListener('input', debounceSubmit);
+
+        var printBtn = document.getElementById('ojtPrintBtn');
+        if (printBtn) {
+            printBtn.addEventListener('click', function (e) {
+                e.preventDefault();
+                window.print();
+            });
+        }
+    })();
+
     (function () {
         var root = document.documentElement;
         var darkBtn = document.querySelector('.dark-button');

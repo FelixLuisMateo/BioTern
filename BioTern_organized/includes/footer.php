@@ -1,16 +1,31 @@
-<?php
+﻿<?php
 // Shared footer include.  It closes main container and adds global scripts.
 ?>
-        </div> <!-- .nxl-content -->
+<style>
+    /* Keep footer pinned at the bottom on short pages. */
+    .nxl-container {
+        display: flex;
+        flex-direction: column;
+        min-height: calc(100vh - 80px);
+    }
+
+    .nxl-container .nxl-content {
+        flex: 1 0 auto;
+    }
+
+    .nxl-container .footer {
+        margin-top: auto;
+    }
+</style>        </div> <!-- .nxl-content -->
         <!-- [ Footer ] start -->
         <footer class="footer">
             <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
-                <span>Copyright ©</span>
+                <span>Copyright &copy;</span>
                 <script>
                     document.write(new Date().getFullYear());
                 </script>
             </p>
-            <p><span>By: <a target="_blank" href="" target="_blank">ACT 2A</a> </span><span>Distributed by: <a target="_blank" href="" target="_blank">Group 5</a></span></p>
+            <p><span>By: <a href="javascript:void(0);">ACT 2A</a> </span><span>Distributed by: <a href="javascript:void(0);">Group 5</a></span></p>
             <div class="d-flex align-items-center gap-4">
                 <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Help</a>
                 <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Terms</a>
@@ -94,6 +109,125 @@
             });
         })();
     </script>
+    <script>
+        (function () {
+            document.addEventListener('DOMContentLoaded', function () {
+                if (window.__bioternHeaderSearchUnifiedInit) return;
+                window.__bioternHeaderSearchUnifiedInit = true;
+
+                var navLinks = Array.prototype.slice.call(document.querySelectorAll('.nxl-navigation a.nxl-link[href]'))
+                    .map(function (a) {
+                        return {
+                            href: a.getAttribute('href') || '',
+                            text: (a.textContent || '').trim()
+                        };
+                    })
+                    .filter(function (x) {
+                        return x.href && x.href !== '#' && x.href.indexOf('javascript:') !== 0;
+                    });
+
+                function normalize(v) {
+                    return (v || '').toLowerCase().trim();
+                }
+
+                function searchMatches(query) {
+                    var q = normalize(query);
+                    if (!q) return [];
+                    return navLinks.filter(function (x) {
+                        return normalize(x.text).indexOf(q) !== -1 || normalize(x.href).indexOf(q) !== -1;
+                    }).slice(0, 6);
+                }
+
+                var dropdowns = document.querySelectorAll('.nxl-header-search');
+                if (!dropdowns.length) return;
+
+                dropdowns.forEach(function (node) {
+                    // Remove template hover listeners by replacing the node.
+                    var dd = node.cloneNode(true);
+                    node.parentNode.replaceChild(dd, node);
+
+                    var toggle = dd.querySelector('.nxl-head-link');
+                    var menu = dd.querySelector('.nxl-search-dropdown');
+                    var input = dd.querySelector('#headerSearchInput, .search-input-field');
+                    var clearBtn = dd.querySelector('#headerSearchClear, .btn-close');
+                    if (!toggle || !menu || !input) return;
+
+                    dd.style.position = 'relative';
+                    toggle.removeAttribute('data-bs-toggle');
+                    toggle.removeAttribute('data-bs-auto-close');
+                    menu.style.display = 'none';
+
+                    var suggestionWrap = document.createElement('div');
+                    suggestionWrap.style.padding = '0 0 6px';
+                    var suggestionList = document.createElement('div');
+                    suggestionWrap.appendChild(suggestionList);
+                    menu.appendChild(suggestionWrap);
+
+                    function closeMenu() {
+                        menu.style.display = 'none';
+                        menu.classList.remove('show');
+                        toggle.classList.remove('show');
+                    }
+
+                    function openMenu() {
+                        menu.style.display = 'block';
+                        menu.classList.add('show');
+                        toggle.classList.add('show');
+                        setTimeout(function () { input.focus(); }, 20);
+                    }
+
+                    function renderSuggestions(items) {
+                        suggestionList.innerHTML = '';
+                        if (!items.length) {
+                            suggestionList.innerHTML = '<div class="px-3 py-2 fs-12 text-muted">No matching pages</div>';
+                            return;
+                        }
+                        items.forEach(function (item) {
+                            var a = document.createElement('a');
+                            a.href = item.href;
+                            a.className = 'dropdown-item';
+                            a.textContent = item.text;
+                            suggestionList.appendChild(a);
+                        });
+                    }
+
+                    toggle.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        if (menu.style.display === 'block') closeMenu();
+                        else openMenu();
+                    });
+
+                    input.addEventListener('input', function () {
+                        renderSuggestions(searchMatches(input.value));
+                    });
+
+                    input.addEventListener('keydown', function (e) {
+                        if (e.key !== 'Enter') return;
+                        e.preventDefault();
+                        var matches = searchMatches(input.value);
+                        if (matches.length) window.location.href = matches[0].href;
+                    });
+
+                    if (clearBtn) {
+                        clearBtn.addEventListener('click', function (e) {
+                            e.preventDefault();
+                            input.value = '';
+                            renderSuggestions([]);
+                            input.focus();
+                        });
+                    }
+
+                    document.addEventListener('click', function (e) {
+                        if (!dd.contains(e.target)) closeMenu();
+                    });
+                });
+            });
+        })();
+    </script>
 </body>
 
 </html>
+
+
+
+

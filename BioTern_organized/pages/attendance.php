@@ -31,6 +31,7 @@ $start_date = isset($_GET['start_date']) && $_GET['start_date'] !== '' ? $_GET['
 $end_date = isset($_GET['end_date']) && $_GET['end_date'] !== '' ? $_GET['end_date'] : '';
 $filter_course = isset($_GET['course_id']) ? intval($_GET['course_id']) : 0;
 $filter_department = isset($_GET['department_id']) ? intval($_GET['department_id']) : 0;
+$filter_section = isset($_GET['section_id']) ? intval($_GET['section_id']) : 0;
 $filter_supervisor = isset($_GET['supervisor']) ? trim($_GET['supervisor']) : '';
 $filter_coordinator = isset($_GET['coordinator']) ? trim($_GET['coordinator']) : '';
 $filter_status = isset($_GET['status']) ? trim($_GET['status']) : '';
@@ -71,6 +72,12 @@ $departments = [];
 $dept_res = $conn->query("SELECT id, name FROM departments ORDER BY name ASC");
 if ($dept_res && $dept_res->num_rows) {
     while ($r = $dept_res->fetch_assoc()) $departments[] = $r;
+}
+
+$sections = [];
+$section_res = $conn->query("SELECT id, COALESCE(NULLIF(code, ''), name) AS section_label FROM sections ORDER BY section_label ASC");
+if ($section_res && $section_res->num_rows) {
+    while ($r = $section_res->fetch_assoc()) $sections[] = $r;
 }
 
 $supervisors = [];
@@ -115,6 +122,9 @@ if ($filter_course > 0) {
 if ($filter_department > 0) {
     // join internships table to filter by department assignment
     $where[] = "i.department_id = " . intval($filter_department);
+}
+if ($filter_section > 0) {
+    $where[] = "s.section_id = " . intval($filter_section);
 }
 if (!empty($filter_supervisor)) {
     $esc_sup = $conn->real_escape_string($filter_supervisor);
@@ -215,9 +225,9 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
             echo '<td><div class="item-checkbox ms-1"><div class="custom-control custom-checkbox"><input type="checkbox" class="custom-control-input checkbox" id="' . $checkboxId . '" data-attendance-id="' . (int)$attendance['id'] . '"><label class="custom-control-label" for="' . $checkboxId . '"></label></div></div></td>';
             // build avatar (use uploaded profile picture when available)
             $avatar_html = '<a href="students-view.php?id=' . $attendance['student_id'] . '" class="hstack gap-3">';
-            if (!empty($attendance['profile_picture']) && file_exists(__DIR__ . '/' . $attendance['profile_picture'])) {
-                $v = filemtime(__DIR__ . '/' . $attendance['profile_picture']);
-                $avatar_html .= '<div class="avatar-image avatar-md"><img src="' . htmlspecialchars($attendance['profile_picture']) . '?v=' . $v . '" alt="" class="img-fluid"></div>';
+            $pp_url = resolve_attendance_profile_image_url((string)($attendance['profile_picture'] ?? ''));
+            if ($pp_url !== null) {
+                $avatar_html .= '<div class="avatar-image avatar-md"><img src="' . htmlspecialchars($pp_url) . '" alt="" class="img-fluid"></div>';
             } else {
                 $initials = strtoupper(substr($attendance['first_name'] ?? 'N', 0, 1) . substr($attendance['last_name'] ?? 'A', 0, 1));
                 $avatar_html .= '<div class="avatar-image avatar-md"><div class="avatar-text avatar-md bg-light-primary rounded">' . $initials . '</div></div>';
@@ -237,15 +247,26 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
             $att_status = getAttendanceStatus($attendance['morning_time_in']);
             if ($att_status === 'present') {
                 $status_html = '<span class="badge bg-soft-success text-success">Present</span>';
+                $att_status_label = 'Present';
             } elseif ($att_status === 'late') {
                 $status_html = '<span class="badge bg-soft-warning text-warning">Late</span>';
+                $att_status_label = 'Late';
             } else {
                 $status_html = '<span class="badge bg-soft-danger text-danger">Absent</span>';
+                $att_status_label = 'Absent';
             }
             echo '<td>' . $status_html . '</td>';
             echo '<td>' . getStatusBadge($attendance['status']) . '</td>';
+            $student_name = trim((string)($attendance['first_name'] ?? '') . ' ' . (string)($attendance['last_name'] ?? ''));
+            $approval_status_label = ucfirst((string)($attendance['status'] ?? 'pending'));
+            $morning_in_text = $attendance['morning_time_in'] ? date('h:i A', strtotime($attendance['morning_time_in'])) : '-';
+            $morning_out_text = $attendance['morning_time_out'] ? date('h:i A', strtotime($attendance['morning_time_out'])) : '-';
+            $break_in_text = $attendance['break_time_in'] ? date('h:i A', strtotime($attendance['break_time_in'])) : '-';
+            $break_out_text = $attendance['break_time_out'] ? date('h:i A', strtotime($attendance['break_time_out'])) : '-';
+            $afternoon_in_text = $attendance['afternoon_time_in'] ? date('h:i A', strtotime($attendance['afternoon_time_in'])) : '-';
+            $afternoon_out_text = $attendance['afternoon_time_out'] ? date('h:i A', strtotime($attendance['afternoon_time_out'])) : '-';
             // actions (keep minimal for AJAX)
-            echo '<td><div class="hstack gap-2 justify-content-end"><a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="tooltip" title="View Details" onclick="viewDetails(' . intval($attendance['id']) . ')"><i class="feather feather-eye"></i></a><div class="dropdown"><a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="dropdown" data-bs-offset="0,21"><i class="feather feather-more-horizontal"></i></a><ul class="dropdown-menu dropdown-menu-end"><li><a class="dropdown-item" href="javascript:void(0)" onclick="approveAttendanceIndividual(' . intval($attendance['id']) . ')"><i class="feather feather-check-circle me-3"></i><span>Approve</span></a></li><li><a class="dropdown-item" href="javascript:void(0)" onclick="rejectAttendanceIndividual(' . intval($attendance['id']) . ')"><i class="feather feather-x-circle me-3"></i><span>Reject</span></a></li><li><a class="dropdown-item" href="javascript:void(0)" onclick="editAttendance(' . intval($attendance['id']) . ')"><i class="feather feather-edit-3 me-3"></i><span>Edit</span></a></li><li><a class="dropdown-item printBTN" href="javascript:void(0)" onclick="printAttendance(' . intval($attendance['id']) . ')"><i class="feather feather-printer me-3"></i><span>Print</span></a></li><li><a class="dropdown-item" href="javascript:void(0)" onclick="sendNotification(' . intval($attendance['id']) . ')"><i class="feather feather-mail me-3"></i><span>Send Notification</span></a></li><li class="dropdown-divider"></li><li><a class="dropdown-item" href="javascript:void(0)" onclick="deleteAttendanceIndividual(' . intval($attendance['id']) . ')"><i class="feather feather-trash-2 me-3"></i><span>Delete</span></a></li></ul></div></div></td>';
+            echo '<td><div class="hstack gap-2 justify-content-end"><a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="tooltip" title="View Details" onclick="viewDetails(' . intval($attendance['student_id']) . ')"><i class="feather feather-eye"></i></a><div class="dropdown"><a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="dropdown" data-bs-offset="0,21"><i class="feather feather-more-horizontal"></i></a><ul class="dropdown-menu dropdown-menu-end"><li><a class="dropdown-item" href="javascript:void(0)" onclick="approveAttendanceIndividual(' . intval($attendance['id']) . ')"><i class="feather feather-check-circle me-3"></i><span>Approve</span></a></li><li><a class="dropdown-item" href="javascript:void(0)" onclick="rejectAttendanceIndividual(' . intval($attendance['id']) . ')"><i class="feather feather-x-circle me-3"></i><span>Reject</span></a></li><li><a class="dropdown-item" href="javascript:void(0)" onclick="editAttendance(' . intval($attendance['id']) . ')"><i class="feather feather-edit-3 me-3"></i><span>Edit</span></a></li><li><a class="dropdown-item printBTN" href="javascript:void(0)" onclick="printAttendance(' . intval($attendance['id']) . ')"><i class="feather feather-printer me-3"></i><span>Print</span></a></li><li><a class="dropdown-item" href="javascript:void(0)" onclick="sendNotification(' . intval($attendance['id']) . ')"><i class="feather feather-mail me-3"></i><span>Send Notification</span></a></li><li class="dropdown-divider"></li><li><a class="dropdown-item" href="javascript:void(0)" onclick="deleteAttendanceIndividual(' . intval($attendance['id']) . ')"><i class="feather feather-trash-2 me-3"></i><span>Delete</span></a></li></ul></div></div></td>';
             echo '</tr>';
         }
     }
@@ -258,6 +279,19 @@ function formatTime($time) {
         return date('h:i A', strtotime($time));
     }
     return '-';
+}
+
+function resolve_attendance_profile_image_url(string $profilePath): ?string {
+    $clean = ltrim(str_replace('\\', '/', trim($profilePath)), '/');
+    if ($clean === '') {
+        return null;
+    }
+    $rootPath = dirname(__DIR__) . '/' . $clean;
+    if (!file_exists($rootPath)) {
+        return null;
+    }
+    $mtime = @filemtime($rootPath);
+    return $clean . ($mtime ? ('?v=' . $mtime) : '');
 }
 
 // Helper function to get status badge
@@ -822,7 +856,7 @@ function getAttendanceStatus($morning_time_in) {
             <!-- Filters -->
             <div class="row mb-3 px-3">
                 <div class="col-12">
-                    <form method="GET" class="filter-form row g-2 align-items-end">
+                    <form method="GET" class="filter-form row g-2 align-items-end" id="attendanceFilterForm">
                         <div class="col-sm-2">
                             <label class="form-label" for="filter-date">Date</label>
                             <input id="filter-date" type="date" name="date" class="form-control" value="<?php echo htmlspecialchars($_GET['date'] ?? ''); ?>">
@@ -842,6 +876,15 @@ function getAttendanceStatus($morning_time_in) {
                                 <option value="0">-- All Departments --</option>
                                 <?php foreach ($departments as $dept): ?>
                                     <option value="<?php echo $dept['id']; ?>" <?php echo $filter_department == $dept['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($dept['name']); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-sm-2">
+                            <label class="form-label" for="filter-section">Section</label>
+                            <select id="filter-section" name="section_id" class="form-control">
+                                <option value="0">-- All Sections --</option>
+                                <?php foreach ($sections as $section): ?>
+                                    <option value="<?php echo (int)$section['id']; ?>" <?php echo $filter_section == $section['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($section['section_label']); ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
@@ -866,7 +909,6 @@ function getAttendanceStatus($morning_time_in) {
                         <div class="col-sm-2">
                             <label class="form-label d-block invisible">Actions</label>
                             <div class="d-flex gap-1" style="align-items: flex-end;">
-                                <button type="submit" class="btn btn-primary btn-sm px-3 py-1" style="font-size: 0.85rem;">Filter</button>
                                 <a href="attendance.php" class="btn btn-outline-secondary btn-sm px-3 py-1" style="font-size: 0.85rem;">Reset</a>
                             </div>
                         </div>
@@ -1040,9 +1082,9 @@ function getAttendanceStatus($morning_time_in) {
                                                             <a href="students-view.php?id=<?php echo $attendance['student_id']; ?>" class="hstack gap-3">
                                                                 <?php
                                                                 $pp = $attendance['profile_picture'] ?? '';
-                                                                if ($pp && file_exists(__DIR__ . '/' . $pp)) {
-                                                                    $v = filemtime(__DIR__ . '/' . $pp);
-                                                                    echo '<div class="avatar-image avatar-md"><img src="' . htmlspecialchars($pp) . '?v=' . $v . '" alt="" class="img-fluid"></div>';
+                                                                $pp_url = resolve_attendance_profile_image_url((string)$pp);
+                                                                if ($pp_url !== null) {
+                                                                    echo '<div class="avatar-image avatar-md"><img src="' . htmlspecialchars($pp_url) . '" alt="" class="img-fluid"></div>';
                                                                 } else {
                                                                     echo '<div class="avatar-image avatar-md"><div class="avatar-text avatar-md bg-light-primary rounded">' . strtoupper(substr($attendance['first_name'] ?? 'N', 0, 1) . substr($attendance['last_name'] ?? 'A', 0, 1)) . '</div></div>';
                                                                 }
@@ -1080,7 +1122,7 @@ function getAttendanceStatus($morning_time_in) {
                                                         <td><?php echo getStatusBadge($attendance['status']); ?></td>
                                                         <td>
                                                             <div class="hstack gap-2 justify-content-end">
-                                                                <a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="tooltip" title="View Details" onclick="viewDetails(<?php echo $attendance['id']; ?>)">
+                                                                <a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="tooltip" title="View Details" onclick="viewDetails(<?php echo (int)$attendance['student_id']; ?>)">
                                                                     <i class="feather feather-eye"></i>
                                                                 </a>
                                                                 <div class="dropdown">
@@ -1270,7 +1312,7 @@ function getAttendanceStatus($morning_time_in) {
             initAttendanceDataTable();
 
             // Initialize Select2 for filter selects
-            $('select[name="course_id"], select[name="department_id"]').select2({
+            $('select[name="course_id"], select[name="department_id"], select[name="section_id"]').select2({
                 width: 'resolve',
                 theme: 'bootstrap-5',
                 minimumResultsForSearch: Infinity
@@ -1278,6 +1320,24 @@ function getAttendanceStatus($morning_time_in) {
             $('select[name="supervisor"], select[name="coordinator"]').select2({
                 width: 'resolve',
                 theme: 'bootstrap-5'
+            });
+
+            // Auto-submit attendance filters on change.
+            var isSubmittingFilters = false;
+            function submitAttendanceFilters() {
+                if (isSubmittingFilters) return;
+                var form = document.getElementById('attendanceFilterForm');
+                if (!form) return;
+                isSubmittingFilters = true;
+                form.submit();
+            }
+
+            $('#attendanceFilterForm').on('change', 'input[name="date"], select[name="course_id"], select[name="department_id"], select[name="section_id"], select[name="supervisor"], select[name="coordinator"]', function() {
+                submitAttendanceFilters();
+            });
+
+            $('select[name="course_id"], select[name="department_id"], select[name="section_id"], select[name="supervisor"], select[name="coordinator"]').on('select2:select select2:clear', function() {
+                submitAttendanceFilters();
             });
 
             // Header quick-filters (Today / This Week / This Month / status)
@@ -1381,9 +1441,13 @@ function getAttendanceStatus($morning_time_in) {
         });
 
         // View Details function
-        function viewDetails(id) {
-            alert('View Details for Attendance ID: ' + id);
-            // You can implement a modal or redirect to detail page
+        function viewDetails(studentId) {
+            var sid = parseInt(studentId, 10);
+            if (!sid || sid <= 0) {
+                showToast('Invalid student record', 'danger');
+                return;
+            }
+            window.location.href = 'students-dtr.php?id=' + sid;
         }
 
         // Update bulk actions toolbar visibility and count
@@ -1720,6 +1784,38 @@ function getAttendanceStatus($morning_time_in) {
             }
         }
     </script>
+    <div class="modal fade" id="viewAttendanceModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Attendance Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-4"><small class="text-muted d-block">Attendance ID</small><strong id="view_attendance_id">-</strong></div>
+                        <div class="col-md-4"><small class="text-muted d-block">Date</small><strong id="view_date">-</strong></div>
+                        <div class="col-md-4"><small class="text-muted d-block">Student No.</small><strong id="view_student_number">-</strong></div>
+                        <div class="col-md-6"><small class="text-muted d-block">Student</small><strong id="view_student_name">-</strong></div>
+                        <div class="col-md-3"><small class="text-muted d-block">Course</small><strong id="view_course">-</strong></div>
+                        <div class="col-md-3"><small class="text-muted d-block">Department</small><strong id="view_department">-</strong></div>
+                        <div class="col-md-2"><small class="text-muted d-block">Morning In</small><strong id="view_morning_in">-</strong></div>
+                        <div class="col-md-2"><small class="text-muted d-block">Morning Out</small><strong id="view_morning_out">-</strong></div>
+                        <div class="col-md-2"><small class="text-muted d-block">Break In</small><strong id="view_break_in">-</strong></div>
+                        <div class="col-md-2"><small class="text-muted d-block">Break Out</small><strong id="view_break_out">-</strong></div>
+                        <div class="col-md-2"><small class="text-muted d-block">Afternoon In</small><strong id="view_afternoon_in">-</strong></div>
+                        <div class="col-md-2"><small class="text-muted d-block">Afternoon Out</small><strong id="view_afternoon_out">-</strong></div>
+                        <div class="col-md-4"><small class="text-muted d-block">Total Hours</small><strong id="view_total_hours">-</strong></div>
+                        <div class="col-md-4"><small class="text-muted d-block">Attendance Status</small><strong id="view_attendance_status">-</strong></div>
+                        <div class="col-md-4"><small class="text-muted d-block">Approval Status</small><strong id="view_approval_status">-</strong></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
     <div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">

@@ -1,10 +1,31 @@
 <?php
 // Centralized navigation include (grouped/relabeled).
 ?>
+<style>
+    /* Mini sidebar: show section captions (<span>) cleanly without overlap. */
+    html.minimenu .nxl-navigation .navbar-content .nxl-caption {
+        padding: 10px 8px 6px;
+        text-align: center;
+    }
+
+    html.minimenu .nxl-navigation .navbar-content .nxl-caption:before {
+        content: none !important;
+        display: none !important;
+    }
+
+    html.minimenu .nxl-navigation .navbar-content .nxl-caption span {
+        display: block;
+        font-size: 9px;
+        line-height: 1.2;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+</style>
 <nav class="nxl-navigation">
     <div class="navbar-wrapper">
         <div class="m-header">
-            <a href="index.php" class="b-brand">
+            <a href="/BioTern/BioTern_organized/legacy_router.php?file=homepage.php" class="b-brand">
                 <img src="assets/images/logo-full.png" alt="" class="logo logo-lg" width="21100" height="3100" style="width:210px;height:2100px;object-fit:contain;" />
                 <img src="assets/images/logo-abbr.png" alt="" class="logo logo-sm" />
             </a>
@@ -85,6 +106,7 @@
                     <ul class="nxl-submenu">
                         <li class="nxl-item"><a class="nxl-link" href="courses.php">Courses</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="departments.php">Departments</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="sections.php">Sections</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="coordinators.php">Coordinators</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="supervisors.php">Supervisors</a></li>
                     </ul>
