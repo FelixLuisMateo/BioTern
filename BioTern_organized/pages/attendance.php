@@ -74,13 +74,23 @@ if ($dept_res && $dept_res->num_rows) {
 }
 
 $supervisors = [];
-$sup_res = $conn->query("SELECT DISTINCT supervisor_name FROM students WHERE supervisor_name IS NOT NULL AND supervisor_name <> '' ORDER BY supervisor_name ASC");
+$sup_res = $conn->query("
+    SELECT DISTINCT TRIM(CONCAT_WS(' ', first_name, middle_name, last_name)) AS supervisor_name
+    FROM supervisors
+    WHERE TRIM(CONCAT_WS(' ', first_name, middle_name, last_name)) <> ''
+    ORDER BY supervisor_name ASC
+");
 if ($sup_res && $sup_res->num_rows) {
     while ($r = $sup_res->fetch_assoc()) $supervisors[] = $r['supervisor_name'];
 }
 
 $coordinators = [];
-$coor_res = $conn->query("SELECT DISTINCT coordinator_name FROM students WHERE coordinator_name IS NOT NULL AND coordinator_name <> '' ORDER BY coordinator_name ASC");
+$coor_res = $conn->query("
+    SELECT DISTINCT TRIM(CONCAT_WS(' ', first_name, middle_name, last_name)) AS coordinator_name
+    FROM coordinators
+    WHERE TRIM(CONCAT_WS(' ', first_name, middle_name, last_name)) <> ''
+    ORDER BY coordinator_name ASC
+");
 if ($coor_res && $coor_res->num_rows) {
     while ($r = $coor_res->fetch_assoc()) $coordinators[] = $r['coordinator_name'];
 }
@@ -107,10 +117,18 @@ if ($filter_department > 0) {
     $where[] = "i.department_id = " . intval($filter_department);
 }
 if (!empty($filter_supervisor)) {
-    $where[] = "(s.supervisor_name LIKE '%" . $conn->real_escape_string($filter_supervisor) . "%' OR i.supervisor_id IN (SELECT id FROM users WHERE name LIKE '%" . $conn->real_escape_string($filter_supervisor) . "%'))";
+    $esc_sup = $conn->real_escape_string($filter_supervisor);
+    $where[] = "(
+        TRIM(CONCAT_WS(' ', sup.first_name, sup.middle_name, sup.last_name)) LIKE '%{$esc_sup}%'
+        OR s.supervisor_name LIKE '%{$esc_sup}%'
+    )";
 }
 if (!empty($filter_coordinator)) {
-    $where[] = "(s.coordinator_name LIKE '%" . $conn->real_escape_string($filter_coordinator) . "%' OR i.coordinator_id IN (SELECT id FROM users WHERE name LIKE '%" . $conn->real_escape_string($filter_coordinator) . "%'))";
+    $esc_coor = $conn->real_escape_string($filter_coordinator);
+    $where[] = "(
+        TRIM(CONCAT_WS(' ', coor.first_name, coor.middle_name, coor.last_name)) LIKE '%{$esc_coor}%'
+        OR s.coordinator_name LIKE '%{$esc_coor}%'
+    )";
 }
 
 $attendance_query = "
@@ -142,6 +160,8 @@ $attendance_query = "
     LEFT JOIN students s ON a.student_id = s.id
     LEFT JOIN courses c ON s.course_id = c.id
     LEFT JOIN internships i ON s.id = i.student_id AND i.status = 'ongoing'
+    LEFT JOIN supervisors sup ON i.supervisor_id = sup.id
+    LEFT JOIN coordinators coor ON i.coordinator_id = coor.id
     LEFT JOIN departments d ON i.department_id = d.id
     LEFT JOIN users u ON a.approved_by = u.id
     WHERE " . implode(' AND ', $where) . "
@@ -462,11 +482,11 @@ function getAttendanceStatus($morning_time_in) {
         }
         
         html.app-skin-dark .select2-container--default .select2-selection--single .select2-selection__rendered {
-            color: #f0f0f0 !important;
+            color: #ffffff !important;
         }
         
         html.app-skin-dark .select2-container--default .select2-selection__placeholder {
-            color: #a0aec0 !important;
+            color: #ffffff !important;
         }
         
         /* Dark mode dropdown menu */
@@ -480,7 +500,7 @@ function getAttendanceStatus($morning_time_in) {
         }
         
         html.app-skin-dark .select2-results__option {
-            color: #f0f0f0 !important;
+            color: #ffffff !important;
             background-color: #0f172a !important;
         }
         
@@ -495,15 +515,56 @@ function getAttendanceStatus($morning_time_in) {
         
         html.app-skin-dark select.form-control,
         html.app-skin-dark select.form-select {
-            color: #f0f0f0 !important;
+            color: #ffffff !important;
             background-color: #0f172a !important;
             border-color: #4a5568 !important;
         }
         
         html.app-skin-dark select.form-control option,
         html.app-skin-dark select.form-select option {
-            color: #f0f0f0 !important;
+            color: #ffffff !important;
             background-color: #2d3748 !important;
+        }
+
+        .filter-form select.form-control {
+            text-align: left;
+            text-align-last: left;
+        }
+
+        .filter-form .select2-container--default .select2-selection--single .select2-selection__rendered {
+            text-align: left;
+            padding-left: 0.75rem;
+            padding-right: 1.75rem;
+        }
+
+        /* Filter border styling to match header filter look */
+        .filter-form input.form-control,
+        .filter-form select.form-control,
+        .filter-form .select2-container--bootstrap-5 .select2-selection,
+        .filter-form .select2-container--default .select2-selection--single {
+            border-color: #4e6283 !important;
+            border-width: 1px !important;
+        }
+
+        .filter-form input.form-control:focus,
+        .filter-form select.form-control:focus,
+        .filter-form .select2-container--bootstrap-5.select2-container--focus .select2-selection,
+        .filter-form .select2-container--default.select2-container--focus .select2-selection--single {
+            border-color: #7f9ecf !important;
+            box-shadow: 0 0 0 0.15rem rgba(127, 158, 207, 0.22) !important;
+        }
+
+        /* Force white text for Select2 Bootstrap-5 themed filter dropdowns */
+        .filter-form .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered,
+        .filter-form .select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__rendered,
+        .filter-form .select2-container--bootstrap-5 .select2-selection__placeholder {
+            color: #ffffff !important;
+            -webkit-text-fill-color: #ffffff !important;
+            opacity: 1 !important;
+        }
+
+        .filter-form .select2-container--bootstrap-5 .select2-dropdown .select2-results__option {
+            color: #ffffff !important;
         }
     </style>
 </head>
@@ -768,6 +829,61 @@ function getAttendanceStatus($morning_time_in) {
                             <i class="feather-align-right fs-20"></i>
                         </a>
                     </div>
+                </div>
+            </div>
+
+            <!-- Filters -->
+            <div class="row mb-3 px-3">
+                <div class="col-12">
+                    <form method="GET" class="filter-form row g-2 align-items-end">
+                        <div class="col-sm-2">
+                            <label class="form-label" for="filter-date">Date</label>
+                            <input id="filter-date" type="date" name="date" class="form-control" value="<?php echo htmlspecialchars($_GET['date'] ?? ''); ?>">
+                        </div>
+                        <div class="col-sm-2">
+                            <label class="form-label" for="filter-course">Course</label>
+                            <select id="filter-course" name="course_id" class="form-control">
+                                <option value="0">-- All Courses --</option>
+                                <?php foreach ($courses as $course): ?>
+                                    <option value="<?php echo $course['id']; ?>" <?php echo $filter_course == $course['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($course['name']); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-sm-2">
+                            <label class="form-label" for="filter-department">Department</label>
+                            <select id="filter-department" name="department_id" class="form-control">
+                                <option value="0">-- All Departments --</option>
+                                <?php foreach ($departments as $dept): ?>
+                                    <option value="<?php echo $dept['id']; ?>" <?php echo $filter_department == $dept['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($dept['name']); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-sm-2">
+                            <label class="form-label" for="filter-supervisor">Supervisor</label>
+                            <select id="filter-supervisor" name="supervisor" class="form-control">
+                                <option value="">-- Any Supervisor --</option>
+                                <?php foreach ($supervisors as $sup): ?>
+                                    <option value="<?php echo htmlspecialchars($sup); ?>" <?php echo $filter_supervisor == $sup ? 'selected' : ''; ?>><?php echo htmlspecialchars($sup); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-sm-2">
+                            <label class="form-label" for="filter-coordinator">Coordinator</label>
+                            <select id="filter-coordinator" name="coordinator" class="form-control">
+                                <option value="">-- Any Coordinator --</option>
+                                <?php foreach ($coordinators as $coor): ?>
+                                    <option value="<?php echo htmlspecialchars($coor); ?>" <?php echo $filter_coordinator == $coor ? 'selected' : ''; ?>><?php echo htmlspecialchars($coor); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-sm-2">
+                            <label class="form-label d-block invisible">Actions</label>
+                            <div class="d-flex gap-1" style="align-items: flex-end;">
+                                <button type="submit" class="btn btn-primary btn-sm px-3 py-1" style="font-size: 0.85rem;">Filter</button>
+                                <a href="attendance.php" class="btn btn-outline-secondary btn-sm px-3 py-1" style="font-size: 0.85rem;">Reset</a>
+                            </div>
+                        </div>
+                    </form>
                 </div>
             </div>
 
