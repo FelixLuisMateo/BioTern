@@ -70,6 +70,40 @@ if (!isset($base_href)) {
     <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css" />
     <!--! END: Custom CSS-->
     <style>
+        html.app-skin-dark select.form-control,
+        html.app-skin-dark select.form-select,
+        html.app-skin-dark select.form-control option,
+        html.app-skin-dark select.form-select option {
+            color: #ffffff !important;
+            background-color: #0f172a !important;
+            border-color: #4a5568 !important;
+        }
+
+        html.app-skin-dark .select2-container--default .select2-selection--single,
+        html.app-skin-dark .select2-container--default .select2-selection--multiple {
+            color: #ffffff !important;
+            background-color: #0f172a !important;
+            border-color: #4a5568 !important;
+        }
+
+        html.app-skin-dark .select2-container--default .select2-selection--single .select2-selection__rendered,
+        html.app-skin-dark .select2-container--default .select2-selection--multiple .select2-selection__rendered,
+        html.app-skin-dark .select2-container--default .select2-selection__placeholder {
+            color: #ffffff !important;
+        }
+
+        html.app-skin-dark .select2-container--default.select2-container--open .select2-dropdown,
+        html.app-skin-dark .select2-container--default .select2-results__option {
+            color: #ffffff !important;
+            background-color: #0f172a !important;
+            border-color: #4a5568 !important;
+        }
+
+        html.app-skin-dark .select2-container--default .select2-results__option--highlighted[aria-selected] {
+            color: #ffffff !important;
+            background-color: #334155 !important;
+        }
+
         html.app-skin-dark .filter-form input.form-control,
         html.app-skin-dark .filter-form select.form-control,
         html.app-skin-dark .filter-form select.form-select,
