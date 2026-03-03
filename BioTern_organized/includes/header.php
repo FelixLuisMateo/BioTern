@@ -70,6 +70,29 @@ if (!isset($base_href)) {
     <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css" />
     <!--! END: Custom CSS-->
     <style>
+        html.app-skin-dark input.form-control,
+        html.app-skin-dark textarea.form-control,
+        html.app-skin-dark .form-control[type="text"],
+        html.app-skin-dark .form-control[type="email"],
+        html.app-skin-dark .form-control[type="password"],
+        html.app-skin-dark .form-control[type="number"],
+        html.app-skin-dark .form-control[type="date"],
+        html.app-skin-dark .form-control[type="time"],
+        html.app-skin-dark .form-control[type="search"],
+        html.app-skin-dark .form-control[type="tel"],
+        html.app-skin-dark .form-control[type="url"] {
+            color: #ffffff !important;
+            -webkit-text-fill-color: #ffffff !important;
+            background-color: #0f172a !important;
+            border-color: #4a5568 !important;
+        }
+
+        html.app-skin-dark input.form-control::placeholder,
+        html.app-skin-dark textarea.form-control::placeholder {
+            color: #d1dcf0 !important;
+            opacity: 1 !important;
+        }
+
         html.app-skin-dark select.form-control,
         html.app-skin-dark select.form-select,
         html.app-skin-dark select.form-control option,
