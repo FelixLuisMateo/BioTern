@@ -100,6 +100,30 @@ $use_saved_template = q('use_saved_template', '0') === '1';
         html.app-skin-dark .btn { background:#111827; color:#e5e7eb; border-color:#334155; }
         @media print {
             body { background: #fff; }
+            html, body, * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            #moa_doc_content,
+            #moa_doc_content * {
+                color:#000 !important;
+                opacity: 1 !important;
+            }
+            html.app-skin-dark body {
+                background:#fff !important;
+                color:#000 !important;
+            }
+            html.app-skin-dark .container {
+                background:#fff !important;
+                color:#000 !important;
+                box-shadow:none !important;
+            }
+            html.app-skin-dark .doc,
+            html.app-skin-dark .doc p,
+            html.app-skin-dark .doc li,
+            html.app-skin-dark .doc h4 {
+                color:#000 !important;
+            }
             .container {
                 width: auto;
                 min-height: auto;
