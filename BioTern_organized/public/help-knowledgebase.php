@@ -1,3 +1,25 @@
+<?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+$header_user_name = trim((string)($_SESSION['name'] ?? $_SESSION['username'] ?? 'BioTern User'));
+if ($header_user_name === '') {
+    $header_user_name = 'BioTern User';
+}
+$header_user_email = trim((string)($_SESSION['email'] ?? 'admin@biotern.local'));
+if ($header_user_email === '') {
+    $header_user_email = 'admin@biotern.local';
+}
+$header_avatar = 'assets/images/avatar/1.png';
+$session_avatar = trim((string)($_SESSION['profile_picture'] ?? ''));
+if ($session_avatar !== '') {
+    $normalized_avatar = ltrim(str_replace('\\', '/', $session_avatar), '/');
+    $avatar_fs_path = dirname(__DIR__) . '/' . $normalized_avatar;
+    if (is_file($avatar_fs_path)) {
+        $header_avatar = $normalized_avatar;
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="zxx">
 
@@ -27,6 +49,18 @@
     <!--! BEGIN: Custom CSS-->
     <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css">
     <!--! END: Custom CSS-->
+    <style>
+        .nxl-header .user-avtar,
+        .nxl-user-dropdown .user-avtar {
+            width: 40px !important;
+            height: 40px !important;
+            min-width: 40px !important;
+            min-height: 40px !important;
+            border-radius: 50% !important;
+            object-fit: cover !important;
+            object-position: center !important;
+        }
+    </style>
     <!--! HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries !-->
     <!--! WARNING: Respond.js doesn"t work if you view the page via file: !-->
     <!--[if lt IE 9]>
@@ -288,15 +322,15 @@
                     </div>
                     <div class="dropdown nxl-h-item">
                         <a href="javascript:void(0);" data-bs-toggle="dropdown" role="button" data-bs-auto-close="outside">
-                            <img src="assets/images/avatar/1.png" alt="user-image" class="img-fluid user-avtar me-0">
+                            <img src="<?php echo htmlspecialchars($header_avatar, ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar me-0">
                         </a>
                         <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-user-dropdown">
                             <div class="dropdown-header">
                                 <div class="d-flex align-items-center">
-                                    <img src="assets/images/avatar/1.png" alt="user-image" class="img-fluid user-avtar">
+                                    <img src="<?php echo htmlspecialchars($header_avatar, ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar">
                                     <div>
-                                        <h6 class="text-dark mb-0">Felix Luis Mateo <span class="badge bg-soft-success text-success ms-1">PRO</span></h6>
-                                        <span class="fs-12 fw-medium text-muted">felixluismateo@example.com</span>
+                                        <h6 class="text-dark mb-0"><?php echo htmlspecialchars($header_user_name, ENT_QUOTES, 'UTF-8'); ?> <span class="badge bg-soft-success text-success ms-1">PRO</span></h6>
+                                        <span class="fs-12 fw-medium text-muted"><?php echo htmlspecialchars($header_user_email, ENT_QUOTES, 'UTF-8'); ?></span>
                                     </div>
                                 </div>
                             </div>

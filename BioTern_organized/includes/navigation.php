@@ -17,82 +17,34 @@ $nav_can_reports = ($nav_is_admin || $nav_is_coordinator || $nav_is_supervisor);
 ?>
 <style>
     @media (min-width: 1025px) {
-        html.minimenu .nxl-navigation:not(:hover) .navbar-content .nxl-caption {
+        html.minimenu .nxl-navigation .navbar-content .nxl-caption {
+            display: block !important;
+            padding: 10px 8px 6px;
+            text-align: center;
+        }
+
+        html.minimenu .nxl-navigation .navbar-content .nxl-caption:before {
+            content: none !important;
             display: none !important;
         }
 
-        html.minimenu .nxl-navigation:not(:hover) .navbar-content .nxl-hasmenu > .nxl-submenu {
-            display: none !important;
+        html.minimenu .nxl-navigation .navbar-content .nxl-caption span,
+        html.minimenu .nxl-navigation .navbar-content .nxl-caption label {
+            display: block !important;
+            margin: 0;
+            font-size: 9px;
+            line-height: 1.2;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
+        /* Prevent stacked submenu text while sidebar is collapsed */
+        html.minimenu .nxl-navigation:not(:hover) .navbar-content .nxl-hasmenu > .nxl-submenu,
+        html.minimenu .nxl-navigation:not(:hover) .navbar-content .nxl-hasmenu.open > .nxl-submenu,
         html.minimenu .nxl-navigation:not(:hover) .navbar-content .nxl-hasmenu.nxl-trigger > .nxl-submenu {
             display: none !important;
         }
-
-        html.minimenu .nxl-navigation:not(:hover) .navbar-content .nxl-submenu .nxl-link {
-            display: none !important;
-        }
-
-        html.minimenu .nxl-navigation:hover .navbar-content .nxl-caption {
-            display: block !important;
-        }
-
-        html.minimenu .nxl-navigation:hover .navbar-content .nxl-caption span {
-            display: block !important;
-        }
-
-        html.minimenu .nxl-navigation:hover .m-header {
-            padding-left: 20px;
-            padding-right: 20px;
-            justify-content: flex-start;
-        }
-
-        html.minimenu .nxl-navigation:hover .m-header .logo.logo-lg {
-            display: block !important;
-            width: 210px !important;
-            height: auto !important;
-        }
-
-        html.minimenu .nxl-navigation:hover .m-header .logo.logo-sm {
-            display: none !important;
-        }
-
-        html.minimenu .nxl-navigation {
-            overflow: visible;
-        }
-
-        html.minimenu .nxl-navigation:hover {
-            width: 280px !important;
-            z-index: 1027;
-        }
-
-        html.minimenu .nxl-navigation:hover .navbar-wrapper {
-            position: relative !important;
-            width: 280px;
-            height: 100vh;
-        }
-
-        html.minimenu .nxl-navigation:hover .navbar-content {
-            position: relative !important;
-            width: 280px !important;
-            height: calc(100vh - 80px);
-            overflow-x: hidden !important;
-            overflow-y: auto !important;
-            overscroll-behavior: contain;
-        }
-    }
-
-    /* Disable sidebar animation effects between page navigations */
-    .nxl-navigation,
-    .nxl-navigation * {
-        transition: none !important;
-        animation: none !important;
-    }
-
-    html.nav-restoring .nxl-navigation,
-    html.nav-restoring .nxl-navigation * {
-        transition: none !important;
-        animation: none !important;
     }
 </style>
 <nav class="nxl-navigation">
@@ -273,113 +225,30 @@ $nav_can_reports = ($nav_is_admin || $nav_is_coordinator || $nav_is_supervisor);
 </nav>
 <script>
     (function () {
-        var KEY_SCROLL = 'biotern.sidebar.scrollTop';
-
-        function getPathname(href) {
-            try {
-                return new URL(href, window.location.origin).pathname.toLowerCase();
-            } catch (e) {
-                return '';
-            }
-        }
-
-        function getRouteKeyFromUrl(urlObj) {
-            var qp = (urlObj.searchParams.get('file') || '').toLowerCase();
-            if (qp && qp.endsWith('.php')) return qp;
-            var path = (urlObj.pathname || '').toLowerCase();
-            var parts = path.split('/');
-            var last = parts[parts.length - 1] || '';
-            if (last.endsWith('.php')) return last;
-            return '';
-        }
-
-        function getCurrentRouteKey() {
-            try {
-                return getRouteKeyFromUrl(new URL(window.location.href));
-            } catch (e) {
-                return '';
-            }
-        }
-
-        function getLinkRouteKey(href) {
-            try {
-                return getRouteKeyFromUrl(new URL(href, window.location.origin));
-            } catch (e) {
-                return '';
-            }
-        }
-
-        function getNav() {
-            return document.querySelector('.nxl-navigation .nxl-navbar');
-        }
-
-        function getScrollContainer() {
-            return document.querySelector('.nxl-navigation .navbar-content');
-        }
-
-        function persistState() {
-            var nav = getNav();
-            if (!nav) return;
-            try {
-                var sc = getScrollContainer();
-                if (sc) localStorage.setItem(KEY_SCROLL, String(sc.scrollTop || 0));
-            } catch (e) {}
-        }
-
-        function restoreState() {
-            var nav = getNav();
-            if (!nav) return;
-
-            var currentRoute = getCurrentRouteKey();
-            nav.querySelectorAll('.nxl-item.active').forEach(function (item) {
-                item.classList.remove('active');
+        function collapseIfMini() {
+            if (!document.documentElement.classList.contains('minimenu')) return;
+            document.querySelectorAll('.nxl-navigation .nxl-item.nxl-hasmenu.open, .nxl-navigation .nxl-item.nxl-hasmenu.nxl-trigger').forEach(function (item) {
+                item.classList.remove('open', 'nxl-trigger');
             });
-            nav.querySelectorAll('.nxl-item.nxl-hasmenu.open').forEach(function (item) {
-                item.classList.remove('open');
-            });
-
-            nav.querySelectorAll('.nxl-item .nxl-link[href]').forEach(function (a) {
-                var linkKey = getLinkRouteKey(a.getAttribute('href') || '');
-                if (linkKey && currentRoute && linkKey === currentRoute) {
-                    var item = a.closest('.nxl-item');
-                    if (item) item.classList.add('active');
-                    var parentMenu = a.closest('.nxl-item.nxl-hasmenu');
-                    if (parentMenu) parentMenu.classList.add('active', 'open');
-                }
-            });
-
-            try {
-                var sc = getScrollContainer();
-                var savedTop = parseInt(localStorage.getItem(KEY_SCROLL) || '0', 10);
-                if (sc && !isNaN(savedTop) && savedTop > 0) {
-                    requestAnimationFrame(function () {
-                        sc.scrollTop = savedTop;
-                    });
-                }
-            } catch (e) {}
         }
 
-        document.documentElement.classList.add('nav-restoring');
-        restoreState();
-        requestAnimationFrame(function () {
-            document.documentElement.classList.remove('nav-restoring');
-        });
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', collapseIfMini);
+        } else {
+            collapseIfMini();
+        }
 
-        document.querySelectorAll('.nxl-navigation .nxl-item.nxl-hasmenu > .nxl-link').forEach(function (trigger) {
-            trigger.addEventListener('click', function () {
-                setTimeout(persistState, 0);
+        var miniBtn = document.getElementById('menu-mini-button');
+        if (miniBtn) {
+            miniBtn.addEventListener('click', function () {
+                setTimeout(collapseIfMini, 0);
             });
-        });
+        }
 
-        document.querySelectorAll('.nxl-navigation .nxl-submenu .nxl-link[href]').forEach(function (link) {
-            link.addEventListener('click', persistState);
-        });
-
-        var sc = getScrollContainer();
-        if (sc) {
-            sc.addEventListener('scroll', function () {
-                try { localStorage.setItem(KEY_SCROLL, String(sc.scrollTop || 0)); } catch (e) {}
-            }, { passive: true });
+        var html = document.documentElement;
+        if (window.MutationObserver && html) {
+            var observer = new MutationObserver(collapseIfMini);
+            observer.observe(html, { attributes: true, attributeFilter: ['class'] });
         }
     })();
 </script>
