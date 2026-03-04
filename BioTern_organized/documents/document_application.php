@@ -184,7 +184,6 @@ include __DIR__ . '/../includes/header.php';
         }
 
         main.nxl-container { padding-top: 64px; }
-        .nxl-navigation { z-index: 2147483646; }
         #btn_generate.is-disabled { opacity: .65; }
         .card .btn { position: relative; z-index: 2; }
         .file-edit-active #letter_content {
@@ -198,14 +197,10 @@ include __DIR__ . '/../includes/header.php';
             -webkit-user-select: text;
         }
         @media (max-width: 1024px) {
-            .nxl-navigation,
-            .nxl-navigation.mob-navigation-active { z-index: 2147483646 !important; }
             .nxl-container { position: relative; z-index: 1; }
             .doc-preview { z-index: 1 !important; }
             .select2-container--open,
             .select2-dropdown { z-index: 900 !important; }
-            .nxl-navigation { z-index: 2147483648 !important; }
-            .nxl-navigation .navbar-wrapper { z-index: 2147483648 !important; }
         }
     </style>
 
@@ -530,33 +525,6 @@ include __DIR__ . '/../includes/header.php';
                 const url = updateGenerateLink(selectedStudentId || select.val());
                 if (!url) return;
                 window.location.href = url;
-            });
-
-            // fallback mobile sidebar toggler for pages where template markup/scripts load later
-            document.addEventListener('click', function(e){
-                const toggle = e.target.closest('#mobile-collapse');
-                if (!toggle) return;
-                e.preventDefault();
-
-                const nav = document.querySelector('.nxl-navigation');
-                if (!nav) return;
-
-                nav.classList.toggle('mob-navigation-active');
-
-                let overlay = document.querySelector('.nxl-md-overlay');
-                if (nav.classList.contains('mob-navigation-active')) {
-                    if (!overlay) {
-                        overlay = document.createElement('div');
-                        overlay.className = 'nxl-md-overlay';
-                        document.body.appendChild(overlay);
-                    }
-                    overlay.onclick = function(){
-                        nav.classList.remove('mob-navigation-active');
-                        overlay.remove();
-                    };
-                } else if (overlay) {
-                    overlay.remove();
-                }
             });
 
             loadApplicationTemplateHtml();

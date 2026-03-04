@@ -16,24 +16,70 @@ $nav_can_system = $nav_is_admin;
 $nav_can_reports = ($nav_is_admin || $nav_is_coordinator || $nav_is_supervisor);
 ?>
 <style>
-    /* Mini sidebar: show section captions (<span>) cleanly without overlap. */
-    html.minimenu .nxl-navigation .navbar-content .nxl-caption {
-        padding: 10px 8px 6px;
-        text-align: center;
-    }
+    @media (min-width: 1025px) {
+        html.minimenu .nxl-navigation:not(:hover) .navbar-content .nxl-caption {
+            display: none !important;
+        }
 
-    html.minimenu .nxl-navigation .navbar-content .nxl-caption:before {
-        content: none !important;
-        display: none !important;
-    }
+        html.minimenu .nxl-navigation:not(:hover) .navbar-content .nxl-hasmenu > .nxl-submenu {
+            display: none !important;
+        }
 
-    html.minimenu .nxl-navigation .navbar-content .nxl-caption span {
-        display: block;
-        font-size: 9px;
-        line-height: 1.2;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        html.minimenu .nxl-navigation:not(:hover) .navbar-content .nxl-hasmenu.nxl-trigger > .nxl-submenu {
+            display: none !important;
+        }
+
+        html.minimenu .nxl-navigation:not(:hover) .navbar-content .nxl-submenu .nxl-link {
+            display: none !important;
+        }
+
+        html.minimenu .nxl-navigation:hover .navbar-content .nxl-caption {
+            display: block !important;
+        }
+
+        html.minimenu .nxl-navigation:hover .navbar-content .nxl-caption span {
+            display: block !important;
+        }
+
+        html.minimenu .nxl-navigation:hover .m-header {
+            padding-left: 20px;
+            padding-right: 20px;
+            justify-content: flex-start;
+        }
+
+        html.minimenu .nxl-navigation:hover .m-header .logo.logo-lg {
+            display: block !important;
+            width: 210px !important;
+            height: auto !important;
+        }
+
+        html.minimenu .nxl-navigation:hover .m-header .logo.logo-sm {
+            display: none !important;
+        }
+
+        html.minimenu .nxl-navigation {
+            overflow: visible;
+        }
+
+        html.minimenu .nxl-navigation:hover {
+            width: 280px !important;
+            z-index: 1027;
+        }
+
+        html.minimenu .nxl-navigation:hover .navbar-wrapper {
+            position: relative !important;
+            width: 280px;
+            height: 100vh;
+        }
+
+        html.minimenu .nxl-navigation:hover .navbar-content {
+            position: relative !important;
+            width: 280px !important;
+            height: calc(100vh - 80px);
+            overflow-x: hidden !important;
+            overflow-y: auto !important;
+            overscroll-behavior: contain;
+        }
     }
 
     /* Disable sidebar animation effects between page navigations */
