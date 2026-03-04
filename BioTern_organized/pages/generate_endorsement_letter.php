@@ -113,32 +113,8 @@ if ($recipient !== '') {
     <meta charset="utf-8">
     <title>BioTern || Endorsement Letter</title>
     <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
-    <script>
-        (function () {
-            var dark = false;
-            try {
-                var match = document.cookie.match(/(?:^|;\s*)biotern_theme_preferences=([^;]+)/);
-                if (match && match[1]) {
-                    var prefs = JSON.parse(decodeURIComponent(match[1]));
-                    if (prefs && prefs.skin === 'dark') dark = true;
-                }
-            } catch (e) {}
-            try {
-                var primary = localStorage.getItem('app-skin');
-                var skin = primary !== null
-                    ? primary
-                    : (localStorage.getItem('app_skin')
-                        || localStorage.getItem('theme')
-                        || localStorage.getItem('app-skin-dark')
-                        || '');
-                if (typeof skin === 'string' && skin.indexOf('dark') !== -1) dark = true;
-                if (primary !== null && primary.indexOf('dark') === -1) dark = false;
-            } catch (e) {}
-            if (dark) document.documentElement.classList.add('app-skin-dark');
-        })();
-    </script>
     <style>
-        @page { size: Letter portrait; margin: 0.31in 0.81in 0in 0.81in; }
+        @page { size: Letter portrait; margin: 0.5in; }
         body { font-family: "Times New Roman", Times, serif; color:#111; font-size:12pt; margin:0; }
         .container { width:100%; max-width:7.5in; margin:0 auto; padding:0.4in; box-sizing:border-box; position:relative; }
         .header { position:relative; min-height:56px; text-align:center; border-bottom:2px solid #1c5ab1; padding:8px 0 6px; margin-bottom:10px; }
@@ -162,22 +138,7 @@ if ($recipient !== '') {
         }
         .ross-signatory-text { position: relative; z-index: 1; }
         .actions { margin-top:12px; }
-        @media print { .no-print { display:none !important; } .container { padding:0; margin:0; } }
-        html.app-skin-dark body { background:#0b1220; color:#e5e7eb; }
-        html.app-skin-dark .container { background:#0f172a; color:#e5e7eb; box-shadow:0 8px 28px rgba(0,0,0,.45); }
-        html.app-skin-dark .header { border-bottom-color:#355f9c; }
-        html.app-skin-dark .header h2,
-        html.app-skin-dark .header .meta,
-        html.app-skin-dark .header .tel,
-        html.app-skin-dark .content,
-        html.app-skin-dark .content p,
-        html.app-skin-dark .content li,
-        html.app-skin-dark .content h3 { color:#e5e7eb; }
-        html.app-skin-dark .actions button {
-            background:#111827;
-            color:#e5e7eb;
-            border:1px solid #334155;
-        }
+        @media print { .no-print { display:none !important; } .container { padding:10mm; } }
     </style>
 </head>
 <body>

@@ -158,6 +158,21 @@ $use_saved_template = q('use_saved_template', '0') === '1';
             body { background: #fff; }
             #moa_doc_content,
             #moa_doc_content * { color:#000 !important; }
+            html.app-skin-dark body {
+                background:#fff !important;
+                color:#000 !important;
+            }
+            html.app-skin-dark .container {
+                background:#fff !important;
+                color:#000 !important;
+                box-shadow:none !important;
+            }
+            html.app-skin-dark .doc,
+            html.app-skin-dark .doc p,
+            html.app-skin-dark .doc li,
+            html.app-skin-dark .doc h4 {
+                color:#000 !important;
+            }
             /* Fallback compensation for browsers/printers that keep custom margins at
                Top/Bottom: 0, Left/Right: 0.5. This adds the missing space visually so
                output matches target margins (Top/Bottom 0.20, Left/Right 0.81). */
