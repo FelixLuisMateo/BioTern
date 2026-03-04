@@ -3,26 +3,111 @@
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+
 // Include database connection
 include_once dirname(__DIR__) . '/config/db.php';
 include_once dirname(__DIR__) . '/includes/dashboard_data.php';
 
-// Initialize analytics variables with defaults
-$attendance_awaiting = 0;
-$attendance_completed = 0;
-$attendance_rejected = 0;
-$attendance_total = 0;
-$student_count = 0;
-$internship_count = 0;
-$active_students = 0;
-$active_internships = 0;
-$completed_internships = 0;
-$today_attendance = 0;
-$pending_biometrics = 0;
-$attendance_approval_rate = 0;
-$attendance_pending_rate = 0;
-$active_student_rate = 0;
-$biometric_registered = 0;
+if (!function_exists('dashboard_fetch_count')) {
+    function dashboard_fetch_count($conn, $sql, $key = 'count')
+    {
+        if (!isset($conn)) {
+            return 0;
+        }
+
+        $result = $conn->query($sql);
+        if (!$result) {
+            return 0;
+        }
+
+        $row = $result->fetch_assoc();
+        return (int)($row[$key] ?? 0);
+    }
+}
+
+if (!function_exists('dashboard_fetch_all')) {
+    function dashboard_fetch_all($conn, $sql)
+    {
+        $rows = array();
+        if (!isset($conn)) {
+            return $rows;
+        }
+
+        $result = $conn->query($sql);
+        if (!$result || $result->num_rows <= 0) {
+            return $rows;
+        }
+
+        while ($row = $result->fetch_assoc()) {
+            $rows[] = $row;
+        }
+
+        return $rows;
+    }
+}
+
+if (!function_exists('dashboard_table_exists')) {
+    function dashboard_table_exists($conn, $table)
+    {
+        if (!isset($conn)) {
+            return false;
+        }
+
+        $escapedTable = $conn->real_escape_string($table);
+        $result = $conn->query("SHOW TABLES LIKE '{$escapedTable}'");
+        return $result && $result->num_rows > 0;
+    }
+}
+
+if (!function_exists('dashboard_column_exists')) {
+    function dashboard_column_exists($conn, $table, $column)
+    {
+        if (!isset($conn)) {
+            return false;
+        }
+
+        $escapedTable = $conn->real_escape_string($table);
+        $escapedColumn = $conn->real_escape_string($column);
+        $result = $conn->query("SHOW COLUMNS FROM `{$escapedTable}` LIKE '{$escapedColumn}'");
+        return $result && $result->num_rows > 0;
+    }
+}
+
+if (!function_exists('dashboard_safe_table_count')) {
+    function dashboard_safe_table_count($conn, $table, $where = '1')
+    {
+        if (!dashboard_table_exists($conn, $table)) {
+            return 0;
+        }
+
+        $escapedTable = $conn->real_escape_string($table);
+        return dashboard_fetch_count($conn, "SELECT COUNT(*) AS cnt FROM `{$escapedTable}` WHERE {$where}", 'cnt');
+    }
+}
+
+// Initialize dashboard values
+$dashboard_stats = array(
+    'attendance_awaiting' => 0,
+    'attendance_completed' => 0,
+    'attendance_rejected' => 0,
+    'attendance_total' => 0,
+    'student_count' => 0,
+    'internship_count' => 0,
+    'active_students' => 0,
+    'active_internships' => 0,
+    'completed_internships' => 0,
+    'today_attendance' => 0,
+    'biometric_registered' => 0,
+    'pending_biometrics' => 0,
+    'attendance_approval_rate' => 0,
+    'attendance_pending_rate' => 0,
+    'active_student_rate' => 0,
+);
+
+$ojt_status_counts = array('pending' => 0, 'ongoing' => 0, 'completed' => 0, 'cancelled' => 0);
+$ojt_type_counts = array('internal' => 0, 'external' => 0);
+$avg_completion_percentage = 0.0;
+
 $recent_students = array();
 $recent_attendance = array();
 $coordinators = array();
@@ -30,17 +115,17 @@ $supervisors = array();
 $recent_activities = array();
 
 if (isset($dashboard_data) && is_array($dashboard_data) && !empty($dashboard_data)) {
-    $attendance_awaiting = (int)($dashboard_data['pending_approvals'] ?? 0);
-    $attendance_completed = (int)($dashboard_data['approved_attendances'] ?? 0);
-    $attendance_rejected = (int)($dashboard_data['rejected_attendances'] ?? 0);
-    $attendance_total = $attendance_awaiting + $attendance_completed + $attendance_rejected;
-    $student_count = (int)($dashboard_data['total_students'] ?? 0);
-    $active_students = (int)($dashboard_data['active_students'] ?? 0);
-    $internship_count = (int)($dashboard_data['total_internships'] ?? 0);
-    $active_internships = (int)($dashboard_data['active_internships'] ?? 0);
-    $completed_internships = (int)($dashboard_data['completed_internships'] ?? 0);
-    $biometric_registered = (int)($dashboard_data['biometric_students'] ?? 0);
-    $today_attendance = (int)($dashboard_data['today_attendance'] ?? 0);
+    $dashboard_stats['attendance_awaiting'] = (int)($dashboard_data['pending_approvals'] ?? 0);
+    $dashboard_stats['attendance_completed'] = (int)($dashboard_data['approved_attendances'] ?? 0);
+    $dashboard_stats['attendance_rejected'] = (int)($dashboard_data['rejected_attendances'] ?? 0);
+    $dashboard_stats['attendance_total'] = $dashboard_stats['attendance_awaiting'] + $dashboard_stats['attendance_completed'] + $dashboard_stats['attendance_rejected'];
+    $dashboard_stats['student_count'] = (int)($dashboard_data['total_students'] ?? 0);
+    $dashboard_stats['active_students'] = (int)($dashboard_data['active_students'] ?? 0);
+    $dashboard_stats['internship_count'] = (int)($dashboard_data['total_internships'] ?? 0);
+    $dashboard_stats['active_internships'] = (int)($dashboard_data['active_internships'] ?? 0);
+    $dashboard_stats['completed_internships'] = (int)($dashboard_data['completed_internships'] ?? 0);
+    $dashboard_stats['biometric_registered'] = (int)($dashboard_data['biometric_students'] ?? 0);
+    $dashboard_stats['today_attendance'] = (int)($dashboard_data['today_attendance'] ?? 0);
 
     if (isset($recent_attendances) && is_array($recent_attendances) && !empty($recent_attendances)) {
         $recent_attendance = $recent_attendances;
@@ -48,143 +133,169 @@ if (isset($dashboard_data) && is_array($dashboard_data) && !empty($dashboard_dat
 }
 
 try {
-    // Attendance statistics for Payment Record section
-    $pending_query = $conn->query("SELECT COUNT(*) as count FROM attendances WHERE status = 'pending'");
-    if ($pending_query) {
-        $attendance_awaiting = (int)$pending_query->fetch_assoc()['count'];
-    }
-    
-    $approved_query = $conn->query("SELECT COUNT(*) as count FROM attendances WHERE status = 'approved'");
-    if ($approved_query) {
-        $attendance_completed = (int)$approved_query->fetch_assoc()['count'];
-    }
-    
-    $rejected_query = $conn->query("SELECT COUNT(*) as count FROM attendances WHERE status = 'rejected'");
-    if ($rejected_query) {
-        $attendance_rejected = (int)$rejected_query->fetch_assoc()['count'];
-    }
-    
-    // Total attendance
-    $total_query = $conn->query("SELECT COUNT(*) as count FROM attendances");
-    if ($total_query) {
-        $attendance_total = (int)$total_query->fetch_assoc()['count'];
-    }
-    
-    // Student count
-    $students_query = $conn->query("SELECT COUNT(*) as count FROM students WHERE deleted_at IS NULL");
-    if ($students_query) {
-        $student_count = (int)$students_query->fetch_assoc()['count'];
-    }
+    // Core counts
+    $dashboard_stats['attendance_awaiting'] = dashboard_fetch_count($conn, "SELECT COUNT(*) AS count FROM attendances WHERE status = 'pending'");
+    $dashboard_stats['attendance_completed'] = dashboard_fetch_count($conn, "SELECT COUNT(*) AS count FROM attendances WHERE status = 'approved'");
+    $dashboard_stats['attendance_rejected'] = dashboard_fetch_count($conn, "SELECT COUNT(*) AS count FROM attendances WHERE status = 'rejected'");
+    $dashboard_stats['attendance_total'] = dashboard_fetch_count($conn, "SELECT COUNT(*) AS count FROM attendances");
+    $dashboard_stats['student_count'] = dashboard_fetch_count($conn, "SELECT COUNT(*) AS count FROM students WHERE deleted_at IS NULL");
 
-    // Active students based on ongoing internships
-    $active_students_query = $conn->query("\n        SELECT COUNT(DISTINCT s.id) AS count\n        FROM students s\n        INNER JOIN internships i ON i.student_id = s.id\n        WHERE s.deleted_at IS NULL\n          AND i.deleted_at IS NULL\n          AND i.status = 'ongoing'\n    ");
-    if ($active_students_query) {
-        $active_students = (int)$active_students_query->fetch_assoc()['count'];
-    }
-    
-    // OJT / Internships overview counts (safe queries)
-    $ojt_status_counts = array('pending' => 0, 'ongoing' => 0, 'completed' => 0, 'cancelled' => 0);
-    $ojt_type_counts = array('internal' => 0, 'external' => 0);
-    $avg_completion_percentage = 0.0;
-    $internship_count = 0;
+    $dashboard_stats['active_students'] = dashboard_fetch_count(
+        $conn,
+        "SELECT COUNT(DISTINCT s.id) AS count
+         FROM students s
+         INNER JOIN internships i ON i.student_id = s.id
+         WHERE s.deleted_at IS NULL
+           AND i.deleted_at IS NULL
+           AND i.status = 'ongoing'"
+    );
 
-    $ojt_query = $conn->query("SELECT status, type, COUNT(*) as cnt FROM internships WHERE deleted_at IS NULL GROUP BY status, type");
-    if ($ojt_query && $ojt_query->num_rows > 0) {
-        while ($r = $ojt_query->fetch_assoc()) {
-            $status = isset($r['status']) ? $r['status'] : null;
-            $type = isset($r['type']) ? $r['type'] : null;
-            $cnt = isset($r['cnt']) ? (int)$r['cnt'] : 0;
-            if ($status && array_key_exists($status, $ojt_status_counts)) {
-                $ojt_status_counts[$status] += $cnt;
-            }
-            if ($type && array_key_exists($type, $ojt_type_counts)) {
-                $ojt_type_counts[$type] += $cnt;
-            }
-            $internship_count += $cnt;
+    // OJT / internship distribution
+    $ojt_rows = dashboard_fetch_all($conn, "SELECT status, type, COUNT(*) AS cnt FROM internships WHERE deleted_at IS NULL GROUP BY status, type");
+    $dashboard_stats['internship_count'] = 0;
+    foreach ($ojt_rows as $ojt_row) {
+        $status = $ojt_row['status'] ?? null;
+        $type = $ojt_row['type'] ?? null;
+        $count = (int)($ojt_row['cnt'] ?? 0);
+
+        if ($status && array_key_exists($status, $ojt_status_counts)) {
+            $ojt_status_counts[$status] += $count;
         }
-    }
 
-    $avg_query = $conn->query("SELECT AVG(completion_percentage) as avg_completion FROM internships WHERE deleted_at IS NULL");
-    if ($avg_query) {
-        $avg_row = $avg_query->fetch_assoc();
-        if ($avg_row && $avg_row['avg_completion'] !== null) {
-            $avg_completion_percentage = round((float)$avg_row['avg_completion'], 2);
+        if ($type && array_key_exists($type, $ojt_type_counts)) {
+            $ojt_type_counts[$type] += $count;
         }
+
+        $dashboard_stats['internship_count'] += $count;
     }
 
-    $active_internships = isset($ojt_status_counts['ongoing']) ? (int)$ojt_status_counts['ongoing'] : 0;
-    $completed_internships = isset($ojt_status_counts['completed']) ? (int)$ojt_status_counts['completed'] : 0;
-    
-    // Biometric registered students
-    $biometric_query = $conn->query("SELECT COUNT(*) as count FROM students WHERE biometric_registered = 1");
-    if ($biometric_query) {
-        $biometric_registered = (int)$biometric_query->fetch_assoc()['count'];
+    $avg_completion_row = dashboard_fetch_all($conn, "SELECT AVG(completion_percentage) AS avg_completion FROM internships WHERE deleted_at IS NULL");
+    if (!empty($avg_completion_row) && $avg_completion_row[0]['avg_completion'] !== null) {
+        $avg_completion_percentage = round((float)$avg_completion_row[0]['avg_completion'], 2);
     }
 
-    // Today's attendance volume
+    $dashboard_stats['active_internships'] = (int)($ojt_status_counts['ongoing'] ?? 0);
+    $dashboard_stats['completed_internships'] = (int)($ojt_status_counts['completed'] ?? 0);
+    $dashboard_stats['biometric_registered'] = dashboard_fetch_count($conn, "SELECT COUNT(*) AS count FROM students WHERE biometric_registered = 1");
+
     $today = date('Y-m-d');
-    $today_attendance_query = $conn->query("SELECT COUNT(*) as count FROM attendances WHERE DATE(attendance_date) = '{$today}'");
-    if ($today_attendance_query) {
-        $today_attendance = (int)$today_attendance_query->fetch_assoc()['count'];
-    }
+    $dashboard_stats['today_attendance'] = dashboard_fetch_count($conn, "SELECT COUNT(*) AS count FROM attendances WHERE DATE(attendance_date) = '{$today}'");
 
-    $pending_biometrics = max(0, $student_count - $biometric_registered);
-    $attendance_approval_rate = ($attendance_total > 0) ? round(($attendance_completed / $attendance_total) * 100) : 0;
-    $attendance_pending_rate = ($attendance_total > 0) ? round(($attendance_awaiting / $attendance_total) * 100) : 0;
-    $active_student_rate = ($student_count > 0) ? round(($active_students / $student_count) * 100) : 0;
-    
-    // Get recent students (last 5)
-    $recent_students_query = $conn->query("\n        SELECT s.id, s.student_id, s.first_name, s.last_name, s.email, s.status, s.biometric_registered, s.created_at\n        FROM students s\n        WHERE s.deleted_at IS NULL\n        ORDER BY s.created_at DESC\n        LIMIT 5\n    ");
-    
-    if ($recent_students_query && $recent_students_query->num_rows > 0) {
-        while ($row = $recent_students_query->fetch_assoc()) {
-            $recent_students[] = $row;
-        }
-    }
-    
-    // Get recent attendance records (last 10) with student info
-    $recent_attendance_query = $conn->query("\n        SELECT a.id, a.student_id, a.attendance_date, a.morning_time_in, a.morning_time_out, a.status, a.created_at, \n               s.first_name, s.last_name, s.email, s.student_id as student_num\n        FROM attendances a\n        LEFT JOIN students s ON a.student_id = s.id\n        ORDER BY (DATE(a.attendance_date) = CURDATE()) DESC, a.attendance_date DESC, a.created_at DESC\n        LIMIT 10\n    ");
-    
-    if ($recent_attendance_query && $recent_attendance_query->num_rows > 0) {
-        while ($row = $recent_attendance_query->fetch_assoc()) {
-            $recent_attendance[] = $row;
-        }
-    }
-    
-    // Get coordinators (Active)
-    $coordinators_query = $conn->query("\n        SELECT u.id, u.name, u.email, c.department_id, c.phone, c.created_at\n        FROM users u\n        LEFT JOIN coordinators c ON u.id = c.user_id\n        WHERE u.role = 'coordinator' AND u.is_active = 1\n        ORDER BY u.created_at DESC\n        LIMIT 5\n    ");
-    
-    if ($coordinators_query && $coordinators_query->num_rows > 0) {
-        while ($row = $coordinators_query->fetch_assoc()) {
-            $coordinators[] = $row;
-        }
-    }
-    
-    // Get supervisors (Active)
-    $supervisors_query = $conn->query("\n        SELECT\n            s.id AS supervisor_id,\n            s.user_id,\n            COALESCE(NULLIF(u.name, ''), TRIM(CONCAT(s.first_name, ' ', s.last_name))) AS name,\n            COALESCE(NULLIF(u.email, ''), s.email) AS email,\n            s.phone,\n            s.department_id,\n            s.specialization,\n            s.created_at\n        FROM supervisors s\n        LEFT JOIN users u ON u.id = s.user_id\n        WHERE s.is_active = 1\n          AND s.deleted_at IS NULL\n          AND (u.id IS NULL OR u.is_active = 1)\n        ORDER BY s.created_at DESC\n        LIMIT 5\n    ");
-    
-    if ($supervisors_query && $supervisors_query->num_rows > 0) {
-        while ($row = $supervisors_query->fetch_assoc()) {
-            $supervisors[] = $row;
-        }
-    }
-    
-    // Get recent activities (student registrations, attendance records, etc)
-    $activities_query = $conn->query("\n        SELECT \n            CONCAT('Student Created: ', s.first_name, ' ', s.last_name) as activity,\n            s.created_at as activity_date,\n            'student_created' as activity_type,\n            s.id as entity_id\n        FROM students s\n        WHERE s.deleted_at IS NULL\n        UNION ALL\n        SELECT \n            CONCAT('Attendance Recorded for ', s.first_name, ' ', s.last_name) as activity,\n            a.created_at as activity_date,\n            'attendance_recorded' as activity_type,\n            a.id as entity_id\n        FROM attendances a\n        LEFT JOIN students s ON a.student_id = s.id\n        UNION ALL\n        SELECT \n            CONCAT('Biometric Registered: ', s.first_name, ' ', s.last_name) as activity,\n            s.biometric_registered_at as activity_date,\n            'biometric_registered' as activity_type,\n            s.id as entity_id\n        FROM students s\n        WHERE s.biometric_registered = 1 AND s.biometric_registered_at IS NOT NULL\n        ORDER BY activity_date DESC\n        LIMIT 15\n    ");
-    
-    if ($activities_query && $activities_query->num_rows > 0) {
-        while ($row = $activities_query->fetch_assoc()) {
-            $recent_activities[] = $row;
-        }
-    }
-    
+    // Lists used by dashboard widgets
+    $recent_students = dashboard_fetch_all(
+        $conn,
+        "SELECT s.id, s.student_id, s.first_name, s.last_name, s.email, s.status, s.biometric_registered, s.created_at
+         FROM students s
+         WHERE s.deleted_at IS NULL
+         ORDER BY s.created_at DESC
+         LIMIT 5"
+    );
+
+    $recent_attendance = dashboard_fetch_all(
+        $conn,
+        "SELECT a.id, a.student_id, a.attendance_date, a.morning_time_in, a.morning_time_out, a.status, a.created_at,
+                s.first_name, s.last_name, s.email, s.student_id AS student_num
+         FROM attendances a
+         LEFT JOIN students s ON a.student_id = s.id
+         ORDER BY (DATE(a.attendance_date) = CURDATE()) DESC, a.attendance_date DESC, a.created_at DESC
+         LIMIT 10"
+    );
+
+    $coordinators = dashboard_fetch_all(
+        $conn,
+        "SELECT u.id, u.name, u.email, c.department_id, c.phone, c.created_at
+         FROM users u
+         LEFT JOIN coordinators c ON u.id = c.user_id
+         WHERE u.role = 'coordinator' AND u.is_active = 1
+         ORDER BY u.created_at DESC
+         LIMIT 5"
+    );
+
+    $supervisors = dashboard_fetch_all(
+        $conn,
+        "SELECT
+            s.id AS supervisor_id,
+            s.user_id,
+            COALESCE(NULLIF(u.name, ''), TRIM(CONCAT(s.first_name, ' ', s.last_name))) AS name,
+            COALESCE(NULLIF(u.email, ''), s.email) AS email,
+            s.phone,
+            s.department_id,
+            s.specialization,
+            s.created_at
+         FROM supervisors s
+         LEFT JOIN users u ON u.id = s.user_id
+         WHERE s.is_active = 1
+           AND s.deleted_at IS NULL
+           AND (u.id IS NULL OR u.is_active = 1)
+         ORDER BY s.created_at DESC
+         LIMIT 5"
+    );
+
+    $recent_activities = dashboard_fetch_all(
+        $conn,
+        "SELECT
+            CONCAT('Student Created: ', s.first_name, ' ', s.last_name) AS activity,
+            s.created_at AS activity_date,
+            'student_created' AS activity_type,
+            s.id AS entity_id
+         FROM students s
+         WHERE s.deleted_at IS NULL
+         UNION ALL
+         SELECT
+            CONCAT('Attendance Recorded for ', s.first_name, ' ', s.last_name) AS activity,
+            a.created_at AS activity_date,
+            'attendance_recorded' AS activity_type,
+            a.id AS entity_id
+         FROM attendances a
+         LEFT JOIN students s ON a.student_id = s.id
+         UNION ALL
+         SELECT
+            CONCAT('Biometric Registered: ', s.first_name, ' ', s.last_name) AS activity,
+            s.biometric_registered_at AS activity_date,
+            'biometric_registered' AS activity_type,
+            s.id AS entity_id
+         FROM students s
+         WHERE s.biometric_registered = 1 AND s.biometric_registered_at IS NOT NULL
+         ORDER BY activity_date DESC
+         LIMIT 15"
+    );
 } catch (Exception $e) {
-    // Database error - fallback to 0 values
-    error_log("Dashboard error: " . $e->getMessage());
+    error_log('Dashboard error: ' . $e->getMessage());
 }
+
+// Derived metrics
+$dashboard_stats['pending_biometrics'] = max(0, $dashboard_stats['student_count'] - $dashboard_stats['biometric_registered']);
+$dashboard_stats['attendance_approval_rate'] = ($dashboard_stats['attendance_total'] > 0)
+    ? round(($dashboard_stats['attendance_completed'] / $dashboard_stats['attendance_total']) * 100)
+    : 0;
+$dashboard_stats['attendance_pending_rate'] = ($dashboard_stats['attendance_total'] > 0)
+    ? round(($dashboard_stats['attendance_awaiting'] / $dashboard_stats['attendance_total']) * 100)
+    : 0;
+$dashboard_stats['active_student_rate'] = ($dashboard_stats['student_count'] > 0)
+    ? round(($dashboard_stats['active_students'] / $dashboard_stats['student_count']) * 100)
+    : 0;
+
+// Keep original variable names for template compatibility
+$attendance_awaiting = $dashboard_stats['attendance_awaiting'];
+$attendance_completed = $dashboard_stats['attendance_completed'];
+$attendance_rejected = $dashboard_stats['attendance_rejected'];
+$attendance_total = $dashboard_stats['attendance_total'];
+$student_count = $dashboard_stats['student_count'];
+$internship_count = $dashboard_stats['internship_count'];
+$active_students = $dashboard_stats['active_students'];
+$active_internships = $dashboard_stats['active_internships'];
+$completed_internships = $dashboard_stats['completed_internships'];
+$today_attendance = $dashboard_stats['today_attendance'];
+$pending_biometrics = $dashboard_stats['pending_biometrics'];
+$attendance_approval_rate = $dashboard_stats['attendance_approval_rate'];
+$attendance_pending_rate = $dashboard_stats['attendance_pending_rate'];
+$active_student_rate = $dashboard_stats['active_student_rate'];
+$biometric_registered = $dashboard_stats['biometric_registered'];
+
 $page_title = 'BioTern || Dashboard';
-$page_styles = ['assets/css/homepage-dashboard.css'];
-include 'includes/header.php';?>
+$page_styles = array('assets/css/homepage-dashboard.css');
+include 'includes/header.php';
+?>
             <div class="page-header">
                 <div class="page-header-left d-flex align-items-center">
                     <div class="page-header-title">
@@ -475,34 +586,19 @@ include 'includes/header.php';?>
                                 $qa_total_internships = 0;
                                 $qa_attendance_today = 0;
                                 $qa_biometric_registered = 0;
+
                                 if (isset($conn)) {
-                                    function _safe_count_mov($conn, $table, $where = '1') {
-                                        $safe = 0;
-                                        $res = $conn->query("SHOW TABLES LIKE '" . $conn->real_escape_string($table) . "'");
-                                        if ($res && $res->num_rows > 0) {
-                                            $q = $conn->query("SELECT COUNT(*) AS cnt FROM `" . $conn->real_escape_string($table) . "` WHERE {$where}");
-                                            if ($q) {
-                                                $r = $q->fetch_assoc();
-                                                $safe = (int) ($r['cnt'] ?? 0);
-                                            }
-                                        }
-                                        return $safe;
+                                    $qa_total_students = dashboard_safe_table_count($conn, 'students', '1');
+                                    $qa_total_internships = dashboard_safe_table_count($conn, 'internships', '1');
+
+                                    if (dashboard_column_exists($conn, 'attendances', 'date')) {
+                                        $qa_attendance_today = dashboard_safe_table_count($conn, 'attendances', 'date = CURDATE()');
+                                    } elseif (dashboard_column_exists($conn, 'attendances', 'log_time')) {
+                                        $qa_attendance_today = dashboard_safe_table_count($conn, 'attendances', 'DATE(log_time) = CURDATE()');
                                     }
-                                    $qa_total_students = _safe_count_mov($conn, 'students', '1');
-                                    $qa_total_internships = _safe_count_mov($conn, 'internships', '1');
-                                    $qa_attendance_today = 0;
-                                    $res = $conn->query("SHOW COLUMNS FROM `attendances` LIKE 'date'");
-                                    if ($res && $res->num_rows > 0) {
-                                        $qa_attendance_today = _safe_count_mov($conn, 'attendances', 'date = CURDATE()');
-                                    } else {
-                                        $res2 = $conn->query("SHOW COLUMNS FROM `attendances` LIKE 'log_time'");
-                                        if ($res2 && $res2->num_rows > 0) {
-                                            $qa_attendance_today = _safe_count_mov($conn, 'attendances', 'DATE(log_time) = CURDATE()');
-                                        }
-                                    }
-                                    $res3 = $conn->query("SHOW COLUMNS FROM `students` LIKE 'biometric_registered'");
-                                    if ($res3 && $res3->num_rows > 0) {
-                                        $qa_biometric_registered = _safe_count_mov($conn, 'students', 'biometric_registered = 1');
+
+                                    if (dashboard_column_exists($conn, 'students', 'biometric_registered')) {
+                                        $qa_biometric_registered = dashboard_safe_table_count($conn, 'students', 'biometric_registered = 1');
                                     }
                                 }
                                 ?>
@@ -846,177 +942,6 @@ include 'includes/header.php';?>
     </main>
     <!--! ================================================================ !-->
     <!--! [End] Main Content !-->
-    <!--! ================================================================ !-->
-    <!--! ================================================================ !-->
-    <!--! BEGIN: Theme Customizer !-->
-    <!--! ================================================================ !-->
-    <div class="theme-customizer">
-        <div class="customizer-handle">
-            <a href="javascript:void(0);" class="cutomizer-open-trigger bg-primary">
-                <i class="feather-settings"></i>
-            </a>
-        </div>
-        <div class="customizer-sidebar-wrapper">
-            <div class="customizer-sidebar-header px-4 ht-80 border-bottom d-flex align-items-center justify-content-between">
-                <h5 class="mb-0">Theme Settings</h5>
-                <a href="javascript:void(0);" class="cutomizer-close-trigger d-flex">
-                    <i class="feather-x"></i>
-                </a>
-            </div>
-            <div class="customizer-sidebar-body position-relative p-4" data-scrollbar-target="#psScrollbarInit">
-                <!--! BEGIN: [Navigation] !-->
-                <div class="position-relative px-3 pb-3 pt-4 mt-3 mb-5 border border-gray-2 theme-options-set">
-                    <label class="py-1 px-2 fs-8 fw-bold text-uppercase text-muted text-spacing-2 bg-white border border-gray-2 position-absolute rounded-2 options-label" style="top: -12px">Navigation</label>
-                    <div class="row g-2 theme-options-items app-navigation" id="appNavigationList">
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-navigation-light" name="app-navigation" value="1" data-app-navigation="app-navigation-light" checked />
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-navigation-light">Light</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-navigation-dark" name="app-navigation" value="2" data-app-navigation="app-navigation-dark" />
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-navigation-dark">Dark</label>
-                        </div>
-                    </div>
-                </div>
-                <!--! END: [Navigation] !-->
-                <!--! BEGIN: [Header] !-->
-                <div class="position-relative px-3 pb-3 pt-4 mt-3 mb-5 border border-gray-2 theme-options-set mt-5">
-                    <label class="py-1 px-2 fs-8 fw-bold text-uppercase text-muted text-spacing-2 bg-white border border-gray-2 position-absolute rounded-2 options-label" style="top: -12px">Header</label>
-                    <div class="row g-2 theme-options-items app-header" id="appHeaderList">
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-header-light" name="app-header" value="1" data-app-header="app-header-light" checked />
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-header-light">Light</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-header-dark" name="app-header" value="2" data-app-header="app-header-dark" />
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-header-dark">Dark</label>
-                        </div>
-                    </div>
-                </div>
-                <!--! END: [Header] !-->
-                <!--! BEGIN: [Skins] !-->
-                <div class="position-relative px-3 pb-3 pt-4 mt-3 mb-5 border border-gray-2 theme-options-set">
-                    <label class="py-1 px-2 fs-8 fw-bold text-uppercase text-muted text-spacing-2 bg-white border border-gray-2 position-absolute rounded-2 options-label" style="top: -12px">Skins</label>
-                    <div class="row g-2 theme-options-items app-skin" id="appSkinList">
-                        <div class="col-6 text-center position-relative single-option light-button active">
-                            <input type="radio" class="btn-check" id="app-skin-light" name="app-skin" value="1" data-app-skin="app-skin-light" />
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-skin-light">Light</label>
-                        </div>
-                        <div class="col-6 text-center position-relative single-option dark-button">
-                            <input type="radio" class="btn-check" id="app-skin-dark" name="app-skin" value="2" data-app-skin="app-skin-dark" />
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-skin-dark">Dark</label>
-                        </div>
-                    </div>
-                </div>
-                <!--! END: [Skins] !-->
-                <!--! BEGIN: [Typography] !-->
-                <div class="position-relative px-3 pb-3 pt-4 mt-3 mb-0 border border-gray-2 theme-options-set">
-                    <label class="py-1 px-2 fs-8 fw-bold text-uppercase text-muted text-spacing-2 bg-white border border-gray-2 position-absolute rounded-2 options-label" style="top: -12px">Typography</label>
-                    <div class="row g-2 theme-options-items font-family" id="fontFamilyList">
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-lato" name="font-family" value="1" data-font-family="app-font-family-lato" />
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-lato">Lato</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-rubik" name="font-family" value="2" data-font-family="app-font-family-rubik" />
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-rubik">Rubik</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-inter" name="font-family" value="3" data-font-family="app-font-family-inter" checked />
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-inter">Inter</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-cinzel" name="font-family" value="4" data-font-family="app-font-family-cinzel" />
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-cinzel">Cinzel</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-nunito" name="font-family" value="6" data-font-family="app-font-family-nunito" />
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-nunito">Nunito</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-roboto" name="font-family" value="7" data-font-family="app-font-family-roboto" />
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-roboto">Roboto</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-ubuntu" name="font-family" value="8" data-font-family="app-font-family-ubuntu" />
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-ubuntu">Ubuntu</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-poppins" name="font-family" value="9" data-font-family="app-font-family-poppins" />
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-poppins">Poppins</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-raleway" name="font-family" value="10" data-font-family="app-font-family-raleway" />
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-raleway">Raleway</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-system-ui" name="font-family" value="11" data-font-family="app-font-family-system-ui" />
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-system-ui">System UI</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-noto-sans" name="font-family" value="12" data-font-family="app-font-family-noto-sans" />
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-noto-sans">Noto Sans</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-fira-sans" name="font-family" value="13" data-font-family="app-font-family-fira-sans" />
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-fira-sans">Fira Sans</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-work-sans" name="font-family" value="14" data-font-family="app-font-family-work-sans" />
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-work-sans">Work Sans</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-open-sans" name="font-family" value="15" data-font-family="app-font-family-open-sans" />
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-open-sans">Open Sans</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-maven-pro" name="font-family" value="16" data-font-family="app-font-family-maven-pro" />
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-maven-pro">Maven Pro</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-quicksand" name="font-family" value="17" data-font-family="app-font-family-quicksand" />
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-quicksand">Quicksand</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-montserrat" name="font-family" value="18" data-font-family="app-font-family-montserrat" />
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-montserrat">Montserrat</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-josefin-sans" name="font-family" value="19" data-font-family="app-font-family-josefin-sans" />
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-josefin-sans">Josefin Sans</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-ibm-plex-sans" name="font-family" value="20" data-font-family="app-font-family-ibm-plex-sans" />
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-ibm-plex-sans">IBM Plex Sans</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-source-sans-pro" name="font-family" value="5" data-font-family="app-font-family-source-sans-pro" />
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-source-sans-pro">Source Sans Pro</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-montserrat-alt" name="font-family" value="21" data-font-family="app-font-family-montserrat-alt" />
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-montserrat-alt">Montserrat Alt</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-roboto-slab" name="font-family" value="22" data-font-family="app-font-family-roboto-slab" />
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-roboto-slab">Roboto Slab</label>
-                        </div>
-                    </div>
-                </div>
-                <!--! END: [Typography] !-->
-            </div>
-            <div class="customizer-sidebar-footer px-4 ht-60 border-top d-flex align-items-center gap-2">
-                <div class="flex-fill w-50">
-                    <a href="javascript:void(0);" class="btn btn-danger" data-style="reset-all-common-style">Reset</a>
-                </div>
-                <div class="flex-fill w-50">
-                    <a href="https://www.themewagon.com/themes/Duralux-admin" target="_blank" class="btn btn-primary">Download</a>
-                </div>
-            </div>
-        </div>
-    </div>
-    <!--! ================================================================ !-->
-    <!--! [End] Theme Customizer !-->
     <!--! ================================================================ !-->
     <!--! ================================================================ !-->
     <!--! Footer Script !-->

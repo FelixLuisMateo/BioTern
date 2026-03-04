@@ -378,20 +378,12 @@ usort($print_ojt_rows, function ($a, $b) {
     return strcmp($a_last, $b_last);
 });
 $print_section_label = $section_filter !== '' ? $section_filter : 'ALL';
+
+$page_title = 'BioTern || OJT Dashboard';
+$page_styles = array();
+include 'includes/header.php';
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>BioTern || OJT Dashboard</title>
-    <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
-    <script src="assets/js/theme-preload-init.min.js"></script>
-    <link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css">
-    <link rel="stylesheet" type="text/css" href="assets/vendors/css/vendors.min.css">
-    <script>try{var s=localStorage.getItem('app-skin')||localStorage.getItem('app_skin')||localStorage.getItem('theme'); if(s&&s.indexOf('dark')!==-1)document.documentElement.classList.add('app-skin-dark');}catch(e){};</script>
-    <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css">
-    <style>
+<style>
         body { background: #f5f7fb; }
         .kpi-value { font-size: 1.5rem; font-weight: 700; }
         .chip { border: 1px solid #dbe3f0; border-radius: 999px; padding: 3px 10px; font-size: 12px; display: inline-block; margin: 2px 4px 2px 0; }
@@ -580,8 +572,6 @@ $print_section_label = $section_filter !== '' ? $section_filter : 'ALL';
             }
         }
     </style>
-</head>
-<body>
 <section class="ojt-print-sheet">
     <img class="crest" src="assets/images/auth/auth-cover-login-bg.png" alt="crest" onerror="this.style.display='none'">
     <div class="header">
@@ -633,128 +623,6 @@ $print_section_label = $section_filter !== '' ? $section_filter : 'ALL';
     </table>
 </section>
 
-<?php include_once 'includes/navigation.php'; ?>
-<header class="nxl-header">
-    <div class="header-wrapper">
-        <div class="header-left d-flex align-items-center gap-4">
-            <a href="javascript:void(0);" class="nxl-head-mobile-toggler" id="mobile-collapse">
-                <div class="hamburger hamburger--arrowturn">
-                    <div class="hamburger-box"><div class="hamburger-inner"></div></div>
-                </div>
-            </a>
-            <div class="nxl-navigation-toggle">
-                <a href="javascript:void(0);" id="menu-mini-button"><i class="feather-align-left"></i></a>
-                <a href="javascript:void(0);" id="menu-expend-button" style="display: none"><i class="feather-arrow-right"></i></a>
-            </div>
-        </div>
-        <div class="header-right ms-auto">
-            <div class="d-flex align-items-center">
-                <div class="dropdown nxl-h-item nxl-header-search">
-                    <a href="javascript:void(0);" class="nxl-head-link me-0" data-bs-toggle="dropdown" data-bs-auto-close="outside">
-                        <i class="feather-search"></i>
-                    </a>
-                    <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-search-dropdown">
-                        <div class="input-group search-form">
-                            <span class="input-group-text"><i class="feather-search fs-6 text-muted"></i></span>
-                            <input type="text" class="form-control search-input-field" placeholder="Search....">
-                            <span class="input-group-text"><button type="button" class="btn-close"></button></span>
-                        </div>
-                    </div>
-                </div>
-                <div class="nxl-h-item d-none d-sm-flex">
-                    <div class="full-screen-switcher">
-                        <a href="javascript:void(0);" class="nxl-head-link me-0" onclick="$('body').fullScreenHelper('toggle');">
-                            <i class="feather-maximize maximize"></i>
-                            <i class="feather-minimize minimize"></i>
-                        </a>
-                    </div>
-                </div>
-                <div class="nxl-h-item dark-light-theme">
-                    <a href="javascript:void(0);" class="nxl-head-link me-0 dark-button"><i class="feather-moon"></i></a>
-                    <a href="javascript:void(0);" class="nxl-head-link me-0 light-button" style="display: none"><i class="feather-sun"></i></a>
-                </div>
-                <div class="dropdown nxl-h-item">
-                    <a href="javascript:void(0);" class="nxl-head-link me-0" data-bs-toggle="dropdown" role="button" data-bs-auto-close="outside">
-                        <i class="feather-clock"></i>
-                        <span class="badge bg-success nxl-h-badge">2</span>
-                    </a>
-                    <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-timesheets-menu">
-                        <div class="d-flex justify-content-between align-items-center timesheets-head">
-                            <h6 class="fw-bold text-dark mb-0">Timesheets</h6>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center flex-column timesheets-body">
-                            <i class="feather-clock fs-1 mb-4"></i>
-                            <p class="text-muted">No started timers found yet.</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="dropdown nxl-h-item">
-                    <a class="nxl-head-link me-3" data-bs-toggle="dropdown" href="#" role="button" data-bs-auto-close="outside">
-                        <i class="feather-bell"></i>
-                        <span class="badge bg-danger nxl-h-badge">3</span>
-                    </a>
-                    <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-notifications-menu">
-                        <div class="d-flex justify-content-between align-items-center notifications-head">
-                            <h6 class="fw-bold text-dark mb-0">Notifications</h6>
-                        </div>
-                    </div>
-                </div>
-                <div class="dropdown nxl-h-item">
-                    <a href="javascript:void(0);" class="nxl-head-link me-0" data-bs-toggle="dropdown" role="button" data-bs-auto-close="outside">
-                        <img src="<?php echo htmlspecialchars($current_profile_img, ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar me-0" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
-                    </a>
-                    <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-user-dropdown">
-                        <div class="dropdown-header">
-                            <div class="d-flex align-items-center">
-                                <img src="<?php echo htmlspecialchars($current_profile_img, ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
-                                <div>
-                                    <h6 class="text-dark mb-0">
-                                        <?php echo htmlspecialchars($current_user_name, ENT_QUOTES, 'UTF-8'); ?>
-                                        <?php if ($current_user_role !== ''): ?>
-                                            <span class="badge bg-soft-success text-success ms-1"><?php echo htmlspecialchars(ucfirst($current_user_role), ENT_QUOTES, 'UTF-8'); ?></span>
-                                        <?php endif; ?>
-                                    </h6>
-                                    <span class="fs-12 fw-medium text-muted"><?php echo htmlspecialchars($current_user_email, ENT_QUOTES, 'UTF-8'); ?></span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="dropdown-divider"></div>
-                        <a href="javascript:void(0);" class="dropdown-item">
-                            <span class="hstack">
-                                <i class="wd-10 ht-10 border border-2 border-gray-1 bg-success rounded-circle me-2"></i>
-                                <span>Active</span>
-                            </span>
-                        </a>
-                        <div class="dropdown-divider"></div>
-                        <a href="javascript:void(0);" class="dropdown-item">
-                            <i class="feather-user"></i>
-                            <span>Profile Details</span>
-                        </a>
-                        <a href="javascript:void(0);" class="dropdown-item">
-                            <i class="feather-activity"></i>
-                            <span>Activity Feed</span>
-                        </a>
-                        <a href="javascript:void(0);" class="dropdown-item">
-                            <i class="feather-bell"></i>
-                            <span>Notifications</span>
-                        </a>
-                        <a href="settings-general.php" class="dropdown-item">
-                            <i class="feather-settings"></i>
-                            <span>Account Settings</span>
-                        </a>
-                        <div class="dropdown-divider"></div>
-                        <a href="auth-login-cover.php?logout=1" class="dropdown-item">
-                            <i class="feather-log-out"></i>
-                            <span>Logout</span>
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</header>
-<main class="nxl-container">
-    <div class="nxl-content">
         <div class="page-header">
             <div class="page-header-left d-flex align-items-center">
                 <div class="page-header-title">

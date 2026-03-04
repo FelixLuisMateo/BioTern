@@ -1,239 +1,150 @@
-<!DOCTYPE html>
-<html lang="zxx">
+<?php
+$page_title = 'BioTern || Email Settings';
+$page_styles = ['assets/css/settings-customizer-like.css'];
+include 'includes/header.php';
+?>
 
-<head>
-    <meta charset="utf-8">
-    <meta http-equiv="x-ua-compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="">
-    <meta name="keyword" content="">
-    <meta name="author" content="ACT 2A Group 5">
-    <!--! The above 6 meta tags *must* come first in the head; any other head content must come *after* these tags !-->
-    <!--! BEGIN: Apps Title-->
-    <title>BioTern || Email Settings</title>
-    <!--! END:  Apps Title-->
-    <!--! BEGIN: Favicon-->
-    <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
-    <!--! END: Favicon-->
-    <script src="assets/js/theme-preload-init.min.js"></script>
-    <!--! BEGIN: Bootstrap CSS-->
-    <link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css">
-    <!--! END: Bootstrap CSS-->
-    <!--! BEGIN: Vendors CSS-->
-    <link rel="stylesheet" type="text/css" href="assets/vendors/css/vendors.min.css">
-    <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2.min.css">
-    <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2-theme.min.css">
-    <!--! END: Vendors CSS-->
-    <!--! BEGIN: Custom CSS-->
-    <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css">
-    <link rel="stylesheet" type="text/css" href="assets/css/settings-customizer-like.css">
-    <!--! END: Custom CSS-->
-    <!--! HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries !-->
-    <!--! WARNING: Respond.js doesn"t work if you view the page via file: !-->
-    <!--[if lt IE 9]>
-			<script src="https:oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
-			<script src="https:oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
-		<![endif]-->
-</head>
-
-<body class="settings-theme-customizer">
-    <?php include_once 'includes/navigation.php'; ?>
-    <!--! ================================================================ !-->
-    <!--! [Start] Header !-->
-    <!--! ================================================================ !-->
-    <header class="nxl-header">
-        <div class="header-wrapper">
-            <!--! [Start] Header Left !-->
-            <div class="header-left d-flex align-items-center gap-4">
-                <!--! [Start] nxl-head-mobile-toggler !-->
-                <a href="javascript:void(0);" class="nxl-head-mobile-toggler" id="mobile-collapse">
-                    <div class="hamburger hamburger--arrowturn">
-                        <div class="hamburger-box">
-                            <div class="hamburger-inner"></div>
-                        </div>
-                    </div>
-                </a>
-                <!--! [Start] nxl-head-mobile-toggler !-->
-                <!--! [Start] nxl-navigation-toggle !-->
-                <div class="nxl-navigation-toggle">
-                    <a href="javascript:void(0);" id="menu-mini-button">
-                        <i class="feather-align-left"></i>
-                    </a>
-                    <a href="javascript:void(0);" id="menu-expend-button" style="display: none">
-                        <i class="feather-arrow-right"></i>
-                    </a>
-                </div>
-                <!--! [End] nxl-navigation-toggle !-->
-            </div>
-            <!--! [End] Header Left !-->
-            <!--! [Start] Header Right !-->
-            <div class="header-right ms-auto">
-                <div class="d-flex align-items-center">
-                    <div class="dropdown nxl-h-item nxl-header-search">
-                        <a href="javascript:void(0);" class="nxl-head-link me-0" data-bs-toggle="dropdown" data-bs-auto-close="outside">
-                            <i class="feather-search"></i>
-                        </a>
-                        <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-search-dropdown">
-                            <div class="input-group search-form">
-                                <span class="input-group-text">
-                                    <i class="feather-search fs-6 text-muted"></i>
-                                </span>
-                                <input type="text" class="form-control search-input-field" placeholder="Search....">
-                                <span class="input-group-text">
-                                    <button type="button" class="btn-close"></button>
-                                </span>
-                            </div>
-                            <div class="dropdown-divider mt-0"></div>
-                            <!--! search coding for database !-->
-                        </div>
-                    </div>
-                    <div class="nxl-h-item d-none d-sm-flex">
-                        <div class="full-screen-switcher">
-                            <a href="javascript:void(0);" class="nxl-head-link me-0" onclick="$('body').fullScreenHelper('toggle');">
-                                <i class="feather-maximize maximize"></i>
-                                <i class="feather-minimize minimize"></i>
-                            </a>
-                        </div>
-                    </div>
-                    <div class="nxl-h-item dark-light-theme">
-                        <a href="javascript:void(0);" class="nxl-head-link me-0 dark-button">
-                            <i class="feather-moon"></i>
-                        </a>
-                        <a href="javascript:void(0);" class="nxl-head-link me-0 light-button" style="display: none">
-                            <i class="feather-sun"></i>
-                        </a>
-                    </div>
-                    <div class="dropdown nxl-h-item">
-                        <a href="javascript:void(0);" class="nxl-head-link me-0" data-bs-toggle="dropdown" role="button" data-bs-auto-close="outside">
-                            <i class="feather-clock"></i>
-                            <span class="badge bg-success nxl-h-badge">2</span>
-                        </a>
-                        <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-timesheets-menu">
-                            <div class="d-flex justify-content-between align-items-center timesheets-head">
-                                <h6 class="fw-bold text-dark mb-0">Timesheets</h6>
-                                <a href="javascript:void(0);" class="fs-11 text-success text-end ms-auto" data-bs-toggle="tooltip" title="Upcomming Timers">
-                                    <i class="feather-clock"></i>
-                                    <span>3 Upcomming</span>
-                                </a>
-                            </div>
-                            <div class="d-flex justify-content-between align-items-center flex-column timesheets-body">
-                                <i class="feather-clock fs-1 mb-4"></i>
-                                <p class="text-muted">No started timers found yes!</p>
-                                <a href="javascript:void(0);" class="btn btn-sm btn-primary">Started Timer</a>
-                            </div>
-                            <div class="text-center timesheets-footer">
-                                <a href="javascript:void(0);" class="fs-13 fw-semibold text-dark">Alls Timesheets</a>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="dropdown nxl-h-item">
-                        <a class="nxl-head-link me-3" data-bs-toggle="dropdown" href="#" role="button" data-bs-auto-close="outside">
-                            <i class="feather-bell"></i>
-                            <span class="badge bg-danger nxl-h-badge">3</span>
-                        </a>
-                        <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-notifications-menu">
-                            <div class="d-flex justify-content-between align-items-center notifications-head">
-                                <h6 class="fw-bold text-dark mb-0">Notifications</h6>
-                                <a href="javascript:void(0);" class="fs-11 text-success text-end ms-auto" data-bs-toggle="tooltip" title="Make as Read">
-                                    <i class="feather-check"></i>
-                                    <span>Make as Read</span>
-                                </a>
-                            </div>
-                            <div class="notifications-item">
-                                <img src="assets/images/avatar/2.png" alt="" class="rounded me-3 border">
-                                <div class="notifications-desc">
-                                    <a href="javascript:void(0);" class="font-body text-truncate-2-line"> <span class="fw-semibold text-dark">Malanie Hanvey</span> We should talk about that at lunch!</a>
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <div class="notifications-date text-muted border-bottom border-bottom-dashed">2 minutes ago</div>
-                                        <div class="d-flex align-items-center float-end gap-2">
-                                            <a href="javascript:void(0);" class="d-block wd-8 ht-8 rounded-circle bg-gray-300" data-bs-toggle="tooltip" title="Make as Read"></a>
-                                            <a href="javascript:void(0);" class="text-danger" data-bs-toggle="tooltip" title="Remove">
-                                                <i class="feather-x fs-12"></i>
-                                            </a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="dropdown nxl-h-item">
-                        <a href="javascript:void(0);" data-bs-toggle="dropdown" role="button" data-bs-auto-close="outside">
-                            <img src="<?php echo htmlspecialchars((isset($_SESSION['profile_picture']) && trim((string)$_SESSION['profile_picture']) !== '' ? ltrim(str_replace('\\', '/', trim((string)$_SESSION['profile_picture'])), '/') : ('assets/images/avatar/' . (((int)($_SESSION['user_id'] ?? 0) % 5) + 1) . '.png')), ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar me-0" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
-                        </a>
-                        <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-user-dropdown">
-                            <div class="dropdown-header">
-                                <div class="d-flex align-items-center">
-                                    <img src="<?php echo htmlspecialchars((isset($_SESSION['profile_picture']) && trim((string)$_SESSION['profile_picture']) !== '' ? ltrim(str_replace('\\', '/', trim((string)$_SESSION['profile_picture'])), '/') : ('assets/images/avatar/' . (((int)($_SESSION['user_id'] ?? 0) % 5) + 1) . '.png')), ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
-                                    <div>
-                                        <h6 class="text-dark mb-0"><?php echo htmlspecialchars((string)($_SESSION['name'] ?? $_SESSION['username'] ?? 'BioTern User'), ENT_QUOTES, 'UTF-8'); ?></h6>
-                                        <span class="fs-12 fw-medium text-muted"><?php echo htmlspecialchars((string)($_SESSION['email'] ?? 'admin@biotern.local'), ENT_QUOTES, 'UTF-8'); ?></span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="dropdown">
-                                <a href="javascript:void(0);" class="dropdown-item" data-bs-toggle="dropdown">
-                                    <span class="hstack">
-                                        <i class="wd-10 ht-10 border border-2 border-gray-1 bg-success rounded-circle me-2"></i>
-                                        <span>Active</span>
-                                    </span>
-                                    <i class="feather-chevron-right ms-auto me-0"></i>
-                                </a>
-                                <div class="dropdown-menu">
-                                    <a href="javascript:void(0);" class="dropdown-item">
-                                        <span class="hstack">
-                                            <i class="wd-10 ht-10 border border-2 border-gray-1 bg-warning rounded-circle me-2"></i>
-                                            <span>Always</span>
-                                        </span>
-                                    </a>
-                                    <a href="javascript:void(0);" class="dropdown-item">
-                                        <span class="hstack">
-                                            <i class="wd-10 ht-10 border border-2 border-gray-1 bg-success rounded-circle me-2"></i>
-                                            <span>Active</span>
-                                        </span>
-                                    </a>
-                                </div>
-                            </div>
-                            <div class="dropdown-divider"></div>
-
-                            <div class="dropdown-divider"></div>
-                            <a href="javascript:void(0);" class="dropdown-item">
-                                <i class="feather-user"></i>
-                                <span>Profile Details</span>
-                            </a>
-                            <a href="javascript:void(0);" class="dropdown-item">
-                                <i class="feather-activity"></i>
-                                <span>Activity Feed</span>
-                            </a>
-                            <a href="javascript:void(0);" class="dropdown-item">
-                                <i class="feather-bell"></i>
-                                <span>Notifications</span>
-                            </a>
-                            <a href="javascript:void(0);" class="dropdown-item">
-                                <i class="feather-settings"></i>
-                                <span>Account Settings</span>
-                            </a>
-                            <div class="dropdown-divider"></div>
-                            <a href="./auth-login-cover.php?logout=1" class="dropdown-item">
-                                <i class="feather-log-out"></i>
-                                <span>Logout</span>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <!--! [End] Header Right !-->
+<div class="main-content d-flex settings-theme-customizer">
+    <div class="content-sidebar content-sidebar-md" data-scrollbar-target="#psScrollbarInit">
+        <div class="content-sidebar-header sticky-top hstack justify-content-between">
+            <h4 class="fw-bolder mb-0">Settings</h4>
+            <a href="javascript:void(0);" class="app-sidebar-close-trigger d-flex">
+                <i class="feather-x"></i>
+            </a>
         </div>
-    </header>
-    <!--! ================================================================ !-->
-    <!--! [End] Header !-->
-    <!--! ================================================================ !-->
-    <!--! ================================================================ !-->
-    <!--! [Start] Main Content !-->
-    <!--! ================================================================ !-->
-    <main class="nxl-container apps-container">
-        <div class="nxl-content without-header nxl-full-content">
-            <!-- [ Main Content ] start -->
-            <div class="main-content d-flex">
+        <div class="content-sidebar-body">
+            <ul class="nav flex-column nxl-content-sidebar-item">
+                <li class="nav-item"><a class="nav-link" href="settings-general.php"><i class="feather-airplay"></i><span>General</span></a></li>
+                <li class="nav-item"><a class="nav-link" href="settings-seo.php"><i class="feather-search"></i><span>SEO</span></a></li>
+                <li class="nav-item"><a class="nav-link" href="settings-tags.php"><i class="feather-tag"></i><span>Tags</span></a></li>
+                <li class="nav-item"><a class="nav-link active" href="settings-email.php"><i class="feather-mail"></i><span>Email</span></a></li>
+                <li class="nav-item"><a class="nav-link" href="settings-tasks.php"><i class="feather-check-circle"></i><span>Tasks</span></a></li>
+                <li class="nav-item"><a class="nav-link" href="settings-ojt.php"><i class="feather-crosshair"></i><span>Leads</span></a></li>
+                <li class="nav-item"><a class="nav-link" href="settings-support.php"><i class="feather-life-buoy"></i><span>Support</span></a></li>
+                <li class="nav-item"><a class="nav-link" href="settings-students.php"><i class="feather-users"></i><span>Students</span></a></li>
+                <li class="nav-item"><a class="nav-link" href="settings-miscellaneous.php"><i class="feather-cast"></i><span>Miscellaneous</span></a></li>
+                <li class="nav-item"><a class="nav-link" href="theme-customizer.php"><i class="feather-settings"></i><span>Theme Customizer</span></a></li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="content-area" data-scrollbar-target="#psScrollbarInit">
+        <div class="content-area-header sticky-top">
+            <div class="page-header-left">
+                <a href="javascript:void(0);" class="app-sidebar-open-trigger me-2"><i class="feather-align-left fs-24"></i></a>
+            </div>
+            <div class="page-header-right ms-auto">
+                <div class="d-flex align-items-center gap-3 page-header-right-items-wrapper">
+                    <a href="javascript:void(0);" class="text-danger">Cancel</a>
+                    <a href="javascript:void(0);" class="btn btn-primary successAlertMessage">
+                        <i class="feather-save me-2"></i><span>Save Changes</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-area-body">
+            <div class="card mb-0">
+                <div class="card-body">
+                    <div class="mb-5">
+                        <h4 class="fw-bold">SMTP Settings</h4>
+                        <div class="fs-12 text-muted">SMTP setup main email</div>
+                    </div>
+                    <div class="mb-5">
+                        <label class="form-label">Mail Engine <span class="text-danger">*</span></label>
+                        <select class="form-select" data-select2-selector="default">
+                            <option selected>HPMailer</option>
+                            <option value="">CodeIgniter</option>
+                        </select>
+                        <small class="form-text text-muted">Mail Engine [Ex: HPMailer/CodeIgniter]</small>
+                    </div>
+                    <div class="mb-5">
+                        <label class="form-label">Email Protocol</label>
+                        <select class="form-select" data-select2-selector="default">
+                            <option value="">Mail</option>
+                            <option selected>SMTP</option>
+                            <option value="">Sendmail</option>
+                        </select>
+                        <small class="form-text text-muted">Email Protocol [Ex: Mail/SMTP/Sendmail]</small>
+                    </div>
+                    <div class="mb-5">
+                        <label class="form-label">Email</label>
+                        <input type="text" class="form-control" placeholder="Email">
+                        <small class="form-text text-muted">Email [Ex: support@theme_ocean.com]</small>
+                    </div>
+                    <div class="mb-5">
+                        <label class="form-label">Email Charset</label>
+                        <input type="text" class="form-control" placeholder="Email Charset">
+                        <small class="form-text text-muted">Email [Ex: utf-8]</small>
+                    </div>
+                    <div class="mb-5">
+                        <label class="form-label">Email Signature</label>
+                        <textarea class="form-control" rows="10" placeholder="Email Signature"></textarea>
+                        <small class="form-text text-muted">Email Signature [Ex: theme_ocean]</small>
+                    </div>
+                    <div class="mb-5">
+                        <label class="form-label">Predefined Header</label>
+                        <textarea class="form-control" rows="10" placeholder="Predefined Header"></textarea>
+                        <small class="form-text text-muted">Predefined Header [Ex: Email template header code]</small>
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label">Predefined Footer</label>
+                        <textarea class="form-control" rows="10" placeholder="Predefined Footer"></textarea>
+                        <small class="form-text text-muted">Predefined Footer [Ex: Email template footer code]</small>
+                    </div>
+
+                    <hr class="my-5">
+
+                    <div class="mb-4">
+                        <h4 class="fw-bold">Email Queue</h4>
+                        <div class="fs-12 text-muted">Email queue setup</div>
+                    </div>
+                    <div class="mb-5">
+                        <label class="form-label">
+                            <span class="me-2">Enable Email Queue</span>
+                            <span data-bs-toggle="tooltip" title="To speed up the emailing process, the system will add the emails in queue and will send them via cron job, make sure that the cron job is properly configured in order to use this feature."><i class="feather-info fs-13 text-muted"></i></span>
+                        </label>
+                        <select class="form-select" data-select2-selector="icon">
+                            <option value="" data-icon="feather-check text-success" selected>Yes</option>
+                            <option value="" data-icon="feather-x text-danger">No</option>
+                        </select>
+                        <small class="form-text text-muted">Enable Email Queue [Ex: YES/NO]</small>
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label">
+                            <span class="me-2">Do not add emails with attachments in the queue?</span>
+                            <span data-bs-toggle="tooltip" title="Most likely you will encounter problems with the email queue if the system needs to add big files to the queue."><i class="feather-info fs-13 text-muted"></i></span>
+                        </label>
+                        <select class="form-select" data-select2-selector="icon">
+                            <option value="" data-icon="feather-check text-success" selected>Yes</option>
+                            <option value="" data-icon="feather-x text-danger">No</option>
+                        </select>
+                        <small class="form-text text-muted">Do not add emails with attachments in the queue? [Ex: YES/NO]</small>
+                    </div>
+
+                    <hr class="my-5">
+
+                    <div class="mb-5">
+                        <h4 class="fw-bold">Send Test Email</h4>
+                        <div class="fs-12 text-muted">Send test email to make sure that your SMTP settings is set correctly.</div>
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label">Test Email</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" placeholder="Send Test Email">
+                            <a href="javascript:void(0);" class="input-group-text">Send Test</a>
+                        </div>
+                        <small class="form-text text-muted">Send Test Email [Ex: test_1@email.com, test_2@email.com, test_3@email.com]</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<?php include 'includes/footer.php'; ?>
+
+<div class="main-content d-flex settings-theme-customizer">
                 <!-- [ Content Sidebar ] start -->
                 <div class="content-sidebar content-sidebar-md" data-scrollbar-target="#psScrollbarInit">
                     <div class="content-sidebar-header sticky-top hstack justify-content-between">
@@ -285,358 +196,7 @@
                                     <i class="feather-life-buoy"></i>
                                     <span>Support</span>
                                 </a>
-                            </li>
-
-                            <li class="nav-item">
-                                <a class="nav-link" href="settings-students.php">
-                                    <i class="feather-users"></i>
-                                    <span>Students</span>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="settings-miscellaneous.php">
-                                    <i class="feather-cast"></i>
-                                    <span>Miscellaneous</span>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="theme-customizer.php">
-                                    <i class="feather-settings"></i>
-                                    <span>Theme Customizer</span>
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-                <!-- [ Content Sidebar  ] end -->
-                <!-- [ Main Area  ] start -->
-                <div class="content-area" data-scrollbar-target="#psScrollbarInit">
-                    <div class="content-area-header sticky-top">
-                        <div class="page-header-left">
-                            <a href="javascript:void(0);" class="app-sidebar-open-trigger me-2">
-                                <i class="feather-align-left fs-24"></i>
-                            </a>
-                        </div>
-                        <div class="page-header-right ms-auto">
-                            <div class="d-flex align-items-center gap-3 page-header-right-items-wrapper">
-                                <a href="javascript:void(0);" class="text-danger">Cancel</a>
-                                <a href="javascript:void(0);" class="btn btn-primary successAlertMessage">
-                                    <i class="feather-save me-2"></i>
-                                    <span>Save Changes</span>
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="content-area-body">
-                        <div class="card mb-0">
-                            <div class="card-body">
-                                <div class="mb-5">
-                                    <h4 class="fw-bold">SMTP Settings</h4>
-                                    <div class="fs-12 text-muted">SMTP setup main email</div>
-                                </div>
-                                <div class="mb-5">
-                                    <label class="form-label">Mail Engine <span class="text-danger">*</span></label>
-                                    <select class="form-select" data-select2-selector="default">
-                                        <option selected>HPMailer</option>
-                                        <option value="">CodeIgniter</option>
-                                    </select>
-                                    <small class="form-text text-muted">Mail Engine [Ex: HPMailer/CodeIgniter]</small>
-                                </div>
-                                <div class="mb-5">
-                                    <label class="form-label">Email Protocol</label>
-                                    <select class="form-select" data-select2-selector="default">
-                                        <option value="">Mail</option>
-                                        <option selected>SMTP</option>
-                                        <option value="">Sendmail</option>
-                                    </select>
-                                    <small class="form-text text-muted">Email Protocol [Ex: Mail/SMTP/Sendmail]</small>
-                                </div>
-                                <div class="mb-5">
-                                    <label class="form-label">Email</label>
-                                    <input type="text" class="form-control" placeholder="Email">
-                                    <small class="form-text text-muted">Email [Ex: support@theme_ocean.com]</small>
-                                </div>
-                                <div class="mb-5">
-                                    <label class="form-label">Email Charset</label>
-                                    <input type="text" class="form-control" placeholder="Email Charset">
-                                    <small class="form-text text-muted">Email [Ex: utf-8]</small>
-                                </div>
-                                <div class="mb-5">
-                                    <label class="form-label">Email Signature</label>
-                                    <textarea class="form-control" rows="10" placeholder="Email Signature"></textarea>
-                                    <small class="form-text text-muted">Email Signature [Ex: theme_ocean]</small>
-                                </div>
-                                <div class="mb-5">
-                                    <label class="form-label">Predefined Header</label>
-                                    <textarea class="form-control" rows="10" placeholder="Predefined Header"></textarea>
-                                    <small class="form-text text-muted">Predefined Header [Ex: Email template header code]</small>
-                                </div>
-                                <div class="mb-0">
-                                    <label class="form-label">Predefined Footer</label>
-                                    <textarea class="form-control" rows="10" placeholder="Predefined Footer"></textarea>
-                                    <small class="form-text text-muted">Predefined Footer [Ex: Email template footer code]</small>
-                                </div>
-                                <hr class="my-5">
-                                <div class="mb-4">
-                                    <h4 class="fw-bold">Email Queue</h4>
-                                    <div class="fs-12 text-muted">Email queue setup</div>
-                                </div>
-                                <div class="mb-5">
-                                    <label class="form-label">
-                                        <span class="me-2">Enable Email Queue</span>
-                                        <span data-bs-toggle="tooltip" title="To speed up the emailing process, the system will add the emails in queue and will send them via cron job, make sure that the cron job is properly configured in order to use this feature."><i class="feather-info fs-13 text-muted"></i></span>
-                                    </label>
-                                    <select class="form-select" data-select2-selector="icon">
-                                        <option value="" data-icon="feather-check text-success" selected>Yes</option>
-                                        <option value="" data-icon="feather-x text-danger">No</option>
-                                    </select>
-                                    <small class="form-text text-muted">Enable Email Queue [Ex: YES/NO]</small>
-                                </div>
-                                <div class="mb-0">
-                                    <label class="form-label">
-                                        <span class="me-2">Do not add emails with attachments in the queue?</span>
-                                        <span data-bs-toggle="tooltip" title="Most likely you will encounter problems with the email queue if the system needs to add big files to the queue."><i class="feather-info fs-13 text-muted"></i></span>
-                                    </label>
-                                    <select class="form-select" data-select2-selector="icon">
-                                        <option value="" data-icon="feather-check text-success" selected>Yes</option>
-                                        <option value="" data-icon="feather-x text-danger">No</option>
-                                    </select>
-                                    <small class="form-text text-muted">Do not add emails with attachments in the queue? [Ex: YES/NO]</small>
-                                </div>
-                                <hr class="my-5">
-                                <div class="mb-5">
-                                    <h4 class="fw-bold">Send Test Email</h4>
-                                    <div class="fs-12 text-muted">Send test email to make sure that your SMTP settings is set correctly.</div>
-                                </div>
-                                <div class="mb-0">
-                                    <label class="form-label">Test Email</label>
-                                    <div class="input-group">
-                                        <input type="text" class="form-control" placeholder="Send Test Email">
-                                        <a href="javascript:void(0);" class="input-group-text">Send Test</a>
-                                    </div>
-                                    <small class="form-text text-muted">Send Test Email [Ex: test_1@email.com, test_2@email.com, test_3@email.com]</small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- [ Footer ] start -->
-                    <footer class="footer">
-                        <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
-                            <span>Copyright �</span>
-                            <script>
-                                document.write(new Date().getFullYear());
-                            </script>
-                        </p>
-                        <div class="d-flex align-items-center gap-4">
-                            <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Help</a>
-                            <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Terms</a>
-                            <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Privacy</a>
-                        </div>
-                    </footer>
-                    <!-- [ Footer ] end -->
-                </div>
-                <!-- [ Content Area ] end -->
-            </div>
-            <!-- [ Main Content ] end -->
-        </div>
-    </main>
-    <!--! ================================================================ !-->
-    <!--! [End] Main Content !-->
-    <!--! ================================================================ !-->
-    <!--! ================================================================ !-->
-    <!--! BEGIN: Compose Mail Modal !-->
-    <!--! ================================================================ !-->
-    <div class="modal fade-scale" id="composeMail" tabindex="-1" aria-labelledby="composeMail" aria-hidden="true" data-bs-dismiss="ou">
-        <div class="modal-dialog modal-dialog-centered modal-xl" role="document">
-            <div class="modal-content">
-                <!--! BEGIN: [modal-header] !-->
-                <div class="modal-header">
-                    <h2 class="d-flex flex-column mb-0">
-                        <span class="fs-18 fw-bold mb-1">Compose Mail</span>
-                        <small class="d-block fs-11 fw-normal text-muted">Compose Your Message</small>
-                    </h2>
-                    <a href="javascript:void(0)" class="avatar-text avatar-md bg-soft-danger close-icon" data-bs-dismiss="modal">
-                        <i class="feather-x text-danger"></i>
-                    </a>
-                </div>
-                <!--! BEGIN: [modal-body] !-->
-                <div class="modal-body p-0">
-                    <div class="position-relative border-bottom">
-                        <div class="px-2 d-flex align-items-center">
-                            <div class="p-0 w-100">
-                                <input class="form-control border-0 text-dark" name="tomailmodal" placeholder="TO">
-                            </div>
-                        </div>
-                        <a href="javascript:void(0)" class="position-absolute top-50 end-0 translate-middle badge bg-gray-100 border border-gray-3 fs-10 fw-semibold text-uppercase text-dark rounded-pill c-pointer z-index-100" id="ccbccToggleModal"><span data-bs-toggle="tooltip" data-bs-trigger="hover" title="CC / BCC" style="font-size: 9px !important">CC / BCC</span></a>
-                    </div>
-                    <div class="border-bottom mail-cc-bcc-fields" id="ccbccToggleModalFileds" style="display: none">
-                        <div class="px-2 w-100 d-flex align-items-center border-bottom">
-                            <input class="form-control border-0 text-dark" name="ccmailmodal" placeholder="CC">
-                        </div>
-                        <div class="px-2 w-100 d-flex align-items-center">
-                            <input class="form-control border-0 text-dark" name="bccmailmodal" placeholder="BCC">
-                        </div>
-                    </div>
-                    <div class="px-3 w-100 d-flex align-items-center">
-                        <input class="form-control border-0 my-1 w-100 shadow-none" type="email" placeholder="Subject">
-                    </div>
-                    <div class="editor w-100 m-0">
-                        <div class="ht-300 border-bottom-0" id="mailEditorModal"></div>
-                    </div>
-                </div>
-                <!--! BEGIN: [modal-footer] !-->
-                <div class="modal-footer d-flex align-items-center justify-content-between">
-                    <!--! BEGIN: [mail-editor-action-left] !-->
-                    <div class="d-flex align-items-center">
-                        <div class="dropdown me-2">
-                            <a href="javascript:void(0)" data-bs-toggle="dropdown" data-bs-offset="0, 0">
-                                <span class="btn btn-primary dropdown-toggle" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Send Message"> Send </span>
-                            </a>
-                            <div class="dropdown-menu">
-                                <a href="javascript:void(0)" class="dropdown-item" data-action-target="#mailActionMessage">
-                                    <i class="feather-send me-3"></i>
-                                    <span>Instant Send</span>
-                                </a>
-                                <a href="javascript:void(0);" class="dropdown-item successAlertMessage">
-                                    <i class="feather-clock me-3"></i>
-                                    <span>Schedule Send</span>
-                                </a>
-                                <div class="dropdown-divider"></div>
-                                <a href="javascript:void(0)" class="dropdown-item successAlertMessage">
-                                    <i class="feather-x me-3"></i>
-                                    <span>Discard Now</span>
-                                </a>
-                                <a href="javascript:void(0)" class="dropdown-item successAlertMessage">
-                                    <i class="feather-edit-3 me-3"></i>
-                                    <span>Save as Draft</span>
-                                </a>
-                            </div>
-                        </div>
-                        <div class="dropdown me-2 d-none d-sm-block">
-                            <a href="javascript:void(0)" data-bs-toggle="dropdown" data-bs-offset="0, 0">
-                                <span class="btn btn-icon" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Pick Template">
-                                    <i class="feather-hash"></i>
-                                </span>
-                            </a>
-                            <div class="dropdown-menu wd-300">
-                                <a href="javascript:void(0)" class="dropdown-item">
-                                    <i class="feather-file-text me-3"></i>
-                                    <span>Welcome you message</span>
-                                </a>
-                                <a href="javascript:void(0)" class="dropdown-item">
-                                    <i class="feather-file-text me-3"></i>
-                                    <span>Your issues solved</span>
-                                </a>
-                                <a href="javascript:void(0)" class="dropdown-item">
-                                    <i class="feather-file-text me-3"></i>
-                                    <span>Thank you message</span>
-                                </a>
-                                <a href="javascript:void(0)" class="dropdown-item">
-                                    <i class="feather-file-text me-3"></i>
-                                    <span>Make a offer message</span>
-                                </a>
-                                <a href="javascript:void(0)" class="dropdown-item">
-                                    <i class="feather-file-text me-3"></i>
-                                    <span>Add the Unsubscribe option</span>
-                                </a>
-                                <a href="javascript:void(0)" class="dropdown-item">
-                                    <i class="feather-file-text me-3"></i>
-                                    <span>Thank your customer for joining</span>
-                                </a>
-                                <div class="dropdown-divider"></div>
-                                <a href="javascript:void(0)" class="dropdown-item">
-                                    <i class="feather-save me-3"></i>
-                                    <span>Save as Template</span>
-                                </a>
-                                <a href="javascript:void(0)" class="dropdown-item">
-                                    <i class="feather-sun me-3"></i>
-                                    <span>Manage Template</span>
-                                </a>
-                            </div>
-                        </div>
-                        <div class="dropdown">
-                            <a href="javascript:void(0)" data-bs-toggle="dropdown" data-bs-offset="0, 0">
-                                <span class="btn btn-icon" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Upload Attachments">
-                                    <i class="feather-upload"></i>
-                                </span>
-                            </a>
-                            <div class="dropdown-menu">
-                                <a href="javascript:void(0)" class="dropdown-item">
-                                    <i class="feather-image me-3"></i>
-                                    <span>Upload Images</span>
-                                </a>
-                                <a href="javascript:void(0)" class="dropdown-item">
-                                    <i class="feather-video me-3"></i>
-                                    <span>Upload Videos</span>
-                                </a>
-                                <a href="javascript:void(0)" class="dropdown-item">
-                                    <i class="feather-mic me-3"></i>
-                                    <span>Upload Musics</span>
-                                </a>
-                                <a href="javascript:void(0)" class="dropdown-item">
-                                    <i class="feather-file-text me-3"></i>
-                                    <span>Upload Documents</span>
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                    <!--! BEGIN: [mail-editor-action-right] !-->
-                    <div class="d-flex align-items-center">
-                        <div class="dropdown me-2">
-                            <a href="javascript:void(0)" data-bs-toggle="dropdown" data-bs-offset="0, 0">
-                                <span class="btn btn-icon" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Editing Actions">
-                                    <i class="feather-more-horizontal"></i>
-                                </span>
-                            </a>
-                            <ul class="dropdown-menu">
-                                <li>
-                                    <a href="javascript:void(0)" class="dropdown-item">
-                                        <i class="feather-type me-3"></i>
-                                        <span>Plain Text Mode</span>
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="javascript:void(0)" class="dropdown-item">
-                                        <i class="feather-check me-3"></i>
-                                        <span>Check Spelling</span>
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="javascript:void(0)" class="dropdown-item">
-                                        <i class="feather-compass me-3"></i>
-                                        <span>Smart Compose</span>
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="javascript:void(0)" class="dropdown-item">
-                                        <i class="feather-feather me-3"></i>
-                                        <span>Manage Signature</span>
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                        <a href="javascript:void(0);" data-bs-dismiss="modal">
-                            <span class="btn btn-icon" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Delete Message">
-                                <i class="feather-x"></i>
-                            </span>
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <!--! ================================================================ !-->
-    <!--! END: Compose Mail Modal !-->
-    <!--! ================================================================ !-->
-
-    <!--! ================================================================ !-->
- 
-    <!--! ================================================================ !-->
-    <!--! BEGIN: Downloading Toast !-->
-    <!--! ================================================================ !-->
-    <div class="position-fixed" style="right: 5px; bottom: 5px; z-index: 999999">
-        <div id="toast" class="toast bg-black hide" data-bs-delay="3000" role="alert" aria-live="assertive" aria-atomic="true">
-            <div class="toast-header px-3 bg-transparent d-flex align-items-center justify-content-between border-bottom border-light border-opacity-10">
+                <?php include 'includes/footer.php'; ?>
                 <div class="text-white mb-0 mr-auto">Downloading...</div>
                 <a href="javascript:void(0)" class="ms-2 mb-1 close fw-normal" data-bs-dismiss="toast" aria-label="Close">
                     <span class="text-white">&times;</span>
