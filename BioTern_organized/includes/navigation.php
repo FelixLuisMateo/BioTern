@@ -17,31 +17,19 @@ $nav_can_reports = ($nav_is_admin || $nav_is_coordinator || $nav_is_supervisor);
 ?>
 <style>
     @media (min-width: 1025px) {
-        html.minimenu .nxl-navigation:not(:hover) .navbar-content .nxl-caption {
-            display: none !important;
-        }
-
-        html.minimenu .nxl-navigation:not(:hover) .navbar-content .nxl-hasmenu > .nxl-submenu {
-            display: none !important;
-        }
-
-        html.minimenu .nxl-navigation:not(:hover) .navbar-content .nxl-hasmenu.nxl-trigger > .nxl-submenu {
-            display: none !important;
-        }
-
-        html.minimenu .nxl-navigation:not(:hover) .navbar-content .nxl-submenu .nxl-link {
-            display: none !important;
-        }
-
-        html.minimenu .nxl-navigation:hover .navbar-content .nxl-caption {
+        html.minimenu .nxl-navigation .navbar-content .nxl-caption {
             display: block !important;
+            padding: 10px 8px 6px;
+            text-align: center;
         }
 
-        html.minimenu .nxl-navigation:hover .navbar-content .nxl-hasmenu > .nxl-submenu {
+        html.minimenu .nxl-navigation .navbar-content .nxl-caption:before {
+            content: none !important;
             display: none !important;
         }
 
-        html.minimenu .nxl-navigation:hover .navbar-content .nxl-hasmenu.nxl-trigger > .nxl-submenu {
+        html.minimenu .nxl-navigation .navbar-content .nxl-caption span,
+        html.minimenu .nxl-navigation .navbar-content .nxl-caption label {
             display: block !important;
         }
 
@@ -88,6 +76,13 @@ $nav_can_reports = ($nav_is_admin || $nav_is_coordinator || $nav_is_supervisor);
             overflow-y: auto !important;
             overscroll-behavior: contain;
         }
+    }
+
+    /* Disable sidebar animation effects between page navigations */
+    .nxl-navigation,
+    .nxl-navigation * {
+        transition: none !important;
+        animation: none !important;
     }
 
     html.nav-restoring .nxl-navigation,
@@ -335,8 +330,8 @@ $nav_can_reports = ($nav_is_admin || $nav_is_coordinator || $nav_is_supervisor);
             nav.querySelectorAll('.nxl-item.active').forEach(function (item) {
                 item.classList.remove('active');
             });
-            nav.querySelectorAll('.nxl-item.nxl-hasmenu.nxl-trigger').forEach(function (item) {
-                item.classList.remove('nxl-trigger');
+            nav.querySelectorAll('.nxl-item.nxl-hasmenu.open').forEach(function (item) {
+                item.classList.remove('open');
             });
 
             nav.querySelectorAll('.nxl-item .nxl-link[href]').forEach(function (a) {
@@ -345,7 +340,7 @@ $nav_can_reports = ($nav_is_admin || $nav_is_coordinator || $nav_is_supervisor);
                     var item = a.closest('.nxl-item');
                     if (item) item.classList.add('active');
                     var parentMenu = a.closest('.nxl-item.nxl-hasmenu');
-                    if (parentMenu) parentMenu.classList.add('active', 'nxl-trigger');
+                    if (parentMenu) parentMenu.classList.add('active', 'open');
                 }
             });
 
@@ -370,17 +365,12 @@ $nav_can_reports = ($nav_is_admin || $nav_is_coordinator || $nav_is_supervisor);
             trigger.addEventListener('click', function () {
                 setTimeout(persistState, 0);
             });
-        });
+        }
 
-        document.querySelectorAll('.nxl-navigation .nxl-submenu .nxl-link[href]').forEach(function (link) {
-            link.addEventListener('click', persistState);
-        });
-
-        var sc = getScrollContainer();
-        if (sc) {
-            sc.addEventListener('scroll', function () {
-                try { localStorage.setItem(KEY_SCROLL, String(sc.scrollTop || 0)); } catch (e) {}
-            }, { passive: true });
+        var html = document.documentElement;
+        if (window.MutationObserver && html) {
+            var observer = new MutationObserver(collapseIfMini);
+            observer.observe(html, { attributes: true, attributeFilter: ['class'] });
         }
     })();
 </script>

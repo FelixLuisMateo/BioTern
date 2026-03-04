@@ -23,6 +23,38 @@
         }
     })();
 </script>
+<style>
+    @media (min-width: 1025px) {
+        html.minimenu .nxl-navigation .navbar-content .nxl-caption {
+            display: block !important;
+            padding: 10px 8px 6px;
+            text-align: center;
+        }
+
+        html.minimenu .nxl-navigation .navbar-content .nxl-caption:before {
+            content: none !important;
+            display: none !important;
+        }
+
+        html.minimenu .nxl-navigation .navbar-content .nxl-caption span,
+        html.minimenu .nxl-navigation .navbar-content .nxl-caption label {
+            display: block !important;
+            margin: 0;
+            font-size: 9px;
+            line-height: 1.2;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Prevent stacked submenu text while sidebar is collapsed */
+        html.minimenu .nxl-navigation:not(:hover) .navbar-content .nxl-hasmenu > .nxl-submenu,
+        html.minimenu .nxl-navigation:not(:hover) .navbar-content .nxl-hasmenu.open > .nxl-submenu,
+        html.minimenu .nxl-navigation:not(:hover) .navbar-content .nxl-hasmenu.nxl-trigger > .nxl-submenu {
+            display: none !important;
+        }
+    }
+</style>
 <nav class="nxl-navigation">
     <div class="navbar-wrapper">
         <div class="m-header">
@@ -179,3 +211,32 @@
         </div>
     </div>
 </nav>
+<script>
+    (function () {
+        function collapseIfMini() {
+            if (!document.documentElement.classList.contains('minimenu')) return;
+            document.querySelectorAll('.nxl-navigation .nxl-item.nxl-hasmenu.open, .nxl-navigation .nxl-item.nxl-hasmenu.nxl-trigger').forEach(function (item) {
+                item.classList.remove('open', 'nxl-trigger');
+            });
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', collapseIfMini);
+        } else {
+            collapseIfMini();
+        }
+
+        var miniBtn = document.getElementById('menu-mini-button');
+        if (miniBtn) {
+            miniBtn.addEventListener('click', function () {
+                setTimeout(collapseIfMini, 0);
+            });
+        }
+
+        var html = document.documentElement;
+        if (window.MutationObserver && html) {
+            var observer = new MutationObserver(collapseIfMini);
+            observer.observe(html, { attributes: true, attributeFilter: ['class'] });
+        }
+    })();
+</script>

@@ -305,6 +305,17 @@ if ($session_avatar !== '') {
     <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css" />
     <!--! END: Custom CSS-->
     <style>
+        .nxl-header .user-avtar,
+        .nxl-user-dropdown .user-avtar {
+            width: 40px !important;
+            height: 40px !important;
+            min-width: 40px !important;
+            min-height: 40px !important;
+            border-radius: 50% !important;
+            object-fit: cover !important;
+            object-position: center !important;
+        }
+
         html.app-skin-dark input.form-control,
         html.app-skin-dark textarea.form-control,
         html.app-skin-dark .form-control[type="text"],
