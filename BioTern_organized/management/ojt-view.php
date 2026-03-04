@@ -1729,35 +1729,35 @@ $dau_print_url = $app_base . 'pages/generate_dau_moa.php?' . http_build_query([
                                     <?php else: ?>
                                         <div class="row g-2 mb-3" id="printDocsSelection">
                                             <div class="col-md-3 col-sm-6">
-                                                <label class="print-doc-option mb-0 <?php echo $document_completion['application'] ? 'is-checked' : ''; ?>"
+                                                <label class="print-doc-option mb-0"
                                                     data-doc-url="<?php echo htmlspecialchars($application_print_url); ?>"
                                                     data-doc-label="Application Letter">
                                                     <span class="print-doc-label">Application Letter</span>
-                                                    <span class="print-doc-state"><?php echo $document_completion['application'] ? 'Selected' : 'Select'; ?></span>
+                                                    <span class="print-doc-state">Select</span>
                                                 </label>
                                             </div>
                                             <div class="col-md-3 col-sm-6">
-                                                <label class="print-doc-option mb-0 <?php echo $document_completion['moa'] ? 'is-checked' : ''; ?>"
+                                                <label class="print-doc-option mb-0"
                                                     data-doc-url="<?php echo htmlspecialchars($moa_print_url); ?>"
                                                     data-doc-label="MOA">
                                                     <span class="print-doc-label">MOA</span>
-                                                    <span class="print-doc-state"><?php echo $document_completion['moa'] ? 'Selected' : 'Select'; ?></span>
+                                                    <span class="print-doc-state">Select</span>
                                                 </label>
                                             </div>
                                             <div class="col-md-3 col-sm-6">
-                                                <label class="print-doc-option mb-0 <?php echo $document_completion['endorsement'] ? 'is-checked' : ''; ?>"
+                                                <label class="print-doc-option mb-0"
                                                     data-doc-url="<?php echo htmlspecialchars($endorsement_print_url); ?>"
                                                     data-doc-label="Endorsement Letter">
                                                     <span class="print-doc-label">Endorsement Letter</span>
-                                                    <span class="print-doc-state"><?php echo $document_completion['endorsement'] ? 'Selected' : 'Select'; ?></span>
+                                                    <span class="print-doc-state">Select</span>
                                                 </label>
                                             </div>
                                             <div class="col-md-3 col-sm-6">
-                                                <label class="print-doc-option mb-0 <?php echo $document_completion['dau_moa'] ? 'is-checked' : ''; ?>"
+                                                <label class="print-doc-option mb-0"
                                                     data-doc-url="<?php echo htmlspecialchars($dau_print_url); ?>"
                                                     data-doc-label="Dau MOA">
                                                     <span class="print-doc-label">Dau MOA</span>
-                                                    <span class="print-doc-state"><?php echo $document_completion['dau_moa'] ? 'Selected' : 'Select'; ?></span>
+                                                    <span class="print-doc-state">Select</span>
                                                 </label>
                                             </div>
                                         </div>
