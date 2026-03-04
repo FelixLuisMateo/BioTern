@@ -93,6 +93,7 @@ $map = [
 
   'help-knowledgebase.php' => 'public/help-knowledgebase.php',
   'create_admin.php' => 'auth/create_admin.php',
+  'users.php' => 'auth/users.php',
   'idnotfound-404.php' => 'auth/idnotfound-404.php',
   'auth-404-minimal.php' => 'auth/auth-404-minimal.php',
   'auth-login-cover.php' => 'auth/auth-login-cover.php',
@@ -143,10 +144,19 @@ if (!$is_public && !$is_logged_in) {
   exit;
 }
 
-// If already logged in, prevent opening login/register screens by URL.
-if ($is_logged_in && in_array($file, ['auth-login-cover.php', 'auth-register-creative.php'], true) && !$is_logout_request) {
+// If already logged in, keep login page blocked.
+if ($is_logged_in && $file === 'auth-login-cover.php' && !$is_logout_request) {
   header('Location: homepage.php');
   exit;
+}
+
+// Allow account registration page only for privileged logged-in users.
+if ($is_logged_in && $file === 'auth-register-creative.php') {
+  $current_role = strtolower(trim((string)($_SESSION['role'] ?? '')));
+  if (!in_array($current_role, ['admin', 'coordinator', 'supervisor'], true)) {
+    header('Location: homepage.php');
+    exit;
+  }
 }
 
 // Refresh session fields from DB to keep account info consistent across all pages.
@@ -180,6 +190,56 @@ if ($is_logged_in) {
       $_SESSION['logged_in'] = true;
     }
     $db->close();
+  }
+}
+
+// Role-based route access control to keep sections tied to account type.
+if ($is_logged_in) {
+  $current_role = strtolower(trim((string)($_SESSION['role'] ?? '')));
+
+  $internship_files = [
+    'students.php', 'students-create.php', 'students-edit.php', 'students-view.php', 'students-dtr.php',
+    'attendance.php', 'attendance-corrections.php', 'edit_attendance.php', 'print_attendance.php',
+    'demo-biometric.php',
+    'ojt.php', 'ojt-create.php', 'ojt-edit.php', 'ojt-view.php', 'ojt-workflow-board.php',
+    'reports-sales.php', 'reports-ojt.php', 'reports-project.php', 'reports-timesheets.php', 'reports-attendance-operations.php',
+  ];
+  $academic_files = [
+    'courses.php', 'courses-create.php', 'courses-edit.php',
+    'departments.php', 'departments-create.php', 'departments-edit.php',
+    'sections.php', 'sections-create.php', 'sections-edit.php',
+    'coordinators.php', 'coordinators-create.php', 'coordinators-edit.php',
+    'supervisors.php', 'supervisors-create.php', 'supervisors-edit.php',
+  ];
+  $workspace_files = [
+    'apps-chat.php', 'apps-email.php', 'apps-tasks.php', 'apps-notes.php', 'apps-storage.php', 'apps-calendar.php',
+    'widgets-lists.php', 'widgets-tables.php', 'widgets-charts.php', 'widgets-statistics.php', 'widgets-miscellaneous.php',
+  ];
+  $system_files = [
+    'auth-register-creative.php', 'users.php', 'create_admin.php',
+    'settings-general.php', 'settings-seo.php', 'settings-tags.php', 'settings-email.php',
+    'settings-tasks.php', 'settings-ojt.php', 'settings-support.php', 'settings-students.php',
+    'settings-miscellaneous.php', 'settings-localization.php',
+  ];
+
+  $deny = false;
+  if (in_array($file, $internship_files, true) && !in_array($current_role, ['admin', 'coordinator', 'supervisor'], true)) {
+    $deny = true;
+  }
+  if (in_array($file, $academic_files, true) && !in_array($current_role, ['admin', 'coordinator'], true)) {
+    $deny = true;
+  }
+  if (in_array($file, $workspace_files, true) && !in_array($current_role, ['admin', 'coordinator'], true)) {
+    $deny = true;
+  }
+  if (in_array($file, $system_files, true) && $current_role !== 'admin') {
+    $deny = true;
+  }
+
+  if ($deny) {
+    http_response_code(403);
+    header('Location: homepage.php');
+    exit;
   }
 }
 

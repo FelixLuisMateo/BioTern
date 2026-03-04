@@ -35,17 +35,85 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $hashed = password_hash($password, PASSWORD_DEFAULT);
                     $role = 'admin';
                     $is_active = 1;
-                    $ins = $mysqli->prepare('INSERT INTO users (name, username, email, password, role, is_active) VALUES (?, ?, ?, ?, ?, ?)');
-                    if ($ins) {
-                        $ins->bind_param('sssssi', $name, $username, $email, $hashed, $role, $is_active);
-                        if ($ins->execute()) {
-                            $message = 'Admin account created successfully. ID: ' . (int)$ins->insert_id;
-                        } else {
-                            $message = 'Insert failed: ' . esc($ins->error);
+                    $mysqli->begin_transaction();
+                    try {
+                        $ins = $mysqli->prepare('INSERT INTO users (name, username, email, password, role, is_active) VALUES (?, ?, ?, ?, ?, ?)');
+                        if (!$ins) {
+                            throw new Exception('Insert statement preparation failed.');
                         }
+                        $ins->bind_param('sssssi', $name, $username, $email, $hashed, $role, $is_active);
+                        if (!$ins->execute()) {
+                            $err = $ins->error;
+                            $ins->close();
+                            throw new Exception('Insert failed: ' . $err);
+                        }
+                        $user_id = (int)$ins->insert_id;
                         $ins->close();
-                    } else {
-                        $message = 'Insert statement preparation failed.';
+
+                        // Keep legacy admin profile table in sync when present.
+                        $admin_table_exists = $mysqli->query("SHOW TABLES LIKE 'admin'");
+                        if ($admin_table_exists && $admin_table_exists->num_rows > 0) {
+                            $next_admin_id = 1;
+                            $next_id_res = $mysqli->query("SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM admin");
+                            if ($next_id_res) {
+                                $row = $next_id_res->fetch_assoc();
+                                if ($row && isset($row['next_id'])) {
+                                    $next_admin_id = (int)$row['next_id'];
+                                }
+                                $next_id_res->close();
+                            }
+
+                            $department_id = 1;
+                            $dept_res = $mysqli->query("SELECT id FROM departments ORDER BY id ASC LIMIT 1");
+                            if ($dept_res && $dept_res->num_rows > 0) {
+                                $dept_row = $dept_res->fetch_assoc();
+                                if ($dept_row && isset($dept_row['id'])) {
+                                    $department_id = (int)$dept_row['id'];
+                                }
+                                $dept_res->close();
+                            }
+
+                            $admin_level = 'admin';
+                            $admin_position = 'Admin';
+                            $middle_name = '';
+                            $phone_number = '';
+                            $stmt_admin = $mysqli->prepare("
+                                INSERT INTO admin (
+                                    id, user_id, first_name, middle_name, institution_email_address, phone_number,
+                                    admin_level, department_id, admin_position, username, password, email
+                                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            ");
+                            if (!$stmt_admin) {
+                                throw new Exception('Admin profile statement preparation failed: ' . $mysqli->error);
+                            }
+                            $stmt_admin->bind_param(
+                                'iisssssissss',
+                                $next_admin_id,
+                                $user_id,
+                                $name,
+                                $middle_name,
+                                $email,
+                                $phone_number,
+                                $admin_level,
+                                $department_id,
+                                $admin_position,
+                                $username,
+                                $hashed,
+                                $email
+                            );
+                            if (!$stmt_admin->execute()) {
+                                $err = $stmt_admin->error;
+                                $stmt_admin->close();
+                                throw new Exception('Admin profile insert failed: ' . $err);
+                            }
+                            $stmt_admin->close();
+                        }
+
+                        $mysqli->commit();
+                        $message = 'Admin account created successfully. ID: ' . $user_id;
+                    } catch (Throwable $e) {
+                        $mysqli->rollback();
+                        $message = esc($e->getMessage());
                     }
                 }
                 $stmt->close();
