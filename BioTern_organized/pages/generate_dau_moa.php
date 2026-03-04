@@ -44,8 +44,32 @@ $use_saved_template = q('use_saved_template', '0') === '1';
     <meta charset="utf-8">
     <title>BioTern || DAU Memorandum of Agreement</title>
     <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
+    <script>
+        (function () {
+            var dark = false;
+            try {
+                var match = document.cookie.match(/(?:^|;\s*)biotern_theme_preferences=([^;]+)/);
+                if (match && match[1]) {
+                    var prefs = JSON.parse(decodeURIComponent(match[1]));
+                    if (prefs && prefs.skin === 'dark') dark = true;
+                }
+            } catch (e) {}
+            try {
+                var primary = localStorage.getItem('app-skin');
+                var skin = primary !== null
+                    ? primary
+                    : (localStorage.getItem('app_skin')
+                        || localStorage.getItem('theme')
+                        || localStorage.getItem('app-skin-dark')
+                        || '');
+                if (typeof skin === 'string' && skin.indexOf('dark') !== -1) dark = true;
+                if (primary !== null && primary.indexOf('dark') === -1) dark = false;
+            } catch (e) {}
+            if (dark) document.documentElement.classList.add('app-skin-dark');
+        })();
+    </script>
     <style>
-        @page { size: A4 portrait; margin: 0.35in 1in 1in 1in; }
+        @page { size: A4 portrait; margin: 0.31in 0.81in 0in 0.81in; }
         html, body { margin: 0; padding: 0; color: #111; }
         body { font-family: "Arial Narrow", Arial, sans-serif; font-size: 12pt; background: #eceff3; }
         .container {
@@ -67,6 +91,13 @@ $use_saved_template = q('use_saved_template', '0') === '1';
         .right { text-align:right; }
         .actions { margin-top:18px; display:flex; gap:8px; flex-wrap:wrap; }
         .btn { border:1px solid #333; background:#fff; padding:8px 12px; cursor:pointer; }
+        html.app-skin-dark body { background:#0b1220; color:#e5e7eb; }
+        html.app-skin-dark .container { background:#0f172a; color:#e5e7eb; box-shadow:0 8px 28px rgba(0,0,0,.45); }
+        html.app-skin-dark .doc,
+        html.app-skin-dark .doc p,
+        html.app-skin-dark .doc li,
+        html.app-skin-dark .doc h4 { color:#e5e7eb; }
+        html.app-skin-dark .btn { background:#111827; color:#e5e7eb; border-color:#334155; }
         @media print {
             body { background: #fff; }
             .container {

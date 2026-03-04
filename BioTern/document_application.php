@@ -196,6 +196,24 @@ include 'includes/header.php';
             user-select: text;
             -webkit-user-select: text;
         }
+        /* Keep auto-filled preview values plain (no inherited underline/line styles). */
+        #letter_content span {
+            text-decoration: none !important;
+            box-shadow: none !important;
+        }
+        #letter_content #ap_date,
+        #letter_content #ap_name,
+        #letter_content #ap_position,
+        #letter_content #ap_company,
+        #letter_content #ap_address,
+        #letter_content #ap_student,
+        #letter_content #ap_student_name,
+        #letter_content #ap_student_address,
+        #letter_content #ap_student_contact {
+            text-decoration: none !important;
+            border-bottom: none !important;
+            box-shadow: none !important;
+        }
         @media (max-width: 1024px) {
             .nxl-navigation,
             .nxl-navigation.mob-navigation-active { z-index: 2147483646 !important; }
