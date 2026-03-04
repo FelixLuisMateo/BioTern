@@ -227,8 +227,6 @@
     <!--! ================================================================ !-->
     <!--! [End] Header !-->
     <!--! ================================================================ !-->
-    <!--! Navigation (central include) -->
-    <?php include_once 'includes/navigation.php'; ?>
                                     <span class="fs-18 fw-bold mb-1 d-block">21</span>
                                     <span class="fs-10 text-semibold text-uppercase d-block">Dec</span>
                                 </div>

@@ -37,6 +37,14 @@ $nav_can_reports = ($nav_is_admin || $nav_is_coordinator || $nav_is_supervisor);
             display: block !important;
         }
 
+        html.minimenu .nxl-navigation:hover .navbar-content .nxl-hasmenu > .nxl-submenu {
+            display: none !important;
+        }
+
+        html.minimenu .nxl-navigation:hover .navbar-content .nxl-hasmenu.nxl-trigger > .nxl-submenu {
+            display: block !important;
+        }
+
         html.minimenu .nxl-navigation:hover .navbar-content .nxl-caption span {
             display: block !important;
         }
@@ -80,13 +88,6 @@ $nav_can_reports = ($nav_is_admin || $nav_is_coordinator || $nav_is_supervisor);
             overflow-y: auto !important;
             overscroll-behavior: contain;
         }
-    }
-
-    /* Disable sidebar animation effects between page navigations */
-    .nxl-navigation,
-    .nxl-navigation * {
-        transition: none !important;
-        animation: none !important;
     }
 
     html.nav-restoring .nxl-navigation,
@@ -334,8 +335,8 @@ $nav_can_reports = ($nav_is_admin || $nav_is_coordinator || $nav_is_supervisor);
             nav.querySelectorAll('.nxl-item.active').forEach(function (item) {
                 item.classList.remove('active');
             });
-            nav.querySelectorAll('.nxl-item.nxl-hasmenu.open').forEach(function (item) {
-                item.classList.remove('open');
+            nav.querySelectorAll('.nxl-item.nxl-hasmenu.nxl-trigger').forEach(function (item) {
+                item.classList.remove('nxl-trigger');
             });
 
             nav.querySelectorAll('.nxl-item .nxl-link[href]').forEach(function (a) {
@@ -344,7 +345,7 @@ $nav_can_reports = ($nav_is_admin || $nav_is_coordinator || $nav_is_supervisor);
                     var item = a.closest('.nxl-item');
                     if (item) item.classList.add('active');
                     var parentMenu = a.closest('.nxl-item.nxl-hasmenu');
-                    if (parentMenu) parentMenu.classList.add('active', 'open');
+                    if (parentMenu) parentMenu.classList.add('active', 'nxl-trigger');
                 }
             });
 

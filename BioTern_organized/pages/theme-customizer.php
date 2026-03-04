@@ -25,23 +25,54 @@ include 'includes/header.php';
     }
 </style>
 
-<div class="page-header">
-    <div class="page-header-left d-flex align-items-center">
-        <div class="page-header-title">
-            <h5 class="m-b-10">Theme Customizer</h5>
+<div class="main-content d-flex">
+    <div class="content-sidebar content-sidebar-md" data-scrollbar-target="#psScrollbarInit">
+        <div class="content-sidebar-header bg-white sticky-top hstack justify-content-between">
+            <h4 class="fw-bolder mb-0">Settings</h4>
+            <a href="javascript:void(0);" class="app-sidebar-close-trigger d-flex">
+                <i class="feather-x"></i>
+            </a>
         </div>
-        <ul class="breadcrumb">
-            <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
-            <li class="breadcrumb-item">Settings</li>
-            <li class="breadcrumb-item">Theme Customizer</li>
-        </ul>
+        <div class="content-sidebar-body">
+            <ul class="nav flex-column nxl-content-sidebar-item">
+                <li class="nav-item"><a class="nav-link" href="settings-general.php"><i class="feather-airplay"></i><span>General</span></a></li>
+                <li class="nav-item"><a class="nav-link" href="settings-seo.php"><i class="feather-search"></i><span>SEO</span></a></li>
+                <li class="nav-item"><a class="nav-link" href="settings-tags.php"><i class="feather-tag"></i><span>Tags</span></a></li>
+                <li class="nav-item"><a class="nav-link" href="settings-email.php"><i class="feather-mail"></i><span>Email</span></a></li>
+                <li class="nav-item"><a class="nav-link" href="settings-tasks.php"><i class="feather-check-circle"></i><span>Tasks</span></a></li>
+                <li class="nav-item"><a class="nav-link" href="settings-ojt.php"><i class="feather-crosshair"></i><span>Leads</span></a></li>
+                <li class="nav-item"><a class="nav-link" href="settings-support.php"><i class="feather-life-buoy"></i><span>Support</span></a></li>
+                <li class="nav-item"><a class="nav-link" href="settings-students.php"><i class="feather-users"></i><span>Students</span></a></li>
+                <li class="nav-item"><a class="nav-link" href="settings-miscellaneous.php"><i class="feather-cast"></i><span>Miscellaneous</span></a></li>
+                <li class="nav-item"><a class="nav-link active" href="theme-customizer.php"><i class="feather-settings"></i><span>Theme Customizer</span></a></li>
+            </ul>
+        </div>
     </div>
-</div>
 
-<div class="main-content">
-    <div class="row">
-        <div class="col-12 col-xl-8">
-            <div class="card theme-setting-card mb-4">
+    <div class="content-area" data-scrollbar-target="#psScrollbarInit">
+        <div class="content-area-header bg-white sticky-top">
+            <div class="page-header-left">
+                <a href="javascript:void(0);" class="app-sidebar-open-trigger me-2">
+                    <i class="feather-align-left fs-24"></i>
+                </a>
+            </div>
+            <div class="page-header-right ms-auto">
+                <div class="d-flex align-items-center gap-3 page-header-right-items-wrapper">
+                    <a href="javascript:void(0);" class="text-danger" id="theme-page-cancel-link">Cancel</a>
+                    <a href="javascript:void(0);" class="btn btn-primary" id="theme-page-save-link">
+                        <i class="feather-save me-2"></i>
+                        <span>Save Changes</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-area-body">
+            <div class="card mb-0">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-12 col-xl-8">
+                            <div class="card theme-setting-card mb-4">
                 <div class="card-header d-flex align-items-center justify-content-between">
                     <h5 class="mb-0">Appearance</h5>
                     <span class="badge bg-soft-primary text-primary">Live Preview</span>
@@ -108,7 +139,7 @@ include 'includes/header.php';
                 </div>
             </div>
 
-            <div class="card theme-setting-card">
+                            <div class="card theme-setting-card">
                 <div class="card-header d-flex align-items-center justify-content-between">
                     <h5 class="mb-0">Independent Surfaces</h5>
                     <span class="badge bg-soft-success text-success">Separate Control</span>
@@ -143,6 +174,10 @@ include 'includes/header.php';
                                 <label class="btn btn-outline-primary" for="theme-page-header-dark">Dark</label>
                             </div>
                             <input type="hidden" id="theme-page-header" value="light">
+                        </div>
+                    </div>
+                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -209,6 +244,25 @@ include 'includes/header.php';
 
             syncNavigationRadios();
             syncHeaderRadios();
+
+            var saveLink = document.getElementById('theme-page-save-link');
+            var cancelLink = document.getElementById('theme-page-cancel-link');
+            var saveButton = document.getElementById('theme-page-save');
+            var resetButton = document.getElementById('theme-page-reset');
+
+            if (saveLink && saveButton) {
+                saveLink.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    saveButton.click();
+                });
+            }
+
+            if (cancelLink && resetButton) {
+                cancelLink.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    resetButton.click();
+                });
+            }
         });
     })();
 </script>
