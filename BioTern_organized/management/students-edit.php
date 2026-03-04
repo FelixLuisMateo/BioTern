@@ -514,7 +514,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         }
                     }
 
-                    $success_message = "“ Student information updated successfully!";
+                    $success_message = "ï¿½ Student information updated successfully!";
                     // Refresh student data
                     $stmt = $conn->prepare($student_query);
                     $stmt->bind_param("i", $student_id);
@@ -560,31 +560,12 @@ function formatDateTime($date) {
     <meta name="author" content="ACT 2A Group 5">
     <title>BioTern || Edit Student - <?php echo htmlspecialchars($student['first_name'] . ' ' . $student['last_name']); ?></title>
     <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
-    <script>
-        (function(){
-            try{
-                var s = localStorage.getItem('app-skin-dark') || localStorage.getItem('app-skin') || localStorage.getItem('app_skin') || localStorage.getItem('theme');
-                if (s && (s.indexOf && s.indexOf('dark') !== -1 || s === 'app-skin-dark')) {
-                    document.documentElement.classList.add('app-skin-dark');
-                }
-            }catch(e){}
-        })();
-    </script>
+    <script src="assets/js/theme-preload-init.min.js"></script>
     <link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/vendors.min.css">
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2.min.css">
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2-theme.min.css">
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/datepicker.min.css">
-    <script>
-        (function(){
-            try{
-                var s = localStorage.getItem('app-skin-dark') || localStorage.getItem('app-skin') || localStorage.getItem('app_skin') || localStorage.getItem('theme');
-                if (s && (s.indexOf && s.indexOf('dark') !== -1 || s === 'app-skin-dark')) {
-                    document.documentElement.classList.add('app-skin-dark');
-                }
-            }catch(e){}
-        })();
-    </script>
     <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css">
     
     <style>
@@ -1229,7 +1210,7 @@ function formatDateTime($date) {
         <!-- Footer -->
         <footer class="footer">
             <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
-                <span>Copyright ©</span>
+                <span>Copyright ï¿½</span>
                 <script>
                     document.write(new Date().getFullYear());
                 </script>

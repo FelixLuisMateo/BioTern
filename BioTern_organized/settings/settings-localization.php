@@ -15,6 +15,7 @@
     <!--! BEGIN: Favicon-->
     <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
     <!--! END: Favicon-->
+    <script src="assets/js/theme-preload-init.min.js"></script>
     <!--! BEGIN: Bootstrap CSS-->
     <link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css">
     <!--! END: Bootstrap CSS-->
@@ -297,6 +298,12 @@
                                 <a class="nav-link" href="settings-miscellaneous.php">
                                     <i class="feather-cast"></i>
                                     <span>Miscellaneous</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="theme-customizer.php">
+                                    <i class="feather-settings"></i>
+                                    <span>Theme Customizer</span>
                                 </a>
                             </li>
                         </ul>
@@ -812,7 +819,7 @@
                     <!-- [ Footer ] start -->
                     <footer class="footer">
                         <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
-                            <span>Copyright ©</span>
+                            <span>Copyright ï¿½</span>
                             <script>
                                 document.write(new Date().getFullYear());
                             </script>

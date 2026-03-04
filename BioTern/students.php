@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -317,154 +317,10 @@ function formatDate($date) {
         }
         
         html.app-skin-dark .select2-results__option--highlighted[aria-selected] {
+            color: #0f172a !important;
             background-color: #667eea !important;
-            color: #ffffff !important;
-        }
-        
-        html.app-skin-dark select.form-control,
-        html.app-skin-dark select.form-select {
-            color: #f0f0f0 !important;
-            background-color: #0f172a !important;
-            border-color: #4a5568 !important;
-        }
-        
-        html.app-skin-dark select.form-control option,
-        html.app-skin-dark select.form-select option {
-            color: #f0f0f0 !important;
-            background-color: #0f172a !important;
         }
 
-        /* Filter row alignment */
-        .filter-form .form-label {
-            margin-bottom: 0.35rem;
-        }
-
-        /* Calendar input design */
-        .filter-form input[type="date"].form-control {
-            min-height: 42px;
-            border-radius: 8px;
-            padding-right: 2.25rem;
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        .filter-form input[type="date"].form-control:focus {
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.2);
-        }
-
-        html.app-skin-dark .filter-form input[type="date"].form-control {
-            color: #f0f0f0 !important;
-            background-color: #0f172a !important;
-            border-color: #4a5568 !important;
-        }
-
-        html.app-skin-dark .filter-form input[type="date"].form-control::-webkit-calendar-picker-indicator {
-            filter: invert(1) brightness(1.2);
-            opacity: 0.9;
-            cursor: pointer;
-        }
-
-        html.app-skin-dark .filter-form input[type="date"].form-control::-webkit-datetime-edit,
-        html.app-skin-dark .filter-form input[type="date"].form-control::-webkit-datetime-edit-text,
-        html.app-skin-dark .filter-form input[type="date"].form-control::-webkit-datetime-edit-month-field,
-        html.app-skin-dark .filter-form input[type="date"].form-control::-webkit-datetime-edit-day-field,
-        html.app-skin-dark .filter-form input[type="date"].form-control::-webkit-datetime-edit-year-field {
-            color: #f0f0f0;
-        }
-
-        .filter-form .select2-container .select2-selection--single {
-            min-height: 42px;
-            display: flex;
-            align-items: center;
-        }
-
-        .filter-form .select2-container--default .select2-selection--single .select2-selection__rendered {
-            line-height: 40px;
-        }
-
-        .filter-form .select2-container--default .select2-selection--single .select2-selection__arrow {
-            height: 40px;
-        }
-
-        .filter-form .filter-actions {
-            display: flex;
-            gap: 0.5rem;
-            margin-top: 1.55rem;
-        }
-
-        .filter-form .filter-actions .btn {
-            min-height: 42px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        /* Match ALL filter dropboxes with date picker color */
-        html.app-skin-dark .filter-form select.form-control,
-        html.app-skin-dark .filter-form select.form-select,
-        html.app-skin-dark .filter-form .select2-container--default .select2-selection--single {
-            color: #f0f0f0 !important;
-            background-color: #0f172a !important;
-            border-color: #4a5568 !important;
-        }
-
-        html.app-skin-dark .filter-form .select2-container--default .select2-selection--single .select2-selection__rendered {
-            color: #f0f0f0 !important;
-        }
-
-        html.app-skin-dark .filter-form .select2-container--default.select2-container--open .select2-dropdown,
-        html.app-skin-dark .filter-form .select2-results__option {
-            background-color: #2d3748 !important;
-            color: #f0f0f0 !important;
-            border-color: #4a5568 !important;
-        }
-
-        /* Keep filter/select controls below sidebar when mobile nav is open */
-        @media (max-width: 1024px) {
-            .nxl-navigation,
-            .nxl-navigation.mob-navigation-active {
-                z-index: 4000 !important;
-            }
-
-            .select2-container,
-            .select2-container--open,
-            .select2-dropdown,
-            .filter-form,
-            .nxl-content .row.mb-3 {
-                z-index: 1 !important;
-                position: relative;
-            }
-        }
-
-        /* Footer layout fix */
-        .footer {
-            flex-wrap: wrap;
-            row-gap: 0.5rem;
-            column-gap: 1rem;
-        }
-
-        .footer .footer-meta {
-            margin: 0;
-            display: flex;
-            align-items: center;
-            gap: 0.4rem;
-            flex-wrap: wrap;
-        }
-
-        .footer .footer-links {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            flex-wrap: wrap;
-        }
-
-        @media (max-width: 575.98px) {
-            .footer {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-        }
-    </style>
 </head>
 
 <body>
@@ -915,42 +771,13 @@ function formatDate($date) {
                             </div>
                         </div>
                     </div>
-                </div>
+        </div>
+    </main>
             </div>
         </div>
-        <!-- [ Footer ] start -->
-        <footer class="footer">
-            <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
-                <span>Copyright ©</span>
-                <script>
-                    document.write(new Date().getFullYear());
-                </script>
-            </p>
-            <p class="footer-meta fs-12 mb-0">
-                <span>By: <a href="javascript:void(0);">ACT 2A</a></span>
-                <span>Distributed by: <a href="javascript:void(0);">Group 5</a></span>
-            </p>
-            <div class="footer-links">
-                <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Help</a>
-                <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Terms</a>
-                <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Privacy</a>
-            </div>
-        </footer>
-        <!-- [ Footer ] end -->
-    </main>
-
-    <!-- Scripts -->
-    <script src="assets/vendors/js/vendors.min.js"></script>
-    <script src="assets/vendors/js/dataTables.min.js"></script>
-    <script src="assets/vendors/js/dataTables.bs5.min.js"></script>
-    <script src="assets/vendors/js/select2.min.js"></script>
-    <script src="assets/vendors/js/select2-active.min.js"></script>
-    <script src="assets/js/common-init.min.js"></script>
-    <script src="assets/js/customers-init.min.js"></script>
-    <script src="assets/js/theme-customizer-init.min.js"></script>
+    <!-- page-specific initialization scripts for filters -->
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            // Do not reinitialize DataTable here; `customers-init.min.js` handles it.
             if (window.jQuery) {
                 ['#filter-course', '#filter-department'].forEach(function (selector) {
                     if ($(selector).length) {
@@ -973,33 +800,8 @@ function formatDate($date) {
                     }
                 });
             }
-
-            var darkBtn = document.querySelector('.dark-button');
-            var lightBtn = document.querySelector('.light-button');
-
-            function setDark(isDark) {
-                if (isDark) {
-                    document.documentElement.classList.add('app-skin-dark');
-                    try { localStorage.setItem('app-skin', 'app-skin-dark'); } catch (e) {}
-                    if (darkBtn) darkBtn.style.display = 'none';
-                    if (lightBtn) lightBtn.style.display = '';
-                } else {
-                    document.documentElement.classList.remove('app-skin-dark');
-                    try { localStorage.setItem('app-skin', ''); } catch (e) {}
-                    if (darkBtn) darkBtn.style.display = '';
-                    if (lightBtn) lightBtn.style.display = 'none';
-                }
-            }
-
-            var skin = '';
-            try {
-                skin = localStorage.getItem('app-skin') || localStorage.getItem('app_skin') || localStorage.getItem('theme') || localStorage.getItem('app-skin-dark') || '';
-            } catch (e) {}
-            setDark((typeof skin === 'string' && skin.indexOf('dark') !== -1) || document.documentElement.classList.contains('app-skin-dark'));
-
-            if (darkBtn) darkBtn.addEventListener('click', function (e) { e.preventDefault(); setDark(true); });
-            if (lightBtn) lightBtn.addEventListener('click', function (e) { e.preventDefault(); setDark(false); });
         });
     </script>
-</body>
-</html>
+
+    <?php include 'includes/footer.php'; ?>
+

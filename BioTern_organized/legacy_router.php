@@ -70,6 +70,7 @@ $map = [
   'settings-students.php' => 'settings/settings-students.php',
   'settings-miscellaneous.php' => 'settings/settings-miscellaneous.php',
   'settings-localization.php' => 'settings/settings-localization.php',
+  'theme-customizer.php' => 'pages/theme-customizer.php',
 
   'widgets-lists.php' => 'widgets/widgets-lists.php',
   'widgets-tables.php' => 'widgets/widgets-tables.php',

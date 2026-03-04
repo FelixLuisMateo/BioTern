@@ -396,16 +396,7 @@ if ($student_id > 0 && ojt_edit_table_exists($conn, 'ojt_supervisor_reviews')) {
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>BioTern || OJT Edit</title>
     <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
-    <script>
-        (function(){
-            try{
-                var s = localStorage.getItem('app-skin-dark') || localStorage.getItem('app-skin') || localStorage.getItem('app_skin') || localStorage.getItem('theme');
-                if (s && (s.indexOf && s.indexOf('dark') !== -1 || s === 'app-skin-dark')) {
-                    document.documentElement.classList.add('app-skin-dark');
-                }
-            }catch(e){}
-        })();
-    </script>
+    <script src="assets/js/theme-preload-init.min.js"></script>
     <link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/vendors.min.css">
     <script>try{var s=localStorage.getItem('app-skin')||localStorage.getItem('app_skin')||localStorage.getItem('theme'); if(s&&s.indexOf('dark')!==-1)document.documentElement.classList.add('app-skin-dark');}catch(e){};</script>
@@ -713,31 +704,8 @@ if ($student_id > 0 && ojt_edit_table_exists($conn, 'ojt_supervisor_reviews')) {
 </main>
 <script src="assets/vendors/js/vendors.min.js"></script>
 <script src="assets/js/common-init.min.js"></script>
-<script>
-    (function () {
-        var root = document.documentElement;
-        var darkBtn = document.querySelector('.dark-button');
-        var lightBtn = document.querySelector('.light-button');
-        function applyTheme(isDark) {
-            root.classList.toggle('app-skin-dark', isDark);
-            try {
-                localStorage.setItem('app-skin', isDark ? 'app-skin-dark' : 'app-skin-light');
-                localStorage.setItem('app_skin', isDark ? 'app-skin-dark' : 'app-skin-light');
-                localStorage.setItem('theme', isDark ? 'dark' : 'light');
-                if (isDark) localStorage.setItem('app-skin-dark', 'app-skin-dark');
-                else localStorage.removeItem('app-skin-dark');
-            } catch (e) {}
-            if (darkBtn && lightBtn) {
-                darkBtn.style.display = isDark ? 'none' : '';
-                lightBtn.style.display = isDark ? '' : 'none';
-            }
-        }
-        var isDark = root.classList.contains('app-skin-dark');
-        applyTheme(isDark);
-        if (darkBtn) darkBtn.addEventListener('click', function (e) { e.preventDefault(); applyTheme(true); });
-        if (lightBtn) lightBtn.addEventListener('click', function (e) { e.preventDefault(); applyTheme(false); });
-    })();
-</script>
+<script src="assets/js/theme-customizer-init.min.js"></script>
 </body>
 </html>
 <?php $conn->close(); ?>
+

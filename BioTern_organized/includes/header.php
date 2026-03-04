@@ -51,25 +51,69 @@ if (!isset($base_href)) {
     $base_href = '';
 }
 
-$header_user_id = (int)($_SESSION['user_id'] ?? 0);
+$biotern_theme_api_endpoint = $base_href . 'api/theme-customizer.php';
+require_once __DIR__ . '/theme-preferences.php';
+
+$default_theme_prefs = [
+    'skin' => 'light',
+    'menu' => 'auto',
+    'font' => 'default',
+    'navigation' => 'light',
+    'header' => 'light',
+];
+
+if (function_exists('biotern_theme_preferences')) {
+    $biotern_theme_preferences = biotern_theme_preferences();
+} else {
+    $biotern_theme_preferences = $default_theme_prefs;
+}
+
+if (!is_array($biotern_theme_preferences)) {
+    $biotern_theme_preferences = $default_theme_prefs;
+}
+
+$biotern_theme_preferences = array_merge($default_theme_prefs, $biotern_theme_preferences);
+
+$html_classes = [];
+if (($biotern_theme_preferences['skin'] ?? 'light') === 'dark') {
+    $html_classes[] = 'app-skin-dark';
+}
+if (($biotern_theme_preferences['menu'] ?? 'auto') === 'mini') {
+    $html_classes[] = 'minimenu';
+}
+if (($biotern_theme_preferences['font'] ?? 'default') !== 'default') {
+    $html_classes[] = (string)$biotern_theme_preferences['font'];
+}
+if (($biotern_theme_preferences['navigation'] ?? 'light') === 'dark') {
+    $html_classes[] = 'app-navigation-dark';
+}
+if (($biotern_theme_preferences['header'] ?? 'light') === 'dark') {
+    $html_classes[] = 'app-header-dark';
+}
+$html_class_attr = implode(' ', $html_classes);
+
 $header_user_name = trim((string)($_SESSION['name'] ?? $_SESSION['username'] ?? 'BioTern User'));
-$header_user_email = trim((string)($_SESSION['email'] ?? 'admin@biotern.local'));
-$header_user_role = trim((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? ''));
 if ($header_user_name === '') {
     $header_user_name = 'BioTern User';
 }
-$session_profile = ltrim(str_replace('\\', '/', trim((string)($_SESSION['profile_picture'] ?? ''))), '/');
-$header_avatar = '';
-if ($session_profile !== '' && file_exists(dirname(__DIR__) . '/' . $session_profile)) {
-    $header_avatar = $session_profile;
+$header_user_email = trim((string)($_SESSION['email'] ?? 'admin@biotern.local'));
+if ($header_user_email === '') {
+    $header_user_email = 'admin@biotern.local';
 }
-if ($header_avatar === '') {
-    $avatar_index = ($header_user_id > 0) ? (($header_user_id % 5) + 1) : 1;
-    $header_avatar = 'assets/images/avatar/' . $avatar_index . '.png';
+$header_user_role = strtolower(trim((string)($_SESSION['role'] ?? '')));
+
+$header_avatar = 'assets/images/avatar/1.png';
+$session_avatar = trim((string)($_SESSION['profile_picture'] ?? ''));
+if ($session_avatar !== '') {
+    $normalized_avatar = ltrim(str_replace('\\', '/', $session_avatar), '/');
+    $avatar_fs_path = dirname(__DIR__) . '/' . $normalized_avatar;
+    if (is_file($avatar_fs_path)) {
+        $header_avatar = $normalized_avatar;
+    }
 }
 ?>
 <!DOCTYPE html>
-<html lang="zxx">
+<html lang="zxx"<?php echo $html_class_attr !== '' ? ' class="' . htmlspecialchars($html_class_attr, ENT_QUOTES, 'UTF-8') . '"' : ''; ?>>
 
 <head>
     <meta charset="utf-8">
@@ -97,11 +141,115 @@ if ($header_avatar === '') {
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2.min.css">
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2-theme.min.css">
     <!--! END: Vendors CSS-->
+    <script>
+        window.__bioternThemePrefs = <?php echo json_encode($biotern_theme_preferences, JSON_UNESCAPED_SLASHES); ?>;
+        window.__bioternThemeApi = <?php echo json_encode($biotern_theme_api_endpoint, JSON_UNESCAPED_SLASHES); ?>;
+    </script>
     <!--! BEGIN: Early Skin Script -->
     <script>
-        // Apply saved skin as early as possible to avoid flash-of-unstyled (FOUS)
+        // Apply saved skin + sidebar state as early as possible to avoid initial layout flash.
         (function(){
+            var serverPrefs = window.__bioternThemePrefs || {};
+            var allowedFonts = [
+                'app-font-family-inter',
+                'app-font-family-lato',
+                'app-font-family-rubik',
+                'app-font-family-cinzel',
+                'app-font-family-nunito',
+                'app-font-family-roboto',
+                'app-font-family-ubuntu',
+                'app-font-family-poppins',
+                'app-font-family-raleway',
+                'app-font-family-system-ui',
+                'app-font-family-noto-sans',
+                'app-font-family-fira-sans',
+                'app-font-family-work-sans',
+                'app-font-family-open-sans',
+                'app-font-family-maven-pro',
+                'app-font-family-quicksand',
+                'app-font-family-montserrat',
+                'app-font-family-josefin-sans',
+                'app-font-family-ibm-plex-sans',
+                'app-font-family-montserrat-alt',
+                'app-font-family-roboto-slab',
+                'app-font-family-source-sans-pro'
+            ];
+
+            function clearFontClasses() {
+                try {
+                    var cls = document.documentElement.className || '';
+                    var cleaned = cls.replace(/\bapp-font-family-[^\s]+\b/g, '').replace(/\s{2,}/g, ' ').trim();
+                    document.documentElement.className = cleaned;
+                } catch (e) {
+                }
+            }
+
+            function applyFont(fontClass) {
+                clearFontClasses();
+                if (fontClass && allowedFonts.indexOf(fontClass) !== -1) {
+                    document.documentElement.classList.add(fontClass);
+                }
+            }
+
+            function getSavedFont() {
+                if (typeof serverPrefs.font === 'string' && serverPrefs.font !== '') {
+                    return serverPrefs.font;
+                }
+
+                try {
+                    var legacyFont = localStorage.getItem('font-family');
+                    return legacyFont !== null ? legacyFont : 'default';
+                } catch (e) {
+                    return 'default';
+                }
+            }
+
+            applyFont(getSavedFont());
+
+            function applyNavigationMode(mode) {
+                document.documentElement.classList.remove('app-navigation-dark');
+                if (mode === 'dark') {
+                    document.documentElement.classList.add('app-navigation-dark');
+                }
+            }
+
+            function applyHeaderMode(mode) {
+                document.documentElement.classList.remove('app-header-dark');
+                if (mode === 'dark') {
+                    document.documentElement.classList.add('app-header-dark');
+                }
+            }
+
+            function getSavedNavigationMode() {
+                if (serverPrefs.navigation === 'dark' || serverPrefs.navigation === 'light') {
+                    return serverPrefs.navigation;
+                }
+                try {
+                    var nav = localStorage.getItem('app-navigation');
+                    if (nav === 'app-navigation-dark') return 'dark';
+                } catch (e) {
+                }
+                return 'light';
+            }
+
+            function getSavedHeaderMode() {
+                if (serverPrefs.header === 'dark' || serverPrefs.header === 'light') {
+                    return serverPrefs.header;
+                }
+                try {
+                    var hdr = localStorage.getItem('app-header');
+                    if (hdr === 'app-header-dark') return 'dark';
+                } catch (e) {
+                }
+                return 'light';
+            }
+
+            applyNavigationMode(getSavedNavigationMode());
+            applyHeaderMode(getSavedHeaderMode());
+
             function getSavedSkin() {
+                if (serverPrefs.skin === 'dark') return 'app-skin-dark';
+                if (serverPrefs.skin === 'light') return '';
                 try {
                     // Respect the primary key even when intentionally set to empty (light mode).
                     var primary = localStorage.getItem('app-skin');
@@ -122,6 +270,32 @@ if ($header_avatar === '') {
                 document.documentElement.classList.add('app-skin-dark');
             } else {
                 document.documentElement.classList.remove('app-skin-dark');
+            }
+
+            try {
+                var menuState = localStorage.getItem('nexel-classic-dashboard-menu-mini-theme');
+                if (!menuState) {
+                    if (serverPrefs.menu === 'mini') {
+                        menuState = 'menu-mini-theme';
+                    } else if (serverPrefs.menu === 'expanded') {
+                        menuState = 'menu-expend-theme';
+                    }
+                }
+                var width = window.innerWidth || document.documentElement.clientWidth || 0;
+
+                if (menuState === 'menu-mini-theme') {
+                    document.documentElement.classList.add('minimenu');
+                } else if (menuState === 'menu-expend-theme') {
+                    document.documentElement.classList.remove('minimenu');
+                } else {
+                    if (width >= 1024 && width <= 1600) {
+                        document.documentElement.classList.add('minimenu');
+                    } else if (width > 1600) {
+                        document.documentElement.classList.remove('minimenu');
+                    }
+                }
+            } catch (e) {
+                // ignore localStorage errors
             }
         })();
     </script>
@@ -233,19 +407,6 @@ if ($header_avatar === '') {
 
         html.app-skin-dark .select2-container--default .select2-results__option--highlighted[aria-selected] {
             color: #ffffff !important;
-        }
-
-        /* Keep topbar/user dropdown avatars perfectly circular */
-        .nxl-header .user-avtar,
-        .nxl-user-dropdown .user-avtar {
-            width: 40px !important;
-            height: 40px !important;
-            min-width: 40px;
-            min-height: 40px;
-            border-radius: 50% !important;
-            object-fit: cover;
-            aspect-ratio: 1 / 1;
-            display: inline-block;
         }
     </style>
 </head>

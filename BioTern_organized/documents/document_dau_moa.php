@@ -135,7 +135,7 @@ include __DIR__ . '/../includes/header.php';
             color: #9fb0c6 !important;
         }
         .moa-main.nxl-container { padding-top: 90px; }
-        .nxl-header { position: fixed !important; top: 0; left: 0; right: 0; z-index: 2147483647 !important; }
+        .nxl-header { z-index: 2147483647 !important; }
         .nxl-navigation { z-index: 2147483646; }
         .footer { position: static !important; }
         .nxl-container { min-height: auto !important; }

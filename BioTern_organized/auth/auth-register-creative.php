@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 $departmentOptions = [];
 $courseOptions = [];
 $sectionOptions = [];
@@ -377,6 +377,7 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
     <!--! END:  Apps Title-->
     <!--! BEGIN: Favicon-->
     <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
+    <script src="assets/js/theme-preload-init.min.js"></script>
     <!--! END: Favicon-->
     <!--! BEGIN: Bootstrap CSS-->
     <link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css">
@@ -499,7 +500,7 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
                     <div class="card-body p-sm-5" style="padding: 50px !important; min-height: auto;">
                         <h2 class="fs-20 fw-bolder mb-4">Register</h2>
                         <div class="mb-3">
-                            <a href="homepage.php" class="btn btn-sm btn-outline-primary">← Back to Admin Dashboard</a>
+                            <a href="homepage.php" class="btn btn-sm btn-outline-primary">? Back to Admin Dashboard</a>
                         </div>
                         <h4 class="fs-13 fw-bold mb-2">Manage your Internship account in one place.</h4>
                         <p class="fs-12 fw-medium text-muted">Let's get you all setup, so you can verify your personal account and begin setting up your profile.</p>
@@ -526,22 +527,22 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
                                     <div class="roles-container">
                                         <div class="roles-grid" id="rolesRow">
                                             <div class="role-card" data-role="student" onclick="selectRole('student')" tabindex="0">
-                                                <div class="role-icon">👨‍🎓</div>
+                                                <div class="role-icon">?????</div>
                                                 <h5>Student</h5>
                                                 <p>Student: Register for internship</p>
                                             </div>
                                             <div class="role-card" data-role="coordinator" onclick="selectRole('coordinator')" tabindex="0">
-                                                <div class="role-icon">👔</div>
+                                                <div class="role-icon">??</div>
                                                 <h5>Coordinator</h5>
                                                 <p>Coordinator: Manage student placements</p>
                                             </div>
                                             <div class="role-card" data-role="supervisor" onclick="selectRole('supervisor')" tabindex="0">
-                                                <div class="role-icon">👨‍💼</div>
+                                                <div class="role-icon">?????</div>
                                                 <h5>Supervisor</h5>
                                                 <p>Supervisor: Oversee workplace activities</p>
                                             </div>
                                             <div class="role-card" data-role="admin" onclick="selectRole('admin')" tabindex="0">
-                                                <div class="role-icon">⚙️</div>
+                                                <div class="role-icon">??</div>
                                                 <h5>Admin</h5>
                                                 <p>Admin: System administrator</p>
                                             </div>
@@ -556,7 +557,7 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
                             <input type="hidden" name="role" value="student">
                             <div class="form-section">
                                 <h3 class="fs-18 fw-bold mb-3">Student Registration</h3>
-                                <button type="button" class="btn btn-sm btn-outline-secondary mb-4" onclick="backToRoles()">← Back to Role Selection</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary mb-4" onclick="backToRoles()">? Back to Role Selection</button>
                             </div>
                             <!-- Personal Information Section -->
                             <div class="mb-4">
@@ -785,7 +786,7 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
                             <input type="hidden" name="role" value="coordinator">
                             <div class="form-section">
                                 <h3 class="fs-18 fw-bold mb-3">Coordinator Registration</h3>
-                                <button type="button" class="btn btn-sm btn-outline-secondary mb-4" onclick="backToRoles()">← Back to Role Selection</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary mb-4" onclick="backToRoles()">? Back to Role Selection</button>
                             </div>
                             <h5 class="fs-14 fw-bold mb-3">Personal Information</h5>
                             <div class="row g-3">
@@ -878,7 +879,7 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
                             <input type="hidden" name="role" value="supervisor">
                             <div class="form-section">
                                 <h3 class="fs-18 fw-bold mb-3">Supervisor Registration</h3>
-                                <button type="button" class="btn btn-sm btn-outline-secondary mb-4" onclick="backToRoles()">← Back to Role Selection</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary mb-4" onclick="backToRoles()">? Back to Role Selection</button>
                             </div>
                             <h5 class="fs-14 fw-bold mb-3">Personal Information</h5>
                             <div class="row g-3">
@@ -977,7 +978,7 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
                             <input type="hidden" name="role" value="admin">
                             <div class="form-section">
                                 <h3 class="fs-18 fw-bold mb-3">Admin Registration</h3>
-                                <button type="button" class="btn btn-sm btn-outline-secondary mb-4" onclick="backToRoles()">← Back to Role Selection</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary mb-4" onclick="backToRoles()">? Back to Role Selection</button>
                             </div>
                             <h5 class="fs-14 fw-bold mb-3">Personal Information</h5>
                             <div class="row g-3">
@@ -1468,6 +1469,7 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
 </body>
 
 </html>
+
 
 
 
