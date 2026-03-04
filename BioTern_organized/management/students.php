@@ -316,50 +316,6 @@ usort($print_students, function ($a, $b) {
     <title>BioTern || Students</title>
     <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
     <script src="assets/js/theme-preload-init.min.js"></script>
-    <script>
-        (function(){
-            try{
-                document.documentElement.classList.add('theme-preload');
-
-                var style = document.createElement('style');
-                style.id = 'biotern-theme-preload-style';
-                style.textContent = 'html.theme-preload *,html.theme-preload *::before,html.theme-preload *::after{transition:none!important;animation:none!important;}';
-                document.head.appendChild(style);
-
-                function readCookie(name) {
-                    var key = name + '=';
-                    var chunks = document.cookie ? document.cookie.split(';') : [];
-                    for (var i = 0; i < chunks.length; i++) {
-                        var c = chunks[i].trim();
-                        if (c.indexOf(key) === 0) return c.substring(key.length);
-                    }
-                    return '';
-                }
-
-                var prefs = null;
-                try {
-                    var raw = readCookie('biotern_theme_preferences');
-                    if (raw) prefs = JSON.parse(decodeURIComponent(raw));
-                } catch (e) {}
-
-                var skin = prefs && (prefs.skin === 'dark' || prefs.skin === 'light')
-                    ? prefs.skin
-                    : ((localStorage.getItem('app-skin-dark') || localStorage.getItem('app-skin') || localStorage.getItem('app_skin') || localStorage.getItem('theme') || '').indexOf('dark') !== -1 ? 'dark' : 'light');
-
-                var navigation = prefs && (prefs.navigation === 'dark' || prefs.navigation === 'light')
-                    ? prefs.navigation
-                    : ((localStorage.getItem('app-navigation') || '').indexOf('dark') !== -1 ? 'dark' : 'light');
-
-                var header = prefs && (prefs.header === 'dark' || prefs.header === 'light')
-                    ? prefs.header
-                    : ((localStorage.getItem('app-header') || '').indexOf('dark') !== -1 ? 'dark' : 'light');
-
-                if (skin === 'dark') document.documentElement.classList.add('app-skin-dark');
-                if (navigation === 'dark') document.documentElement.classList.add('app-navigation-dark');
-                if (header === 'dark') document.documentElement.classList.add('app-header-dark');
-            }catch(e){}
-        })();
-    </script>
     <link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/vendors.min.css">
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/dataTables.bs5.min.css">

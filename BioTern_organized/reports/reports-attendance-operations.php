@@ -38,16 +38,10 @@ if (table_exists($conn, 'biometric_event_queue')) {
         $failedQueue = (int)($x['f'] ?? 0);
     }
 }
+
+$page_title = 'BioTern || Attendance Operations Report';
+include 'includes/header.php';
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Attendance Operations Report</title>
-    <link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css">
-</head>
-<body class="bg-light">
     <div class="container py-4">
         <h3 class="mb-3">Attendance Operations Report</h3>
         <div class="row mb-4">
@@ -90,6 +84,4 @@ if (table_exists($conn, 'biometric_event_queue')) {
             </div>
         </div>
     </div>
-</body>
-</html>
 
