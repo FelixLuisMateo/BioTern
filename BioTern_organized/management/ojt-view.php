@@ -110,6 +110,42 @@ function format_dt($value)
     return date('M d, Y h:i A', $ts);
 }
 
+function date_value_or_default($value, $format = 'n/j/Y')
+{
+    $raw = trim((string)$value);
+    if ($raw === '') return date($format);
+    $ts = strtotime($raw);
+    return $ts ? date($format, $ts) : $raw;
+}
+
+function split_date_parts($value)
+{
+    $raw = trim((string)$value);
+    $ts = $raw !== '' ? strtotime($raw) : false;
+    if (!$ts) {
+        return ['day' => '', 'month' => '', 'year' => ''];
+    }
+    return [
+        'day' => date('j', $ts),
+        'month' => date('F', $ts),
+        'year' => date('Y', $ts),
+    ];
+}
+
+function app_base_path()
+{
+    $dir = str_replace('\\', '/', dirname($_SERVER['PHP_SELF'] ?? ''));
+    $dir = rtrim($dir, '/');
+    if ($dir === '' || $dir === '.') {
+        $dir = '';
+    }
+    if (preg_match('#/management$#i', $dir)) {
+        $dir = preg_replace('#/management$#i', '', $dir);
+    }
+    if ($dir === '') return '/';
+    return $dir . '/';
+}
+
 function status_badge_html($status)
 {
     $raw = trim((string)$status);
@@ -923,6 +959,86 @@ try {
     $flash_message = 'Database error: ' . $e->getMessage();
     $flash_type = 'danger';
 }
+
+$moa_signed_parts = split_date_parts($moa_data['moa_date'] ?? '');
+$moa_ack_parts = split_date_parts($moa_data['acknowledgement_date'] ?? '');
+$app_base = app_base_path();
+$application_print_url = $app_base . 'pages/generate_application_letter.php?' . http_build_query([
+    'id' => intval($selected_student_id),
+    'date' => date_value_or_default($app_letter['date'] ?? ''),
+    'ap_name' => (string)($app_letter['application_person'] ?? ''),
+    'ap_position' => (string)($app_letter['position'] ?? ''),
+    'ap_company' => (string)($app_letter['company_name'] ?? ''),
+    'ap_address' => (string)($app_letter['company_address'] ?? ''),
+]);
+$endorsement_print_url = $app_base . 'pages/generate_endorsement_letter.php?' . http_build_query([
+    'id' => intval($selected_student_id),
+    'recipient' => (string)($endorsement_data['recipient_name'] ?? ''),
+    'recipient_title' => (string)($endorsement_data['recipient_title'] ?? 'auto'),
+    'position' => (string)($endorsement_data['recipient_position'] ?? ''),
+    'company' => (string)($endorsement_data['company_name'] ?? ''),
+    'company_address' => (string)($endorsement_data['company_address'] ?? ''),
+    'students' => (string)($endorsement_data['students_to_endorse'] ?? ''),
+    'greeting_pref' => (string)($endorsement_data['greeting_preference'] ?? 'either'),
+]);
+$moa_print_url = $app_base . 'pages/generate_moa.php?' . http_build_query([
+    'date' => date_value_or_default($moa_data['moa_date'] ?? '', 'F j, Y'),
+    'partner_name' => (string)($moa_data['company_name'] ?? ''),
+    'partner_rep' => (string)($moa_data['partner_representative'] ?? ''),
+    'partner_position' => (string)($moa_data['position'] ?? ''),
+    'partner_address' => (string)($moa_data['company_address'] ?? ''),
+    'company_receipt' => (string)($moa_data['company_receipt'] ?? ''),
+    'total_hours' => (string)($moa_data['total_hours'] ?? ''),
+    'school_rep' => (string)($moa_data['coordinator'] ?? ''),
+    'school_position' => (string)($moa_data['school_position'] ?? ''),
+    'signed_at' => (string)($moa_data['moa_address'] ?? ''),
+    'signed_day' => $moa_signed_parts['day'],
+    'signed_month' => $moa_signed_parts['month'],
+    'signed_year' => $moa_signed_parts['year'],
+    'presence_partner_rep' => (string)($moa_data['partner_representative'] ?? ''),
+    'presence_school_admin' => (string)($moa_data['school_administrator'] ?? ''),
+    'presence_school_admin_position' => (string)($moa_data['school_admin_position'] ?? ''),
+    'notary_city' => (string)($moa_data['notary_address'] ?? ''),
+    'notary_appeared_1' => (string)($moa_data['partner_representative'] ?? ''),
+    'notary_appeared_2' => (string)($moa_data['school_administrator'] ?? ''),
+    'notary_day' => $moa_ack_parts['day'],
+    'notary_month' => $moa_ack_parts['month'],
+    'notary_year' => $moa_ack_parts['year'],
+    'notary_place' => (string)($moa_data['acknowledgement_address'] ?? ''),
+    'doc_no' => (string)($moa_data['doc_no'] ?? ''),
+    'page_no' => (string)($moa_data['page_no'] ?? ''),
+    'book_no' => (string)($moa_data['book_no'] ?? ''),
+    'series_no' => (string)($moa_data['series_no'] ?? ''),
+]);
+$dau_print_url = $app_base . 'pages/generate_dau_moa.php?' . http_build_query([
+    'date' => date('F j, Y'),
+    'partner_name' => (string)($dau_moa_data['company_name'] ?? ''),
+    'partner_rep' => (string)($dau_moa_data['partner_representative'] ?? ''),
+    'partner_position' => (string)($dau_moa_data['position'] ?? ''),
+    'partner_address' => (string)($dau_moa_data['company_address'] ?? ''),
+    'company_receipt' => (string)($dau_moa_data['company_receipt'] ?? ''),
+    'total_hours' => (string)($dau_moa_data['total_hours'] ?? ''),
+    'school_rep' => (string)($dau_moa_data['school_representative'] ?? ''),
+    'school_position' => (string)($dau_moa_data['school_position'] ?? ''),
+    'signed_at' => (string)($dau_moa_data['signed_at'] ?? ''),
+    'signed_day' => (string)($dau_moa_data['signed_day'] ?? ''),
+    'signed_month' => (string)($dau_moa_data['signed_month'] ?? ''),
+    'signed_year' => (string)($dau_moa_data['signed_year'] ?? ''),
+    'presence_partner_rep' => (string)($dau_moa_data['witness_partner'] ?? ''),
+    'presence_school_admin' => (string)($dau_moa_data['school_administrator'] ?? ''),
+    'presence_school_admin_position' => (string)($dau_moa_data['school_admin_position'] ?? ''),
+    'notary_city' => (string)($dau_moa_data['notary_city'] ?? ''),
+    'notary_appeared_1' => (string)($dau_moa_data['partner_representative'] ?? ''),
+    'notary_appeared_2' => (string)($dau_moa_data['school_administrator'] ?? ''),
+    'notary_day' => (string)($dau_moa_data['notary_day'] ?? ''),
+    'notary_month' => (string)($dau_moa_data['notary_month'] ?? ''),
+    'notary_year' => (string)($dau_moa_data['notary_year'] ?? ''),
+    'notary_place' => (string)($dau_moa_data['notary_place'] ?? ''),
+    'doc_no' => (string)($dau_moa_data['doc_no'] ?? ''),
+    'page_no' => (string)($dau_moa_data['page_no'] ?? ''),
+    'book_no' => (string)($dau_moa_data['book_no'] ?? ''),
+    'series_no' => (string)($dau_moa_data['series_no'] ?? ''),
+]);
 ?><!DOCTYPE html>
 <html lang="zxx">
 
@@ -1552,6 +1668,59 @@ try {
                                         </div>
                                     <?php endforeach; ?>
                                 </div>
+                                <div class="card card-body mt-3">
+                                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                                        <h6 class="fw-bold mb-0">Print Selected Documents</h6>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" id="toggleAllPrintDocs">Select All</button>
+                                    </div>
+                                    <?php if ($view_user_id <= 0): ?>
+                                        <div class="alert alert-warning mb-0">Select a student from OJT List first to print documents.</div>
+                                    <?php else: ?>
+                                        <div class="row g-2 mb-3" id="printDocsSelection">
+                                            <div class="col-md-3 col-sm-6">
+                                                <label class="form-check border rounded p-2 d-flex align-items-center gap-2 mb-0">
+                                                    <input class="form-check-input print-doc-check" type="checkbox"
+                                                        data-doc-url="<?php echo htmlspecialchars($application_print_url); ?>"
+                                                        data-doc-label="Application Letter"
+                                                        <?php echo $document_completion['application'] ? 'checked' : ''; ?>>
+                                                    <span>Application Letter</span>
+                                                </label>
+                                            </div>
+                                            <div class="col-md-3 col-sm-6">
+                                                <label class="form-check border rounded p-2 d-flex align-items-center gap-2 mb-0">
+                                                    <input class="form-check-input print-doc-check" type="checkbox"
+                                                        data-doc-url="<?php echo htmlspecialchars($moa_print_url); ?>"
+                                                        data-doc-label="MOA"
+                                                        <?php echo $document_completion['moa'] ? 'checked' : ''; ?>>
+                                                    <span>MOA</span>
+                                                </label>
+                                            </div>
+                                            <div class="col-md-3 col-sm-6">
+                                                <label class="form-check border rounded p-2 d-flex align-items-center gap-2 mb-0">
+                                                    <input class="form-check-input print-doc-check" type="checkbox"
+                                                        data-doc-url="<?php echo htmlspecialchars($endorsement_print_url); ?>"
+                                                        data-doc-label="Endorsement Letter"
+                                                        <?php echo $document_completion['endorsement'] ? 'checked' : ''; ?>>
+                                                    <span>Endorsement Letter</span>
+                                                </label>
+                                            </div>
+                                            <div class="col-md-3 col-sm-6">
+                                                <label class="form-check border rounded p-2 d-flex align-items-center gap-2 mb-0">
+                                                    <input class="form-check-input print-doc-check" type="checkbox"
+                                                        data-doc-url="<?php echo htmlspecialchars($dau_print_url); ?>"
+                                                        data-doc-label="Dau MOA"
+                                                        <?php echo $document_completion['dau_moa'] ? 'checked' : ''; ?>>
+                                                    <span>Dau MOA</span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                                            <button type="button" class="btn btn-success" id="printSelectedDocsBtn">Print Selected</button>
+                                            <button type="button" class="btn btn-primary" id="printAllDocsBtn">Print All Documents</button>
+                                            <span class="text-muted fs-12" id="printDocsHint">Documents will print one by one from this page.</span>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
                             </div>
                             <div class="row g-3">
                                 <div class="col-lg-6">
@@ -2070,6 +2239,101 @@ try {
                     }
                 });
             });
+
+            var printBtn = document.getElementById('printSelectedDocsBtn');
+            var printAllBtn = document.getElementById('printAllDocsBtn');
+            var toggleAllBtn = document.getElementById('toggleAllPrintDocs');
+            var hint = document.getElementById('printDocsHint');
+            var printFrame = null;
+
+            function getPrintFrame() {
+                if (printFrame) return printFrame;
+                printFrame = document.createElement('iframe');
+                printFrame.id = 'batchPrintFrame';
+                printFrame.style.position = 'fixed';
+                printFrame.style.width = '0';
+                printFrame.style.height = '0';
+                printFrame.style.border = '0';
+                printFrame.style.opacity = '0';
+                printFrame.style.pointerEvents = 'none';
+                document.body.appendChild(printFrame);
+                return printFrame;
+            }
+
+            function runBatchPrint(checkedNodes) {
+                if (!checkedNodes.length) {
+                    if (hint) hint.textContent = 'Select at least one document to print.';
+                    return;
+                }
+
+                var queue = checkedNodes.map(function (cb) {
+                    return cb.getAttribute('data-doc-url') || '';
+                }).filter(function (u) { return !!u; });
+
+                if (!queue.length) {
+                    if (hint) hint.textContent = 'No printable document URL found.';
+                    return;
+                }
+
+                if (hint) hint.textContent = 'Preparing ' + queue.length + ' document(s) for printing...';
+                var frame = getPrintFrame();
+                var index = 0;
+
+                var printNext = function () {
+                    if (index >= queue.length) {
+                        if (hint) hint.textContent = 'Done. Printed ' + queue.length + ' document(s).';
+                        return;
+                    }
+
+                    var url = queue[index];
+                    if (hint) hint.textContent = 'Printing ' + (index + 1) + ' of ' + queue.length + '...';
+                    frame.onload = function () {
+                        setTimeout(function () {
+                            try {
+                                frame.contentWindow.focus();
+                                frame.contentWindow.print();
+                            } catch (e) {
+                                // Ignore and continue with next document.
+                            }
+                            index += 1;
+                            setTimeout(printNext, 500);
+                        }, 450);
+                    };
+                    frame.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'batch_print=1';
+                };
+
+                printNext();
+            }
+
+            if (printBtn) {
+                printBtn.addEventListener('click', function () {
+                    var checks = Array.prototype.slice.call(document.querySelectorAll('.print-doc-check:checked'));
+                    runBatchPrint(checks);
+                });
+            }
+
+            if (toggleAllBtn) {
+                toggleAllBtn.addEventListener('click', function () {
+                    var allChecks = Array.prototype.slice.call(document.querySelectorAll('.print-doc-check'));
+                    if (!allChecks.length) return;
+                    var shouldSelectAll = allChecks.some(function (cb) { return !cb.checked; });
+                    allChecks.forEach(function (cb) { cb.checked = shouldSelectAll; });
+                    toggleAllBtn.textContent = shouldSelectAll ? 'Clear All' : 'Select All';
+                });
+            }
+
+            if (printAllBtn) {
+                printAllBtn.addEventListener('click', function () {
+                    var allChecks = Array.prototype.slice.call(document.querySelectorAll('.print-doc-check'));
+                    if (!allChecks.length) {
+                        if (hint) hint.textContent = 'No documents available to print.';
+                        return;
+                    }
+                    allChecks.forEach(function (cb) { cb.checked = true; });
+                    if (toggleAllBtn) toggleAllBtn.textContent = 'Clear All';
+                    runBatchPrint(allChecks);
+                });
+            }
         })();
     </script>
 </body>

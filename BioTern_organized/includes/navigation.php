@@ -318,8 +318,8 @@ $nav_can_reports = ($nav_is_admin || $nav_is_coordinator || $nav_is_supervisor);
             nav.querySelectorAll('.nxl-item.active').forEach(function (item) {
                 item.classList.remove('active');
             });
-            nav.querySelectorAll('.nxl-item.nxl-hasmenu.open').forEach(function (item) {
-                item.classList.remove('open');
+            nav.querySelectorAll('.nxl-item.nxl-hasmenu.nxl-trigger').forEach(function (item) {
+                item.classList.remove('nxl-trigger');
             });
 
             nav.querySelectorAll('.nxl-item .nxl-link[href]').forEach(function (a) {
@@ -328,7 +328,7 @@ $nav_can_reports = ($nav_is_admin || $nav_is_coordinator || $nav_is_supervisor);
                     var item = a.closest('.nxl-item');
                     if (item) item.classList.add('active');
                     var parentMenu = a.closest('.nxl-item.nxl-hasmenu');
-                    if (parentMenu) parentMenu.classList.add('active', 'open');
+                    if (parentMenu) parentMenu.classList.add('active', 'nxl-trigger');
                 }
             });
 
