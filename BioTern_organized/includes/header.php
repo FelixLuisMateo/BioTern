@@ -304,6 +304,13 @@ if ($session_avatar !== '') {
     <!--! END: Early Skin Script -->
     <!--! BEGIN: Custom CSS-->
     <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css" />
+    <?php if (isset($page_styles) && is_array($page_styles)): ?>
+        <?php foreach ($page_styles as $stylesheet): ?>
+            <?php if (is_string($stylesheet) && trim($stylesheet) !== ''): ?>
+                <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($stylesheet, ENT_QUOTES, 'UTF-8'); ?>" />
+            <?php endif; ?>
+        <?php endforeach; ?>
+    <?php endif; ?>
     <!--! END: Custom CSS-->
     <style>
         .nxl-header .user-avtar,
