@@ -82,8 +82,6 @@ include __DIR__ . '/../includes/header.php';
         body { display:flex; flex-direction:column; min-height:100vh; }
         main.nxl-container { flex:1; display:flex; flex-direction:column; padding-top:90px; }
         div.nxl-content { flex:1; padding-bottom:24px; }
-        .nxl-header { z-index: 2147483647 !important; }
-        .nxl-navigation { z-index: 2147483646; }
         footer.footer { margin-top: auto; }
 
         .doc-preview { background:#fff; border:1px solid #eee; padding:24px; max-width:800px; margin-top:18px; margin-bottom:32px; box-shadow:0 6px 20px rgba(0,0,0,.06); position:relative; z-index:1; }
@@ -189,10 +187,6 @@ include __DIR__ . '/../includes/header.php';
         }
 
         @media (max-width: 1024px) {
-            .nxl-navigation,
-            .nxl-navigation.mob-navigation-active { z-index: 2147483648 !important; }
-            .nxl-navigation .navbar-wrapper { z-index: 2147483648 !important; }
-            .nxl-header { z-index: 2147483647 !important; }
             .nxl-container { position: relative; z-index: 1; }
             .doc-preview { z-index: 1 !important; }
             .select2-container--open,
