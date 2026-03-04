@@ -4,6 +4,46 @@
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+
+// Enforce authenticated session for all pages using the shared app header.
+$header_user_id_session = (int)($_SESSION['user_id'] ?? 0);
+if ($header_user_id_session <= 0) {
+    header('Location: /BioTern/BioTern_organized/auth-login-cover.php');
+    exit;
+}
+
+// Refresh session identity from DB so page access stays connected to current account data.
+$header_db = @new mysqli('127.0.0.1', 'root', '', 'biotern_db');
+if (!$header_db->connect_errno) {
+    $stmt = $header_db->prepare("SELECT id, name, username, email, role, is_active, profile_picture FROM users WHERE id = ? LIMIT 1");
+    if ($stmt) {
+        $stmt->bind_param('i', $header_user_id_session);
+        $stmt->execute();
+        $header_user = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+
+        if (!$header_user || (int)($header_user['is_active'] ?? 0) !== 1) {
+            $_SESSION = [];
+            if (ini_get('session.use_cookies')) {
+                $params = session_get_cookie_params();
+                setcookie(session_name(), '', time() - 42000, $params['path'], $params['domain'], $params['secure'], $params['httponly']);
+            }
+            session_destroy();
+            header('Location: /BioTern/BioTern_organized/auth-login-cover.php');
+            exit;
+        }
+
+        $_SESSION['user_id'] = (int)$header_user['id'];
+        $_SESSION['name'] = (string)($header_user['name'] ?? '');
+        $_SESSION['username'] = (string)($header_user['username'] ?? '');
+        $_SESSION['email'] = (string)($header_user['email'] ?? '');
+        $_SESSION['role'] = (string)($header_user['role'] ?? '');
+        $_SESSION['profile_picture'] = (string)($header_user['profile_picture'] ?? '');
+        $_SESSION['logged_in'] = true;
+    }
+    $header_db->close();
+}
+
 if (!isset($page_title) || trim($page_title) === '') {
     $page_title = 'BioTern';
 }
@@ -111,6 +151,27 @@ if ($header_avatar === '') {
         html.app-skin-dark textarea.form-control::placeholder {
             color: #d1dcf0 !important;
             opacity: 1 !important;
+        }
+
+        /* Keep browser autofill readable in dark mode */
+        html.app-skin-dark input.form-control:-webkit-autofill,
+        html.app-skin-dark input.form-control:-webkit-autofill:hover,
+        html.app-skin-dark input.form-control:-webkit-autofill:focus,
+        html.app-skin-dark textarea.form-control:-webkit-autofill,
+        html.app-skin-dark textarea.form-control:-webkit-autofill:hover,
+        html.app-skin-dark textarea.form-control:-webkit-autofill:focus {
+            -webkit-text-fill-color: #ffffff !important;
+            caret-color: #ffffff !important;
+            box-shadow: 0 0 0 1000px #0f172a inset !important;
+            -webkit-box-shadow: 0 0 0 1000px #0f172a inset !important;
+            border-color: #4a5568 !important;
+            transition: background-color 9999s ease-out 0s;
+        }
+
+        html.app-skin-dark input.form-control:autofill,
+        html.app-skin-dark textarea.form-control:autofill {
+            color: #ffffff !important;
+            background-color: #0f172a !important;
         }
 
         html.app-skin-dark select.form-control,
@@ -283,6 +344,30 @@ if ($header_avatar === '') {
                                     </div>
                                 </div>
                             </div>
+                            <div class="dropdown-divider"></div>
+                            <a href="javascript:void(0);" class="dropdown-item">
+                                <span class="hstack">
+                                    <i class="wd-10 ht-10 border border-2 border-gray-1 bg-success rounded-circle me-2"></i>
+                                    <span>Active</span>
+                                </span>
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <a href="javascript:void(0);" class="dropdown-item">
+                                <i class="feather-user"></i>
+                                <span>Profile Details</span>
+                            </a>
+                            <a href="javascript:void(0);" class="dropdown-item">
+                                <i class="feather-activity"></i>
+                                <span>Activity Feed</span>
+                            </a>
+                            <a href="javascript:void(0);" class="dropdown-item">
+                                <i class="feather-bell"></i>
+                                <span>Notifications</span>
+                            </a>
+                            <a href="settings-general.php" class="dropdown-item">
+                                <i class="feather-settings"></i>
+                                <span>Account Settings</span>
+                            </a>
                             <div class="dropdown-divider"></div>
                             <a href="auth-login-cover.php?logout=1" class="dropdown-item">
                                 <i class="feather-log-out"></i>

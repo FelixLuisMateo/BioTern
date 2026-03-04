@@ -1,5 +1,19 @@
 <?php
 // Centralized navigation include (grouped/relabeled).
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+$nav_role = strtolower(trim((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? 'guest')));
+$nav_is_admin = ($nav_role === 'admin');
+$nav_is_coordinator = ($nav_role === 'coordinator');
+$nav_is_supervisor = ($nav_role === 'supervisor');
+$nav_is_student = ($nav_role === 'student');
+
+$nav_can_internship = ($nav_is_admin || $nav_is_coordinator || $nav_is_supervisor);
+$nav_can_academic = ($nav_is_admin || $nav_is_coordinator);
+$nav_can_workspace = ($nav_is_admin || $nav_is_coordinator);
+$nav_can_system = $nav_is_admin;
+$nav_can_reports = ($nav_is_admin || $nav_is_coordinator || $nav_is_supervisor);
 ?>
 <style>
     /* Mini sidebar: show section captions (<span>) cleanly without overlap. */
@@ -20,6 +34,19 @@
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+    }
+
+    /* Disable sidebar animation effects between page navigations */
+    .nxl-navigation,
+    .nxl-navigation * {
+        transition: none !important;
+        animation: none !important;
+    }
+
+    html.nav-restoring .nxl-navigation,
+    html.nav-restoring .nxl-navigation * {
+        transition: none !important;
+        animation: none !important;
     }
 </style>
 <nav class="nxl-navigation">
@@ -46,6 +73,7 @@
                     </ul>
                 </li>
 
+                <?php if ($nav_can_internship): ?>
                 <li class="nxl-item nxl-caption">
                     <span>Internship</span>
                 </li>
@@ -76,10 +104,10 @@
                         <span class="nxl-mtext">Documents</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                     </a>
                     <ul class="nxl-submenu">
-                        <li class="nxl-item"><a class="nxl-link" href="documents/document_application.php">Application</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="documents/document_endorsement.php">Endorsement</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="documents/document_moa.php">MOA</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="documents/document_dau_moa.php">Dau MOA</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="document_application.php">Application</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="document_endorsement.php">Endorsement</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="document_moa.php">MOA</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="document_dau_moa.php">Dau MOA</a></li>
                     </ul>
                 </li>
                 <li class="nxl-item nxl-hasmenu">
@@ -94,7 +122,9 @@
                         <li class="nxl-item"><a class="nxl-link" href="reports-timesheets.php">Timesheets Report</a></li>
                     </ul>
                 </li>
+                <?php endif; ?>
 
+                <?php if ($nav_can_academic): ?>
                 <li class="nxl-item nxl-caption">
                     <span>Academic</span>
                 </li>
@@ -111,7 +141,9 @@
                         <li class="nxl-item"><a class="nxl-link" href="supervisors.php">Supervisors</a></li>
                     </ul>
                 </li>
+                <?php endif; ?>
 
+                <?php if ($nav_can_workspace): ?>
                 <li class="nxl-item nxl-caption">
                     <span>Workspace</span>
                 </li>
@@ -142,7 +174,9 @@
                         <li class="nxl-item"><a class="nxl-link" href="widgets-miscellaneous.php">Miscellaneous</a></li>
                     </ul>
                 </li>
+                <?php endif; ?>
 
+                <?php if ($nav_can_system): ?>
                 <li class="nxl-item nxl-caption">
                     <span>System</span>
                 </li>
@@ -153,7 +187,7 @@
                     </a>
                     <ul class="nxl-submenu">
                         <li class="nxl-item"><a class="nxl-link" href="auth-register-creative.php">User Registration</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="auth/users.php">Users</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="users.php">Users</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="create_admin.php">Create Admin</a></li>
                     </ul>
                 </li>
@@ -185,7 +219,120 @@
                         <li class="nxl-item"><a class="nxl-link" href="/docs/documentations">Documentations</a></li>
                     </ul>
                 </li>
+                <?php endif; ?>
             </ul>
         </div>
     </div>
 </nav>
+<script>
+    (function () {
+        var KEY_SCROLL = 'biotern.sidebar.scrollTop';
+
+        function getPathname(href) {
+            try {
+                return new URL(href, window.location.origin).pathname.toLowerCase();
+            } catch (e) {
+                return '';
+            }
+        }
+
+        function getRouteKeyFromUrl(urlObj) {
+            var qp = (urlObj.searchParams.get('file') || '').toLowerCase();
+            if (qp && qp.endsWith('.php')) return qp;
+            var path = (urlObj.pathname || '').toLowerCase();
+            var parts = path.split('/');
+            var last = parts[parts.length - 1] || '';
+            if (last.endsWith('.php')) return last;
+            return '';
+        }
+
+        function getCurrentRouteKey() {
+            try {
+                return getRouteKeyFromUrl(new URL(window.location.href));
+            } catch (e) {
+                return '';
+            }
+        }
+
+        function getLinkRouteKey(href) {
+            try {
+                return getRouteKeyFromUrl(new URL(href, window.location.origin));
+            } catch (e) {
+                return '';
+            }
+        }
+
+        function getNav() {
+            return document.querySelector('.nxl-navigation .nxl-navbar');
+        }
+
+        function getScrollContainer() {
+            return document.querySelector('.nxl-navigation .navbar-content');
+        }
+
+        function persistState() {
+            var nav = getNav();
+            if (!nav) return;
+            try {
+                var sc = getScrollContainer();
+                if (sc) localStorage.setItem(KEY_SCROLL, String(sc.scrollTop || 0));
+            } catch (e) {}
+        }
+
+        function restoreState() {
+            var nav = getNav();
+            if (!nav) return;
+
+            var currentRoute = getCurrentRouteKey();
+            nav.querySelectorAll('.nxl-item.active').forEach(function (item) {
+                item.classList.remove('active');
+            });
+            nav.querySelectorAll('.nxl-item.nxl-hasmenu.open').forEach(function (item) {
+                item.classList.remove('open');
+            });
+
+            nav.querySelectorAll('.nxl-item .nxl-link[href]').forEach(function (a) {
+                var linkKey = getLinkRouteKey(a.getAttribute('href') || '');
+                if (linkKey && currentRoute && linkKey === currentRoute) {
+                    var item = a.closest('.nxl-item');
+                    if (item) item.classList.add('active');
+                    var parentMenu = a.closest('.nxl-item.nxl-hasmenu');
+                    if (parentMenu) parentMenu.classList.add('active', 'open');
+                }
+            });
+
+            try {
+                var sc = getScrollContainer();
+                var savedTop = parseInt(localStorage.getItem(KEY_SCROLL) || '0', 10);
+                if (sc && !isNaN(savedTop) && savedTop > 0) {
+                    requestAnimationFrame(function () {
+                        sc.scrollTop = savedTop;
+                    });
+                }
+            } catch (e) {}
+        }
+
+        document.documentElement.classList.add('nav-restoring');
+        restoreState();
+        requestAnimationFrame(function () {
+            document.documentElement.classList.remove('nav-restoring');
+        });
+
+        document.querySelectorAll('.nxl-navigation .nxl-item.nxl-hasmenu > .nxl-link').forEach(function (trigger) {
+            trigger.addEventListener('click', function () {
+                setTimeout(persistState, 0);
+            });
+        });
+
+        document.querySelectorAll('.nxl-navigation .nxl-submenu .nxl-link[href]').forEach(function (link) {
+            link.addEventListener('click', persistState);
+        });
+
+        var sc = getScrollContainer();
+        if (sc) {
+            sc.addEventListener('scroll', function () {
+                try { localStorage.setItem(KEY_SCROLL, String(sc.scrollTop || 0)); } catch (e) {}
+            }, { passive: true });
+        }
+    })();
+</script>

@@ -20,6 +20,14 @@ if ($conn->connect_error) {
     die('Connection failed: ' . $conn->connect_error);
 }
 $current_user_id = intval($_SESSION['user_id'] ?? 0);
+$current_user_name = trim((string)($_SESSION['name'] ?? $_SESSION['username'] ?? 'BioTern User'));
+$current_user_email = trim((string)($_SESSION['email'] ?? 'admin@biotern.local'));
+$current_user_role = trim((string)($_SESSION['role'] ?? ''));
+$current_profile_rel = ltrim(str_replace('\\', '/', trim((string)($_SESSION['profile_picture'] ?? ''))), '/');
+$current_profile_img = 'assets/images/avatar/' . (($current_user_id > 0 ? ($current_user_id % 5) : 0) + 1) . '.png';
+if ($current_profile_rel !== '' && file_exists(dirname(__DIR__) . '/' . $current_profile_rel)) {
+    $current_profile_img = $current_profile_rel;
+}
 
 function ojt_table_exists(mysqli $conn, string $table): bool {
     $safe = $conn->real_escape_string($table);
@@ -701,9 +709,54 @@ $print_section_label = $section_filter !== '' ? $section_filter : 'ALL';
                     </div>
                 </div>
                 <div class="dropdown nxl-h-item">
-                    <a href="javascript:void(0);" data-bs-toggle="dropdown" role="button" data-bs-auto-close="outside">
-                        <img src="assets/images/avatar/1.png" alt="user-image" class="img-fluid user-avtar me-0">
+                    <a href="javascript:void(0);" class="nxl-head-link me-0" data-bs-toggle="dropdown" role="button" data-bs-auto-close="outside">
+                        <img src="<?php echo htmlspecialchars($current_profile_img, ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar me-0" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
                     </a>
+                    <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-user-dropdown">
+                        <div class="dropdown-header">
+                            <div class="d-flex align-items-center">
+                                <img src="<?php echo htmlspecialchars($current_profile_img, ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
+                                <div>
+                                    <h6 class="text-dark mb-0">
+                                        <?php echo htmlspecialchars($current_user_name, ENT_QUOTES, 'UTF-8'); ?>
+                                        <?php if ($current_user_role !== ''): ?>
+                                            <span class="badge bg-soft-success text-success ms-1"><?php echo htmlspecialchars(ucfirst($current_user_role), ENT_QUOTES, 'UTF-8'); ?></span>
+                                        <?php endif; ?>
+                                    </h6>
+                                    <span class="fs-12 fw-medium text-muted"><?php echo htmlspecialchars($current_user_email, ENT_QUOTES, 'UTF-8'); ?></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="dropdown-divider"></div>
+                        <a href="javascript:void(0);" class="dropdown-item">
+                            <span class="hstack">
+                                <i class="wd-10 ht-10 border border-2 border-gray-1 bg-success rounded-circle me-2"></i>
+                                <span>Active</span>
+                            </span>
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        <a href="javascript:void(0);" class="dropdown-item">
+                            <i class="feather-user"></i>
+                            <span>Profile Details</span>
+                        </a>
+                        <a href="javascript:void(0);" class="dropdown-item">
+                            <i class="feather-activity"></i>
+                            <span>Activity Feed</span>
+                        </a>
+                        <a href="javascript:void(0);" class="dropdown-item">
+                            <i class="feather-bell"></i>
+                            <span>Notifications</span>
+                        </a>
+                        <a href="settings-general.php" class="dropdown-item">
+                            <i class="feather-settings"></i>
+                            <span>Account Settings</span>
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        <a href="auth-login-cover.php?logout=1" class="dropdown-item">
+                            <i class="feather-log-out"></i>
+                            <span>Logout</span>
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>

@@ -400,6 +400,52 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
             color: #000 !important;
         }
 
+        /* Dark mode form field readability */
+        html.app-skin-dark input.form-control,
+        html.app-skin-dark textarea.form-control,
+        html.app-skin-dark .form-control[type="text"],
+        html.app-skin-dark .form-control[type="email"],
+        html.app-skin-dark .form-control[type="password"],
+        html.app-skin-dark .form-control[type="number"],
+        html.app-skin-dark .form-control[type="date"],
+        html.app-skin-dark .form-control[type="time"],
+        html.app-skin-dark .form-control[type="search"],
+        html.app-skin-dark .form-control[type="tel"],
+        html.app-skin-dark .form-control[type="url"] {
+            color: #ffffff !important;
+            -webkit-text-fill-color: #ffffff !important;
+            background-color: #0f172a !important;
+            border-color: #4a5568 !important;
+        }
+
+        html.app-skin-dark input.form-control::placeholder,
+        html.app-skin-dark textarea.form-control::placeholder {
+            color: #d1dcf0 !important;
+            opacity: 1 !important;
+        }
+
+        html.app-skin-dark select.form-control,
+        html.app-skin-dark select.form-control option {
+            color: #ffffff !important;
+            background-color: #0f172a !important;
+            border-color: #4a5568 !important;
+        }
+
+        /* Keep browser suggestion/autofill values readable in dark mode */
+        html.app-skin-dark input.form-control:-webkit-autofill,
+        html.app-skin-dark input.form-control:-webkit-autofill:hover,
+        html.app-skin-dark input.form-control:-webkit-autofill:focus,
+        html.app-skin-dark textarea.form-control:-webkit-autofill,
+        html.app-skin-dark textarea.form-control:-webkit-autofill:hover,
+        html.app-skin-dark textarea.form-control:-webkit-autofill:focus {
+            -webkit-text-fill-color: #ffffff !important;
+            caret-color: #ffffff !important;
+            box-shadow: 0 0 0 1000px #0f172a inset !important;
+            -webkit-box-shadow: 0 0 0 1000px #0f172a inset !important;
+            border-color: #4a5568 !important;
+            transition: background-color 9999s ease-out 0s;
+        }
+
         .select2-container--default .select2-selection--single {
             height: calc(2.25rem + 2px);
             border: 1px solid #d9d9d9;
@@ -517,26 +563,26 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
                                 <h5 class="fs-14 fw-bold mb-3">Personal Information</h5>
                                 <div class="row g-3">
                                     <div class="col-6 mb-2">
-                                        <input type="text" name="student_id" class="form-control" placeholder="School ID Number" required>
+                                        <input type="text" name="student_id" class="form-control" placeholder="School ID Number" autocomplete="off" required>
                                     </div>
                                     <div class="col-6 mb-2">
-                                        <input type="text" name="first_name" style="padding: 12px 16px;" class="form-control" placeholder="First name" required>
-                                    </div>
-                                </div>
-                                <div class="row g-3">
-                                    <div class="col-6 mb-2">
-                                        <input type="text" name="middle_name" class="form-control" placeholder="Middle name">
-                                    </div>
-                                    <div class="col-6 mb-2">
-                                        <input type="text" name="last_name" class="form-control" placeholder="Last name" required>
+                                        <input type="text" name="first_name" style="padding: 12px 16px;" class="form-control" placeholder="First name" autocomplete="given-name" required>
                                     </div>
                                 </div>
                                 <div class="row g-3">
                                     <div class="col-6 mb-2">
-                                        <input type="text" name="address" class="form-control" placeholder="Full Home Address" required>
+                                        <input type="text" name="middle_name" class="form-control" placeholder="Middle name" autocomplete="additional-name">
                                     </div>
                                     <div class="col-6 mb-2">
-                                        <input type="email" name="email" class="form-control" placeholder="Email Address" required>
+                                        <input type="text" name="last_name" class="form-control" placeholder="Last name" autocomplete="family-name" required>
+                                    </div>
+                                </div>
+                                <div class="row g-3">
+                                    <div class="col-6 mb-2">
+                                        <input type="text" name="address" class="form-control" placeholder="Full Home Address" autocomplete="street-address" required>
+                                    </div>
+                                    <div class="col-6 mb-2">
+                                        <input type="email" name="email" class="form-control" placeholder="Email Address" autocomplete="email" required>
                                     </div>
                                 </div>
                             </div>
@@ -546,7 +592,7 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
                                 <h5 class="fs-14 fw-bold mb-3">Academic Information</h5>
                                 <div class="row g-3">
                                     <div class="col-4 mb-2">
-                                        <label class="form-label fs-12">Course</label>
+                                        <label class="form-label fs-12" for="studentCourseSelect">Course</label>
                                         <select name="course_id" id="studentCourseSelect" class="form-control dynamic-course-select" data-section-target="studentSectionSelect" required>
                                             <option value="" disabled selected>Select Course</option>
                                             <?php foreach ($courseOptions as $course): ?>
@@ -566,7 +612,7 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
                                         </select>
                                     </div>
                                     <div class="col-4 mb-2">
-                                        <label class="form-label fs-12">Department</label>
+                                        <label class="form-label fs-12" for="studentDepartmentSelect">Department</label>
                                         <select name="department_id" id="studentDepartmentSelect" class="form-control" required>
                                             <option value="" selected>Select Department</option>
                                             <?php foreach ($departmentOptions as $department): ?>
@@ -586,7 +632,7 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
                                         </select>
                                     </div>
                                     <div class="col-4 mb-2">
-                                        <label class="form-label fs-12">Section</label>
+                                        <label class="form-label fs-12" for="studentSectionSelect">Section</label>
                                         <select name="section" id="studentSectionSelect" class="form-control" required>
                                             <option value="" disabled selected>Select Section</option>
                                         </select>
@@ -594,7 +640,7 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
                                 </div>
                                 <div class="row g-3">
                                     <div class="col-6 mb-2">
-                                        <label class="form-label fs-12">Coordinator</label>
+                                        <label class="form-label fs-12" for="studentCoordinatorSelect">Coordinator</label>
                                         <select name="coordinator_id" id="studentCoordinatorSelect" class="form-control" required>
                                             <option value="" disabled selected>Select Coordinator</option>
                                             <?php foreach ($coordinatorOptions as $coordinator): ?>
@@ -616,7 +662,7 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
                                         </select>
                                     </div>
                                     <div class="col-6 mb-2">
-                                        <label class="form-label fs-12">Supervisor</label>
+                                        <label class="form-label fs-12" for="studentSupervisorSelect">Supervisor</label>
                                         <select name="supervisor_id" id="studentSupervisorSelect" class="form-control" required>
                                             <option value="" disabled selected>Select Supervisor</option>
                                             <?php foreach ($supervisorOptions as $supervisor): ?>
@@ -640,11 +686,11 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
                                 </div>
                                 <div class="row g-3">
                                     <div class="col-6 mb-2">
-                                        <label class="form-label fs-12">Internal Total Hours</label>
-                                        <input type="number" name="internal_total_hours" class="form-control" placeholder="Internal Total Hours" min="0">
+                                        <label class="form-label fs-12" for="studentInternalTotalHours">Internal Total Hours</label>
+                                        <input type="number" id="studentInternalTotalHours" name="internal_total_hours" class="form-control" placeholder="Internal Total Hours" min="0">
                                     </div>
                                     <div class="col-6 mb-2">
-                                        <label class="form-label fs-12">Finished Internal?</label>
+                                        <label class="form-label fs-12" for="finishedInternalSelect">Finished Internal?</label>
                                         <select name="finished_internal" id="finishedInternalSelect" class="form-control">
                                             <option value="no" selected>No</option>
                                             <option value="yes">Yes</option>
@@ -653,7 +699,7 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
                                 </div>
                                 <div class="row g-3">
                                     <div class="col-6 mb-2">
-                                        <label class="form-label fs-12">External Total Hours</label>
+                                        <label class="form-label fs-12" for="externalTotalHoursInput">External Total Hours</label>
                                         <input type="number" name="external_total_hours" id="externalTotalHoursInput" class="form-control" placeholder="External Total Hours" min="0" value="0">
                                     </div>
                                 </div>
@@ -664,12 +710,12 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
                                 <h5 class="fs-14 fw-bold mb-3">Additional Information</h5>
                                 <div class="row g-3">
                                     <div class="col-6 mb-2">
-                                        <label class="form-label fs-12">Date of Birth</label>
-                                        <input type="date" name="date_of_birth" class="form-control">
+                                        <label class="form-label fs-12" for="studentDateOfBirth">Date of Birth</label>
+                                        <input type="date" id="studentDateOfBirth" name="date_of_birth" class="form-control" autocomplete="bday">
                                     </div>
                                     <div class="col-6 mb-2">
-                                        <label class="form-label fs-12">Gender</label>
-                                        <select name="gender" class="form-control">
+                                        <label class="form-label fs-12" for="studentGender">Gender</label>
+                                        <select id="studentGender" name="gender" class="form-control" autocomplete="off">
                                             <option value="" disabled selected>Select Gender</option>
                                             <option value="male">Male</option>
                                             <option value="female">Female</option>
@@ -679,16 +725,16 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
                                 </div>
                                 <div class="row g-3">
                                     <div class="col-6 mb-2">
-                                        <label class="form-label fs-12">Phone Number</label>
-                                        <input type="tel" name="phone" class="form-control" placeholder="Phone Number">
+                                        <label class="form-label fs-12" for="studentPhone">Phone Number</label>
+                                        <input type="tel" id="studentPhone" name="phone" class="form-control" placeholder="Phone Number" autocomplete="tel">
                                     </div>
                                     <div class="col-6 mb-2">
-                                        <label class="form-label fs-12">Emergency Contact Name</label>
-                                        <input type="text" name="emergency_contact" class="form-control" placeholder="Emergency Contact Name">
+                                        <label class="form-label fs-12" for="studentEmergencyContact">Emergency Contact Name</label>
+                                        <input type="text" id="studentEmergencyContact" name="emergency_contact" class="form-control" placeholder="Emergency Contact Name" autocomplete="name">
                                     </div>
                                     <div class="col-6 mb-2">
-                                        <label class="form-label fs-12">Emergency Contact Phone</label>
-                                        <input type="tel" name="emergency_contact_phone" class="form-control" placeholder="Emergency Contact Phone Number">
+                                        <label class="form-label fs-12" for="studentEmergencyContactPhone">Emergency Contact Phone</label>
+                                        <input type="tel" id="studentEmergencyContactPhone" name="emergency_contact_phone" class="form-control" placeholder="Emergency Contact Phone Number" autocomplete="tel">
                                     </div>
                                 </div>
                             </div>
@@ -698,22 +744,22 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
                                 <h5 class="fs-14 fw-bold mb-3">Account Information</h5>
                                 <div class="row g-3">
                                     <div class="col-6 mb-2">
-                                        <input type="text" name="username" class="form-control" placeholder="Username" required>
+                                        <input type="text" name="username" class="form-control" placeholder="Username" autocomplete="username" required>
                                     </div>
                                     <div class="col-6 mb-2">
-                                        <input type="email" name="account_email" class="form-control" placeholder="Account Email Address" required>
+                                        <input type="email" name="account_email" class="form-control" placeholder="Account Email Address" autocomplete="email" required>
                                     </div>
                                 </div>
                                 <div class="row g-3">
                                     <div class="col-6 mb-2">
                                         <div class="input-group field">
-                                            <input type="password" name="password" class="form-control password" id="studentPassword" placeholder="Password">
+                                            <input type="password" name="password" class="form-control password" id="studentPassword" placeholder="Password" autocomplete="new-password">
                                             <div class="input-group-text border-start bg-gray-2 c-pointer show-pass-toggle" data-target="studentPassword" data-bs-toggle="tooltip" title="Show/Hide Password"><i></i></div>
                                         </div>
                                     </div>
                                     <div class="col-6 mb-2">
                                         <div class="input-group field">
-                                            <input type="password" name="confirm_password" class="form-control" id="studentConfirmPassword" placeholder="Confirm password" required>
+                                            <input type="password" name="confirm_password" class="form-control" id="studentConfirmPassword" placeholder="Confirm password" autocomplete="new-password" required>
                                             <div class="input-group-text border-start bg-gray-2 c-pointer show-pass-toggle" data-target="studentConfirmPassword" data-bs-toggle="tooltip" title="Show/Hide Password"><i></i></div>
                                         </div>
                                     </div>
@@ -744,31 +790,31 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
                             <h5 class="fs-14 fw-bold mb-3">Personal Information</h5>
                             <div class="row g-3">
                                 <div class="col-6 mb-2">
-                                    <input type="text" name="first_name" class="form-control" placeholder="First name" required>
+                                    <input type="text" name="first_name" class="form-control" placeholder="First name" autocomplete="given-name" required>
                                 </div>
                                 <div class="col-6 mb-2">
-                                    <input type="text" name="last_name" class="form-control" placeholder="Last name" required>
+                                    <input type="text" name="last_name" class="form-control" placeholder="Last name" autocomplete="family-name" required>
                                 </div>
                             </div>
                             <div class="row g-3">
                                 <div class="col-6 mb-2">
-                                    <input type="email" name="email" class="form-control" placeholder="Institution Email Address" required>
+                                    <input type="email" name="email" class="form-control" placeholder="Institution Email Address" autocomplete="email" required>
                                 </div>
                                 <div class="col-6 mb-2">
-                                    <input type="text" name="phone" class="form-control" placeholder="Phone Number" required>
+                                    <input type="text" name="phone" class="form-control" placeholder="Phone Number" autocomplete="tel" required>
                                 </div>
                             </div>
                             <div class="row g-3">
                                 <div class="col-12 mb-2">
-                                    <input type="text" name="office_location" class="form-control" placeholder="Full Office Address" required>
+                                    <input type="text" name="office_location" class="form-control" placeholder="Full Office Address" autocomplete="street-address" required>
                                 </div>
                             </div>
 
                             <h5 class="fs-14 fw-bold mb-3 mt-4">Department Information</h5>
                             <div class="row g-3">
                                 <div class="col-6 mb-2">
-                                    <label class="form-label fs-12">Department Code</label>
-                                    <select name="department_code" class="form-control" required>
+                                    <label class="form-label fs-12" for="coordDepartmentCode">Department Code</label>
+                                    <select id="coordDepartmentCode" name="department_code" class="form-control" required>
                                         <option value="" disabled selected>Select Department</option>
                                         <?php foreach ($departmentOptions as $department): ?>
                                             <option value="<?php echo htmlspecialchars($department['code']); ?>">
@@ -784,30 +830,30 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
                                     </select>
                                 </div>
                                 <div class="col-6 mb-2">
-                                    <label class="form-label fs-12">Position</label>
-                                    <input type="text" name="position" class="form-control" placeholder="e.g., Internship Coordinator" required>
+                                    <label class="form-label fs-12" for="coordPosition">Position</label>
+                                    <input type="text" id="coordPosition" name="position" class="form-control" placeholder="e.g., Internship Coordinator" autocomplete="organization-title" required>
                                 </div>
                             </div>
 
                             <h5 class="fs-14 fw-bold mb-3 mt-4">Account Information</h5>
                             <div class="row g-3">
                                 <div class="col-6 mb-2">
-                                    <input type="text" name="username" class="form-control" placeholder="Username" required>
+                                    <input type="text" name="username" class="form-control" placeholder="Username" autocomplete="username" required>
                                 </div>
                                 <div class="col-6 mb-2">
-                                    <input type="email" name="account_email" class="form-control" placeholder="Account Email Address" required>
+                                    <input type="email" name="account_email" class="form-control" placeholder="Account Email Address" autocomplete="email" required>
                                 </div>
                             </div>
                             <div class="row g-3">
                                 <div class="col-6 mb-2">
                                     <div class="input-group field">
-                                        <input type="password" name="password" class="form-control password" id="coordPassword" placeholder="Password">
+                                        <input type="password" name="password" class="form-control password" id="coordPassword" placeholder="Password" autocomplete="new-password">
                                         <div class="input-group-text border-start bg-gray-2 c-pointer show-pass-toggle" data-target="coordPassword" data-bs-toggle="tooltip" title="Show/Hide Password"><i></i></div>
                                     </div>
                                 </div>
                                 <div class="col-6 mb-2">
                                     <div class="input-group field">
-                                        <input type="password" name="confirm_password" class="form-control" id="coordConfirmPassword" placeholder="Confirm password" required>
+                                        <input type="password" name="confirm_password" class="form-control" id="coordConfirmPassword" placeholder="Confirm password" autocomplete="new-password" required>
                                         <div class="input-group-text border-start bg-gray-2 c-pointer show-pass-toggle" data-target="coordConfirmPassword" data-bs-toggle="tooltip" title="Show/Hide Password"><i></i></div>
                                     </div>
                                 </div>
@@ -837,28 +883,28 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
                             <h5 class="fs-14 fw-bold mb-3">Personal Information</h5>
                             <div class="row g-3">
                                 <div class="col-6 mb-2">
-                                    <input type="text" name="first_name" class="form-control" placeholder="First name" required>
+                                    <input type="text" name="first_name" class="form-control" placeholder="First name" autocomplete="given-name" required>
                                 </div>
                                 <div class="col-6 mb-2">
-                                    <input type="text" name="last_name" class="form-control" placeholder="Last name" required>
+                                    <input type="text" name="last_name" class="form-control" placeholder="Last name" autocomplete="family-name" required>
                                 </div>
                             </div>
                             <div class="row g-3">
                                 <div class="col-6 mb-2">
-                                    <input type="email" name="email" class="form-control" placeholder="Email Address" required>
+                                    <input type="email" name="email" class="form-control" placeholder="Email Address" autocomplete="email" required>
                                 </div>
                                 <div class="col-6 mb-2">
-                                    <input type="tel" name="phone" class="form-control" placeholder="Phone Number" required>
+                                    <input type="tel" name="phone" class="form-control" placeholder="Phone Number" autocomplete="tel" required>
                                 </div>
                             </div>
 
                             <h5 class="fs-14 fw-bold mb-3 mt-4">Company Information</h5>
                             <div class="row g-3">
                                 <div class="col-6 mb-2">
-                                    <input type="text" name="company_name" class="form-control" value="Clark College of Science and Technology" readonly>
+                                    <input type="text" name="company_name" class="form-control" value="Clark College of Science and Technology" autocomplete="organization" readonly>
                                 </div>
                                 <div class="col-6 mb-2">
-                                    <input type="text" name="job_position" class="form-control" placeholder="Job Position" required>
+                                    <input type="text" name="job_position" class="form-control" placeholder="Job Position" autocomplete="organization-title" required>
                                 </div>
                             </div>
                             <div class="row g-3">
@@ -884,29 +930,29 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
                             </div>
                             <div class="row g-3">
                                 <div class="col-12 mb-2">
-                                    <input type="text" name="company_address" class="form-control" value="AUREA ST. SAMSONVILLE, DAU MABALACAT CITY PAMPANGA" readonly>
+                                    <input type="text" name="company_address" class="form-control" value="AUREA ST. SAMSONVILLE, DAU MABALACAT CITY PAMPANGA" autocomplete="street-address" readonly>
                                 </div>
                             </div>
 
                             <h5 class="fs-14 fw-bold mb-3 mt-4">Account Information</h5>
                             <div class="row g-3">
                                 <div class="col-6 mb-2">
-                                    <input type="text" name="username" class="form-control" placeholder="Username" required>
+                                    <input type="text" name="username" class="form-control" placeholder="Username" autocomplete="username" required>
                                 </div>
                                 <div class="col-6 mb-2">
-                                    <input type="email" name="account_email" class="form-control" placeholder="Account Email Address" required>
+                                    <input type="email" name="account_email" class="form-control" placeholder="Account Email Address" autocomplete="email" required>
                                 </div>
                             </div>
                             <div class="row g-3">
                                 <div class="col-6 mb-2">
                                     <div class="input-group field">
-                                        <input type="password" name="password" class="form-control password" id="supPassword" placeholder="Password">
+                                        <input type="password" name="password" class="form-control password" id="supPassword" placeholder="Password" autocomplete="new-password">
                                         <div class="input-group-text border-start bg-gray-2 c-pointer show-pass-toggle" data-target="supPassword" data-bs-toggle="tooltip" title="Show/Hide Password"><i></i></div>
                                     </div>
                                 </div>
                                 <div class="col-6 mb-2">
                                     <div class="input-group field">
-                                        <input type="password" name="confirm_password" class="form-control" id="supConfirmPassword" placeholder="Confirm password" required>
+                                        <input type="password" name="confirm_password" class="form-control" id="supConfirmPassword" placeholder="Confirm password" autocomplete="new-password" required>
                                         <div class="input-group-text border-start bg-gray-2 c-pointer show-pass-toggle" data-target="supConfirmPassword" data-bs-toggle="tooltip" title="Show/Hide Password"><i></i></div>
                                     </div>
                                 </div>
@@ -936,26 +982,26 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
                             <h5 class="fs-14 fw-bold mb-3">Personal Information</h5>
                             <div class="row g-3">
                                 <div class="col-6 mb-2">
-                                    <input type="text" name="first_name" class="form-control" placeholder="First name" required>
+                                    <input type="text" name="first_name" class="form-control" placeholder="First name" autocomplete="given-name" required>
                                 </div>
                                 <div class="col-6 mb-2">
-                                    <input type="text" name="last_name" class="form-control" placeholder="Last name" required>
+                                    <input type="text" name="last_name" class="form-control" placeholder="Last name" autocomplete="family-name" required>
                                 </div>
                             </div>
                             <div class="row g-3">
                                 <div class="col-6 mb-2">
-                                    <input type="email" name="email" class="form-control" placeholder="Institution Email Address" required>
+                                    <input type="email" name="email" class="form-control" placeholder="Institution Email Address" autocomplete="email" required>
                                 </div>
                                 <div class="col-6 mb-2">
-                                    <input type="tel" name="phone" class="form-control" placeholder="Phone Number" required>
+                                    <input type="tel" name="phone" class="form-control" placeholder="Phone Number" autocomplete="tel" required>
                                 </div>
                             </div>
 
                             <h5 class="fs-14 fw-bold mb-3 mt-4">Administrative Information</h5>
                             <div class="row g-3">
                                 <div class="col-6 mb-2">
-                                    <label class="form-label fs-12">Admin Level</label>
-                                    <select class="form-control" name="admin_level" required>
+                                    <label class="form-label fs-12" for="adminLevel">Admin Level</label>
+                                    <select id="adminLevel" class="form-control" name="admin_level" required>
                                         <option value="" disabled selected>Select Admin Level</option>
                                         <option value="head_admin">Head Admin</option>
                                         <option value="admin">Admin</option>
@@ -963,8 +1009,8 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
                                     </select>
                                 </div>
                                 <div class="col-6 mb-2">
-                                    <label class="form-label fs-12">Department Code</label>
-                                    <select name="department_code" class="form-control" required>
+                                    <label class="form-label fs-12" for="adminDepartmentCode">Department Code</label>
+                                    <select id="adminDepartmentCode" name="department_code" class="form-control" required>
                                         <option value="" disabled selected>Select Department</option>
                                         <?php foreach ($departmentOptions as $department): ?>
                                             <option value="<?php echo htmlspecialchars($department['code']); ?>">
@@ -985,29 +1031,29 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
                             <input type="hidden" name="admin_section" value="">
                             <div class="row g-3">
                                 <div class="col-12 mb-2">
-                                    <input type="text" name="admin_position" class="form-control" placeholder="Official Title/Position" required>
+                                    <input type="text" name="admin_position" class="form-control" placeholder="Official Title/Position" autocomplete="organization-title" required>
                                 </div>
                             </div>
 
                             <h5 class="fs-14 fw-bold mb-3 mt-4">Account Information</h5>
                             <div class="row g-3">
                                 <div class="col-6 mb-2">
-                                    <input type="text" name="username" class="form-control" placeholder="Username" required>
+                                    <input type="text" name="username" class="form-control" placeholder="Username" autocomplete="username" required>
                                 </div>
                                 <div class="col-6 mb-2">
-                                    <input type="email" name="account_email" class="form-control" placeholder="Account Email Address" required>
+                                    <input type="email" name="account_email" class="form-control" placeholder="Account Email Address" autocomplete="email" required>
                                 </div>
                             </div>
                             <div class="row g-3">
                                 <div class="col-6 mb-2">
                                     <div class="input-group field">
-                                        <input type="password" name="password" class="form-control password" id="adminPassword" placeholder="Password">
+                                        <input type="password" name="password" class="form-control password" id="adminPassword" placeholder="Password" autocomplete="new-password">
                                         <div class="input-group-text border-start bg-gray-2 c-pointer show-pass-toggle" data-target="adminPassword" data-bs-toggle="tooltip" title="Show/Hide Password"><i></i></div>
                                     </div>
                                 </div>
                                 <div class="col-6 mb-2">
                                     <div class="input-group field">
-                                        <input type="password" name="confirm_password" class="form-control" id="adminConfirmPassword" placeholder="Confirm password" required>
+                                        <input type="password" name="confirm_password" class="form-control" id="adminConfirmPassword" placeholder="Confirm password" autocomplete="new-password" required>
                                         <div class="input-group-text border-start bg-gray-2 c-pointer show-pass-toggle" data-target="adminConfirmPassword" data-bs-toggle="tooltip" title="Show/Hide Password"><i></i></div>
                                     </div>
                                 </div>

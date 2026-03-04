@@ -514,11 +514,11 @@ if ($student_id > 0 && ojt_edit_table_exists($conn, 'ojt_supervisor_reviews')) {
                         </div>
                     </div>
                 </div>
-                <div class="dropdown nxl-h-item">
-                    <a href="javascript:void(0);" data-bs-toggle="dropdown" role="button" data-bs-auto-close="outside">
-                        <img src="assets/images/avatar/1.png" alt="user-image" class="img-fluid user-avtar me-0">
-                    </a>
-                </div>
+                    <div class="dropdown nxl-h-item">
+                        <a href="javascript:void(0);" data-bs-toggle="dropdown" role="button" data-bs-auto-close="outside">
+                            <img src="<?php echo htmlspecialchars((isset($_SESSION['profile_picture']) && trim((string)$_SESSION['profile_picture']) !== '' ? ltrim(str_replace('\\', '/', trim((string)$_SESSION['profile_picture'])), '/') : ('assets/images/avatar/' . (((int)($_SESSION['user_id'] ?? 0) % 5) + 1) . '.png')), ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar me-0" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
+                        </a>
+                    </div>
             </div>
         </div>
     </div>

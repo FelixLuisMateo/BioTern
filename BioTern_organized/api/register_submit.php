@@ -161,7 +161,12 @@ function createUser($mysqli, $username, $email, $password, $role) {
     $userId = null;
     if ($res && $res->num_rows > 0) {
         $pwdHash = password_hash($password, PASSWORD_DEFAULT);
-        $stmt = $mysqli->prepare("INSERT INTO users (name, username, email, password, role, created_at) VALUES (?, ?, ?, ?, ?, NOW())");
+        $hasIsActive = tableHasColumn($mysqli, 'users', 'is_active');
+        if ($hasIsActive) {
+            $stmt = $mysqli->prepare("INSERT INTO users (name, username, email, password, role, is_active, created_at) VALUES (?, ?, ?, ?, ?, 1, NOW())");
+        } else {
+            $stmt = $mysqli->prepare("INSERT INTO users (name, username, email, password, role, created_at) VALUES (?, ?, ?, ?, ?, NOW())");
+        }
         if ($stmt) {
             $name = $username;
             $stmt->bind_param('sssss', $name, $username, $email, $pwdHash, $role);
@@ -697,11 +702,23 @@ if ($role === 'admin') {
         if (!$stmt_admin->execute()) {
             $error = $stmt_admin->error;
             $stmt_admin->close();
+            $cleanup = $mysqli->prepare("DELETE FROM users WHERE id = ? LIMIT 1");
+            if ($cleanup) {
+                $cleanup->bind_param('i', $userId);
+                $cleanup->execute();
+                $cleanup->close();
+            }
             header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Admin record error: ' . $error));
             exit;
         }
         $stmt_admin->close();
     } else {
+        $cleanup = $mysqli->prepare("DELETE FROM users WHERE id = ? LIMIT 1");
+        if ($cleanup) {
+            $cleanup->bind_param('i', $userId);
+            $cleanup->execute();
+            $cleanup->close();
+        }
         header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Admin table statement error: ' . $mysqli->error));
         exit;
     }

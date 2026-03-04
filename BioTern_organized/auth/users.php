@@ -258,7 +258,7 @@ if ($stats_res) {
 }
 
 $page_title = 'Users Account';
-$base_href = '../';
+$base_href = '';
 include __DIR__ . '/../includes/header.php';
 ?>
 
@@ -530,12 +530,12 @@ include __DIR__ . '/../includes/header.php';
         <div class="card-header">
             <form method="get" class="row g-2 align-items-end">
                 <div class="col-md-4">
-                    <label class="form-label mb-1">Search</label>
-                    <input type="text" name="q" class="form-control" value="<?php echo e($search); ?>" placeholder="Name, username, or email">
+                    <label class="form-label mb-1" for="usersFilterSearch">Search</label>
+                    <input type="text" id="usersFilterSearch" name="q" class="form-control" value="<?php echo e($search); ?>" placeholder="Name, username, or email">
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label mb-1">Role</label>
-                    <select name="role" class="form-select">
+                    <label class="form-label mb-1" for="usersFilterRole">Role</label>
+                    <select id="usersFilterRole" name="role" class="form-select">
                         <option value="all" <?php echo $role_filter === 'all' ? 'selected' : ''; ?>>All Roles</option>
                         <option value="admin" <?php echo $role_filter === 'admin' ? 'selected' : ''; ?>>Admin</option>
                         <option value="coordinator" <?php echo $role_filter === 'coordinator' ? 'selected' : ''; ?>>Coordinator</option>
@@ -544,8 +544,8 @@ include __DIR__ . '/../includes/header.php';
                     </select>
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label mb-1">Status</label>
-                    <select name="status" class="form-select">
+                    <label class="form-label mb-1" for="usersFilterStatus">Status</label>
+                    <select id="usersFilterStatus" name="status" class="form-select">
                         <option value="all" <?php echo $status_filter === 'all' ? 'selected' : ''; ?>>All Status</option>
                         <option value="active" <?php echo $status_filter === 'active' ? 'selected' : ''; ?>>Active</option>
                         <option value="inactive" <?php echo $status_filter === 'inactive' ? 'selected' : ''; ?>>Inactive</option>
