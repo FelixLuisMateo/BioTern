@@ -300,6 +300,12 @@
                                     <span>Miscellaneous</span>
                                 </a>
                             </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="theme-customizer.php">
+                                    <i class="feather-settings"></i>
+                                    <span>Theme Customizer</span>
+                                </a>
+                            </li>
                         </ul>
                     </div>
                 </div>
@@ -424,7 +430,7 @@
                     <!-- [ Footer ] start -->
                     <footer class="footer">
                         <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
-                            <span>Copyright ©</span>
+                            <span>Copyright ï¿½</span>
                             <script>
                                 document.write(new Date().getFullYear());
                             </script>
