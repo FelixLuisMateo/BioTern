@@ -243,4 +243,56 @@ if ($is_logged_in) {
   }
 }
 
+if ($file === 'homepage.php') {
+  ob_start();
+  require $target;
+  $html = ob_get_clean();
+  $guard = <<<'HTML'
+<script>
+  (function () {
+    function collapseSidebarMenus() {
+      if (!document.documentElement.classList.contains('minimenu')) return;
+      document.querySelectorAll('.nxl-navigation .nxl-item.nxl-hasmenu.open, .nxl-navigation .nxl-item.nxl-hasmenu.nxl-trigger').forEach(function (item) {
+        item.classList.remove('open', 'nxl-trigger');
+      });
+    }
+
+    function runAfterToggle() {
+      collapseSidebarMenus();
+      setTimeout(collapseSidebarMenus, 80);
+      setTimeout(collapseSidebarMenus, 220);
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', collapseSidebarMenus);
+    } else {
+      collapseSidebarMenus();
+    }
+
+    ['menu-mini-button', 'menu-expend-button', 'mobile-collapse'].forEach(function (id) {
+      var btn = document.getElementById(id);
+      if (btn) btn.addEventListener('click', runAfterToggle);
+    });
+
+    var nav = document.querySelector('.nxl-navigation');
+    if (window.MutationObserver && nav) {
+      var observer = new MutationObserver(function () {
+        if (document.documentElement.classList.contains('minimenu')) {
+          collapseSidebarMenus();
+        }
+      });
+      observer.observe(nav, { subtree: true, attributes: true, attributeFilter: ['class'] });
+    }
+  })();
+</script>
+HTML;
+  if (stripos($html, '</body>') !== false) {
+    $html = preg_replace('/<\/body>/i', $guard . "\n</body>", $html, 1);
+  } else {
+    $html .= "\n" . $guard;
+  }
+  echo $html;
+  exit;
+}
+
 require $target;
