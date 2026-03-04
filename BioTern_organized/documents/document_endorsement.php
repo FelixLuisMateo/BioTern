@@ -82,7 +82,7 @@ include __DIR__ . '/../includes/header.php';
         body { display:flex; flex-direction:column; min-height:100vh; }
         main.nxl-container { flex:1; display:flex; flex-direction:column; padding-top:90px; }
         div.nxl-content { flex:1; padding-bottom:24px; }
-        .nxl-header { position: fixed !important; top: 0; left: 0; right: 0; z-index: 2147483647 !important; }
+        .nxl-header { z-index: 2147483647 !important; }
         .nxl-navigation { z-index: 2147483646; }
         footer.footer { margin-top: auto; }
 

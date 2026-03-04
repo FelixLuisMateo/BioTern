@@ -15,16 +15,6 @@
     <!--! BEGIN: Favicon-->
     <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
     <!--! END: Favicon-->
-    <script>
-        (function(){
-            try{
-                var s = localStorage.getItem('app-skin-dark') || localStorage.getItem('app-skin') || localStorage.getItem('app_skin') || localStorage.getItem('theme');
-                if (s && (s.indexOf && s.indexOf('dark') !== -1 || s === 'app-skin-dark')) {
-                    document.documentElement.classList.add('app-skin-dark');
-                }
-            }catch(e){}
-        })();
-    </script>
     <!--! BEGIN: Bootstrap CSS-->
     <link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css">
     <!--! END: Bootstrap CSS-->
@@ -417,7 +407,7 @@
                     <!-- [ Footer ] start -->
                     <footer class="footer">
                         <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
-                            <span>Copyright ©</span>
+                            <span>Copyright ï¿½</span>
                             <script>
                                 document.write(new Date().getFullYear());
                             </script>

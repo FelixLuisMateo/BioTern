@@ -26,7 +26,7 @@
     <div class="navbar-wrapper">
         <div class="m-header">
             <a href="/BioTern/BioTern_organized/legacy_router.php?file=homepage.php" class="b-brand">
-                <img src="assets/images/logo-full.png" alt="" class="logo logo-lg" width="21100" height="3100" style="width:210px;height:2100px;object-fit:contain;" />
+                <img src="assets/images/logo-full.png" alt="BioTern" class="logo logo-lg" style="width:210px;height:auto;object-fit:contain;" />
                 <img src="assets/images/logo-abbr.png" alt="" class="logo logo-sm" />
             </a>
         </div>

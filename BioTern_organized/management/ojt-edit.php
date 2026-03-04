@@ -397,16 +397,6 @@ if ($student_id > 0 && ojt_edit_table_exists($conn, 'ojt_supervisor_reviews')) {
     <title>BioTern || OJT Edit</title>
     <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
     <script src="assets/js/theme-preload-init.min.js"></script>
-    <script>
-        (function(){
-            try{
-                var s = localStorage.getItem('app-skin-dark') || localStorage.getItem('app-skin') || localStorage.getItem('app_skin') || localStorage.getItem('theme');
-                if (s && (s.indexOf && s.indexOf('dark') !== -1 || s === 'app-skin-dark')) {
-                    document.documentElement.classList.add('app-skin-dark');
-                }
-            }catch(e){}
-        })();
-    </script>
     <link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/vendors.min.css">
     <script>try{var s=localStorage.getItem('app-skin')||localStorage.getItem('app_skin')||localStorage.getItem('theme'); if(s&&s.indexOf('dark')!==-1)document.documentElement.classList.add('app-skin-dark');}catch(e){};</script>

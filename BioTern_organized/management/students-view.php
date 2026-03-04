@@ -368,16 +368,6 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
     <title>BioTern || Student Profile - <?php echo htmlspecialchars($student['first_name'] . ' ' . $student['last_name']); ?></title>
     <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
     <script src="assets/js/theme-preload-init.min.js"></script>
-    <script>
-        (function(){
-            try{
-                var s = localStorage.getItem('app-skin-dark') || localStorage.getItem('app-skin') || localStorage.getItem('app_skin') || localStorage.getItem('theme');
-                if (s && (s.indexOf && s.indexOf('dark') !== -1 || s === 'app-skin-dark')) {
-                    document.documentElement.classList.add('app-skin-dark');
-                }
-            }catch(e){}
-        })();
-    </script>
     <link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/vendors.min.css">
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2.min.css">
@@ -987,7 +977,7 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
         <!-- Footer -->
         <footer class="footer">
             <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
-                <span>Copyright ©</span>
+                <span>Copyright ï¿½</span>
                 <script>
                     document.write(new Date().getFullYear());
                 </script>
