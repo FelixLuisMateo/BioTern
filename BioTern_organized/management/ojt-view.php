@@ -1100,6 +1100,57 @@ $dau_print_url = $app_base . 'pages/generate_dau_moa.php?' . http_build_query([
         .document-form-actions .btn {
             min-height: 40px;
         }
+        .print-doc-option {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            width: 100%;
+            border: 1px solid #2a3a57;
+            border-radius: 10px;
+            padding: 10px 12px;
+            background: #0f1a33;
+            cursor: pointer;
+            transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+            color: #dbe5f1;
+            min-height: 44px;
+        }
+        .print-doc-option:hover {
+            border-color: #3c5ea6;
+            box-shadow: 0 0 0 2px rgba(76, 124, 245, 0.12);
+            transform: translateY(-1px);
+        }
+        .print-doc-option .print-doc-check {
+            display: none;
+        }
+        .print-doc-option .print-doc-label {
+            font-weight: 600;
+            font-size: 13px;
+            line-height: 1.15;
+            color: inherit;
+        }
+        .print-doc-option .print-doc-state {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            color: #8ea6cc;
+        }
+        .print-doc-option.is-checked {
+            border-color: #4c7cf5;
+            box-shadow: 0 0 0 2px rgba(76, 124, 245, 0.2);
+            background: #132244;
+        }
+        .print-doc-option.is-checked .print-doc-state {
+            color: #b9ccff;
+        }
+        .print-doc-actions .btn {
+            min-height: 40px;
+            border-radius: 8px;
+        }
+        .print-doc-actions .print-doc-hint {
+            font-size: 12px;
+        }
 
         @media (max-width: 991.98px) {
             .page-header { display: block; }
@@ -1678,46 +1729,42 @@ $dau_print_url = $app_base . 'pages/generate_dau_moa.php?' . http_build_query([
                                     <?php else: ?>
                                         <div class="row g-2 mb-3" id="printDocsSelection">
                                             <div class="col-md-3 col-sm-6">
-                                                <label class="form-check border rounded p-2 d-flex align-items-center gap-2 mb-0">
-                                                    <input class="form-check-input print-doc-check" type="checkbox"
-                                                        data-doc-url="<?php echo htmlspecialchars($application_print_url); ?>"
-                                                        data-doc-label="Application Letter"
-                                                        <?php echo $document_completion['application'] ? 'checked' : ''; ?>>
-                                                    <span>Application Letter</span>
+                                                <label class="print-doc-option mb-0"
+                                                    data-doc-url="<?php echo htmlspecialchars($application_print_url); ?>"
+                                                    data-doc-label="Application Letter">
+                                                    <span class="print-doc-label">Application Letter</span>
+                                                    <span class="print-doc-state">Select</span>
                                                 </label>
                                             </div>
                                             <div class="col-md-3 col-sm-6">
-                                                <label class="form-check border rounded p-2 d-flex align-items-center gap-2 mb-0">
-                                                    <input class="form-check-input print-doc-check" type="checkbox"
-                                                        data-doc-url="<?php echo htmlspecialchars($moa_print_url); ?>"
-                                                        data-doc-label="MOA"
-                                                        <?php echo $document_completion['moa'] ? 'checked' : ''; ?>>
-                                                    <span>MOA</span>
+                                                <label class="print-doc-option mb-0"
+                                                    data-doc-url="<?php echo htmlspecialchars($moa_print_url); ?>"
+                                                    data-doc-label="MOA">
+                                                    <span class="print-doc-label">MOA</span>
+                                                    <span class="print-doc-state">Select</span>
                                                 </label>
                                             </div>
                                             <div class="col-md-3 col-sm-6">
-                                                <label class="form-check border rounded p-2 d-flex align-items-center gap-2 mb-0">
-                                                    <input class="form-check-input print-doc-check" type="checkbox"
-                                                        data-doc-url="<?php echo htmlspecialchars($endorsement_print_url); ?>"
-                                                        data-doc-label="Endorsement Letter"
-                                                        <?php echo $document_completion['endorsement'] ? 'checked' : ''; ?>>
-                                                    <span>Endorsement Letter</span>
+                                                <label class="print-doc-option mb-0"
+                                                    data-doc-url="<?php echo htmlspecialchars($endorsement_print_url); ?>"
+                                                    data-doc-label="Endorsement Letter">
+                                                    <span class="print-doc-label">Endorsement Letter</span>
+                                                    <span class="print-doc-state">Select</span>
                                                 </label>
                                             </div>
                                             <div class="col-md-3 col-sm-6">
-                                                <label class="form-check border rounded p-2 d-flex align-items-center gap-2 mb-0">
-                                                    <input class="form-check-input print-doc-check" type="checkbox"
-                                                        data-doc-url="<?php echo htmlspecialchars($dau_print_url); ?>"
-                                                        data-doc-label="Dau MOA"
-                                                        <?php echo $document_completion['dau_moa'] ? 'checked' : ''; ?>>
-                                                    <span>Dau MOA</span>
+                                                <label class="print-doc-option mb-0"
+                                                    data-doc-url="<?php echo htmlspecialchars($dau_print_url); ?>"
+                                                    data-doc-label="Dau MOA">
+                                                    <span class="print-doc-label">Dau MOA</span>
+                                                    <span class="print-doc-state">Select</span>
                                                 </label>
                                             </div>
                                         </div>
-                                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                                        <div class="d-flex align-items-center gap-2 flex-wrap print-doc-actions">
                                             <button type="button" class="btn btn-success" id="printSelectedDocsBtn">Print Selected</button>
                                             <button type="button" class="btn btn-primary" id="printAllDocsBtn">Print All Documents</button>
-                                            <span class="text-muted fs-12" id="printDocsHint">Documents will print one by one from this page.</span>
+                                            <span class="text-muted print-doc-hint" id="printDocsHint">Documents will print one by one from this page.</span>
                                         </div>
                                     <?php endif; ?>
                                 </div>
@@ -2245,6 +2292,22 @@ $dau_print_url = $app_base . 'pages/generate_dau_moa.php?' . http_build_query([
             var toggleAllBtn = document.getElementById('toggleAllPrintDocs');
             var hint = document.getElementById('printDocsHint');
             var printFrame = null;
+            var printOptions = Array.prototype.slice.call(document.querySelectorAll('.print-doc-option'));
+
+            function syncPrintOptionState() {
+                printOptions.forEach(function (option) {
+                    var state = option.querySelector('.print-doc-state');
+                    if (!state) return;
+                    state.textContent = option.classList.contains('is-checked') ? 'Selected' : 'Select';
+                });
+            }
+            syncPrintOptionState();
+            printOptions.forEach(function (option) {
+                option.addEventListener('click', function () {
+                    option.classList.toggle('is-checked');
+                    syncPrintOptionState();
+                });
+            });
 
             function getPrintFrame() {
                 if (printFrame) return printFrame;
@@ -2307,31 +2370,35 @@ $dau_print_url = $app_base . 'pages/generate_dau_moa.php?' . http_build_query([
 
             if (printBtn) {
                 printBtn.addEventListener('click', function () {
-                    var checks = Array.prototype.slice.call(document.querySelectorAll('.print-doc-check:checked'));
-                    runBatchPrint(checks);
+                    var selected = Array.prototype.slice.call(document.querySelectorAll('.print-doc-option.is-checked'));
+                    runBatchPrint(selected);
                 });
             }
 
             if (toggleAllBtn) {
                 toggleAllBtn.addEventListener('click', function () {
-                    var allChecks = Array.prototype.slice.call(document.querySelectorAll('.print-doc-check'));
-                    if (!allChecks.length) return;
-                    var shouldSelectAll = allChecks.some(function (cb) { return !cb.checked; });
-                    allChecks.forEach(function (cb) { cb.checked = shouldSelectAll; });
+                    if (!printOptions.length) return;
+                    var shouldSelectAll = printOptions.some(function (option) { return !option.classList.contains('is-checked'); });
+                    printOptions.forEach(function (option) {
+                        option.classList.toggle('is-checked', shouldSelectAll);
+                    });
                     toggleAllBtn.textContent = shouldSelectAll ? 'Clear All' : 'Select All';
+                    syncPrintOptionState();
                 });
             }
 
             if (printAllBtn) {
                 printAllBtn.addEventListener('click', function () {
-                    var allChecks = Array.prototype.slice.call(document.querySelectorAll('.print-doc-check'));
-                    if (!allChecks.length) {
+                    if (!printOptions.length) {
                         if (hint) hint.textContent = 'No documents available to print.';
                         return;
                     }
-                    allChecks.forEach(function (cb) { cb.checked = true; });
+                    printOptions.forEach(function (option) {
+                        option.classList.add('is-checked');
+                    });
                     if (toggleAllBtn) toggleAllBtn.textContent = 'Clear All';
-                    runBatchPrint(allChecks);
+                    syncPrintOptionState();
+                    runBatchPrint(printOptions);
                 });
             }
         })();
