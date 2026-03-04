@@ -78,18 +78,6 @@ $nav_can_reports = ($nav_is_admin || $nav_is_coordinator || $nav_is_supervisor);
         }
     }
 
-    /* Disable sidebar animation effects between page navigations */
-    .nxl-navigation,
-    .nxl-navigation * {
-        transition: none !important;
-        animation: none !important;
-    }
-
-    html.nav-restoring .nxl-navigation,
-    html.nav-restoring .nxl-navigation * {
-        transition: none !important;
-        animation: none !important;
-    }
 </style>
 <nav class="nxl-navigation">
     <div class="navbar-wrapper">
@@ -355,11 +343,7 @@ $nav_can_reports = ($nav_is_admin || $nav_is_coordinator || $nav_is_supervisor);
             } catch (e) {}
         }
 
-        document.documentElement.classList.add('nav-restoring');
         restoreState();
-        requestAnimationFrame(function () {
-            document.documentElement.classList.remove('nav-restoring');
-        });
 
         document.querySelectorAll('.nxl-navigation .nxl-item.nxl-hasmenu > .nxl-link').forEach(function (trigger) {
             trigger.addEventListener('click', function () {
@@ -367,10 +351,5 @@ $nav_can_reports = ($nav_is_admin || $nav_is_coordinator || $nav_is_supervisor);
             });
         }
 
-        var html = document.documentElement;
-        if (window.MutationObserver && html) {
-            var observer = new MutationObserver(collapseIfMini);
-            observer.observe(html, { attributes: true, attributeFilter: ['class'] });
-        }
     })();
 </script>
