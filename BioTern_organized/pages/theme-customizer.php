@@ -4,16 +4,53 @@ include 'includes/header.php';
 ?>
 
 <style>
-    .theme-setting-card .card-header {
+    .theme-customizer-page .content-area-body {
+        padding: 1.75rem;
+    }
+
+    .theme-customizer-page .content-sidebar-header,
+    .theme-customizer-page .content-area-header {
+        background-color: var(--bs-body-bg) !important;
         border-bottom: 1px dashed var(--bs-border-color);
     }
 
+    .theme-customizer-page .content-area-body > .card.mb-0 {
+        border: 0;
+        background: transparent;
+    }
+
+    .theme-customizer-page .content-area-body > .card.mb-0 > .card-body {
+        padding: 0;
+    }
+
+    .theme-setting-card .card-header {
+        padding: 1rem 1.25rem;
+        border-bottom: 1px dashed var(--bs-border-color);
+    }
+
+    .theme-setting-card {
+        border: 1px solid var(--bs-border-color);
+        border-radius: 12px;
+        overflow: hidden;
+        background: var(--bs-body-bg);
+    }
+
+    .theme-setting-card .card-body {
+        padding: 1rem;
+    }
+
     .theme-setting-card .option-row {
-        padding: 14px;
+        padding: 16px;
         border: 1px solid var(--bs-border-color);
         border-radius: 10px;
-        margin-bottom: 12px;
+        margin-bottom: 14px;
         background: var(--bs-light);
+        transition: border-color .2s ease, transform .2s ease;
+    }
+
+    .theme-setting-card .option-row:hover {
+        border-color: var(--bs-primary);
+        transform: translateY(-1px);
     }
 
     html.app-skin-dark .theme-setting-card .option-row {
@@ -22,12 +59,24 @@ include 'includes/header.php';
 
     .theme-setting-card .btn-check + .btn {
         min-width: 110px;
+        text-transform: uppercase;
+        font-size: .75rem;
+        letter-spacing: .02em;
+    }
+
+    .theme-setting-card .form-select {
+        min-height: 42px;
+    }
+
+    .theme-setting-card .badge {
+        border: 1px solid var(--bs-border-color);
+        font-weight: 600;
     }
 </style>
 
-<div class="main-content d-flex">
+<div class="main-content d-flex theme-customizer-page">
     <div class="content-sidebar content-sidebar-md" data-scrollbar-target="#psScrollbarInit">
-        <div class="content-sidebar-header bg-white sticky-top hstack justify-content-between">
+        <div class="content-sidebar-header sticky-top hstack justify-content-between">
             <h4 class="fw-bolder mb-0">Settings</h4>
             <a href="javascript:void(0);" class="app-sidebar-close-trigger d-flex">
                 <i class="feather-x"></i>
@@ -50,7 +99,7 @@ include 'includes/header.php';
     </div>
 
     <div class="content-area" data-scrollbar-target="#psScrollbarInit">
-        <div class="content-area-header bg-white sticky-top">
+        <div class="content-area-header sticky-top">
             <div class="page-header-left">
                 <a href="javascript:void(0);" class="app-sidebar-open-trigger me-2">
                     <i class="feather-align-left fs-24"></i>

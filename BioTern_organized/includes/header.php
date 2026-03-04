@@ -132,6 +132,17 @@ if ($session_avatar !== '') {
     <!--! BEGIN: Favicon-->
     <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
     <!--! END: Favicon-->
+    <script>
+        window.paceOptions = {
+            startOnPageLoad: false,
+            restartOnPushState: false,
+            restartOnRequestAfter: false,
+            ajax: false,
+            document: false,
+            eventLag: false,
+            elements: false
+        };
+    </script>
     <script src="assets/js/theme-preload-init.min.js"></script>
     <!--! BEGIN: Bootstrap CSS-->
     <link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css">

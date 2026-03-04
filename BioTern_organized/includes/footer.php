@@ -83,6 +83,16 @@
         (function(){
             document.addEventListener('DOMContentLoaded', function(){
                 var serverPrefs = window.__bioternThemePrefs || {};
+                function normalizeMenuPreference(value) {
+                    return (value === 'mini' || value === 'expanded') ? value : 'auto';
+                }
+                var runtimePrefs = {
+                    skin: serverPrefs.skin === 'dark' ? 'dark' : 'light',
+                    menu: normalizeMenuPreference(serverPrefs.menu),
+                    font: (typeof serverPrefs.font === 'string' && serverPrefs.font !== '') ? serverPrefs.font : 'default',
+                    navigation: serverPrefs.navigation === 'dark' ? 'dark' : 'light',
+                    header: serverPrefs.header === 'dark' ? 'dark' : 'light'
+                };
                 var darkBtn = document.querySelector('.dark-button');
                 var lightBtn = document.querySelector('.light-button');
 
@@ -120,6 +130,8 @@
                 ];
 
                 function getSavedSkin(){
+                    if (runtimePrefs.skin === 'dark') return 'app-skin-dark';
+                    if (runtimePrefs.skin === 'light') return '';
                     if (serverPrefs.skin === 'dark') return 'app-skin-dark';
                     if (serverPrefs.skin === 'light') return '';
                     try{
@@ -138,6 +150,10 @@
                 }
 
                 function getSavedMenuMode() {
+                    if (runtimePrefs.menu === 'mini' || runtimePrefs.menu === 'expanded' || runtimePrefs.menu === 'auto') {
+                        return runtimePrefs.menu;
+                    }
+
                     try {
                         var menuState = localStorage.getItem('nexel-classic-dashboard-menu-mini-theme');
                         if (menuState === 'menu-mini-theme') return 'mini';
@@ -153,6 +169,9 @@
                 }
 
                 function getSavedFont() {
+                    if (typeof runtimePrefs.font === 'string' && runtimePrefs.font !== '') {
+                        return runtimePrefs.font;
+                    }
                     if (typeof serverPrefs.font === 'string' && serverPrefs.font !== '') {
                         return serverPrefs.font;
                     }
@@ -165,6 +184,9 @@
                 }
 
                 function getSavedNavigationMode() {
+                    if (runtimePrefs.navigation === 'dark' || runtimePrefs.navigation === 'light') {
+                        return runtimePrefs.navigation;
+                    }
                     if (serverPrefs.navigation === 'dark' || serverPrefs.navigation === 'light') {
                         return serverPrefs.navigation;
                     }
@@ -177,6 +199,9 @@
                 }
 
                 function getSavedHeaderMode() {
+                    if (runtimePrefs.header === 'dark' || runtimePrefs.header === 'light') {
+                        return runtimePrefs.header;
+                    }
                     if (serverPrefs.header === 'dark' || serverPrefs.header === 'light') {
                         return serverPrefs.header;
                     }
@@ -195,6 +220,7 @@
 
                 function applyFont(fontClass) {
                     var nextFont = (allowedFonts.indexOf(fontClass) !== -1) ? fontClass : 'default';
+                    runtimePrefs.font = nextFont;
                     clearFontClasses();
                     if (nextFont !== 'default') {
                         document.documentElement.classList.add(nextFont);
@@ -212,6 +238,7 @@
 
                 function applyNavigationMode(mode) {
                     var next = mode === 'dark' ? 'dark' : 'light';
+                    runtimePrefs.navigation = next;
                     document.documentElement.classList.remove('app-navigation-dark');
                     if (next === 'dark') {
                         document.documentElement.classList.add('app-navigation-dark');
@@ -225,6 +252,7 @@
 
                 function applyHeaderMode(mode) {
                     var next = mode === 'dark' ? 'dark' : 'light';
+                    runtimePrefs.header = next;
                     document.documentElement.classList.remove('app-header-dark');
                     if (next === 'dark') {
                         document.documentElement.classList.add('app-header-dark');
@@ -237,20 +265,75 @@
                 }
 
                 function saveThemePreferences(payload) {
-                    if (!window.fetch) return;
+                    if (!window.fetch) {
+                        return Promise.resolve({ ok: false });
+                    }
                     var endpoint = window.__bioternThemeApi || 'api/theme-customizer.php';
-                    fetch(endpoint, {
+                    return fetch(endpoint, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
                         },
                         body: JSON.stringify(payload || {})
+                    }).then(function(response){
+                        if (!response || !response.ok) {
+                            return { __ok: false, __result: null };
+                        }
+                        return response.json().then(function(json){
+                            return { __ok: true, __result: json };
+                        });
+                    }).then(function(result){
+                        var ok = !!(result && result.__ok);
+                        var data = result ? result.__result : null;
+                        if (!ok || !data || !data.preferences) {
+                            return { ok: ok };
+                        }
+                        if (data.preferences.skin === 'dark' || data.preferences.skin === 'light') {
+                            runtimePrefs.skin = data.preferences.skin;
+                        }
+                        runtimePrefs.menu = normalizeMenuPreference(data.preferences.menu);
+                        if (typeof data.preferences.font === 'string' && data.preferences.font !== '') {
+                            runtimePrefs.font = data.preferences.font;
+                        }
+                        if (data.preferences.navigation === 'dark' || data.preferences.navigation === 'light') {
+                            runtimePrefs.navigation = data.preferences.navigation;
+                        }
+                        if (data.preferences.header === 'dark' || data.preferences.header === 'light') {
+                            runtimePrefs.header = data.preferences.header;
+                        }
+                        return { ok: true };
                     }).catch(function(){
+                        return { ok: false };
                     });
                 }
 
+                function showThemeToast(icon, title) {
+                    if (window.Swal && typeof window.Swal.mixin === 'function') {
+                        window.Swal.mixin({
+                            toast: true,
+                            position: 'top-end',
+                            showConfirmButton: false,
+                            timer: 3000,
+                            timerProgressBar: true
+                            ,
+                            didOpen: function (toast) {
+                                toast.style.marginTop = '14px';
+                                toast.style.marginRight = '14px';
+                                toast.addEventListener('mouseenter', window.Swal.stopTimer);
+                                toast.addEventListener('mouseleave', window.Swal.resumeTimer);
+                            }
+                        }).fire({
+                            icon: icon || 'success',
+                            title: title || 'Saved'
+                        });
+                        return;
+                    }
+                    console.log(title || 'Saved');
+                }
+
                 function applyMenuMode(mode) {
-                    var nextMode = (mode === 'mini' || mode === 'expanded') ? mode : 'auto';
+                    var nextMode = normalizeMenuPreference(mode);
+                    runtimePrefs.menu = nextMode;
                     var width = window.innerWidth || document.documentElement.clientWidth || 0;
 
                     if (nextMode === 'mini') {
@@ -296,6 +379,7 @@
 
                 function setDark(isDark, persist){
                     if(isDark){
+                        runtimePrefs.skin = 'dark';
                         document.documentElement.classList.add('app-skin-dark');
                         try{
                             localStorage.setItem('app-skin','app-skin-dark');
@@ -314,6 +398,7 @@
                             });
                         }
                     } else {
+                        runtimePrefs.skin = 'light';
                         document.documentElement.classList.remove('app-skin-dark');
                         try{
                             localStorage.setItem('app-skin','');
@@ -382,28 +467,48 @@
                 if (pageSave) {
                     pageSave.addEventListener('click', function () {
                         var skin = resolveSelectedSkin(pageSkinLight, pageSkinDark);
-                        var menu = pageMenu ? pageMenu.value : getSavedMenuMode();
+                        var menu = normalizeMenuPreference(pageMenu ? pageMenu.value : getSavedMenuMode());
                         var font = pageFont ? pageFont.value : currentFontValue();
                         var navigation = pageNavigation ? pageNavigation.value : currentNavigationValue();
                         var header = pageHeader ? pageHeader.value : currentHeaderValue();
+                        runtimePrefs.menu = menu;
                         setDark(skin === 'dark', false);
                         applyMenuMode(menu);
                         font = applyFont(font);
                         navigation = applyNavigationMode(navigation);
                         header = applyHeaderMode(header);
-                        saveThemePreferences({ skin: skin, menu: menu, font: font, navigation: navigation, header: header });
+                        saveThemePreferences({ skin: skin, menu: menu, font: font, navigation: navigation, header: header }).then(function (result) {
+                            if (result && result.ok) {
+                                showThemeToast('success', 'Theme preferences saved');
+                            } else {
+                                showThemeToast('error', 'Unable to save preferences');
+                            }
+                        });
                         syncCustomizerInputs();
                     });
                 }
 
                 if (pageReset) {
                     pageReset.addEventListener('click', function () {
+                        runtimePrefs = {
+                            skin: 'light',
+                            menu: 'auto',
+                            font: 'default',
+                            navigation: 'light',
+                            header: 'light'
+                        };
                         setDark(false, false);
                         applyMenuMode('auto');
                         applyFont('default');
                         applyNavigationMode('light');
                         applyHeaderMode('light');
-                        saveThemePreferences({ skin: 'light', menu: 'auto', font: 'default', navigation: 'light', header: 'light' });
+                        saveThemePreferences({ skin: 'light', menu: 'auto', font: 'default', navigation: 'light', header: 'light' }).then(function (result) {
+                            if (result && result.ok) {
+                                showThemeToast('success', 'Theme settings reset to defaults');
+                            } else {
+                                showThemeToast('error', 'Unable to reset settings');
+                            }
+                        });
                         syncCustomizerInputs();
                     });
                 }
