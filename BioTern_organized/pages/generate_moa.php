@@ -131,9 +131,9 @@ $use_saved_template = q('use_saved_template', '0') === '1';
             color: #000;
             text-align: center;
         }
-        .doc { font-family: "Arial Narrow", Arial, sans-serif; font-size: 14pt; }
+        .doc { font-family: "Arial Narrow", Arial, sans-serif; font-size: 12pt; }
         .doc h4 { text-align:center; margin:5px 0; font-size: 16pt; font-weight: 700; }
-        p, li { font-size:14pt; line-height:1.3; }
+        p, li { font-size:12pt; line-height:1.3; }
         ol { margin-top:6px; }
         .row { display:flex; justify-content:space-between; gap:12px; }
         .col { flex:1; }
@@ -249,12 +249,12 @@ $use_saved_template = q('use_saved_template', '0') === '1';
             <div class="col">
                 <p><strong>For the PARTNER COMPANY</strong></p>
                 <p style="margin-top:16px;"><strong><u><?php echo htmlspecialchars($partner_rep); ?></u></strong></p>
-                <p style="margin-top:-18px;"><strong><u><?php echo htmlspecialchars($partner_position); ?></u>, <u><?php echo htmlspecialchars($partner_name); ?></u></strong></p>
+                <p style="margin-top:-18px;"><u><?php echo htmlspecialchars($partner_position); ?></u>, <u><?php echo htmlspecialchars($partner_name); ?></u></p>
             </div>
             <div class="col right">
                 <p style="text-align:right;"><strong>For the SCHOOL</strong></p>
                 <p style="margin-top:16px; text-align:right;"><strong><u><?php echo htmlspecialchars($school_rep); ?></u></strong></p>
-                <p style="margin-top:-18px; text-align:right;"><strong><u><?php echo htmlspecialchars($school_position); ?></u></strong></p>
+                <p style="margin-top:-18px; text-align:right;"><u><?php echo htmlspecialchars($school_position); ?></u></p>
             </div>
         </div>
 
@@ -266,7 +266,7 @@ $use_saved_template = q('use_saved_template', '0') === '1';
             </div>
             <div class="col right">
                 <p style="margin-top:0px; text-align:right;"><strong><u><?php echo htmlspecialchars($presence_school_admin); ?></u></strong></p>
-                <p style="margin-top:-18px; text-align:right;"><strong><u><?php echo htmlspecialchars($presence_school_admin_position); ?></u></strong></p>
+                <p style="margin-top:-18px; text-align:right;"><u><?php echo htmlspecialchars($presence_school_admin_position); ?></u></p>
             </div>
         </div>
 

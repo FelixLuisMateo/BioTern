@@ -69,7 +69,7 @@ $use_saved_template = q('use_saved_template', '0') === '1';
         })();
     </script>
     <style>
-        @page { size: A4 portrait; margin: 0.31in 0.81in 0in 0.81in; }
+        @page { size: A4 portrait; margin: 0.31in; }
         html, body { margin: 0; padding: 0; color: #111; }
         body { font-family: "Arial Narrow", Arial, sans-serif; font-size: 12pt; background: #eceff3; }
         .container {
@@ -128,9 +128,13 @@ $use_saved_template = q('use_saved_template', '0') === '1';
                 width: auto;
                 min-height: auto;
                 margin: 0;
-                padding: 0;
+                padding: 0.31in;
                 box-shadow: none;
                 background: #fff;
+            }
+            .second-page-start {
+                break-before: page;
+                page-break-before: always;
             }
             .no-print { display:none !important; }
         }
@@ -163,7 +167,7 @@ $use_saved_template = q('use_saved_template', '0') === '1';
             <li>Any violation of the foregoing covenants will warrant the cancellation of the Memorandum of Agreement by the PARTNER LOCAL GOVERNMENT UNIT within thirty (30) days upon notice to the school.</li>
         </ol>
 
-        <p><strong>PARTNER LOCAL GOVERNMENT UNIT:</strong></p>
+        <p class="second-page-start"><strong>PARTNER LOCAL GOVERNMENT UNIT:</strong></p>
         <ol start="11">
             <li>The PARTNER LOCAL GOVERNMENT UNIT may grant allowance to Learner in accordance with the PARTNER LOCAL GOVERNMENT UNIT existing rules and regulations;</li>
             <li>The PARTNER LOCAL GOVERNMENT UNIT is not allowed to employ Learner within the OJT/Internship period in order for the Learner to graduate from the program he/she is enrolled. PARTNER LOCAL GOVERNMENT UNIT, however, upon consultation with HIGHER EDUCATION INSTITUTION, may invite qualified students to submit themselves to examinations, interviews, and file pertinent documents in support of their application, after the end of their learnership program.</li>
