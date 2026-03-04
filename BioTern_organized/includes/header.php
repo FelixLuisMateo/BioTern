@@ -248,8 +248,6 @@ if ($session_avatar !== '') {
             applyHeaderMode(getSavedHeaderMode());
 
             function getSavedSkin() {
-                if (serverPrefs.skin === 'dark') return 'app-skin-dark';
-                if (serverPrefs.skin === 'light') return '';
                 try {
                     // Respect the primary key even when intentionally set to empty (light mode).
                     var primary = localStorage.getItem('app-skin');
@@ -261,8 +259,11 @@ if ($session_avatar !== '') {
                     var legacy = localStorage.getItem('app-skin-dark');
                     return legacy !== null ? legacy : '';
                 } catch (e) {
-                    return '';
+                    // fall through to server-side preference
                 }
+                if (serverPrefs.skin === 'dark') return 'app-skin-dark';
+                if (serverPrefs.skin === 'light') return '';
+                return '';
             }
 
             var skin = getSavedSkin();

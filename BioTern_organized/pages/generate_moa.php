@@ -44,8 +44,32 @@ $use_saved_template = q('use_saved_template', '0') === '1';
     <meta charset="utf-8">
     <title>BioTern || Memorandum of Agreement</title>
     <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
+    <script>
+        (function () {
+            var dark = false;
+            try {
+                var match = document.cookie.match(/(?:^|;\s*)biotern_theme_preferences=([^;]+)/);
+                if (match && match[1]) {
+                    var prefs = JSON.parse(decodeURIComponent(match[1]));
+                    if (prefs && prefs.skin === 'dark') dark = true;
+                }
+            } catch (e) {}
+            try {
+                var primary = localStorage.getItem('app-skin');
+                var skin = primary !== null
+                    ? primary
+                    : (localStorage.getItem('app_skin')
+                        || localStorage.getItem('theme')
+                        || localStorage.getItem('app-skin-dark')
+                        || '');
+                if (typeof skin === 'string' && skin.indexOf('dark') !== -1) dark = true;
+                if (primary !== null && primary.indexOf('dark') === -1) dark = false;
+            } catch (e) {}
+            if (dark) document.documentElement.classList.add('app-skin-dark');
+        })();
+    </script>
     <style>
-        @page { size: A4 portrait; margin: 0.35in 1in 1in 1in; }
+        @page { size: A4 portrait; margin: 0.30in 0.81in 0.20in 0.81in; }
         html, body { margin: 0; padding: 0; color: #111; }
         body { font-family: "Arial Narrow", Arial, sans-serif; font-size: 12pt; background: #eceff3; }
         .container {
@@ -56,7 +80,7 @@ $use_saved_template = q('use_saved_template', '0') === '1';
             position: relative;
             padding: 0.35in 1in 1in 1in;
             background: #fff;
-            box-shadow: 0 8px 28px rgba(0, 0, 0, 0.14);
+            box-shadow: none;
         }
         .header {
             text-align: center;
@@ -107,22 +131,63 @@ $use_saved_template = q('use_saved_template', '0') === '1';
             color: #000;
             text-align: center;
         }
-        .doc { font-family: "Arial Narrow", Arial, sans-serif; font-size: 12pt; }
-        .doc h4 { text-align:center; margin:5px 0; font-size: 14pt; font-weight: 700; }
-        p, li { font-size:12pt; line-height:1.3; }
+        .doc { font-family: "Arial Narrow", Arial, sans-serif; font-size: 14pt; }
+        .doc h4 { text-align:center; margin:5px 0; font-size: 16pt; font-weight: 700; }
+        p, li { font-size:14pt; line-height:1.3; }
         ol { margin-top:6px; }
         .row { display:flex; justify-content:space-between; gap:12px; }
         .col { flex:1; }
         .right { text-align:right; }
         .actions { margin-top:18px; display:flex; gap:8px; flex-wrap:wrap; }
         .btn { border:1px solid #333; background:#fff; padding:8px 12px; cursor:pointer; }
+        html.app-skin-dark body { background:#0b1220; color:#e5e7eb; }
+        html.app-skin-dark .container { background:#0f172a; color:#e5e7eb; box-shadow:none; }
+        html.app-skin-dark .header { border-bottom-color:#355f9c; }
+        html.app-skin-dark .header .school-name,
+        html.app-skin-dark .header .school-former,
+        html.app-skin-dark .header .school-address,
+        html.app-skin-dark .header .school-tel,
+        html.app-skin-dark .doc,
+        html.app-skin-dark .doc p,
+        html.app-skin-dark .doc li,
+        html.app-skin-dark .doc h4 { color:#e5e7eb; }
+        html.app-skin-dark .btn { background:#111827; color:#e5e7eb; border-color:#334155; }
+        html:not(.app-skin-dark) #moa_doc_content,
+        html:not(.app-skin-dark) #moa_doc_content * { color:#000 !important; }
         @media print {
             body { background: #fff; }
+            #moa_doc_content,
+            #moa_doc_content * { color:#000 !important; }
+            /* Fallback compensation for browsers/printers that keep custom margins at
+               Top/Bottom: 0, Left/Right: 0.5. This adds the missing space visually so
+               output matches target margins (Top/Bottom 0.20, Left/Right 0.81). */
+            .container {
+                padding-top: 0.30in !important;
+                padding-left: 0.31in !important;
+                padding-right: 0.31in !important;
+                padding-bottom: 0.20in !important;
+                /* Apply padding on every page fragment, not just the first page. */
+                -webkit-box-decoration-break: clone;
+                box-decoration-break: clone;
+            }
+            .second-page-start {
+                break-before: page;
+                page-break-before: always;
+            }
+            #moa_doc_content li {
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+            #moa_doc_content li * {
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+            #moa_doc_content p, #moa_doc_content li { orphans: 3; widows: 3; }
+            #moa_doc_content .and-line { margin-top: -0.15in !important; }
             .container {
                 width: auto;
                 min-height: auto;
                 margin: 0;
-                padding: 0;
                 box-shadow: none;
                 background: #fff;
             }
@@ -139,7 +204,7 @@ $use_saved_template = q('use_saved_template', '0') === '1';
         <p>
             This Memorandum of Agreement made and executed between: <strong><u>CLARK COLLEGE OF SCIENCE AND TECHNOLOGY</u></strong> a Higher Education Institution, duly organized and existing under Philippine Laws with office/business address at <strong><u>AUREA ST. SAMSONVILLE, DAU MABALACAT CITY PAMPANGA</u></strong> represented here in by <strong><u>MR. JOMAR G. SANGIL (IT, DEPARTMENT HEAD),</u></strong> here in after referred to as the Higher Education Institution.
         </p>
-        <p style="text-align:center; margin-top:-20px; margin-bottom:5px;">
+        <p class="and-line" style="text-align:center; margin-top:-20px; margin-bottom:5px;">
             And 
         </p>
         <strong><?php echo htmlspecialchars($partner_name); ?></strong> an enterprise duly organized and existing under Philippine Laws with office/business address at <strong><u><?php echo htmlspecialchars($partner_address); ?></u></strong> represented herein by <strong><u><?php echo htmlspecialchars($partner_rep); ?></u></strong> here in after referred to as the PARTNER COMPANY.
@@ -190,13 +255,12 @@ $use_saved_template = q('use_saved_template', '0') === '1';
             </div>
         </div>
 
-        <p style="margin-top:10px;"><strong>ACKNOWLEDGEMENT</strong></p>      
-            Before me, a Notary Public in the city <strong><u><?php echo htmlspecialchars($notary_city); ?></u></strong>, personally appeared <strong><u><?php echo htmlspecialchars($presence_partner_rep); ?></u></strong>, known to me to be the same persons who executed the foregoing instrument and they acknowledged to me that the same is their free will and voluntary deed and that of the ENTERPRISEs herein represented. Witness my hand and seal on this <strong><u><?php echo htmlspecialchars($notary_day); ?></u></strong> day of <strong><u><?php echo htmlspecialchars($notary_month); ?></u></strong> <strong><u><?php echo htmlspecialchars($notary_year); ?></u></strong> in <strong><u><?php echo htmlspecialchars($notary_place); ?></u></strong>.
+            ACKNOWLEDGEMENT Before me, a Notary Public in the city <strong><u><?php echo htmlspecialchars($notary_city); ?></u></strong>, personally appeared <strong><u><?php echo htmlspecialchars($presence_partner_rep); ?></u></strong>, known to me to be the same persons who executed the foregoing instrument and they acknowledged to me that the same is their free will and voluntary deed and that of the ENTERPRISEs herein represented. Witness my hand and seal on this <strong><u><?php echo htmlspecialchars($notary_day); ?></u></strong> day of <strong><u><?php echo htmlspecialchars($notary_month); ?></u></strong> <strong><u><?php echo htmlspecialchars($notary_year); ?></u></strong> in <strong><u><?php echo htmlspecialchars($notary_place); ?></u></strong>.
         </p>
-        <p style="margin-bottom: -12px;">Doc No. <?php echo htmlspecialchars($doc_no); ?>:</p>
-        <p style="margin-bottom: -12px;">Page No. <?php echo htmlspecialchars($page_no); ?>:</p>
-        <p style="margin-bottom: -12px;">Book No. <?php echo htmlspecialchars($book_no); ?>:</p>
-        <p style="margin-bottom: -12px;">Series of <?php echo htmlspecialchars($series_no); ?>:</p>
+        <p style="margin-bottom: -4px;">Doc No. <?php echo htmlspecialchars($doc_no); ?>:</p>
+        <p style="margin-bottom: -4px;">Page No. <?php echo htmlspecialchars($page_no); ?>:</p>
+        <p style="margin-bottom: -4px;">Book No. <?php echo htmlspecialchars($book_no); ?>:</p>
+        <p style="margin-bottom: -4px;">Series of <?php echo htmlspecialchars($series_no); ?>:</p>
     </div>
 
     <div class="actions no-print">
@@ -207,6 +271,26 @@ $use_saved_template = q('use_saved_template', '0') === '1';
 <?php if ($use_saved_template): ?>
 <script>
     (function(){
+        function normalizeMoaColors() {
+            var doc = document.getElementById('moa_doc_content');
+            if (!doc) return;
+            var isDark = document.documentElement.classList.contains('app-skin-dark');
+            if (!isDark) {
+                var withStyle = doc.querySelectorAll('[style]');
+                withStyle.forEach(function(el){
+                    var s = el.getAttribute('style') || '';
+                    // Remove inline color declarations that make text appear gray in light mode.
+                    s = s.replace(/(^|;)\s*color\s*:[^;]+;?/gi, '$1');
+                    s = s.replace(/(^|;)\s*text-decoration-color\s*:[^;]+;?/gi, '$1');
+                    s = s.replace(/;;+/g, ';').trim();
+                    if (s === '' || s === ';') el.removeAttribute('style');
+                    else el.setAttribute('style', s);
+                });
+                var fontNodes = doc.querySelectorAll('font[color]');
+                fontNodes.forEach(function(el){ el.removeAttribute('color'); });
+            }
+        }
+
         try {
             var saved = localStorage.getItem('biotern_moa_template_html_v1');
             var doc = document.getElementById('moa_doc_content');
@@ -214,6 +298,18 @@ $use_saved_template = q('use_saved_template', '0') === '1';
                 doc.innerHTML = saved;
             }
         } catch (err) {}
+        normalizeMoaColors();
+    })();
+</script>
+<?php else: ?>
+<script>
+    (function(){
+        var doc = document.getElementById('moa_doc_content');
+        if (!doc) return;
+        if (!document.documentElement.classList.contains('app-skin-dark')) {
+            var fontNodes = doc.querySelectorAll('font[color]');
+            fontNodes.forEach(function(el){ el.removeAttribute('color'); });
+        }
     })();
 </script>
 <?php endif; ?>

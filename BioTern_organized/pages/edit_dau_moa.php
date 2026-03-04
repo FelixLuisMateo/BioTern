@@ -5,6 +5,30 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>BioTern || Edit DAU MOA</title>
     <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
+    <script>
+        (function () {
+            var dark = false;
+            try {
+                var match = document.cookie.match(/(?:^|;\s*)biotern_theme_preferences=([^;]+)/);
+                if (match && match[1]) {
+                    var prefs = JSON.parse(decodeURIComponent(match[1]));
+                    if (prefs && prefs.skin === 'dark') dark = true;
+                }
+            } catch (e) {}
+            try {
+                var primary = localStorage.getItem('app-skin');
+                var skin = primary !== null
+                    ? primary
+                    : (localStorage.getItem('app_skin')
+                        || localStorage.getItem('theme')
+                        || localStorage.getItem('app-skin-dark')
+                        || '');
+                if (typeof skin === 'string' && skin.indexOf('dark') !== -1) dark = true;
+                if (primary !== null && primary.indexOf('dark') === -1) dark = false;
+            } catch (e) {}
+            if (dark) document.documentElement.classList.add('app-skin-dark');
+        })();
+    </script>
     <style>
         body { margin: 0; background: #eceff3; font-family: Arial, sans-serif; color: #111; }
         .topbar {
@@ -41,6 +65,21 @@
         #editor .row { display: flex; justify-content: space-between; gap: 12px; }
         #editor .col { flex: 1; }
         #editor .right { text-align: right; }
+        html.app-skin-dark body { background:#0b1220; color:#e5e7eb; }
+        html.app-skin-dark .topbar { background:#111827; border-bottom-color:#334155; }
+        html.app-skin-dark .btn { background:#0f172a; color:#e5e7eb; border-color:#334155; }
+        html.app-skin-dark .btn-primary { background:#1d4ed8; border-color:#1d4ed8; }
+        html.app-skin-dark .btn-success { background:#15803d; border-color:#15803d; }
+        html.app-skin-dark .msg,
+        html.app-skin-dark .toolbar label { color:#cbd5e1; }
+        html.app-skin-dark .toolbar input[type="number"],
+        html.app-skin-dark .toolbar input[type="color"] {
+            background:#0f172a;
+            color:#e5e7eb;
+            border-color:#334155;
+        }
+        html.app-skin-dark .paper { background:#0f172a; color:#e5e7eb; box-shadow:0 8px 24px rgba(0,0,0,.45); }
+        html.app-skin-dark #editor:focus { box-shadow: inset 0 0 0 2px #1d4ed8; }
     </style>
 </head>
 <body>

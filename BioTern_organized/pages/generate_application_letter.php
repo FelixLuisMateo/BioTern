@@ -59,9 +59,33 @@ if ($do_download_pdf || $do_download_html) ob_start();
     <meta charset="utf-8">
     <title>BioTern || Application Letter - <?php echo htmlspecialchars(trim(($student['first_name'] ?? '') . ' ' . ($student['last_name'] ?? '')) ?: 'Preview'); ?></title>
     <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
+    <script>
+        (function () {
+            var dark = false;
+            try {
+                var match = document.cookie.match(/(?:^|;\s*)biotern_theme_preferences=([^;]+)/);
+                if (match && match[1]) {
+                    var prefs = JSON.parse(decodeURIComponent(match[1]));
+                    if (prefs && prefs.skin === 'dark') dark = true;
+                }
+            } catch (e) {}
+            try {
+                var primary = localStorage.getItem('app-skin');
+                var skin = primary !== null
+                    ? primary
+                    : (localStorage.getItem('app_skin')
+                        || localStorage.getItem('theme')
+                        || localStorage.getItem('app-skin-dark')
+                        || '');
+                if (typeof skin === 'string' && skin.indexOf('dark') !== -1) dark = true;
+                if (primary !== null && primary.indexOf('dark') === -1) dark = false;
+            } catch (e) {}
+            if (dark) document.documentElement.classList.add('app-skin-dark');
+        })();
+    </script>
     <style>
-                /* Use US Letter for printing and set sensible margins */
-                    @page { size: Letter portrait; margin: 0.5in; }
+                /* Use US Letter for printing with the same margins used in MOA */
+                    @page { size: Letter portrait; margin: 0.31in 0.81in 0in 0.81in; }
                     html,body{ height:100%; margin:0; padding:0; }
                     /* document body uses Times New Roman per spec */
                     body{ font-family: 'Times New Roman', Times, serif; color:#111; background:#fff; font-size:13pt; }
@@ -96,6 +120,37 @@ if ($do_download_pdf || $do_download_html) ob_start();
         .signature{ margin-top:28px; }
         /* hide print-value spans on screen, show on print */
         .print-val{ display:none; }
+        .line-val{
+            border-bottom:1px solid #000;
+            display:inline-block;
+            min-height:1.1em;
+            padding:0 4px 1px 4px;
+            vertical-align:baseline;
+            min-width:120px;
+        }
+        #pv_company.line-val,
+        #pv_company_address.line-val{ min-width:220px; }
+        #ap_student_name.line-val{ min-width:220px; }
+        #ap_student_address.line-val{ min-width:280px; }
+        #ap_student_contact.line-val{ min-width:180px; }
+        /* Saved-template fallback: keep filled runtime spans underlined too. */
+        #application_doc_content #ap_name,
+        #application_doc_content #ap_position,
+        #application_doc_content #ap_company,
+        #application_doc_content #ap_address,
+        #application_doc_content #ap_student,
+        #application_doc_content #ap_student_name,
+        #application_doc_content #ap_student_address,
+        #application_doc_content #ap_student_contact{
+            border-bottom:1px solid #000;
+            display:inline-block;
+            min-height:1.1em;
+            padding:0 4px 1px 4px;
+            vertical-align:baseline;
+        }
+        #application_doc_content #ap_student_name{ min-width:220px; }
+        #application_doc_content #ap_student_address{ min-width:280px; }
+        #application_doc_content #ap_student_contact{ min-width:180px; }
         @media print {
             .blank-input{ display:none !important; }
             .print-val{ display:inline !important; }
@@ -105,8 +160,8 @@ if ($do_download_pdf || $do_download_html) ob_start();
             .signature{ margin-top:18px }
             body { background: #fff; }
             .no-print { display: none !important; }
-            /* keep printable padding consistent with page margins */
-            .container { margin: 0; padding: 10mm; }
+            /* rely on @page margins to avoid browser margin mismatch across documents */
+            .container { margin: 0; padding: 0; }
             /* avoid page breaks inside main sections */
             .container, .content, .signature { page-break-inside: avoid; }
             .crest { display: block !important; }
@@ -119,6 +174,24 @@ if ($do_download_pdf || $do_download_html) ob_start();
         .blank-input{ border:none; border-bottom:1px solid #000; display:inline-block; min-width:120px; padding:2px 4px; font-size:13pt }
         .field-block{ margin:6px 0; }
         .actions{ margin-top:12px; }
+        html.app-skin-dark body { background:#0b1220; color:#e5e7eb; }
+        html.app-skin-dark .container { background:#0f172a; color:#e5e7eb; box-shadow:0 8px 28px rgba(0,0,0,.45); }
+        html.app-skin-dark .header { border-bottom-color:#355f9c; }
+        html.app-skin-dark .header h2,
+        html.app-skin-dark .header .meta,
+        html.app-skin-dark .header .tel,
+        html.app-skin-dark .content,
+        html.app-skin-dark .content p,
+        html.app-skin-dark .content li,
+        html.app-skin-dark .content h3,
+        html.app-skin-dark .small { color:#e5e7eb; }
+        html.app-skin-dark .blank-input {
+            color:#e5e7eb;
+            background:transparent;
+            border-bottom-color:#e5e7eb;
+        }
+        html.app-skin-dark .btn { background:#111827; color:#e5e7eb; border-color:#334155; }
+        html.app-skin-dark .alert { background:#0b1324; color:#cbd5e1; border-color:#334155; }
     </style>
 </head>
 <body>
@@ -134,14 +207,14 @@ if ($do_download_pdf || $do_download_html) ob_start();
     <div class="content" id="application_doc_content">
         <h3 style="text-align:center;">Application Approval Sheet</h3>
         <p class="field-block">Date: <input type="text" class="blank-input" id="fld_date" value="<?php echo htmlspecialchars($print_date); ?>"> <span class="print-val" id="pv_date"></span></p>
-        <p class="field-block">Mr./Ms.: <input type="text" class="blank-input" id="fld_name" value="<?php echo htmlspecialchars($ap_name ?: ''); ?>"> <span class="print-val" id="pv_name"></span></p>
-        <p class="field-block">Position: <input type="text" class="blank-input" id="fld_position" value="<?php echo htmlspecialchars($ap_position ?: ''); ?>"> <span class="print-val" id="pv_position"></span></p>
-        <p class="field-block">Name of Company: <input type="text" class="blank-input" id="fld_company" value="<?php echo htmlspecialchars($ap_company ?: ''); ?>"> <span class="print-val" id="pv_company"></span></p>
-        <p class="field-block">Company Address: <input type="text" class="blank-input" id="fld_company_address" value="<?php echo htmlspecialchars($ap_company_address ?: ''); ?>" style="min-width:60%;"> <span class="print-val" id="pv_company_address"></span></p>
+        <p class="field-block">Mr./Ms.: <input type="text" class="blank-input" id="fld_name" value="<?php echo htmlspecialchars($ap_name ?: ''); ?>"> <span class="print-val line-val" id="pv_name"></span></p>
+        <p class="field-block">Position: <input type="text" class="blank-input" id="fld_position" value="<?php echo htmlspecialchars($ap_position ?: ''); ?>"> <span class="print-val line-val" id="pv_position"></span></p>
+        <p class="field-block">Name of Company: <input type="text" class="blank-input" id="fld_company" value="<?php echo htmlspecialchars($ap_company ?: ''); ?>"> <span class="print-val line-val" id="pv_company"></span></p>
+        <p class="field-block">Company Address: <input type="text" class="blank-input" id="fld_company_address" value="<?php echo htmlspecialchars($ap_company_address ?: ''); ?>" style="min-width:60%;"> <span class="print-val line-val" id="pv_company_address"></span></p>
 
         <p style="margin-top:30px;">Dear Sir or Madam:</p>
 
-        <p>I am <strong><?php echo htmlspecialchars($full_name); ?></strong>, student of Clark College of Science and Technology. In partial fulfillment of the requirements of this course, I am required to have an On-the-job Training ( OJT ) for a minimum of <strong>250 hours</strong>.</p>
+        <p>I am <span id="ap_student" class="line-val"><?php echo htmlspecialchars($full_name); ?></span>, student of Clark College of Science and Technology. In partial fulfillment of the requirements of this course, I am required to have an On-the-job Training ( OJT ) for a minimum of <strong>250 hours</strong>.</p>
 
         <p>I would like to apply as a trainee in your company because I believe that the training and experience, I will acquire will broaden my knowledge about my course.</p>
 
@@ -150,9 +223,9 @@ if ($do_download_pdf || $do_download_html) ob_start();
         <p style="margin-top:30px;">Very truly yours,</p>
 
         <div class="signature">
-            <p style="margin-top:40px;">Student Name: <?php echo htmlspecialchars($full_name); ?></p>
-            <p>Student Home Address: <?php echo nl2br(htmlspecialchars($address)); ?></p>
-            <p>Contact No.: <?php echo htmlspecialchars($phone); ?></p>
+            <p style="margin-top:40px;">Student Name: <span id="ap_student_name" class="line-val"><?php echo htmlspecialchars($full_name); ?></span></p>
+            <p>Student Home Address: <span id="ap_student_address" class="line-val"><?php echo htmlspecialchars($address); ?></span></p>
+            <p>Contact No.: <span id="ap_student_contact" class="line-val"><?php echo htmlspecialchars($phone); ?></span></p>
         </div>
     </div>
 

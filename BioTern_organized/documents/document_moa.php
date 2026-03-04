@@ -181,6 +181,8 @@ include __DIR__ . '/../includes/header.php';
             <div class="row">
                 <div class="col-lg-6">
                     <div class="card p-3">
+                        <label for="student_select" class="form-label">Search Student</label>
+                        <select id="student_select" data-placeholder="Search by name or student id" style="width:100%"></select>
 
                         <div class="mt-3">
                             <label class="form-label">Company Name</label>
