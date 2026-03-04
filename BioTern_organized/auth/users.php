@@ -18,6 +18,11 @@ function e($value): string
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
 }
 
+function normalized_upload_path(string $path): string
+{
+    return ltrim(str_replace('\\', '/', trim($path)), '/');
+}
+
 $allowed_roles = ['admin', 'coordinator', 'supervisor', 'student'];
 $current_user_id = (int) (
     $_SESSION['user_id'] ??
@@ -88,6 +93,82 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->close();
             }
         }
+    } elseif ($action === 'upload_profile_picture') {
+        if (!isset($_FILES['profile_picture']) || !is_array($_FILES['profile_picture'])) {
+            $_SESSION['users_flash_message'] = 'Please choose an image file.';
+            $_SESSION['users_flash_type'] = 'warning';
+        } else {
+            $file = $_FILES['profile_picture'];
+            if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+                $_SESSION['users_flash_message'] = 'Upload failed. Please try again.';
+                $_SESSION['users_flash_type'] = 'danger';
+            } else {
+                $tmp = (string)($file['tmp_name'] ?? '');
+                $size = (int)($file['size'] ?? 0);
+                $name = (string)($file['name'] ?? '');
+                $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+                $allowed_ext = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+                $finfo = function_exists('finfo_open') ? finfo_open(FILEINFO_MIME_TYPE) : null;
+                $mime = $finfo ? (string)finfo_file($finfo, $tmp) : '';
+                if ($finfo) finfo_close($finfo);
+                $allowed_mime = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+
+                if ($size <= 0 || $size > 3 * 1024 * 1024) {
+                    $_SESSION['users_flash_message'] = 'Image must be less than 3MB.';
+                    $_SESSION['users_flash_type'] = 'warning';
+                } elseif (!in_array($ext, $allowed_ext, true) || ($mime !== '' && !in_array($mime, $allowed_mime, true))) {
+                    $_SESSION['users_flash_message'] = 'Only JPG, PNG, WEBP, or GIF images are allowed.';
+                    $_SESSION['users_flash_type'] = 'warning';
+                } else {
+                    $upload_dir_fs = dirname(__DIR__) . '/assets/images/avatar/uploads';
+                    if (!is_dir($upload_dir_fs)) {
+                        @mkdir($upload_dir_fs, 0777, true);
+                    }
+                    $safe_name = 'user_' . $id . '_' . time() . '.' . $ext;
+                    $dest_fs = $upload_dir_fs . '/' . $safe_name;
+                    $dest_rel = 'assets/images/avatar/uploads/' . $safe_name;
+
+                    if (!@move_uploaded_file($tmp, $dest_fs)) {
+                        $_SESSION['users_flash_message'] = 'Failed to save uploaded file.';
+                        $_SESSION['users_flash_type'] = 'danger';
+                    } else {
+                        // delete previous custom file if any
+                        $old_stmt = $conn->prepare('SELECT profile_picture FROM users WHERE id = ? LIMIT 1');
+                        $old_path = '';
+                        if ($old_stmt) {
+                            $old_stmt->bind_param('i', $id);
+                            $old_stmt->execute();
+                            $old_res = $old_stmt->get_result()->fetch_assoc();
+                            $old_stmt->close();
+                            $old_path = normalized_upload_path((string)($old_res['profile_picture'] ?? ''));
+                        }
+
+                        $stmt = $conn->prepare('UPDATE users SET profile_picture = ?, updated_at = NOW() WHERE id = ?');
+                        if ($stmt) {
+                            $stmt->bind_param('si', $dest_rel, $id);
+                            if ($stmt->execute()) {
+                                $_SESSION['users_flash_message'] = 'Profile picture updated.';
+                                $_SESSION['users_flash_type'] = 'success';
+                                if ($current_user_id > 0 && $id === $current_user_id) {
+                                    $_SESSION['profile_picture'] = $dest_rel;
+                                }
+
+                                if ($old_path !== '' && strpos($old_path, 'assets/images/avatar/uploads/') === 0) {
+                                    $old_fs = dirname(__DIR__) . '/' . $old_path;
+                                    if (is_file($old_fs)) {
+                                        @unlink($old_fs);
+                                    }
+                                }
+                            } else {
+                                $_SESSION['users_flash_message'] = 'Failed to update profile_picture: ' . $stmt->error;
+                                $_SESSION['users_flash_type'] = 'danger';
+                            }
+                            $stmt->close();
+                        }
+                    }
+                }
+            }
+        }
     }
 
     header('Location: users.php');
@@ -128,7 +209,7 @@ if ($status_filter === 'active' || $status_filter === 'inactive') {
 }
 
 $sql = '
-    SELECT id, name, username, email, role, is_active, email_verified_at, created_at, updated_at
+    SELECT id, name, username, email, role, is_active, email_verified_at, created_at, updated_at, profile_picture
     FROM users
 ';
 if ($where) {
@@ -241,6 +322,14 @@ include __DIR__ . '/../includes/header.php';
     .users-admin-page .users-table .user-cell {
         min-width: 190px;
     }
+    .users-admin-page .user-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        background: #fff;
+    }
     .users-admin-page .users-table .email-cell {
         max-width: 220px;
         white-space: nowrap;
@@ -256,7 +345,7 @@ include __DIR__ . '/../includes/header.php';
         align-items: center;
         flex-wrap: nowrap;
         gap: 0.45rem;
-        min-width: 330px;
+        min-width: 450px;
     }
     .users-admin-page .actions-group .role-form {
         flex: 1 1 160px;
@@ -270,6 +359,22 @@ include __DIR__ . '/../includes/header.php';
         height: 32px;
         font-size: 0.78rem;
         border-radius: 8px;
+    }
+    .users-admin-page .actions-group .upload-form {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        flex: 0 0 auto;
+    }
+    .users-admin-page .actions-group .upload-form .form-control {
+        width: 150px;
+        min-width: 130px;
+        height: 32px;
+        font-size: 0.75rem;
+        padding: 0.2rem 0.35rem;
+    }
+    .users-admin-page .actions-group .upload-form .btn {
+        white-space: nowrap;
     }
     .users-admin-page .actions-group .role-form .form-select {
         width: 100%;
@@ -478,12 +583,27 @@ include __DIR__ . '/../includes/header.php';
                                 $id = (int)$r['id'];
                                 $is_active = (int)($r['is_active'] ?? 0) === 1;
                                 $role = strtolower((string)($r['role'] ?? 'student'));
+                                $pp = normalized_upload_path((string)($r['profile_picture'] ?? ''));
+                                $pp_url = '';
+                                if ($pp !== '' && file_exists(dirname(__DIR__) . '/' . $pp)) {
+                                    $mtime = @filemtime(dirname(__DIR__) . '/' . $pp);
+                                    $pp_url = $pp . ($mtime ? ('?v=' . $mtime) : '');
+                                }
                             ?>
                             <tr>
                                 <td><?php echo $id; ?></td>
                                 <td class="user-cell">
-                                    <div class="fw-semibold"><?php echo e($r['name'] ?? '-'); ?></div>
-                                    <div class="text-muted small">@<?php echo e($r['username'] ?? '-'); ?></div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <?php if ($pp_url !== ''): ?>
+                                            <img src="<?php echo e($pp_url); ?>" alt="avatar" class="user-avatar">
+                                        <?php else: ?>
+                                            <img src="../assets/images/avatar/<?php echo ($id % 5) + 1; ?>.png" alt="avatar" class="user-avatar">
+                                        <?php endif; ?>
+                                        <div>
+                                            <div class="fw-semibold"><?php echo e($r['name'] ?? '-'); ?></div>
+                                            <div class="text-muted small">@<?php echo e($r['username'] ?? '-'); ?></div>
+                                        </div>
+                                    </div>
                                 </td>
                                 <td class="email-cell"><?php echo e($r['email'] ?? '-'); ?></td>
                                 <td>
@@ -524,6 +644,13 @@ include __DIR__ . '/../includes/header.php';
                                             <button type="submit" class="btn btn-sm btn-action-toggle <?php echo $is_active ? 'btn-outline-warning' : 'btn-outline-success'; ?>">
                                                 <?php echo $is_active ? 'Deactivate' : 'Activate'; ?>
                                             </button>
+                                        </form>
+
+                                        <form method="post" enctype="multipart/form-data" class="upload-form">
+                                            <input type="hidden" name="action" value="upload_profile_picture">
+                                            <input type="hidden" name="id" value="<?php echo $id; ?>">
+                                            <input type="file" name="profile_picture" class="form-control form-control-sm" accept="image/*" required>
+                                            <button type="submit" class="btn btn-sm btn-outline-primary">Upload</button>
                                         </form>
 
                                         <form method="post" onsubmit="return confirm('Delete this user account? This cannot be undone.');">

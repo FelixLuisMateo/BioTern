@@ -12,6 +12,7 @@ $year = date("Y");
     <title>BioTern || Home</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
+    <script src="assets/js/theme-preload-init.min.js"></script>
     <script>
         (function(){
             try{

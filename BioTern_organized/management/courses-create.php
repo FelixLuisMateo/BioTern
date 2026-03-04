@@ -114,6 +114,22 @@ if ($listResult) {
 $page_title = 'Create Course';
 include 'includes/header.php';
 ?>
+<style>
+    .create-form-actions {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .create-form-actions .btn {
+        width: auto !important;
+        min-width: 140px;
+        display: inline-flex;
+        justify-content: center;
+        align-items: center;
+    }
+</style>
 <div class="page-header">
     <div class="page-header-left d-flex align-items-center">
         <div class="page-header-title">
@@ -155,7 +171,10 @@ include 'includes/header.php';
                                 <input type="text" name="course_head" class="form-control" placeholder="Prof. Juan Dela Cruz" required>
                             </div>
                         <?php endif; ?>
-                        <button type="submit" class="btn btn-primary">Save Course</button>
+                        <div class="create-form-actions">
+                            <button type="submit" class="btn btn-primary">Save Course</button>
+                            <a href="courses.php" class="btn btn-outline-secondary">Cancel</a>
+                        </div>
                     </form>
                 </div>
             </div>

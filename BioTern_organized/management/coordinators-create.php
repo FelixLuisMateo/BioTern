@@ -68,6 +68,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $page_title = 'Create Coordinator';
 include 'includes/header.php';
 ?>
+<style>
+    .create-form-actions {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .create-form-actions .btn {
+        width: auto !important;
+        min-width: 140px;
+        display: inline-flex;
+        justify-content: center;
+        align-items: center;
+    }
+</style>
 <div class="page-header">
     <div class="page-header-left d-flex align-items-center">
         <div class="page-header-title"><h5 class="m-b-10">Create Coordinator</h5></div>
@@ -112,7 +128,7 @@ include 'includes/header.php';
                 <div class="col-md-4"><label class="form-label">Profile Picture (path)</label><input type="text" name="profile_picture" class="form-control"></div>
                 <div class="col-12"><label class="form-label">Bio</label><textarea name="bio" rows="2" class="form-control"></textarea></div>
                 <div class="col-12 form-check ms-1"><input class="form-check-input" type="checkbox" name="is_active" id="is_active_create" checked><label class="form-check-label" for="is_active_create">Active</label></div>
-                <div class="col-12 d-flex gap-2">
+                <div class="col-12 create-form-actions">
                     <button type="submit" class="btn btn-primary">Save Coordinator</button>
                     <a href="coordinators.php" class="btn btn-outline-secondary">Back to List</a>
                 </div>

@@ -360,6 +360,7 @@ foreach ($today_records as $tr) {
     <meta name="author" content="ACT 2A Group 5">
     <title>BioTern || Biometric Demo</title>
     <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
+    <script src="assets/js/theme-preload-init.min.js"></script>
     <script>
         (function(){
             try{
@@ -1301,7 +1302,7 @@ foreach ($today_records as $tr) {
                                 <span>Account Settings</span>
                             </a>
                             <div class="dropdown-divider"></div>
-                            <a href="auth-login-cover.php" class="dropdown-item">
+                            <a href="./auth-login-cover.php?logout=1" class="dropdown-item">
                                 <i class="feather-log-out"></i>
                                 <span>Logout</span>
                             </a>
@@ -1607,4 +1608,5 @@ foreach ($today_records as $tr) {
 <?php
 $conn->close();
 ?>
+
 

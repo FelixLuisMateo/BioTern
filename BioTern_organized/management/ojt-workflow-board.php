@@ -128,6 +128,7 @@ function status_label(string $s): string {
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>BioTern || OJT Workflow Board</title>
     <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
+    <script src="assets/js/theme-preload-init.min.js"></script>
     <script>
         (function(){
             try{
@@ -287,3 +288,4 @@ function status_label(string $s): string {
 </body>
 </html>
 <?php $conn->close(); ?>
+

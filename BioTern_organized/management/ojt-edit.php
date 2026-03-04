@@ -396,6 +396,7 @@ if ($student_id > 0 && ojt_edit_table_exists($conn, 'ojt_supervisor_reviews')) {
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>BioTern || OJT Edit</title>
     <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
+    <script src="assets/js/theme-preload-init.min.js"></script>
     <script>
         (function(){
             try{
@@ -717,3 +718,4 @@ if ($student_id > 0 && ojt_edit_table_exists($conn, 'ojt_supervisor_reviews')) {
 </body>
 </html>
 <?php $conn->close(); ?>
+

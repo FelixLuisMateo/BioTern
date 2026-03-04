@@ -42,10 +42,12 @@ $moa_data = [
 ];
 $endorsement_data = [
     'recipient_name' => '',
+    'recipient_title' => 'auto',
     'recipient_position' => '',
     'company_name' => '',
     'company_address' => '',
-    'students_to_endorse' => ''
+    'students_to_endorse' => '',
+    'greeting_preference' => 'either'
 ];
 $dau_moa_data = [
     'company_name' => '',
@@ -202,15 +204,19 @@ try {
         id INT(11) NOT NULL AUTO_INCREMENT,
         user_id INT(11) NOT NULL,
         recipient_name VARCHAR(255) DEFAULT NULL,
+        recipient_title VARCHAR(20) DEFAULT 'none',
         recipient_position VARCHAR(255) DEFAULT NULL,
         company_name VARCHAR(255) DEFAULT NULL,
         company_address VARCHAR(255) DEFAULT NULL,
         students_to_endorse TEXT DEFAULT NULL,
+        greeting_preference VARCHAR(20) DEFAULT 'either',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         PRIMARY KEY (id),
         UNIQUE KEY user_id (user_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
+    $conn->query("ALTER TABLE endorsement_letter ADD COLUMN IF NOT EXISTS recipient_title VARCHAR(20) DEFAULT 'none' AFTER recipient_name");
+    $conn->query("ALTER TABLE endorsement_letter ADD COLUMN IF NOT EXISTS greeting_preference VARCHAR(20) DEFAULT 'either' AFTER students_to_endorse");
     $conn->query("CREATE TABLE IF NOT EXISTS dau_moa (
         id INT(11) NOT NULL AUTO_INCREMENT,
         user_id INT(11) NOT NULL,
@@ -491,21 +497,31 @@ try {
         $posted_user_id = isset($_POST['user_id']) ? intval($_POST['user_id']) : 0;
         if ($posted_user_id > 0) {
             $recipient_name = trim($_POST['recipient_name'] ?? '');
+            $recipient_title = strtolower(trim((string)($_POST['recipient_title'] ?? 'auto')));
+            if (!in_array($recipient_title, ['auto', 'mr', 'ms', 'none'], true)) {
+                $recipient_title = 'auto';
+            }
             $recipient_position = trim($_POST['recipient_position'] ?? '');
             $company_name = trim($_POST['company_name'] ?? '');
             $company_address = trim($_POST['company_address'] ?? '');
             $students_to_endorse = trim($_POST['students_to_endorse'] ?? '');
+            $greeting_preference = strtolower(trim((string)($_POST['greeting_preference'] ?? 'either')));
+            if (!in_array($greeting_preference, ['sir', 'maam', 'either'], true)) {
+                $greeting_preference = 'either';
+            }
 
-            $stmt = $conn->prepare("INSERT INTO endorsement_letter (user_id, recipient_name, recipient_position, company_name, company_address, students_to_endorse)
-                VALUES (?, ?, ?, ?, ?, ?)
+            $stmt = $conn->prepare("INSERT INTO endorsement_letter (user_id, recipient_name, recipient_title, recipient_position, company_name, company_address, students_to_endorse, greeting_preference)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 ON DUPLICATE KEY UPDATE
                     recipient_name = VALUES(recipient_name),
+                    recipient_title = VALUES(recipient_title),
                     recipient_position = VALUES(recipient_position),
                     company_name = VALUES(company_name),
                     company_address = VALUES(company_address),
                     students_to_endorse = VALUES(students_to_endorse),
+                    greeting_preference = VALUES(greeting_preference),
                     updated_at = NOW()");
-            $stmt->bind_param('isssss', $posted_user_id, $recipient_name, $recipient_position, $company_name, $company_address, $students_to_endorse);
+            $stmt->bind_param('isssssss', $posted_user_id, $recipient_name, $recipient_title, $recipient_position, $company_name, $company_address, $students_to_endorse, $greeting_preference);
             if ($stmt->execute()) {
                 $flash_message = 'Endorsement autofill data saved.';
                 $flash_type = 'success';
@@ -623,8 +639,10 @@ try {
         $candidate_sql = implode(' OR ', array_unique($candidate_wheres));
         // Priority order is critical:
         // 1) exact students.id match, 2) user_id match, 3) student_id string match.
-        $student_sql = "SELECT s.*, c.name AS course_name
+        $student_sql = "SELECT s.*, c.name AS course_name,
+                COALESCE(NULLIF(u_student.profile_picture, ''), NULLIF(s.profile_picture, '')) AS user_profile_picture
             FROM students s
+            LEFT JOIN users u_student ON s.user_id = u_student.id
             LEFT JOIN courses c ON s.course_id = c.id
             WHERE (" . $candidate_sql . ")
             ORDER BY
@@ -640,6 +658,9 @@ try {
         if (!$student) {
             header('Location: idnotfound-404.php?source=ojt-view&id=' . urlencode($view_user_id));
             exit;
+        }
+        if (!empty($student['user_profile_picture'])) {
+            $student['profile_picture'] = $student['user_profile_picture'];
         }
         $selected_student_id = intval($student['id'] ?? $view_user_id);
         $selected_user_id = intval($student['user_id'] ?? 0);
@@ -919,6 +940,7 @@ try {
     <!--! BEGIN: Favicon-->
     <!--! BEGIN: Favicon-->
     <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
+    <script src="assets/js/theme-preload-init.min.js"></script>
     <!--! END: Favicon-->
     <script>
         (function(){
@@ -1283,7 +1305,7 @@ try {
                                 <span>Account Settings</span>
                             </a>
                             <div class="dropdown-divider"></div>
-                            <a href="./auth-login-cover.php" class="dropdown-item">
+                            <a href="./auth-login-cover.php?logout=1" class="dropdown-item">
                                 <i class="feather-log-out"></i>
                                 <span>Logout</span>
                             </a>
@@ -1834,6 +1856,26 @@ try {
                                             <input type="text" name="recipient_name" class="form-control" value="<?php echo htmlspecialchars($endorsement_data['recipient_name']); ?>" placeholder="e.g. Mr. Mark G. Sison">
                                         </div>
                                         <div class="col-12">
+                                            <label class="form-label d-block mb-2">Recipient Title</label>
+                                            <?php $rt = strtolower((string)($endorsement_data['recipient_title'] ?? 'auto')); ?>
+                                            <div class="form-check form-check-inline">
+                                                <input class="form-check-input" type="radio" name="recipient_title" id="rt_auto" value="auto" <?php echo ($rt !== 'mr' && $rt !== 'ms' && $rt !== 'none') ? 'checked' : ''; ?>>
+                                                <label class="form-check-label" for="rt_auto">Auto (AI guess)</label>
+                                            </div>
+                                            <div class="form-check form-check-inline">
+                                                <input class="form-check-input" type="radio" name="recipient_title" id="rt_mr" value="mr" <?php echo $rt === 'mr' ? 'checked' : ''; ?>>
+                                                <label class="form-check-label" for="rt_mr">Mr.</label>
+                                            </div>
+                                            <div class="form-check form-check-inline">
+                                                <input class="form-check-input" type="radio" name="recipient_title" id="rt_ms" value="ms" <?php echo $rt === 'ms' ? 'checked' : ''; ?>>
+                                                <label class="form-check-label" for="rt_ms">Ms.</label>
+                                            </div>
+                                            <div class="form-check form-check-inline">
+                                                <input class="form-check-input" type="radio" name="recipient_title" id="rt_none" value="none" <?php echo $rt === 'none' ? 'checked' : ''; ?>>
+                                                <label class="form-check-label" for="rt_none">None</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-12">
                                             <label class="form-label">Recipient Position</label>
                                             <input type="text" name="recipient_position" class="form-control" value="<?php echo htmlspecialchars($endorsement_data['recipient_position']); ?>" placeholder="e.g. Supervisor/Manager">
                                         </div>
@@ -1852,7 +1894,7 @@ try {
                                     </div>
                                     <div class="mt-3 d-flex gap-2 document-form-actions">
                                         <button type="submit" class="btn btn-primary">Save Endorsement Data</button>
-                                        <a href="document_endorsement.php?id=<?php echo intval($selected_student_id); ?>" class="btn btn-success">Open Endorsement Letter</a>
+                                        <a href="document_endorsement.php?id=<?php echo intval($selected_student_id); ?>&greeting_pref=<?php echo urlencode((string)($endorsement_data['greeting_preference'] ?? 'either')); ?>&recipient_title=<?php echo urlencode((string)($endorsement_data['recipient_title'] ?? 'none')); ?>" class="btn btn-success">Open Endorsement Letter</a>
                                     </div>
                                 </form>
                             <?php endif; ?>
@@ -2043,5 +2085,6 @@ try {
 </body>
 
 </html>
+
 
 

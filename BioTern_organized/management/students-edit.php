@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // Database Connection
 $host = 'localhost';
 $db_user = 'root';
@@ -514,7 +514,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         }
                     }
 
-                    $success_message = "“ Student information updated successfully!";
+                    $success_message = "� Student information updated successfully!";
                     // Refresh student data
                     $stmt = $conn->prepare($student_query);
                     $stmt->bind_param("i", $student_id);
@@ -560,6 +560,7 @@ function formatDateTime($date) {
     <meta name="author" content="ACT 2A Group 5">
     <title>BioTern || Edit Student - <?php echo htmlspecialchars($student['first_name'] . ' ' . $student['last_name']); ?></title>
     <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
+    <script src="assets/js/theme-preload-init.min.js"></script>
     <script>
         (function(){
             try{
@@ -650,7 +651,7 @@ function formatDateTime($date) {
             transform: translateY(-50%);
         }
 
-        /* Clear (Ã—) button styling */
+        /* Clear (×) button styling */
         .select2-selection__clear {
             position: absolute;
             right: 36px;
@@ -895,7 +896,7 @@ function formatDateTime($date) {
                                 <span>Account Settings</span>
                             </a>
                             <div class="dropdown-divider"></div>
-                            <a href="./auth-login-cover.php" class="dropdown-item">
+                            <a href="./auth-login-cover.php?logout=1" class="dropdown-item">
                                 <i class="feather-log-out"></i>
                                 <span>Logout</span>
                             </a>
@@ -1229,7 +1230,7 @@ function formatDateTime($date) {
         <!-- Footer -->
         <footer class="footer">
             <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
-                <span>Copyright ©</span>
+                <span>Copyright �</span>
                 <script>
                     document.write(new Date().getFullYear());
                 </script>
@@ -1330,4 +1331,5 @@ function formatDateTime($date) {
 <?php
 $conn->close();
 ?>
+
 

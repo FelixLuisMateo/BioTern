@@ -70,6 +70,22 @@ if ($list_result) {
 $page_title = 'Create Department';
 include 'includes/header.php';
 ?>
+<style>
+    .create-form-actions {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .create-form-actions .btn {
+        width: auto !important;
+        min-width: 140px;
+        display: inline-flex;
+        justify-content: center;
+        align-items: center;
+    }
+</style>
 <div class="page-header">
     <div class="page-header-left d-flex align-items-center">
         <div class="page-header-title">
@@ -112,7 +128,10 @@ include 'includes/header.php';
                             <label class="form-label">Contact Email</label>
                             <input type="email" name="contact_email" class="form-control" placeholder="it@biotern.com">
                         </div>
-                        <button type="submit" class="btn btn-primary">Save Department</button>
+                        <div class="create-form-actions">
+                            <button type="submit" class="btn btn-primary">Save Department</button>
+                            <a href="departments.php" class="btn btn-outline-secondary">Cancel</a>
+                        </div>
                     </form>
                 </div>
             </div>

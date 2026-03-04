@@ -3,15 +3,33 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+if (isset($_GET['logout']) && (string)$_GET['logout'] === '1') {
+    $_SESSION = [];
+    if (ini_get('session.use_cookies')) {
+        $params = session_get_cookie_params();
+        setcookie(session_name(), '', time() - 42000, $params['path'], $params['domain'], $params['secure'], $params['httponly']);
+    }
+    session_destroy();
+    session_start();
+}
+
 $dbHost = '127.0.0.1';
 $dbUser = 'root';
 $dbPass = '';
 $dbName = 'biotern_db';
 $login_error = '';
+$next = isset($_GET['next']) ? basename((string)$_GET['next']) : '';
+if ($next !== '' && !preg_match('/^[A-Za-z0-9_-]+\.php$/', $next)) {
+    $next = '';
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $identifier = isset($_POST['identifier']) ? trim((string)$_POST['identifier']) : '';
     $password = isset($_POST['password']) ? (string)$_POST['password'] : '';
+    $posted_next = isset($_POST['next']) ? basename((string)$_POST['next']) : '';
+    if ($posted_next !== '' && preg_match('/^[A-Za-z0-9_-]+\.php$/', $posted_next)) {
+        $next = $posted_next;
+    }
 
     if ($identifier === '' || $password === '') {
         $login_error = 'Please enter your username/email and password.';
@@ -20,7 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($mysqli->connect_errno) {
             $login_error = 'Database connection failed.';
         } else {
-            $stmt = $mysqli->prepare("SELECT id, name, username, email, password, role, is_active FROM users WHERE (username = ? OR email = ?) LIMIT 1");
+            $stmt = $mysqli->prepare("SELECT id, name, username, email, password, role, is_active, profile_picture FROM users WHERE (username = ? OR email = ?) LIMIT 1");
 
             if ($stmt) {
                 $stmt->bind_param('ss', $identifier, $identifier);
@@ -40,9 +58,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['username'] = (string)$user['username'];
                     $_SESSION['email'] = (string)$user['email'];
                     $_SESSION['role'] = (string)$user['role'];
+                    $_SESSION['profile_picture'] = (string)($user['profile_picture'] ?? '');
                     $_SESSION['logged_in'] = true;
 
-                    header('Location: homepage.php');
+                    header('Location: ' . ($next !== '' ? $next : 'homepage.php'));
                     exit;
                 }
             } else {
@@ -61,6 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>BioTern || Login Cover</title>
     <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
+    <script src="assets/js/theme-preload-init.min.js"></script>
     <link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/vendors.min.css">
     <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css">
@@ -88,6 +108,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <?php endif; ?>
 
                     <form action="auth-login-cover.php" method="post" class="w-100 mt-4 pt-2">
+                        <input type="hidden" name="next" value="<?php echo htmlspecialchars($next, ENT_QUOTES, 'UTF-8'); ?>">
                         <div class="mb-4">
                             <input type="text" name="identifier" id="identifier" class="form-control" placeholder="Email or Username" value="<?php echo isset($_POST['identifier']) ? htmlspecialchars((string)$_POST['identifier']) : ''; ?>" required aria-required="true" aria-label="Email or Username" autofocus>
                         </div>
@@ -151,3 +172,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </script>
 </body>
 </html>
+

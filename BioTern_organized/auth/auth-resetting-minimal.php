@@ -42,9 +42,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 } else {
                     $select->bind_param('s', $contact);
                     if ($select->execute()) {
+                        $currentPasswordHash = null;
+                        $hasAccount = false;
                         $select->bind_result($currentPasswordHash);
                         if ($select->fetch()) {
-                            if (password_verify($newPassword, $currentPasswordHash)) {
+                            $hasAccount = true;
+                        }
+                        // Important: close SELECT statement before preparing another query on same connection.
+                        $select->free_result();
+                        $select->close();
+                        $select = null;
+
+                        if ($hasAccount) {
+                            if (password_verify($newPassword, (string)$currentPasswordHash)) {
                                 $reset_error = 'Your new password must be different from your current password.';
                             } else {
                                 // Use the verified reset contact (email) as the update key.
@@ -81,7 +91,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     } else {
                         $reset_error = 'Unable to validate current password. Please try again.';
                     }
-                    $select->close();
+                    if ($select instanceof mysqli_stmt) {
+                        $select->close();
+                    }
                 }
                 $mysqli->close();
             }
@@ -101,6 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="author" content="ACT 2A Group 5">
     <title>BioTern || Resetting Minimal</title>
     <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
+    <script src="assets/js/theme-preload-init.min.js"></script>
     <link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/vendors.min.css">
     <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css">
@@ -184,3 +197,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </body>
 
 </html>
+

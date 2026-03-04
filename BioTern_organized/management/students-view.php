@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // Database Connection
 $host = 'localhost';
 $db_user = 'root';
@@ -40,7 +40,7 @@ $student_query = "
     SELECT 
         s.id,
         s.student_id,
-        s.profile_picture,
+        COALESCE(NULLIF(u_student.profile_picture, ''), NULLIF(s.profile_picture, '')) AS profile_picture,
         s.first_name,
         s.last_name,
         s.middle_name,
@@ -73,6 +73,7 @@ $student_query = "
         i.required_hours,
         i.status as internship_status
     FROM students s
+    LEFT JOIN users u_student ON s.user_id = u_student.id
     LEFT JOIN courses c ON s.course_id = c.id
     LEFT JOIN departments d ON d.id = s.department_id
     LEFT JOIN internships i ON s.id = i.student_id AND i.status = 'ongoing'
@@ -366,6 +367,7 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
     <meta name="author" content="ACT 2A Group 5">
     <title>BioTern || Student Profile - <?php echo htmlspecialchars($student['first_name'] . ' ' . $student['last_name']); ?></title>
     <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
+    <script src="assets/js/theme-preload-init.min.js"></script>
     <script>
         (function(){
             try{
@@ -643,7 +645,7 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                                 <span>Account Settings</span>
                             </a>
                             <div class="dropdown-divider"></div>
-                            <a href="./auth-login-cover.php" class="dropdown-item">
+                            <a href="./auth-login-cover.php?logout=1" class="dropdown-item">
                                 <i class="feather-log-out"></i>
                                 <span>Logout</span>
                             </a>
@@ -985,7 +987,7 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
         <!-- Footer -->
         <footer class="footer">
             <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
-                <span>Copyright ©</span>
+                <span>Copyright �</span>
                 <script>
                     document.write(new Date().getFullYear());
                 </script>
@@ -1187,4 +1189,5 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
 <?php
 $conn->close();
 ?>
+
 

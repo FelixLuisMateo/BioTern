@@ -1,15 +1,39 @@
 <?php
 // Shared header include.  Sets up HTML <head> and page header/navigation.
 // Pages can set a $page_title variable before including this file.
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 if (!isset($page_title) || trim($page_title) === '') {
     $page_title = 'BioTern';
 }
 if (!isset($base_href)) {
     $base_href = '';
 }
+
 $biotern_theme_api_endpoint = $base_href . 'api/theme-customizer.php';
 require_once __DIR__ . '/theme-preferences.php';
-$biotern_theme_preferences = biotern_theme_preferences();
+
+$default_theme_prefs = [
+    'skin' => 'light',
+    'menu' => 'auto',
+    'font' => 'default',
+    'navigation' => 'light',
+    'header' => 'light',
+];
+
+if (function_exists('biotern_theme_preferences')) {
+    $biotern_theme_preferences = biotern_theme_preferences();
+} else {
+    $biotern_theme_preferences = $default_theme_prefs;
+}
+
+if (!is_array($biotern_theme_preferences)) {
+    $biotern_theme_preferences = $default_theme_prefs;
+}
+
+$biotern_theme_preferences = array_merge($default_theme_prefs, $biotern_theme_preferences);
+
 $html_classes = [];
 if (($biotern_theme_preferences['skin'] ?? 'light') === 'dark') {
     $html_classes[] = 'app-skin-dark';
@@ -18,7 +42,7 @@ if (($biotern_theme_preferences['menu'] ?? 'auto') === 'mini') {
     $html_classes[] = 'minimenu';
 }
 if (($biotern_theme_preferences['font'] ?? 'default') !== 'default') {
-    $html_classes[] = $biotern_theme_preferences['font'];
+    $html_classes[] = (string)$biotern_theme_preferences['font'];
 }
 if (($biotern_theme_preferences['navigation'] ?? 'light') === 'dark') {
     $html_classes[] = 'app-navigation-dark';
@@ -27,6 +51,26 @@ if (($biotern_theme_preferences['header'] ?? 'light') === 'dark') {
     $html_classes[] = 'app-header-dark';
 }
 $html_class_attr = implode(' ', $html_classes);
+
+$header_user_name = trim((string)($_SESSION['name'] ?? $_SESSION['username'] ?? 'BioTern User'));
+if ($header_user_name === '') {
+    $header_user_name = 'BioTern User';
+}
+$header_user_email = trim((string)($_SESSION['email'] ?? 'admin@biotern.local'));
+if ($header_user_email === '') {
+    $header_user_email = 'admin@biotern.local';
+}
+$header_user_role = strtolower(trim((string)($_SESSION['role'] ?? '')));
+
+$header_avatar = 'assets/images/avatar/1.png';
+$session_avatar = trim((string)($_SESSION['profile_picture'] ?? ''));
+if ($session_avatar !== '') {
+    $normalized_avatar = ltrim(str_replace('\\', '/', $session_avatar), '/');
+    $avatar_fs_path = dirname(__DIR__) . '/' . $normalized_avatar;
+    if (is_file($avatar_fs_path)) {
+        $header_avatar = $normalized_avatar;
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="zxx"<?php echo $html_class_attr !== '' ? ' class="' . htmlspecialchars($html_class_attr, ENT_QUOTES, 'UTF-8') . '"' : ''; ?>>
@@ -220,6 +264,29 @@ $html_class_attr = implode(' ', $html_classes);
     <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css" />
     <!--! END: Custom CSS-->
     <style>
+        html.app-skin-dark input.form-control,
+        html.app-skin-dark textarea.form-control,
+        html.app-skin-dark .form-control[type="text"],
+        html.app-skin-dark .form-control[type="email"],
+        html.app-skin-dark .form-control[type="password"],
+        html.app-skin-dark .form-control[type="number"],
+        html.app-skin-dark .form-control[type="date"],
+        html.app-skin-dark .form-control[type="time"],
+        html.app-skin-dark .form-control[type="search"],
+        html.app-skin-dark .form-control[type="tel"],
+        html.app-skin-dark .form-control[type="url"] {
+            color: #ffffff !important;
+            -webkit-text-fill-color: #ffffff !important;
+            background-color: #0f172a !important;
+            border-color: #4a5568 !important;
+        }
+
+        html.app-skin-dark input.form-control::placeholder,
+        html.app-skin-dark textarea.form-control::placeholder {
+            color: #d1dcf0 !important;
+            opacity: 1 !important;
+        }
+
         html.app-skin-dark select.form-control,
         html.app-skin-dark select.form-select,
         html.app-skin-dark select.form-control option,
@@ -279,12 +346,6 @@ $html_class_attr = implode(' ', $html_classes);
 
         html.app-skin-dark .select2-container--default .select2-results__option--highlighted[aria-selected] {
             color: #ffffff !important;
-        }
-
-        .theme-customizer,
-        .customizer-open-trigger,
-        .cutomizer-open-trigger {
-            display: none !important;
         }
     </style>
 </head>
@@ -366,20 +427,25 @@ $html_class_attr = implode(' ', $html_classes);
                     </div>
                     <div class="dropdown nxl-h-item">
                         <a href="javascript:void(0);" data-bs-toggle="dropdown" role="button" data-bs-auto-close="outside">
-                            <img src="assets/images/avatar/1.png" alt="user-image" class="img-fluid user-avtar me-0">
+                            <img src="<?php echo htmlspecialchars($header_avatar, ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar me-0">
                         </a>
                         <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-user-dropdown">
                             <div class="dropdown-header">
                                 <div class="d-flex align-items-center">
-                                    <img src="assets/images/avatar/1.png" alt="user-image" class="img-fluid user-avtar">
+                                    <img src="<?php echo htmlspecialchars($header_avatar, ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar">
                                     <div>
-                                        <h6 class="text-dark mb-0">BioTern User</h6>
-                                        <span class="fs-12 fw-medium text-muted">admin@biotern.local</span>
+                                        <h6 class="text-dark mb-0">
+                                            <?php echo htmlspecialchars($header_user_name, ENT_QUOTES, 'UTF-8'); ?>
+                                            <?php if ($header_user_role !== ''): ?>
+                                                <span class="badge bg-soft-success text-success ms-1"><?php echo htmlspecialchars(ucfirst($header_user_role), ENT_QUOTES, 'UTF-8'); ?></span>
+                                            <?php endif; ?>
+                                        </h6>
+                                        <span class="fs-12 fw-medium text-muted"><?php echo htmlspecialchars($header_user_email, ENT_QUOTES, 'UTF-8'); ?></span>
                                     </div>
                                 </div>
                             </div>
                             <div class="dropdown-divider"></div>
-                            <a href="auth-login-cover.php" class="dropdown-item">
+                            <a href="auth-login-cover.php?logout=1" class="dropdown-item">
                                 <i class="feather-log-out"></i>
                                 <span>Logout</span>
                             </a>

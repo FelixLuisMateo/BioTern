@@ -13,8 +13,8 @@
     <title>BioTern || OJT Create</title>
     <!--! END:  Apps Title-->
     <!--! BEGIN: Favicon-->
-    <!--! BEGIN: Favicon-->
     <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
+    <script src="assets/js/theme-preload-init.min.js"></script>
     <!--! END: Favicon-->
     <script>
         (function(){
@@ -35,7 +35,6 @@
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2-theme.min.css">
     <!--! END: Vendors CSS-->
     <!--! BEGIN: Custom CSS-->
-    <script>try{var s=localStorage.getItem('app-skin')||localStorage.getItem('app_skin')||localStorage.getItem('theme'); if(s&&s.indexOf('dark')!==-1)document.documentElement.classList.add('app-skin-dark');}catch(e){};</script>
     <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css">
     <style>
         .app-skin-dark body { background: #0b1220; }

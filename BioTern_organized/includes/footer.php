@@ -16,8 +16,7 @@
     .nxl-container .footer {
         margin-top: auto;
     }
-</style>
-    </div> <!-- .nxl-content -->
+</style>        </div> <!-- .nxl-content -->
         <!-- [ Footer ] start -->
         <footer class="footer">
             <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
@@ -77,6 +76,9 @@
     <script src="assets/js/common-init.min.js"></script>
     <script src="assets/js/customers-init.min.js"></script>
     <!--! END: Apps Init !-->
+    <!--! BEGIN: Theme Customizer  !-->
+    <!-- Theme Customizer removed -->
+    <!--! END: Theme Customizer !-->
     <script>
         (function(){
             document.addEventListener('DOMContentLoaded', function(){

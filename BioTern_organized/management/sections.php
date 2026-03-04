@@ -28,19 +28,6 @@ function has_col(array $cols, string $name): bool {
     return in_array(strtolower($name), $cols, true);
 }
 
-function normalize_course_code(string $code, string $name): string {
-    $base = strtoupper(trim($code));
-    $base = preg_replace('/[^A-Z0-9]/', '', $base);
-    if ($base !== '') {
-        return $base;
-    }
-    $fallback = strtoupper(preg_replace('/[^A-Z0-9]/', '', $name));
-    if ($fallback === '') {
-        return '';
-    }
-    return substr($fallback, 0, 4);
-}
-
 $sectionCols = get_table_columns($conn, 'sections');
 $courseCols = get_table_columns($conn, 'courses');
 $deptCols = get_table_columns($conn, 'departments');
@@ -58,98 +45,6 @@ $hasCourseDepartment = has_col($courseCols, 'department_id');
 $hasDeptDeletedAt = has_col($deptCols, 'deleted_at');
 
 $flash = null;
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate_temp_sections'])) {
-    $firstDepartmentId = 0;
-    $deptQuery = "SELECT id FROM departments" . ($hasDeptDeletedAt ? " WHERE deleted_at IS NULL" : "") . " ORDER BY id ASC LIMIT 1";
-    $deptRes = $conn->query($deptQuery);
-    if ($deptRes && ($deptRow = $deptRes->fetch_assoc())) {
-        $firstDepartmentId = (int)$deptRow['id'];
-    }
-
-    $courseFields = ['id', 'code', 'name'];
-    if ($hasCourseDepartment) {
-        $courseFields[] = 'department_id';
-    }
-    $courseWhere = $hasCourseDeletedAt ? " WHERE deleted_at IS NULL" : "";
-    $courseListSql = "SELECT " . implode(', ', $courseFields) . " FROM courses" . $courseWhere . " ORDER BY name ASC";
-    $courseListRes = $conn->query($courseListSql);
-
-    $created = 0;
-    $exists = 0;
-    $skipped = 0;
-
-    if ($courseListRes) {
-        while ($course = $courseListRes->fetch_assoc()) {
-            $courseId = (int)$course['id'];
-            if ($courseId <= 0) {
-                $skipped++;
-                continue;
-            }
-
-            $courseCode = normalize_course_code((string)($course['code'] ?? ''), (string)($course['name'] ?? ''));
-            if ($courseCode === '') {
-                $skipped++;
-                continue;
-            }
-
-            $tempSectionCode = $courseCode . '-2A';
-            $escTemp = $conn->real_escape_string($tempSectionCode);
-            $existsSql = "SELECT id FROM sections WHERE course_id = " . $courseId . " AND (code = '" . $escTemp . "' OR name = '" . $escTemp . "')";
-            if ($hasSectionDeletedAt) {
-                $existsSql .= " AND deleted_at IS NULL";
-            }
-            $existsSql .= " LIMIT 1";
-
-            $existsRes = $conn->query($existsSql);
-            if ($existsRes && $existsRes->num_rows > 0) {
-                $exists++;
-                continue;
-            }
-
-            $columns = ['course_id', 'code', 'name'];
-            $values = [$courseId, "'" . $escTemp . "'", "'" . $escTemp . "'"];
-
-            if ($hasSectionDepartment) {
-                $deptId = $hasCourseDepartment ? (int)($course['department_id'] ?? 0) : 0;
-                if ($deptId <= 0) {
-                    $deptId = $firstDepartmentId;
-                }
-                if ($deptId <= 0) {
-                    $skipped++;
-                    continue;
-                }
-                $columns[] = 'department_id';
-                $values[] = (string)$deptId;
-            }
-
-            if ($hasSectionIsActive) {
-                $columns[] = 'is_active';
-                $values[] = '1';
-            }
-            if ($hasSectionStatus) {
-                $columns[] = 'status';
-                $values[] = '1';
-            }
-            if ($hasSectionCreatedAt) {
-                $columns[] = 'created_at';
-                $values[] = 'NOW()';
-            }
-            if ($hasSectionUpdatedAt) {
-                $columns[] = 'updated_at';
-                $values[] = 'NOW()';
-            }
-
-            $insertSql = "INSERT INTO sections (" . implode(', ', $columns) . ") VALUES (" . implode(', ', $values) . ")";
-            if ($conn->query($insertSql)) {
-                $created++;
-            } else {
-                $exists++;
-            }
-        }
-    }
-
-    $flash = "Temporary section generation finished. Created: {$created}, Existing: {$exists}, Skipped: {$skipped}.";
-}
 
 $filter_q = trim((string)($_GET['q'] ?? ''));
 $filter_course = isset($_GET['course_id']) ? (int)$_GET['course_id'] : 0;
@@ -360,11 +255,7 @@ include 'includes/header.php';
         </ul>
     </div>
     <div class="page-header-right ms-auto d-flex gap-2">
-        <form method="post" class="d-inline">
-            <button type="submit" name="generate_temp_sections" value="1" class="btn btn-primary">
-                Generate Temporary Sections
-            </button>
-        </form>
+        <a href="sections-create.php" class="btn btn-primary">Create Section</a>
     </div>
 </div>
 
