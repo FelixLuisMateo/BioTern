@@ -189,7 +189,7 @@ if ($session_avatar !== '') {
                             <span class="nxl-mtext">Help Center</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="#!">Support</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="settings-support.php">Support</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="help-knowledgebase.php">KnowledgeBase</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="/docs/documentations">Documentations</a></li>
                         </ul>
@@ -915,7 +915,7 @@ if ($session_avatar !== '') {
                     <div class="row">
                         <div class="col-lg-4">
                             <div class="card card-body pb-0 pb-lg-4 text-center">
-                                <a href="#!" class="card stretch stretch-full p-5 mb-4 mb-lg-0 d-flex flex-column flex-fill align-items-center justify-content-center border rounded-3">
+                                <a href="tel:+13756589321" class="card stretch stretch-full p-5 mb-4 mb-lg-0 d-flex flex-column flex-fill align-items-center justify-content-center border rounded-3">
                                     <div class="mb-4 wd-50 ht-50">
                                         <img src="assets/images/icons/line-icon/phone.png" class="img-fluid" alt="">
                                     </div>
@@ -926,7 +926,7 @@ if ($session_avatar !== '') {
                         </div>
                         <div class="col-lg-4">
                             <div class="card card-body pb-0 pb-lg-4 text-center">
-                                <a href="#!" class="card stretch stretch-full p-5 mb-4 mb-lg-0 d-flex flex-column flex-fill align-items-center justify-content-center border rounded-3">
+                                <a href="mailto:support@helpcenter.com" class="card stretch stretch-full p-5 mb-4 mb-lg-0 d-flex flex-column flex-fill align-items-center justify-content-center border rounded-3">
                                     <div class="mb-4 wd-50 ht-50">
                                         <img src="assets/images/icons/line-icon/email.png" class="img-fluid" alt="">
                                     </div>
@@ -937,7 +937,7 @@ if ($session_avatar !== '') {
                         </div>
                         <div class="col-lg-4">
                             <div class="card card-body pb-0 pb-lg-4 text-center">
-                                <a href="#!" class="card stretch stretch-full p-5 mb-4 mb-lg-0 d-flex flex-column flex-fill align-items-center justify-content-center border rounded-3">
+                                <a href="settings-support.php" class="card stretch stretch-full p-5 mb-4 mb-lg-0 d-flex flex-column flex-fill align-items-center justify-content-center border rounded-3">
                                     <div class="mb-4 wd-50 ht-50">
                                         <img src="assets/images/icons/line-icon/notebook.png" class="img-fluid" alt="">
                                     </div>

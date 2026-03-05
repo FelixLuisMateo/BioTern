@@ -245,7 +245,7 @@ $nav_can_reports = ($nav_is_admin || $nav_is_coordinator || $nav_is_supervisor);
                         <span class="nxl-mtext">Help Center</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                     </a>
                     <ul class="nxl-submenu">
-                        <li class="nxl-item"><a class="nxl-link" href="#!">Support</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="settings-support.php">Support</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="help-knowledgebase.php">Knowledge Base</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="/docs/documentations">Documentations</a></li>
                     </ul>
