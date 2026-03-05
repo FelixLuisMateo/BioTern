@@ -44,13 +44,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $department_id = $department_id_raw !== '' ? (int)$department_id_raw : null;
     $office_location = trim((string)($_POST['office_location'] ?? ''));
     $bio = trim((string)($_POST['bio'] ?? ''));
-    $profile_picture = trim((string)($_POST['profile_picture'] ?? ''));
+    $profile_picture = '';
     $is_active = isset($_POST['is_active']) ? 1 : 0;
 
     if ($user_id <= 0 || $first_name === '' || $last_name === '' || $email === '') {
         $message = 'Please complete required fields.';
         $message_type = 'danger';
     } else {
+        if (isset($_FILES['profile_picture']) && is_array($_FILES['profile_picture']) && (int)$_FILES['profile_picture']['error'] !== UPLOAD_ERR_NO_FILE) {
+            $file = $_FILES['profile_picture'];
+            if ((int)$file['error'] !== UPLOAD_ERR_OK) {
+                $message = 'Profile picture upload failed.';
+                $message_type = 'danger';
+            } else {
+                $tmp = (string)$file['tmp_name'];
+                $orig = (string)$file['name'];
+                $size = (int)$file['size'];
+                $ext = strtolower(pathinfo($orig, PATHINFO_EXTENSION));
+                $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+
+                if (!in_array($ext, $allowed, true)) {
+                    $message = 'Invalid image type. Allowed: jpg, jpeg, png, gif, webp.';
+                    $message_type = 'danger';
+                } elseif ($size > 5 * 1024 * 1024) {
+                    $message = 'Image size must be 5MB or less.';
+                    $message_type = 'danger';
+                } elseif (@getimagesize($tmp) === false) {
+                    $message = 'Uploaded file is not a valid image.';
+                    $message_type = 'danger';
+                } else {
+                    $uploadDirFs = dirname(__DIR__) . '/uploads/profile_pictures';
+                    if (!is_dir($uploadDirFs) && !@mkdir($uploadDirFs, 0775, true)) {
+                        $message = 'Failed to create upload directory.';
+                        $message_type = 'danger';
+                    } else {
+                        $filename = 'coordinator_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
+                        $destFs = $uploadDirFs . '/' . $filename;
+                        if (!@move_uploaded_file($tmp, $destFs)) {
+                            $message = 'Failed to save uploaded profile picture.';
+                            $message_type = 'danger';
+                        } else {
+                            $profile_picture = 'uploads/profile_pictures/' . $filename;
+                        }
+                    }
+                }
+            }
+        }
+
+        if ($message !== '' && $message_type === 'danger') {
+            // keep message and do not insert
+        } else {
         $stmt = $conn->prepare('INSERT INTO coordinators (user_id, first_name, last_name, middle_name, email, phone, department_id, office_location, bio, profile_picture, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
         if ($stmt) {
             $stmt->bind_param('isssssisssi', $user_id, $first_name, $last_name, $middle_name, $email, $phone, $department_id, $office_location, $bio, $profile_picture, $is_active);
@@ -61,6 +104,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $message = 'Failed to create coordinator: ' . $stmt->error;
             $message_type = 'danger';
             $stmt->close();
+        }
         }
     }
 }
@@ -83,6 +127,18 @@ include 'includes/header.php';
         justify-content: center;
         align-items: center;
     }
+
+    html.app-skin-dark input[type="file"].form-control {
+        color: #ffffff !important;
+        background-color: #0f172a !important;
+        border-color: #4a5568 !important;
+    }
+
+    html.app-skin-dark input[type="file"].form-control::file-selector-button {
+        color: #ffffff !important;
+        background: #1e293b !important;
+        border: 1px solid #4a5568 !important;
+    }
 </style>
 <div class="page-header">
     <div class="page-header-left d-flex align-items-center">
@@ -100,7 +156,7 @@ include 'includes/header.php';
         <div class="card-header"><h5 class="card-title mb-0">Coordinator Form</h5></div>
         <div class="card-body">
             <?php if ($message !== ''): ?><div class="alert alert-<?php echo h($message_type); ?>"><?php echo h($message); ?></div><?php endif; ?>
-            <form method="post" class="row g-3">
+            <form method="post" enctype="multipart/form-data" class="row g-3">
                 <div class="col-md-4">
                     <label class="form-label">User *</label>
                     <select name="user_id" class="form-select" required>
@@ -125,7 +181,7 @@ include 'includes/header.php';
                     </select>
                 </div>
                 <div class="col-md-4"><label class="form-label">Office Location</label><input type="text" name="office_location" class="form-control"></div>
-                <div class="col-md-4"><label class="form-label">Profile Picture (path)</label><input type="text" name="profile_picture" class="form-control"></div>
+                <div class="col-md-4"><label class="form-label">Profile Picture</label><input type="file" name="profile_picture" class="form-control" accept="image/*"></div>
                 <div class="col-12"><label class="form-label">Bio</label><textarea name="bio" rows="2" class="form-control"></textarea></div>
                 <div class="col-12 form-check ms-1"><input class="form-check-input" type="checkbox" name="is_active" id="is_active_create" checked><label class="form-check-label" for="is_active_create">Active</label></div>
                 <div class="col-12 create-form-actions">

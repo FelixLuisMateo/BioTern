@@ -256,12 +256,12 @@ include 'includes/header.php';
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Range Start *</label>
-                        <input type="text" id="rangeStartInput" name="range_start" class="form-control text-uppercase" placeholder="" required>
+                        <input type="text" id="rangeStartInput" name="range_start" class="form-control text-uppercase" required>
                         <small class="form-text text-muted">Example: 2A</small>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Range End *</label>
-                        <input type="text" id="rangeEndInput" name="range_end" class="form-control text-uppercase" placeholder="2D" required>
+                        <input type="text" id="rangeEndInput" name="range_end" class="form-control text-uppercase" required>
                         <small class="form-text text-muted">Example: 2D</small>
                     </div>
                     <div class="col-md-4">
@@ -301,9 +301,6 @@ include 'includes/header.php';
             const courseCode = selected ? (selected.getAttribute('data-course-code') || '').toUpperCase() : '';
             const yearThreeCourses = ['HTM', 'HMT', 'BSOA', 'BSE'];
             const baseYear = yearThreeCourses.includes(courseCode) ? '3' : '2';
-
-            rangeStartInput.placeholder = baseYear + 'A';
-            rangeEndInput.placeholder = baseYear + 'Z';
 
             if (rangeStartInput.value.trim() === '') {
                 rangeStartInput.value = baseYear + 'A';

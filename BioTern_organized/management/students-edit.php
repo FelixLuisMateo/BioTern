@@ -778,6 +778,27 @@ function formatDateTime($date) {
             background-color: #2d3748 !important;
         }
 
+        /* Dark mode support for file input (upload button + filename text) */
+        html.app-skin-dark input[type="file"].form-control {
+            color: #f0f0f0 !important;
+            background-color: #2d3748 !important;
+            border-color: #4a5568 !important;
+        }
+
+        html.app-skin-dark input[type="file"].form-control::file-selector-button {
+            color: #f0f0f0 !important;
+            background: #1f2937 !important;
+            border: 1px solid #4a5568 !important;
+            margin-right: 12px;
+        }
+
+        html.app-skin-dark input[type="file"].form-control::-webkit-file-upload-button {
+            color: #f0f0f0 !important;
+            background: #1f2937 !important;
+            border: 1px solid #4a5568 !important;
+            margin-right: 12px;
+        }
+
         /* Dropdown design sync from students-edit.blade.php */
         .select2-container--default .select2-selection--single {
             border: 1px solid #e5e7eb;

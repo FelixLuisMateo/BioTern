@@ -455,6 +455,21 @@ include __DIR__ . '/../includes/header.php';
         color: #e2e8f0;
         background-color: #0f172a;
     }
+    .app-skin-dark .users-admin-page .actions-group .upload-form .form-control {
+        color: #f8fafc !important;
+        background-color: rgba(15, 23, 42, 0.72) !important;
+        border-color: rgba(148, 163, 184, 0.28) !important;
+    }
+    .app-skin-dark .users-admin-page .actions-group .upload-form .form-control::file-selector-button {
+        color: #f8fafc !important;
+        background: #1f2937 !important;
+        border: 1px solid rgba(148, 163, 184, 0.35) !important;
+    }
+    .app-skin-dark .users-admin-page .actions-group .upload-form .form-control::-webkit-file-upload-button {
+        color: #f8fafc !important;
+        background: #1f2937 !important;
+        border: 1px solid rgba(148, 163, 184, 0.35) !important;
+    }
     .app-skin-dark .users-admin-page .actions-group .btn-action-toggle {
         border-color: #f59e0b;
         color: #fbbf24;
