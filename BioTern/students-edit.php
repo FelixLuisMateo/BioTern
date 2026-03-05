@@ -70,6 +70,7 @@ $student_query = "
         s.middle_name,
         s.email,
         s.department_id,
+        s.section_id,
         s.phone,
         s.date_of_birth,
         s.gender,
@@ -84,6 +85,7 @@ $student_query = "
         s.biometric_registered,
         s.biometric_registered_at,
         s.created_at,
+        s.updated_at,
         s.supervisor_name,
         s.coordinator_name,
         c.name as course_name,
@@ -148,6 +150,15 @@ $departments_result = $conn->query("SELECT id, name FROM departments ORDER BY na
 if ($departments_result && $departments_result->num_rows > 0) {
     while ($row = $departments_result->fetch_assoc()) {
         $departments[] = $row;
+    }
+}
+
+// Fetch sections for dropdown
+$sections = [];
+$sections_result = $conn->query("SELECT id, name FROM sections ORDER BY name ASC");
+if ($sections_result && $sections_result->num_rows > 0) {
+    while ($row = $sections_result->fetch_assoc()) {
+        $sections[] = $row;
     }
 }
 
@@ -241,6 +252,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $emergency_contact = isset($_POST['emergency_contact']) ? trim($_POST['emergency_contact']) : '';
     $course_id = isset($_POST['course_id']) ? intval($_POST['course_id']) : 0;
     $department_id = isset($_POST['department_id']) ? trim((string)$_POST['department_id']) : '';
+    $section_id = isset($_POST['section_id']) ? intval($_POST['section_id']) : 0;
     $status = isset($_POST['status']) ? intval($_POST['status']) : 1;
     $supervisor_id = isset($_POST['supervisor_id']) && $_POST['supervisor_id'] !== '' ? intval($_POST['supervisor_id']) : null;
     $coordinator_id = isset($_POST['coordinator_id']) && $_POST['coordinator_id'] !== '' ? intval($_POST['coordinator_id']) : null;
@@ -250,6 +262,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $external_total_hours = isset($_POST['external_total_hours']) && $_POST['external_total_hours'] !== '' ? intval($_POST['external_total_hours']) : null;
     $external_total_hours_remaining = isset($_POST['external_total_hours_remaining']) && $_POST['external_total_hours_remaining'] !== '' ? intval($_POST['external_total_hours_remaining']) : null;
     $assignment_track = isset($_POST['assignment_track']) ? trim($_POST['assignment_track']) : 'internal';
+    $original_updated_at = isset($_POST['original_updated_at']) ? trim((string)$_POST['original_updated_at']) : '';
 
     if (!$can_edit_sensitive_hours) {
         $student_id_code = (string)($student['student_id'] ?? '');
@@ -343,6 +356,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $error_message = "First Name, Last Name, and Email are required fields!";
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $error_message = "Invalid email format!";
+    } elseif ($original_updated_at !== '') {
+        $lock_stmt = $conn->prepare("SELECT updated_at FROM students WHERE id = ? LIMIT 1");
+        if ($lock_stmt) {
+            $lock_stmt->bind_param("i", $student_id);
+            $lock_stmt->execute();
+            $lock_row = $lock_stmt->get_result()->fetch_assoc();
+            $lock_stmt->close();
+            $current_updated_at = (string)($lock_row['updated_at'] ?? '');
+            if ($current_updated_at !== '' && $current_updated_at !== $original_updated_at) {
+                $error_message = "This student record was updated by another user. Please refresh and review the latest data before saving again.";
+            }
+        }
     } elseif ($assignment_track === 'external' && ($internal_total_hours_remaining === null || $internal_total_hours_remaining > 0)) {
         $error_message = "Cannot assign student to External unless Internal is completed (Internal Total Hours Remaining must be 0).";
     } else {
@@ -376,6 +401,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     assignment_track = ?,
                     course_id = NULLIF(?, 0),
                     department_id = NULLIF(?, ''),
+                    section_id = NULLIF(?, 0),
                     status = ?,
                     supervisor_name = ?,
                     coordinator_name = ?,
@@ -389,7 +415,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $error_message = "Prepare failed: " . $conn->error;
             } else {
                 $update_stmt->bind_param(
-                    "ssssssssssiiiisisisssi",
+                    "ssssssssssiiiisisiisssi",
                     $student_id_code,
                     $first_name,
                     $last_name,
@@ -407,6 +433,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $assignment_track,
                     $course_id,
                     $department_id,
+                    $section_id,
                     $status,
                     $selected_supervisor_name,
                     $selected_coordinator_name,
@@ -802,6 +829,158 @@ function formatDateTime($date) {
             margin-right: 0.25rem;
             color: #6b7280;
         }
+
+        #editStudentForm {
+            max-width: 1240px;
+            margin: 0 auto;
+        }
+        .edit-form-hero {
+            border: 1px solid #d6dbe6;
+            border-radius: 14px;
+            padding: 16px 18px;
+            margin-bottom: 16px;
+            background: #f8fafc;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .edit-form-hero .meta {
+            font-size: 13px;
+            color: #5b6476;
+        }
+        .edit-form-hero .meta strong {
+            color: #1f2937;
+            font-size: 15px;
+            margin-right: 8px;
+        }
+        .edit-section-card {
+            border: 1px solid #d6dbe6;
+            border-radius: 14px;
+            padding: 18px 18px 8px;
+            background: #fff;
+            margin-bottom: 16px;
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.04);
+        }
+        .edit-section-card h6 {
+            margin-bottom: 6px !important;
+            font-size: 15px;
+        }
+        .section-subtitle {
+            font-size: 12px;
+            color: #6b7280;
+            margin-bottom: 14px;
+        }
+        #editStudentForm .row {
+            --bs-gutter-x: 1rem;
+            --bs-gutter-y: 0.2rem;
+        }
+        #editStudentForm .form-label {
+            font-size: 12px;
+            margin-bottom: 6px;
+            color: #495670;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+            font-weight: 700 !important;
+        }
+        #editStudentForm .form-control,
+        #editStudentForm .select2-container--default .select2-selection--single {
+            min-height: 44px;
+            font-size: 14px;
+            border-radius: 9px;
+        }
+        #editStudentForm textarea.form-control {
+            min-height: 98px;
+        }
+        .save-actions-bar {
+            background: transparent;
+            border-top: 0;
+            padding-top: 8px;
+            padding-bottom: 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .save-actions-bar > .d-flex {
+            flex-wrap: wrap;
+            gap: 8px !important;
+        }
+        html.app-skin-dark .edit-form-hero {
+            border-color: #3a455a;
+            background: #192233;
+        }
+        html.app-skin-dark .edit-form-hero .meta {
+            color: #b6c0d4;
+        }
+        html.app-skin-dark .edit-form-hero .meta strong {
+            color: #e5ebf7;
+        }
+        html.app-skin-dark .edit-section-card {
+            border-color: #3a455a;
+            background: #1f2937;
+        }
+        html.app-skin-dark .section-subtitle {
+            color: #a9b3c8;
+        }
+        html.app-skin-dark #editStudentForm .form-label {
+            color: #c8d1e2;
+        }
+
+        /* Select2 + zoom-safe overrides */
+        #editStudentForm select.form-control + .select2-container {
+            position: relative !important;
+            top: auto !important;
+            left: auto !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            display: block !important;
+            float: none !important;
+            z-index: 1 !important;
+        }
+        #editStudentForm .select2-container--open {
+            z-index: 1060 !important;
+        }
+        #editStudentForm .select2-container--default .select2-selection--single {
+            min-height: 44px !important;
+            height: 44px !important;
+            padding: 6px 12px !important;
+            display: flex !important;
+            align-items: center !important;
+            border-radius: 9px !important;
+        }
+        #editStudentForm .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 28px !important;
+            padding-left: 0 !important;
+            padding-right: 30px !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            max-width: 100% !important;
+        }
+        #editStudentForm .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 100% !important;
+            top: 0 !important;
+            right: 8px !important;
+            transform: none !important;
+        }
+        #editStudentForm .select2-selection__clear {
+            display: none !important;
+        }
+        #editStudentForm .select2-dropdown {
+            z-index: 1055 !important;
+        }
+        @media (max-width: 1200px) {
+            #editStudentForm .row > [class*="col-md-6"],
+            #editStudentForm .row > [class*="col-md-4"],
+            #editStudentForm .row > [class*="col-md-3"] {
+                flex: 0 0 100% !important;
+                max-width: 100% !important;
+            }
+            .save-actions-bar {
+                justify-content: flex-start !important;
+            }
+        }
     </style>
 </head>
 
@@ -966,11 +1145,23 @@ function formatDateTime($date) {
 
                                 <!-- Edit Form -->
                                 <form method="POST" action="" id="editStudentForm" enctype="multipart/form-data">
+                                    <input type="hidden" name="original_updated_at" value="<?php echo htmlspecialchars((string)($student['updated_at'] ?? '')); ?>">
+                                    <div class="edit-form-hero">
+                                        <div class="meta">
+                                            <strong><?php echo htmlspecialchars(trim(($student['first_name'] ?? '') . ' ' . ($student['last_name'] ?? ''))); ?></strong>
+                                            <span>Student profile editor</span>
+                                        </div>
+                                        <div class="meta">
+                                            <span>ID:</span> <strong><?php echo htmlspecialchars($student['student_id'] ?? 'N/A'); ?></strong>
+                                            <span class="ms-2">Email:</span> <?php echo htmlspecialchars($student['email'] ?? 'N/A'); ?>
+                                        </div>
+                                    </div>
                                     <!-- Personal Information Section -->
-                                    <div class="mb-5">
+                                    <div class="edit-section-card">
                                         <h6 class="fw-bold mb-4">
                                             <i class="feather-user me-2"></i>Personal Information
                                         </h6>
+                                        <p class="section-subtitle">Basic identity and contact details used across all documents and reports.</p>
 
                                         <div class="row">
                                             <div class="col-md-4 mb-4">
@@ -1015,7 +1206,6 @@ function formatDateTime($date) {
                                                     <option value="">-- Select Gender --</option>
                                                     <option value="male" <?php echo $student['gender'] === 'male' ? 'selected' : ''; ?>>Male</option>
                                                     <option value="female" <?php echo $student['gender'] === 'female' ? 'selected' : ''; ?>>Female</option>
-                                                    <option value="other" <?php echo $student['gender'] === 'other' ? 'selected' : ''; ?>>Other</option>
                                                 </select>
                                             </div>
                                         </div>
@@ -1060,13 +1250,13 @@ function formatDateTime($date) {
                                         </div>
                                     </div>
 
-                                    <hr>
 
                                     <!-- Internship Information Section -->
-                                    <div class="mb-5">
+                                    <div class="edit-section-card">
                                         <h6 class="fw-bold mb-4">
                                             <i class="feather-briefcase me-2"></i>Internship Information
                                         </h6>
+                                        <p class="section-subtitle">Assign who manages this student during internship deployment.</p>
 
                                         <div class="row">
                                             <div class="col-md-6 mb-4">
@@ -1095,11 +1285,14 @@ function formatDateTime($date) {
                                             </div>
                                         </div>
 
+                                    </div>
+
                                     <!-- Academic Information Section -->
-                                    <div class="mb-5">
+                                    <div class="edit-section-card">
                                         <h6 class="fw-bold mb-4">
                                             <i class="feather-book me-2"></i>Academic Information
                                         </h6>
+                                        <p class="section-subtitle">Course placement, section, status, and required hour tracking.</p>
 
                                         <div class="row">
                                             <div class="col-md-6 mb-4">
@@ -1122,6 +1315,18 @@ function formatDateTime($date) {
                                                         <option value="<?php echo htmlspecialchars((string)$department['id']); ?>"
                                                             <?php echo ((string)($student['department_id'] ?? '') === (string)$department['id']) ? 'selected' : ''; ?>>
                                                             <?php echo htmlspecialchars($department['name']); ?>
+                                                        </option>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-6 mb-4">
+                                                <label for="section_id" class="form-label fw-semibold">Section</label>
+                                                <select class="form-control" id="section_id" name="section_id">
+                                                    <option value="0">-- Select Section --</option>
+                                                    <?php foreach ($sections as $section): ?>
+                                                        <option value="<?php echo (int)$section['id']; ?>"
+                                                            <?php echo ((int)($student['section_id'] ?? 0) === (int)$section['id']) ? 'selected' : ''; ?>>
+                                                            <?php echo htmlspecialchars($section['name']); ?>
                                                         </option>
                                                     <?php endforeach; ?>
                                                 </select>
@@ -1197,10 +1402,9 @@ function formatDateTime($date) {
                                         </div>
                                     </div>
 
-                                    <hr>
 
                                     <!-- Form Actions -->
-                                    <div class="d-flex gap-2 justify-content-between pt-4">
+                                    <div class="d-flex gap-2 justify-content-between save-actions-bar mt-3">
                                         <a href="generate_resume.php?id=<?php echo $student['id']; ?>" class="btn btn-success" target="_blank">
                                             <i class="feather-file-text me-2"></i>Generate Resume
                                         </a>
@@ -1244,7 +1448,6 @@ function formatDateTime($date) {
     <!-- Scripts -->
     <script src="assets/vendors/js/vendors.min.js"></script>
     <script src="assets/vendors/js/select2.min.js"></script>
-    <script src="assets/vendors/js/select2-active.min.js"></script>
     <script src="assets/vendors/js/datepicker.min.js"></script>
     <script src="assets/js/common-init.min.js"></script>
     <script src="assets/js/theme-customizer-init.min.js"></script>
@@ -1253,31 +1456,34 @@ function formatDateTime($date) {
         // Initialize form elements
         document.addEventListener('DOMContentLoaded', function() {
             // Initialize select2 for dropdowns
-            $('#course_id, #department_id, #status, #gender').each(function() {
+            $('#course_id, #department_id, #section_id, #status').each(function() {
                 $(this).select2({
-                    allowClear: true,
-                    width: 'resolve',
+                    allowClear: false,
+                    width: '100%',
                     dropdownAutoWidth: false,
-                    theme: 'default'
+                    theme: 'default',
+                    dropdownParent: $('#editStudentForm')
                 });
             });
 
             $('#supervisor_id').select2({
-                placeholder: 'Search supervisor',
-                allowClear: true,
+                placeholder: 'Select supervisor',
+                allowClear: false,
                 minimumResultsForSearch: 0,
-                width: 'resolve',
+                width: '100%',
                 dropdownAutoWidth: false,
-                theme: 'default'
+                theme: 'default',
+                dropdownParent: $('#editStudentForm')
             });
 
             $('#coordinator_id').select2({
-                placeholder: 'Search coordinator',
-                allowClear: true,
+                placeholder: 'Select coordinator',
+                allowClear: false,
                 minimumResultsForSearch: 0,
-                width: 'resolve',
+                width: '100%',
                 dropdownAutoWidth: false,
-                theme: 'default'
+                theme: 'default',
+                dropdownParent: $('#editStudentForm')
             });
 
             // Initialize datepicker for date fields

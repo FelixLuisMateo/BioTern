@@ -111,6 +111,92 @@ if ($session_avatar !== '') {
         $header_avatar = $normalized_avatar;
     }
 }
+
+$header_notifications = [];
+$header_notifications_unread = 0;
+if ($header_user_id_session > 0) {
+    $hdr_db = @new mysqli('127.0.0.1', 'root', '', 'biotern_db');
+    if (!$hdr_db->connect_errno) {
+        $has_title = false;
+        $has_message = false;
+        $has_type = false;
+        $has_data = false;
+        $col_res = $hdr_db->query("SHOW COLUMNS FROM notifications");
+        if ($col_res instanceof mysqli_result) {
+            while ($col = $col_res->fetch_assoc()) {
+                $field = strtolower((string)($col['Field'] ?? ''));
+                if ($field === 'title') $has_title = true;
+                if ($field === 'message') $has_message = true;
+                if ($field === 'type') $has_type = true;
+                if ($field === 'data') $has_data = true;
+            }
+        }
+
+        $count_stmt = $hdr_db->prepare("SELECT COUNT(*) AS unread_count FROM notifications WHERE user_id = ? AND (is_read = 0 OR is_read IS NULL)");
+        if ($count_stmt) {
+            $count_stmt->bind_param('i', $header_user_id_session);
+            $count_stmt->execute();
+            $row = $count_stmt->get_result()->fetch_assoc();
+            $count_stmt->close();
+            $header_notifications_unread = (int)($row['unread_count'] ?? 0);
+        }
+
+        if ($has_title && $has_message) {
+            $list_stmt = $hdr_db->prepare(
+                "SELECT id, title, message, is_read, created_at
+                 FROM notifications
+                 WHERE user_id = ?
+                 ORDER BY created_at DESC, id DESC
+                 LIMIT 6"
+            );
+            if ($list_stmt) {
+                $list_stmt->bind_param('i', $header_user_id_session);
+                $list_stmt->execute();
+                $res = $list_stmt->get_result();
+                while ($n = $res->fetch_assoc()) {
+                    $header_notifications[] = [
+                        'title' => (string)($n['title'] ?? 'Notification'),
+                        'message' => (string)($n['message'] ?? ''),
+                        'is_read' => (int)($n['is_read'] ?? 0),
+                        'created_at' => (string)($n['created_at'] ?? ''),
+                    ];
+                }
+                $list_stmt->close();
+            }
+        } elseif ($has_type && $has_data) {
+            $list_stmt = $hdr_db->prepare(
+                "SELECT id, type, data, is_read, created_at
+                 FROM notifications
+                 WHERE user_id = ?
+                 ORDER BY created_at DESC, id DESC
+                 LIMIT 6"
+            );
+            if ($list_stmt) {
+                $list_stmt->bind_param('i', $header_user_id_session);
+                $list_stmt->execute();
+                $res = $list_stmt->get_result();
+                while ($n = $res->fetch_assoc()) {
+                    $raw_data = (string)($n['data'] ?? '');
+                    $title = ucfirst((string)($n['type'] ?? 'notification'));
+                    $message = $raw_data;
+                    $json = json_decode($raw_data, true);
+                    if (is_array($json)) {
+                        $title = (string)($json['title'] ?? $title);
+                        $message = (string)($json['message'] ?? $message);
+                    }
+                    $header_notifications[] = [
+                        'title' => $title,
+                        'message' => $message,
+                        'is_read' => (int)($n['is_read'] ?? 0),
+                        'created_at' => (string)($n['created_at'] ?? ''),
+                    ];
+                }
+                $list_stmt->close();
+            }
+        }
+        $hdr_db->close();
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="zxx"<?php echo $html_class_attr !== '' ? ' class="' . htmlspecialchars($html_class_attr, ENT_QUOTES, 'UTF-8') . '"' : ''; ?>>
@@ -505,16 +591,29 @@ if ($session_avatar !== '') {
                     <div class="dropdown nxl-h-item">
                         <a class="nxl-head-link me-3" data-bs-toggle="dropdown" href="#" role="button" data-bs-auto-close="outside">
                             <i class="feather-bell"></i>
-                            <span class="badge bg-danger nxl-h-badge">3</span>
+                            <?php if ($header_notifications_unread > 0): ?>
+                                <span class="badge bg-danger nxl-h-badge"><?php echo (int)$header_notifications_unread; ?></span>
+                            <?php endif; ?>
                         </a>
                         <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-notifications-menu">
-                            <div class="notifications-item">
-                                <img src="assets/images/avatar/2.png" alt="" class="rounded me-3 border">
-                                <div class="notifications-desc">
-                                    <a href="javascript:void(0);" class="font-body text-truncate-2-line">You have new notifications.</a>
-                                    <div class="notifications-date text-muted border-bottom border-bottom-dashed">Just now</div>
-                                </div>
+                            <div class="d-flex justify-content-between align-items-center notifications-head px-3 py-2 border-bottom">
+                                <span class="fw-semibold">Notifications</span>
+                                <span class="badge bg-soft-primary text-primary"><?php echo (int)$header_notifications_unread; ?> unread</span>
                             </div>
+                            <?php if (!empty($header_notifications)): ?>
+                                <?php foreach ($header_notifications as $n): ?>
+                                    <div class="notifications-item">
+                                        <img src="assets/images/avatar/1.png" alt="" class="rounded me-3 border">
+                                        <div class="notifications-desc">
+                                            <a href="javascript:void(0);" class="font-body text-truncate-2-line"><?php echo htmlspecialchars($n['title'], ENT_QUOTES, 'UTF-8'); ?></a>
+                                            <div class="fs-12 text-muted text-truncate-2-line"><?php echo htmlspecialchars($n['message'], ENT_QUOTES, 'UTF-8'); ?></div>
+                                            <div class="notifications-date text-muted border-bottom border-bottom-dashed"><?php echo htmlspecialchars($n['created_at'] !== '' ? date('M d, Y h:i A', strtotime($n['created_at'])) : 'Just now', ENT_QUOTES, 'UTF-8'); ?></div>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <div class="px-3 py-3 text-muted fs-12">No notifications yet.</div>
+                            <?php endif; ?>
                         </div>
                     </div>
                     <div class="dropdown nxl-h-item">

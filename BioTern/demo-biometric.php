@@ -165,6 +165,14 @@ function validate_demo_biometric_transition(array $record, string $clock_type, s
         }
     }
 
+    // Enforce same-session out rules.
+    if ($clock_type === 'morning_out' && empty($record['morning_time_in'])) {
+        return ['ok' => false, 'message' => 'Cannot record morning out without morning in.'];
+    }
+    if ($clock_type === 'afternoon_out' && empty($record['afternoon_time_in'])) {
+        return ['ok' => false, 'message' => 'Cannot record afternoon out without afternoon in.'];
+    }
+
     // Custom rule: if afternoon in already exists, morning in is no longer allowed.
     if (
         $clock_type === 'morning_in'
@@ -1618,4 +1626,5 @@ foreach ($today_records as $tr) {
 <?php
 $conn->close();
 ?>
+
 

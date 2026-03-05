@@ -14,6 +14,16 @@ try {
     die("Database Error: " . $e->getMessage());
 }
 
+require_once dirname(__DIR__) . '/lib/evaluation_unlock.php';
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+$current_user_id = (int)($_SESSION['user_id'] ?? 0);
+$current_user_role = strtolower(trim((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? '')));
+$can_manage_eval_unlock = in_array($current_user_role, ['admin', 'coordinator'], true);
+$eval_flash_message = '';
+$eval_flash_type = 'success';
+
 function resolve_profile_image_url(string $profilePath): ?string {
     $clean = ltrim(str_replace('\\', '/', trim($profilePath)), '/');
     if ($clean === '') {
@@ -39,6 +49,7 @@ if ($student_id == 0) {
 $student_query = "
     SELECT 
         s.id,
+        s.user_id,
         s.student_id,
         COALESCE(NULLIF(u_student.profile_picture, ''), NULLIF(s.profile_picture, '')) AS profile_picture,
         s.first_name,
@@ -66,6 +77,7 @@ $student_query = "
         c.name as course_name,
         c.id as course_id,
         d.name as department_name,
+        sec.name as section_name,
         i.id as internship_id,
         i.supervisor_id,
         i.coordinator_id,
@@ -76,6 +88,7 @@ $student_query = "
     LEFT JOIN users u_student ON s.user_id = u_student.id
     LEFT JOIN courses c ON s.course_id = c.id
     LEFT JOIN departments d ON d.id = s.department_id
+    LEFT JOIN sections sec ON sec.id = s.section_id
     LEFT JOIN internships i ON s.id = i.student_id AND i.status = 'ongoing'
     WHERE s.id = ?
     LIMIT 1
@@ -92,6 +105,31 @@ if ($result->num_rows == 0) {
 }
 
 $student = $result->fetch_assoc();
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['eval_unlock_action'])) {
+    if (!$can_manage_eval_unlock) {
+        $eval_flash_type = 'danger';
+        $eval_flash_message = 'You do not have permission to change evaluation unlock status.';
+    } else {
+        $post_student_id = isset($_POST['student_id']) ? (int)$_POST['student_id'] : 0;
+        if ($post_student_id !== $student_id) {
+            $eval_flash_type = 'danger';
+            $eval_flash_message = 'Invalid student unlock request.';
+        } else {
+            $action = strtolower(trim((string)($_POST['eval_unlock_action'] ?? '')));
+            $unlock = ($action === 'unlock');
+            $note = isset($_POST['eval_unlock_note']) ? trim((string)$_POST['eval_unlock_note']) : '';
+            $override = set_evaluation_unlock_override($conn, $student_id, $unlock, $current_user_id, $note);
+            if (!empty($override['ok'])) {
+                $eval_flash_type = 'success';
+                $eval_flash_message = $unlock ? 'Evaluation form unlocked manually.' : 'Evaluation form locked manually.';
+            } else {
+                $eval_flash_type = 'danger';
+                $eval_flash_message = 'Unable to update evaluation unlock status.';
+            }
+        }
+    }
+}
 
 // Check if student has attendance today (any record for today's date).
 $today = date('Y-m-d');
@@ -251,6 +289,10 @@ $completion_percentage = $internal_total_hours > 0
 if ($completion_percentage > 100) {
     $completion_percentage = 100;
 }
+
+$evaluation_gate_state = evaluate_and_finalize_student($conn, $student_id, 0);
+$evaluation_unlock_state = get_evaluation_unlock_state($conn, $student_id);
+$is_evaluation_unlocked = (bool)($evaluation_unlock_state['is_unlocked'] ?? false);
 
 // Fetch Attendance Records for activity
 $activity_query = "
@@ -687,6 +729,11 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                     <div class="col-xxl-4 col-xl-6">
                         <div class="card stretch stretch-full">
                             <div class="card-body">
+                                <?php if ($eval_flash_message !== ''): ?>
+                                    <div class="alert alert-<?php echo $eval_flash_type === 'danger' ? 'danger' : 'success'; ?> mb-3">
+                                        <?php echo htmlspecialchars($eval_flash_message); ?>
+                                    </div>
+                                <?php endif; ?>
                                 <div class="mb-4 text-center">
                                     <div class="wd-150 ht-150 mx-auto mb-3 position-relative">
                                         <div class="avatar-image wd-150 ht-150 border border-5 border-gray-3">
@@ -811,85 +858,133 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                                             <h5 class="fw-bold mb-0">Profile Details:</h5>
                                             <a href="students-edit.php?id=<?php echo $student['id']; ?>" class="btn btn-sm btn-light-brand">Edit Profile</a>
                                         </div>
-                                        <div class="row g-0 mb-4">
-                                            <div class="col-sm-6 text-muted">Career Objective:</div>
-                                            <div class="col-sm-6 fw-semibold"><?php echo htmlspecialchars(!empty($student['bio']) ? $student['bio'] : 'N/A'); ?></div>
-                                        </div>
-                                        <div class="row g-0 mb-4">
-                                            <div class="col-sm-6 text-muted">First Name:</div>
-                                            <div class="col-sm-6 fw-semibold"><?php echo htmlspecialchars($student['first_name']); ?></div>
-                                        </div>
-                                        <div class="row g-0 mb-4">
-                                            <div class="col-sm-6 text-muted">Middle Name:</div>
-                                            <div class="col-sm-6 fw-semibold"><?php echo htmlspecialchars($student['middle_name'] ?? 'N/A'); ?></div>
-                                        </div>
-                                        <div class="row g-0 mb-4">
-                                            <div class="col-sm-6 text-muted">Last Name:</div>
-                                            <div class="col-sm-6 fw-semibold"><?php echo htmlspecialchars($student['last_name']); ?></div>
-                                        </div>
-                                        <div class="row g-0 mb-4">
-                                            <div class="col-sm-6 text-muted">Department:</div>
-                                            <div class="col-sm-6 fw-semibold"><?php echo htmlspecialchars($student['department_name'] ?? 'N/A'); ?></div>
-                                        </div>
-                                        <div class="row g-0 mb-4">
-                                            <div class="col-sm-6 text-muted">Student ID:</div>
-                                            <div class="col-sm-6 fw-semibold"><?php echo htmlspecialchars($student['student_id']); ?></div>
-                                        </div>
-                                        <div class="row g-0 mb-4">
-                                            <div class="col-sm-6 text-muted">Course:</div>
-                                            <div class="col-sm-6 fw-semibold"><?php echo htmlspecialchars($student['course_name'] ?? 'N/A'); ?></div>
-                                        </div>
-                                        <div class="row g-0 mb-4">
-                                            <div class="col-sm-6 text-muted">Internal Hours (Remaining/Total):</div>
-                                            <div class="col-sm-6 fw-semibold" id="internalHoursDetailValue"><?php echo intval($internal_remaining_display); ?> / <?php echo intval($internal_total_hours); ?></div>
-                                        </div>
-                                        <div class="row g-0 mb-4">
-                                            <div class="col-sm-6 text-muted">External Hours (Remaining/Total):</div>
-                                            <div class="col-sm-6 fw-semibold"><?php echo intval($external_remaining_display); ?> / <?php echo intval($external_total_hours); ?></div>
-                                        </div>
-                                        <div class="row g-0 mb-4">
-                                            <div class="col-sm-6 text-muted">Email Address:</div>
-                                            <div class="col-sm-6 fw-semibold"><?php echo htmlspecialchars($student['email']); ?></div>
-                                        </div>
-                                        <div class="row g-0 mb-4">
-                                            <div class="col-sm-6 text-muted">Date of Birth:</div>
-                                            <div class="col-sm-6 fw-semibold"><?php echo formatDate($student['date_of_birth']); ?></div>
-                                        </div>
-                                        <div class="row g-0 mb-4">
-                                            <div class="col-sm-6 text-muted">Mobile Number:</div>
-                                            <div class="col-sm-6 fw-semibold"><?php echo htmlspecialchars($student['phone'] ?? 'N/A'); ?></div>
-                                        </div>
-                                        <div class="row g-0 mb-4">
-                                            <div class="col-sm-6 text-muted">Supervisor:</div>
-                                            <div class="col-sm-6 fw-semibold"><?php echo htmlspecialchars($student['supervisor_name'] ?? 'Not Assigned'); ?></div>
-                                        </div>
-                                        <div class="row g-0 mb-4">
-                                            <div class="col-sm-6 text-muted">Coordinator:</div>
-                                            <div class="col-sm-6 fw-semibold"><?php echo htmlspecialchars($student['coordinator_name'] ?? 'Not Assigned'); ?></div>
-                                        </div>
-                                        <div class="row g-0 mb-4">
-                                            <div class="col-sm-6 text-muted">Home Address:</div>
-                                            <div class="col-sm-6 fw-semibold"><?php echo htmlspecialchars($student['address'] ?? 'N/A'); ?></div>
-                                        </div>
-                                        <div class="row g-0 mb-4">
-                                            <div class="col-sm-6 text-muted">Date Registered:</div>
-                                            <div class="col-sm-6 fw-semibold"><?php echo formatDate($student['created_at']); ?></div>
-                                        </div>
-                                        <div class="row g-0 mb-4">
-                                            <div class="col-sm-6 text-muted">Date Fingerprint Registered:</div>
-                                            <div class="col-sm-6 fw-semibold"><?php echo formatDate($student['biometric_registered_at']); ?></div>
-                                        </div>
-                                        <div class="row g-0 mb-4">
-                                            <div class="col-sm-6 text-muted">Gender:</div>
-                                            <div class="col-sm-6 fw-semibold"><?php echo htmlspecialchars(ucfirst($student['gender'] ?? 'N/A')); ?></div>
-                                        </div>
-                                        <div class="row g-0 mb-4">
-                                            <div class="col-sm-6 text-muted">Emergency Contact:</div>
-                                            <div class="col-sm-6 fw-semibold"><?php echo htmlspecialchars($student['emergency_contact'] ?? 'N/A'); ?></div>
-                                        </div>
-                                        <div class="row g-0 mb-4">
-                                            <div class="col-sm-6 text-muted">Status:</div>
-                                            <div class="col-sm-6 fw-semibold"><?php echo getStatusBadge($student['status']); ?></div>
+                                        <div class="row g-3">
+                                            <div class="col-md-6">
+                                                <div class="p-3 border rounded">
+                                                    <div class="small text-muted mb-1">Career Objective</div>
+                                                    <div class="fw-semibold"><?php echo htmlspecialchars(!empty($student['bio']) ? $student['bio'] : 'N/A'); ?></div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="p-3 border rounded">
+                                                    <div class="small text-muted mb-1">Student ID</div>
+                                                    <div class="fw-semibold"><?php echo htmlspecialchars($student['student_id']); ?></div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="p-3 border rounded">
+                                                    <div class="small text-muted mb-1">First Name</div>
+                                                    <div class="fw-semibold"><?php echo htmlspecialchars($student['first_name']); ?></div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="p-3 border rounded">
+                                                    <div class="small text-muted mb-1">Middle Name</div>
+                                                    <div class="fw-semibold"><?php echo htmlspecialchars($student['middle_name'] ?? 'N/A'); ?></div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="p-3 border rounded">
+                                                    <div class="small text-muted mb-1">Last Name</div>
+                                                    <div class="fw-semibold"><?php echo htmlspecialchars($student['last_name']); ?></div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="p-3 border rounded">
+                                                    <div class="small text-muted mb-1">Course</div>
+                                                    <div class="fw-semibold"><?php echo htmlspecialchars($student['course_name'] ?? 'N/A'); ?></div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="p-3 border rounded">
+                                                    <div class="small text-muted mb-1">Department</div>
+                                                    <div class="fw-semibold"><?php echo htmlspecialchars($student['department_name'] ?? 'N/A'); ?></div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="p-3 border rounded">
+                                                    <div class="small text-muted mb-1">Section</div>
+                                                    <div class="fw-semibold"><?php echo htmlspecialchars($student['section_name'] ?? 'N/A'); ?></div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="p-3 border rounded">
+                                                    <div class="small text-muted mb-1">Internal Hours (Remaining/Total)</div>
+                                                    <div class="fw-semibold" id="internalHoursDetailValue"><?php echo intval($internal_remaining_display); ?> / <?php echo intval($internal_total_hours); ?></div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="p-3 border rounded">
+                                                    <div class="small text-muted mb-1">External Hours (Remaining/Total)</div>
+                                                    <div class="fw-semibold"><?php echo intval($external_remaining_display); ?> / <?php echo intval($external_total_hours); ?></div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="p-3 border rounded">
+                                                    <div class="small text-muted mb-1">Email Address</div>
+                                                    <div class="fw-semibold"><?php echo htmlspecialchars($student['email']); ?></div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="p-3 border rounded">
+                                                    <div class="small text-muted mb-1">Mobile Number</div>
+                                                    <div class="fw-semibold"><?php echo htmlspecialchars($student['phone'] ?? 'N/A'); ?></div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="p-3 border rounded">
+                                                    <div class="small text-muted mb-1">Date of Birth</div>
+                                                    <div class="fw-semibold"><?php echo formatDate($student['date_of_birth']); ?></div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="p-3 border rounded">
+                                                    <div class="small text-muted mb-1">Gender</div>
+                                                    <div class="fw-semibold"><?php echo htmlspecialchars(ucfirst($student['gender'] ?? 'N/A')); ?></div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="p-3 border rounded">
+                                                    <div class="small text-muted mb-1">Supervisor</div>
+                                                    <div class="fw-semibold"><?php echo htmlspecialchars($student['supervisor_name'] ?? 'Not Assigned'); ?></div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="p-3 border rounded">
+                                                    <div class="small text-muted mb-1">Coordinator</div>
+                                                    <div class="fw-semibold"><?php echo htmlspecialchars($student['coordinator_name'] ?? 'Not Assigned'); ?></div>
+                                                </div>
+                                            </div>
+                                            <div class="col-12">
+                                                <div class="p-3 border rounded">
+                                                    <div class="small text-muted mb-1">Home Address</div>
+                                                    <div class="fw-semibold"><?php echo htmlspecialchars($student['address'] ?? 'N/A'); ?></div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="p-3 border rounded">
+                                                    <div class="small text-muted mb-1">Emergency Contact</div>
+                                                    <div class="fw-semibold"><?php echo htmlspecialchars($student['emergency_contact'] ?? 'N/A'); ?></div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="p-3 border rounded">
+                                                    <div class="small text-muted mb-1">Status</div>
+                                                    <div class="fw-semibold"><?php echo getStatusBadge($student['status']); ?></div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="p-3 border rounded">
+                                                    <div class="small text-muted mb-1">Date Registered</div>
+                                                    <div class="fw-semibold"><?php echo formatDate($student['created_at']); ?></div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="p-3 border rounded">
+                                                    <div class="small text-muted mb-1">Date Fingerprint Registered</div>
+                                                    <div class="fw-semibold"><?php echo formatDate($student['biometric_registered_at']); ?></div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -947,23 +1042,61 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                                     <div class="p-4">
                                         <div class="mb-4 d-flex align-items-center justify-content-between">
                                             <h5 class="fw-bold mb-0">Supervisor Evaluation:</h5>
-                                            <span class="badge bg-soft-info text-info">Not Yet Evaluated</span>
+                                            <?php if ($is_evaluation_unlocked): ?>
+                                                <span class="badge bg-soft-success text-success">Unlocked</span>
+                                            <?php else: ?>
+                                                <span class="badge bg-soft-warning text-warning">Locked</span>
+                                            <?php endif; ?>
                                         </div>
-                                        <div class="alert alert-dismissible alert-soft-info-message p-4 mb-4" role="alert">
-                                            <div class="d-flex">
-                                                <div class="me-3 d-none d-md-block">
-                                                    <i class="feather-info fs-1"></i>
+
+                                        <?php if ($is_evaluation_unlocked): ?>
+                                            <div class="alert alert-soft-success-message p-4 mb-4" role="alert">
+                                                <div class="d-flex">
+                                                    <div class="me-3 d-none d-md-block"><i class="feather-check-circle fs-1"></i></div>
+                                                    <div>
+                                                        <p class="fw-bold mb-1">Evaluation form is unlocked</p>
+                                                        <p class="fs-12 text-muted mb-0">Supervisor can now submit the final evaluation for this student.</p>
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <p class="fw-bold mb-1">No evaluation submitted yet</p>
-                                                    <p class="fs-12 text-muted mb-0">The supervisor evaluation form is pending. Once submitted, the details will appear here.</p>
-                                                </div>
-                                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                                             </div>
-                                        </div>
+                                        <?php else: ?>
+                                            <div class="alert alert-dismissible alert-soft-info-message p-4 mb-4" role="alert">
+                                                <div class="d-flex">
+                                                    <div class="me-3 d-none d-md-block"><i class="feather-info fs-1"></i></div>
+                                                    <div>
+                                                        <p class="fw-bold mb-1">Evaluation is still locked</p>
+                                                        <p class="fs-12 text-muted mb-0">Completion requirements are not yet fully met.</p>
+                                                        <?php if (!empty($evaluation_gate_state['reasons']) && is_array($evaluation_gate_state['reasons'])): ?>
+                                                            <ul class="mb-0 mt-2 ps-3">
+                                                                <?php foreach ($evaluation_gate_state['reasons'] as $reason): ?>
+                                                                    <li class="fs-12 text-muted"><?php echo htmlspecialchars((string)$reason); ?></li>
+                                                                <?php endforeach; ?>
+                                                            </ul>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                                </div>
+                                            </div>
+                                        <?php endif; ?>
+
+                                        <?php if ($can_manage_eval_unlock): ?>
+                                            <div class="border rounded p-3 mb-4">
+                                                <p class="fw-semibold mb-2">Coordinator/Admin Override</p>
+                                                <form method="POST" class="d-flex flex-wrap gap-2 align-items-center">
+                                                    <input type="hidden" name="student_id" value="<?php echo (int)$student_id; ?>">
+                                                    <input type="text" name="eval_unlock_note" class="form-control" style="max-width: 340px;" placeholder="Optional note for audit">
+                                                    <?php if ($is_evaluation_unlocked): ?>
+                                                        <button type="submit" name="eval_unlock_action" value="lock" class="btn btn-outline-danger btn-sm">Lock Evaluation</button>
+                                                    <?php else: ?>
+                                                        <button type="submit" name="eval_unlock_action" value="unlock" class="btn btn-outline-success btn-sm">Unlock Evaluation</button>
+                                                    <?php endif; ?>
+                                                </form>
+                                            </div>
+                                        <?php endif; ?>
+
                                         <div class="text-center py-5">
                                             <i class="feather-inbox fs-1 text-muted mb-3 d-block"></i>
-                                            <p class="text-muted">Waiting for supervisor evaluation</p>
+                                            <p class="text-muted"><?php echo $is_evaluation_unlocked ? 'Waiting for supervisor submission' : 'Waiting for unlock requirements'; ?></p>
                                         </div>
                                     </div>
                                 </div>
