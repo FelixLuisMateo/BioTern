@@ -138,6 +138,51 @@ include __DIR__ . '/../includes/header.php';
             color: inherit;
         }
         .select2-overlay-input:focus { outline: none; }
+        /* Keep placeholders visibly dimmer than user-entered values */
+        .form-control::placeholder {
+            color: #7a8699;
+            opacity: 1;
+        }
+        html.app-skin-dark input.form-control::-webkit-input-placeholder,
+        html.app-skin-dark textarea.form-control::-webkit-input-placeholder,
+        body.app-skin-dark input.form-control::-webkit-input-placeholder,
+        body.app-skin-dark textarea.form-control::-webkit-input-placeholder,
+        .app-skin-dark input.form-control::-webkit-input-placeholder,
+        .app-skin-dark textarea.form-control::-webkit-input-placeholder,
+        html.app-skin-dark input.form-control::-moz-placeholder,
+        html.app-skin-dark textarea.form-control::-moz-placeholder,
+        body.app-skin-dark input.form-control::-moz-placeholder,
+        body.app-skin-dark textarea.form-control::-moz-placeholder,
+        .app-skin-dark input.form-control::-moz-placeholder,
+        .app-skin-dark textarea.form-control::-moz-placeholder,
+        html.app-skin-dark input.form-control:-ms-input-placeholder,
+        html.app-skin-dark textarea.form-control:-ms-input-placeholder,
+        body.app-skin-dark input.form-control:-ms-input-placeholder,
+        body.app-skin-dark textarea.form-control:-ms-input-placeholder,
+        .app-skin-dark input.form-control:-ms-input-placeholder,
+        .app-skin-dark textarea.form-control:-ms-input-placeholder,
+        html.app-skin-dark input.form-control::placeholder,
+        html.app-skin-dark textarea.form-control::placeholder,
+        body.app-skin-dark input.form-control::placeholder,
+        body.app-skin-dark textarea.form-control::placeholder,
+        .app-skin-dark input.form-control::placeholder,
+        .app-skin-dark textarea.form-control::placeholder {
+            color: #9fb0c6 !important;
+            opacity: 1 !important;
+            -webkit-text-fill-color: #9fb0c6 !important;
+        }
+        html.app-skin-dark .form-control,
+        body.app-skin-dark .form-control,
+        .app-skin-dark .form-control {
+            color: #dbe5f1 !important;
+            -webkit-text-fill-color: #dbe5f1 !important;
+        }
+        html.app-skin-dark .form-control:placeholder-shown,
+        body.app-skin-dark .form-control:placeholder-shown,
+        .app-skin-dark .form-control:placeholder-shown {
+            color: #9fb0c6 !important;
+            -webkit-text-fill-color: #9fb0c6 !important;
+        }
 
         html.app-skin-dark .select2-container--default .select2-selection--single {
             background: #0f172a !important;
@@ -229,7 +274,7 @@ include __DIR__ . '/../includes/header.php';
                     </div>
                     <div class="form-check form-check-inline">
                         <input class="form-check-input" type="radio" name="recipient_title" id="rt_none" value="none">
-                        <label class="form-check-label" for="rt_none">None</label>
+                        <label class="form-check-label" for="rt_none">Mr./Ms.</label>
                     </div>
                 </div>
                 <div class="mt-2">
@@ -369,6 +414,7 @@ window.addEventListener('load', function() {
         const resolvedTitle = resolveRecipientTitle();
         if (resolvedTitle === 'mr') return 'Dear Sir,';
         if (resolvedTitle === 'ms') return 'Dear Ma\'am,';
+        if (resolvedTitle === 'none') return 'Dear Sir/Ma\'am,';
 
         const checked = greetingRadios.find(function(r){ return r.checked; });
         const pref = checked ? checked.value : 'either';
@@ -396,6 +442,7 @@ window.addEventListener('load', function() {
         const rt = resolveRecipientTitle();
         if (rt === 'mr') return 'Mr. ' + n;
         if (rt === 'ms') return 'Ms. ' + n;
+        if (rt === 'none') return 'Mr./Ms. ' + n;
         return n;
     }
 
@@ -653,3 +700,5 @@ window.addEventListener('load', function() {
 });
 </script>
 <?php include __DIR__ . '/../includes/footer.php'; ?>
+
+

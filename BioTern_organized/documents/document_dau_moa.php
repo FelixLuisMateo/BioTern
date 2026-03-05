@@ -90,6 +90,23 @@ include __DIR__ . '/../includes/header.php';
         .select2-container .select2-selection__rendered, .select2-container .select2-selection__placeholder { visibility: hidden !important; }
         .select2-overlay-input { position: absolute; inset: 0 40px 0 8px; width: calc(100% - 48px); height: calc(100% - 8px); border: none; background: transparent; padding: 6px 8px; box-sizing: border-box; z-index: 99999999; font: inherit; color: inherit; }
         .select2-overlay-input:focus { outline: none; }
+        /* Keep placeholders visibly dimmer than user-entered values */
+        .form-control::placeholder { color: #7a8699; opacity: 1; }
+        html.app-skin-dark .form-control::placeholder { color: #9fb0c6 !important; opacity: 1; }
+        html.app-skin-dark input.form-control::-webkit-input-placeholder,
+        html.app-skin-dark textarea.form-control::-webkit-input-placeholder,
+        html.app-skin-dark input.form-control::-moz-placeholder,
+        html.app-skin-dark textarea.form-control::-moz-placeholder,
+        html.app-skin-dark input.form-control:-ms-input-placeholder,
+        html.app-skin-dark textarea.form-control:-ms-input-placeholder,
+        html.app-skin-dark input.form-control::placeholder,
+        html.app-skin-dark textarea.form-control::placeholder { color: #9fb0c6 !important; opacity: 1 !important; -webkit-text-fill-color: #9fb0c6 !important; }
+        html.app-skin-dark .form-control,
+        body.app-skin-dark .form-control,
+        .app-skin-dark .form-control { color: #dbe5f1 !important; -webkit-text-fill-color: #dbe5f1 !important; }
+        html.app-skin-dark .form-control:placeholder-shown,
+        body.app-skin-dark .form-control:placeholder-shown,
+        .app-skin-dark .form-control:placeholder-shown { color: #9fb0c6 !important; -webkit-text-fill-color: #9fb0c6 !important; }
         /* Dark mode: make Select2 input readable */
         html.app-skin-dark .select2-container--default .select2-selection--single {
             background: #0f172a !important;
@@ -688,6 +705,9 @@ include __DIR__ . '/../includes/header.php';
         });
     </script>
     <?php include __DIR__ . '/../includes/footer.php'; ?>
+
+
+
 
 
 

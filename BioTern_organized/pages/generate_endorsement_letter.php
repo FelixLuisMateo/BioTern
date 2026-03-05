@@ -93,18 +93,31 @@ function infer_title_from_name(string $name): string
     return 'none';
 }
 
-$salutation = detect_salutation($recipient, $greeting_pref);
 if ($recipient_title === 'auto') {
     $recipient_title = infer_title_from_name($recipient);
 }
-if ($recipient_title === 'none') {
-    if ($greeting_pref === 'sir') $recipient_title = 'mr';
-    if ($greeting_pref === 'maam') $recipient_title = 'ms';
+$recipient_base = preg_replace('/^(mr\\.?|ms\\.?|mrs\\.?|sir|maam|ma\\\'am|madam)\\s+/i', '', $recipient);
+if (!is_string($recipient_base) || $recipient_base === '') {
+    $recipient_base = $recipient;
 }
-$recipient_print = $recipient;
+if ($greeting_pref === 'sir') {
+    $salutation = 'Dear Sir,';
+} elseif ($greeting_pref === 'maam') {
+    $salutation = "Dear Ma'am,";
+} elseif ($recipient_title === 'mr') {
+    $salutation = 'Dear Sir,';
+} elseif ($recipient_title === 'ms') {
+    $salutation = "Dear Ma'am,";
+} elseif ($recipient_title === 'none') {
+    $salutation = "Dear Sir/Ma'am,";
+} else {
+    $salutation = detect_salutation($recipient, 'either');
+}
+$recipient_print = $recipient_base;
 if ($recipient !== '') {
-    if ($recipient_title === 'mr') $recipient_print = 'Mr. ' . $recipient;
-    if ($recipient_title === 'ms') $recipient_print = 'Ms. ' . $recipient;
+    if ($recipient_title === 'mr') $recipient_print = 'Mr. ' . $recipient_base;
+    if ($recipient_title === 'ms') $recipient_print = 'Ms. ' . $recipient_base;
+    if ($recipient_title === 'none') $recipient_print = 'Mr./Ms. ' . $recipient_base;
 }
 ?>
 <!doctype html>
