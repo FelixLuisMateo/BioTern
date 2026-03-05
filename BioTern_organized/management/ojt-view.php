@@ -1505,10 +1505,10 @@ $dau_print_url = $app_base . 'pages/generate_dau_moa.php?' . http_build_query([
                                 <button class="nav-link" data-bs-toggle="tab" data-bs-target="#applicationTab">Application Letter</button>
                             </li>
                             <li class="nav-item" role="presentation">
-                                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#moaTab">MOA</button>
+                                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#endorsementTab">Endorsement Letter</button>
                             </li>
                             <li class="nav-item" role="presentation">
-                                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#endorsementTab">Endorsement Letter</button>
+                                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#moaTab">MOA</button>
                             </li>
                             <li class="nav-item" role="presentation">
                                 <button class="nav-link" data-bs-toggle="tab" data-bs-target="#commentTab">Dau MOA</button>
@@ -1738,17 +1738,17 @@ $dau_print_url = $app_base . 'pages/generate_dau_moa.php?' . http_build_query([
                                             </div>
                                             <div class="col-md-3 col-sm-6">
                                                 <label class="print-doc-option mb-0"
-                                                    data-doc-url="<?php echo htmlspecialchars($moa_print_url); ?>"
-                                                    data-doc-label="MOA">
-                                                    <span class="print-doc-label">MOA</span>
+                                                    data-doc-url="<?php echo htmlspecialchars($endorsement_print_url); ?>"
+                                                    data-doc-label="Endorsement Letter">
+                                                    <span class="print-doc-label">Endorsement Letter</span>
                                                     <span class="print-doc-state">Select</span>
                                                 </label>
                                             </div>
                                             <div class="col-md-3 col-sm-6">
                                                 <label class="print-doc-option mb-0"
-                                                    data-doc-url="<?php echo htmlspecialchars($endorsement_print_url); ?>"
-                                                    data-doc-label="Endorsement Letter">
-                                                    <span class="print-doc-label">Endorsement Letter</span>
+                                                    data-doc-url="<?php echo htmlspecialchars($moa_print_url); ?>"
+                                                    data-doc-label="MOA">
+                                                    <span class="print-doc-label">MOA</span>
                                                     <span class="print-doc-state">Select</span>
                                                 </label>
                                             </div>
