@@ -104,15 +104,50 @@ function create_notification(mysqli $conn, int $user_id, string $title, string $
         return;
     }
 
-    $stmt = $conn->prepare(
-        "INSERT INTO notifications (user_id, title, message, is_read, created_at, updated_at)
-         VALUES (?, ?, ?, 0, NOW(), NOW())"
-    );
-    if (!$stmt) {
+    $has_title = false;
+    $has_message = false;
+    $has_type = false;
+    $has_data = false;
+
+    $col_res = $conn->query("SHOW COLUMNS FROM notifications");
+    if ($col_res instanceof mysqli_result) {
+        while ($col = $col_res->fetch_assoc()) {
+            $field = strtolower((string)($col['Field'] ?? ''));
+            if ($field === 'title') $has_title = true;
+            if ($field === 'message') $has_message = true;
+            if ($field === 'type') $has_type = true;
+            if ($field === 'data') $has_data = true;
+        }
+    }
+
+    if ($has_title && $has_message) {
+        $stmt = $conn->prepare(
+            "INSERT INTO notifications (user_id, title, message, is_read, created_at, updated_at)
+             VALUES (?, ?, ?, 0, NOW(), NOW())"
+        );
+        if ($stmt) {
+            $stmt->bind_param('iss', $user_id, $title, $message);
+            $stmt->execute();
+            $stmt->close();
+        }
         return;
     }
-    $stmt->bind_param('iss', $user_id, $title, $message);
-    $stmt->execute();
-    $stmt->close();
+
+    if ($has_type && $has_data) {
+        $payload = json_encode(['title' => $title, 'message' => $message], JSON_UNESCAPED_SLASHES);
+        if ($payload === false) {
+            $payload = $message;
+        }
+        $type = 'system';
+        $stmt = $conn->prepare(
+            "INSERT INTO notifications (user_id, type, data, is_read, created_at, updated_at)
+             VALUES (?, ?, ?, 0, NOW(), NOW())"
+        );
+        if ($stmt) {
+            $stmt->bind_param('iss', $user_id, $type, $payload);
+            $stmt->execute();
+            $stmt->close();
+        }
+    }
 }
 

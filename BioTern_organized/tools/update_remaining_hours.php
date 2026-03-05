@@ -1,5 +1,6 @@
 <?php
 header('Content-Type: application/json');
+require_once dirname(__DIR__) . '/lib/evaluation_unlock.php';
 
 $host = 'localhost';
 $db_user = 'root';
@@ -57,10 +58,16 @@ if ($track === 'external') {
 $ok = $upd->execute();
 $upd->close();
 
+$eval_state = null;
+if ($ok && $remaining_hours <= 0) {
+    $eval_state = evaluate_and_finalize_student($conn, $student_id, 0);
+}
+
 echo json_encode([
     'ok' => (bool)$ok,
     'track' => $track,
-    'remaining_hours' => $remaining_hours
+    'remaining_hours' => $remaining_hours,
+    'evaluation' => $eval_state
 ]);
 
 $conn->close();

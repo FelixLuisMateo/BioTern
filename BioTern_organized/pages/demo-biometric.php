@@ -147,6 +147,14 @@ function sync_student_active_status(mysqli $conn, int $student_id, string $clock
 }
 
 function validate_demo_biometric_transition(array $record, string $clock_type, string $clock_time): array {
+    // Enforce same-session out rules.
+    if ($clock_type === 'morning_out' && empty($record['morning_time_in'])) {
+        return ['ok' => false, 'message' => 'Cannot record morning out without morning in.'];
+    }
+    if ($clock_type === 'afternoon_out' && empty($record['afternoon_time_in'])) {
+        return ['ok' => false, 'message' => 'Cannot record afternoon out without afternoon in.'];
+    }
+
     // Demo mode is permissive for testing:
     // allow any clock field to be set directly (only block duplicates/invalid time).
     $target_column = attendance_action_to_column($clock_type);
@@ -1598,5 +1606,6 @@ foreach ($today_records as $tr) {
 <?php
 $conn->close();
 ?>
+
 
 
