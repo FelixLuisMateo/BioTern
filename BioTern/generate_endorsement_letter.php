@@ -23,10 +23,18 @@ if ($student_id > 0) {
 $full_name = trim(($student['first_name'] ?? '') . ' ' . ($student['middle_name'] ?? '') . ' ' . ($student['last_name'] ?? ''));
 
 $recipient = isset($_GET['recipient']) ? trim($_GET['recipient']) : '';
+$recipient_title = strtolower(trim((string)($_GET['recipient_title'] ?? 'auto')));
+if (!in_array($recipient_title, ['auto', 'mr', 'ms', 'none'], true)) {
+    $recipient_title = 'auto';
+}
 $position = isset($_GET['position']) ? trim($_GET['position']) : '';
 $company = isset($_GET['company']) ? trim($_GET['company']) : '';
 $company_address = isset($_GET['company_address']) ? trim($_GET['company_address']) : '';
 $students_raw = isset($_GET['students']) ? trim($_GET['students']) : '';
+$greeting_pref = strtolower(trim((string)($_GET['greeting_pref'] ?? 'either')));
+if (!in_array($greeting_pref, ['sir', 'maam', 'either'], true)) {
+    $greeting_pref = 'either';
+}
 $use_saved_template = isset($_GET['use_saved_template']) && $_GET['use_saved_template'] === '1';
 
 $students = [];
@@ -39,6 +47,72 @@ if (empty($students) && $full_name !== '') {
 }
 if (empty($students)) {
     $students[] = '__________________________';
+}
+
+function detect_salutation(string $name, string $pref = 'either'): string
+{
+    if ($pref === 'sir') return 'Dear Sir,';
+    if ($pref === 'maam') return "Dear Ma'am,";
+    $n = strtolower(trim($name));
+    if (str_starts_with($n, 'mr ') || str_starts_with($n, 'mr.') || str_starts_with($n, 'sir')) {
+        return 'Dear Sir,';
+    }
+    if (
+        str_starts_with($n, 'ms ') ||
+        str_starts_with($n, 'ms.') ||
+        str_starts_with($n, 'mrs ') ||
+        str_starts_with($n, 'mrs.') ||
+        str_starts_with($n, 'maam') ||
+        str_starts_with($n, "ma'am") ||
+        str_starts_with($n, 'madam')
+    ) {
+        return "Dear Ma'am,";
+    }
+    return "Dear Ma'am,";
+}
+
+function infer_title_from_name(string $name): string
+{
+    $n = strtolower(trim($name));
+    if ($n === '') return 'none';
+    if (str_starts_with($n, 'mr ') || str_starts_with($n, 'mr.') || str_starts_with($n, 'sir ')) return 'mr';
+    if (
+        str_starts_with($n, 'ms ') ||
+        str_starts_with($n, 'ms.') ||
+        str_starts_with($n, 'mrs ') ||
+        str_starts_with($n, 'mrs.') ||
+        str_starts_with($n, 'maam') ||
+        str_starts_with($n, "ma'am") ||
+        str_starts_with($n, 'madam')
+    ) return 'ms';
+    return 'none';
+}
+
+if ($recipient_title === 'auto') {
+    $recipient_title = infer_title_from_name($recipient);
+}
+$recipient_base = preg_replace('/^(mr\\.?|ms\\.?|mrs\\.?|sir|maam|ma\\\'am|madam)\\s+/i', '', $recipient);
+if (!is_string($recipient_base) || $recipient_base === '') {
+    $recipient_base = $recipient;
+}
+if ($greeting_pref === 'sir') {
+    $salutation = 'Dear Sir,';
+} elseif ($greeting_pref === 'maam') {
+    $salutation = "Dear Ma'am,";
+} elseif ($recipient_title === 'mr') {
+    $salutation = 'Dear Sir,';
+} elseif ($recipient_title === 'ms') {
+    $salutation = "Dear Ma'am,";
+} elseif ($recipient_title === 'none') {
+    $salutation = "Dear Sir/Ma'am,";
+} else {
+    $salutation = detect_salutation($recipient, 'either');
+}
+$recipient_print = $recipient_base;
+if ($recipient !== '') {
+    if ($recipient_title === 'mr') $recipient_print = 'Mr. ' . $recipient_base;
+    if ($recipient_title === 'ms') $recipient_print = 'Ms. ' . $recipient_base;
+    if ($recipient_title === 'none') $recipient_print = 'Mr./Ms. ' . $recipient_base;
 }
 ?>
 <!doctype html>
@@ -73,12 +147,12 @@ if (empty($students)) {
 
     <div class="content" id="endorsement_doc_content">
         <h3>ENDORSEMENT LETTER</h3>
-        <p><strong id="ed_recipient"><?php echo htmlspecialchars($recipient ?: '__________________________'); ?></strong><br>
+        <p><strong id="ed_recipient"><?php echo htmlspecialchars($recipient_print ?: '__________________________'); ?></strong><br>
         <span id="ed_position"><?php echo htmlspecialchars($position ?: '__________________________'); ?></span><br>
         <span id="ed_company"><?php echo htmlspecialchars($company ?: '__________________________'); ?></span><br>
         <span id="ed_company_address"><?php echo htmlspecialchars($company_address ?: '__________________________'); ?></span></p>
 
-        <p>Dear Ma'am,</p>
+        <p id="ed_salutation"><?php echo htmlspecialchars($salutation); ?></p>
         <p>Greetings from Clark College of Science and Technology!</p>
 
         <p>We are pleased to introduce our Associate in Computer Technology program, designed to promote student success by developing competencies in core Information Technology disciplines. Our curriculum emphasizes practical experience through internships and on-the-job training, fostering a strong foundation in current industry practices.</p>
@@ -113,12 +187,31 @@ if (empty($students)) {
 
 <script>
 (function(){
+    var salutation = <?php echo json_encode($salutation); ?>;
+    function applySalutation() {
+        var target = document.getElementById('ed_salutation');
+        if (target) {
+            target.textContent = salutation;
+            return;
+        }
+        var root = document.getElementById('endorsement_doc_content') || document;
+        var ps = root.querySelectorAll('p');
+        for (var i = 0; i < ps.length; i++) {
+            var t = (ps[i].textContent || '').trim();
+            if (/^Dear\s+/i.test(t)) {
+                ps[i].textContent = salutation;
+                break;
+            }
+        }
+    }
+
     document.getElementById('btn_print').addEventListener('click', function(){ window.print(); });
     document.getElementById('btn_close').addEventListener('click', function(){
         if (window.opener && !window.opener.closed) { window.close(); return; }
         if (window.history.length > 1) { window.history.back(); return; }
         window.location.href = 'document_endorsement.php';
     });
+    applySalutation();
 })();
 
 (function(){
@@ -131,6 +224,19 @@ if (empty($students)) {
         var content = temp.querySelector('.content') || temp;
         var out = document.getElementById('endorsement_doc_content');
         if (out && content) out.innerHTML = content.innerHTML;
+        var sal = document.getElementById('ed_salutation');
+        if (sal) sal.textContent = <?php echo json_encode($salutation); ?>;
+        var root = document.getElementById('endorsement_doc_content');
+        if (root) {
+            var ps = root.querySelectorAll('p');
+            for (var i = 0; i < ps.length; i++) {
+                var t = (ps[i].textContent || '').trim();
+                if (/^Dear\\s+/i.test(t)) {
+                    ps[i].textContent = <?php echo json_encode($salutation); ?>;
+                    break;
+                }
+            }
+        }
     } catch (e) {}
 })();
 </script>

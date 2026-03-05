@@ -94,8 +94,26 @@ if ($do_download_pdf || $do_download_html) ob_start();
         .content{ margin-top:8px; line-height:1.45; font-size:12pt; font-family: 'Times New Roman', Times, serif; }
         .small{ font-size:13px; }
         .signature{ margin-top:28px; }
-        /* hide print-value spans on screen, show on print */
-        .print-val{ display:none; }
+        /* hide print-value spans on screen, show on print with visible fill lines */
+        .print-val{
+            display:none;
+            border-bottom:1px solid #000;
+            min-width:180px;
+            padding:0 2px;
+            line-height:1.1;
+            vertical-align:baseline;
+        }
+        .pv-wide{ min-width:220px; }
+        .filled-val{
+            display:inline-block;
+            border-bottom:1px solid #000;
+            min-width:180px;
+            padding:0 2px;
+            line-height:1.1;
+            vertical-align:baseline;
+        }
+        .filled-val-wide{ min-width:240px; }
+        .filled-val-name{ min-width:170px; }
         @media print {
             .blank-input{ display:none !important; }
             .print-val{ display:inline !important; }
@@ -116,7 +134,7 @@ if ($do_download_pdf || $do_download_html) ob_start();
             p { orphans: 3; widows: 3; }
         }
         /* Simple inputs styling for editable blanks */
-        .blank-input{ border:none; border-bottom:1px solid #000; display:inline-block; min-width:120px; padding:2px 4px; font-size:11pt }
+        .blank-input{ border:none; border-bottom:1px solid #000; display:inline-block; min-width:180px; padding:2px 4px; font-size:11pt }
         .field-block{ margin:6px 0; }
         .actions{ margin-top:12px; }
     </style>
@@ -136,12 +154,12 @@ if ($do_download_pdf || $do_download_html) ob_start();
         <p class="field-block">Date: <input type="text" class="blank-input" id="fld_date" value="<?php echo htmlspecialchars($print_date); ?>"> <span class="print-val" id="pv_date"></span></p>
         <p class="field-block">Mr./Ms.: <input type="text" class="blank-input" id="fld_name" value="<?php echo htmlspecialchars($ap_name ?: ''); ?>"> <span class="print-val" id="pv_name"></span></p>
         <p class="field-block">Position: <input type="text" class="blank-input" id="fld_position" value="<?php echo htmlspecialchars($ap_position ?: ''); ?>"> <span class="print-val" id="pv_position"></span></p>
-        <p class="field-block">Name of Company: <input type="text" class="blank-input" id="fld_company" value="<?php echo htmlspecialchars($ap_company ?: ''); ?>"> <span class="print-val" id="pv_company"></span></p>
-        <p class="field-block">Company Address: <input type="text" class="blank-input" id="fld_company_address" value="<?php echo htmlspecialchars($ap_company_address ?: ''); ?>" style="min-width:60%;"> <span class="print-val" id="pv_company_address"></span></p>
+        <p class="field-block">Name of Company: <input type="text" class="blank-input pv-wide" id="fld_company" value="<?php echo htmlspecialchars($ap_company ?: ''); ?>"> <span class="print-val pv-wide" id="pv_company"></span></p>
+        <p class="field-block">Company Address: <input type="text" class="blank-input pv-wide" id="fld_company_address" value="<?php echo htmlspecialchars($ap_company_address ?: ''); ?>"> <span class="print-val pv-wide" id="pv_company_address"></span></p>
 
         <p style="margin-top:30px;">Dear Sir or Madam:</p>
 
-        <p>I am <strong><?php echo htmlspecialchars($full_name); ?></strong>, student of Clark College of Science and Technology. In partial fulfillment of the requirements of this course, I am required to have an On-the-job Training ( OJT ) for a minimum of <strong>250 hours</strong>.</p>
+        <p>I am <span class="filled-val filled-val-name"><?php echo htmlspecialchars($full_name); ?></span>, student of Clark College of Science and Technology. In partial fulfillment of the requirements of this course, I am required to have an On-the-job Training ( OJT ) for a minimum of <strong>250 hours</strong>.</p>
 
         <p>I would like to apply as a trainee in your company because I believe that the training and experience, I will acquire will broaden my knowledge about my course.</p>
 
@@ -150,9 +168,9 @@ if ($do_download_pdf || $do_download_html) ob_start();
         <p style="margin-top:30px;">Very truly yours,</p>
 
         <div class="signature">
-            <p style="margin-top:40px;">Student Name: <?php echo htmlspecialchars($full_name); ?></p>
-            <p>Student Home Address: <?php echo nl2br(htmlspecialchars($address)); ?></p>
-            <p>Contact No.: <?php echo htmlspecialchars($phone); ?></p>
+            <p style="margin-top:40px;">Student Name: <span class="filled-val"><?php echo htmlspecialchars($full_name); ?></span></p>
+            <p>Student Home Address: <span class="filled-val filled-val-wide"><?php echo nl2br(htmlspecialchars($address)); ?></span></p>
+            <p>Contact No.: <span class="filled-val"><?php echo htmlspecialchars($phone); ?></span></p>
         </div>
     </div>
 
@@ -193,6 +211,61 @@ if ($do_download_pdf || $do_download_html) ob_start();
         applyRuntimeValues();
         // Expose for later call after saved-template injection.
         window.__applyApplicationRuntimeValues = applyRuntimeValues;
+    })();
+
+    (function(){
+        function escHtml(s) {
+            return String(s || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function underlineLabelValue(label, extraClass) {
+            var doc = document.getElementById('application_doc_content');
+            if (!doc) return;
+            var nodes = doc.querySelectorAll('p');
+            nodes.forEach(function(p){
+                if (p.querySelector('input, textarea, select')) return;
+                var text = (p.textContent || '').replace(/\s+/g, ' ').trim();
+                if (text.indexOf(label) !== 0) return;
+                var value = text.slice(label.length).trim();
+                var cls = 'filled-val' + (extraClass ? (' ' + extraClass) : '');
+                p.innerHTML = label + ' <span class="' + cls + '">' + escHtml(value) + '</span>';
+            });
+        }
+
+        function underlineIAmLine() {
+            var doc = document.getElementById('application_doc_content');
+            if (!doc) return;
+            var nodes = doc.querySelectorAll('p');
+            nodes.forEach(function(p){
+                var html = (p.innerHTML || '').trim();
+                if (html.indexOf('I am') !== 0) return;
+                if (html.indexOf('filled-val-name') !== -1) return;
+                p.innerHTML = html.replace(
+                    /^I am\s*(.*?)\s*,\s*student of/i,
+                    'I am <span class="filled-val filled-val-name">$1</span>, student of'
+                );
+            });
+        }
+
+        function forceApplicationUnderlines() {
+            underlineLabelValue('Date:');
+            underlineLabelValue('Mr./Ms.:');
+            underlineLabelValue('Position:');
+            underlineLabelValue('Name of Company:', 'pv-wide');
+            underlineLabelValue('Company Address:', 'pv-wide');
+            underlineLabelValue('Student Name:');
+            underlineLabelValue('Student Home Address:', 'filled-val-wide');
+            underlineLabelValue('Contact No.:');
+            underlineIAmLine();
+        }
+
+        forceApplicationUnderlines();
+        window.__forceApplicationUnderlines = forceApplicationUnderlines;
     })();
 
     // mirror input values into print-only spans and hide inputs when printing
@@ -255,6 +328,9 @@ if ($do_download_pdf || $do_download_html) ob_start();
                 }
                 if (typeof window.__applyApplicationRuntimeValues === 'function') {
                     window.__applyApplicationRuntimeValues();
+                }
+                if (typeof window.__forceApplicationUnderlines === 'function') {
+                    window.__forceApplicationUnderlines();
                 }
                 var title = doc.querySelector('h3');
                 if (title) title.style.textAlign = 'center';

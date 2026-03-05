@@ -229,7 +229,7 @@ include __DIR__ . '/../includes/header.php';
                     </div>
                     <div class="form-check form-check-inline">
                         <input class="form-check-input" type="radio" name="recipient_title" id="rt_none" value="none">
-                        <label class="form-check-label" for="rt_none">None</label>
+                        <label class="form-check-label" for="rt_none">Mr./Ms.</label>
                     </div>
                 </div>
                 <div class="mt-2">
@@ -369,6 +369,7 @@ window.addEventListener('load', function() {
         const resolvedTitle = resolveRecipientTitle();
         if (resolvedTitle === 'mr') return 'Dear Sir,';
         if (resolvedTitle === 'ms') return 'Dear Ma\'am,';
+        if (resolvedTitle === 'none') return 'Dear Sir/Ma\'am,';
 
         const checked = greetingRadios.find(function(r){ return r.checked; });
         const pref = checked ? checked.value : 'either';
@@ -396,6 +397,7 @@ window.addEventListener('load', function() {
         const rt = resolveRecipientTitle();
         if (rt === 'mr') return 'Mr. ' + n;
         if (rt === 'ms') return 'Ms. ' + n;
+        if (rt === 'none') return 'Mr./Ms. ' + n;
         return n;
     }
 

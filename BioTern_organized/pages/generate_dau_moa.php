@@ -200,10 +200,10 @@ $use_saved_template = q('use_saved_template', '0') === '1';
         </div>
             ACKNOWLEDGEMENT Before me, a Notary Public in the city <strong><u><?php echo htmlspecialchars($notary_city); ?></u></strong>, personally appeared <strong><u><?php echo htmlspecialchars($notary_appeared_1); ?></u></strong> and <strong><u><?php echo htmlspecialchars($notary_appeared_2); ?></u></strong> known to me to be the same persons who executed the foregoing instrument and they acknowledged to me that the same is their free will and voluntary deed and that of the LOCAL GOVERNMENT UNITs herein represented. Witness my hand and seal on this <strong><u><?php echo htmlspecialchars($notary_day); ?></u></strong> day of <strong><u><?php echo htmlspecialchars($notary_month); ?></u></strong> <strong><u><?php echo htmlspecialchars($notary_year); ?></u></strong> in <strong><u><?php echo htmlspecialchars($notary_place); ?></u></strong>.
         </p>
-        <p style="margin-bottom: -12px;">Doc No. <?php echo htmlspecialchars($doc_no); ?>:</p>
-        <p style="margin-bottom: -12px;">Page No. <?php echo htmlspecialchars($page_no); ?>:</p>
-        <p style="margin-bottom: -12px;">Book No. <?php echo htmlspecialchars($book_no); ?>:</p>
-        <p style="margin-bottom: -12px;">Series of <?php echo htmlspecialchars($series_no); ?>:</p>
+        <p style="margin-bottom: -12px;">Doc No. : <span style="display:inline-block; min-width:28px; border-bottom:1px solid #000; line-height:1;"><?php echo htmlspecialchars($doc_no); ?></span></p>
+        <p style="margin-bottom: -12px;">Page No. : <span style="display:inline-block; min-width:28px; border-bottom:1px solid #000; line-height:1;"><?php echo htmlspecialchars($page_no); ?></span></p>
+        <p style="margin-bottom: -12px;">Book No. : <span style="display:inline-block; min-width:28px; border-bottom:1px solid #000; line-height:1;"><?php echo htmlspecialchars($book_no); ?></span></p>
+        <p style="margin-bottom: -12px;">Series of : <span style="display:inline-block; min-width:28px; border-bottom:1px solid #000; line-height:1;"><?php echo htmlspecialchars($series_no); ?></span></p>
     </div>
 
     <div class="actions no-print">
