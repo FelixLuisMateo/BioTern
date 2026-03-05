@@ -92,12 +92,19 @@ function tableHasColumn($mysqli, $tableName, $columnName) {
         return false;
     }
 
-    $sql = "SHOW COLUMNS FROM `" . $mysqli->real_escape_string($table) . "` LIKE ?";
+    $sql = "
+        SELECT 1
+        FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = ?
+          AND COLUMN_NAME = ?
+        LIMIT 1
+    ";
     $stmt = $mysqli->prepare($sql);
     if (!$stmt) {
         return false;
     }
-    $stmt->bind_param('s', $column);
+    $stmt->bind_param('ss', $table, $column);
     $stmt->execute();
     $res = $stmt->get_result();
     $has = ($res && $res->num_rows > 0);

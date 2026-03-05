@@ -1,4 +1,10 @@
 <?php
+// Handle submissions immediately to avoid rendering/query side effects before redirects.
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    require_once dirname(__DIR__) . '/api/register_submit.php';
+    exit;
+}
+
 $departmentOptions = [];
 $courseOptions = [];
 $sectionOptions = [];
@@ -160,12 +166,6 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
     }
     $relationsConn->close();
 }
-    // If this page receives a POST, delegate processing to api/register_submit.php
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        require_once dirname(__DIR__) . '/api/register_submit.php';
-        // register_submit.php will redirect on success/failure
-        exit;
-    }
 ?>
 <!DOCTYPE html>
 <html lang="zxx">
@@ -553,7 +553,7 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
                         </div>
 
                         <!-- STUDENT REGISTRATION FORM -->
-                        <form id="studentForm" class="w-100 mt-4 pt-2 hide-form" action="auth-register-creative.php" method="post">
+                        <form id="studentForm" class="w-100 mt-4 pt-2 hide-form" action="register_submit.php" method="post">
                             <input type="hidden" name="role" value="student">
                             <div class="form-section">
                                 <h3 class="fs-18 fw-bold mb-3">Student Registration</h3>
@@ -754,7 +754,7 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
                                 <div class="row g-3">
                                     <div class="col-6 mb-2">
                                         <div class="input-group field">
-                                            <input type="password" name="password" class="form-control password" id="studentPassword" placeholder="Password" autocomplete="new-password">
+                                            <input type="password" name="password" class="form-control password" id="studentPassword" placeholder="Password" autocomplete="new-password" required>
                                             <div class="input-group-text border-start bg-gray-2 c-pointer show-pass-toggle" data-target="studentPassword" data-bs-toggle="tooltip" title="Show/Hide Password"><i></i></div>
                                         </div>
                                     </div>
@@ -782,7 +782,7 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
                         </form>
 
                         <!-- COORDINATOR REGISTRATION FORM -->
-                        <form id="coordinatorForm" class="w-100 mt-4 pt-2 hide-form" action="auth-register-creative.php" method="post">
+                        <form id="coordinatorForm" class="w-100 mt-4 pt-2 hide-form" action="register_submit.php" method="post">
                             <input type="hidden" name="role" value="coordinator">
                             <div class="form-section">
                                 <h3 class="fs-18 fw-bold mb-3">Coordinator Registration</h3>
@@ -848,7 +848,7 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
                             <div class="row g-3">
                                 <div class="col-6 mb-2">
                                     <div class="input-group field">
-                                        <input type="password" name="password" class="form-control password" id="coordPassword" placeholder="Password" autocomplete="new-password">
+                                        <input type="password" name="password" class="form-control password" id="coordPassword" placeholder="Password" autocomplete="new-password" required>
                                         <div class="input-group-text border-start bg-gray-2 c-pointer show-pass-toggle" data-target="coordPassword" data-bs-toggle="tooltip" title="Show/Hide Password"><i></i></div>
                                     </div>
                                 </div>
@@ -875,7 +875,7 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
                         </form>
 
                         <!-- SUPERVISOR REGISTRATION FORM -->
-                        <form id="supervisorForm" class="w-100 mt-4 pt-2 hide-form" action="auth-register-creative.php" method="post">
+                        <form id="supervisorForm" class="w-100 mt-4 pt-2 hide-form" action="register_submit.php" method="post">
                             <input type="hidden" name="role" value="supervisor">
                             <div class="form-section">
                                 <h3 class="fs-18 fw-bold mb-3">Supervisor Registration</h3>
@@ -947,7 +947,7 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
                             <div class="row g-3">
                                 <div class="col-6 mb-2">
                                     <div class="input-group field">
-                                        <input type="password" name="password" class="form-control password" id="supPassword" placeholder="Password" autocomplete="new-password">
+                                        <input type="password" name="password" class="form-control password" id="supPassword" placeholder="Password" autocomplete="new-password" required>
                                         <div class="input-group-text border-start bg-gray-2 c-pointer show-pass-toggle" data-target="supPassword" data-bs-toggle="tooltip" title="Show/Hide Password"><i></i></div>
                                     </div>
                                 </div>
@@ -974,7 +974,7 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
                         </form>
 
                         <!-- ADMIN REGISTRATION FORM -->
-                        <form id="adminForm" class="w-100 mt-4 pt-2 hide-form" action="auth-register-creative.php" method="post">
+                        <form id="adminForm" class="w-100 mt-4 pt-2 hide-form" action="register_submit.php" method="post">
                             <input type="hidden" name="role" value="admin">
                             <div class="form-section">
                                 <h3 class="fs-18 fw-bold mb-3">Admin Registration</h3>
@@ -1048,7 +1048,7 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
                             <div class="row g-3">
                                 <div class="col-6 mb-2">
                                     <div class="input-group field">
-                                        <input type="password" name="password" class="form-control password" id="adminPassword" placeholder="Password" autocomplete="new-password">
+                                        <input type="password" name="password" class="form-control password" id="adminPassword" placeholder="Password" autocomplete="new-password" required>
                                         <div class="input-group-text border-start bg-gray-2 c-pointer show-pass-toggle" data-target="adminPassword" data-bs-toggle="tooltip" title="Show/Hide Password"><i></i></div>
                                     </div>
                                 </div>
