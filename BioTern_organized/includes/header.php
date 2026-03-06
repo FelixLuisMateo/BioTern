@@ -525,6 +525,21 @@ if ($header_user_id_session > 0) {
         html.app-skin-dark .select2-container--default .select2-results__option--highlighted[aria-selected] {
             color: #ffffff !important;
         }
+
+        /* Force click-only behavior for selected header dropdowns (no hover-open). */
+        .click-only-dropdown > .dropdown-menu {
+            display: none !important;
+            visibility: hidden;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .click-only-dropdown > .dropdown-menu.show {
+            display: block !important;
+            visibility: visible;
+            opacity: 1;
+            pointer-events: auto;
+        }
     </style>
 </head>
 
@@ -588,7 +603,7 @@ if ($header_user_id_session > 0) {
                             <i class="feather-sun"></i>
                         </a>
                     </div>
-                    <div class="dropdown nxl-h-item">
+                    <div class="dropdown nxl-h-item click-only-dropdown">
                         <a class="nxl-head-link me-3" data-bs-toggle="dropdown" href="#" role="button" data-bs-auto-close="outside">
                             <i class="feather-bell"></i>
                             <?php if ($header_notifications_unread > 0): ?>
@@ -616,7 +631,7 @@ if ($header_user_id_session > 0) {
                             <?php endif; ?>
                         </div>
                     </div>
-                    <div class="dropdown nxl-h-item">
+                    <div class="dropdown nxl-h-item click-only-dropdown">
                         <a href="javascript:void(0);" data-bs-toggle="dropdown" role="button" data-bs-auto-close="outside">
                             <img src="<?php echo htmlspecialchars($header_avatar, ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar me-0">
                         </a>

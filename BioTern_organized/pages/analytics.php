@@ -16,6 +16,13 @@ if ($current_profile_rel !== '' && file_exists(dirname(__DIR__) . '/' . $current
 // Include database connection
 include_once dirname(__DIR__) . '/config/db.php';
 
+if (!function_exists('format_pct')) {
+    function format_pct($value)
+    {
+        return number_format((float)$value, 2) . '%';
+    }
+}
+
 // Initialize analytics variables with defaults
 $bounce_rate = 0;
 $page_views = 0;
@@ -27,14 +34,31 @@ $total_students = 0;
 $total_attendances = 0;
 $rejected_attendances = 0;
 $approved_attendances = 0;
+$pending_attendances = 0;
 $total_internships = 0;
 $active_internships = 0;
+$completed_internships = 0;
+$internal_internships = 0;
+$external_internships = 0;
 $biometric_students = 0;
+$students_with_email = 0;
 $new_students_30 = 0;
 $coordinators_count = 0;
 $supervisors_count = 0;
 $total_required_hours = 0;
 $total_rendered_hours = 0;
+
+$attendance_pending_rate = 0;
+$completed_internships_rate = 0;
+
+$status_counts = ['pending' => 0, 'ongoing' => 0, 'completed' => 0, 'cancelled' => 0];
+$total_interns = 0;
+
+$unread_notifications = 0;
+$latest_notifications = [];
+
+$engagement_labels = [];
+$engagement_values = [];
 
 $visitors_labels = [];
 $visitors_students = [];
@@ -68,6 +92,15 @@ try {
     $active_int = $conn->query("SELECT COUNT(*) as count FROM internships WHERE status = 'ongoing'");
     $active_internships = $active_int ? (int)$active_int->fetch_assoc()['count'] : 0;
     $page_views = ($total_internships > 0) ? round(($active_internships / $total_internships) * 100, 2) : 0;
+
+    $completed_int = $conn->query("SELECT COUNT(*) as count FROM internships WHERE status = 'completed'");
+    $completed_internships = $completed_int ? (int)$completed_int->fetch_assoc()['count'] : 0;
+    $completed_internships_rate = ($total_internships > 0) ? round(($completed_internships / $total_internships) * 100, 2) : 0;
+
+    $internal_int = $conn->query("SELECT COUNT(*) as count FROM internships WHERE deleted_at IS NULL AND type = 'internal'");
+    $internal_internships = $internal_int ? (int)$internal_int->fetch_assoc()['count'] : 0;
+    $external_int = $conn->query("SELECT COUNT(*) as count FROM internships WHERE deleted_at IS NULL AND type = 'external'");
+    $external_internships = $external_int ? (int)$external_int->fetch_assoc()['count'] : 0;
     
     // Calculate site impressions based on biometric registration
     $total_std = $conn->query("SELECT COUNT(*) as count FROM students WHERE deleted_at IS NULL");
@@ -76,11 +109,17 @@ try {
     $biometric_std = $conn->query("SELECT COUNT(*) as count FROM students WHERE biometric_registered = 1 AND deleted_at IS NULL");
     $biometric_students = $biometric_std ? (int)$biometric_std->fetch_assoc()['count'] : 0;
     $site_impressions = ($total_students > 0) ? round(($biometric_students / $total_students) * 100, 2) : 0;
+
+    $with_email_q = $conn->query("SELECT COUNT(*) as count FROM students WHERE deleted_at IS NULL AND COALESCE(email, '') <> ''");
+    $students_with_email = $with_email_q ? (int)$with_email_q->fetch_assoc()['count'] : 0;
     
     // Calculate conversion rate based on approved attendances
     $approved_att = $conn->query("SELECT COUNT(*) as count FROM attendances WHERE status = 'approved'");
     $approved_attendances = $approved_att ? (int)$approved_att->fetch_assoc()['count'] : 0;
+    $pending_att = $conn->query("SELECT COUNT(*) as count FROM attendances WHERE status = 'pending'");
+    $pending_attendances = $pending_att ? (int)$pending_att->fetch_assoc()['count'] : 0;
     $conversion_rate = ($total_attendances > 0) ? round(($approved_attendances / $total_attendances) * 100, 2) : 0;
+    $attendance_pending_rate = ($total_attendances > 0) ? round(($pending_attendances / $total_attendances) * 100, 2) : 0;
     
     // Additional analytics for Goal Progress and other widgets
     // New students in last 30 days
@@ -289,6 +328,45 @@ try {
             ];
         }
     }
+
+    // Internship status distribution for table and pie chart
+    $stq = $conn->query("SELECT status, COUNT(*) as cnt FROM internships WHERE deleted_at IS NULL GROUP BY status");
+    if ($stq) {
+        while ($r = $stq->fetch_assoc()) {
+            $s = $r['status'] ?? 'other';
+            $c = (int)($r['cnt'] ?? 0);
+            if (array_key_exists($s, $status_counts)) {
+                $status_counts[$s] = $c;
+            }
+            $total_interns += $c;
+        }
+    }
+
+    // Notifications summary for header dropdown
+    $q_unread = $conn->query("SELECT COUNT(*) AS cnt FROM notifications WHERE is_read = 0 AND deleted_at IS NULL");
+    $unread_notifications = $q_unread ? (int)$q_unread->fetch_assoc()['cnt'] : 0;
+
+    $q_latest_notifications = $conn->query("SELECT n.title, n.message, n.created_at, n.is_read, u.name AS user_name FROM notifications n LEFT JOIN users u ON u.id = n.user_id WHERE n.deleted_at IS NULL ORDER BY n.created_at DESC LIMIT 5");
+    if ($q_latest_notifications) {
+        while ($row = $q_latest_notifications->fetch_assoc()) {
+            $latest_notifications[] = [
+                'title' => (string)($row['title'] ?? 'Notification'),
+                'message' => (string)($row['message'] ?? ''),
+                'created_at' => (string)($row['created_at'] ?? ''),
+                'is_read' => (int)($row['is_read'] ?? 0),
+                'user_name' => (string)($row['user_name'] ?? 'System')
+            ];
+        }
+    }
+
+    // Summary chart data: operational percentages
+    $engagement_labels = ['With Email', 'Biometric', 'Approved Attendance', 'Active Internship'];
+    $engagement_values = [
+        round($total_students > 0 ? ($students_with_email / $total_students) * 100 : 0, 2),
+        round($site_impressions, 2),
+        round($conversion_rate, 2),
+        round($page_views, 2)
+    ];
 } catch (Exception $e) {
     // Database error - fallback to 0 values
 }
@@ -324,6 +402,18 @@ try {
     <!--! END: Vendors CSS-->
     <!--! BEGIN: Custom CSS-->
     <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/css/homepage-dashboard.css">
+    <style>
+        .analytics-hero .card-body {
+            background: linear-gradient(95deg, rgba(var(--bs-primary-rgb), 0.95), rgba(31, 90, 166, 0.84));
+        }
+
+        .analytics-chart-panel {
+            border: 1px dashed rgba(0, 0, 0, 0.08);
+            border-radius: 12px;
+            padding: 10px;
+        }
+    </style>
     <!--! END: Custom CSS-->
     <!--! HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries !-->
     <!--! WARNING: Respond.js doesn"t work if you view the page via file: !-->
@@ -405,33 +495,42 @@ try {
                     <div class="dropdown nxl-h-item">
                         <a class="nxl-head-link me-3" data-bs-toggle="dropdown" href="#" role="button" data-bs-auto-close="outside">
                             <i class="feather-bell"></i>
-                            <span class="badge bg-danger nxl-h-badge">3</span>
+                            <span class="badge bg-danger nxl-h-badge"><?php echo $unread_notifications > 99 ? '99+' : (int)$unread_notifications; ?></span>
                         </a>
                         <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-notifications-menu">
                             <div class="d-flex justify-content-between align-items-center notifications-head">
                                 <h6 class="fw-bold text-dark mb-0">Notifications</h6>
                                 <a href="javascript:void(0);" class="fs-11 text-success text-end ms-auto" data-bs-toggle="tooltip" title="Make as Read">
                                     <i class="feather-check"></i>
-                                    <span>Make as Read</span>
+                                    <span><?php echo (int)$unread_notifications; ?> Unread</span>
                                 </a>
                             </div>
-                            <div class="notifications-item">
-                                <img src="assets/images/avatar/2.png" alt="" class="rounded me-3 border">
-                                <div class="notifications-desc">
-                                    <a href="javascript:void(0);" class="font-body text-truncate-2-line"> <span class="fw-semibold text-dark">Malanie Hanvey</span> We should talk about that at lunch!</a>
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <div class="notifications-date text-muted border-bottom border-bottom-dashed">2 minutes ago</div>
-                                        <div class="d-flex align-items-center float-end gap-2">
-                                            <a href="javascript:void(0);" class="d-block wd-8 ht-8 rounded-circle bg-gray-300" data-bs-toggle="tooltip" title="Make as Read"></a>
-                                            <a href="javascript:void(0);" class="text-danger" data-bs-toggle="tooltip" title="Remove">
-                                                <i class="feather-x fs-12"></i>
+                            <?php if (!empty($latest_notifications)): ?>
+                                <?php foreach ($latest_notifications as $notif): ?>
+                                    <div class="notifications-item">
+                                        <img src="assets/images/avatar/1.png" alt="" class="rounded me-3 border">
+                                        <div class="notifications-desc">
+                                            <a href="javascript:void(0);" class="font-body text-truncate-2-line">
+                                                <span class="fw-semibold text-dark"><?php echo htmlspecialchars($notif['user_name'], ENT_QUOTES, 'UTF-8'); ?></span>
+                                                <?php echo htmlspecialchars($notif['title'], ENT_QUOTES, 'UTF-8'); ?>
                                             </a>
+                                            <div class="fs-11 text-muted text-truncate-1-line mb-1"><?php echo htmlspecialchars($notif['message'], ENT_QUOTES, 'UTF-8'); ?></div>
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div class="notifications-date text-muted border-bottom border-bottom-dashed">
+                                                    <?php echo $notif['created_at'] !== '' ? date('M d, Y h:i A', strtotime($notif['created_at'])) : '-'; ?>
+                                                </div>
+                                                <div class="d-flex align-items-center float-end gap-2">
+                                                    <span class="d-block wd-8 ht-8 rounded-circle <?php echo (int)$notif['is_read'] === 1 ? 'bg-success' : 'bg-warning'; ?>" data-bs-toggle="tooltip" title="Read status"></span>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            </div>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <div class="px-3 py-4 text-center text-muted fs-12">No notifications available.</div>
+                            <?php endif; ?>
                             <div class="text-center notifications-footer">
-                                <a href="javascript:void(0);" class="fs-13 fw-semibold text-dark">Alls Notifications</a>
+                                <a href="javascript:void(0);" class="fs-13 fw-semibold text-dark">All Notifications</a>
                             </div>
                         </div>
                     </div>
@@ -520,122 +619,112 @@ try {
             <div class="page-header">
                 <div class="page-header-left d-flex align-items-center">
                     <div class="page-header-title">
-                        <h5 class="m-b-10">Dashboard</h5>
+                        <h5 class="m-b-10">Overview</h5>
                     </div>
                     <ul class="breadcrumb">
                         <li class="breadcrumb-item"><a href="index.php">Home</a></li>
-                        <li class="breadcrumb-item">Analytics</li>
+                        <li class="breadcrumb-item">Overview</li>
                     </ul>
                 </div>
                 <div class="page-header-right ms-auto">
-                    <div class="page-header-right-items">
-                        <div class="d-flex d-md-none">
-                            <a href="javascript:void(0)" class="page-header-right-close-toggle">
-                                <i class="feather-arrow-left me-2"></i>
-                                <span>Back</span>
-                            </a>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-soft-primary text-primary fs-11">
+                            <i class="feather-calendar me-1"></i> <?php echo date('M d, Y'); ?>
+                        </span>
+                        <div id="reportrange" class="reportrange-picker d-flex align-items-center btn btn-sm btn-light-brand">
+                            <span class="reportrange-picker-field"></span>
                         </div>
-                        <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
-                            <div id="reportrange" class="reportrange-picker d-flex align-items-center">
-                                <span class="reportrange-picker-field"></span>
-                            </div>
-                            <div class="dropdown filter-dropdown">
-                                <a class="btn btn-light-brand" data-bs-toggle="dropdown" data-bs-offset="0, 10" data-bs-auto-close="outside">
-                                    <i class="feather-filter me-2"></i>
-                                    <span>Filter</span>
-                                </a>
-                                <div class="dropdown-menu dropdown-menu-end">
-                                    <div class="dropdown-item">
-                                        <div class="custom-control custom-checkbox">
-                                            <input type="checkbox" class="custom-control-input" id="Role" checked="checked">
-                                            <label class="custom-control-label c-pointer" for="Role">Role</label>
-                                        </div>
-                                    </div>
-                                    <div class="dropdown-item">
-                                        <div class="custom-control custom-checkbox">
-                                            <input type="checkbox" class="custom-control-input" id="Team" checked="checked">
-                                            <label class="custom-control-label c-pointer" for="Team">Team</label>
-                                        </div>
-                                    </div>
-                                    <div class="dropdown-item">
-                                        <div class="custom-control custom-checkbox">
-                                            <input type="checkbox" class="custom-control-input" id="Email" checked="checked">
-                                            <label class="custom-control-label c-pointer" for="Email">Email</label>
-                                        </div>
-                                    </div>
-                                    <div class="dropdown-item">
-                                        <div class="custom-control custom-checkbox">
-                                            <input type="checkbox" class="custom-control-input" id="Member" checked="checked">
-                                            <label class="custom-control-label c-pointer" for="Member">Member</label>
-                                        </div>
-                                    </div>
-                                    <div class="dropdown-item">
-                                        <div class="custom-control custom-checkbox">
-                                            <input type="checkbox" class="custom-control-input" id="Recommendation" checked="checked">
-                                            <label class="custom-control-label c-pointer" for="Recommendation">Recommendation</label>
-                                        </div>
-                                    </div>
-                                    <div class="dropdown-divider"></div>
-                                    <a href="javascript:void(0);" class="dropdown-item">
-                                        <i class="feather-plus me-3"></i>
-                                        <span>Create New</span>
-                                    </a>
-                                    <a href="javascript:void(0);" class="dropdown-item">
-                                        <i class="feather-filter me-3"></i>
-                                        <span>Manage Filter</span>
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="d-md-none d-flex align-items-center">
-                        <a href="javascript:void(0)" class="page-header-right-open-toggle">
-                            <i class="feather-align-right fs-20"></i>
+                        <a href="reports-timesheets.php" class="btn btn-sm btn-light-brand">
+                            <i class="feather-file-text me-1"></i> Reports
+                        </a>
+                        <a href="attendance.php" class="btn btn-sm btn-primary">
+                            <i class="feather-check-square me-1"></i> Review Attendance
                         </a>
                     </div>
                 </div>
             </div>
             <!-- [ page-header ] end -->
             <!-- [ Main Content ] start -->
-                <div class="main-content">
+                <div class="main-content dashboard-shell">
                 <div class="row">
+                    <div class="col-12">
+                        <div class="card stretch stretch-full overflow-hidden dashboard-hero analytics-hero mb-3">
+                            <div class="card-body text-white p-4">
+                                <div class="row align-items-center g-3">
+                                    <div class="col-lg-8">
+                                        <span class="badge bg-light text-primary mb-2">Analytics Overview</span>
+                                        <h4 class="text-reset mb-2">BioTern Performance Dashboard</h4>
+                                        <p class="mb-0 text-reset opacity-75">Live operational metrics, trends, and completion rates in one place.</p>
+                                    </div>
+                                    <div class="col-lg-4">
+                                        <div class="d-flex flex-wrap gap-2 justify-content-lg-end">
+                                            <a href="students.php" class="btn btn-light btn-sm">
+                                                <i class="feather-users me-1"></i> Students
+                                            </a>
+                                            <a href="ojt.php" class="btn btn-outline-light btn-sm">
+                                                <i class="feather-briefcase me-1"></i> OJT Management
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <!-- [KPI Cards] start -->
                     <div class="col-12">
-                        <div class="row g-3 mb-4">
+                        <div class="row g-3 mb-4 align-items-stretch">
                             <div class="col-md-2 col-sm-6">
-                                <div class="card p-3 text-center">
-                                    <div class="fs-5 fw-bold"><?php echo number_format($total_students); ?></div>
-                                    <div class="fs-12 text-muted">Total Students</div>
+                                <div class="card h-100 kpi-card">
+                                    <div class="card-body d-flex flex-column justify-content-between gap-2">
+                                        <span class="fs-11 text-muted d-block mb-2">Total Students</span>
+                                        <h4 class="fw-bold text-dark mb-1"><?php echo number_format($total_students); ?></h4>
+                                        <span class="badge bg-soft-primary text-primary"><?php echo number_format($students_with_email); ?> with email</span>
+                                    </div>
                                 </div>
                             </div>
                             <div class="col-md-2 col-sm-6">
-                                <div class="card p-3 text-center">
-                                    <div class="fs-5 fw-bold"><?php echo number_format($active_internships); ?></div>
-                                    <div class="fs-12 text-muted">Active Internships</div>
+                                <div class="card h-100 kpi-card">
+                                    <div class="card-body d-flex flex-column justify-content-between gap-2">
+                                        <span class="fs-11 text-muted d-block mb-2">Active Internships</span>
+                                        <h4 class="fw-bold text-dark mb-1"><?php echo number_format($active_internships); ?></h4>
+                                        <span class="badge bg-soft-info text-info"><?php echo format_pct($page_views); ?> ongoing ratio</span>
+                                    </div>
                                 </div>
                             </div>
                             <div class="col-md-2 col-sm-6">
-                                <div class="card p-3 text-center">
-                                    <div class="fs-5 fw-bold"><?php echo number_format($total_attendances); ?></div>
-                                    <div class="fs-12 text-muted">Total Attendances</div>
+                                <div class="card h-100 kpi-card">
+                                    <div class="card-body d-flex flex-column justify-content-between gap-2">
+                                        <span class="fs-11 text-muted d-block mb-2">Total Attendances</span>
+                                        <h4 class="fw-bold text-dark mb-1"><?php echo number_format($total_attendances); ?></h4>
+                                        <span class="badge bg-soft-warning text-warning"><?php echo format_pct($attendance_pending_rate); ?> pending</span>
+                                    </div>
                                 </div>
                             </div>
                             <div class="col-md-2 col-sm-6">
-                                <div class="card p-3 text-center">
-                                    <div class="fs-5 fw-bold"><?php echo number_format($approved_attendances); ?></div>
-                                    <div class="fs-12 text-muted">Approved Attendances</div>
+                                <div class="card h-100 kpi-card">
+                                    <div class="card-body d-flex flex-column justify-content-between gap-2">
+                                        <span class="fs-11 text-muted d-block mb-2">Approved Attendance</span>
+                                        <h4 class="fw-bold text-dark mb-1"><?php echo number_format($approved_attendances); ?></h4>
+                                        <span class="badge bg-soft-success text-success"><?php echo format_pct($conversion_rate); ?> approval rate</span>
+                                    </div>
                                 </div>
                             </div>
                             <div class="col-md-2 col-sm-6">
-                                <div class="card p-3 text-center">
-                                    <div class="fs-5 fw-bold"><?php echo number_format($rejected_attendances); ?></div>
-                                    <div class="fs-12 text-muted">Rejected Attendances</div>
+                                <div class="card h-100 kpi-card">
+                                    <div class="card-body d-flex flex-column justify-content-between gap-2">
+                                        <span class="fs-11 text-muted d-block mb-2">Rejected Attendance</span>
+                                        <h4 class="fw-bold text-dark mb-1"><?php echo number_format($rejected_attendances); ?></h4>
+                                        <span class="badge bg-soft-danger text-danger"><?php echo format_pct($bounce_rate); ?> rejection rate</span>
+                                    </div>
                                 </div>
                             </div>
                             <div class="col-md-2 col-sm-6">
-                                <div class="card p-3 text-center">
-                                    <div class="fs-5 fw-bold"><?php echo number_format(isset($biometric_students)?$biometric_students:0); ?></div>
-                                    <div class="fs-12 text-muted">Biometric Registered</div>
+                                <div class="card h-100 kpi-card">
+                                    <div class="card-body d-flex flex-column justify-content-between gap-2">
+                                        <span class="fs-11 text-muted d-block mb-2">Biometric Registered</span>
+                                        <h4 class="fw-bold text-dark mb-1"><?php echo number_format(isset($biometric_students)?$biometric_students:0); ?></h4>
+                                        <span class="badge bg-soft-primary text-primary"><?php echo format_pct($site_impressions); ?> enrollment</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -647,17 +736,16 @@ try {
                             <div class="card-body">
                                 <div class="hstack justify-content-between mb-4 pb-">
                                     <div>
-                                        <h5 class="mb-1">Email Reports</h5>
-                                        <span class="fs-12 text-muted">Email Campaign Reports</span>
+                                        <h5 class="mb-1">Student Engagement Snapshot</h5>
+                                        <span class="fs-12 text-muted">Live breakdown from current database records</span>
                                     </div>
-                                    <a href="javascript:void(0);" class="btn btn-light-brand">View Alls</a>
+                                    <a href="javascript:void(0);" class="btn btn-light-brand">Live Overview</a>
                                 </div>
                                 <?php
                                 // Build student-centric metrics for the Email Reports area
                                 $erp_total_students = isset($total_students) ? (int)$total_students : 0;
                                 // students with non-empty email
-                                $q_email = $conn->query("SELECT COUNT(*) as cnt FROM students WHERE deleted_at IS NULL AND COALESCE(email, '') <> ''");
-                                $erp_with_email = $q_email ? (int)$q_email->fetch_assoc()['cnt'] : 0;
+                                $erp_with_email = isset($students_with_email) ? (int)$students_with_email : 0;
                                 // biometric registered students (already computed above as $biometric_students)
                                 $erp_biometric = isset($biometric_students) ? (int)$biometric_students : 0;
                                 // new students in last 30 days (already computed as $new_students_30)
@@ -691,7 +779,7 @@ try {
                                             <div class="card-body rounded-3 text-center">
                                                 <i class="bi bi-envelope fs-3 text-warning"></i>
                                                 <div class="fs-4 fw-bolder text-dark mt-3 mb-1"><?php echo number_format($erp_with_email); ?></div>
-                                                <p class="fs-12 fw-medium text-muted text-spacing-1 mb-0 text-truncate-1-line">With Email (<?php echo $pct_with_email; ?>%)</p>
+                                                <p class="fs-12 fw-medium text-muted text-spacing-1 mb-0 text-truncate-1-line">With Email (<?php echo format_pct($pct_with_email); ?>)</p>
                                             </div>
                                         </div>
                                     </div>
@@ -700,7 +788,7 @@ try {
                                             <div class="card-body rounded-3 text-center">
                                                 <i class="bi bi-person-check fs-3 text-success"></i>
                                                 <div class="fs-4 fw-bolder text-dark mt-3 mb-1"><?php echo number_format($erp_biometric); ?></div>
-                                                <p class="fs-12 fw-medium text-muted text-spacing-1 mb-0 text-truncate-1-line">Biometric Registered (<?php echo $pct_biometric; ?>%)</p>
+                                                <p class="fs-12 fw-medium text-muted text-spacing-1 mb-0 text-truncate-1-line">Biometric Registered (<?php echo format_pct($pct_biometric); ?>)</p>
                                             </div>
                                         </div>
                                     </div>
@@ -709,7 +797,7 @@ try {
                                             <div class="card-body rounded-3 text-center">
                                                 <i class="bi bi-person-plus fs-3 text-indigo"></i>
                                                 <div class="fs-4 fw-bolder text-dark mt-3 mb-1"><?php echo number_format($erp_new30); ?></div>
-                                                <p class="fs-12 fw-medium text-muted text-spacing-1 mb-0 text-truncate-1-line">New (30d) (<?php echo $pct_new30; ?>%)</p>
+                                                <p class="fs-12 fw-medium text-muted text-spacing-1 mb-0 text-truncate-1-line">New (30d) (<?php echo format_pct($pct_new30); ?>)</p>
                                             </div>
                                         </div>
                                     </div>
@@ -718,7 +806,7 @@ try {
                                             <div class="card-body rounded-3 text-center">
                                                 <i class="bi bi-calendar-check fs-3 text-teal"></i>
                                                 <div class="fs-4 fw-bolder text-dark mt-3 mb-1"><?php echo number_format($erp_att_today); ?></div>
-                                                <p class="fs-12 fw-medium text-muted text-spacing-1 mb-0 text-truncate-1-line">Attended Today (<?php echo $pct_att_today; ?>%)</p>
+                                                <p class="fs-12 fw-medium text-muted text-spacing-1 mb-0 text-truncate-1-line">Attended Today (<?php echo format_pct($pct_att_today); ?>)</p>
                                             </div>
                                         </div>
                                     </div>
@@ -727,7 +815,7 @@ try {
                                             <div class="card-body rounded-3 text-center">
                                                 <i class="bi bi-briefcase fs-3 text-danger"></i>
                                                 <div class="fs-4 fw-bolder text-dark mt-3 mb-1"><?php echo number_format(isset($active_internships)?$active_internships:0); ?></div>
-                                                <p class="fs-12 fw-medium text-muted text-spacing-1 mb-0 text-truncate-1-line">Active Internships</p>
+                                                <p class="fs-12 fw-medium text-muted text-spacing-1 mb-0 text-truncate-1-line">Active Internships (<?php echo format_pct($page_views); ?>)</p>
                                             </div>
                                         </div>
                                     </div>
@@ -737,9 +825,9 @@ try {
                     </div>
                     <!-- [Mini Card] end -->
                     <!-- [Visitors Overview] start -->
-                    <div class="col-xxl-8">
+                    <div class="col-xxl-8 section-tight">
                         <div class="card stretch stretch-full">
-                            <div class="card-header">
+                            <div class="card-header dashboard-move-handle">
                                 <h5 class="card-title">Visitors Overview</h5>
                                 <div class="card-header-action">
                                     <div class="card-header-btn">
@@ -775,16 +863,18 @@ try {
                                 </div>
                             </div>
                             <div class="card-body custom-card-action">
-                                <div id="visitors-overview-statistics-chart"></div>
+                                <div class="analytics-chart-panel">
+                                    <div id="visitors-overview-statistics-chart"></div>
+                                </div>
                             </div>
                         </div>
                     </div>
                     <!-- [Visitors Overview] end -->
-                    <!-- [Browser States] start -->
-                    <div class="col-xxl-4">
+                    <!-- [Internship Status] start -->
+                    <div class="col-xxl-4 section-tight">
                         <div class="card stretch stretch-full">
-                            <div class="card-header">
-                                <h5 class="card-title">Browser States</h5>
+                            <div class="card-header dashboard-move-handle">
+                                <h5 class="card-title">Internship Status</h5>
                                 <div class="card-header-action">
                                     <div class="card-header-btn">
                                         <div data-bs-toggle="tooltip" title="Collapse/Expand">
@@ -822,18 +912,6 @@ try {
                                 <div class="table-responsive">
                                     <table class="table table-hover mb-0">
                                         <?php
-                                        // Show internships status distribution instead of browser placeholders
-                                        $status_counts = ['pending' => 0, 'ongoing' => 0, 'completed' => 0, 'cancelled' => 0];
-                                        $total_interns = 0;
-                                        $stq = $conn->query("SELECT status, COUNT(*) as cnt FROM internships WHERE deleted_at IS NULL GROUP BY status");
-                                        if ($stq) {
-                                            while ($r = $stq->fetch_assoc()) {
-                                                $s = $r['status'] ?? 'other';
-                                                $c = (int)($r['cnt'] ?? 0);
-                                                if (array_key_exists($s, $status_counts)) $status_counts[$s] = $c;
-                                                $total_interns += $c;
-                                            }
-                                        }
                                         $colors = ['pending' => 'bg-warning', 'ongoing' => 'bg-success', 'completed' => 'bg-primary', 'cancelled' => 'bg-danger'];
                                         foreach ($status_counts as $k => $v) {
                                             $pct = $total_interns > 0 ? round(($v / $total_interns) * 100, 2) : 0;
@@ -841,7 +919,7 @@ try {
                                             $barClass = $colors[$k] ?? 'bg-dark';
                                             echo "<tr>\n";
                                             echo "<td><a href=\"ojt.php\"><span>{$label}</span></a></td>\n";
-                                            echo "<td><span class=\"text-end d-flex align-items-center m-0\"><span class=\"me-3\">{$pct}%</span><span class=\"progress w-100 ht-5\"><span class=\"progress-bar {$barClass}\" style=\"width: {$pct}%\"></span></span></span></td>\n";
+                                            echo "<td><span class=\"text-end d-flex align-items-center m-0\"><span class=\"me-3\">" . format_pct($pct) . "</span><span class=\"progress w-100 ht-5\"><span class=\"progress-bar {$barClass}\" style=\"width: {$pct}%\"></span></span></span></td>\n";
                                             echo "</tr>\n";
                                         }
                                         ?>
@@ -890,9 +968,9 @@ try {
                             <a href="javascript:void(0);" class="card-footer fs-11 fw-bold text-uppercase text-center">Explore Details</a>
                         </div>
                     </div>
-                    <!-- [Browser States] end -->
+                    <!-- [Internship Status] end -->
                     <!-- [Mini Card] start -->
-                    <div class="col-xxl-3 col-md-6">
+                    <div class="col-xxl-3 col-md-6 section-tight">
                         <div class="card stretch stretch-full">
                             <div class="card-body p-0">
                                 <div class="d-flex justify-content-between p-4 mb-4">
@@ -902,14 +980,14 @@ try {
                                     </div>
                                     <div class="text-end">
                                         <div class="fs-24 fw-bold mb-2 text-dark"><span class="counter"><?php echo $bounce_rate; ?></span>%</div>
-                                        <div class="fs-11 text-danger">(Rejected)</div>
+                                        <div class="fs-11 text-danger"><?php echo number_format($rejected_attendances); ?> of <?php echo number_format($total_attendances); ?></div>
                                     </div>
                                 </div>
                                 <div id="bounce-rate"></div>
                             </div>
                         </div>
                     </div>
-                    <div class="col-xxl-3 col-md-6">
+                    <div class="col-xxl-3 col-md-6 section-tight">
                         <div class="card stretch stretch-full">
                             <div class="card-body p-0">
                                 <div class="d-flex justify-content-between p-4 mb-4">
@@ -919,14 +997,14 @@ try {
                                     </div>
                                     <div class="text-end">
                                         <div class="fs-24 fw-bold mb-2 text-dark"><span class="counter"><?php echo $page_views; ?></span>%</div>
-                                        <div class="fs-11 text-success">(Active)</div>
+                                        <div class="fs-11 text-success"><?php echo number_format($active_internships); ?> active of <?php echo number_format($total_internships); ?></div>
                                     </div>
                                 </div>
                                 <div id="page-views"></div>
                             </div>
                         </div>
                     </div>
-                    <div class="col-xxl-3 col-md-6">
+                    <div class="col-xxl-3 col-md-6 section-tight">
                         <div class="card stretch stretch-full">
                             <div class="card-body p-0">
                                 <div class="d-flex justify-content-between p-4 mb-4">
@@ -936,14 +1014,14 @@ try {
                                     </div>
                                     <div class="tx-right">
                                         <div class="fs-24 fw-bold mb-2 text-dark"><span class="counter"><?php echo $site_impressions; ?></span>%</div>
-                                        <div class="fs-11 text-success">(Registered)</div>
+                                        <div class="fs-11 text-success"><?php echo number_format($biometric_students); ?> registered of <?php echo number_format($total_students); ?></div>
                                     </div>
                                 </div>
                                 <div id="site-impressions"></div>
                             </div>
                         </div>
                     </div>
-                    <div class="col-xxl-3 col-md-6">
+                    <div class="col-xxl-3 col-md-6 section-tight">
                         <div class="card stretch stretch-full">
                             <div class="card-body p-0">
                                 <div class="d-flex justify-content-between p-4 mb-4">
@@ -953,7 +1031,7 @@ try {
                                     </div>
                                     <div class="tx-right">
                                         <div class="fs-24 fw-bold mb-2 text-dark"><span class="counter"><?php echo $conversion_rate; ?></span>%</div>
-                                        <div class="fs-11 text-success">(Approved)</div>
+                                        <div class="fs-11 text-success"><?php echo number_format($approved_attendances); ?> approved, <?php echo number_format($pending_attendances); ?> pending</div>
                                     </div>
                                 </div>
                                 <div id="conversions-rate"></div>
@@ -962,9 +1040,9 @@ try {
                     </div>
                     <!-- [Mini Card] end -->
                     <!-- [Goal Progress] start -->
-                    <div class="col-xxl-4">
+                    <div class="col-xxl-4 section-tight">
                         <div class="card stretch stretch-full">
-                            <div class="card-header">
+                            <div class="card-header dashboard-move-handle">
                                 <h5 class="card-title">Goal Progress</h5>
                                 <div class="card-header-action">
                                     <div class="card-header-btn">
@@ -1004,7 +1082,7 @@ try {
                                                 <div class="goal-progress-1"></div>
                                             </div>
                                             <h2 class="fs-13 tx-spacing-1">Marketing Goal</h2>
-                                            <div class="fs-11 text-muted text-truncate-1-line"><?php echo $marketing_current; ?>/<?php echo $marketing_goal; ?> Users (<?php echo $marketing_progress; ?>%)</div>
+                                            <div class="fs-11 text-muted text-truncate-1-line"><?php echo $marketing_current; ?>/<?php echo $marketing_goal; ?> Users (<?php echo format_pct($marketing_progress); ?>)</div>
                                         </div>
                                     </div>
                                     <div class="col-sm-6">
@@ -1013,7 +1091,7 @@ try {
                                                 <div class="goal-progress-2"></div>
                                             </div>
                                             <h2 class="fs-13 tx-spacing-1">Teams Goal</h2>
-                                            <div class="fs-11 text-muted text-truncate-1-line"><?php echo $teams_current; ?>/<?php echo $teams_goal; ?> Members (<?php echo $teams_progress; ?>%)</div>
+                                            <div class="fs-11 text-muted text-truncate-1-line"><?php echo $teams_current; ?>/<?php echo $teams_goal; ?> Members (<?php echo format_pct($teams_progress); ?>)</div>
                                         </div>
                                     </div>
                                     <div class="col-sm-6">
@@ -1022,7 +1100,7 @@ try {
                                                 <div class="goal-progress-3"></div>
                                             </div>
                                             <h2 class="fs-13 tx-spacing-1">OJT Goal</h2>
-                                            <div class="fs-11 text-muted text-truncate-1-line"><?php echo $ojt_current_hours; ?>/<?php echo $ojt_goal_hours; ?> hrs (<?php echo $ojt_progress; ?>%)</div>
+                                            <div class="fs-11 text-muted text-truncate-1-line"><?php echo $ojt_current_hours; ?>/<?php echo $ojt_goal_hours; ?> hrs (<?php echo format_pct($ojt_progress); ?>)</div>
                                         </div>
                                     </div>
                                     <div class="col-sm-6">
@@ -1031,7 +1109,7 @@ try {
                                                 <div class="goal-progress-4"></div>
                                             </div>
                                             <h2 class="fs-13 tx-spacing-1">Revenue Goal</h2>
-                                            <div class="fs-11 text-muted text-truncate-1-line"><?php echo $revenue_current; ?>/<?php echo $revenue_goal; ?> (<?php echo $revenue_progress; ?>%)</div>
+                                            <div class="fs-11 text-muted text-truncate-1-line"><?php echo $revenue_current; ?>/<?php echo $revenue_goal; ?> (<?php echo format_pct($revenue_progress); ?>)</div>
                                         </div>
                                     </div>
                                 </div>
@@ -1043,9 +1121,9 @@ try {
                     </div>
                     <!-- [Goal Progress] end -->
                     <!-- [Marketing Campaign] start -->
-                    <div class="col-xxl-8">
+                    <div class="col-xxl-8 section-tight">
                         <div class="card stretch stretch-full">
-                            <div class="card-header">
+                            <div class="card-header dashboard-move-handle">
                                 <h5 class="card-title">Marketing Campaign</h5>
                                 <div class="card-header-action">
                                     <div class="card-header-btn">
@@ -1081,7 +1159,9 @@ try {
                                 </div>
                             </div>
                             <div class="card-body custom-card-action p-0">
-                                <div id="campaign-alytics-bar-chart"></div>
+                                <div class="analytics-chart-panel m-2">
+                                    <div id="campaign-alytics-bar-chart"></div>
+                                </div>
                             </div>
                             <div class="card-footer">
                                 <div class="row g-4">
@@ -1108,7 +1188,7 @@ try {
                                     <div class="col-lg-3">
                                         <div class="p-3 border border-dashed rounded">
                                             <div class="fs-12 text-muted mb-1">Opened</div>
-                                            <h6 class="fw-bold text-dark"><?php echo $opened_pct; ?>%</h6>
+                                            <h6 class="fw-bold text-dark"><?php echo format_pct($opened_pct); ?></h6>
                                             <div class="progress mt-2 ht-3">
                                                 <div class="progress-bar bg-success" role="progressbar" style="width: <?php echo $w_opened; ?>%"></div>
                                             </div>
@@ -1117,7 +1197,7 @@ try {
                                     <div class="col-lg-3">
                                         <div class="p-3 border border-dashed rounded">
                                             <div class="fs-12 text-muted mb-1">Clicked</div>
-                                            <h6 class="fw-bold text-dark"><?php echo $clicked_pct; ?>%</h6>
+                                            <h6 class="fw-bold text-dark"><?php echo format_pct($clicked_pct); ?></h6>
                                             <div class="progress mt-2 ht-3">
                                                 <div class="progress-bar bg-danger" role="progressbar" style="width: <?php echo $w_clicked; ?>%"></div>
                                             </div>
@@ -1126,7 +1206,7 @@ try {
                                     <div class="col-lg-3">
                                         <div class="p-3 border border-dashed rounded">
                                             <div class="fs-12 text-muted mb-1">Conversion</div>
-                                            <h6 class="fw-bold text-dark"><?php echo $conversion_pct; ?>%</h6>
+                                            <h6 class="fw-bold text-dark"><?php echo format_pct($conversion_pct); ?></h6>
                                             <div class="progress mt-2 ht-3">
                                                 <div class="progress-bar bg-dark" role="progressbar" style="width: <?php echo $w_conversion; ?>%"></div>
                                             </div>
@@ -1138,9 +1218,9 @@ try {
                     </div>
                     <!-- [Marketing Campaign] end -->
                     <!-- [Project Remainders] start -->
-                    <div class="col-xxl-8">
+                    <div class="col-xxl-8 section-tight">
                         <div class="card stretch stretch-full">
-                            <div class="card-header">
+                            <div class="card-header dashboard-move-handle">
                                 <h5 class="card-title">Project Remainders</h5>
                                 <div class="card-header-action">
                                     <div class="card-header-btn">
@@ -1262,9 +1342,9 @@ try {
                     </div>
                     <!-- [Project Remainders] end -->
                     <!-- [Social Statistics] start -->
-                    <div class="col-xxl-4">
+                    <div class="col-xxl-4 section-tight">
                         <div class="card stretch stretch-full">
-                            <div class="card-header">
+                            <div class="card-header dashboard-move-handle">
                                 <h5 class="card-title">Social Statistics</h5>
                                 <div class="card-header-action">
                                     <div class="card-header-btn">
@@ -1305,20 +1385,41 @@ try {
                                 $active_internships = isset($active_internships) ? (int)$active_internships : 0;
                                 $biometric_pct = $total_students > 0 ? round(($biometric_students / $total_students) * 100, 2) : 0;
                                 $internship_active_pct = $total_internships > 0 ? round(($active_internships / $total_internships) * 100, 2) : 0;
+                                $internal_pct = $total_internships > 0 ? round(($internal_internships / $total_internships) * 100, 2) : 0;
+                                $external_pct = $total_internships > 0 ? round(($external_internships / $total_internships) * 100, 2) : 0;
                                 ?>
                                 <div class="row g-3 text-center">
                                     <div class="col-6">
                                         <div class="p-3 border border-dashed rounded">
                                             <div class="fs-12 text-muted mb-1">Students</div>
                                             <h6 class="fw-bold text-dark"><?php echo number_format($total_students); ?></h6>
-                                            <div class="fs-11 text-muted"><?php echo $biometric_pct; ?>% Biometric</div>
+                                            <div class="fs-11 text-muted"><?php echo format_pct($biometric_pct); ?> Biometric</div>
                                         </div>
                                     </div>
                                     <div class="col-6">
                                         <div class="p-3 border border-dashed rounded">
                                             <div class="fs-12 text-muted mb-1">OJT Internships</div>
                                             <h6 class="fw-bold text-dark"><?php echo number_format($total_internships); ?></h6>
-                                            <div class="fs-11 text-muted"><?php echo $internship_active_pct; ?>% Active</div>
+                                            <div class="fs-11 text-muted"><?php echo format_pct($internship_active_pct); ?> Active</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="p-3 border border-dashed rounded">
+                                            <div class="fs-12 text-muted mb-1">Completed OJT</div>
+                                            <h6 class="fw-bold text-dark"><?php echo number_format($completed_internships); ?></h6>
+                                            <div class="fs-11 text-muted"><?php echo format_pct($completed_internships_rate); ?> Completion</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="p-3 border border-dashed rounded">
+                                            <div class="fs-12 text-muted mb-1">Internal vs External</div>
+                                            <h6 class="fw-bold text-dark"><?php echo number_format($internal_internships); ?> / <?php echo number_format($external_internships); ?></h6>
+                                            <div class="fs-11 text-muted"><?php echo format_pct($internal_pct); ?> / <?php echo format_pct($external_pct); ?></div>
+                                        </div>
+                                    </div>
+                                    <div class="col-12">
+                                        <div class="analytics-chart-panel">
+                                            <div id="social-overview-chart" style="height:260px;"></div>
                                         </div>
                                     </div>
                                 </div>
@@ -1380,6 +1481,9 @@ try {
             var campaignLabels = <?php echo json_encode($campaign_labels); ?>;
             var campaignInternal = <?php echo json_encode($campaign_internal); ?>;
             var campaignExternal = <?php echo json_encode($campaign_external); ?>;
+
+            var socialOverviewLabels = <?php echo json_encode($engagement_labels); ?>;
+            var socialOverviewValues = <?php echo json_encode($engagement_values); ?>;
 
             var goalProgress = {
                 marketing: <?php echo json_encode($marketing_progress); ?>,
@@ -1484,6 +1588,21 @@ try {
                         grid: { strokeDashArray: 3, borderColor: '#e9ecef' },
                         tooltip: { style: { colors: '#64748b', fontFamily: 'Inter' } },
                         legend: { show: false }
+                    }).render();
+                }
+
+                var socialOverviewEl = document.querySelector('#social-overview-chart');
+                if (socialOverviewEl) {
+                    new ApexCharts(socialOverviewEl, {
+                        chart: { type: 'radar', height: 260, toolbar: { show: false } },
+                        series: [{ name: 'Coverage %', data: socialOverviewValues }],
+                        labels: socialOverviewLabels,
+                        colors: ['#3454d1'],
+                        yaxis: { min: 0, max: 100 },
+                        dataLabels: { enabled: true },
+                        stroke: { width: 2 },
+                        fill: { opacity: 0.2 },
+                        markers: { size: 4 }
                     }).render();
                 }
             }
