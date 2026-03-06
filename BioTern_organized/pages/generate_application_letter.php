@@ -42,6 +42,7 @@ $ap_name = isset($_GET['ap_name']) ? trim($_GET['ap_name']) : '';
 $ap_position = isset($_GET['ap_position']) ? trim($_GET['ap_position']) : '';
 $ap_company = isset($_GET['ap_company']) ? trim($_GET['ap_company']) : '';
 $ap_company_address = isset($_GET['ap_address']) ? trim($_GET['ap_address']) : '';
+$ap_hours = isset($_GET['ap_hours']) ? trim($_GET['ap_hours']) : '250';
 $print_date = isset($_GET['date']) ? trim($_GET['date']) : $today;
 $use_saved_template = isset($_GET['use_saved_template']) && $_GET['use_saved_template'] === '1';
 
@@ -64,10 +65,19 @@ if ($do_download_pdf || $do_download_html) ob_start();
                     @page { size: Letter portrait; margin: 0.5in; }
                     html,body{ height:100%; margin:0; padding:0; }
                     /* document body uses Times New Roman per spec */
-                    body{ font-family: 'Times New Roman', Times, serif; color:#111; background:#fff; font-size:13pt; }
+                    body{ font-family: 'Times New Roman', Times, serif; color:#111; background:#eceff3; font-size:13pt; }
           /* fit printable area: printable width = A4 width - page margins (210mm - 20mm = 190mm)
                             container total (max-width + left/right padding) should not exceed printable width */
-                    .container{ width:100%; max-width:7.5in; margin:0 auto; padding:0.4in; box-sizing:border-box; position:relative; }
+                    .container{
+                        width:100%;
+                        max-width:7.5in;
+                        margin:18px auto;
+                        padding:0.4in;
+                        box-sizing:border-box;
+                        position:relative;
+                        background:#fff;
+                        box-shadow:0 8px 28px rgba(0, 0, 0, 0.14);
+                    }
                     .header{
                         position: relative;
                         min-height: 60px;
@@ -94,16 +104,6 @@ if ($do_download_pdf || $do_download_html) ob_start();
         .content{ margin-top:8px; line-height:1.45; font-size:14pt; font-family: 'Times New Roman', Times, serif; }
         .small{ font-size:15px; }
         .signature{ margin-top:28px; }
-        /* hide print-value spans on screen, show on print with visible fill lines */
-        .print-val{
-            display:none;
-            border-bottom:1px solid #000;
-            min-width:180px;
-            padding:0 2px;
-            line-height:1.1;
-            vertical-align:baseline;
-        }
-        .pv-wide{ min-width:220px; }
         .filled-val{
             display:inline-block;
             border-bottom:1px solid #000;
@@ -115,8 +115,6 @@ if ($do_download_pdf || $do_download_html) ob_start();
         .filled-val-wide{ min-width:240px; }
         .filled-val-name{ min-width:170px; }
         @media print {
-            .blank-input{ display:none !important; }
-            .print-val{ display:inline-block !important; }
             /* reduce spacing on print to better fit one page */
             .header{ padding-bottom:6px; margin-bottom:6px }
             .content{ margin-top:16px; font-size:15px }
@@ -124,7 +122,7 @@ if ($do_download_pdf || $do_download_html) ob_start();
             body { background: #fff; }
             .no-print { display: none !important; }
             /* keep printable padding consistent with page margins */
-            .container { margin: 0; padding: 10mm; }
+            .container { margin: 0; padding: 10mm; background:#fff; box-shadow:none; }
             /* avoid page breaks inside main sections */
             .container, .content, .signature { page-break-inside: avoid; }
             .crest { display: block !important; }
@@ -133,10 +131,31 @@ if ($do_download_pdf || $do_download_html) ob_start();
             /* Reduce bottom spacing that might create an extra page */
             p { orphans: 3; widows: 3; }
         }
-        /* Simple inputs styling for editable blanks */
-        .blank-input{ border:none; border-bottom:1px solid #000; display:inline-block; min-width:180px; padding:2px 4px; font-size:13pt }
         .field-block{ margin:6px 0; }
-        .actions{ margin-top:12px; }
+        .actions{
+            margin-top:40px;
+            padding-top:18px;
+            border-top:2px dashed #cbd5e1;
+        }
+        .tip-box{
+            flex:1 1 100%;
+            font-size:17px;
+            line-height:1.6;
+            border:1px solid #dbe4f0;
+            background:#f8fafc;
+            padding:12px 14px;
+            border-radius:12px;
+            color:#334155;
+        }
+        .action-btn{
+            min-width:104px;
+            min-height:36px;
+            font-size:14px;
+            font-weight:600;
+            padding:7px 14px;
+            border-radius:12px;
+            box-shadow:0 8px 18px rgba(15, 23, 42, 0.08);
+        }
     </style>
 </head>
 <body>
@@ -151,15 +170,15 @@ if ($do_download_pdf || $do_download_html) ob_start();
 
     <div class="content" id="application_doc_content">
         <h3 style="text-align:center;">Application Approval Sheet</h3>
-        <p class="field-block">Date: <input type="text" class="blank-input" id="fld_date" value="<?php echo htmlspecialchars($print_date); ?>"> <span class="print-val" id="pv_date"></span></p>
-        <p class="field-block">Mr./Ms.: <input type="text" class="blank-input" id="fld_name" value="<?php echo htmlspecialchars($ap_name ?: ''); ?>"> <span class="print-val" id="pv_name"></span></p>
-        <p class="field-block">Position: <input type="text" class="blank-input" id="fld_position" value="<?php echo htmlspecialchars($ap_position ?: ''); ?>"> <span class="print-val" id="pv_position"></span></p>
-        <p class="field-block">Name of Company: <input type="text" class="blank-input pv-wide" id="fld_company" value="<?php echo htmlspecialchars($ap_company ?: ''); ?>"> <span class="print-val pv-wide" id="pv_company"></span></p>
-        <p class="field-block">Company Address: <input type="text" class="blank-input pv-wide" id="fld_company_address" value="<?php echo htmlspecialchars($ap_company_address ?: ''); ?>"> <span class="print-val pv-wide" id="pv_company_address"></span></p>
+        <p class="field-block">Date: <span class="filled-val" id="ap_date"><?php echo htmlspecialchars($print_date); ?></span></p>
+        <p class="field-block">Mr./Ms.: <span class="filled-val" id="ap_name"><?php echo htmlspecialchars($ap_name ?: ''); ?></span></p>
+        <p class="field-block">Position: <span class="filled-val" id="ap_position"><?php echo htmlspecialchars($ap_position ?: ''); ?></span></p>
+        <p class="field-block">Name of Company: <span class="filled-val filled-val-wide" id="ap_company"><?php echo htmlspecialchars($ap_company ?: ''); ?></span></p>
+        <p class="field-block">Company Address: <span class="filled-val filled-val-wide" id="ap_address"><?php echo htmlspecialchars($ap_company_address ?: ''); ?></span></p>
 
         <p style="margin-top:30px;">Dear Sir or Madam:</p>
 
-        <p>I am <span class="filled-val filled-val-name"><?php echo htmlspecialchars($full_name); ?></span>, student of Clark College of Science and Technology. In partial fulfillment of the requirements of this course, I am required to have an On-the-job Training ( OJT ) for a minimum of <strong>250 hours</strong>.</p>
+        <p>I am <span class="filled-val filled-val-name"><?php echo htmlspecialchars($full_name); ?></span>, student of Clark College of Science and Technology. In partial fulfillment of the requirements of this course, I am required to have an On-the-job Training ( OJT ) for a minimum of <strong><span id="ap_hours"><?php echo htmlspecialchars($ap_hours); ?></span> hours</strong>.</p>
 
         <p>I would like to apply as a trainee in your company because I believe that the training and experience, I will acquire will broaden my knowledge about my course.</p>
 
@@ -178,21 +197,47 @@ if ($do_download_pdf || $do_download_html) ob_start();
     <p class="small" style="margin-top:40px;">Student Signature: <span style="display:inline-block; width:260px; border-bottom:1px solid #000; margin-left:8px;"></span></p>
     <p class="small" style="margin-top:40px;">Noted by: <span style="display:inline-block; width:260px; border-bottom:1px solid #000; margin-left:8px;"></span></p>
 
-    <div class="actions no-print" style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-        <div class="alert alert-info small" role="alert" style="flex:1 1 100%;">
-            Tip: To remove the headers and footers (date / URL) from the PDF, uncheck "Headers and footers" or "Include headers and footers" in your browser's print dialog (Chrome/Edge: More settings → uncheck "Headers and footers").
+    <div class="actions no-print" style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+        <div class="tip-box" role="alert">
+            Tip: Use A4 paper. In your print settings, set the margins to Top: 0, Bottom: 0, Left: 0.5, Right: 0.5, and uncheck "Headers and footers" or "Include headers and footers".
         </div>
-        <button id="btn_print" class="btn btn-primary btn-lg">Print / Save as PDF (letter)</button>
-        <button id="btn_close" class="btn btn-secondary btn-lg">Close</button>
+        <button id="btn_print" type="button" class="btn btn-primary btn-lg action-btn" onclick="window.print(); return false;">Print</button>
+        <button id="btn_close" type="button" class="btn btn-secondary btn-lg action-btn" onclick="window.location.href='../documents/document_application.php'; return false;">Close</button>
     </div>
 
 </div>
 <script>
     (function(){
+        function ensurePrintableHoursSpan(value) {
+            var doc = document.getElementById('application_doc_content');
+            if (!doc) return null;
+
+            var existing = doc.querySelector('#ap_hours');
+            if (existing) {
+                existing.textContent = value || existing.textContent || '250';
+                return existing;
+            }
+
+            var paragraphs = doc.querySelectorAll('p');
+            paragraphs.forEach(function(p){
+                if (existing) return;
+                var text = (p.textContent || '').replace(/\s+/g, ' ').trim();
+                if (text.indexOf('I am ') !== 0) return;
+                if (text.indexOf('minimum of') === -1 || text.indexOf('hours') === -1) return;
+                p.innerHTML = p.innerHTML.replace(
+                    /minimum of\s*<strong>[\s\S]*?hours<\/strong>/i,
+                    'minimum of <strong><span id="ap_hours">' + String(value || '250').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</span> hours</strong>'
+                );
+                existing = doc.querySelector('#ap_hours');
+            });
+
+            return existing;
+        }
+
         function setText(id, value) {
             var el = document.getElementById(id);
             if (!el) return;
-            el.textContent = value || '__________________________';
+            el.textContent = value || '';
         }
 
         function applyRuntimeValues() {
@@ -201,6 +246,7 @@ if ($do_download_pdf || $do_download_html) ob_start();
             setText('ap_position', <?php echo json_encode($ap_position); ?>);
             setText('ap_company', <?php echo json_encode($ap_company); ?>);
             setText('ap_address', <?php echo json_encode($ap_company_address); ?>);
+            ensurePrintableHoursSpan(<?php echo json_encode($ap_hours); ?>);
             setText('ap_student', <?php echo json_encode($full_name); ?>);
             setText('ap_student_name', <?php echo json_encode($full_name); ?>);
             setText('ap_student_address', <?php echo json_encode($address); ?>);
@@ -268,34 +314,34 @@ if ($do_download_pdf || $do_download_html) ob_start();
         window.__forceApplicationUnderlines = forceApplicationUnderlines;
     })();
 
-    // mirror input values into print-only spans and hide inputs when printing
+    // button actions
     (function(){
-        var fields = ['date','name','position','company','company_address'];
-        fields.forEach(function(f){
-            var inp = document.getElementById('fld_' + f);
-            var pv = document.getElementById('pv_' + f);
-            if (inp && pv) {
-                pv.textContent = inp.value || '';
-                inp.addEventListener('input', function(){ pv.textContent = inp.value; });
-            }
-        });
+        ensurePrintableHoursSpan(<?php echo json_encode($ap_hours); ?>);
 
         // print button: open print dialog — note: browser headers/footers are controlled by print dialog settings
-        document.getElementById('btn_print').addEventListener('click', function(){
-            window.print();
-        });
+        var printButton = document.getElementById('btn_print');
+        if (printButton) {
+            printButton.addEventListener('click', function(e){
+                e.preventDefault();
+                window.print();
+            });
+        }
 
-        document.getElementById('btn_close').addEventListener('click', function(){
-            if (window.opener && !window.opener.closed) {
-                window.close();
-                return;
-            }
-            if (window.history.length > 1) {
-                window.history.back();
-                return;
-            }
-            window.location.href = '../documents/document_application.php';
-        });
+        var closeButton = document.getElementById('btn_close');
+        if (closeButton) {
+            closeButton.addEventListener('click', function(e){
+                e.preventDefault();
+                if (window.opener && !window.opener.closed) {
+                    window.close();
+                    return;
+                }
+                if (window.history.length > 1) {
+                    window.history.back();
+                    return;
+                }
+                window.location.href = '../documents/document_application.php';
+            });
+        }
     })();
 
     (function(){

@@ -55,7 +55,18 @@ $address = $student['address'] ?? '';
     .two-col { display:flex; gap:24px; margin-top:12px; }
     .col { flex:1; }
     .small { font-size:13px; color:var(--muted); }
-    .print-btn { position:fixed; right:20px; bottom:20px; }
+    .print-btn {
+      position:fixed;
+      right:20px;
+      bottom:20px;
+      min-width:132px;
+      min-height:44px;
+      font-size:16px;
+      font-weight:600;
+      padding:10px 18px;
+      border-radius:12px;
+      box-shadow:0 8px 18px rgba(15, 23, 42, 0.12);
+    }
     @media (max-width: 700px) {
         .header { flex-direction: column-reverse; align-items: stretch; }
         .right { width: 100%; justify-content: center; margin-bottom: 16px; }
@@ -125,7 +136,7 @@ $address = $student['address'] ?? '';
     </div>
   </div>
 
-  <button class="btn btn-primary print-btn" onclick="window.print()">Print / Save as PDF</button>
+  <button class="btn btn-primary print-btn" onclick="window.print()">Print</button>
 </div>
 </body>
 </html>

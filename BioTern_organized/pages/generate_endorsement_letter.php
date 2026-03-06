@@ -128,8 +128,17 @@ if ($recipient !== '') {
     <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
     <style>
         @page { size: Letter portrait; margin: 0.5in; }
-        body { font-family: "Times New Roman", Times, serif; color:#111; font-size:12pt; margin:0; }
-        .container { width:100%; max-width:7.5in; margin:0 auto; padding:0.4in; box-sizing:border-box; position:relative; }
+        body { font-family: "Times New Roman", Times, serif; color:#111; font-size:12pt; margin:0; background:#eceff3; }
+        .container {
+            width:100%;
+            max-width:7.5in;
+            margin:18px auto;
+            padding:0.4in;
+            box-sizing:border-box;
+            position:relative;
+            background:#fff;
+            box-shadow:0 8px 28px rgba(0, 0, 0, 0.14);
+        }
         .header { position:relative; min-height:56px; text-align:center; border-bottom:2px solid #1c5ab1; padding:8px 0 6px; margin-bottom:10px; }
         .crest { position:absolute; left:30px; top:30px; width:70px; height:70px; object-fit:contain; }
         .header h2 { font-family:'Times New Roman', Times, serif; color:#1b4f9c; font-size:13pt; margin:0; font-weight:600; }
@@ -150,8 +159,14 @@ if ($recipient !== '') {
             pointer-events: none;
         }
         .ross-signatory-text { position: relative; z-index: 1; }
-        .actions { margin-top:12px; }
-        @media print { .no-print { display:none !important; } .container { padding:10mm; } }
+        .actions { margin-top:40px; padding-top:18px; border-top:2px dashed #cbd5e1; display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+        .tip-box { flex:1 1 100%; font-size:17px; line-height:1.6; border:1px solid #dbe4f0; background:#f8fafc; padding:12px 14px; border-radius:12px; color:#334155; }
+        .action-btn { min-width:104px; min-height:36px; font-size:14px; font-weight:600; padding:7px 14px; cursor:pointer; border-radius:12px; box-shadow:0 8px 18px rgba(15, 23, 42, 0.08); }
+        @media print {
+            body { background:#fff; }
+            .no-print { display:none !important; }
+            .container { margin:0; padding:10mm; background:#fff; box-shadow:none; }
+        }
     </style>
 </head>
 <body>
@@ -201,8 +216,9 @@ if ($recipient !== '') {
     </div>
 
     <div class="actions no-print">
-        <button id="btn_print">Print / Save PDF</button>
-        <button id="btn_close">Close</button>
+        <div class="tip-box">Tip: Use A4 paper. In your print settings, set the margins to Top: 0, Bottom: 0 Left: 0.5, Right: 0.5, and uncheck "Headers and footers" or "Include headers and footers".</div>
+        <button id="btn_print" type="button" class="action-btn">Print</button>
+        <button id="btn_close" type="button" class="action-btn">Close</button>
     </div>
 </div>
 

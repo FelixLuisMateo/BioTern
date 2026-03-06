@@ -278,6 +278,10 @@ include __DIR__ . '/../includes/header.php';
                             <label class="form-label">Company Address</label>
                             <textarea id="input_company_address" class="form-control form-control-sm" rows="2" placeholder="Company address" autocomplete="off"></textarea>
                         </div>
+                        <div class="mt-2">
+                            <label class="form-label">Hours</label>
+                            <input id="input_hours" class="form-control form-control-sm" type="text" value="250" placeholder="Required OJT hours" autocomplete="off">
+                        </div>
                         <div class="mt-3 d-flex gap-2">
                             <button id="btn_file_edit_application" type="button" class="btn btn-primary flex-grow-0">File Edit</button>
                             <button id="btn_generate" type="button" class="btn btn-success flex-grow-1">Generate / Print</button>
@@ -302,7 +306,7 @@ include __DIR__ . '/../includes/header.php';
                             <p>Company Address: <span id="ap_address">__________________________</span></p>
 
                             <p>Dear Sir or Madam:</p>
-                            <p>I am <span id="ap_student">__________________________</span> student of Clark College of Science and Technology. In partial fulfillment of the requirements of this course, I am required to have an On-the-job Training ( OJT ) for a minimum of <strong>250 hours</strong>.</p>
+                            <p>I am <span id="ap_student">__________________________</span> student of Clark College of Science and Technology. In partial fulfillment of the requirements of this course, I am required to have an On-the-job Training ( OJT ) for a minimum of <strong><span id="ap_hours">250</span> hours</strong>.</p>
 
                             <p>I would like to apply as a trainee in your company because I believe that the training and experience, I will acquire will broaden my knowledge about my course.</p>
 
@@ -324,27 +328,137 @@ include __DIR__ . '/../includes/header.php';
         window.addEventListener('load', function() {
         (function(){
             const APP_TEMPLATE_STORAGE_KEY = 'biotern_application_template_html_v1';
+            const APP_FORM_STORAGE_KEY = 'biotern_application_form_values_v1';
+            const APP_SELECTED_STUDENT_KEY = 'biotern_application_selected_student_v1';
             const PREFILL_STUDENT_ID = <?php echo intval($prefill_student_id); ?>;
             const select = $('#student_select');
             const inputName = document.getElementById('input_name');
             const inputPosition = document.getElementById('input_position');
             const inputCompany = document.getElementById('input_company');
             const inputCompanyAddress = document.getElementById('input_company_address');
+            const inputHours = document.getElementById('input_hours');
             const btnFileEdit = document.getElementById('btn_file_edit_application');
             const letterContent = document.getElementById('letter_content');
             let selectedStudentId = null;
             let isFileEditMode = false;
             let hasLoadedSavedTemplate = false;
+            const pageStorage = window.sessionStorage;
+
+            function clearPageState() {
+                try { pageStorage.removeItem(APP_TEMPLATE_STORAGE_KEY); } catch (err) {}
+                try { pageStorage.removeItem(APP_FORM_STORAGE_KEY); } catch (err) {}
+                try { pageStorage.removeItem(APP_SELECTED_STUDENT_KEY); } catch (err) {}
+            }
+
+            function getNavigationType() {
+                try {
+                    const entries = performance.getEntriesByType('navigation');
+                    if (entries && entries.length && entries[0].type) return entries[0].type;
+                } catch (err) {}
+                return 'navigate';
+            }
+
+            if (PREFILL_STUDENT_ID <= 0 && getNavigationType() !== 'reload') {
+                clearPageState();
+            }
+
+            function ensurePreviewHoursSpan() {
+                if (!letterContent) return null;
+                let previewHours = letterContent.querySelector('#ap_hours');
+                if (previewHours) return previewHours;
+                const paragraphs = letterContent.querySelectorAll('p');
+                paragraphs.forEach(function(p) {
+                    if (previewHours) return;
+                    const text = (p.textContent || '').replace(/\s+/g, ' ').trim();
+                    if (text.indexOf('I am ') !== 0) return;
+                    if (text.indexOf('minimum of') === -1 || text.indexOf('hours') === -1) return;
+
+                    p.innerHTML = p.innerHTML.replace(
+                        /minimum of\s*<strong>[\s\S]*?hours<\/strong>/i,
+                        'minimum of <strong><span id="ap_hours">250</span> hours</strong>'
+                    );
+                    previewHours = letterContent.querySelector('#ap_hours');
+                });
+
+                return previewHours;
+            }
+
+            function getHoursValue() {
+                return (inputHours.value || '250').toString();
+            }
+
+            function setHoursValue(value) {
+                const normalized = (value || '250').toString();
+                inputHours.value = normalized;
+                const previewHours = ensurePreviewHoursSpan();
+                if (previewHours) previewHours.textContent = normalized;
+            }
+
+            function saveFormState() {
+                try {
+                    pageStorage.setItem(APP_FORM_STORAGE_KEY, JSON.stringify({
+                        ap_name: inputName.value || '',
+                        ap_position: inputPosition.value || '',
+                        ap_company: inputCompany.value || '',
+                        ap_address: inputCompanyAddress.value || '',
+                        ap_hours: getHoursValue()
+                    }));
+                } catch (err) {}
+            }
+
+            function saveSelectedStudentState(student) {
+                try {
+                    if (!student || !student.id) {
+                        pageStorage.removeItem(APP_SELECTED_STUDENT_KEY);
+                        return;
+                    }
+                    pageStorage.setItem(APP_SELECTED_STUDENT_KEY, JSON.stringify({
+                        id: String(student.id),
+                        name: (student.name || '').toString(),
+                        label: (student.label || '').toString()
+                    }));
+                } catch (err) {}
+            }
+
+            function loadSelectedStudentState() {
+                try {
+                    const saved = pageStorage.getItem(APP_SELECTED_STUDENT_KEY);
+                    if (!saved) return null;
+                    const data = JSON.parse(saved);
+                    if (!data || !data.id) return null;
+                    return data;
+                } catch (err) {
+                    return null;
+                }
+            }
+
+            function loadFormState() {
+                try {
+                    const saved = pageStorage.getItem(APP_FORM_STORAGE_KEY);
+                    if (!saved) return false;
+                    const data = JSON.parse(saved);
+                    if (!data || typeof data !== 'object') return false;
+                    inputName.value = (data.ap_name || '').toString();
+                    inputPosition.value = (data.ap_position || '').toString();
+                    inputCompany.value = (data.ap_company || '').toString();
+                    inputCompanyAddress.value = (data.ap_address || '').toString();
+                    setHoursValue((data.ap_hours || '250').toString());
+                    return true;
+                } catch (err) {
+                    return false;
+                }
+            }
 
             function saveApplicationTemplateHtml() {
                 if (!letterContent) return;
-                try { localStorage.setItem(APP_TEMPLATE_STORAGE_KEY, letterContent.innerHTML); } catch (err) {}
+                setHoursValue(getHoursValue());
+                try { pageStorage.setItem(APP_TEMPLATE_STORAGE_KEY, letterContent.innerHTML); } catch (err) {}
             }
 
             function loadApplicationTemplateHtml() {
                 if (!letterContent) return false;
                 try {
-                    const saved = localStorage.getItem(APP_TEMPLATE_STORAGE_KEY);
+                    const saved = pageStorage.getItem(APP_TEMPLATE_STORAGE_KEY);
                     if (!saved) return false;
                     const temp = document.createElement('div');
                     temp.innerHTML = saved;
@@ -359,6 +473,7 @@ include __DIR__ . '/../includes/header.php';
                         letterContent.innerHTML = temp.innerHTML || saved;
                     }
                     hasLoadedSavedTemplate = true;
+                    setHoursValue(getHoursValue());
                     return true;
                 } catch (err) {
                     return false;
@@ -453,6 +568,11 @@ include __DIR__ . '/../includes/header.php';
                     .then(data => {
                         if (!data) return;
                         const fullname = [data.first_name, data.middle_name, data.last_name].filter(Boolean).join(' ');
+                        saveSelectedStudentState({
+                            id: id,
+                            name: fullname,
+                            label: (fullname || 'Student') + ' - ' + (data.student_id || id)
+                        });
                         // Do NOT set inputName/inputCompany/inputPosition here those are for the recipient/company
                         // Only set student-related preview fields
                         document.getElementById('ap_student').textContent = fullname;
@@ -498,6 +618,11 @@ include __DIR__ . '/../includes/header.php';
                         const label = (fullname || 'Student') + ' - ' + (data.student_id || id);
                         const option = new Option(label, String(id), true, true);
                         select.append(option).trigger('change');
+                        saveSelectedStudentState({
+                            id: id,
+                            name: fullname,
+                            label: label
+                        });
 
                         // Keep visible search text in sync for prefilled student id.
                         const overlayInput = document.querySelector('.select2-overlay-input');
@@ -526,6 +651,8 @@ include __DIR__ . '/../includes/header.php';
                 document.getElementById('ap_position').textContent = '__________________________';
                 document.getElementById('ap_company').textContent = '__________________________';
                 document.getElementById('ap_address').textContent = '__________________________';
+                setHoursValue('250');
+                saveFormState();
             }
 
             function updatePreviewFields(){
@@ -534,6 +661,9 @@ include __DIR__ . '/../includes/header.php';
                 document.getElementById('ap_position').textContent = inputPosition.value || '__________________________';
                 document.getElementById('ap_company').textContent = inputCompany.value || '__________________________';
                 document.getElementById('ap_address').textContent = inputCompanyAddress.value || '__________________________';
+                setHoursValue(getHoursValue());
+                saveFormState();
+                saveApplicationTemplateHtml();
             }
 
             function updateGenerateLink(id){
@@ -545,8 +675,9 @@ include __DIR__ . '/../includes/header.php';
                 if (inputPosition.value) params.set('ap_position', inputPosition.value);
                 if (inputCompany.value) params.set('ap_company', inputCompany.value);
                 if (inputCompanyAddress.value) params.set('ap_address', inputCompanyAddress.value);
+                if (getHoursValue()) params.set('ap_hours', getHoursValue());
                 try {
-                    if (localStorage.getItem(APP_TEMPLATE_STORAGE_KEY)) {
+                    if (pageStorage.getItem(APP_TEMPLATE_STORAGE_KEY)) {
                         params.set('use_saved_template', '1');
                     }
                 } catch (err) {}
@@ -560,6 +691,7 @@ include __DIR__ . '/../includes/header.php';
             inputPosition.addEventListener('input', function(){ updatePreviewFields(); updateGenerateLink(selectedStudentId); });
             inputCompany.addEventListener('input', function(){ updatePreviewFields(); updateGenerateLink(selectedStudentId); });
             inputCompanyAddress.addEventListener('input', function(){ updatePreviewFields(); updateGenerateLink(selectedStudentId); });
+            inputHours.addEventListener('input', function(){ updatePreviewFields(); updateGenerateLink(selectedStudentId); });
 
             btnFileEdit.addEventListener('click', function(e){
                 openApplicationEditor(e);
@@ -573,13 +705,27 @@ include __DIR__ . '/../includes/header.php';
             });
 
             loadApplicationTemplateHtml();
+            const hasSavedFormState = loadFormState();
+            if (!hasSavedFormState) {
+                clearRecipientCompanyFields();
+            }
+            updatePreviewFields();
             if (!hasLoadedSavedTemplate) {
-                updatePreviewFields();
                 document.getElementById('ap_date').textContent = new Date().toLocaleDateString();
             }
-            clearRecipientCompanyFields();
             updateGenerateLink(selectedStudentId || select.val());
-            if (PREFILL_STUDENT_ID > 0) prefillByStudentId(PREFILL_STUDENT_ID);
+            if (PREFILL_STUDENT_ID > 0) {
+                prefillByStudentId(PREFILL_STUDENT_ID);
+            } else {
+                const savedStudent = loadSelectedStudentState();
+                if (savedStudent && savedStudent.id) {
+                    const option = new Option(savedStudent.label || savedStudent.name || ('Student - ' + savedStudent.id), String(savedStudent.id), true, true);
+                    select.append(option).trigger('change');
+                    const overlayInput = document.querySelector('.select2-overlay-input');
+                    if (overlayInput) overlayInput.value = savedStudent.name || '';
+                    prefillByStudentId(savedStudent.id);
+                }
+            }
 
         })();
         });

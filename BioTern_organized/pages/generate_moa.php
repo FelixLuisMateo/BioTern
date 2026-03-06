@@ -44,30 +44,6 @@ $use_saved_template = q('use_saved_template', '0') === '1';
     <meta charset="utf-8">
     <title>BioTern || Memorandum of Agreement</title>
     <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
-    <script>
-        (function () {
-            var dark = false;
-            try {
-                var match = document.cookie.match(/(?:^|;\s*)biotern_theme_preferences=([^;]+)/);
-                if (match && match[1]) {
-                    var prefs = JSON.parse(decodeURIComponent(match[1]));
-                    if (prefs && prefs.skin === 'dark') dark = true;
-                }
-            } catch (e) {}
-            try {
-                var primary = localStorage.getItem('app-skin');
-                var skin = primary !== null
-                    ? primary
-                    : (localStorage.getItem('app_skin')
-                        || localStorage.getItem('theme')
-                        || localStorage.getItem('app-skin-dark')
-                        || '');
-                if (typeof skin === 'string' && skin.indexOf('dark') !== -1) dark = true;
-                if (primary !== null && primary.indexOf('dark') === -1) dark = false;
-            } catch (e) {}
-            if (dark) document.documentElement.classList.add('app-skin-dark');
-        })();
-    </script>
     <style>
         @page { size: A4 portrait; margin: 0.30in 0.81in 0.20in 0.81in; }
         html, body { margin: 0; padding: 0; color: #111; }
@@ -138,41 +114,16 @@ $use_saved_template = q('use_saved_template', '0') === '1';
         .row { display:flex; justify-content:space-between; gap:12px; }
         .col { flex:1; }
         .right { text-align:right; }
-        .actions { margin-top:18px; display:flex; gap:8px; flex-wrap:wrap; }
+        .actions { margin-top:40px; padding-top:18px; border-top:2px dashed #cbd5e1; display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+        .tip-box { flex:1 1 100%; font-size:17px; line-height:1.6; border:1px solid #dbe4f0; background:#f8fafc; padding:12px 14px; border-radius:12px; color:#334155; }
+        .action-btn { min-width:104px; min-height:36px; font-size:14px; font-weight:600; padding:7px 14px; cursor:pointer; border-radius:12px; box-shadow:0 8px 18px rgba(15, 23, 42, 0.08); }
         .btn { border:1px solid #333; background:#fff; padding:8px 12px; cursor:pointer; }
-        html.app-skin-dark body { background:#0b1220; color:#e5e7eb; }
-        html.app-skin-dark .container { background:#0f172a; color:#e5e7eb; box-shadow:none; }
-        html.app-skin-dark .header { border-bottom-color:#355f9c; }
-        html.app-skin-dark .header .school-name,
-        html.app-skin-dark .header .school-former,
-        html.app-skin-dark .header .school-address,
-        html.app-skin-dark .header .school-tel,
-        html.app-skin-dark .doc,
-        html.app-skin-dark .doc p,
-        html.app-skin-dark .doc li,
-        html.app-skin-dark .doc h4 { color:#e5e7eb; }
-        html.app-skin-dark .btn { background:#111827; color:#e5e7eb; border-color:#334155; }
-        html:not(.app-skin-dark) #moa_doc_content,
-        html:not(.app-skin-dark) #moa_doc_content * { color:#000 !important; }
+        #moa_doc_content,
+        #moa_doc_content * { color:#000 !important; }
         @media print {
             body { background: #fff; }
             #moa_doc_content,
             #moa_doc_content * { color:#000 !important; }
-            html.app-skin-dark body {
-                background:#fff !important;
-                color:#000 !important;
-            }
-            html.app-skin-dark .container {
-                background:#fff !important;
-                color:#000 !important;
-                box-shadow:none !important;
-            }
-            html.app-skin-dark .doc,
-            html.app-skin-dark .doc p,
-            html.app-skin-dark .doc li,
-            html.app-skin-dark .doc h4 {
-                color:#000 !important;
-            }
             /* Fallback compensation for browsers/printers that keep custom margins at
                Top/Bottom: 0, Left/Right: 0.5. This adds the missing space visually so
                output matches target margins (Top/Bottom 0.20, Left/Right 0.81). */
@@ -279,8 +230,9 @@ $use_saved_template = q('use_saved_template', '0') === '1';
     </div>
 
     <div class="actions no-print">
-        <button class="btn" onclick="window.print()">Print / Save PDF</button>
-        <button class="btn" id="btn_close_moa" type="button">Close</button>
+        <div class="tip-box">Tip: Use A4 paper. In your print settings, set the margins to Top: 0, Bottom: 0.2, Left: 0.5, Right: 0.5, and uncheck "Headers and footers" or "Include headers and footers".</div>
+        <button class="btn action-btn" type="button" onclick="window.print()">Print</button>
+        <button class="btn action-btn" id="btn_close_moa" type="button">Close</button>
     </div>
 </div>
 <?php if ($use_saved_template): ?>
@@ -289,21 +241,18 @@ $use_saved_template = q('use_saved_template', '0') === '1';
         function normalizeMoaColors() {
             var doc = document.getElementById('moa_doc_content');
             if (!doc) return;
-            var isDark = document.documentElement.classList.contains('app-skin-dark');
-            if (!isDark) {
-                var withStyle = doc.querySelectorAll('[style]');
-                withStyle.forEach(function(el){
-                    var s = el.getAttribute('style') || '';
-                    // Remove inline color declarations that make text appear gray in light mode.
-                    s = s.replace(/(^|;)\s*color\s*:[^;]+;?/gi, '$1');
-                    s = s.replace(/(^|;)\s*text-decoration-color\s*:[^;]+;?/gi, '$1');
-                    s = s.replace(/;;+/g, ';').trim();
-                    if (s === '' || s === ';') el.removeAttribute('style');
-                    else el.setAttribute('style', s);
-                });
-                var fontNodes = doc.querySelectorAll('font[color]');
-                fontNodes.forEach(function(el){ el.removeAttribute('color'); });
-            }
+            var withStyle = doc.querySelectorAll('[style]');
+            withStyle.forEach(function(el){
+                var s = el.getAttribute('style') || '';
+                // Remove inline color declarations that make text appear gray.
+                s = s.replace(/(^|;)\s*color\s*:[^;]+;?/gi, '$1');
+                s = s.replace(/(^|;)\s*text-decoration-color\s*:[^;]+;?/gi, '$1');
+                s = s.replace(/;;+/g, ';').trim();
+                if (s === '' || s === ';') el.removeAttribute('style');
+                else el.setAttribute('style', s);
+            });
+            var fontNodes = doc.querySelectorAll('font[color]');
+            fontNodes.forEach(function(el){ el.removeAttribute('color'); });
         }
 
         try {
@@ -321,10 +270,8 @@ $use_saved_template = q('use_saved_template', '0') === '1';
     (function(){
         var doc = document.getElementById('moa_doc_content');
         if (!doc) return;
-        if (!document.documentElement.classList.contains('app-skin-dark')) {
-            var fontNodes = doc.querySelectorAll('font[color]');
-            fontNodes.forEach(function(el){ el.removeAttribute('color'); });
-        }
+        var fontNodes = doc.querySelectorAll('font[color]');
+        fontNodes.forEach(function(el){ el.removeAttribute('color'); });
     })();
 </script>
 <?php endif; ?>
