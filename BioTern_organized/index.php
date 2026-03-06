@@ -207,7 +207,7 @@ $year = date("Y");
         <p class="lead text-muted" style="color: #ffffff;">Your Biometric Internship Monitoring and Management System</p>
         <p class="text-muted">Manage interns, supervisors, coordinators, attendance and reports in one place.</p>
         <br>
-        <a href="auth-login-cover.php" class="apply-btn">Sign In</a>
+        <a href="homepage.php" class="apply-btn">Sign In</a>
     </div>
 
     <footer>
