@@ -401,6 +401,7 @@ if ($header_user_id_session > 0) {
     <!--! END: Early Skin Script -->
     <!--! BEGIN: Custom CSS-->
     <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css" />
+    <link rel="stylesheet" type="text/css" href="assets/css/layout-shared-overrides.css" />
     <?php if (isset($page_styles) && is_array($page_styles)): ?>
         <?php foreach ($page_styles as $stylesheet): ?>
             <?php if (is_string($stylesheet) && trim($stylesheet) !== ''): ?>
@@ -409,138 +410,6 @@ if ($header_user_id_session > 0) {
         <?php endforeach; ?>
     <?php endif; ?>
     <!--! END: Custom CSS-->
-    <style>
-        .nxl-header .user-avtar,
-        .nxl-user-dropdown .user-avtar {
-            width: 40px !important;
-            height: 40px !important;
-            min-width: 40px !important;
-            min-height: 40px !important;
-            border-radius: 50% !important;
-            object-fit: cover !important;
-            object-position: center !important;
-        }
-
-        html.app-skin-dark input.form-control,
-        html.app-skin-dark textarea.form-control,
-        html.app-skin-dark .form-control[type="text"],
-        html.app-skin-dark .form-control[type="email"],
-        html.app-skin-dark .form-control[type="password"],
-        html.app-skin-dark .form-control[type="number"],
-        html.app-skin-dark .form-control[type="date"],
-        html.app-skin-dark .form-control[type="time"],
-        html.app-skin-dark .form-control[type="search"],
-        html.app-skin-dark .form-control[type="tel"],
-        html.app-skin-dark .form-control[type="url"] {
-            color: #ffffff !important;
-            -webkit-text-fill-color: #ffffff !important;
-            background-color: #0f172a !important;
-            border-color: #4a5568 !important;
-        }
-
-        html.app-skin-dark input.form-control::placeholder,
-        html.app-skin-dark textarea.form-control::placeholder {
-            color: #d1dcf0 !important;
-            opacity: 1 !important;
-        }
-
-        /* Keep browser autofill readable in dark mode */
-        html.app-skin-dark input.form-control:-webkit-autofill,
-        html.app-skin-dark input.form-control:-webkit-autofill:hover,
-        html.app-skin-dark input.form-control:-webkit-autofill:focus,
-        html.app-skin-dark textarea.form-control:-webkit-autofill,
-        html.app-skin-dark textarea.form-control:-webkit-autofill:hover,
-        html.app-skin-dark textarea.form-control:-webkit-autofill:focus {
-            -webkit-text-fill-color: #ffffff !important;
-            caret-color: #ffffff !important;
-            box-shadow: 0 0 0 1000px #0f172a inset !important;
-            -webkit-box-shadow: 0 0 0 1000px #0f172a inset !important;
-            border-color: #4a5568 !important;
-            transition: background-color 9999s ease-out 0s;
-        }
-
-        html.app-skin-dark input.form-control:autofill,
-        html.app-skin-dark textarea.form-control:autofill {
-            color: #ffffff !important;
-            background-color: #0f172a !important;
-        }
-
-        html.app-skin-dark select.form-control,
-        html.app-skin-dark select.form-select,
-        html.app-skin-dark select.form-control option,
-        html.app-skin-dark select.form-select option {
-            color: #ffffff !important;
-            background-color: #0f172a !important;
-            border-color: #4a5568 !important;
-        }
-
-        html.app-skin-dark .select2-container--default .select2-selection--single,
-        html.app-skin-dark .select2-container--default .select2-selection--multiple {
-            color: #ffffff !important;
-            background-color: #0f172a !important;
-            border-color: #4a5568 !important;
-        }
-
-        html.app-skin-dark .select2-container--default .select2-selection--single .select2-selection__rendered,
-        html.app-skin-dark .select2-container--default .select2-selection--multiple .select2-selection__rendered,
-        html.app-skin-dark .select2-container--default .select2-selection__placeholder {
-            color: #ffffff !important;
-        }
-
-        html.app-skin-dark .select2-container--default.select2-container--open .select2-dropdown,
-        html.app-skin-dark .select2-container--default .select2-results__option {
-            color: #ffffff !important;
-            background-color: #0f172a !important;
-            border-color: #4a5568 !important;
-        }
-
-        html.app-skin-dark .select2-container--default .select2-results__option--highlighted[aria-selected] {
-            color: #ffffff !important;
-            background-color: #334155 !important;
-        }
-
-        html.app-skin-dark .filter-form input.form-control,
-        html.app-skin-dark .filter-form select.form-control,
-        html.app-skin-dark .filter-form select.form-select,
-        html.app-skin-dark .filter-form .select2-container--default .select2-selection--single,
-        html.app-skin-dark .filter-form .select2-container--default .select2-selection--multiple {
-            color: #ffffff !important;
-        }
-
-        html.app-skin-dark .filter-form input.form-control::placeholder {
-            color: #d1dcf0 !important;
-            opacity: 1;
-        }
-
-        html.app-skin-dark .filter-form .select2-container--default .select2-selection--single .select2-selection__rendered,
-        html.app-skin-dark .filter-form .select2-container--default .select2-selection--multiple .select2-selection__rendered {
-            color: #ffffff !important;
-        }
-
-        html.app-skin-dark .select2-container--default.select2-container--open .select2-dropdown,
-        html.app-skin-dark .select2-container--default .select2-results__option {
-            color: #ffffff !important;
-        }
-
-        html.app-skin-dark .select2-container--default .select2-results__option--highlighted[aria-selected] {
-            color: #ffffff !important;
-        }
-
-        /* Force click-only behavior for selected header dropdowns (no hover-open). */
-        .click-only-dropdown > .dropdown-menu {
-            display: none !important;
-            visibility: hidden;
-            opacity: 0;
-            pointer-events: none;
-        }
-
-        .click-only-dropdown > .dropdown-menu.show {
-            display: block !important;
-            visibility: visible;
-            opacity: 1;
-            pointer-events: auto;
-        }
-    </style>
 </head>
 
 <body>
@@ -562,7 +431,7 @@ if ($header_user_id_session > 0) {
                     <a href="javascript:void(0);" id="menu-mini-button">
                         <i class="feather-align-left"></i>
                     </a>
-                    <a href="javascript:void(0);" id="menu-expend-button" style="display: none">
+                    <a href="javascript:void(0);" id="menu-expend-button" class="hidden-inline-toggle">
                         <i class="feather-arrow-right"></i>
                     </a>
                 </div>
@@ -599,7 +468,7 @@ if ($header_user_id_session > 0) {
                         <a href="javascript:void(0);" class="nxl-head-link me-0 dark-button">
                             <i class="feather-moon"></i>
                         </a>
-                        <a href="javascript:void(0);" class="nxl-head-link me-0 light-button" style="display: none">
+                        <a href="javascript:void(0);" class="nxl-head-link me-0 light-button hidden-inline-toggle">
                             <i class="feather-sun"></i>
                         </a>
                     </div>

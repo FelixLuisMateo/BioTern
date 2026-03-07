@@ -1,22 +1,7 @@
-﻿<?php
+<?php
 // Shared footer include.  It closes main container and adds global scripts.
 ?>
-<style>
-    /* Keep footer pinned at the bottom on short pages. */
-    .nxl-container {
-        display: flex;
-        flex-direction: column;
-        min-height: calc(100vh - 80px);
-    }
-
-    .nxl-container .nxl-content {
-        flex: 1 0 auto;
-    }
-
-    .nxl-container .footer {
-        margin-top: auto;
-    }
-</style>        </div> <!-- .nxl-content -->
+        </div> <!-- .nxl-content -->
         <!-- [ Footer ] start -->
         <footer class="footer">
             <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
@@ -25,11 +10,11 @@
                     document.write(new Date().getFullYear());
                 </script>
             </p>
-            <p><span>By: <a href="javascript:void(0);">ACT 2A</a> </span><span>Distributed by: <a href="javascript:void(0);">Group 5</a></span></p>
+            <p><span>By: <a href="#">ACT 2A</a> </span><span>Distributed by: <a href="#">Group 5</a></span></p>
             <div class="d-flex align-items-center gap-4">
-                <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Help</a>
-                <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Terms</a>
-                <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Privacy</a>
+                <a href="#" class="fs-11 fw-semibold text-uppercase">Help</a>
+                <a href="#" class="fs-11 fw-semibold text-uppercase">Terms</a>
+                <a href="#" class="fs-11 fw-semibold text-uppercase">Privacy</a>
             </div>
         </footer>
         <!-- [ Footer ] end -->
@@ -42,7 +27,7 @@
     <!--! ================================================================ !-->
     <!--! BEGIN: Downloading Toast !-->
     <!--! ================================================================ !-->
-    <div class="position-fixed" style="right: 5px; bottom: 5px; z-index: 999999">
+    <div class="position-fixed toast-fixed">
         <div id="toast" class="toast bg-black hide" data-bs-delay="3000" role="alert" aria-live="assertive" aria-atomic="true">
             <div class="toast-header px-3 bg-transparent d-flex align-items-center justify-content-between border-bottom border-light border-opacity-10">
                 <div class="text-white mb-0 mr-auto">Downloading...</div>
@@ -55,7 +40,7 @@
                 <span class="text-light fs-11">4.2mb of 5.5mb</span>
             </div>
             <div class="toast-footer p-3 pt-0 border-top border-light border-opacity-10">
-                <div class="progress mt-3" style="height: 5px">
+                <div class="progress mt-3 toast-progress-thin">
                     <div class="progress-bar progress-bar-striped progress-bar-animated w-75 bg-dark" role="progressbar" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100"></div>
                 </div>
             </div>
@@ -633,6 +618,7 @@
 </body>
 
 </html>
+
 
 
 
