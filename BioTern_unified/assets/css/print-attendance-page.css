@@ -1,0 +1,91 @@
+@media print {
+    body {
+        margin: 0;
+        padding: 10px;
+    }
+
+    .no-print {
+        display: none !important;
+    }
+
+    .card {
+        page-break-inside: avoid;
+    }
+}
+
+body {
+    font-family: Arial, sans-serif;
+}
+
+.header {
+    text-align: center;
+    margin-bottom: 30px;
+    border-bottom: 2px solid #333;
+    padding-bottom: 15px;
+}
+
+.info-section {
+    margin: 20px 0;
+}
+
+.info-row {
+    display: flex;
+    margin: 10px 0;
+}
+
+.info-label {
+    font-weight: bold;
+    width: 200px;
+}
+
+.attendance-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+.attendance-table th,
+.attendance-table td {
+    border: 1px solid #ddd;
+    padding: 10px;
+    text-align: center;
+}
+
+.attendance-table th {
+    background-color: #f8f9fa;
+}
+
+.status-approved {
+    color: green;
+    font-weight: bold;
+}
+
+.status-rejected {
+    color: red;
+    font-weight: bold;
+}
+
+.status-pending {
+    color: orange;
+    font-weight: bold;
+}
+
+.footer {
+    margin-top: 40px;
+    text-align: center;
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.print-trigger {
+    margin-bottom: 20px;
+}
+
+.info-section-spaced {
+    margin-top: 30px;
+}
+
+.info-row-total {
+    margin-top: 10px;
+    font-weight: bold;
+}
