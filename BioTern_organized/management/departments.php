@@ -1,8 +1,9 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 $host = '127.0.0.1';
 $db_user = 'root';
 $db_password = '';
-$db_name = 'biotern_db';
+$db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
 
 try {
     $conn = new mysqli($host, $db_user, $db_password, $db_name);
@@ -75,7 +76,9 @@ $page_title = 'Departments';
     <div class="card stretch stretch-full">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="card-title mb-0">All Departments</h5>
-            <span class="badge bg-primary text-white px-3 py-1" style="font-weight:600;"><?php echo count($departments); ?> total</span>
+            <span class="badge bg-primary text-white px-3 py-1" style="font-weight:600;"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo count($departments); ?> total</span>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
@@ -85,50 +88,114 @@ $page_title = 'Departments';
                             <th>ID</th>
                             <th>Code</th>
                             <th>Name</th>
-                            <?php if ($hasColumn('department_head')): ?><th>Department Head</th><?php endif; ?>
-                            <?php if ($hasColumn('contact_email')): ?><th>Contact Email</th><?php endif; ?>
-                            <?php if ($hasColumn('is_active')): ?><th>Status</th><?php endif; ?>
-                            <?php if ($hasColumn('created_at')): ?><th>Created</th><?php endif; ?>
+                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($hasColumn('department_head')): ?><th>Department Head</th><?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
+                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($hasColumn('contact_email')): ?><th>Contact Email</th><?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
+                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($hasColumn('is_active')): ?><th>Status</th><?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
+                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($hasColumn('created_at')): ?><th>Created</th><?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                    <?php if (!empty($departments)): ?>
-                        <?php foreach ($departments as $dept): ?>
+                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if (!empty($departments)): ?>
+                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($departments as $dept): ?>
                             <tr>
-                                <td><?php echo (int)$dept['id']; ?></td>
-                                <td><?php echo htmlspecialchars((string)($dept['code'] ?? '')); ?></td>
-                                <td><?php echo htmlspecialchars((string)($dept['name'] ?? '')); ?></td>
-                                <?php if ($hasColumn('department_head')): ?>
-                                    <td><?php echo htmlspecialchars((string)($dept['department_head'] ?? '-')); ?></td>
-                                <?php endif; ?>
-                                <?php if ($hasColumn('contact_email')): ?>
-                                    <td><?php echo htmlspecialchars((string)($dept['contact_email'] ?? '-')); ?></td>
-                                <?php endif; ?>
-                                <?php if ($hasColumn('is_active')): ?>
+                                <td><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$dept['id']; ?></td>
+                                <td><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars((string)($dept['code'] ?? '')); ?></td>
+                                <td><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars((string)($dept['name'] ?? '')); ?></td>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($hasColumn('department_head')): ?>
+                                    <td><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars((string)($dept['department_head'] ?? '-')); ?></td>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($hasColumn('contact_email')): ?>
+                                    <td><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars((string)($dept['contact_email'] ?? '-')); ?></td>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($hasColumn('is_active')): ?>
                                     <td>
-                                        <?php if ((string)($dept['is_active'] ?? '0') === '1'): ?>
+                                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ((string)($dept['is_active'] ?? '0') === '1'): ?>
                                             <span class="badge bg-success">Active</span>
-                                        <?php else: ?>
+                                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+else: ?>
                                             <span class="badge bg-secondary">Inactive</span>
-                                        <?php endif; ?>
+                                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
                                     </td>
-                                <?php endif; ?>
-                                <?php if ($hasColumn('created_at')): ?>
-                                    <td><?php echo htmlspecialchars((string)($dept['created_at'] ?? '-')); ?></td>
-                                <?php endif; ?>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($hasColumn('created_at')): ?>
+                                    <td><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars((string)($dept['created_at'] ?? '-')); ?></td>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
                                 <td>
-                                    <a href="departments-edit.php?id=<?php echo (int)$dept['id']; ?>" class="btn btn-sm btn-outline-primary">
+                                    <a href="departments-edit.php?id=<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$dept['id']; ?>" class="btn btn-sm btn-outline-primary">
                                         Edit
                                     </a>
                                 </td>
                             </tr>
-                        <?php endforeach; ?>
-                    <?php else: ?>
+                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
+                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+else: ?>
                         <tr>
-                            <td colspan="<?php echo 4 + ($hasColumn('department_head') ? 1 : 0) + ($hasColumn('contact_email') ? 1 : 0) + ($hasColumn('is_active') ? 1 : 0) + ($hasColumn('created_at') ? 1 : 0); ?>" class="text-center py-4 text-muted">No departments found.</td>
+                            <td colspan="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo 4 + ($hasColumn('department_head') ? 1 : 0) + ($hasColumn('contact_email') ? 1 : 0) + ($hasColumn('is_active') ? 1 : 0) + ($hasColumn('created_at') ? 1 : 0); ?>" class="text-center py-4 text-muted">No departments found.</td>
                         </tr>
-                    <?php endif; ?>
+                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
                     </tbody>
                 </table>
             </div>
@@ -136,4 +203,7 @@ $page_title = 'Departments';
     </div>
 </div>
 <?php
+require_once dirname(__DIR__) . '/config/db.php';
 include 'includes/footer.php';
+
+

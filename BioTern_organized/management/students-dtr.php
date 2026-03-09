@@ -1,8 +1,9 @@
-<?php
-$host = 'localhost';
-$db_user = 'root';
-$db_password = '';
-$db_name = 'biotern_db';
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
+$host = defined('DB_HOST') ? DB_HOST : 'localhost';
+$db_user = defined('DB_USER') ? DB_USER : 'root';
+$db_password = defined('DB_PASS') ? DB_PASS : ''; 
+$db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
 
 try {
     $conn = new mysqli($host, $db_user, $db_password, $db_name);
@@ -423,6 +424,7 @@ include 'includes/header.php';
                     <tbody>
                         <?php for ($day = 1; $day <= $days_in_month; $day++): ?>
                             <?php
+require_once dirname(__DIR__) . '/config/db.php';
                             $row = $records_by_day[$day] ?? null;
                             $date_iso = date('Y-m-', $month_ts) . str_pad((string)$day, 2, '0', STR_PAD_LEFT);
                             ?>
@@ -443,6 +445,7 @@ include 'includes/header.php';
             <div class="dtr-mobile-list">
                 <?php for ($day = 1; $day <= $days_in_month; $day++): ?>
                     <?php
+require_once dirname(__DIR__) . '/config/db.php';
                     $row = $records_by_day[$day] ?? null;
                     $date_iso = date('Y-m-', $month_ts) . str_pad((string)$day, 2, '0', STR_PAD_LEFT);
                     ?>
@@ -486,4 +489,5 @@ include 'includes/header.php';
 
 <?php include 'includes/footer.php'; ?>
 <?php $conn->close(); ?>
+
 

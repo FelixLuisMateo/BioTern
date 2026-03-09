@@ -1,9 +1,10 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 // Database Connection
 $host = 'localhost';
 $db_user = 'root';
 $db_password = '';
-$db_name = 'biotern_db';
+$db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
 
 try {
     $conn = new mysqli($host, $db_user, $db_password, $db_name);
@@ -583,7 +584,9 @@ function getAttendanceStatus($morning_time_in) {
 </head>
 
 <body>
-    <?php include_once 'includes/navigation.php'; ?>
+    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+include_once 'includes/navigation.php'; ?>
     <!--! ================================================================ !-->
     <!--! [Start] Header !-->
     <!--! ================================================================ !-->
@@ -683,15 +686,23 @@ function getAttendanceStatus($morning_time_in) {
                     </div>
                     <div class="dropdown nxl-h-item">
                         <a href="javascript:void(0);" data-bs-toggle="dropdown" role="button" data-bs-auto-close="outside">
-                            <img src="<?php echo htmlspecialchars((isset($_SESSION['profile_picture']) && trim((string)$_SESSION['profile_picture']) !== '' ? ltrim(str_replace('\\', '/', trim((string)$_SESSION['profile_picture'])), '/') : ('assets/images/avatar/' . (((int)($_SESSION['user_id'] ?? 0) % 5) + 1) . '.png')), ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar me-0" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
+                            <img src="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars((isset($_SESSION['profile_picture']) && trim((string)$_SESSION['profile_picture']) !== '' ? ltrim(str_replace('\\', '/', trim((string)$_SESSION['profile_picture'])), '/') : ('assets/images/avatar/' . (((int)($_SESSION['user_id'] ?? 0) % 5) + 1) . '.png')), ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar me-0" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
                         </a>
                         <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-user-dropdown">
                             <div class="dropdown-header">
                                 <div class="d-flex align-items-center">
-                                    <img src="<?php echo htmlspecialchars((isset($_SESSION['profile_picture']) && trim((string)$_SESSION['profile_picture']) !== '' ? ltrim(str_replace('\\', '/', trim((string)$_SESSION['profile_picture'])), '/') : ('assets/images/avatar/' . (((int)($_SESSION['user_id'] ?? 0) % 5) + 1) . '.png')), ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
+                                    <img src="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars((isset($_SESSION['profile_picture']) && trim((string)$_SESSION['profile_picture']) !== '' ? ltrim(str_replace('\\', '/', trim((string)$_SESSION['profile_picture'])), '/') : ('assets/images/avatar/' . (((int)($_SESSION['user_id'] ?? 0) % 5) + 1) . '.png')), ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
                                     <div>
-                                        <h6 class="text-dark mb-0"><?php echo htmlspecialchars((string)($_SESSION['name'] ?? $_SESSION['username'] ?? 'BioTern User'), ENT_QUOTES, 'UTF-8'); ?></h6>
-                                        <span class="fs-12 fw-medium text-muted"><?php echo htmlspecialchars((string)($_SESSION['email'] ?? 'admin@biotern.local'), ENT_QUOTES, 'UTF-8'); ?></span>
+                                        <h6 class="text-dark mb-0"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars((string)($_SESSION['name'] ?? $_SESSION['username'] ?? 'BioTern User'), ENT_QUOTES, 'UTF-8'); ?></h6>
+                                        <span class="fs-12 fw-medium text-muted"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars((string)($_SESSION['email'] ?? 'admin@biotern.local'), ENT_QUOTES, 'UTF-8'); ?></span>
                                     </div>
                                 </div>
                             </div>
@@ -851,51 +862,103 @@ function getAttendanceStatus($morning_time_in) {
                     <form method="GET" class="filter-form row g-2 align-items-end" id="attendanceFilterForm">
                         <div class="col-sm-2">
                             <label class="form-label" for="filter-date">Date</label>
-                            <input id="filter-date" type="date" name="date" class="form-control" value="<?php echo htmlspecialchars($_GET['date'] ?? ''); ?>">
+                            <input id="filter-date" type="date" name="date" class="form-control" value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($_GET['date'] ?? ''); ?>">
                         </div>
                         <div class="col-sm-2">
                             <label class="form-label" for="filter-course">Course</label>
                             <select id="filter-course" name="course_id" class="form-control">
                                 <option value="0">-- All Courses --</option>
-                                <?php foreach ($courses as $course): ?>
-                                    <option value="<?php echo $course['id']; ?>" <?php echo $filter_course == $course['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($course['name']); ?></option>
-                                <?php endforeach; ?>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($courses as $course): ?>
+                                    <option value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $course['id']; ?>" <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $filter_course == $course['id'] ? 'selected' : ''; ?>><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($course['name']); ?></option>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
                             </select>
                         </div>
                         <div class="col-sm-2">
                             <label class="form-label" for="filter-department">Department</label>
                             <select id="filter-department" name="department_id" class="form-control">
                                 <option value="0">-- All Departments --</option>
-                                <?php foreach ($departments as $dept): ?>
-                                    <option value="<?php echo $dept['id']; ?>" <?php echo $filter_department == $dept['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($dept['name']); ?></option>
-                                <?php endforeach; ?>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($departments as $dept): ?>
+                                    <option value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $dept['id']; ?>" <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $filter_department == $dept['id'] ? 'selected' : ''; ?>><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($dept['name']); ?></option>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
                             </select>
                         </div>
                         <div class="col-sm-2">
                             <label class="form-label" for="filter-section">Section</label>
                             <select id="filter-section" name="section_id" class="form-control">
                                 <option value="0">-- All Sections --</option>
-                                <?php foreach ($sections as $section): ?>
-                                    <option value="<?php echo (int)$section['id']; ?>" <?php echo $filter_section == $section['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($section['section_label']); ?></option>
-                                <?php endforeach; ?>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($sections as $section): ?>
+                                    <option value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$section['id']; ?>" <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $filter_section == $section['id'] ? 'selected' : ''; ?>><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($section['section_label']); ?></option>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
                             </select>
                         </div>
                         <div class="col-sm-2">
                             <label class="form-label" for="filter-supervisor">Supervisor</label>
                             <select id="filter-supervisor" name="supervisor" class="form-control">
                                 <option value="">-- Any Supervisor --</option>
-                                <?php foreach ($supervisors as $sup): ?>
-                                    <option value="<?php echo htmlspecialchars($sup); ?>" <?php echo $filter_supervisor == $sup ? 'selected' : ''; ?>><?php echo htmlspecialchars($sup); ?></option>
-                                <?php endforeach; ?>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($supervisors as $sup): ?>
+                                    <option value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($sup); ?>" <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $filter_supervisor == $sup ? 'selected' : ''; ?>><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($sup); ?></option>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
                             </select>
                         </div>
                         <div class="col-sm-2">
                             <label class="form-label" for="filter-coordinator">Coordinator</label>
                             <select id="filter-coordinator" name="coordinator" class="form-control">
                                 <option value="">-- Any Coordinator --</option>
-                                <?php foreach ($coordinators as $coor): ?>
-                                    <option value="<?php echo htmlspecialchars($coor); ?>" <?php echo $filter_coordinator == $coor ? 'selected' : ''; ?>><?php echo htmlspecialchars($coor); ?></option>
-                                <?php endforeach; ?>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($coordinators as $coor): ?>
+                                    <option value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($coor); ?>" <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $filter_coordinator == $coor ? 'selected' : ''; ?>><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($coor); ?></option>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
                             </select>
                         </div>
                         <div class="col-sm-2">
@@ -922,12 +985,16 @@ function getAttendanceStatus($morning_time_in) {
                                             </div>
                                             <a href="javascript:void(0);" class="fw-bold d-block">
                                                 <span class="text-truncate-1-line">Total Approved</span>
-                                                <span class="fs-24 fw-bolder d-block"><?php echo $stats['approved_count'] ?? 0; ?></span>
+                                                <span class="fs-24 fw-bolder d-block"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $stats['approved_count'] ?? 0; ?></span>
                                             </a>
                                         </div>
                                         <div class="badge bg-soft-success text-success">
                                             <i class="feather-arrow-up fs-10 me-1"></i>
-                                            <span><?php echo $stats['total_count'] > 0 ? round(($stats['approved_count'] / $stats['total_count']) * 100, 1) : 0; ?>%</span>
+                                            <span><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $stats['total_count'] > 0 ? round(($stats['approved_count'] / $stats['total_count']) * 100, 1) : 0; ?>%</span>
                                         </div>
                                     </div>
                                 </div>
@@ -943,12 +1010,16 @@ function getAttendanceStatus($morning_time_in) {
                                             </div>
                                             <a href="javascript:void(0);" class="fw-bold d-block">
                                                 <span class="text-truncate-1-line">Pending Approval</span>
-                                                <span class="fs-24 fw-bolder d-block"><?php echo $stats['pending_count'] ?? 0; ?></span>
+                                                <span class="fs-24 fw-bolder d-block"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $stats['pending_count'] ?? 0; ?></span>
                                             </a>
                                         </div>
                                         <div class="badge bg-soft-warning text-warning">
                                             <i class="feather-arrow-up fs-10 me-1"></i>
-                                            <span><?php echo $stats['total_count'] > 0 ? round(($stats['pending_count'] / $stats['total_count']) * 100, 1) : 0; ?>%</span>
+                                            <span><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $stats['total_count'] > 0 ? round(($stats['pending_count'] / $stats['total_count']) * 100, 1) : 0; ?>%</span>
                                         </div>
                                     </div>
                                 </div>
@@ -964,12 +1035,16 @@ function getAttendanceStatus($morning_time_in) {
                                             </div>
                                             <a href="javascript:void(0);" class="fw-bold d-block">
                                                 <span class="text-truncate-1-line">Rejected</span>
-                                                <span class="fs-24 fw-bolder d-block"><?php echo $stats['rejected_count'] ?? 0; ?></span>
+                                                <span class="fs-24 fw-bolder d-block"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $stats['rejected_count'] ?? 0; ?></span>
                                             </a>
                                         </div>
                                         <div class="badge bg-soft-danger text-danger">
                                             <i class="feather-arrow-down fs-10 me-1"></i>
-                                            <span><?php echo $stats['total_count'] > 0 ? round(($stats['rejected_count'] / $stats['total_count']) * 100, 1) : 0; ?>%</span>
+                                            <span><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $stats['total_count'] > 0 ? round(($stats['rejected_count'] / $stats['total_count']) * 100, 1) : 0; ?>%</span>
                                         </div>
                                     </div>
                                 </div>
@@ -985,7 +1060,9 @@ function getAttendanceStatus($morning_time_in) {
                                             </div>
                                             <a href="javascript:void(0);" class="fw-bold d-block">
                                                 <span class="text-truncate-1-line">Total Records</span>
-                                                <span class="fs-24 fw-bolder d-block"><?php echo $stats['total_count'] ?? 0; ?></span>
+                                                <span class="fs-24 fw-bolder d-block"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $stats['total_count'] ?? 0; ?></span>
                                             </a>
                                         </div>
                                         <div class="badge bg-soft-info text-info">
@@ -1059,21 +1136,38 @@ function getAttendanceStatus($morning_time_in) {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <?php if (!empty($attendances)): ?>
-                                                <?php foreach ($attendances as $index => $attendance): ?>
+                                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if (!empty($attendances)): ?>
+                                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($attendances as $index => $attendance): ?>
                                                     <tr class="single-item">
                                                         <td>
                                                             <div class="item-checkbox ms-1">
                                                                 <div class="custom-control custom-checkbox">
-                                                                    <input type="checkbox" class="custom-control-input checkbox" id="checkBox_<?php echo (int)$attendance['id']; ?>_<?php echo (int)$index; ?>" data-attendance-id="<?php echo (int)$attendance['id']; ?>">
-                                                                    <label class="custom-control-label" for="checkBox_<?php echo (int)$attendance['id']; ?>_<?php echo (int)$index; ?>"></label>
+                                                                    <input type="checkbox" class="custom-control-input checkbox" id="checkBox_<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$attendance['id']; ?>_<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$index; ?>" data-attendance-id="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$attendance['id']; ?>">
+                                                                    <label class="custom-control-label" for="checkBox_<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$attendance['id']; ?>_<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$index; ?>"></label>
                                                                 </div>
                                                             </div>
                                                         </td>
                                                         <td>
-                                                            <a href="students-view.php?id=<?php echo $attendance['student_id']; ?>" class="hstack gap-3">
+                                                            <a href="students-view.php?id=<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $attendance['student_id']; ?>" class="hstack gap-3">
                                                                 <?php
-                                                                $pp = $attendance['profile_picture'] ?? '';
+require_once dirname(__DIR__) . '/config/db.php';
+$pp = $attendance['profile_picture'] ?? '';
                                                                 $pp_url = resolve_attendance_profile_image_url((string)$pp);
                                                                 if ($pp_url !== null) {
                                                                     echo '<div class="avatar-image avatar-md"><img src="' . htmlspecialchars($pp_url) . '" alt="" class="img-fluid"></div>';
@@ -1082,26 +1176,47 @@ function getAttendanceStatus($morning_time_in) {
                                                                 }
                                                                 ?>
                                                                 <div>
-                                                                    <span class="text-truncate-1-line fw-bold"><?php echo ($attendance['first_name'] ?? 'N/A') . ' ' . ($attendance['last_name'] ?? 'N/A'); ?></span>
-                                                                    <span class="fs-12 text-muted d-block"><?php echo $attendance['student_number'] ?? 'N/A'; ?></span>
+                                                                    <span class="text-truncate-1-line fw-bold"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo ($attendance['first_name'] ?? 'N/A') . ' ' . ($attendance['last_name'] ?? 'N/A'); ?></span>
+                                                                    <span class="fs-12 text-muted d-block"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $attendance['student_number'] ?? 'N/A'; ?></span>
                                                                 </div>
                                                             </a>
                                                         </td>
-                                                        <td><span class="badge bg-soft-primary text-primary"><?php echo date('Y-m-d', strtotime($attendance['attendance_date'])); ?></span></td>
-                                                        <td><span class="badge bg-soft-success text-success"><?php echo formatTime($attendance['morning_time_in']); ?></span></td>
-                                                        <td><span class="badge bg-soft-success text-success"><?php echo formatTime($attendance['morning_time_out']); ?></span></td>
-                                                        <td><span class="badge bg-soft-info text-info"><?php echo formatTime($attendance['break_time_in']); ?></span></td>
-                                                        <td><span class="badge bg-soft-info text-info"><?php echo formatTime($attendance['break_time_out']); ?></span></td>
-                                                        <td><span class="badge bg-soft-warning text-warning"><?php echo formatTime($attendance['afternoon_time_in']); ?></span></td>
-                                                        <td><span class="badge bg-soft-warning text-warning"><?php echo formatTime($attendance['afternoon_time_out']); ?></span></td>
+                                                        <td><span class="badge bg-soft-primary text-primary"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo date('Y-m-d', strtotime($attendance['attendance_date'])); ?></span></td>
+                                                        <td><span class="badge bg-soft-success text-success"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo formatTime($attendance['morning_time_in']); ?></span></td>
+                                                        <td><span class="badge bg-soft-success text-success"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo formatTime($attendance['morning_time_out']); ?></span></td>
+                                                        <td><span class="badge bg-soft-info text-info"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo formatTime($attendance['break_time_in']); ?></span></td>
+                                                        <td><span class="badge bg-soft-info text-info"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo formatTime($attendance['break_time_out']); ?></span></td>
+                                                        <td><span class="badge bg-soft-warning text-warning"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo formatTime($attendance['afternoon_time_in']); ?></span></td>
+                                                        <td><span class="badge bg-soft-warning text-warning"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo formatTime($attendance['afternoon_time_out']); ?></span></td>
                                                         <td>
                                                             <span class="badge bg-soft-secondary text-secondary">
-                                                                <?php echo calculateTotalHours($attendance['morning_time_in'], $attendance['morning_time_out'], $attendance['afternoon_time_in'], $attendance['afternoon_time_out']); ?>h
+                                                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo calculateTotalHours($attendance['morning_time_in'], $attendance['morning_time_out'], $attendance['afternoon_time_in'], $attendance['afternoon_time_out']); ?>h
                                                             </span>
                                                         </td>
                                                         <td>
                                                             <?php
-                                                                $att_status = getAttendanceStatus($attendance['morning_time_in']);
+require_once dirname(__DIR__) . '/config/db.php';
+$att_status = getAttendanceStatus($attendance['morning_time_in']);
                                                                 if ($att_status === 'present') {
                                                                     echo '<span class="badge bg-soft-success text-success">Present</span>';
                                                                 } elseif ($att_status === 'late') {
@@ -1111,10 +1226,14 @@ function getAttendanceStatus($morning_time_in) {
                                                                 }
                                                             ?>
                                                         </td>
-                                                        <td><?php echo getStatusBadge($attendance['status']); ?></td>
+                                                        <td><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo getStatusBadge($attendance['status']); ?></td>
                                                         <td>
                                                             <div class="hstack gap-2 justify-content-end">
-                                                                <a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="tooltip" title="View Details" onclick="viewDetails(<?php echo (int)$attendance['student_id']; ?>)">
+                                                                <a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="tooltip" title="View Details" onclick="viewDetails(<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$attendance['student_id']; ?>)">
                                                                     <i class="feather feather-eye"></i>
                                                                 </a>
                                                                 <div class="dropdown">
@@ -1123,38 +1242,50 @@ function getAttendanceStatus($morning_time_in) {
                                                                     </a>
                                                                     <ul class="dropdown-menu dropdown-menu-end">
                                                                         <li>
-                                                                            <a class="dropdown-item" href="javascript:void(0)" onclick="approveAttendanceIndividual(<?php echo intval($attendance['id']); ?>)">
+                                                                            <a class="dropdown-item" href="javascript:void(0)" onclick="approveAttendanceIndividual(<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo intval($attendance['id']); ?>)">
                                                                                 <i class="feather feather-check-circle me-3"></i>
                                                                                 <span>Approve</span>
                                                                             </a>
                                                                         </li>
                                                                         <li>
-                                                                            <a class="dropdown-item" href="javascript:void(0)" onclick="rejectAttendanceIndividual(<?php echo intval($attendance['id']); ?>)">
+                                                                            <a class="dropdown-item" href="javascript:void(0)" onclick="rejectAttendanceIndividual(<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo intval($attendance['id']); ?>)">
                                                                                 <i class="feather feather-x-circle me-3"></i>
                                                                                 <span>Reject</span>
                                                                             </a>
                                                                         </li>
                                                                         <li>
-                                                                            <a class="dropdown-item" href="javascript:void(0)" onclick="editAttendance(<?php echo $attendance['id']; ?>)">
+                                                                            <a class="dropdown-item" href="javascript:void(0)" onclick="editAttendance(<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $attendance['id']; ?>)">
                                                                                 <i class="feather feather-edit-3 me-3"></i>
                                                                                 <span>Edit</span>
                                                                             </a>
                                                                         </li>
                                                                         <li>
-                                                                            <a class="dropdown-item printBTN" href="javascript:void(0)" onclick="printAttendance(<?php echo $attendance['id']; ?>)">
+                                                                            <a class="dropdown-item printBTN" href="javascript:void(0)" onclick="printAttendance(<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $attendance['id']; ?>)">
                                                                                 <i class="feather feather-printer me-3"></i>
                                                                                 <span>Print</span>
                                                                             </a>
                                                                         </li>
                                                                         <li>
-                                                                            <a class="dropdown-item" href="javascript:void(0)" onclick="sendNotification(<?php echo $attendance['id']; ?>)">
+                                                                            <a class="dropdown-item" href="javascript:void(0)" onclick="sendNotification(<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $attendance['id']; ?>)">
                                                                                 <i class="feather feather-mail me-3"></i>
                                                                                 <span>Send Notification</span>
                                                                             </a>
                                                                         </li>
                                                                         <li class="dropdown-divider"></li>
                                                                         <li>
-                                                                            <a class="dropdown-item" href="javascript:void(0)" onclick="deleteAttendanceIndividual(<?php echo intval($attendance['id']); ?>)">
+                                                                            <a class="dropdown-item" href="javascript:void(0)" onclick="deleteAttendanceIndividual(<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo intval($attendance['id']); ?>)">
                                                                                 <i class="feather feather-trash-2 me-3"></i>
                                                                                 <span>Delete</span>
                                                                             </a>
@@ -1164,8 +1295,12 @@ function getAttendanceStatus($morning_time_in) {
                                                             </div>
                                                         </td>
                                                     </tr>
-                                                <?php endforeach; ?>
-                                            <?php endif; ?>
+                                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
+                                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
                                         </tbody>
                                     </table>
                                 </div>
@@ -1179,7 +1314,7 @@ function getAttendanceStatus($morning_time_in) {
         <!-- [ Footer ] start -->
         <footer class="footer">
             <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
-                <span>Copyright ©</span>
+                <span>Copyright Â©</span>
                 <script>
                     document.write(new Date().getFullYear());
                 </script>
@@ -1863,5 +1998,7 @@ function getAttendanceStatus($morning_time_in) {
 </body>
 
 </html>
+
+
 
 

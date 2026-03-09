@@ -1,12 +1,13 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-$host = 'localhost';
-$db_user = 'root';
-$db_password = '';
-$db_name = 'biotern_db';
+$host = defined('DB_HOST') ? DB_HOST : 'localhost';
+$db_user = defined('DB_USER') ? DB_USER : 'root';
+$db_password = defined('DB_PASS') ? DB_PASS : ''; 
+$db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
 
 $conn = new mysqli($host, $db_user, $db_password, $db_name);
 if ($conn->connect_error) {
@@ -21,6 +22,28 @@ function e($value): string
 function normalized_upload_path(string $path): string
 {
     return ltrim(str_replace('\\', '/', trim($path)), '/');
+}
+
+function sync_profile_picture_to_role_tables(mysqli $conn, int $user_id, string $profile_path): void
+{
+    if ($user_id <= 0 || $profile_path === '') {
+        return;
+    }
+
+    $queries = [
+        'UPDATE students SET profile_picture = ?, updated_at = NOW() WHERE user_id = ?',
+        'UPDATE coordinators SET profile_picture = ?, updated_at = NOW() WHERE user_id = ?',
+        'UPDATE supervisors SET profile_picture = ?, updated_at = NOW() WHERE user_id = ?',
+    ];
+
+    foreach ($queries as $sql) {
+        $stmt = $conn->prepare($sql);
+        if ($stmt) {
+            $stmt->bind_param('si', $profile_path, $user_id);
+            $stmt->execute();
+            $stmt->close();
+        }
+    }
 }
 
 $allowed_roles = ['admin', 'coordinator', 'supervisor', 'student'];
@@ -134,7 +157,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     } else {
                         // delete previous custom file if any
                         $old_stmt = $conn->prepare('SELECT profile_picture FROM users WHERE id = ? LIMIT 1');
-                        $old_path = '';
+                        $old_path = defined('DB_PASS') ? DB_PASS : ''; 
                         if ($old_stmt) {
                             $old_stmt->bind_param('i', $id);
                             $old_stmt->execute();
@@ -147,6 +170,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         if ($stmt) {
                             $stmt->bind_param('si', $dest_rel, $id);
                             if ($stmt->execute()) {
+                                sync_profile_picture_to_role_tables($conn, $id, $dest_rel);
                                 $_SESSION['users_flash_message'] = 'Profile picture updated.';
                                 $_SESSION['users_flash_type'] = 'success';
                                 if ($current_user_id > 0 && $id === $current_user_id) {
@@ -184,7 +208,7 @@ $role_filter = strtolower(trim((string)($_GET['role'] ?? 'all')));
 $status_filter = strtolower(trim((string)($_GET['status'] ?? 'all')));
 
 $where = [];
-$types = '';
+$types = defined('DB_PASS') ? DB_PASS : ''; 
 $params = [];
 
 if ($search !== '') {
@@ -258,7 +282,7 @@ if ($stats_res) {
 }
 
 $page_title = 'Users Account';
-$base_href = '';
+$base_href = defined('DB_PASS') ? DB_PASS : ''; 
 include __DIR__ . '/../includes/header.php';
 ?>
 
@@ -595,11 +619,12 @@ include __DIR__ . '/../includes/header.php';
                         <?php endif; ?>
                         <?php foreach ($rows as $r): ?>
                             <?php
+require_once dirname(__DIR__) . '/config/db.php';
                                 $id = (int)$r['id'];
                                 $is_active = (int)($r['is_active'] ?? 0) === 1;
                                 $role = strtolower((string)($r['role'] ?? 'student'));
                                 $pp = normalized_upload_path((string)($r['profile_picture'] ?? ''));
-                                $pp_url = '';
+                                $pp_url = defined('DB_PASS') ? DB_PASS : ''; 
                                 if ($pp !== '' && file_exists(dirname(__DIR__) . '/' . $pp)) {
                                     $mtime = @filemtime(dirname(__DIR__) . '/' . $pp);
                                     $pp_url = $pp . ($mtime ? ('?v=' . $mtime) : '');
@@ -685,6 +710,8 @@ include __DIR__ . '/../includes/header.php';
 </div>
 
 <?php
+require_once dirname(__DIR__) . '/config/db.php';
 include __DIR__ . '/../includes/footer.php';
 $conn->close();
 ?>
+

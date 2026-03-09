@@ -1,4 +1,5 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -322,15 +323,23 @@ if ($session_avatar !== '') {
                     </div>
                     <div class="dropdown nxl-h-item">
                         <a href="javascript:void(0);" data-bs-toggle="dropdown" role="button" data-bs-auto-close="outside">
-                            <img src="<?php echo htmlspecialchars($header_avatar, ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar me-0">
+                            <img src="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($header_avatar, ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar me-0">
                         </a>
                         <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-user-dropdown">
                             <div class="dropdown-header">
                                 <div class="d-flex align-items-center">
-                                    <img src="<?php echo htmlspecialchars($header_avatar, ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar">
+                                    <img src="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($header_avatar, ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar">
                                     <div>
-                                        <h6 class="text-dark mb-0"><?php echo htmlspecialchars($header_user_name, ENT_QUOTES, 'UTF-8'); ?> <span class="badge bg-soft-success text-success ms-1">PRO</span></h6>
-                                        <span class="fs-12 fw-medium text-muted"><?php echo htmlspecialchars($header_user_email, ENT_QUOTES, 'UTF-8'); ?></span>
+                                        <h6 class="text-dark mb-0"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($header_user_name, ENT_QUOTES, 'UTF-8'); ?> <span class="badge bg-soft-success text-success ms-1">PRO</span></h6>
+                                        <span class="fs-12 fw-medium text-muted"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($header_user_email, ENT_QUOTES, 'UTF-8'); ?></span>
                                     </div>
                                 </div>
                             </div>
@@ -1070,7 +1079,7 @@ if ($session_avatar !== '') {
 					</code>
 						</pre>
                 </div>
-                <h4 class="fs-13">👋 Threds</h4>
+                <h4 class="fs-13">ðŸ‘‹ Threds</h4>
                 <p class="text-muted mb-4">Lorem ipsum dolor sit amet consectetur adipisicing elit. Atque officiis minus omnis veniam cupiditate molestiae itaque hic quibusdam fuga modi quam cumque recusandae harum nulla vero, tempore possimus aliquid animi!</p>
                 <div class="mb-5">
                     <pre><code class="language-js">
@@ -1083,7 +1092,7 @@ const code = `var data = 1;`;
 const html = Prism.highlight(code, Prism.languages.javascript, 'javascript');
 						</code></pre>
                 </div>
-                <h4 class="fs-13">📌 Inbox</h4>
+                <h4 class="fs-13">ðŸ“Œ Inbox</h4>
                 <p class="text-muted mb-4">Lorem ipsum dolor sit amet consectetur adipisicing elit. Atque officiis minus omnis veniam cupiditate molestiae itaque hic quibusdam fuga modi quam cumque recusandae harum nulla vero, tempore possimus aliquid animi!</p>
                 <div class="mb-5">
                     <pre><code class="language-js">
@@ -1096,7 +1105,7 @@ const code = `var data = 1;`;
 const html = Prism.highlight(code, Prism.languages.javascript, 'javascript');
 						</code></pre>
                 </div>
-                <h4 class="fs-13">👙 Bundles</h4>
+                <h4 class="fs-13">ðŸ‘™ Bundles</h4>
                 <p class="text-muted mb-4">Lorem ipsum dolor sit amet consectetur adipisicing elit. Atque officiis minus omnis veniam cupiditate molestiae itaque hic quibusdam fuga modi quam cumque recusandae harum nulla vero, tempore possimus aliquid animi!</p>
                 <div class="mb-5">
                     <pre><code class="language-js">
@@ -1122,7 +1131,7 @@ const code = `var data = 1;`;
 const html = Prism.highlight(code, Prism.languages.javascript, 'javascript');
 						</code></pre>
                 </div>
-                <h4 class="fs-13">🎂 Groups</h4>
+                <h4 class="fs-13">ðŸŽ‚ Groups</h4>
                 <p class="text-muted mb-4">Lorem ipsum dolor sit amet consectetur adipisicing elit. Atque officiis minus omnis veniam cupiditate molestiae itaque hic quibusdam fuga modi quam cumque recusandae harum nulla vero, tempore possimus aliquid animi!</p>
                 <div class="mb-5">
                     <pre><code class="language-js">
@@ -1135,7 +1144,7 @@ const code = `var data = 1;`;
 const html = Prism.highlight(code, Prism.languages.javascript, 'javascript');
 						</code></pre>
                 </div>
-                <h4 class="fs-13">😳 Channel</h4>
+                <h4 class="fs-13">ðŸ˜³ Channel</h4>
                 <p class="text-muted mb-4">Lorem ipsum dolor sit amet consectetur adipisicing elit. Atque officiis minus omnis veniam cupiditate molestiae itaque hic quibusdam fuga modi quam cumque recusandae harum nulla vero, tempore possimus aliquid animi!</p>
                 <div class="mb-5">
                     <pre><code class="language-js">
@@ -1148,7 +1157,7 @@ const code = `var data = 1;`;
 const html = Prism.highlight(code, Prism.languages.javascript, 'javascript');
 						</code></pre>
                 </div>
-                <h4 class="fs-13">🎉 Favorite</h4>
+                <h4 class="fs-13">ðŸŽ‰ Favorite</h4>
                 <p class="text-muted mb-4">Lorem ipsum dolor sit amet consectetur adipisicing elit. Atque officiis minus omnis veniam cupiditate molestiae itaque hic quibusdam fuga modi quam cumque recusandae harum nulla vero, tempore possimus aliquid animi!</p>
                 <div>
                     <pre><code class="language-js">
@@ -1304,5 +1313,6 @@ const html = Prism.highlight(code, Prism.languages.javascript, 'javascript');
 </body>
 
 </html>
+
 
 

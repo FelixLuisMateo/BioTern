@@ -1,4 +1,5 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 $page_title = 'BioTern || Calendar';
 include 'includes/header.php';
 ?>
@@ -180,7 +181,7 @@ include 'includes/header.php';
                     <!-- [ Footer ] start -->
                     <footer class="footer">
                         <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
-                            <span>Copyright �</span>
+                            <span>Copyright ï¿½</span>
                             <script>
                                 document.write(new Date().getFullYear());
                             </script>
@@ -575,5 +576,6 @@ include 'includes/header.php';
 </body>
 
 </html>
+
 
 

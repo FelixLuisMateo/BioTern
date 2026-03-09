@@ -1,8 +1,12 @@
-<?php
-$host = 'localhost';
-$db_user = 'root';
-$db_password = '';
-$db_name = 'biotern_db';
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+$host = defined('DB_HOST') ? DB_HOST : 'localhost';
+$db_user = defined('DB_USER') ? DB_USER : 'root';
+$db_password = defined('DB_PASS') ? DB_PASS : ''; 
+$db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
 
 $conn = null;
 $view_user_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
@@ -78,7 +82,7 @@ $dau_moa_data = [
 $active_tab = 'profileTab';
 $internship_data = null;
 $attendance_summary = ['last_attendance_date' => '', 'pending_count' => 0, 'total_hours' => 0.0];
-$document_completion = ['application' => false, 'endorsement' => false, 'moa' => false, 'dau_moa' => false];
+$document_completion = ['application' => 'missing', 'endorsement' => 'missing', 'moa' => 'missing', 'dau_moa' => 'missing'];
 $document_last_saved = ['application' => '', 'endorsement' => '', 'moa' => '', 'dau_moa' => ''];
 $pipeline_stage = 'Applied';
 $risk_flags = [];
@@ -130,6 +134,64 @@ function split_date_parts($value)
         'month' => date('F', $ts),
         'year' => date('Y', $ts),
     ];
+}
+
+function has_nonempty_fields(array $row, array $fields): bool
+{
+    foreach ($fields as $field) {
+        $value = trim((string)($row[$field] ?? ''));
+        if ($value !== '' && $value !== '0' && strtolower($value) !== 'null') {
+            return true;
+        }
+    }
+    return false;
+}
+
+function document_completion_status(array $row, array $required_fields): string
+{
+    $filled = 0;
+    $total = count($required_fields);
+    if ($total <= 0) {
+        return 'missing';
+    }
+    foreach ($required_fields as $field) {
+        $value = trim((string)($row[$field] ?? ''));
+        if ($value !== '' && $value !== '0' && strtolower($value) !== 'null') {
+            $filled++;
+        }
+    }
+    if ($filled === 0) {
+        return 'missing';
+    }
+    if ($filled === $total) {
+        return 'complete';
+    }
+    return 'incomplete';
+}
+
+function is_doc_complete(string $status): bool
+{
+    return strtolower(trim($status)) === 'complete';
+}
+
+function document_status_badge_class(string $status): string
+{
+    $s = strtolower(trim($status));
+    if ($s === 'complete') {
+        return 'bg-soft-success text-success';
+    }
+    if ($s === 'incomplete') {
+        return 'bg-soft-warning text-warning';
+    }
+    return 'bg-soft-danger text-danger';
+}
+
+function document_status_label(string $status): string
+{
+    $s = strtolower(trim($status));
+    if ($s === 'complete') return 'Complete';
+    if ($s === 'incomplete') return 'Incomplete';
+    return 'Missing';
 }
 
 function app_base_path()
@@ -709,7 +771,7 @@ try {
 
         $row = null;
         foreach ($doc_lookup_ids as $lookup_id) {
-            $stmt_app = $conn->prepare("SELECT * FROM application_letter WHERE user_id = ? LIMIT 1");
+            $stmt_app = $conn->prepare("SELECT * FROM application_letter WHERE user_id = ? ORDER BY id DESC LIMIT 1");
             $stmt_app->bind_param('i', $lookup_id);
             $stmt_app->execute();
             $res_app = $stmt_app->get_result();
@@ -722,13 +784,13 @@ try {
             $app_letter['position'] = $row['position'] ?? '';
             $app_letter['company_name'] = isset($row['company_name']) ? (string)$row['company_name'] : '';
             $app_letter['company_address'] = $row['company_address'] ?? '';
-            $document_completion['application'] = true;
+            $document_completion['application'] = document_completion_status($row, ['application_person', 'position', 'company_name', 'company_address']);
             $document_last_saved['application'] = (string)($row['updated_at'] ?? ($row['date'] ?? ''));
         }
 
         $moa_row = null;
         foreach ($doc_lookup_ids as $lookup_id) {
-            $stmt_moa = $conn->prepare("SELECT * FROM moa WHERE user_id = ? LIMIT 1");
+            $stmt_moa = $conn->prepare("SELECT * FROM moa WHERE user_id = ? ORDER BY id DESC LIMIT 1");
             $stmt_moa->bind_param('i', $lookup_id);
             $stmt_moa->execute();
             $res_moa = $stmt_moa->get_result();
@@ -742,13 +804,13 @@ try {
             foreach ($moa_data as $k => $v) {
                 $moa_data[$k] = isset($moa_row[$k]) ? (string)$moa_row[$k] : '';
             }
-            $document_completion['moa'] = true;
+            $document_completion['moa'] = document_completion_status($moa_row, ['company_name', 'company_address', 'partner_representative', 'position', 'total_hours']);
             $document_last_saved['moa'] = (string)($moa_row['updated_at'] ?? ($moa_row['moa_date'] ?? ''));
         }
 
         $endorsement_row = null;
         foreach ($doc_lookup_ids as $lookup_id) {
-            $stmt_endorse = $conn->prepare("SELECT * FROM endorsement_letter WHERE user_id = ? LIMIT 1");
+            $stmt_endorse = $conn->prepare("SELECT * FROM endorsement_letter WHERE user_id = ? ORDER BY id DESC LIMIT 1");
             $stmt_endorse->bind_param('i', $lookup_id);
             $stmt_endorse->execute();
             $res_endorse = $stmt_endorse->get_result();
@@ -759,13 +821,13 @@ try {
             foreach ($endorsement_data as $k => $v) {
                 $endorsement_data[$k] = isset($endorsement_row[$k]) ? (string)$endorsement_row[$k] : '';
             }
-            $document_completion['endorsement'] = true;
-            $document_last_saved['endorsement'] = (string)($endorsement_row['updated_at'] ?? '');
+            $document_completion['endorsement'] = document_completion_status($endorsement_row, ['recipient_name', 'recipient_position', 'company_name', 'company_address', 'students_to_endorse']);
+            $document_last_saved['endorsement'] = (string)($endorsement_row['updated_at'] ?? ($endorsement_row['created_at'] ?? ''));
         }
 
         $dau_row = null;
         foreach ($doc_lookup_ids as $lookup_id) {
-            $stmt_dau = $conn->prepare("SELECT * FROM dau_moa WHERE user_id = ? LIMIT 1");
+            $stmt_dau = $conn->prepare("SELECT * FROM dau_moa WHERE user_id = ? ORDER BY id DESC LIMIT 1");
             $stmt_dau->bind_param('i', $lookup_id);
             $stmt_dau->execute();
             $res_dau = $stmt_dau->get_result();
@@ -776,8 +838,8 @@ try {
             foreach ($dau_moa_data as $k => $v) {
                 $dau_moa_data[$k] = isset($dau_row[$k]) ? (string)$dau_row[$k] : '';
             }
-            $document_completion['dau_moa'] = true;
-            $document_last_saved['dau_moa'] = (string)($dau_row['updated_at'] ?? '');
+            $document_completion['dau_moa'] = document_completion_status($dau_row, ['company_name', 'company_address', 'partner_representative', 'position', 'total_hours']);
+            $document_last_saved['dau_moa'] = (string)($dau_row['updated_at'] ?? ($dau_row['created_at'] ?? ''));
         } else {
             $dau_moa_data['company_name'] = $moa_data['company_name'];
             $dau_moa_data['company_address'] = $moa_data['company_address'];
@@ -835,9 +897,9 @@ try {
             $pipeline_stage = 'Completed';
         } elseif ($intern_status === 'ongoing') {
             $pipeline_stage = 'Ongoing';
-        } elseif (!empty($document_completion['moa'])) {
+        } elseif (is_doc_complete((string)$document_completion['moa'])) {
             $pipeline_stage = 'Accepted';
-        } elseif (!empty($document_completion['endorsement'])) {
+        } elseif (is_doc_complete((string)$document_completion['endorsement'])) {
             $pipeline_stage = 'Endorsed';
         } else {
             $pipeline_stage = 'Applied';
@@ -846,8 +908,8 @@ try {
             $pipeline_stage = 'Dropped';
         }
 
-        if (!$document_completion['moa']) $risk_flags[] = 'Missing MOA';
-        if (!$document_completion['endorsement']) $risk_flags[] = 'Missing Endorsement';
+        if (!is_doc_complete((string)$document_completion['moa'])) $risk_flags[] = 'Missing MOA';
+        if (!is_doc_complete((string)$document_completion['endorsement'])) $risk_flags[] = 'Missing Endorsement';
         if ($attendance_summary['pending_count'] > 0) $risk_flags[] = 'Pending attendance approvals';
         if ($intern_status === 'ongoing' && !empty($attendance_summary['last_attendance_date'])) {
             $days_since = (int)floor((time() - strtotime($attendance_summary['last_attendance_date'])) / 86400);
@@ -906,6 +968,12 @@ try {
             }
             $stmt_wf->close();
             foreach (['application', 'endorsement', 'moa', 'dau_moa'] as $wf_key) {
+                if (($workflow[$wf_key]['status'] ?? '') === 'approved') {
+                    $document_completion[$wf_key] = 'complete';
+                    if (empty($document_last_saved[$wf_key])) {
+                        $document_last_saved[$wf_key] = (string)($workflow[$wf_key]['approved_at'] ?? '');
+                    }
+                }
                 if (($workflow[$wf_key]['status'] ?? '') === 'rejected') {
                     $risk_flags[] = strtoupper($wf_key) . ' workflow rejected';
                 }
@@ -1039,6 +1107,16 @@ $dau_print_url = $app_base . 'pages/generate_dau_moa.php?' . http_build_query([
     'book_no' => (string)($dau_moa_data['book_no'] ?? ''),
     'series_no' => (string)($dau_moa_data['series_no'] ?? ''),
 ]);
+$asset_base = rtrim(app_base_path(), '/') . '/assets';
+$default_user_avatar = $asset_base . '/images/avatar/' . ((((int)($_SESSION['user_id'] ?? 0)) % 5) + 1) . '.png';
+$session_profile_picture = trim((string)($_SESSION['profile_picture'] ?? ''));
+if ($session_profile_picture !== '') {
+    $session_profile_picture = str_replace('\\', '/', $session_profile_picture);
+    if (!preg_match('#^(https?:)?//#i', $session_profile_picture) && strpos($session_profile_picture, '/') !== 0) {
+        $session_profile_picture = rtrim(app_base_path(), '/') . '/' . ltrim($session_profile_picture, '/');
+    }
+}
+$session_profile_picture_url = $session_profile_picture !== '' ? $session_profile_picture : $default_user_avatar;
 ?><!DOCTYPE html>
 <html lang="zxx">
 
@@ -1055,20 +1133,20 @@ $dau_print_url = $app_base . 'pages/generate_dau_moa.php?' . http_build_query([
     <!--! END:  Apps Title-->
     <!--! BEGIN: Favicon-->
     <!--! BEGIN: Favicon-->
-    <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
-    <script src="assets/js/theme-preload-init.min.js"></script>
+    <link rel="shortcut icon" type="image/x-icon" href="<?php echo htmlspecialchars($asset_base); ?>/images/favicon.ico">
+    <script src="<?php echo htmlspecialchars($asset_base); ?>/js/theme-preload-init.min.js"></script>
     <!--! END: Favicon-->
     <!--! BEGIN: Bootstrap CSS-->
-    <link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_base); ?>/css/bootstrap.min.css">
     <!--! END: Bootstrap CSS-->
     <!--! BEGIN: Vendors CSS-->
-    <link rel="stylesheet" type="text/css" href="assets/vendors/css/vendors.min.css">
-    <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2.min.css">
-    <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2-theme.min.css">
+    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_base); ?>/vendors/css/vendors.min.css">
+    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_base); ?>/vendors/css/select2.min.css">
+    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_base); ?>/vendors/css/select2-theme.min.css">
     <!--! END: Vendors CSS-->
     <!--! BEGIN: Custom CSS-->
     <script>try{var s=localStorage.getItem('app-skin')||localStorage.getItem('app_skin')||localStorage.getItem('theme'); if(s&&s.indexOf('dark')!==-1)document.documentElement.classList.add('app-skin-dark');}catch(e){};</script>
-    <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css">
+    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_base); ?>/css/theme.min.css">
     <style>
         body { background: #f5f7fb; }
         .card { border: 1px solid #e8edf6; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04); }
@@ -1280,13 +1358,13 @@ $dau_print_url = $app_base . 'pages/generate_dau_moa.php?' . http_build_query([
     <!--! HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries !-->
     <!--! WARNING: Respond.js doesn"t work if you view the page via file: !-->
     <!--[if lt IE 9]>
-			<script src="https:oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
-			<script src="https:oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+			<script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+			<script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
 		<![endif]-->
 </head>
 
 <body>
-    <?php include_once 'includes/navigation.php'; ?>
+    <?php include_once dirname(__DIR__) . '/includes/navigation.php'; ?>
     <!--! ================================================================ !-->
     <!--! [Start] Header !-->
     <!--! ================================================================ !-->
@@ -1389,7 +1467,7 @@ $dau_print_url = $app_base . 'pages/generate_dau_moa.php?' . http_build_query([
                                 </a>
                             </div>
                             <div class="notifications-item">
-                                <img src="assets/images/avatar/2.png" alt="" class="rounded me-3 border">
+                                        <img src="<?php echo htmlspecialchars($asset_base); ?>/images/avatar/2.png" alt="" class="rounded me-3 border">
                                 <div class="notifications-desc">
                                     <a href="javascript:void(0);" class="font-body text-truncate-2-line"> <span class="fw-semibold text-dark">Malanie Hanvey</span> We should talk about that at lunch!</a>
                                     <div class="d-flex justify-content-between align-items-center">
@@ -1407,12 +1485,12 @@ $dau_print_url = $app_base . 'pages/generate_dau_moa.php?' . http_build_query([
                     </div>
                     <div class="dropdown nxl-h-item">
                         <a href="javascript:void(0);" data-bs-toggle="dropdown" role="button" data-bs-auto-close="outside">
-                            <img src="<?php echo htmlspecialchars((isset($_SESSION['profile_picture']) && trim((string)$_SESSION['profile_picture']) !== '' ? ltrim(str_replace('\\', '/', trim((string)$_SESSION['profile_picture'])), '/') : ('assets/images/avatar/' . (((int)($_SESSION['user_id'] ?? 0) % 5) + 1) . '.png')), ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar me-0" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
+                                    <img src="<?php echo htmlspecialchars($session_profile_picture_url, ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar me-0" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
                         </a>
                         <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-user-dropdown">
                             <div class="dropdown-header">
                                 <div class="d-flex align-items-center">
-                                    <img src="<?php echo htmlspecialchars((isset($_SESSION['profile_picture']) && trim((string)$_SESSION['profile_picture']) !== '' ? ltrim(str_replace('\\', '/', trim((string)$_SESSION['profile_picture'])), '/') : ('assets/images/avatar/' . (((int)($_SESSION['user_id'] ?? 0) % 5) + 1) . '.png')), ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
+                                    <img src="<?php echo htmlspecialchars($session_profile_picture_url, ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
                                     <div>
                                         <h6 class="text-dark mb-0"><?php echo htmlspecialchars((string)($_SESSION['name'] ?? $_SESSION['username'] ?? 'BioTern User'), ENT_QUOTES, 'UTF-8'); ?></h6>
                                         <span class="fs-12 fw-medium text-muted"><?php echo htmlspecialchars((string)($_SESSION['email'] ?? 'admin@biotern.local'), ENT_QUOTES, 'UTF-8'); ?></span>
@@ -1527,9 +1605,10 @@ $dau_print_url = $app_base . 'pages/generate_dau_moa.php?' . http_build_query([
                             </div>
                         <?php else: ?>
                             <?php
+require_once dirname(__DIR__) . '/config/db.php';
                             $full_name = trim(($student['first_name'] ?? '') . ' ' . ($student['middle_name'] ?? '') . ' ' . ($student['last_name'] ?? ''));
                             $profile_picture = trim((string)($student['profile_picture'] ?? ''));
-                            $profile_img_src = 'assets/images/avatar/1.png';
+                                            $profile_img_src = $asset_base . '/images/avatar/1.png';
                             $profile_img_url = resolve_profile_image_url($profile_picture);
                             if ($profile_img_url !== null) {
                                 $profile_img_src = $profile_img_url;
@@ -1670,10 +1749,10 @@ $dau_print_url = $app_base . 'pages/generate_dau_moa.php?' . http_build_query([
                                         <div class="p-3 border rounded">
                                             <h6 class="fw-bold">Document Completion</h6>
                                             <div class="d-flex flex-wrap gap-2">
-                                                <span class="badge <?php echo $document_completion['application'] ? 'bg-soft-success text-success' : 'bg-soft-danger text-danger'; ?>">Application <?php echo $document_completion['application'] ? 'Ready' : 'Missing'; ?></span>
-                                                <span class="badge <?php echo $document_completion['endorsement'] ? 'bg-soft-success text-success' : 'bg-soft-danger text-danger'; ?>">Endorsement <?php echo $document_completion['endorsement'] ? 'Ready' : 'Missing'; ?></span>
-                                                <span class="badge <?php echo $document_completion['moa'] ? 'bg-soft-success text-success' : 'bg-soft-danger text-danger'; ?>">MOA <?php echo $document_completion['moa'] ? 'Ready' : 'Missing'; ?></span>
-                                                <span class="badge <?php echo $document_completion['dau_moa'] ? 'bg-soft-success text-success' : 'bg-soft-danger text-danger'; ?>">Dau MOA <?php echo $document_completion['dau_moa'] ? 'Ready' : 'Missing'; ?></span>
+                                                <span class="badge <?php echo document_status_badge_class((string)$document_completion['application']); ?>">Application <?php echo document_status_label((string)$document_completion['application']); ?></span>
+                                                <span class="badge <?php echo document_status_badge_class((string)$document_completion['endorsement']); ?>">Endorsement <?php echo document_status_label((string)$document_completion['endorsement']); ?></span>
+                                                <span class="badge <?php echo document_status_badge_class((string)$document_completion['moa']); ?>">MOA <?php echo document_status_label((string)$document_completion['moa']); ?></span>
+                                                <span class="badge <?php echo document_status_badge_class((string)$document_completion['dau_moa']); ?>">Dau MOA <?php echo document_status_label((string)$document_completion['dau_moa']); ?></span>
                                             </div>
                                             <div class="mt-2 fs-12 text-muted">
                                                 Last save: Application <?php echo htmlspecialchars(format_dt($document_last_saved['application'])); ?>,
@@ -1885,6 +1964,7 @@ $dau_print_url = $app_base . 'pages/generate_dau_moa.php?' . http_build_query([
                                 <div class="mb-3">
                                     <strong>Student:</strong>
                                     <?php
+require_once dirname(__DIR__) . '/config/db.php';
                                     $student_name = $student ? trim(($student['first_name'] ?? '') . ' ' . ($student['middle_name'] ?? '') . ' ' . ($student['last_name'] ?? '')) : 'Unknown';
                                     echo htmlspecialchars($student_name);
                                     ?>
@@ -2236,7 +2316,7 @@ $dau_print_url = $app_base . 'pages/generate_dau_moa.php?' . http_build_query([
         <!-- [ Footer ] start -->
         <footer class="footer">
             <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
-                <span>Copyright ©</span>
+                <span>Copyright Â©</span>
                 <script>
                     document.write(new Date().getFullYear());
                 </script>
@@ -2257,15 +2337,15 @@ $dau_print_url = $app_base . 'pages/generate_dau_moa.php?' . http_build_query([
     <!--! Footer Script !-->
     <!--! ================================================================ !-->
     <!--! BEGIN: Vendors JS !-->
-    <script src="assets/vendors/js/vendors.min.js"></script>
+    <script src="<?php echo htmlspecialchars($asset_base); ?>/vendors/js/vendors.min.js"></script>
     <!-- vendors.min.js {always must need to be top} -->
-    <script src="assets/vendors/js/select2.min.js"></script>
-    <script src="assets/vendors/js/select2-active.min.js"></script>
+    <script src="<?php echo htmlspecialchars($asset_base); ?>/vendors/js/select2.min.js"></script>
+    <script src="<?php echo htmlspecialchars($asset_base); ?>/vendors/js/select2-active.min.js"></script>
     <!--! END: Vendors JS !-->
     <!--! BEGIN: Apps Init  !-->
-    <script src="assets/js/common-init.min.js"></script>
-    <script src="assets/js/theme-customizer-init.min.js"></script>
-    <script src="assets/js/leads-view-init.min.js"></script>
+    <script src="<?php echo htmlspecialchars($asset_base); ?>/js/common-init.min.js"></script>
+    <script src="<?php echo htmlspecialchars($asset_base); ?>/js/theme-customizer-init.min.js"></script>
+    <script src="<?php echo htmlspecialchars($asset_base); ?>/js/leads-view-init.min.js"></script>
     <!--! END: Apps Init !-->
     <script>
         (function () {
@@ -2406,6 +2486,7 @@ $dau_print_url = $app_base . 'pages/generate_dau_moa.php?' . http_build_query([
 </body>
 
 </html>
+
 
 
 

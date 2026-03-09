@@ -1,4 +1,5 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 // Include database connection
 include_once dirname(__DIR__) . '/config/db.php';
 
@@ -32,3 +33,4 @@ echo "Total Students: " . $students . "<br>";
 
 echo "<br>All data loaded successfully!";
 ?>
+

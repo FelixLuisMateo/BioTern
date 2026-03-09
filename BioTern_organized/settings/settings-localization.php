@@ -1,4 +1,5 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 $page_title = 'Localization Settings';
 $page_styles = ['assets/css/settings-customizer-like.css'];
 include 'includes/header.php';
@@ -183,27 +184,27 @@ include 'includes/header.php';
                                     <select class="form-control" data-select2-selector="language" multiple>
                                         <option data-language="bg-primary">Afrikaans</option>
                                         <option data-language="bg-warning">Albanian - shqip</option>
-                                        <option data-language="bg-cyan">Amharic - አማርኛ</option>
-                                        <option data-language="bg-green">Arabic - العربية</option>
-                                        <option data-language="bg-black">Aragonese - aragonés</option>
-                                        <option data-language="bg-teal">Armenian - հայերեն</option>
+                                        <option data-language="bg-cyan">Amharic - áŠ áˆ›áˆ­áŠ›</option>
+                                        <option data-language="bg-green">Arabic - Ø§Ù„Ø¹Ø±Ø¨ÙŠØ©</option>
+                                        <option data-language="bg-black">Aragonese - aragonÃ©s</option>
+                                        <option data-language="bg-teal">Armenian - Õ°Õ¡ÕµÕ¥Ö€Õ¥Õ¶</option>
                                         <option data-language="bg-success">Asturian - asturianu</option>
-                                        <option data-language="bg-cyan">Azerbaijani - azərbaycan dili</option>
+                                        <option data-language="bg-cyan">Azerbaijani - azÉ™rbaycan dili</option>
                                         <option data-language="bg-indigo">Basque - euskara</option>
-                                        <option data-language="bg-teal">Belarusian - беларуская</option>
-                                        <option data-language="bg-black">Bengali - বাংলা</option>
+                                        <option data-language="bg-teal">Belarusian - Ð±ÐµÐ»Ð°Ñ€ÑƒÑÐºÐ°Ñ</option>
+                                        <option data-language="bg-black">Bengali - à¦¬à¦¾à¦‚à¦²à¦¾</option>
                                         <option data-language="bg-green">Bosnian - bosanski</option>
                                         <option data-language="bg-primary">Breton - brezhoneg</option>
-                                        <option data-language="bg-warning">Bulgarian - български</option>
-                                        <option data-language="bg-teal">Catalan - català</option>
-                                        <option data-language="bg-black">Central Kurdish - کوردی (دەستنوسی عەرەبی)</option>
-                                        <option data-language="bg-green">Chinese - 中文</option>
-                                        <option data-language="bg-cyan">Chinese (Hong Kong) - 中文（香港）</option>
-                                        <option data-language="bg-primary">Chinese (Simplified) - 中文（简体）</option>
-                                        <option data-language="bg-danger">Chinese (Traditional) - 中文（繁體）</option>
+                                        <option data-language="bg-warning">Bulgarian - Ð±ÑŠÐ»Ð³Ð°Ñ€ÑÐºÐ¸</option>
+                                        <option data-language="bg-teal">Catalan - catalÃ </option>
+                                        <option data-language="bg-black">Central Kurdish - Ú©ÙˆØ±Ø¯ÛŒ (Ø¯Û•Ø³ØªÙ†ÙˆØ³ÛŒ Ø¹Û•Ø±Û•Ø¨ÛŒ)</option>
+                                        <option data-language="bg-green">Chinese - ä¸­æ–‡</option>
+                                        <option data-language="bg-cyan">Chinese (Hong Kong) - ä¸­æ–‡ï¼ˆé¦™æ¸¯ï¼‰</option>
+                                        <option data-language="bg-primary">Chinese (Simplified) - ä¸­æ–‡ï¼ˆç®€ä½“ï¼‰</option>
+                                        <option data-language="bg-danger">Chinese (Traditional) - ä¸­æ–‡ï¼ˆç¹é«”ï¼‰</option>
                                         <option data-language="bg-cyan">Corsican</option>
                                         <option data-language="bg-black">Croatian - hrvatski</option>
-                                        <option data-language="bg-warning">Czech - čeština</option>
+                                        <option data-language="bg-warning">Czech - ÄeÅ¡tina</option>
                                         <option data-language="bg-primary">Danish - dansk</option>
                                         <option data-language="bg-teal">Dutch - Nederlands</option>
                                         <option data-language="bg-danger" selected>English</option>
@@ -216,121 +217,121 @@ include 'includes/header.php';
                                         <option data-language="bg-teal">English (United States)</option>
                                         <option data-language="bg-green">Esperanto - esperanto</option>
                                         <option data-language="bg-cyan">Estonian - eesti</option>
-                                        <option data-language="bg-primary">Faroese - føroyskt</option>
+                                        <option data-language="bg-primary">Faroese - fÃ¸royskt</option>
                                         <option data-language="bg-black">Filipino</option>
                                         <option data-language="bg-cyan">Finnish - suomi</option>
-                                        <option data-language="bg-primary">French - français</option>
-                                        <option data-language="bg-success">French (Canada) - français (Canada)</option>
-                                        <option data-language="bg-warning">French (France) - français (France)</option>
-                                        <option data-language="bg-black">French (Switzerland) - français (Suisse)</option>
+                                        <option data-language="bg-primary">French - franÃ§ais</option>
+                                        <option data-language="bg-success">French (Canada) - franÃ§ais (Canada)</option>
+                                        <option data-language="bg-warning">French (France) - franÃ§ais (France)</option>
+                                        <option data-language="bg-black">French (Switzerland) - franÃ§ais (Suisse)</option>
                                         <option data-language="bg-primary">Galician - galego</option>
-                                        <option data-language="bg-teal">Georgian - ქართული</option>
+                                        <option data-language="bg-teal">Georgian - áƒ¥áƒáƒ áƒ—áƒ£áƒšáƒ˜</option>
                                         <option data-language="bg-black">German - Deutsch</option>
-                                        <option data-language="bg-green">German (Austria) - Deutsch (Österreich)</option>
+                                        <option data-language="bg-green">German (Austria) - Deutsch (Ã–sterreich)</option>
                                         <option data-language="bg-danger">German (Germany) - Deutsch (Deutschland)</option>
                                         <option data-language="bg-indigo">German (Liechtenstein) - Deutsch (Liechtenstein)</option>
                                         <option data-language="bg-cyan">German (Switzerland) - Deutsch (Schweiz)</option>
-                                        <option data-language="bg-primary">Greek - Ελληνικά</option>
+                                        <option data-language="bg-primary">Greek - Î•Î»Î»Î·Î½Î¹ÎºÎ¬</option>
                                         <option data-language="bg-green">Guarani</option>
-                                        <option data-language="bg-teal">Gujarati - ગુજરાતી</option>
+                                        <option data-language="bg-teal">Gujarati - àª—à«àªœàª°àª¾àª¤à«€</option>
                                         <option data-language="bg-success">Hausa</option>
-                                        <option data-language="bg-primary">Hawaiian - 'Ōlelo Hawai'i</option>
-                                        <option data-language="bg-cyan">Hebrew - עברית</option>
-                                        <option data-language="bg-warning" selected>Hindi - हिन्दी</option>
+                                        <option data-language="bg-primary">Hawaiian - 'ÅŒlelo Hawai'i</option>
+                                        <option data-language="bg-cyan">Hebrew - ×¢×‘×¨×™×ª</option>
+                                        <option data-language="bg-warning" selected>Hindi - à¤¹à¤¿à¤¨à¥à¤¦à¥€</option>
                                         <option data-language="bg-green">Hungarian - magyar</option>
-                                        <option data-language="bg-black">Icelandic - íslenska</option>
+                                        <option data-language="bg-black">Icelandic - Ã­slenska</option>
                                         <option data-language="bg-danger">Indonesian - Indonesia</option>
                                         <option data-language="bg-primary">Interlingua</option>
                                         <option data-language="bg-green">Irish - Gaeilge</option>
                                         <option data-language="bg-success">Italian - italiano</option>
                                         <option data-language="bg-cyan">Italian (Italy) - italiano (Italia)</option>
                                         <option data-language="bg-teal">Italian (Switzerland) - italiano (Svizzera)</option>
-                                        <option data-language="bg-indigo">Japanese - 日本語</option>
-                                        <option data-language="bg-primary">Kannada - ಕನ್ನಡ</option>
-                                        <option data-language="bg-cyan">Kazakh - қазақ тілі</option>
-                                        <option data-language="bg-black">Khmer - ខ្មែរ</option>
-                                        <option data-language="bg-primary">Korean - 한국어</option>
-                                        <option data-language="bg-warning">Kurdish - Kurdî</option>
-                                        <option data-language="bg-cyan">Kyrgyz - кыргызча</option>
-                                        <option data-language="bg-danger">Lao - ລາວ</option>
+                                        <option data-language="bg-indigo">Japanese - æ—¥æœ¬èªž</option>
+                                        <option data-language="bg-primary">Kannada - à²•à²¨à³à²¨à²¡</option>
+                                        <option data-language="bg-cyan">Kazakh - Ò›Ð°Ð·Ð°Ò› Ñ‚Ñ–Ð»Ñ–</option>
+                                        <option data-language="bg-black">Khmer - ážáŸ’áž˜áŸ‚ážš</option>
+                                        <option data-language="bg-primary">Korean - í•œêµ­ì–´</option>
+                                        <option data-language="bg-warning">Kurdish - KurdÃ®</option>
+                                        <option data-language="bg-cyan">Kyrgyz - ÐºÑ‹Ñ€Ð³Ñ‹Ð·Ñ‡Ð°</option>
+                                        <option data-language="bg-danger">Lao - àº¥àº²àº§</option>
                                         <option data-language="bg-primary">Latin</option>
-                                        <option data-language="bg-orange">Latvian - latviešu</option>
-                                        <option data-language="bg-green">Lingala - lingála</option>
-                                        <option data-language="bg-black">Lithuanian - lietuvių</option>
-                                        <option data-language="bg-primary">Macedonian - македонски</option>
+                                        <option data-language="bg-orange">Latvian - latvieÅ¡u</option>
+                                        <option data-language="bg-green">Lingala - lingÃ¡la</option>
+                                        <option data-language="bg-black">Lithuanian - lietuviÅ³</option>
+                                        <option data-language="bg-primary">Macedonian - Ð¼Ð°ÐºÐµÐ´Ð¾Ð½ÑÐºÐ¸</option>
                                         <option data-language="bg-indigo">Malay - Bahasa Melayu</option>
-                                        <option data-language="bg-green">Malayalam - മലയാളം</option>
+                                        <option data-language="bg-green">Malayalam - à´®à´²à´¯à´¾à´³à´‚</option>
                                         <option data-language="bg-cyan">Maltese - Malti</option>
-                                        <option data-language="bg-teal">Marathi - मराठी</option>
-                                        <option data-language="bg-primary">Mongolian - монгол</option>
-                                        <option data-language="bg-danger">Nepali - नेपाली</option>
+                                        <option data-language="bg-teal">Marathi - à¤®à¤°à¤¾à¤ à¥€</option>
+                                        <option data-language="bg-primary">Mongolian - Ð¼Ð¾Ð½Ð³Ð¾Ð»</option>
+                                        <option data-language="bg-danger">Nepali - à¤¨à¥‡à¤ªà¤¾à¤²à¥€</option>
                                         <option data-language="bg-green">Norwegian - norsk</option>
-                                        <option data-language="bg-warning">Norwegian Bokmål - norsk bokmål</option>
+                                        <option data-language="bg-warning">Norwegian BokmÃ¥l - norsk bokmÃ¥l</option>
                                         <option data-language="bg-primary">Norwegian Nynorsk - nynorsk</option>
                                         <option data-language="bg-success">Occitan</option>
-                                        <option data-language="bg-cyan">Oriya - ଓଡ଼ିଆ</option>
+                                        <option data-language="bg-cyan">Oriya - à¬“à¬¡à¬¼à¬¿à¬†</option>
                                         <option data-language="bg-black">Oromo - Oromoo</option>
-                                        <option data-language="bg-danger">Pashto - پښتو</option>
-                                        <option data-language="bg-green">Persian - فارسی</option>
+                                        <option data-language="bg-danger">Pashto - Ù¾ÚšØªÙˆ</option>
+                                        <option data-language="bg-green">Persian - ÙØ§Ø±Ø³ÛŒ</option>
                                         <option data-language="bg-primary">Polish - polski</option>
-                                        <option data-language="bg-teal">Portuguese - português</option>
-                                        <option data-language="bg-danger">Portuguese (Brazil) - português (Brasil)</option>
-                                        <option data-language="bg-black">Portuguese (Portugal) - português (Portugal)</option>
-                                        <option data-language="bg-green">Punjabi - ਪੰਜਾਬੀ</option>
+                                        <option data-language="bg-teal">Portuguese - portuguÃªs</option>
+                                        <option data-language="bg-danger">Portuguese (Brazil) - portuguÃªs (Brasil)</option>
+                                        <option data-language="bg-black">Portuguese (Portugal) - portuguÃªs (Portugal)</option>
+                                        <option data-language="bg-green">Punjabi - à¨ªà©°à¨œà¨¾à¨¬à©€</option>
                                         <option data-language="bg-indigo">Quechua</option>
-                                        <option data-language="bg-success">Romanian - română</option>
-                                        <option data-language="bg-warning">Romanian (Moldova) - română (Moldova)</option>
+                                        <option data-language="bg-success">Romanian - romÃ¢nÄƒ</option>
+                                        <option data-language="bg-warning">Romanian (Moldova) - romÃ¢nÄƒ (Moldova)</option>
                                         <option data-language="bg-primary">Romansh - rumantsch</option>
-                                        <option data-language="bg-danger">Russian - русский</option>
+                                        <option data-language="bg-danger">Russian - Ñ€ÑƒÑÑÐºÐ¸Ð¹</option>
                                         <option data-language="bg-green">Scottish Gaelic</option>
-                                        <option data-language="bg-orange">Serbian - српски</option>
+                                        <option data-language="bg-orange">Serbian - ÑÑ€Ð¿ÑÐºÐ¸</option>
                                         <option data-language="bg-teal">Serbo - Croatian</option>
                                         <option data-language="bg-primary">Shona - chiShona</option>
                                         <option data-language="bg-cyan">Sindhi</option>
-                                        <option data-language="bg-black">Sinhala - සිංහල</option>
-                                        <option data-language="bg-warning">Slovak - slovenčina</option>
-                                        <option data-language="bg-danger">Slovenian - slovenščina</option>
+                                        <option data-language="bg-black">Sinhala - à·ƒà·’à¶‚à·„à¶½</option>
+                                        <option data-language="bg-warning">Slovak - slovenÄina</option>
+                                        <option data-language="bg-danger">Slovenian - slovenÅ¡Äina</option>
                                         <option data-language="bg-green">Somali - Soomaali</option>
                                         <option data-language="bg-primary">Southern Sotho</option>
-                                        <option data-language="bg-orange">Spanish - español</option>
-                                        <option data-language="bg-indigo">Spanish (Argentina) - español (Argentina)</option>
-                                        <option data-language="bg-green">Spanish (Latin America) - español (Latinoamérica)</option>
-                                        <option data-language="bg-cyan">Spanish (Mexico) - español (México)</option>
-                                        <option data-language="bg-black">Spanish (Spain) - español (España)</option>
-                                        <option data-language="bg-success">Spanish (United States) - español (Estados Unidos)</option>
+                                        <option data-language="bg-orange">Spanish - espaÃ±ol</option>
+                                        <option data-language="bg-indigo">Spanish (Argentina) - espaÃ±ol (Argentina)</option>
+                                        <option data-language="bg-green">Spanish (Latin America) - espaÃ±ol (LatinoamÃ©rica)</option>
+                                        <option data-language="bg-cyan">Spanish (Mexico) - espaÃ±ol (MÃ©xico)</option>
+                                        <option data-language="bg-black">Spanish (Spain) - espaÃ±ol (EspaÃ±a)</option>
+                                        <option data-language="bg-success">Spanish (United States) - espaÃ±ol (Estados Unidos)</option>
                                         <option data-language="bg-primary">Sundanese</option>
                                         <option data-language="bg-teal">Swahili - Kiswahili</option>
                                         <option data-language="bg-green">Swedish - svenska</option>
-                                        <option data-language="bg-cyan">Tajik - тоҷикӣ</option>
-                                        <option data-language="bg-warning">Tamil - தமிழ்</option>
+                                        <option data-language="bg-cyan">Tajik - Ñ‚Ð¾Ò·Ð¸ÐºÓ£</option>
+                                        <option data-language="bg-warning">Tamil - à®¤à®®à®¿à®´à¯</option>
                                         <option data-language="bg-primary">Tatar</option>
-                                        <option data-language="bg-success">Telugu - తెలుగు</option>
-                                        <option data-language="bg-black">Thai - ไทย</option>
-                                        <option data-language="bg-green">Tigrinya - ትግርኛ</option>
+                                        <option data-language="bg-success">Telugu - à°¤à±†à°²à±à°—à±</option>
+                                        <option data-language="bg-black">Thai - à¹„à¸—à¸¢</option>
+                                        <option data-language="bg-green">Tigrinya - á‰µáŒáˆ­áŠ›</option>
                                         <option data-language="bg-teal">Tongan - lea fakatonga</option>
-                                        <option data-language="bg-primary">Turkish - Türkçe</option>
+                                        <option data-language="bg-primary">Turkish - TÃ¼rkÃ§e</option>
                                         <option data-language="bg-danger">Turkmen</option>
                                         <option data-language="bg-indigo">Twi</option>
-                                        <option data-language="bg-black">Ukrainian - українська</option>
-                                        <option data-language="bg-green">Urdu - اردو</option>
+                                        <option data-language="bg-black">Ukrainian - ÑƒÐºÑ€Ð°Ñ—Ð½ÑÑŒÐºÐ°</option>
+                                        <option data-language="bg-green">Urdu - Ø§Ø±Ø¯Ùˆ</option>
                                         <option data-language="bg-cyan">Uyghur</option>
                                         <option data-language="bg-primary">Uzbek - o'zbek</option>
-                                        <option data-language="bg-success">Vietnamese - Tiếng Việt</option>
+                                        <option data-language="bg-success">Vietnamese - Tiáº¿ng Viá»‡t</option>
                                         <option data-language="bg-cyan">Walloon - wa</option>
                                         <option data-language="bg-primary">Welsh - Cymraeg</option>
                                         <option data-language="bg-teal">Western Frisian</option>
                                         <option data-language="bg-warning">Xhosa</option>
                                         <option data-language="bg-indigo">Yiddish</option>
-                                        <option data-language="bg-green">Yoruba - Èdè Yorùbá</option>
+                                        <option data-language="bg-green">Yoruba - ÃˆdÃ¨ YorÃ¹bÃ¡</option>
                                         <option data-language="bg-black">Zulu - isiZulu</option>
                                     </select>
-                                    <small class="form-text text-muted">Default Language [Ex: English/Hindi - हिन्दी]</small>
+                                    <small class="form-text text-muted">Default Language [Ex: English/Hindi - à¤¹à¤¿à¤¨à¥à¤¦à¥€]</small>
                                 </div>
                                 <div class="mb-0">
                                     <label class="form-label">Default Country </label>
                                     <select class="form-control" data-select2-selector="country">
                                         <option data-country="af">Afghanistan</option>
-                                        <option data-country="ax">Åland Islands</option>
+                                        <option data-country="ax">Ã…land Islands</option>
                                         <option data-country="al">Albania</option>
                                         <option data-country="dz">Algeria</option>
                                         <option data-country="as">American Samoa</option>
@@ -383,10 +384,10 @@ include 'includes/header.php';
                                         <option data-country="cd">Congo - Kinshasa</option>
                                         <option data-country="ck">Cook Islands</option>
                                         <option data-country="cr">Costa Rica</option>
-                                        <option data-country="ci">Côte d'Ivoire</option>
+                                        <option data-country="ci">CÃ´te d'Ivoire</option>
                                         <option data-country="hr">Croatia</option>
                                         <option data-country="cu">Cuba</option>
-                                        <option data-country="cu">Curaçao</option>
+                                        <option data-country="cu">CuraÃ§ao</option>
                                         <option data-country="cy">Cyprus</option>
                                         <option data-country="cz">Czechia</option>
                                         <option data-country="dk">Denmark</option>
@@ -487,7 +488,7 @@ include 'includes/header.php';
                                         <option data-country="nr">Nauru</option>
                                         <option data-country="np">Nepal</option>
                                         <option data-country="nl">Netherlands</option>
-                                        <option data-country="cu">Curaçao</option>
+                                        <option data-country="cu">CuraÃ§ao</option>
                                         <option data-country="nc">New Caledonia</option>
                                         <option data-country="nz">New Zealand</option>
                                         <option data-country="ni">Nicaragua</option>
@@ -511,11 +512,11 @@ include 'includes/header.php';
                                         <option data-country="pt">Portugal</option>
                                         <option data-country="pr">Puerto Rico</option>
                                         <option data-country="qa">Qatar</option>
-                                        <option data-country="re">Réunion</option>
+                                        <option data-country="re">RÃ©union</option>
                                         <option data-country="ro">Romania</option>
                                         <option data-country="ru">Russia</option>
                                         <option data-country="rw">Rwanda</option>
-                                        <option data-country="bl">St. Barthélemy</option>
+                                        <option data-country="bl">St. BarthÃ©lemy</option>
                                         <option data-country="sh">St. Helena</option>
                                         <option data-country="kn">St. Kitts & Nevis</option>
                                         <option data-country="lc">St. Lucia</option>
@@ -524,7 +525,7 @@ include 'includes/header.php';
                                         <option data-country="vc">St. Vincent & Grenadines</option>
                                         <option data-country="ws">Samoa</option>
                                         <option data-country="sm">San Marino</option>
-                                        <option data-country="st">São Tomé & Príncipe</option>
+                                        <option data-country="st">SÃ£o TomÃ© & PrÃ­ncipe</option>
                                         <option data-country="sa">Saudi Arabia</option>
                                         <option data-country="sn">Senegal</option>
                                         <option data-country="rs">Serbia</option>
@@ -590,7 +591,7 @@ include 'includes/header.php';
                     <!-- [ Footer ] start -->
                     <footer class="footer">
                         <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
-                            <span>Copyright �</span>
+                            <span>Copyright ï¿½</span>
                             <script>
                                 document.write(new Date().getFullYear());
                             </script>
@@ -605,4 +606,8 @@ include 'includes/header.php';
                 </div>
                 <!-- [ Content Area ] end -->
             </div>
-            <?php include 'includes/footer.php'; ?>
+            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+include 'includes/footer.php'; ?>
+
+

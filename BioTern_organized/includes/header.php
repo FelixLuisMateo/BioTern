@@ -1,4 +1,5 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 // Shared header include.  Sets up HTML <head> and page header/navigation.
 // Pages can set a $page_title variable before including this file.
 if (session_status() === PHP_SESSION_NONE) {
@@ -13,7 +14,7 @@ if ($header_user_id_session <= 0) {
 }
 
 // Refresh session identity from DB so page access stays connected to current account data.
-$header_db = @new mysqli('127.0.0.1', 'root', '', 'biotern_db');
+$header_db = @new mysqli(defined('DB_HOST') ? DB_HOST : '127.0.0.1', defined('DB_USER') ? DB_USER : 'root', defined('DB_PASS') ? DB_PASS : '', defined('DB_NAME') ? DB_NAME : 'biotern_db');
 if (!$header_db->connect_errno) {
     $stmt = $header_db->prepare("SELECT id, name, username, email, role, is_active, profile_picture FROM users WHERE id = ? LIMIT 1");
     if ($stmt) {
@@ -115,7 +116,7 @@ if ($session_avatar !== '') {
 $header_notifications = [];
 $header_notifications_unread = 0;
 if ($header_user_id_session > 0) {
-    $hdr_db = @new mysqli('127.0.0.1', 'root', '', 'biotern_db');
+    $hdr_db = @new mysqli(defined('DB_HOST') ? DB_HOST : '127.0.0.1', defined('DB_USER') ? DB_USER : 'root', defined('DB_PASS') ? DB_PASS : '', defined('DB_NAME') ? DB_NAME : 'biotern_db');
     if (!$hdr_db->connect_errno) {
         $has_title = false;
         $has_message = false;
@@ -199,7 +200,9 @@ if ($header_user_id_session > 0) {
 }
 ?>
 <!DOCTYPE html>
-<html lang="zxx"<?php echo $html_class_attr !== '' ? ' class="' . htmlspecialchars($html_class_attr, ENT_QUOTES, 'UTF-8') . '"' : ''; ?>>
+<html lang="zxx"<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $html_class_attr !== '' ? ' class="' . htmlspecialchars($html_class_attr, ENT_QUOTES, 'UTF-8') . '"' : ''; ?>>
 
 <head>
     <meta charset="utf-8">
@@ -208,12 +211,20 @@ if ($header_user_id_session > 0) {
     <meta name="description" content="">
     <meta name="keyword" content="">
     <meta name="author" content="ACT 2A Group 5">
-    <?php if ($base_href !== ''): ?>
-        <base href="<?php echo htmlspecialchars($base_href, ENT_QUOTES, 'UTF-8'); ?>">
-    <?php endif; ?>
+    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($base_href !== ''): ?>
+        <base href="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($base_href, ENT_QUOTES, 'UTF-8'); ?>">
+    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
     <!--! The above 6 meta tags *must* come first in the head; any other head content must come *after* these tags !-->
     <!--! BEGIN: Apps Title-->
-    <title><?php echo htmlspecialchars($page_title, ENT_QUOTES, 'UTF-8'); ?></title>
+    <title><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($page_title, ENT_QUOTES, 'UTF-8'); ?></title>
     <!--! END:  Apps Title-->
     <!--! BEGIN: Favicon-->
     <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
@@ -240,8 +251,12 @@ if ($header_user_id_session > 0) {
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2-theme.min.css">
     <!--! END: Vendors CSS-->
     <script>
-        window.__bioternThemePrefs = <?php echo json_encode($biotern_theme_preferences, JSON_UNESCAPED_SLASHES); ?>;
-        window.__bioternThemeApi = <?php echo json_encode($biotern_theme_api_endpoint, JSON_UNESCAPED_SLASHES); ?>;
+        window.__bioternThemePrefs = <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo json_encode($biotern_theme_preferences, JSON_UNESCAPED_SLASHES); ?>;
+        window.__bioternThemeApi = <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo json_encode($biotern_theme_api_endpoint, JSON_UNESCAPED_SLASHES); ?>;
     </script>
     <!--! BEGIN: Early Skin Script -->
     <script>
@@ -402,18 +417,34 @@ if ($header_user_id_session > 0) {
     <!--! BEGIN: Custom CSS-->
     <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css" />
     <link rel="stylesheet" type="text/css" href="assets/css/layout-shared-overrides.css" />
-    <?php if (isset($page_styles) && is_array($page_styles)): ?>
-        <?php foreach ($page_styles as $stylesheet): ?>
-            <?php if (is_string($stylesheet) && trim($stylesheet) !== ''): ?>
-                <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($stylesheet, ENT_QUOTES, 'UTF-8'); ?>" />
-            <?php endif; ?>
-        <?php endforeach; ?>
-    <?php endif; ?>
+    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if (isset($page_styles) && is_array($page_styles)): ?>
+        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($page_styles as $stylesheet): ?>
+            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if (is_string($stylesheet) && trim($stylesheet) !== ''): ?>
+                <link rel="stylesheet" type="text/css" href="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($stylesheet, ENT_QUOTES, 'UTF-8'); ?>" />
+            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
+        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
+    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
     <!--! END: Custom CSS-->
 </head>
 
 <body>
-    <?php include_once __DIR__ . '/navigation.php'; ?>
+    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+include_once __DIR__ . '/navigation.php'; ?>
     <!--! ================================================================ !-->
     <!--! [Start] Header !-->
     <!--! ================================================================ !-->
@@ -458,7 +489,7 @@ if ($header_user_id_session > 0) {
                     </div>
                     <div class="nxl-h-item d-none d-sm-flex">
                         <div class="full-screen-switcher">
-                            <a href="javascript:void(0);" class="nxl-head-link me-0" onclick="$('body').fullScreenHelper('toggle');">
+                            <a href="javascript:void(0);" class="nxl-head-link me-0">
                                 <i class="feather-maximize maximize"></i>
                                 <i class="feather-minimize minimize"></i>
                             </a>
@@ -475,47 +506,85 @@ if ($header_user_id_session > 0) {
                     <div class="dropdown nxl-h-item click-only-dropdown">
                         <a class="nxl-head-link me-3" data-bs-toggle="dropdown" href="#" role="button" data-bs-auto-close="outside">
                             <i class="feather-bell"></i>
-                            <?php if ($header_notifications_unread > 0): ?>
-                                <span class="badge bg-danger nxl-h-badge"><?php echo (int)$header_notifications_unread; ?></span>
-                            <?php endif; ?>
+                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($header_notifications_unread > 0): ?>
+                                <span class="badge bg-danger nxl-h-badge"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$header_notifications_unread; ?></span>
+                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
                         </a>
                         <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-notifications-menu">
                             <div class="d-flex justify-content-between align-items-center notifications-head px-3 py-2 border-bottom">
                                 <span class="fw-semibold">Notifications</span>
-                                <span class="badge bg-soft-primary text-primary"><?php echo (int)$header_notifications_unread; ?> unread</span>
+                                <span class="badge bg-soft-primary text-primary"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$header_notifications_unread; ?> unread</span>
                             </div>
-                            <?php if (!empty($header_notifications)): ?>
-                                <?php foreach ($header_notifications as $n): ?>
+                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if (!empty($header_notifications)): ?>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($header_notifications as $n): ?>
                                     <div class="notifications-item">
                                         <img src="assets/images/avatar/1.png" alt="" class="rounded me-3 border">
                                         <div class="notifications-desc">
-                                            <a href="javascript:void(0);" class="font-body text-truncate-2-line"><?php echo htmlspecialchars($n['title'], ENT_QUOTES, 'UTF-8'); ?></a>
-                                            <div class="fs-12 text-muted text-truncate-2-line"><?php echo htmlspecialchars($n['message'], ENT_QUOTES, 'UTF-8'); ?></div>
-                                            <div class="notifications-date text-muted border-bottom border-bottom-dashed"><?php echo htmlspecialchars($n['created_at'] !== '' ? date('M d, Y h:i A', strtotime($n['created_at'])) : 'Just now', ENT_QUOTES, 'UTF-8'); ?></div>
+                                            <a href="javascript:void(0);" class="font-body text-truncate-2-line"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($n['title'], ENT_QUOTES, 'UTF-8'); ?></a>
+                                            <div class="fs-12 text-muted text-truncate-2-line"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($n['message'], ENT_QUOTES, 'UTF-8'); ?></div>
+                                            <div class="notifications-date text-muted border-bottom border-bottom-dashed"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($n['created_at'] !== '' ? date('M d, Y h:i A', strtotime($n['created_at'])) : 'Just now', ENT_QUOTES, 'UTF-8'); ?></div>
                                         </div>
                                     </div>
-                                <?php endforeach; ?>
-                            <?php else: ?>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
+                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+else: ?>
                                 <div class="px-3 py-3 text-muted fs-12">No notifications yet.</div>
-                            <?php endif; ?>
+                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
                         </div>
                     </div>
                     <div class="dropdown nxl-h-item click-only-dropdown">
                         <a href="javascript:void(0);" data-bs-toggle="dropdown" role="button" data-bs-auto-close="outside">
-                            <img src="<?php echo htmlspecialchars($header_avatar, ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar me-0">
+                            <img src="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($header_avatar, ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar me-0">
                         </a>
                         <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-user-dropdown">
                             <div class="dropdown-header">
                                 <div class="d-flex align-items-center">
-                                    <img src="<?php echo htmlspecialchars($header_avatar, ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar">
+                                    <img src="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($header_avatar, ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar">
                                     <div>
                                         <h6 class="text-dark mb-0">
-                                            <?php echo htmlspecialchars($header_user_name, ENT_QUOTES, 'UTF-8'); ?>
-                                            <?php if ($header_user_role !== ''): ?>
-                                                <span class="badge bg-soft-success text-success ms-1"><?php echo htmlspecialchars(ucfirst($header_user_role), ENT_QUOTES, 'UTF-8'); ?></span>
-                                            <?php endif; ?>
+                                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($header_user_name, ENT_QUOTES, 'UTF-8'); ?>
+                                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($header_user_role !== ''): ?>
+                                                <span class="badge bg-soft-success text-success ms-1"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars(ucfirst($header_user_role), ENT_QUOTES, 'UTF-8'); ?></span>
+                                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
                                         </h6>
-                                        <span class="fs-12 fw-medium text-muted"><?php echo htmlspecialchars($header_user_email, ENT_QUOTES, 'UTF-8'); ?></span>
+                                        <span class="fs-12 fw-medium text-muted"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($header_user_email, ENT_QUOTES, 'UTF-8'); ?></span>
                                     </div>
                                 </div>
                             </div>
@@ -563,3 +632,4 @@ if ($header_user_id_session > 0) {
     <!--! ================================================================ !-->
     <main class="nxl-container">
         <div class="nxl-content">
+

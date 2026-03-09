@@ -1,9 +1,10 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 // Database Connection
 $host = 'localhost';
 $db_user = 'root';
 $db_password = '';
-$db_name = 'biotern_db';
+$db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
 
 try {
     $conn = new mysqli($host, $db_user, $db_password, $db_name);
@@ -407,7 +408,9 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
     <meta name="description" content="">
     <meta name="keyword" content="">
     <meta name="author" content="ACT 2A Group 5">
-    <title>BioTern || Student Profile - <?php echo htmlspecialchars($student['first_name'] . ' ' . $student['last_name']); ?></title>
+    <title>BioTern || Student Profile - <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($student['first_name'] . ' ' . $student['last_name']); ?></title>
     <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
     <script src="assets/js/theme-preload-init.min.js"></script>
     <link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css">
@@ -591,7 +594,9 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
 </head>
 
 <body>
-    <?php include_once 'includes/navigation.php'; ?>
+    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+include_once 'includes/navigation.php'; ?>
     <!--! Header !-->
     <header class="nxl-header">
         <div class="header-wrapper">
@@ -659,15 +664,23 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                     </div>
                     <div class="dropdown nxl-h-item">
                         <a href="javascript:void(0);" data-bs-toggle="dropdown" role="button" data-bs-auto-close="outside">
-                            <img src="<?php echo htmlspecialchars((isset($_SESSION['profile_picture']) && trim((string)$_SESSION['profile_picture']) !== '' ? ltrim(str_replace('\\', '/', trim((string)$_SESSION['profile_picture'])), '/') : ('assets/images/avatar/' . (((int)($_SESSION['user_id'] ?? 0) % 5) + 1) . '.png')), ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar me-0" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
+                            <img src="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars((isset($_SESSION['profile_picture']) && trim((string)$_SESSION['profile_picture']) !== '' ? ltrim(str_replace('\\', '/', trim((string)$_SESSION['profile_picture'])), '/') : ('assets/images/avatar/' . (((int)($_SESSION['user_id'] ?? 0) % 5) + 1) . '.png')), ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar me-0" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
                         </a>
                         <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-user-dropdown">
                             <div class="dropdown-header">
                                 <div class="d-flex align-items-center">
-                                    <img src="<?php echo htmlspecialchars((isset($_SESSION['profile_picture']) && trim((string)$_SESSION['profile_picture']) !== '' ? ltrim(str_replace('\\', '/', trim((string)$_SESSION['profile_picture'])), '/') : ('assets/images/avatar/' . (((int)($_SESSION['user_id'] ?? 0) % 5) + 1) . '.png')), ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
+                                    <img src="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars((isset($_SESSION['profile_picture']) && trim((string)$_SESSION['profile_picture']) !== '' ? ltrim(str_replace('\\', '/', trim((string)$_SESSION['profile_picture'])), '/') : ('assets/images/avatar/' . (((int)($_SESSION['user_id'] ?? 0) % 5) + 1) . '.png')), ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
                                     <div>
-                                        <h6 class="text-dark mb-0"><?php echo htmlspecialchars((string)($_SESSION['name'] ?? $_SESSION['username'] ?? 'BioTern User'), ENT_QUOTES, 'UTF-8'); ?></h6>
-                                        <span class="fs-12 fw-medium text-muted"><?php echo htmlspecialchars((string)($_SESSION['email'] ?? 'admin@biotern.local'), ENT_QUOTES, 'UTF-8'); ?></span>
+                                        <h6 class="text-dark mb-0"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars((string)($_SESSION['name'] ?? $_SESSION['username'] ?? 'BioTern User'), ENT_QUOTES, 'UTF-8'); ?></h6>
+                                        <span class="fs-12 fw-medium text-muted"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars((string)($_SESSION['email'] ?? 'admin@biotern.local'), ENT_QUOTES, 'UTF-8'); ?></span>
                                     </div>
                                 </div>
                             </div>
@@ -729,36 +742,58 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                     <div class="col-xxl-4 col-xl-6">
                         <div class="card stretch stretch-full">
                             <div class="card-body">
-                                <?php if ($eval_flash_message !== ''): ?>
-                                    <div class="alert alert-<?php echo $eval_flash_type === 'danger' ? 'danger' : 'success'; ?> mb-3">
-                                        <?php echo htmlspecialchars($eval_flash_message); ?>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($eval_flash_message !== ''): ?>
+                                    <div class="alert alert-<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $eval_flash_type === 'danger' ? 'danger' : 'success'; ?> mb-3">
+                                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($eval_flash_message); ?>
                                     </div>
-                                <?php endif; ?>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
                                 <div class="mb-4 text-center">
                                     <div class="wd-150 ht-150 mx-auto mb-3 position-relative">
                                         <div class="avatar-image wd-150 ht-150 border border-5 border-gray-3">
                                             <?php
-                                            $profile_img = resolve_profile_image_url((string)($student['profile_picture'] ?? ''));
+require_once dirname(__DIR__) . '/config/db.php';
+$profile_img = resolve_profile_image_url((string)($student['profile_picture'] ?? ''));
                                             if ($profile_img !== null):
                                             ?>
-                                                <img src="<?php echo htmlspecialchars($profile_img); ?>" alt="Profile" class="img-fluid">
-                                            <?php else: ?>
-                                                <img src="assets/images/avatar/<?php echo ($student['id'] % 5) + 1; ?>.png" alt="" class="img-fluid">
-                                            <?php endif; ?>
+                                                <img src="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($profile_img); ?>" alt="Profile" class="img-fluid">
+                                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+else: ?>
+                                                <img src="assets/images/avatar/<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo ($student['id'] % 5) + 1; ?>.png" alt="" class="img-fluid">
+                                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
                                         </div>
                                         <div class="wd-10 ht-10 text-success rounded-circle position-absolute translate-middle" style="top: 76%; right: 10px">
                                             <i class="bi bi-patch-check-fill"></i>
                                         </div>
                                     </div>
                                     <div class="mb-4">
-                                        <a href="javascript:void(0);" class="fs-14 fw-bold d-block"><?php echo htmlspecialchars($student['first_name'] . ' ' . $student['last_name']); ?></a>
-                                        <a href="javascript:void(0);" class="fs-12 fw-normal text-muted d-block"><?php echo htmlspecialchars($student['email']); ?></a>
+                                        <a href="javascript:void(0);" class="fs-14 fw-bold d-block"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($student['first_name'] . ' ' . $student['last_name']); ?></a>
+                                        <a href="javascript:void(0);" class="fs-12 fw-normal text-muted d-block"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($student['email']); ?></a>
                                     </div>
                                     <div class="fs-12 fw-normal text-muted text-center profile-stats mb-4">
                                         <div class="stat-card hours-remaining-card py-3 px-4 rounded-1 border border-dashed border-gray-5">
                                             <h6 class="fs-15 fw-bolder mb-0" id="hoursRemaining">
                                                 <?php
-                                                $hours = intdiv($remaining_seconds, 3600);
+require_once dirname(__DIR__) . '/config/db.php';
+$hours = intdiv($remaining_seconds, 3600);
                                                 $mins = intdiv(($remaining_seconds % 3600), 60);
                                                 $secs = $remaining_seconds % 60;
                                                 echo $hours . 'h:' . str_pad((string)$mins, 2, '0', STR_PAD_LEFT) . 'm:' . str_pad((string)$secs, 2, '0', STR_PAD_LEFT) . 's';
@@ -767,47 +802,71 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                                             <p class="fs-12 text-muted mb-0">Hours Remaining</p>
                                         </div>
                                         <div class="stat-card completion-card py-3 px-4 rounded-1 border border-dashed border-gray-5">
-                                            <h6 class="fs-15 fw-bolder mb-0" id="completionValue"><?php echo number_format($completion_percentage, 2); ?>%</h6>
+                                            <h6 class="fs-15 fw-bolder mb-0" id="completionValue"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format($completion_percentage, 2); ?>%</h6>
                                             <p class="fs-12 text-muted mb-0">Completion</p>
                                         </div>
                                         <div class="stat-card py-3 px-4 rounded-1 border border-dashed border-gray-5">
-                                            <h6 class="fs-15 fw-bolder" id="internalHoursValue"><?php echo intval($internal_remaining_display); ?>/<?php echo intval($internal_total_hours); ?></h6>
+                                            <h6 class="fs-15 fw-bolder" id="internalHoursValue"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo intval($internal_remaining_display); ?>/<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo intval($internal_total_hours); ?></h6>
                                             <p class="fs-12 text-muted mb-0">Internal Hours</p>
                                         </div>
                                         <div class="stat-card py-3 px-4 rounded-1 border border-dashed border-gray-5">
-                                            <h6 class="fs-15 fw-bolder"><?php echo intval($external_remaining_display); ?>/<?php echo intval($external_total_hours); ?></h6>
+                                            <h6 class="fs-15 fw-bolder"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo intval($external_remaining_display); ?>/<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo intval($external_total_hours); ?></h6>
                                             <p class="fs-12 text-muted mb-0">External Hours</p>
                                         </div>
                                     </div>
-                                    <?php if ($is_clocked_in): ?>
+                                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($is_clocked_in): ?>
                                         <div class="alert alert-soft-success-message p-2 mb-3" role="alert">
                                             <i class="feather-check-circle me-2"></i>
                                             <span class="fs-12">Student is currently clocked in</span>
                                         </div>
-                                    <?php elseif ($has_attendance_today): ?>
+                                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+elseif ($has_attendance_today): ?>
                                         <div class="alert alert-soft-info-message attendance-clocked-out-alert p-2 mb-3" role="alert">
                                             <i class="feather-clock me-2"></i>
                                             <span class="fs-12 fw-bold">Student has attendance today and is currently clocked out</span>
                                         </div>
-                                    <?php else: ?>
+                                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+else: ?>
                                         <div class="alert alert-soft-warning-message p-2 mb-3" role="alert">
                                             <i class="feather-alert-circle me-2"></i>
                                             <span class="fs-12">Student has no attendance today</span>
                                         </div>
-                                    <?php endif; ?>
+                                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
                                 </div>
                                 <ul class="list-unstyled mb-4">
                                     <li class="profile-contact-item mb-4">
                                         <span class="text-muted fw-medium hstack gap-3"><i class="feather-map-pin"></i>Location</span>
-                                        <a href="javascript:void(0);" class="profile-contact-value"><?php echo htmlspecialchars($student['address'] ?? 'N/A'); ?></a>
+                                        <a href="javascript:void(0);" class="profile-contact-value"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($student['address'] ?? 'N/A'); ?></a>
                                     </li>
                                     <li class="profile-contact-item mb-4">
                                         <span class="text-muted fw-medium hstack gap-3"><i class="feather-phone"></i>Mobile Phone</span>
-                                        <a href="javascript:void(0);" class="profile-contact-value"><?php echo htmlspecialchars($student['phone'] ?? 'N/A'); ?></a>
+                                        <a href="javascript:void(0);" class="profile-contact-value"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($student['phone'] ?? 'N/A'); ?></a>
                                     </li>
                                     <li class="profile-contact-item mb-0">
                                         <span class="text-muted fw-medium hstack gap-3"><i class="feather-mail"></i>Email</span>
-                                        <a href="javascript:void(0);" class="profile-contact-value"><?php echo htmlspecialchars($student['email']); ?></a>
+                                        <a href="javascript:void(0);" class="profile-contact-value"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($student['email']); ?></a>
                                     </li>
                                 </ul>
                                 <div class="d-flex gap-2 text-center pt-4">
@@ -815,17 +874,17 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                                         <i class="feather-trash-2 me-2"></i>
                                         <span>Delete</span>
                                     </a>
-                                    <a href="students-edit.php?id=<?php echo $student['id']; ?>" class="w-50 btn btn-primary">
+                                    <a href="students-edit.php?id=<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $student['id']; ?>" class="w-50 btn btn-primary">
                                         <i class="feather-edit me-2"></i>
                                         <span>Edit Profile</span>
                                     </a>
                                 </div>
                                 <div class="d-grid gap-2 text-center pt-2">
-                                    <a href="students-edit.php?id=<?php echo $student['id']; ?>#upload-profile-picture" class="btn btn-info">
-                                        <i class="feather-image me-2"></i>
-                                        <span>Upload Profile Picture</span>
-                                    </a>
-                                    <a href="generate_resume.php?id=<?php echo $student['id']; ?>" class="btn btn-success" target="_blank">
+                                    <a href="generate_resume.php?id=<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $student['id']; ?>" class="btn btn-success" target="_blank">
                                         <i class="feather-file-text me-2"></i>
                                         <span>Generate Resume</span>
                                     </a>
@@ -856,133 +915,181 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                                     <div class="profile-details mb-5">
                                         <div class="mb-4 d-flex align-items-center justify-content-between">
                                             <h5 class="fw-bold mb-0">Profile Details:</h5>
-                                            <a href="students-edit.php?id=<?php echo $student['id']; ?>" class="btn btn-sm btn-light-brand">Edit Profile</a>
+                                            <a href="students-edit.php?id=<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $student['id']; ?>" class="btn btn-sm btn-light-brand">Edit Profile</a>
                                         </div>
                                         <div class="row g-3">
                                             <div class="col-md-6">
                                                 <div class="p-3 border rounded">
                                                     <div class="small text-muted mb-1">Career Objective</div>
-                                                    <div class="fw-semibold"><?php echo htmlspecialchars(!empty($student['bio']) ? $student['bio'] : 'N/A'); ?></div>
+                                                    <div class="fw-semibold"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars(!empty($student['bio']) ? $student['bio'] : 'N/A'); ?></div>
                                                 </div>
                                             </div>
                                             <div class="col-md-6">
                                                 <div class="p-3 border rounded">
                                                     <div class="small text-muted mb-1">Student ID</div>
-                                                    <div class="fw-semibold"><?php echo htmlspecialchars($student['student_id']); ?></div>
+                                                    <div class="fw-semibold"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($student['student_id']); ?></div>
                                                 </div>
                                             </div>
                                             <div class="col-md-6">
                                                 <div class="p-3 border rounded">
                                                     <div class="small text-muted mb-1">First Name</div>
-                                                    <div class="fw-semibold"><?php echo htmlspecialchars($student['first_name']); ?></div>
+                                                    <div class="fw-semibold"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($student['first_name']); ?></div>
                                                 </div>
                                             </div>
                                             <div class="col-md-6">
                                                 <div class="p-3 border rounded">
                                                     <div class="small text-muted mb-1">Middle Name</div>
-                                                    <div class="fw-semibold"><?php echo htmlspecialchars($student['middle_name'] ?? 'N/A'); ?></div>
+                                                    <div class="fw-semibold"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($student['middle_name'] ?? 'N/A'); ?></div>
                                                 </div>
                                             </div>
                                             <div class="col-md-6">
                                                 <div class="p-3 border rounded">
                                                     <div class="small text-muted mb-1">Last Name</div>
-                                                    <div class="fw-semibold"><?php echo htmlspecialchars($student['last_name']); ?></div>
+                                                    <div class="fw-semibold"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($student['last_name']); ?></div>
                                                 </div>
                                             </div>
                                             <div class="col-md-6">
                                                 <div class="p-3 border rounded">
                                                     <div class="small text-muted mb-1">Course</div>
-                                                    <div class="fw-semibold"><?php echo htmlspecialchars($student['course_name'] ?? 'N/A'); ?></div>
+                                                    <div class="fw-semibold"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($student['course_name'] ?? 'N/A'); ?></div>
                                                 </div>
                                             </div>
                                             <div class="col-md-6">
                                                 <div class="p-3 border rounded">
                                                     <div class="small text-muted mb-1">Department</div>
-                                                    <div class="fw-semibold"><?php echo htmlspecialchars($student['department_name'] ?? 'N/A'); ?></div>
+                                                    <div class="fw-semibold"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($student['department_name'] ?? 'N/A'); ?></div>
                                                 </div>
                                             </div>
                                             <div class="col-md-6">
                                                 <div class="p-3 border rounded">
                                                     <div class="small text-muted mb-1">Section</div>
-                                                    <div class="fw-semibold"><?php echo htmlspecialchars($student['section_name'] ?? 'N/A'); ?></div>
+                                                    <div class="fw-semibold"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($student['section_name'] ?? 'N/A'); ?></div>
                                                 </div>
                                             </div>
                                             <div class="col-md-6">
                                                 <div class="p-3 border rounded">
                                                     <div class="small text-muted mb-1">Internal Hours (Remaining/Total)</div>
-                                                    <div class="fw-semibold" id="internalHoursDetailValue"><?php echo intval($internal_remaining_display); ?> / <?php echo intval($internal_total_hours); ?></div>
+                                                    <div class="fw-semibold" id="internalHoursDetailValue"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo intval($internal_remaining_display); ?> / <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo intval($internal_total_hours); ?></div>
                                                 </div>
                                             </div>
                                             <div class="col-md-6">
                                                 <div class="p-3 border rounded">
                                                     <div class="small text-muted mb-1">External Hours (Remaining/Total)</div>
-                                                    <div class="fw-semibold"><?php echo intval($external_remaining_display); ?> / <?php echo intval($external_total_hours); ?></div>
+                                                    <div class="fw-semibold"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo intval($external_remaining_display); ?> / <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo intval($external_total_hours); ?></div>
                                                 </div>
                                             </div>
                                             <div class="col-md-6">
                                                 <div class="p-3 border rounded">
                                                     <div class="small text-muted mb-1">Email Address</div>
-                                                    <div class="fw-semibold"><?php echo htmlspecialchars($student['email']); ?></div>
+                                                    <div class="fw-semibold"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($student['email']); ?></div>
                                                 </div>
                                             </div>
                                             <div class="col-md-6">
                                                 <div class="p-3 border rounded">
                                                     <div class="small text-muted mb-1">Mobile Number</div>
-                                                    <div class="fw-semibold"><?php echo htmlspecialchars($student['phone'] ?? 'N/A'); ?></div>
+                                                    <div class="fw-semibold"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($student['phone'] ?? 'N/A'); ?></div>
                                                 </div>
                                             </div>
                                             <div class="col-md-6">
                                                 <div class="p-3 border rounded">
                                                     <div class="small text-muted mb-1">Date of Birth</div>
-                                                    <div class="fw-semibold"><?php echo formatDate($student['date_of_birth']); ?></div>
+                                                    <div class="fw-semibold"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo formatDate($student['date_of_birth']); ?></div>
                                                 </div>
                                             </div>
                                             <div class="col-md-6">
                                                 <div class="p-3 border rounded">
                                                     <div class="small text-muted mb-1">Gender</div>
-                                                    <div class="fw-semibold"><?php echo htmlspecialchars(ucfirst($student['gender'] ?? 'N/A')); ?></div>
+                                                    <div class="fw-semibold"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars(ucfirst($student['gender'] ?? 'N/A')); ?></div>
                                                 </div>
                                             </div>
                                             <div class="col-md-6">
                                                 <div class="p-3 border rounded">
                                                     <div class="small text-muted mb-1">Supervisor</div>
-                                                    <div class="fw-semibold"><?php echo htmlspecialchars($student['supervisor_name'] ?? 'Not Assigned'); ?></div>
+                                                    <div class="fw-semibold"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($student['supervisor_name'] ?? 'Not Assigned'); ?></div>
                                                 </div>
                                             </div>
                                             <div class="col-md-6">
                                                 <div class="p-3 border rounded">
                                                     <div class="small text-muted mb-1">Coordinator</div>
-                                                    <div class="fw-semibold"><?php echo htmlspecialchars($student['coordinator_name'] ?? 'Not Assigned'); ?></div>
+                                                    <div class="fw-semibold"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($student['coordinator_name'] ?? 'Not Assigned'); ?></div>
                                                 </div>
                                             </div>
                                             <div class="col-12">
                                                 <div class="p-3 border rounded">
                                                     <div class="small text-muted mb-1">Home Address</div>
-                                                    <div class="fw-semibold"><?php echo htmlspecialchars($student['address'] ?? 'N/A'); ?></div>
+                                                    <div class="fw-semibold"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($student['address'] ?? 'N/A'); ?></div>
                                                 </div>
                                             </div>
                                             <div class="col-md-6">
                                                 <div class="p-3 border rounded">
                                                     <div class="small text-muted mb-1">Emergency Contact</div>
-                                                    <div class="fw-semibold"><?php echo htmlspecialchars($student['emergency_contact'] ?? 'N/A'); ?></div>
+                                                    <div class="fw-semibold"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($student['emergency_contact'] ?? 'N/A'); ?></div>
                                                 </div>
                                             </div>
                                             <div class="col-md-6">
                                                 <div class="p-3 border rounded">
                                                     <div class="small text-muted mb-1">Status</div>
-                                                    <div class="fw-semibold"><?php echo getStatusBadge($student['status']); ?></div>
+                                                    <div class="fw-semibold"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo getStatusBadge($student['status']); ?></div>
                                                 </div>
                                             </div>
                                             <div class="col-md-6">
                                                 <div class="p-3 border rounded">
                                                     <div class="small text-muted mb-1">Date Registered</div>
-                                                    <div class="fw-semibold"><?php echo formatDate($student['created_at']); ?></div>
+                                                    <div class="fw-semibold"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo formatDate($student['created_at']); ?></div>
                                                 </div>
                                             </div>
                                             <div class="col-md-6">
                                                 <div class="p-3 border rounded">
                                                     <div class="small text-muted mb-1">Date Fingerprint Registered</div>
-                                                    <div class="fw-semibold"><?php echo formatDate($student['biometric_registered_at']); ?></div>
+                                                    <div class="fw-semibold"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo formatDate($student['biometric_registered_at']); ?></div>
                                                 </div>
                                             </div>
                                         </div>
@@ -994,13 +1101,20 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                                     <div class="recent-activity p-4 pb-0">
                                         <div class="mb-4 pb-2 d-flex justify-content-between">
                                             <h5 class="fw-bold">Recent Attendance Records:</h5>
-                                            <a href="students-dtr.php?id=<?php echo intval($student['id']); ?>" class="btn btn-sm btn-light-brand">Open DTR</a>
+                                            <a href="students-dtr.php?id=<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo intval($student['id']); ?>" class="btn btn-sm btn-light-brand">Open DTR</a>
                                         </div>
                                         <ul class="list-unstyled activity-feed">
-                                            <?php if (count($activities) > 0): ?>
-                                                <?php foreach ($activities as $activity): ?>
-                                                    <?php 
-                                                    $total_hours = !empty($activity['total_hours']) ? $activity['total_hours'] : calculateTotalHours(
+                                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if (count($activities) > 0): ?>
+                                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($activities as $activity): ?>
+                                                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+$total_hours = !empty($activity['total_hours']) ? $activity['total_hours'] : calculateTotalHours(
                                                         $activity['morning_time_in'],
                                                         $activity['morning_time_out'],
                                                         $activity['break_time_in'],
@@ -1009,30 +1123,50 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                                                         $activity['afternoon_time_out']
                                                     );
                                                     ?>
-                                                    <li class="d-flex justify-content-between feed-item <?php echo getActivityTypeClass($activity['status']); ?>">
+                                                    <li class="d-flex justify-content-between feed-item <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo getActivityTypeClass($activity['status']); ?>">
                                                         <div>
                                                             <span class="text-truncate-1-line lead_date">
-                                                                Attendance for <?php echo date('M d, Y', strtotime($activity['date'])); ?>
-                                                                <span class="date">[<?php echo formatDateTime($activity['created_at']); ?>]</span>
+                                                                Attendance for <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo date('M d, Y', strtotime($activity['date'])); ?>
+                                                                <span class="date">[<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo formatDateTime($activity['created_at']); ?>]</span>
                                                             </span>
                                                             <span class="text">
-                                                                Morning: <a href="javascript:void(0);" class="fw-bold text-primary"><?php echo formatTimeRange($activity['morning_time_in'], $activity['morning_time_out']); ?></a>
+                                                                Morning: <a href="javascript:void(0);" class="fw-bold text-primary"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo formatTimeRange($activity['morning_time_in'], $activity['morning_time_out']); ?></a>
                                                                 &nbsp;|&nbsp;
-                                                                Afternoon: <a href="javascript:void(0);" class="fw-bold text-primary"><?php echo formatTimeRange($activity['afternoon_time_in'], $activity['afternoon_time_out']); ?></a>
+                                                                Afternoon: <a href="javascript:void(0);" class="fw-bold text-primary"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo formatTimeRange($activity['afternoon_time_in'], $activity['afternoon_time_out']); ?></a>
                                                                 &nbsp;|&nbsp;
-                                                                Total: <strong><?php echo $total_hours; ?> hrs</strong>
+                                                                Total: <strong><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $total_hours; ?> hrs</strong>
                                                             </span>
                                                         </div>
                                                         <div class="ms-3 d-flex gap-2 align-items-center">
-                                                            <?php echo getStatusBadge($activity['status']); ?>
+                                                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo getStatusBadge($activity['status']); ?>
                                                         </div>
                                                     </li>
-                                                <?php endforeach; ?>
-                                            <?php else: ?>
+                                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
+                                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+else: ?>
                                                 <li class="text-center py-4">
                                                     <p class="text-muted">No attendance records found</p>
                                                 </li>
-                                            <?php endif; ?>
+                                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
                                         </ul>
                                     </div>
                                 </div>
@@ -1042,14 +1176,22 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                                     <div class="p-4">
                                         <div class="mb-4 d-flex align-items-center justify-content-between">
                                             <h5 class="fw-bold mb-0">Supervisor Evaluation:</h5>
-                                            <?php if ($is_evaluation_unlocked): ?>
+                                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($is_evaluation_unlocked): ?>
                                                 <span class="badge bg-soft-success text-success">Unlocked</span>
-                                            <?php else: ?>
+                                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+else: ?>
                                                 <span class="badge bg-soft-warning text-warning">Locked</span>
-                                            <?php endif; ?>
+                                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
                                         </div>
 
-                                        <?php if ($is_evaluation_unlocked): ?>
+                                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($is_evaluation_unlocked): ?>
                                             <div class="alert alert-soft-success-message p-4 mb-4" role="alert">
                                                 <div class="d-flex">
                                                     <div class="me-3 d-none d-md-block"><i class="feather-check-circle fs-1"></i></div>
@@ -1059,44 +1201,72 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
                                                     </div>
                                                 </div>
                                             </div>
-                                        <?php else: ?>
+                                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+else: ?>
                                             <div class="alert alert-dismissible alert-soft-info-message p-4 mb-4" role="alert">
                                                 <div class="d-flex">
                                                     <div class="me-3 d-none d-md-block"><i class="feather-info fs-1"></i></div>
                                                     <div>
                                                         <p class="fw-bold mb-1">Evaluation is still locked</p>
                                                         <p class="fs-12 text-muted mb-0">Completion requirements are not yet fully met.</p>
-                                                        <?php if (!empty($evaluation_gate_state['reasons']) && is_array($evaluation_gate_state['reasons'])): ?>
+                                                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if (!empty($evaluation_gate_state['reasons']) && is_array($evaluation_gate_state['reasons'])): ?>
                                                             <ul class="mb-0 mt-2 ps-3">
-                                                                <?php foreach ($evaluation_gate_state['reasons'] as $reason): ?>
-                                                                    <li class="fs-12 text-muted"><?php echo htmlspecialchars((string)$reason); ?></li>
-                                                                <?php endforeach; ?>
+                                                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($evaluation_gate_state['reasons'] as $reason): ?>
+                                                                    <li class="fs-12 text-muted"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars((string)$reason); ?></li>
+                                                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
                                                             </ul>
-                                                        <?php endif; ?>
+                                                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
                                                     </div>
                                                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                                                 </div>
                                             </div>
-                                        <?php endif; ?>
+                                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
 
-                                        <?php if ($can_manage_eval_unlock): ?>
+                                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($can_manage_eval_unlock): ?>
                                             <div class="border rounded p-3 mb-4">
                                                 <p class="fw-semibold mb-2">Coordinator/Admin Override</p>
                                                 <form method="POST" class="d-flex flex-wrap gap-2 align-items-center">
-                                                    <input type="hidden" name="student_id" value="<?php echo (int)$student_id; ?>">
+                                                    <input type="hidden" name="student_id" value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$student_id; ?>">
                                                     <input type="text" name="eval_unlock_note" class="form-control" style="max-width: 340px;" placeholder="Optional note for audit">
-                                                    <?php if ($is_evaluation_unlocked): ?>
+                                                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($is_evaluation_unlocked): ?>
                                                         <button type="submit" name="eval_unlock_action" value="lock" class="btn btn-outline-danger btn-sm">Lock Evaluation</button>
-                                                    <?php else: ?>
+                                                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+else: ?>
                                                         <button type="submit" name="eval_unlock_action" value="unlock" class="btn btn-outline-success btn-sm">Unlock Evaluation</button>
-                                                    <?php endif; ?>
+                                                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
                                                 </form>
                                             </div>
-                                        <?php endif; ?>
+                                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
 
                                         <div class="text-center py-5">
                                             <i class="feather-inbox fs-1 text-muted mb-3 d-block"></i>
-                                            <p class="text-muted"><?php echo $is_evaluation_unlocked ? 'Waiting for supervisor submission' : 'Waiting for unlock requirements'; ?></p>
+                                            <p class="text-muted"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $is_evaluation_unlocked ? 'Waiting for supervisor submission' : 'Waiting for unlock requirements'; ?></p>
                                         </div>
                                     </div>
                                 </div>
@@ -1110,7 +1280,7 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
         <!-- Footer -->
         <footer class="footer">
             <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
-                <span>Copyright �</span>
+                <span>Copyright ï¿½</span>
                 <script>
                     document.write(new Date().getFullYear());
                 </script>
@@ -1138,13 +1308,25 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
             const completionElement = document.getElementById('completionValue');
             const internalHoursElement = document.getElementById('internalHoursValue');
             const internalHoursDetailElement = document.getElementById('internalHoursDetailValue');
-            const internalTotalHours = <?php echo (int)$internal_total_hours; ?>;
+            const internalTotalHours = <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$internal_total_hours; ?>;
 
-            const studentId = <?php echo (int)$student['id']; ?>;
-            let remainingSeconds = <?php echo (int)$remaining_seconds; ?>;
-            const remainingSecondsWithoutOpen = <?php echo (int)$remaining_seconds_without_open; ?>;
-            const isClockedIn = <?php echo $is_clocked_in ? 'true' : 'false'; ?>;
-            const openClockInRaw = <?php echo $open_clock_in_time ? json_encode($open_clock_in_time) : 'null'; ?>;
+            const studentId = <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$student['id']; ?>;
+            let remainingSeconds = <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$remaining_seconds; ?>;
+            const remainingSecondsWithoutOpen = <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$remaining_seconds_without_open; ?>;
+            const isClockedIn = <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $is_clocked_in ? 'true' : 'false'; ?>;
+            const openClockInRaw = <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $open_clock_in_time ? json_encode($open_clock_in_time) : 'null'; ?>;
             const storageKey = 'student_timer_state_' + String(studentId);
             const nowRef = new Date();
             const todayKey = [
@@ -1310,7 +1492,10 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
 </html>
 
 <?php
+require_once dirname(__DIR__) . '/config/db.php';
 $conn->close();
 ?>
+
+
 
 

@@ -1,4 +1,5 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -27,7 +28,7 @@ $is_student_user = ($current_role === 'student');
 $host = 'localhost';
 $db_user = 'root';
 $db_password = '';
-$db_name = 'biotern_db';
+$db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
 
 try {
     $conn = new mysqli($host, $db_user, $db_password, $db_name);
@@ -658,8 +659,12 @@ usort($print_students, function ($a, $b) {
             <div class="tel">Telefax No.: (045) 624-0215</div>
         </div>
         <div class="print-title">STUDENT SECTION LIST</div>
-        <div class="print-meta"><strong>SECTION:</strong> <?php echo htmlspecialchars($selected_section_label); ?></div>
-        <div class="print-meta"><strong>ADVISER:</strong> <?php echo htmlspecialchars($selected_adviser); ?></div>
+        <div class="print-meta"><strong>SECTION:</strong> <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($selected_section_label); ?></div>
+        <div class="print-meta"><strong>ADVISER:</strong> <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($selected_adviser); ?></div>
         <table>
             <thead>
                 <tr>
@@ -672,28 +677,50 @@ usort($print_students, function ($a, $b) {
                 </tr>
             </thead>
             <tbody>
-                <?php if (!empty($print_students)): ?>
-                    <?php foreach ($print_students as $i => $student): ?>
+                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if (!empty($print_students)): ?>
+                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($print_students as $i => $student): ?>
                         <tr>
-                            <td class="col-index"><?php echo (int)$i + 1; ?></td>
-                            <td><?php echo htmlspecialchars((string)($student['student_id'] ?? '')); ?></td>
-                            <td><?php echo htmlspecialchars((string)($student['last_name'] ?? '')); ?></td>
-                            <td><?php echo htmlspecialchars((string)($student['first_name'] ?? '')); ?></td>
-                            <td><?php echo htmlspecialchars((string)($student['middle_name'] ?? '')); ?></td>
+                            <td class="col-index"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$i + 1; ?></td>
+                            <td><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars((string)($student['student_id'] ?? '')); ?></td>
+                            <td><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars((string)($student['last_name'] ?? '')); ?></td>
+                            <td><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars((string)($student['first_name'] ?? '')); ?></td>
+                            <td><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars((string)($student['middle_name'] ?? '')); ?></td>
                             <td></td>
                         </tr>
-                    <?php endforeach; ?>
-                <?php else: ?>
+                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
+                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+else: ?>
                     <tr>
                         <td class="col-index">1</td>
                         <td colspan="5">No students found for current filter.</td>
                     </tr>
-                <?php endif; ?>
+                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
             </tbody>
         </table>
     </section>
 
-    <?php include_once 'includes/navigation.php'; ?>
+    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+include_once 'includes/navigation.php'; ?>
 
     <!--! Header !-->
     <header class="nxl-header">
@@ -762,20 +789,34 @@ usort($print_students, function ($a, $b) {
                     </div>
                     <div class="dropdown nxl-h-item">
                         <a href="javascript:void(0);" data-bs-toggle="dropdown" role="button" data-bs-auto-close="outside">
-                            <img src="<?php echo htmlspecialchars($current_profile_img, ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar me-0" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
+                            <img src="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($current_profile_img, ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar me-0" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
                         </a>
                         <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-user-dropdown">
                             <div class="dropdown-header">
                                 <div class="d-flex align-items-center">
-                                    <img src="<?php echo htmlspecialchars($current_profile_img, ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
+                                    <img src="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($current_profile_img, ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
                                     <div>
                                         <h6 class="text-dark mb-0">
-                                            <?php echo htmlspecialchars($current_user_name, ENT_QUOTES, 'UTF-8'); ?>
-                                            <?php if ($current_user_role_badge !== ''): ?>
-                                                <span class="badge bg-soft-success text-success ms-1"><?php echo htmlspecialchars(ucfirst($current_user_role_badge), ENT_QUOTES, 'UTF-8'); ?></span>
-                                            <?php endif; ?>
+                                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($current_user_name, ENT_QUOTES, 'UTF-8'); ?>
+                                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($current_user_role_badge !== ''): ?>
+                                                <span class="badge bg-soft-success text-success ms-1"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars(ucfirst($current_user_role_badge), ENT_QUOTES, 'UTF-8'); ?></span>
+                                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
                                         </h6>
-                                        <span class="fs-12 fw-medium text-muted"><?php echo htmlspecialchars($current_user_email, ENT_QUOTES, 'UTF-8'); ?></span>
+                                        <span class="fs-12 fw-medium text-muted"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($current_user_email, ENT_QUOTES, 'UTF-8'); ?></span>
                                     </div>
                                 </div>
                             </div>
@@ -909,51 +950,103 @@ usort($print_students, function ($a, $b) {
                     <form method="GET" class="filter-form row g-2 align-items-end" id="studentsFilterForm">
                         <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
                             <label class="form-label" for="filter-date">Date</label>
-                            <input id="filter-date" type="date" name="date" class="form-control" value="<?php echo htmlspecialchars($_GET['date'] ?? ''); ?>">
+                            <input id="filter-date" type="date" name="date" class="form-control" value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($_GET['date'] ?? ''); ?>">
                         </div>
                         <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
                             <label class="form-label" for="filter-course">Course</label>
                             <select id="filter-course" name="course_id" class="form-control">
                                 <option value="0">-- All Courses --</option>
-                                <?php foreach ($courses as $course): ?>
-                                    <option value="<?php echo $course['id']; ?>" <?php echo $filter_course == $course['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($course['name']); ?></option>
-                                <?php endforeach; ?>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($courses as $course): ?>
+                                    <option value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $course['id']; ?>" <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $filter_course == $course['id'] ? 'selected' : ''; ?>><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($course['name']); ?></option>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
                             </select>
                         </div>
                         <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
                             <label class="form-label" for="filter-department">Department</label>
                             <select id="filter-department" name="department_id" class="form-control">
                                 <option value="0">-- All Departments --</option>
-                                <?php foreach ($departments as $dept): ?>
-                                    <option value="<?php echo $dept['id']; ?>" <?php echo $filter_department == $dept['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($dept['name']); ?></option>
-                                <?php endforeach; ?>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($departments as $dept): ?>
+                                    <option value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $dept['id']; ?>" <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $filter_department == $dept['id'] ? 'selected' : ''; ?>><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($dept['name']); ?></option>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
                             </select>
                         </div>
                         <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
                             <label class="form-label" for="filter-section">Section</label>
                             <select id="filter-section" name="section_id" class="form-control">
                                 <option value="0">-- All Sections --</option>
-                                <?php foreach ($sections as $section): ?>
-                                    <option value="<?php echo (int)$section['id']; ?>" <?php echo $filter_section == $section['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($section['section_label']); ?></option>
-                                <?php endforeach; ?>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($sections as $section): ?>
+                                    <option value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$section['id']; ?>" <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $filter_section == $section['id'] ? 'selected' : ''; ?>><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($section['section_label']); ?></option>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
                             </select>
                         </div>
                         <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
                             <label class="form-label" for="filter-supervisor">Supervisor</label>
                             <select id="filter-supervisor" name="supervisor" class="form-control">
                                 <option value="">-- Any Supervisor --</option>
-                                <?php foreach ($supervisors as $sup): ?>
-                                    <option value="<?php echo htmlspecialchars($sup); ?>" <?php echo $filter_supervisor == $sup ? 'selected' : ''; ?>><?php echo htmlspecialchars($sup); ?></option>
-                                <?php endforeach; ?>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($supervisors as $sup): ?>
+                                    <option value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($sup); ?>" <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $filter_supervisor == $sup ? 'selected' : ''; ?>><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($sup); ?></option>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
                             </select>
                         </div>
                         <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
                             <label class="form-label" for="filter-coordinator">Coordinator</label>
                             <select id="filter-coordinator" name="coordinator" class="form-control">
                                 <option value="">-- Any Coordinator --</option>
-                                <?php foreach ($coordinators as $coor): ?>
-                                    <option value="<?php echo htmlspecialchars($coor); ?>" <?php echo $filter_coordinator == $coor ? 'selected' : ''; ?>><?php echo htmlspecialchars($coor); ?></option>
-                                <?php endforeach; ?>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($coordinators as $coor): ?>
+                                    <option value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($coor); ?>" <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $filter_coordinator == $coor ? 'selected' : ''; ?>><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($coor); ?></option>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
                             </select>
                         </div>
                         <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
@@ -980,7 +1073,9 @@ usort($print_students, function ($a, $b) {
                                             </div>
                                             <a href="javascript:void(0);" class="fw-bold d-block">
                                                 <span class="text-truncate-1-line">Total Students</span>
-                                                <span class="fs-24 fw-bolder d-block"><?php echo $stats['total_students'] ? $stats['total_students'] : '0'; ?></span>
+                                                <span class="fs-24 fw-bolder d-block"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $stats['total_students'] ? $stats['total_students'] : '0'; ?></span>
                                             </a>
                                         </div>
                                     </div>
@@ -997,7 +1092,9 @@ usort($print_students, function ($a, $b) {
                                             </div>
                                             <a href="javascript:void(0);" class="fw-bold d-block">
                                                 <span class="text-truncate-1-line">Active Students</span>
-                                                <span class="fs-24 fw-bolder d-block"><?php echo $stats['active_students'] ? $stats['active_students'] : '0'; ?></span>
+                                                <span class="fs-24 fw-bolder d-block"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $stats['active_students'] ? $stats['active_students'] : '0'; ?></span>
                                             </a>
                                         </div>
                                     </div>
@@ -1014,7 +1111,9 @@ usort($print_students, function ($a, $b) {
                                             </div>
                                             <a href="javascript:void(0);" class="fw-bold d-block">
                                                 <span class="text-truncate-1-line">Inactive Students</span>
-                                                <span class="fs-24 fw-bolder d-block"><?php echo $stats['inactive_students'] ? $stats['inactive_students'] : '0'; ?></span>
+                                                <span class="fs-24 fw-bolder d-block"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $stats['inactive_students'] ? $stats['inactive_students'] : '0'; ?></span>
                                             </a>
                                         </div>
                                     </div>
@@ -1031,7 +1130,9 @@ usort($print_students, function ($a, $b) {
                                             </div>
                                             <a href="javascript:void(0);" class="fw-bold d-block">
                                                 <span class="text-truncate-1-line">Biometric Registered</span>
-                                                <span class="fs-24 fw-bolder d-block"><?php echo $stats['biometric_registered'] ? $stats['biometric_registered'] : '0'; ?></span>
+                                                <span class="fs-24 fw-bolder d-block"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $stats['biometric_registered'] ? $stats['biometric_registered'] : '0'; ?></span>
                                             </a>
                                         </div>
                                     </div>
@@ -1072,22 +1173,33 @@ usort($print_students, function ($a, $b) {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <?php if (count($students) > 0): ?>
-                                                <?php foreach ($students as $index => $student): ?>
+                                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if (count($students) > 0): ?>
+                                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($students as $index => $student): ?>
                                                     <tr class="single-item">
                                                         <td>
                                                             <div class="item-checkbox ms-1">
                                                                 <div class="custom-control custom-checkbox">
-                                                                    <input type="checkbox" class="custom-control-input checkbox" id="checkBox_<?php echo $student['id']; ?>">
-                                                                    <label class="custom-control-label" for="checkBox_<?php echo $student['id']; ?>"></label>
+                                                                    <input type="checkbox" class="custom-control-input checkbox" id="checkBox_<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $student['id']; ?>">
+                                                                    <label class="custom-control-label" for="checkBox_<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $student['id']; ?>"></label>
                                                                 </div>
                                                             </div>
                                                         </td>
                                                         <td>
-                                                            <a href="students-view.php?id=<?php echo $student['id']; ?>" class="hstack gap-3">
+                                                            <a href="students-view.php?id=<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $student['id']; ?>" class="hstack gap-3">
                                                                 <div class="avatar-image avatar-md">
                                                                     <?php
-                                                                    $pp = $student['profile_picture'] ?? '';
+require_once dirname(__DIR__) . '/config/db.php';
+$pp = $student['profile_picture'] ?? '';
                                                                     $pp_url = resolve_profile_image_url($pp);
                                                                     if ($pp_url !== null) {
                                                                         echo '<img src="' . htmlspecialchars($pp_url) . '" alt="" class="img-fluid">';
@@ -1097,23 +1209,45 @@ usort($print_students, function ($a, $b) {
                                                                     ?>
                                                                 </div>
                                                                 <div>
-                                                                    <span class="text-truncate-1-line"><?php echo htmlspecialchars($student['first_name'] . ' ' . $student['last_name']); ?></span>
+                                                                    <span class="text-truncate-1-line"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($student['first_name'] . ' ' . $student['last_name']); ?></span>
                                                                 </div>
                                                             </a>
                                                         </td>
-                                                        <td><a href="students-view.php?id=<?php echo $student['id']; ?>"><?php echo htmlspecialchars($student['student_id']); ?></a></td>
-                                                        <td><a href="javascript:void(0);"><?php echo htmlspecialchars($student['course_name'] ?? 'N/A'); ?></a></td>
-                                                        <td><a href="javascript:void(0);"><?php echo htmlspecialchars($student['section_name'] ?? '-'); ?></a></td>
-                                                        <td><a href="javascript:void(0);"><?php echo htmlspecialchars($student['supervisor_name'] ?? '-'); ?></a></td>
-                                                        <td><a href="javascript:void(0);"><?php echo htmlspecialchars($student['coordinator_name'] ?? '-'); ?></a></td>
-                                                        <td><?php echo formatDate($student['created_at']); ?></td>
-                                                        <td><?php echo getStatusBadge($student['live_clock_status']); ?></td>
+                                                        <td><a href="students-view.php?id=<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $student['id']; ?>"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($student['student_id']); ?></a></td>
+                                                        <td><a href="javascript:void(0);"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($student['course_name'] ?? 'N/A'); ?></a></td>
+                                                        <td><a href="javascript:void(0);"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($student['section_name'] ?? '-'); ?></a></td>
+                                                        <td><a href="javascript:void(0);"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($student['supervisor_name'] ?? '-'); ?></a></td>
+                                                        <td><a href="javascript:void(0);"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($student['coordinator_name'] ?? '-'); ?></a></td>
+                                                        <td><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo formatDate($student['created_at']); ?></td>
+                                                        <td><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo getStatusBadge($student['live_clock_status']); ?></td>
                                                         <td>
                                                             <div class="hstack gap-2 justify-content-end">
-                                                                <a href="students-view.php?id=<?php echo $student['id']; ?>" class="avatar-text avatar-md" title="View">
+                                                                <a href="students-view.php?id=<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $student['id']; ?>" class="avatar-text avatar-md" title="View">
                                                                     <i class="feather feather-eye"></i>
                                                                 </a>
-                                                                <?php if (!$is_student_user): ?>
+                                                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if (!$is_student_user): ?>
                                                                     <div class="dropdown">
                                                                         <a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="dropdown" data-bs-offset="0,21">
                                                                             <i class="feather feather-more-horizontal"></i>
@@ -1159,12 +1293,18 @@ usort($print_students, function ($a, $b) {
                                                                             </li>
                                                                         </ul>
                                                                     </div>
-                                                                <?php endif; ?>
+                                                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
                                                             </div>
                                                         </td>
                                                     </tr>
-                                                <?php endforeach; ?>
-                                            <?php endif; ?>
+                                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
+                                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
                                         </tbody>
                                     </table>
                                 </div>
@@ -1177,7 +1317,7 @@ usort($print_students, function ($a, $b) {
         <!-- [ Footer ] start -->
         <footer class="footer">
             <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
-                <span>Copyright ©</span>
+                <span>Copyright Â©</span>
                 <script>
                     document.write(new Date().getFullYear());
                 </script>
@@ -1256,4 +1396,6 @@ usort($print_students, function ($a, $b) {
     </script>
 </body>
 </html>
+
+
 

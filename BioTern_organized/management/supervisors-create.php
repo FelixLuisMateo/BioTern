@@ -1,8 +1,9 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 $host = 'localhost';
 $db_user = 'root';
 $db_password = '';
-$db_name = 'biotern_db';
+$db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
 
 $message = '';
 $message_type = 'info';
@@ -155,15 +156,31 @@ include 'includes/header.php';
     <div class="card stretch stretch-full">
         <div class="card-header"><h5 class="card-title mb-0">Supervisor Form</h5></div>
         <div class="card-body">
-            <?php if ($message !== ''): ?><div class="alert alert-<?php echo h($message_type); ?>"><?php echo h($message); ?></div><?php endif; ?>
+            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($message !== ''): ?><div class="alert alert-<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo h($message_type); ?>"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo h($message); ?></div><?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
             <form method="post" enctype="multipart/form-data" class="row g-3">
                 <div class="col-md-4">
                     <label class="form-label">User *</label>
                     <select name="user_id" class="form-select" required>
                         <option value="">Select user</option>
-                        <?php foreach ($users as $u): ?>
-                            <option value="<?php echo (int)$u['id']; ?>"><?php echo h(($u['name'] ?? '') . ' (' . ($u['email'] ?? '') . ')'); ?></option>
-                        <?php endforeach; ?>
+                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($users as $u): ?>
+                            <option value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$u['id']; ?>"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo h(($u['name'] ?? '') . ' (' . ($u['email'] ?? '') . ')'); ?></option>
+                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
                     </select>
                 </div>
                 <div class="col-md-4"><label class="form-label">First Name *</label><input type="text" name="first_name" class="form-control" required></div>
@@ -175,9 +192,17 @@ include 'includes/header.php';
                     <label class="form-label">Department</label>
                     <select name="department_id" class="form-select">
                         <option value="">None</option>
-                        <?php foreach ($departments as $d): ?>
-                            <option value="<?php echo (int)$d['id']; ?>"><?php echo h($d['name']); ?></option>
-                        <?php endforeach; ?>
+                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($departments as $d): ?>
+                            <option value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$d['id']; ?>"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo h($d['name']); ?></option>
+                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
                     </select>
                 </div>
                 <div class="col-md-4"><label class="form-label">Specialization</label><input type="text" name="specialization" class="form-control"></div>
@@ -192,4 +217,8 @@ include 'includes/header.php';
         </div>
     </div>
 </div>
-<?php include 'includes/footer.php'; $conn->close(); ?>
+<?php
+require_once dirname(__DIR__) . '/config/db.php';
+include 'includes/footer.php'; $conn->close(); ?>
+
+

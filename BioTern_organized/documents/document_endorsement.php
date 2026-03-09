@@ -1,8 +1,9 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 $host = 'localhost';
 $db_user = 'root';
 $db_password = '';
-$db_name = 'biotern_db';
+$db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
 
 try {
     $conn = new mysqli($host, $db_user, $db_password, $db_name);
@@ -359,12 +360,18 @@ window.addEventListener('load', function() {
     const inputCompanyAddress = document.getElementById('input_company_address');
     const inputStudents = document.getElementById('input_students');
     const recipientTitleRadios = Array.prototype.slice.call(document.querySelectorAll('input[name="recipient_title"]'));
-    const PREFILL_RECIPIENT_TITLE = <?php echo json_encode($prefill_recipient_title); ?>;
+    const PREFILL_RECIPIENT_TITLE = <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo json_encode($prefill_recipient_title); ?>;
     const greetingRadios = Array.prototype.slice.call(document.querySelectorAll('input[name="greeting_preference"]'));
-    const PREFILL_GREETING_PREF = <?php echo json_encode($prefill_greeting_pref); ?>;
+    const PREFILL_GREETING_PREF = <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo json_encode($prefill_greeting_pref); ?>;
     const btnGenerate = document.getElementById('btn_generate');
     const btnFileEdit = document.getElementById('btn_file_edit');
-    const prefillId = <?php echo intval($prefill_student_id); ?>;
+    const prefillId = <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo intval($prefill_student_id); ?>;
     let selectedStudentId = prefillId > 0 ? String(prefillId) : '';
 
     function sanitizeStudentLines(raw) {
@@ -699,6 +706,10 @@ window.addEventListener('load', function() {
 })();
 });
 </script>
-<?php include __DIR__ . '/../includes/footer.php'; ?>
+<?php
+require_once dirname(__DIR__) . '/config/db.php';
+include __DIR__ . '/../includes/footer.php'; ?>
+
+
 
 

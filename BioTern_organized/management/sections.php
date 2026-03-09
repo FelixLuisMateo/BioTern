@@ -1,8 +1,9 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 $host = '127.0.0.1';
-$db_user = 'root';
-$db_password = '';
-$db_name = 'biotern_db';
+$db_user = defined('DB_USER') ? DB_USER : 'root';
+$db_password = defined('DB_PASS') ? DB_PASS : ''; 
+$db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
 
 try {
     $conn = new mysqli($host, $db_user, $db_password, $db_name);
@@ -52,7 +53,7 @@ $filter_department = isset($_GET['department_id']) ? (int)$_GET['department_id']
 $filter_section = isset($_GET['section_id']) ? (int)$_GET['section_id'] : 0;
 $filter_status = strtolower(trim((string)($_GET['status'] ?? '')));
 if (!in_array($filter_status, ['', 'active', 'inactive'], true)) {
-    $filter_status = '';
+    $filter_status = defined('DB_PASS') ? DB_PASS : ''; 
 }
 
 $courses = [];
@@ -352,6 +353,7 @@ include 'includes/header.php';
                                 <?php if ($hasSectionStatus || $hasSectionIsActive): ?>
                                     <td>
                                         <?php
+require_once dirname(__DIR__) . '/config/db.php';
                                         $activeFlag = $hasSectionStatus
                                             ? (string)($sec['status'] ?? '0')
                                             : (string)($sec['is_active'] ?? '0');
@@ -424,3 +426,4 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 </script>
+

@@ -1,18 +1,6 @@
 <?php
-// Database Connection
-$host = 'localhost';
-$db_user = 'root';
-$db_password = '';
-$db_name = 'biotern_db';
-
-try {
-    $conn = new mysqli($host, $db_user, $db_password, $db_name);
-    if ($conn->connect_error) {
-        die("Connection failed: " . $conn->connect_error);
-    }
-} catch (Exception $e) {
-    die("Database Error: " . $e->getMessage());
-}
+// Database connection from central config
+require_once dirname(__DIR__) . '/config/db.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -64,6 +52,7 @@ if (!is_dir($uploads_documents)) {
 $student_query = "
     SELECT 
         s.id,
+        s.user_id,
         s.student_id,
         s.profile_picture,
         s.first_name,
@@ -119,7 +108,7 @@ $student = $result->fetch_assoc();
 
 // Fetch all courses for dropdown (be tolerant of differing schema columns)
 $courses = [];
-$db_esc = $conn->real_escape_string($db_name);
+$db_esc = $conn->real_escape_string((string)(defined('DB_NAME') ? DB_NAME : ''));
 $has_is_active = false;
 $has_status_col = false;
 $col_check = $conn->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '" . $db_esc . "' AND TABLE_NAME = 'courses' AND COLUMN_NAME IN ('is_active','status')");
@@ -209,6 +198,7 @@ $error_message = '';
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     // Handle profile picture upload
     $profile_picture_path = $student['profile_picture'] ?? '';
+    $profile_picture_uploaded = false;
     
     if (isset($_FILES['profile_picture']) && $_FILES['profile_picture']['error'] == UPLOAD_ERR_OK) {
         $file_tmp = $_FILES['profile_picture']['tmp_name'];
@@ -234,6 +224,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             // Move uploaded file
             if (move_uploaded_file($file_tmp, $file_path)) {
                 $profile_picture_path = 'uploads/profile_pictures/' . $unique_name;
+                $profile_picture_uploaded = true;
             } else {
                 $error_message = "Failed to upload profile picture. Please try again.";
             }
@@ -358,18 +349,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $error_message = "First Name, Last Name, and Email are required fields!";
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $error_message = "Invalid email format!";
-    } elseif ($original_updated_at !== '') {
-        $lock_stmt = $conn->prepare("SELECT updated_at FROM students WHERE id = ? LIMIT 1");
-        if ($lock_stmt) {
-            $lock_stmt->bind_param("i", $student_id);
-            $lock_stmt->execute();
-            $lock_row = $lock_stmt->get_result()->fetch_assoc();
-            $lock_stmt->close();
-            $current_updated_at = (string)($lock_row['updated_at'] ?? '');
-            if ($current_updated_at !== '' && $current_updated_at !== $original_updated_at) {
-                $error_message = "This student record was updated by another user. Please refresh and review the latest data before saving again.";
-            }
-        }
     } elseif ($assignment_track === 'external' && ($internal_total_hours_remaining === null || $internal_total_hours_remaining > 0)) {
         $error_message = "Cannot assign student to External unless Internal is completed (Internal Total Hours Remaining must be 0).";
     } else {
@@ -444,6 +423,27 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 );
 
                 if ($update_stmt->execute()) {
+                    if (!empty($student['user_id'])) {
+                        $user_id_for_sync = (int)$student['user_id'];
+                        $display_name = trim($first_name . ' ' . $last_name);
+
+                        $sync_user_stmt = $conn->prepare("UPDATE users SET name = ?, email = ?, updated_at = NOW() WHERE id = ?");
+                        if ($sync_user_stmt) {
+                            $sync_user_stmt->bind_param("ssi", $display_name, $email, $user_id_for_sync);
+                            $sync_user_stmt->execute();
+                            $sync_user_stmt->close();
+                        }
+
+                        if ($profile_picture_uploaded) {
+                            $sync_user_photo = $conn->prepare("UPDATE users SET profile_picture = ? WHERE id = ?");
+                            if ($sync_user_photo) {
+                                $sync_user_photo->bind_param("si", $profile_picture_path, $user_id_for_sync);
+                                $sync_user_photo->execute();
+                                $sync_user_photo->close();
+                            }
+                        }
+                    }
+
                     // Keep assignment IDs in internships table as single source of truth.
                     if (!empty($student['internship_id'])) {
                         $internship_update = $conn->prepare("

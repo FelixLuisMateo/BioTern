@@ -1,11 +1,12 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/ops_helpers.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 require_roles_page(['admin', 'coordinator', 'supervisor']);
 
-$conn = new mysqli('localhost', 'root', '', 'biotern_db');
+$conn = new mysqli(defined('DB_HOST') ? DB_HOST : 'localhost', defined('DB_USER') ? DB_USER : 'root', defined('DB_PASS') ? DB_PASS : '', defined('DB_NAME') ? DB_NAME : 'biotern_db');
 if ($conn->connect_error) {
     die("DB connection failed");
 }
@@ -53,23 +54,46 @@ if ($res) {
             </tr>
         </thead>
         <tbody>
-            <?php if (empty($rows)): ?>
+            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if (empty($rows)): ?>
                 <tr><td colspan="6" class="text-center">No correction requests.</td></tr>
-            <?php else: ?>
-                <?php foreach ($rows as $row): ?>
+            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+else: ?>
+                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($rows as $row): ?>
                     <tr>
-                        <td><?php echo (int)$row['id']; ?></td>
-                        <td><?php echo htmlspecialchars(trim(($row['first_name'] ?? '') . ' ' . ($row['last_name'] ?? ''))); ?></td>
-                        <td><?php echo htmlspecialchars($row['attendance_date'] ?? '-'); ?></td>
-                        <td><?php echo htmlspecialchars($row['correction_reason']); ?></td>
-                        <td><?php echo htmlspecialchars($row['status']); ?></td>
-                        <td><?php echo htmlspecialchars($row['created_at']); ?></td>
+                        <td><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$row['id']; ?></td>
+                        <td><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars(trim(($row['first_name'] ?? '') . ' ' . ($row['last_name'] ?? ''))); ?></td>
+                        <td><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($row['attendance_date'] ?? '-'); ?></td>
+                        <td><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($row['correction_reason']); ?></td>
+                        <td><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($row['status']); ?></td>
+                        <td><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($row['created_at']); ?></td>
                     </tr>
-                <?php endforeach; ?>
-            <?php endif; ?>
+                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
+            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
         </tbody>
     </table>
 </div>
 </body>
 </html>
+
 

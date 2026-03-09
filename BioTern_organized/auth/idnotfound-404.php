@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zxx">
 
 <head>
@@ -47,7 +47,8 @@
                     <div class="card-body p-sm-5 text-center">
                         <h2 class="fw-bolder mb-4" style="font-size: 120px">4<span class="text-danger">0</span>4</h2>
                         <?php
-                            $source = isset($_GET['source']) ? htmlspecialchars((string)$_GET['source']) : '';
+require_once dirname(__DIR__) . '/config/db.php';
+$source = isset($_GET['source']) ? htmlspecialchars((string)$_GET['source']) : '';
                             $requestedId = isset($_GET['id']) ? htmlspecialchars((string)$_GET['id']) : '';
                             $label = 'ID not found';
                             if ($source === 'students-view') {
@@ -58,8 +59,14 @@
                                 $label = 'Student ID not found (Biometric)';
                             }
                         ?>
-                        <h4 class="fw-bold mb-2"><?php echo $label; ?></h4>
-                            <p class="fs-12 fw-medium text-muted">Sorry, the requested ID <strong><?php echo $requestedId ?: '-'; ?></strong> could not be found on <?php echo $source ? '<em>' . $source . '</em>' : 'this page'; ?>. Please check the ID or return to a previous page.</p>
+                        <h4 class="fw-bold mb-2"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $label; ?></h4>
+                            <p class="fs-12 fw-medium text-muted">Sorry, the requested ID <strong><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $requestedId ?: '-'; ?></strong> could not be found on <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $source ? '<em>' . $source . '</em>' : 'this page'; ?>. Please check the ID or return to a previous page.</p>
                         <div class="mt-4 d-grid g-2">
                             <a href="javascript:history.back()" class="btn btn-outline-secondary">Back</a>
                             <a href="index.php" class="btn btn-light-brand">Back Home</a>
@@ -88,5 +95,6 @@
 </body>
 
 </html>
+
 
 

@@ -1,4 +1,5 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -425,7 +426,9 @@ try {
 
 <body>
     <!--! Navigation (central include) -->
-    <?php include_once 'includes/navigation.php'; ?>
+    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+include_once 'includes/navigation.php'; ?>
     <!--! ================================================================ !-->
     <!--! [Start] Header !-->
     <!--! ================================================================ !-->
@@ -495,40 +498,64 @@ try {
                     <div class="dropdown nxl-h-item">
                         <a class="nxl-head-link me-3" data-bs-toggle="dropdown" href="#" role="button" data-bs-auto-close="outside">
                             <i class="feather-bell"></i>
-                            <span class="badge bg-danger nxl-h-badge"><?php echo $unread_notifications > 99 ? '99+' : (int)$unread_notifications; ?></span>
+                            <span class="badge bg-danger nxl-h-badge"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $unread_notifications > 99 ? '99+' : (int)$unread_notifications; ?></span>
                         </a>
                         <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-notifications-menu">
                             <div class="d-flex justify-content-between align-items-center notifications-head">
                                 <h6 class="fw-bold text-dark mb-0">Notifications</h6>
                                 <a href="javascript:void(0);" class="fs-11 text-success text-end ms-auto" data-bs-toggle="tooltip" title="Make as Read">
                                     <i class="feather-check"></i>
-                                    <span><?php echo (int)$unread_notifications; ?> Unread</span>
+                                    <span><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$unread_notifications; ?> Unread</span>
                                 </a>
                             </div>
-                            <?php if (!empty($latest_notifications)): ?>
-                                <?php foreach ($latest_notifications as $notif): ?>
+                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if (!empty($latest_notifications)): ?>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($latest_notifications as $notif): ?>
                                     <div class="notifications-item">
                                         <img src="assets/images/avatar/1.png" alt="" class="rounded me-3 border">
                                         <div class="notifications-desc">
                                             <a href="javascript:void(0);" class="font-body text-truncate-2-line">
-                                                <span class="fw-semibold text-dark"><?php echo htmlspecialchars($notif['user_name'], ENT_QUOTES, 'UTF-8'); ?></span>
-                                                <?php echo htmlspecialchars($notif['title'], ENT_QUOTES, 'UTF-8'); ?>
+                                                <span class="fw-semibold text-dark"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($notif['user_name'], ENT_QUOTES, 'UTF-8'); ?></span>
+                                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($notif['title'], ENT_QUOTES, 'UTF-8'); ?>
                                             </a>
-                                            <div class="fs-11 text-muted text-truncate-1-line mb-1"><?php echo htmlspecialchars($notif['message'], ENT_QUOTES, 'UTF-8'); ?></div>
+                                            <div class="fs-11 text-muted text-truncate-1-line mb-1"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($notif['message'], ENT_QUOTES, 'UTF-8'); ?></div>
                                             <div class="d-flex justify-content-between align-items-center">
                                                 <div class="notifications-date text-muted border-bottom border-bottom-dashed">
-                                                    <?php echo $notif['created_at'] !== '' ? date('M d, Y h:i A', strtotime($notif['created_at'])) : '-'; ?>
+                                                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $notif['created_at'] !== '' ? date('M d, Y h:i A', strtotime($notif['created_at'])) : '-'; ?>
                                                 </div>
                                                 <div class="d-flex align-items-center float-end gap-2">
-                                                    <span class="d-block wd-8 ht-8 rounded-circle <?php echo (int)$notif['is_read'] === 1 ? 'bg-success' : 'bg-warning'; ?>" data-bs-toggle="tooltip" title="Read status"></span>
+                                                    <span class="d-block wd-8 ht-8 rounded-circle <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$notif['is_read'] === 1 ? 'bg-success' : 'bg-warning'; ?>" data-bs-toggle="tooltip" title="Read status"></span>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
-                                <?php endforeach; ?>
-                            <?php else: ?>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
+                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+else: ?>
                                 <div class="px-3 py-4 text-center text-muted fs-12">No notifications available.</div>
-                            <?php endif; ?>
+                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
                             <div class="text-center notifications-footer">
                                 <a href="javascript:void(0);" class="fs-13 fw-semibold text-dark">All Notifications</a>
                             </div>
@@ -536,20 +563,34 @@ try {
                     </div>
                     <div class="dropdown nxl-h-item">
                         <a href="javascript:void(0);" data-bs-toggle="dropdown" role="button" data-bs-auto-close="outside">
-                            <img src="<?php echo htmlspecialchars($current_profile_img, ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar me-0" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
+                            <img src="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($current_profile_img, ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar me-0" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
                         </a>
                         <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-user-dropdown">
                             <div class="dropdown-header">
                                 <div class="d-flex align-items-center">
-                                    <img src="<?php echo htmlspecialchars($current_profile_img, ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
+                                    <img src="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($current_profile_img, ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
                                     <div>
                                         <h6 class="text-dark mb-0">
-                                            <?php echo htmlspecialchars($current_user_name, ENT_QUOTES, 'UTF-8'); ?>
-                                            <?php if ($current_user_role_badge !== ''): ?>
-                                                <span class="badge bg-soft-success text-success ms-1"><?php echo htmlspecialchars(ucfirst($current_user_role_badge), ENT_QUOTES, 'UTF-8'); ?></span>
-                                            <?php endif; ?>
+                                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($current_user_name, ENT_QUOTES, 'UTF-8'); ?>
+                                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($current_user_role_badge !== ''): ?>
+                                                <span class="badge bg-soft-success text-success ms-1"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars(ucfirst($current_user_role_badge), ENT_QUOTES, 'UTF-8'); ?></span>
+                                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
                                         </h6>
-                                        <span class="fs-12 fw-medium text-muted"><?php echo htmlspecialchars($current_user_email, ENT_QUOTES, 'UTF-8'); ?></span>
+                                        <span class="fs-12 fw-medium text-muted"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($current_user_email, ENT_QUOTES, 'UTF-8'); ?></span>
                                     </div>
                                 </div>
                             </div>
@@ -629,7 +670,9 @@ try {
                 <div class="page-header-right ms-auto">
                     <div class="d-flex align-items-center gap-2">
                         <span class="badge bg-soft-primary text-primary fs-11">
-                            <i class="feather-calendar me-1"></i> <?php echo date('M d, Y'); ?>
+                            <i class="feather-calendar me-1"></i> <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo date('M d, Y'); ?>
                         </span>
                         <div id="reportrange" class="reportrange-picker d-flex align-items-center btn btn-sm btn-light-brand">
                             <span class="reportrange-picker-field"></span>
@@ -677,8 +720,12 @@ try {
                                 <div class="card h-100 kpi-card">
                                     <div class="card-body d-flex flex-column justify-content-between gap-2">
                                         <span class="fs-11 text-muted d-block mb-2">Total Students</span>
-                                        <h4 class="fw-bold text-dark mb-1"><?php echo number_format($total_students); ?></h4>
-                                        <span class="badge bg-soft-primary text-primary"><?php echo number_format($students_with_email); ?> with email</span>
+                                        <h4 class="fw-bold text-dark mb-1"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format($total_students); ?></h4>
+                                        <span class="badge bg-soft-primary text-primary"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format($students_with_email); ?> with email</span>
                                     </div>
                                 </div>
                             </div>
@@ -686,8 +733,12 @@ try {
                                 <div class="card h-100 kpi-card">
                                     <div class="card-body d-flex flex-column justify-content-between gap-2">
                                         <span class="fs-11 text-muted d-block mb-2">Active Internships</span>
-                                        <h4 class="fw-bold text-dark mb-1"><?php echo number_format($active_internships); ?></h4>
-                                        <span class="badge bg-soft-info text-info"><?php echo format_pct($page_views); ?> ongoing ratio</span>
+                                        <h4 class="fw-bold text-dark mb-1"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format($active_internships); ?></h4>
+                                        <span class="badge bg-soft-info text-info"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo format_pct($page_views); ?> ongoing ratio</span>
                                     </div>
                                 </div>
                             </div>
@@ -695,8 +746,12 @@ try {
                                 <div class="card h-100 kpi-card">
                                     <div class="card-body d-flex flex-column justify-content-between gap-2">
                                         <span class="fs-11 text-muted d-block mb-2">Total Attendances</span>
-                                        <h4 class="fw-bold text-dark mb-1"><?php echo number_format($total_attendances); ?></h4>
-                                        <span class="badge bg-soft-warning text-warning"><?php echo format_pct($attendance_pending_rate); ?> pending</span>
+                                        <h4 class="fw-bold text-dark mb-1"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format($total_attendances); ?></h4>
+                                        <span class="badge bg-soft-warning text-warning"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo format_pct($attendance_pending_rate); ?> pending</span>
                                     </div>
                                 </div>
                             </div>
@@ -704,8 +759,12 @@ try {
                                 <div class="card h-100 kpi-card">
                                     <div class="card-body d-flex flex-column justify-content-between gap-2">
                                         <span class="fs-11 text-muted d-block mb-2">Approved Attendance</span>
-                                        <h4 class="fw-bold text-dark mb-1"><?php echo number_format($approved_attendances); ?></h4>
-                                        <span class="badge bg-soft-success text-success"><?php echo format_pct($conversion_rate); ?> approval rate</span>
+                                        <h4 class="fw-bold text-dark mb-1"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format($approved_attendances); ?></h4>
+                                        <span class="badge bg-soft-success text-success"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo format_pct($conversion_rate); ?> approval rate</span>
                                     </div>
                                 </div>
                             </div>
@@ -713,8 +772,12 @@ try {
                                 <div class="card h-100 kpi-card">
                                     <div class="card-body d-flex flex-column justify-content-between gap-2">
                                         <span class="fs-11 text-muted d-block mb-2">Rejected Attendance</span>
-                                        <h4 class="fw-bold text-dark mb-1"><?php echo number_format($rejected_attendances); ?></h4>
-                                        <span class="badge bg-soft-danger text-danger"><?php echo format_pct($bounce_rate); ?> rejection rate</span>
+                                        <h4 class="fw-bold text-dark mb-1"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format($rejected_attendances); ?></h4>
+                                        <span class="badge bg-soft-danger text-danger"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo format_pct($bounce_rate); ?> rejection rate</span>
                                     </div>
                                 </div>
                             </div>
@@ -722,8 +785,12 @@ try {
                                 <div class="card h-100 kpi-card">
                                     <div class="card-body d-flex flex-column justify-content-between gap-2">
                                         <span class="fs-11 text-muted d-block mb-2">Biometric Registered</span>
-                                        <h4 class="fw-bold text-dark mb-1"><?php echo number_format(isset($biometric_students)?$biometric_students:0); ?></h4>
-                                        <span class="badge bg-soft-primary text-primary"><?php echo format_pct($site_impressions); ?> enrollment</span>
+                                        <h4 class="fw-bold text-dark mb-1"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format(isset($biometric_students)?$biometric_students:0); ?></h4>
+                                        <span class="badge bg-soft-primary text-primary"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo format_pct($site_impressions); ?> enrollment</span>
                                     </div>
                                 </div>
                             </div>
@@ -742,7 +809,8 @@ try {
                                     <a href="javascript:void(0);" class="btn btn-light-brand">Live Overview</a>
                                 </div>
                                 <?php
-                                // Build student-centric metrics for the Email Reports area
+require_once dirname(__DIR__) . '/config/db.php';
+// Build student-centric metrics for the Email Reports area
                                 $erp_total_students = isset($total_students) ? (int)$total_students : 0;
                                 // students with non-empty email
                                 $erp_with_email = isset($students_with_email) ? (int)$students_with_email : 0;
@@ -769,7 +837,9 @@ try {
                                         <div class="card stretch stretch-full border border-dashed border-gray-5">
                                             <div class="card-body rounded-3 text-center">
                                                 <i class="bi bi-people fs-3 text-primary"></i>
-                                                <div class="fs-4 fw-bolder text-dark mt-3 mb-1"><?php echo number_format($erp_total_students); ?></div>
+                                                <div class="fs-4 fw-bolder text-dark mt-3 mb-1"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format($erp_total_students); ?></div>
                                                 <p class="fs-12 fw-medium text-muted text-spacing-1 mb-0 text-truncate-1-line">Total Students</p>
                                             </div>
                                         </div>
@@ -778,8 +848,12 @@ try {
                                         <div class="card stretch stretch-full border border-dashed border-gray-5">
                                             <div class="card-body rounded-3 text-center">
                                                 <i class="bi bi-envelope fs-3 text-warning"></i>
-                                                <div class="fs-4 fw-bolder text-dark mt-3 mb-1"><?php echo number_format($erp_with_email); ?></div>
-                                                <p class="fs-12 fw-medium text-muted text-spacing-1 mb-0 text-truncate-1-line">With Email (<?php echo format_pct($pct_with_email); ?>)</p>
+                                                <div class="fs-4 fw-bolder text-dark mt-3 mb-1"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format($erp_with_email); ?></div>
+                                                <p class="fs-12 fw-medium text-muted text-spacing-1 mb-0 text-truncate-1-line">With Email (<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo format_pct($pct_with_email); ?>)</p>
                                             </div>
                                         </div>
                                     </div>
@@ -787,8 +861,12 @@ try {
                                         <div class="card stretch stretch-full border border-dashed border-gray-5">
                                             <div class="card-body rounded-3 text-center">
                                                 <i class="bi bi-person-check fs-3 text-success"></i>
-                                                <div class="fs-4 fw-bolder text-dark mt-3 mb-1"><?php echo number_format($erp_biometric); ?></div>
-                                                <p class="fs-12 fw-medium text-muted text-spacing-1 mb-0 text-truncate-1-line">Biometric Registered (<?php echo format_pct($pct_biometric); ?>)</p>
+                                                <div class="fs-4 fw-bolder text-dark mt-3 mb-1"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format($erp_biometric); ?></div>
+                                                <p class="fs-12 fw-medium text-muted text-spacing-1 mb-0 text-truncate-1-line">Biometric Registered (<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo format_pct($pct_biometric); ?>)</p>
                                             </div>
                                         </div>
                                     </div>
@@ -796,8 +874,12 @@ try {
                                         <div class="card stretch stretch-full border border-dashed border-gray-5">
                                             <div class="card-body rounded-3 text-center">
                                                 <i class="bi bi-person-plus fs-3 text-indigo"></i>
-                                                <div class="fs-4 fw-bolder text-dark mt-3 mb-1"><?php echo number_format($erp_new30); ?></div>
-                                                <p class="fs-12 fw-medium text-muted text-spacing-1 mb-0 text-truncate-1-line">New (30d) (<?php echo format_pct($pct_new30); ?>)</p>
+                                                <div class="fs-4 fw-bolder text-dark mt-3 mb-1"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format($erp_new30); ?></div>
+                                                <p class="fs-12 fw-medium text-muted text-spacing-1 mb-0 text-truncate-1-line">New (30d) (<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo format_pct($pct_new30); ?>)</p>
                                             </div>
                                         </div>
                                     </div>
@@ -805,8 +887,12 @@ try {
                                         <div class="card stretch stretch-full border border-dashed border-gray-5">
                                             <div class="card-body rounded-3 text-center">
                                                 <i class="bi bi-calendar-check fs-3 text-teal"></i>
-                                                <div class="fs-4 fw-bolder text-dark mt-3 mb-1"><?php echo number_format($erp_att_today); ?></div>
-                                                <p class="fs-12 fw-medium text-muted text-spacing-1 mb-0 text-truncate-1-line">Attended Today (<?php echo format_pct($pct_att_today); ?>)</p>
+                                                <div class="fs-4 fw-bolder text-dark mt-3 mb-1"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format($erp_att_today); ?></div>
+                                                <p class="fs-12 fw-medium text-muted text-spacing-1 mb-0 text-truncate-1-line">Attended Today (<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo format_pct($pct_att_today); ?>)</p>
                                             </div>
                                         </div>
                                     </div>
@@ -814,8 +900,12 @@ try {
                                         <div class="card stretch stretch-full border border-dashed border-gray-5">
                                             <div class="card-body rounded-3 text-center">
                                                 <i class="bi bi-briefcase fs-3 text-danger"></i>
-                                                <div class="fs-4 fw-bolder text-dark mt-3 mb-1"><?php echo number_format(isset($active_internships)?$active_internships:0); ?></div>
-                                                <p class="fs-12 fw-medium text-muted text-spacing-1 mb-0 text-truncate-1-line">Active Internships (<?php echo format_pct($page_views); ?>)</p>
+                                                <div class="fs-4 fw-bolder text-dark mt-3 mb-1"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format(isset($active_internships)?$active_internships:0); ?></div>
+                                                <p class="fs-12 fw-medium text-muted text-spacing-1 mb-0 text-truncate-1-line">Active Internships (<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo format_pct($page_views); ?>)</p>
                                             </div>
                                         </div>
                                     </div>
@@ -912,7 +1002,8 @@ try {
                                 <div class="table-responsive">
                                     <table class="table table-hover mb-0">
                                         <?php
-                                        $colors = ['pending' => 'bg-warning', 'ongoing' => 'bg-success', 'completed' => 'bg-primary', 'cancelled' => 'bg-danger'];
+require_once dirname(__DIR__) . '/config/db.php';
+$colors = ['pending' => 'bg-warning', 'ongoing' => 'bg-success', 'completed' => 'bg-primary', 'cancelled' => 'bg-danger'];
                                         foreach ($status_counts as $k => $v) {
                                             $pct = $total_interns > 0 ? round(($v / $total_interns) * 100, 2) : 0;
                                             $label = ucfirst($k);
@@ -929,25 +1020,34 @@ try {
                                     <div id="internship-pie-chart" style="height:240px;"></div>
                                     <div class="d-flex justify-content-around mt-3">
                                         <div class="text-center">
-                                            <div class="fs-5 fw-bold"><?php echo number_format($status_counts['completed'] ?? 0); ?></div>
+                                            <div class="fs-5 fw-bold"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format($status_counts['completed'] ?? 0); ?></div>
                                             <div class="fs-12 text-muted">Completed</div>
                                         </div>
                                         <div class="text-center">
-                                            <div class="fs-5 fw-bold"><?php echo number_format($status_counts['ongoing'] ?? 0); ?></div>
+                                            <div class="fs-5 fw-bold"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format($status_counts['ongoing'] ?? 0); ?></div>
                                             <div class="fs-12 text-muted">Ongoing</div>
                                         </div>
                                         <div class="text-center">
-                                            <div class="fs-5 fw-bold"><?php echo number_format($status_counts['pending'] ?? 0); ?></div>
+                                            <div class="fs-5 fw-bold"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format($status_counts['pending'] ?? 0); ?></div>
                                             <div class="fs-12 text-muted">Pending</div>
                                         </div>
                                         <div class="text-center">
-                                            <div class="fs-5 fw-bold"><?php echo number_format($status_counts['cancelled'] ?? 0); ?></div>
+                                            <div class="fs-5 fw-bold"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format($status_counts['cancelled'] ?? 0); ?></div>
                                             <div class="fs-12 text-muted">Cancelled</div>
                                         </div>
                                     </div>
                                 </div>
                                 <?php
-                                // Prepare pie chart data for client-side
+require_once dirname(__DIR__) . '/config/db.php';
+// Prepare pie chart data for client-side
                                 $pie_labels = array_map('ucfirst', array_keys($status_counts));
                                 $pie_values = array_values($status_counts);
                                 ?>
@@ -955,8 +1055,12 @@ try {
                                 document.addEventListener('DOMContentLoaded', function(){
                                     var options = {
                                         chart: { type: 'pie', height: 240 },
-                                        series: <?php echo json_encode($pie_values); ?>,
-                                        labels: <?php echo json_encode($pie_labels); ?>,
+                                        series: <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo json_encode($pie_values); ?>,
+                                        labels: <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo json_encode($pie_labels); ?>,
                                         colors: ['#ffc107','#28a745','#007bff','#dc3545'],
                                         legend: { position: 'bottom' }
                                     };
@@ -979,8 +1083,14 @@ try {
                                         <div class="fs-11 text-muted">Based on attendance records</div>
                                     </div>
                                     <div class="text-end">
-                                        <div class="fs-24 fw-bold mb-2 text-dark"><span class="counter"><?php echo $bounce_rate; ?></span>%</div>
-                                        <div class="fs-11 text-danger"><?php echo number_format($rejected_attendances); ?> of <?php echo number_format($total_attendances); ?></div>
+                                        <div class="fs-24 fw-bold mb-2 text-dark"><span class="counter"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $bounce_rate; ?></span>%</div>
+                                        <div class="fs-11 text-danger"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format($rejected_attendances); ?> of <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format($total_attendances); ?></div>
                                     </div>
                                 </div>
                                 <div id="bounce-rate"></div>
@@ -996,8 +1106,14 @@ try {
                                         <div class="fs-11 text-muted">Ongoing vs Total internships</div>
                                     </div>
                                     <div class="text-end">
-                                        <div class="fs-24 fw-bold mb-2 text-dark"><span class="counter"><?php echo $page_views; ?></span>%</div>
-                                        <div class="fs-11 text-success"><?php echo number_format($active_internships); ?> active of <?php echo number_format($total_internships); ?></div>
+                                        <div class="fs-24 fw-bold mb-2 text-dark"><span class="counter"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $page_views; ?></span>%</div>
+                                        <div class="fs-11 text-success"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format($active_internships); ?> active of <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format($total_internships); ?></div>
                                     </div>
                                 </div>
                                 <div id="page-views"></div>
@@ -1013,8 +1129,14 @@ try {
                                         <div class="fs-11 text-muted">Registered vs Total students</div>
                                     </div>
                                     <div class="tx-right">
-                                        <div class="fs-24 fw-bold mb-2 text-dark"><span class="counter"><?php echo $site_impressions; ?></span>%</div>
-                                        <div class="fs-11 text-success"><?php echo number_format($biometric_students); ?> registered of <?php echo number_format($total_students); ?></div>
+                                        <div class="fs-24 fw-bold mb-2 text-dark"><span class="counter"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $site_impressions; ?></span>%</div>
+                                        <div class="fs-11 text-success"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format($biometric_students); ?> registered of <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format($total_students); ?></div>
                                     </div>
                                 </div>
                                 <div id="site-impressions"></div>
@@ -1030,8 +1152,14 @@ try {
                                         <div class="fs-11 text-muted">Approved vs Total records</div>
                                     </div>
                                     <div class="tx-right">
-                                        <div class="fs-24 fw-bold mb-2 text-dark"><span class="counter"><?php echo $conversion_rate; ?></span>%</div>
-                                        <div class="fs-11 text-success"><?php echo number_format($approved_attendances); ?> approved, <?php echo number_format($pending_attendances); ?> pending</div>
+                                        <div class="fs-24 fw-bold mb-2 text-dark"><span class="counter"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $conversion_rate; ?></span>%</div>
+                                        <div class="fs-11 text-success"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format($approved_attendances); ?> approved, <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format($pending_attendances); ?> pending</div>
                                     </div>
                                 </div>
                                 <div id="conversions-rate"></div>
@@ -1082,7 +1210,13 @@ try {
                                                 <div class="goal-progress-1"></div>
                                             </div>
                                             <h2 class="fs-13 tx-spacing-1">Marketing Goal</h2>
-                                            <div class="fs-11 text-muted text-truncate-1-line"><?php echo $marketing_current; ?>/<?php echo $marketing_goal; ?> Users (<?php echo format_pct($marketing_progress); ?>)</div>
+                                            <div class="fs-11 text-muted text-truncate-1-line"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $marketing_current; ?>/<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $marketing_goal; ?> Users (<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo format_pct($marketing_progress); ?>)</div>
                                         </div>
                                     </div>
                                     <div class="col-sm-6">
@@ -1091,7 +1225,13 @@ try {
                                                 <div class="goal-progress-2"></div>
                                             </div>
                                             <h2 class="fs-13 tx-spacing-1">Teams Goal</h2>
-                                            <div class="fs-11 text-muted text-truncate-1-line"><?php echo $teams_current; ?>/<?php echo $teams_goal; ?> Members (<?php echo format_pct($teams_progress); ?>)</div>
+                                            <div class="fs-11 text-muted text-truncate-1-line"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $teams_current; ?>/<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $teams_goal; ?> Members (<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo format_pct($teams_progress); ?>)</div>
                                         </div>
                                     </div>
                                     <div class="col-sm-6">
@@ -1100,7 +1240,13 @@ try {
                                                 <div class="goal-progress-3"></div>
                                             </div>
                                             <h2 class="fs-13 tx-spacing-1">OJT Goal</h2>
-                                            <div class="fs-11 text-muted text-truncate-1-line"><?php echo $ojt_current_hours; ?>/<?php echo $ojt_goal_hours; ?> hrs (<?php echo format_pct($ojt_progress); ?>)</div>
+                                            <div class="fs-11 text-muted text-truncate-1-line"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $ojt_current_hours; ?>/<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $ojt_goal_hours; ?> hrs (<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo format_pct($ojt_progress); ?>)</div>
                                         </div>
                                     </div>
                                     <div class="col-sm-6">
@@ -1109,7 +1255,13 @@ try {
                                                 <div class="goal-progress-4"></div>
                                             </div>
                                             <h2 class="fs-13 tx-spacing-1">Revenue Goal</h2>
-                                            <div class="fs-11 text-muted text-truncate-1-line"><?php echo $revenue_current; ?>/<?php echo $revenue_goal; ?> (<?php echo format_pct($revenue_progress); ?>)</div>
+                                            <div class="fs-11 text-muted text-truncate-1-line"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $revenue_current; ?>/<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $revenue_goal; ?> (<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo format_pct($revenue_progress); ?>)</div>
                                         </div>
                                     </div>
                                 </div>
@@ -1166,7 +1318,8 @@ try {
                             <div class="card-footer">
                                 <div class="row g-4">
                                     <?php
-                                    // Use previously calculated analytics percentages when available
+require_once dirname(__DIR__) . '/config/db.php';
+// Use previously calculated analytics percentages when available
                                     $reach_count = isset($total_students) ? (int)$total_students : 0;
                                     $opened_pct = isset($site_impressions) ? $site_impressions : 0; // biometric registration %
                                     $clicked_pct = isset($page_views) ? $page_views : 0; // active internships %
@@ -1179,36 +1332,52 @@ try {
                                     <div class="col-lg-3">
                                         <div class="p-3 border border-dashed rounded">
                                             <div class="fs-12 text-muted mb-1">Reach</div>
-                                            <h6 class="fw-bold text-dark"><?php echo number_format($reach_count); ?></h6>
+                                            <h6 class="fw-bold text-dark"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format($reach_count); ?></h6>
                                             <div class="progress mt-2 ht-3">
-                                                <div class="progress-bar bg-primary" role="progressbar" style="width: <?php echo ($reach_count>0? min(100, round(($reach_count/ max(1,$reach_count))*100)):0); ?>%"></div>
+                                                <div class="progress-bar bg-primary" role="progressbar" style="width: <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo ($reach_count>0? min(100, round(($reach_count/ max(1,$reach_count))*100)):0); ?>%"></div>
                                             </div>
                                         </div>
                                     </div>
                                     <div class="col-lg-3">
                                         <div class="p-3 border border-dashed rounded">
                                             <div class="fs-12 text-muted mb-1">Opened</div>
-                                            <h6 class="fw-bold text-dark"><?php echo format_pct($opened_pct); ?></h6>
+                                            <h6 class="fw-bold text-dark"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo format_pct($opened_pct); ?></h6>
                                             <div class="progress mt-2 ht-3">
-                                                <div class="progress-bar bg-success" role="progressbar" style="width: <?php echo $w_opened; ?>%"></div>
+                                                <div class="progress-bar bg-success" role="progressbar" style="width: <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $w_opened; ?>%"></div>
                                             </div>
                                         </div>
                                     </div>
                                     <div class="col-lg-3">
                                         <div class="p-3 border border-dashed rounded">
                                             <div class="fs-12 text-muted mb-1">Clicked</div>
-                                            <h6 class="fw-bold text-dark"><?php echo format_pct($clicked_pct); ?></h6>
+                                            <h6 class="fw-bold text-dark"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo format_pct($clicked_pct); ?></h6>
                                             <div class="progress mt-2 ht-3">
-                                                <div class="progress-bar bg-danger" role="progressbar" style="width: <?php echo $w_clicked; ?>%"></div>
+                                                <div class="progress-bar bg-danger" role="progressbar" style="width: <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $w_clicked; ?>%"></div>
                                             </div>
                                         </div>
                                     </div>
                                     <div class="col-lg-3">
                                         <div class="p-3 border border-dashed rounded">
                                             <div class="fs-12 text-muted mb-1">Conversion</div>
-                                            <h6 class="fw-bold text-dark"><?php echo format_pct($conversion_pct); ?></h6>
+                                            <h6 class="fw-bold text-dark"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo format_pct($conversion_pct); ?></h6>
                                             <div class="progress mt-2 ht-3">
-                                                <div class="progress-bar bg-dark" role="progressbar" style="width: <?php echo $w_conversion; ?>%"></div>
+                                                <div class="progress-bar bg-dark" role="progressbar" style="width: <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $w_conversion; ?>%"></div>
                                             </div>
                                         </div>
                                     </div>
@@ -1266,7 +1435,8 @@ try {
                                         </thead>
                                         <tbody>
                                             <?php
-                                            $status_class_map = [
+require_once dirname(__DIR__) . '/config/db.php';
+$status_class_map = [
                                                 'pending' => 'bg-soft-warning text-warning',
                                                 'ongoing' => 'bg-soft-primary text-primary',
                                                 'completed' => 'bg-soft-success text-success',
@@ -1283,40 +1453,65 @@ try {
                                                     <div class="hstack gap-2">
                                                         <span class="wd-10 ht-10 bg-gray-400 rounded-circle d-inline-block me-2 lh-base"></span>
                                                         <div class="border-3 border-start rounded ps-3">
-                                                            <a href="ojt-view.php?id=<?php echo (int)$project['id']; ?>" class="mb-2 d-block">
-                                                                <span><?php echo htmlspecialchars($project['name'] ?: ('Internship #' . $project['id'])); ?></span>
+                                                            <a href="ojt-view.php?id=<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$project['id']; ?>" class="mb-2 d-block">
+                                                                <span><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($project['name'] ?: ('Internship #' . $project['id'])); ?></span>
                                                             </a>
-                                                            <p class="fs-12 text-muted mb-0">Rendered <?php echo (int)$project['rendered_hours']; ?> / <?php echo (int)$project['required_hours']; ?> hours</p>
+                                                            <p class="fs-12 text-muted mb-0">Rendered <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$project['rendered_hours']; ?> / <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$project['required_hours']; ?> hours</p>
                                                         </div>
                                                     </div>
                                                 </td>
                                                 <td>
-                                                    <span class="badge <?php echo $badge_class; ?>"><?php echo ucfirst($status); ?></span>
+                                                    <span class="badge <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $badge_class; ?>"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo ucfirst($status); ?></span>
                                                 </td>
                                                 <td>
-                                                    <span class="fs-12 fw-semibold"><?php echo (int)$project['remaining_hours']; ?> hrs</span>
+                                                    <span class="fs-12 fw-semibold"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$project['remaining_hours']; ?> hrs</span>
                                                 </td>
                                                 <td>
                                                     <div class="hstack gap-1">
-                                                        <?php for ($i = 1; $i <= 6; $i++): ?>
-                                                            <div class="wd-15 ht-4 rounded-pill <?php echo $i <= $stage_steps ? 'bg-success opacity-75' : 'bg-gray-300'; ?>"></div>
-                                                        <?php endfor; ?>
+                                                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+for ($i = 1; $i <= 6; $i++): ?>
+                                                            <div class="wd-15 ht-4 rounded-pill <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $i <= $stage_steps ? 'bg-success opacity-75' : 'bg-gray-300'; ?>"></div>
+                                                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endfor; ?>
                                                     </div>
                                                 </td>
                                                 <td>
-                                                    <a href="ojt-view.php?id=<?php echo (int)$project['id']; ?>" class="avatar-text avatar-md ms-auto">
+                                                    <a href="ojt-view.php?id=<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$project['id']; ?>" class="avatar-text avatar-md ms-auto">
                                                         <i class="feather-arrow-right"></i>
                                                     </a>
                                                 </td>
                                             </tr>
                                             <?php
-                                                endforeach;
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach;
                                             else:
                                             ?>
                                             <tr>
                                                 <td colspan="5" class="text-center text-muted py-4">No internship records found.</td>
                                             </tr>
-                                            <?php endif; ?>
+                                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
                                         </tbody>
                                     </table>
                                 </div>
@@ -1378,7 +1573,8 @@ try {
                             </div>
                             <div class="card-body">
                                 <?php
-                                // Build simple DB-driven social stats summary
+require_once dirname(__DIR__) . '/config/db.php';
+// Build simple DB-driven social stats summary
                                 $total_students = isset($total_students) ? (int)$total_students : 0;
                                 $biometric_students = isset($biometric_students) ? (int)$biometric_students : 0;
                                 $total_internships = isset($total_internships) ? (int)$total_internships : 0;
@@ -1392,29 +1588,49 @@ try {
                                     <div class="col-6">
                                         <div class="p-3 border border-dashed rounded">
                                             <div class="fs-12 text-muted mb-1">Students</div>
-                                            <h6 class="fw-bold text-dark"><?php echo number_format($total_students); ?></h6>
-                                            <div class="fs-11 text-muted"><?php echo format_pct($biometric_pct); ?> Biometric</div>
+                                            <h6 class="fw-bold text-dark"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format($total_students); ?></h6>
+                                            <div class="fs-11 text-muted"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo format_pct($biometric_pct); ?> Biometric</div>
                                         </div>
                                     </div>
                                     <div class="col-6">
                                         <div class="p-3 border border-dashed rounded">
                                             <div class="fs-12 text-muted mb-1">OJT Internships</div>
-                                            <h6 class="fw-bold text-dark"><?php echo number_format($total_internships); ?></h6>
-                                            <div class="fs-11 text-muted"><?php echo format_pct($internship_active_pct); ?> Active</div>
+                                            <h6 class="fw-bold text-dark"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format($total_internships); ?></h6>
+                                            <div class="fs-11 text-muted"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo format_pct($internship_active_pct); ?> Active</div>
                                         </div>
                                     </div>
                                     <div class="col-6">
                                         <div class="p-3 border border-dashed rounded">
                                             <div class="fs-12 text-muted mb-1">Completed OJT</div>
-                                            <h6 class="fw-bold text-dark"><?php echo number_format($completed_internships); ?></h6>
-                                            <div class="fs-11 text-muted"><?php echo format_pct($completed_internships_rate); ?> Completion</div>
+                                            <h6 class="fw-bold text-dark"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format($completed_internships); ?></h6>
+                                            <div class="fs-11 text-muted"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo format_pct($completed_internships_rate); ?> Completion</div>
                                         </div>
                                     </div>
                                     <div class="col-6">
                                         <div class="p-3 border border-dashed rounded">
                                             <div class="fs-12 text-muted mb-1">Internal vs External</div>
-                                            <h6 class="fw-bold text-dark"><?php echo number_format($internal_internships); ?> / <?php echo number_format($external_internships); ?></h6>
-                                            <div class="fs-11 text-muted"><?php echo format_pct($internal_pct); ?> / <?php echo format_pct($external_pct); ?></div>
+                                            <h6 class="fw-bold text-dark"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format($internal_internships); ?> / <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format($external_internships); ?></h6>
+                                            <div class="fs-11 text-muted"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo format_pct($internal_pct); ?> / <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo format_pct($external_pct); ?></div>
                                         </div>
                                     </div>
                                     <div class="col-12">
@@ -1435,7 +1651,7 @@ try {
         <!-- [ Footer ] start -->
         <footer class="footer">
             <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
-                <span>Copyright ©</span>
+                <span>Copyright Â©</span>
                 <script>
                     document.write(new Date().getFullYear());
                 </script>
@@ -1468,28 +1684,62 @@ try {
     <script src="assets/js/common-init.min.js"></script>
     <script>
         (function () {
-            var sparklineBounce = <?php echo json_encode($sparkline_bounce); ?>;
-            var sparklineActive = <?php echo json_encode($sparkline_active); ?>;
-            var sparklineBiometric = <?php echo json_encode($sparkline_biometric); ?>;
-            var sparklineApproval = <?php echo json_encode($sparkline_approval); ?>;
+            var sparklineBounce = <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo json_encode($sparkline_bounce); ?>;
+            var sparklineActive = <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo json_encode($sparkline_active); ?>;
+            var sparklineBiometric = <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo json_encode($sparkline_biometric); ?>;
+            var sparklineApproval = <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo json_encode($sparkline_approval); ?>;
 
-            var visitorsLabels = <?php echo json_encode($visitors_labels); ?>;
-            var visitorsStudents = <?php echo json_encode($visitors_students); ?>;
-            var visitorsAttendances = <?php echo json_encode($visitors_attendances); ?>;
-            var visitorsInternships = <?php echo json_encode($visitors_internships); ?>;
+            var visitorsLabels = <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo json_encode($visitors_labels); ?>;
+            var visitorsStudents = <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo json_encode($visitors_students); ?>;
+            var visitorsAttendances = <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo json_encode($visitors_attendances); ?>;
+            var visitorsInternships = <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo json_encode($visitors_internships); ?>;
 
-            var campaignLabels = <?php echo json_encode($campaign_labels); ?>;
-            var campaignInternal = <?php echo json_encode($campaign_internal); ?>;
-            var campaignExternal = <?php echo json_encode($campaign_external); ?>;
+            var campaignLabels = <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo json_encode($campaign_labels); ?>;
+            var campaignInternal = <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo json_encode($campaign_internal); ?>;
+            var campaignExternal = <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo json_encode($campaign_external); ?>;
 
-            var socialOverviewLabels = <?php echo json_encode($engagement_labels); ?>;
-            var socialOverviewValues = <?php echo json_encode($engagement_values); ?>;
+            var socialOverviewLabels = <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo json_encode($engagement_labels); ?>;
+            var socialOverviewValues = <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo json_encode($engagement_values); ?>;
 
             var goalProgress = {
-                marketing: <?php echo json_encode($marketing_progress); ?>,
-                teams: <?php echo json_encode($teams_progress); ?>,
-                ojt: <?php echo json_encode($ojt_progress); ?>,
-                revenue: <?php echo json_encode($revenue_progress); ?>
+                marketing: <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo json_encode($marketing_progress); ?>,
+                teams: <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo json_encode($teams_progress); ?>,
+                ojt: <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo json_encode($ojt_progress); ?>,
+                revenue: <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo json_encode($revenue_progress); ?>
             };
 
             function initDateRange() {
@@ -1645,5 +1895,6 @@ try {
 </body>
 
 </html>
+
 
 

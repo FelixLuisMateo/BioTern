@@ -1,4 +1,5 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 $page_title = 'BioTern || Theme Customizer';
 include 'includes/header.php';
 ?>
@@ -316,4 +317,7 @@ include 'includes/header.php';
     })();
 </script>
 
-<?php include 'includes/footer.php'; ?>
+<?php
+require_once dirname(__DIR__) . '/config/db.php';
+include 'includes/footer.php'; ?>
+

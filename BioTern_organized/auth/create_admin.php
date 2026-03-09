@@ -1,11 +1,12 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 // Simple admin creation script for BioTern
 // Usage: open this file in the browser (http://localhost/BioTern/create_admin.php)
 
 $dbHost = '127.0.0.1';
 $dbUser = 'root';
 $dbPass = '';
-$dbName = 'biotern_db';
+$dbName = defined('DB_NAME') ? DB_NAME : 'biotern_db';
 
 function esc($s) { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 
@@ -139,21 +140,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="card-body">
             <h4 class="card-title">Create Admin Account</h4>
             <p class="card-text">Use this form to create a single admin account. The script checks for existing username/email.</p>
-            <?php if ($message !== ''): ?>
-                <div class="alert alert-info"><?php echo esc($message); ?></div>
-            <?php endif; ?>
+            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($message !== ''): ?>
+                <div class="alert alert-info"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo esc($message); ?></div>
+            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
             <form method="post" novalidate>
                 <div class="mb-3">
                     <label class="form-label">Full name</label>
-                    <input type="text" name="name" class="form-control" required value="<?php echo isset($_POST['name'])?esc($_POST['name']):'Administrator'; ?>">
+                    <input type="text" name="name" class="form-control" required value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo isset($_POST['name'])?esc($_POST['name']):'Administrator'; ?>">
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Username</label>
-                    <input type="text" name="username" class="form-control" required value="<?php echo isset($_POST['username'])?esc($_POST['username']):'admin'; ?>">
+                    <input type="text" name="username" class="form-control" required value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo isset($_POST['username'])?esc($_POST['username']):'admin'; ?>">
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Email</label>
-                    <input type="email" name="email" class="form-control" required value="<?php echo isset($_POST['email'])?esc($_POST['email']):'admin@example.com'; ?>">
+                    <input type="email" name="email" class="form-control" required value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo isset($_POST['email'])?esc($_POST['email']):'admin@example.com'; ?>">
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Password</label>
@@ -167,3 +180,5 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 </body>
 </html>
+
+

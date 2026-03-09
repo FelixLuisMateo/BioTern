@@ -1,4 +1,5 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 $force_blank = isset($_GET['blank']) && $_GET['blank'] === '1';
 ?>
 <!doctype html>
@@ -167,7 +168,9 @@ $force_blank = isset($_GET['blank']) && $_GET['blank'] === '1';
     <script>
         (function(){
             const KEY = 'biotern_application_template_html_v1';
-            const FORCE_BLANK = <?php echo $force_blank ? 'true' : 'false'; ?>;
+            const FORCE_BLANK = <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $force_blank ? 'true' : 'false'; ?>;
             const editor = document.getElementById('editor');
             const msg = document.getElementById('msg');
             const defaultHtml = document.getElementById('default_template').innerHTML.trim();
@@ -457,5 +460,7 @@ $force_blank = isset($_GET['blank']) && $_GET['blank'] === '1';
     </script>
 </body>
 </html>
+
+
 
 

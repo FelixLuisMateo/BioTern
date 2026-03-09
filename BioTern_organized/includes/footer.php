@@ -1,4 +1,5 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 // Shared footer include.  It closes main container and adds global scripts.
 ?>
         </div> <!-- .nxl-content -->
@@ -618,6 +619,7 @@
 </body>
 
 </html>
+
 
 
 

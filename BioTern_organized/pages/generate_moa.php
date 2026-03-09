@@ -1,4 +1,5 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 // Generate printable Memorandum of Agreement (MOA)
 function q($key, $default = '')
 {
@@ -173,7 +174,13 @@ $use_saved_template = q('use_saved_template', '0') === '1';
         <p class="and-line" style="text-align:center; margin-top:-20px; margin-bottom:5px;">
             And 
         </p>
-        <strong><?php echo htmlspecialchars($partner_name); ?></strong> an enterprise duly organized and existing under Philippine Laws with office/business address at <strong><u><?php echo htmlspecialchars($partner_address); ?></u></strong> represented herein by <strong><u><?php echo htmlspecialchars($partner_rep); ?></u></strong> here in after referred to as the PARTNER COMPANY.
+        <strong><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($partner_name); ?></strong> an enterprise duly organized and existing under Philippine Laws with office/business address at <strong><u><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($partner_address); ?></u></strong> represented herein by <strong><u><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($partner_rep); ?></u></strong> here in after referred to as the PARTNER COMPANY.
         <p style="text-align:center; margin-top:10px; margin-bottom:-10px;">Witnesseth:</p>
         <p>The parties hereby bind themselves to undertake a Memorandum of Agreement for the purpose of supporting the HEI Internship for Learners under the following terms and condition:</p>
         <p><strong>Clark College of Science and Technology:</strong></p>
@@ -182,51 +189,97 @@ $use_saved_template = q('use_saved_template', '0') === '1';
             <li>The <b>Clark College of Science and Technology</b> shall provide the learner undergoing the INTERNSHIP with the basic orientation on work values, behavior, and discipline to ensure smooth cooperation with the <strong><u>PARTNER COMPANY</u></strong>.</li>
             <li>The <b>Clark College of Science and Technology</b> shall issue and official endorsement vouching for the well-being of the Learner which shall be used by the <strong><u>PARTNER COMPANY</u></strong>. for the processing the learner's application for INTERNSHIP;</li>
             <li>The <b>Clark College of Science and Technology</b> shall voluntarily withdraw a Learner who is found to misbehave and/or act in defiance to existing standards, rules, and regulation of the <strong><u>PARTNER COMPANY</u></strong> can impose necessary HEI sanctions to the said learner;</li>
-            <li>The <b>Clark College of Science and Technology</b> through its Industry Coordinator shall make onsite sit/follow ups to the <strong><u>PARTNER COMPANY</u></strong> during the training period and evaluate the Learner’s progress based on the training plan and discuss training problems;</li>
+            <li>The <b>Clark College of Science and Technology</b> through its Industry Coordinator shall make onsite sit/follow ups to the <strong><u>PARTNER COMPANY</u></strong> during the training period and evaluate the Learnerâ€™s progress based on the training plan and discuss training problems;</li>
             <li>The <b>Clark College of Science and Technology</b> has the discretion to pull out the Learner if there is an apparent risk and/or exploitation on the rights of the Learner;</li>
             <li>The <b>Clark College of Science and Technology</b> shall ensure that the Learner shall ensure that the Learner has an on-and off the campus insurance coverage within the duration of the training as part of their training fee.</li>
             <li>The <b>Clark College of Science and Technology</b> shall ensure Learner shall be personally responsible for any and all liabilities arising from negligence in the performance of his/her duties and functions while under INTERNSHIP;</li>
             <li>There is no employer-employee relationship between the  <strong><u>PARTNER COMPANY</u></strong> and the Learner;</li>
-            <li>The duration of the program shall be equivalent to <?php echo htmlspecialchars($total_hours); ?> working hours unless otherwise agreed upon by the <strong><u>PARTNER COMPANY</u></strong> and the <strong>Clark College of Science and Technology;</strong></li>
+            <li>The duration of the program shall be equivalent to <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($total_hours); ?> working hours unless otherwise agreed upon by the <strong><u>PARTNER COMPANY</u></strong> and the <strong>Clark College of Science and Technology;</strong></li>
             <li>Any violation of the foregoing covenants will warrant the cancellation of the Memorandum of Agreement by the <strong><u>PARTNER COMPANY</u></strong> within thirty (30) days upon notice to the <strong>Clark College of Science and Technology.</strong></li>
             <li>The <strong><u>PARTNER COMPANY</u></strong> may grant allowance to Learner in accordance with the PARTNER ENTERPISE existing rules and regulations;</li>
             <li>The <strong><u>PARTNER COMPANY</u></strong> is not allowed to employ Learner within the INTERNSHIP period in order for the Learner to graduate from the program he/she is enrolled in.</li>
         </ol>
 
         <p>This Memorandum of Agreement shall become effective upon signature of both parties and Implementation will begin immediately and shall continue to be valid hereafter until written notice is given by either party thirty (30) days prior to the date of intended termination.</p>
-        <p>In witness where of the parties have signed this Memorandum of Agreement at <?php echo htmlspecialchars($signed_at); ?> this <?php echo htmlspecialchars($signed_day); ?> day of <?php echo htmlspecialchars($signed_month); ?>, <?php echo htmlspecialchars($signed_year); ?>.</p>
+        <p>In witness where of the parties have signed this Memorandum of Agreement at <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($signed_at); ?> this <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($signed_day); ?> day of <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($signed_month); ?>, <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($signed_year); ?>.</p>
 
         <div class="row" style="margin-top:-12px;">
             <div class="col">
                 <p><strong>For the PARTNER COMPANY</strong></p>
-                <p style="margin-top:16px;"><strong><u><?php echo htmlspecialchars($partner_rep); ?></u></strong></p>
-                <p style="margin-top:-18px;"><u><?php echo htmlspecialchars($partner_position); ?></u>, <u><?php echo htmlspecialchars($partner_name); ?></u></p>
+                <p style="margin-top:16px;"><strong><u><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($partner_rep); ?></u></strong></p>
+                <p style="margin-top:-18px;"><u><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($partner_position); ?></u>, <u><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($partner_name); ?></u></p>
             </div>
             <div class="col right">
                 <p style="text-align:right;"><strong>For the SCHOOL</strong></p>
-                <p style="margin-top:16px; text-align:right;"><strong><u><?php echo htmlspecialchars($school_rep); ?></u></strong></p>
-                <p style="margin-top:-18px; text-align:right;"><u><?php echo htmlspecialchars($school_position); ?></u></p>
+                <p style="margin-top:16px; text-align:right;"><strong><u><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($school_rep); ?></u></strong></p>
+                <p style="margin-top:-18px; text-align:right;"><u><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($school_position); ?></u></p>
             </div>
         </div>
 
         <p style="margin-top:-5px; text-align:center;"><strong>SIGNED IN THE PRESENCE OF:</strong></p>
         <div class="row">
             <div class="col">
-                <p style="margin-top:0px;"><strong><u><?php echo htmlspecialchars($company_receipt); ?></u></strong></p>
+                <p style="margin-top:0px;"><strong><u><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($company_receipt); ?></u></strong></p>
                 <p style="margin-top:-18px;">Representative for the PARTNER COMPANY</p>
             </div>
             <div class="col right">
-                <p style="margin-top:0px; text-align:right;"><strong><u><?php echo htmlspecialchars($presence_school_admin); ?></u></strong></p>
-                <p style="margin-top:-18px; text-align:right;"><u><?php echo htmlspecialchars($presence_school_admin_position); ?></u></p>
+                <p style="margin-top:0px; text-align:right;"><strong><u><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($presence_school_admin); ?></u></strong></p>
+                <p style="margin-top:-18px; text-align:right;"><u><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($presence_school_admin_position); ?></u></p>
             </div>
         </div>
 
-            ACKNOWLEDGEMENT Before me, a Notary Public in the city <strong><u><?php echo htmlspecialchars($notary_city); ?></u></strong>, personally appeared <strong><u><?php echo htmlspecialchars($presence_partner_rep); ?></u></strong>, known to me to be the same persons who executed the foregoing instrument and they acknowledged to me that the same is their free will and voluntary deed and that of the ENTERPRISEs herein represented. Witness my hand and seal on this <strong><u><?php echo htmlspecialchars($notary_day); ?></u></strong> day of <strong><u><?php echo htmlspecialchars($notary_month); ?></u></strong> <strong><u><?php echo htmlspecialchars($notary_year); ?></u></strong> in <strong><u><?php echo htmlspecialchars($notary_place); ?></u></strong>.
+            ACKNOWLEDGEMENT Before me, a Notary Public in the city <strong><u><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($notary_city); ?></u></strong>, personally appeared <strong><u><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($presence_partner_rep); ?></u></strong>, known to me to be the same persons who executed the foregoing instrument and they acknowledged to me that the same is their free will and voluntary deed and that of the ENTERPRISEs herein represented. Witness my hand and seal on this <strong><u><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($notary_day); ?></u></strong> day of <strong><u><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($notary_month); ?></u></strong> <strong><u><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($notary_year); ?></u></strong> in <strong><u><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($notary_place); ?></u></strong>.
         </p>
-        <p style="margin-bottom: -4px;">Doc No. : <span style="display:inline-block; min-width:28px; border-bottom:1px solid #000; line-height:1;"><?php echo htmlspecialchars($doc_no); ?></span></p>
-        <p style="margin-bottom: -4px;">Page No. : <span style="display:inline-block; min-width:28px; border-bottom:1px solid #000; line-height:1;"><?php echo htmlspecialchars($page_no); ?></span></p>
-        <p style="margin-bottom: -4px;">Book No. : <span style="display:inline-block; min-width:28px; border-bottom:1px solid #000; line-height:1;"><?php echo htmlspecialchars($book_no); ?></span></p>
-        <p style="margin-bottom: -4px;">Series of : <span style="display:inline-block; min-width:28px; border-bottom:1px solid #000; line-height:1;"><?php echo htmlspecialchars($series_no); ?></span></p>
+        <p style="margin-bottom: -4px;">Doc No. : <span style="display:inline-block; min-width:28px; border-bottom:1px solid #000; line-height:1;"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($doc_no); ?></span></p>
+        <p style="margin-bottom: -4px;">Page No. : <span style="display:inline-block; min-width:28px; border-bottom:1px solid #000; line-height:1;"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($page_no); ?></span></p>
+        <p style="margin-bottom: -4px;">Book No. : <span style="display:inline-block; min-width:28px; border-bottom:1px solid #000; line-height:1;"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($book_no); ?></span></p>
+        <p style="margin-bottom: -4px;">Series of : <span style="display:inline-block; min-width:28px; border-bottom:1px solid #000; line-height:1;"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($series_no); ?></span></p>
     </div>
 
     <div class="actions no-print">
@@ -235,7 +288,9 @@ $use_saved_template = q('use_saved_template', '0') === '1';
         <button class="btn action-btn" id="btn_close_moa" type="button">Close</button>
     </div>
 </div>
-<?php if ($use_saved_template): ?>
+<?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($use_saved_template): ?>
 <script>
     (function(){
         function normalizeMoaColors() {
@@ -265,7 +320,9 @@ $use_saved_template = q('use_saved_template', '0') === '1';
         normalizeMoaColors();
     })();
 </script>
-<?php else: ?>
+<?php
+require_once dirname(__DIR__) . '/config/db.php';
+else: ?>
 <script>
     (function(){
         var doc = document.getElementById('moa_doc_content');
@@ -274,7 +331,9 @@ $use_saved_template = q('use_saved_template', '0') === '1';
         fontNodes.forEach(function(el){ el.removeAttribute('color'); });
     })();
 </script>
-<?php endif; ?>
+<?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
 <script>
     (function(){
         var btn = document.getElementById('btn_close_moa');
@@ -295,3 +354,5 @@ $use_saved_template = q('use_saved_template', '0') === '1';
 </script>
 </body>
 </html>
+
+

@@ -1,4 +1,5 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 $page_title = 'BioTern || Email';
 include 'includes/header.php';
 ?>
@@ -2036,5 +2037,7 @@ include 'includes/header.php';
 </body>
 
 </html>
+
+
 
 

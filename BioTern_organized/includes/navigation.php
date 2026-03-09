@@ -1,4 +1,5 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 // Centralized navigation include (grouped/relabeled).
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -14,6 +15,13 @@ $nav_can_academic = ($nav_is_admin || $nav_is_coordinator);
 $nav_can_workspace = ($nav_is_admin || $nav_is_coordinator);
 $nav_can_system = $nav_is_admin;
 $nav_can_reports = ($nav_is_admin || $nav_is_coordinator || $nav_is_supervisor);
+$nav_dir = str_replace('\\', '/', dirname($_SERVER['PHP_SELF'] ?? ''));
+$nav_dir = rtrim($nav_dir, '/');
+if ($nav_dir === '' || $nav_dir === '.') {
+    $nav_dir = '';
+}
+$nav_dir = preg_replace('#/(management|pages|auth)$#i', '', $nav_dir);
+$nav_asset_base = ($nav_dir === '' ? '' : $nav_dir) . '/assets';
 ?>
 <style>
     @media (min-width: 1025px) {
@@ -83,8 +91,8 @@ $nav_can_reports = ($nav_is_admin || $nav_is_coordinator || $nav_is_supervisor);
     <div class="navbar-wrapper">
         <div class="m-header">
             <a href="/BioTern/BioTern_organized/legacy_router.php?file=homepage.php" class="b-brand">
-                <img src="assets/images/logo-full.png" alt="BioTern" class="logo logo-lg" style="width:210px;height:auto;object-fit:contain;" />
-                <img src="assets/images/logo-abbr.png" alt="" class="logo logo-sm" />
+                    <img src="<?php echo htmlspecialchars($nav_asset_base); ?>/images/logo-full.png" alt="BioTern" class="logo logo-lg" style="width:210px;height:auto;object-fit:contain;" />
+                    <img src="<?php echo htmlspecialchars($nav_asset_base); ?>/images/logo-abbr.png" alt="" class="logo logo-sm" />
             </a>
         </div>
         <div class="navbar-content">
@@ -103,7 +111,9 @@ $nav_can_reports = ($nav_is_admin || $nav_is_coordinator || $nav_is_supervisor);
                     </ul>
                 </li>
 
-                <?php if ($nav_can_internship): ?>
+                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($nav_can_internship): ?>
                 <li class="nxl-item nxl-caption">
                     <span>Internship</span>
                 </li>
@@ -152,9 +162,13 @@ $nav_can_reports = ($nav_is_admin || $nav_is_coordinator || $nav_is_supervisor);
                         <li class="nxl-item"><a class="nxl-link" href="reports-timesheets.php">Timesheets Report</a></li>
                     </ul>
                 </li>
-                <?php endif; ?>
+                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
 
-                <?php if ($nav_can_academic): ?>
+                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($nav_can_academic): ?>
                 <li class="nxl-item nxl-caption">
                     <span>Academic</span>
                 </li>
@@ -171,9 +185,13 @@ $nav_can_reports = ($nav_is_admin || $nav_is_coordinator || $nav_is_supervisor);
                         <li class="nxl-item"><a class="nxl-link" href="supervisors.php">Supervisors</a></li>
                     </ul>
                 </li>
-                <?php endif; ?>
+                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
 
-                <?php if ($nav_can_workspace): ?>
+                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($nav_can_workspace): ?>
                 <li class="nxl-item nxl-caption">
                     <span>Workspace</span>
                 </li>
@@ -204,9 +222,13 @@ $nav_can_reports = ($nav_is_admin || $nav_is_coordinator || $nav_is_supervisor);
                         <li class="nxl-item"><a class="nxl-link" href="widgets-miscellaneous.php">Miscellaneous</a></li>
                     </ul>
                 </li>
-                <?php endif; ?>
+                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
 
-                <?php if ($nav_can_system): ?>
+                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($nav_can_system): ?>
                 <li class="nxl-item nxl-caption">
                     <span>System</span>
                 </li>
@@ -250,7 +272,9 @@ $nav_can_reports = ($nav_is_admin || $nav_is_coordinator || $nav_is_supervisor);
                         <li class="nxl-item"><a class="nxl-link" href="/docs/documentations">Documentations</a></li>
                     </ul>
                 </li>
-                <?php endif; ?>
+                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
             </ul>
         </div>
     </div>
@@ -353,3 +377,4 @@ $nav_can_reports = ($nav_is_admin || $nav_is_coordinator || $nav_is_supervisor);
 
     })();
 </script>
+

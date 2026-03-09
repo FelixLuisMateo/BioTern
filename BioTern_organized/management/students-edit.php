@@ -1,18 +1,6 @@
 <?php
-// Database Connection
-$host = 'localhost';
-$db_user = 'root';
-$db_password = '';
-$db_name = 'biotern_db';
-
-try {
-    $conn = new mysqli($host, $db_user, $db_password, $db_name);
-    if ($conn->connect_error) {
-        die("Connection failed: " . $conn->connect_error);
-    }
-} catch (Exception $e) {
-    die("Database Error: " . $e->getMessage());
-}
+// Database connection from central config
+require_once dirname(__DIR__) . '/config/db.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -64,8 +52,9 @@ if (!is_dir($uploads_documents)) {
 $student_query = "
     SELECT 
         s.id,
+        s.user_id,
         s.student_id,
-        s.profile_picture,
+        COALESCE(NULLIF(u_student.profile_picture, ''), NULLIF(s.profile_picture, '')) AS profile_picture,
         s.first_name,
         s.last_name,
         s.middle_name,
@@ -97,6 +86,7 @@ $student_query = "
         sv.id as supervisor_id,
         co.id as coordinator_id
     FROM students s
+    LEFT JOIN users u_student ON s.user_id = u_student.id
     LEFT JOIN courses c ON s.course_id = c.id
     LEFT JOIN internships i ON s.id = i.student_id AND i.status = 'ongoing'
     LEFT JOIN supervisors sv ON (sv.user_id = i.supervisor_id OR sv.id = i.supervisor_id)
@@ -119,7 +109,7 @@ $student = $result->fetch_assoc();
 
 // Fetch all courses for dropdown (be tolerant of differing schema columns)
 $courses = [];
-$db_esc = $conn->real_escape_string($db_name);
+$db_esc = $conn->real_escape_string((string)(defined('DB_NAME') ? DB_NAME : ''));
 $has_is_active = false;
 $has_status_col = false;
 $col_check = $conn->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '" . $db_esc . "' AND TABLE_NAME = 'courses' AND COLUMN_NAME IN ('is_active','status')");
@@ -209,18 +199,44 @@ $error_message = '';
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     // Handle profile picture upload
     $profile_picture_path = $student['profile_picture'] ?? '';
+    $profile_picture_uploaded = false;
     
     if (isset($_FILES['profile_picture']) && $_FILES['profile_picture']['error'] == UPLOAD_ERR_OK) {
         $file_tmp = $_FILES['profile_picture']['tmp_name'];
         $file_name = $_FILES['profile_picture']['name'];
         $file_size = $_FILES['profile_picture']['size'];
         $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
-        
+
         // Validate file type and size
-        $allowed_types = ['jpg', 'jpeg', 'png', 'gif'];
+        $allowed_types = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+        $allowed_mimes = [
+            'jpg' => 'image/jpeg',
+            'jpeg' => 'image/jpeg',
+            'png' => 'image/png',
+            'gif' => 'image/gif',
+            'webp' => 'image/webp',
+        ];
         $max_file_size = 5 * 1024 * 1024; // 5MB
-        
-        if (in_array($file_ext, $allowed_types) && $file_size <= $max_file_size) {
+
+        $mime_type = '';
+        if (function_exists('finfo_open')) {
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            if ($finfo) {
+                $mime_type = (string)finfo_file($finfo, $file_tmp);
+                finfo_close($finfo);
+            }
+        }
+        if ($mime_type === '' || $mime_type === 'application/octet-stream') {
+            $img_info = @getimagesize($file_tmp);
+            if (is_array($img_info) && !empty($img_info['mime'])) {
+                $mime_type = (string)$img_info['mime'];
+            }
+        }
+
+        $is_valid_ext = in_array($file_ext, $allowed_types, true);
+        $is_valid_mime = $mime_type !== '' && in_array($mime_type, $allowed_mimes, true);
+
+        if ($is_valid_ext && $is_valid_mime && $file_size <= $max_file_size) {
             // Create unique filename
             $unique_name = 'student_' . $student_id . '_' . time() . '.' . $file_ext;
             $file_path = $uploads_dir . '/' . $unique_name;
@@ -234,11 +250,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             // Move uploaded file
             if (move_uploaded_file($file_tmp, $file_path)) {
                 $profile_picture_path = 'uploads/profile_pictures/' . $unique_name;
+                $profile_picture_uploaded = true;
             } else {
                 $error_message = "Failed to upload profile picture. Please try again.";
             }
         } else {
-            $error_message = "Invalid file type or file size exceeds 5MB. Allowed types: JPG, PNG, GIF.";
+            $error_message = "Invalid image file or file size exceeds 5MB. Allowed types: JPG, JPEG, PNG, GIF, WEBP.";
         }
     }
     
@@ -358,18 +375,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $error_message = "First Name, Last Name, and Email are required fields!";
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $error_message = "Invalid email format!";
-    } elseif ($original_updated_at !== '') {
-        $lock_stmt = $conn->prepare("SELECT updated_at FROM students WHERE id = ? LIMIT 1");
-        if ($lock_stmt) {
-            $lock_stmt->bind_param("i", $student_id);
-            $lock_stmt->execute();
-            $lock_row = $lock_stmt->get_result()->fetch_assoc();
-            $lock_stmt->close();
-            $current_updated_at = (string)($lock_row['updated_at'] ?? '');
-            if ($current_updated_at !== '' && $current_updated_at !== $original_updated_at) {
-                $error_message = "This student record was updated by another user. Please refresh and review the latest data before saving again.";
-            }
-        }
     } elseif ($assignment_track === 'external' && ($internal_total_hours_remaining === null || $internal_total_hours_remaining > 0)) {
         $error_message = "Cannot assign student to External unless Internal is completed (Internal Total Hours Remaining must be 0).";
     } else {
@@ -444,6 +449,27 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 );
 
                 if ($update_stmt->execute()) {
+                    if (!empty($student['user_id'])) {
+                        $user_id_for_sync = (int)$student['user_id'];
+                        $display_name = trim($first_name . ' ' . $last_name);
+                        $sync_user_stmt = $conn->prepare("UPDATE users SET name = ?, email = ?, updated_at = NOW() WHERE id = ?");
+                        if ($sync_user_stmt) {
+                            $sync_user_stmt->bind_param("ssi", $display_name, $email, $user_id_for_sync);
+                            $sync_user_stmt->execute();
+                            $sync_user_stmt->close();
+                        }
+                    }
+
+                    if ($profile_picture_uploaded && !empty($student['user_id'])) {
+                        $user_id_for_photo = (int)$student['user_id'];
+                        $sync_user_photo = $conn->prepare("UPDATE users SET profile_picture = ? WHERE id = ?");
+                        if ($sync_user_photo) {
+                            $sync_user_photo->bind_param("si", $profile_picture_path, $user_id_for_photo);
+                            $sync_user_photo->execute();
+                            $sync_user_photo->close();
+                        }
+                    }
+
                     // Keep assignment IDs in internships table as single source of truth.
                     if (!empty($student['internship_id'])) {
                         $internship_update = $conn->prepare("
@@ -573,6 +599,19 @@ function formatDateTime($date) {
     return 'N/A';
 }
 
+function resolve_profile_image_url(string $profilePath): ?string {
+    $clean = ltrim(str_replace('\\', '/', trim($profilePath)), '/');
+    if ($clean === '') {
+        return null;
+    }
+    $rootPath = dirname(__DIR__) . '/' . $clean;
+    if (!file_exists($rootPath)) {
+        return null;
+    }
+    $mtime = @filemtime($rootPath);
+    return $clean . ($mtime ? ('?v=' . $mtime) : '');
+}
+
 ?>
 
 <!DOCTYPE html>
@@ -686,7 +725,6 @@ function formatDateTime($date) {
             text-overflow: ellipsis;
             max-width: calc(100% - 80px);
         }
-
         html, body {
             height: 100%;
             margin: 0;
@@ -1031,7 +1069,7 @@ function formatDateTime($date) {
                     </div>
                     <div class="nxl-h-item d-none d-sm-flex">
                         <div class="full-screen-switcher">
-                            <a href="javascript:void(0);" class="nxl-head-link me-0" onclick="$('body').fullScreenHelper('toggle');">
+                            <a href="javascript:void(0);" class="nxl-head-link me-0">
                                 <i class="feather-maximize maximize"></i>
                                 <i class="feather-minimize minimize"></i>
                             </a>
@@ -1239,17 +1277,19 @@ function formatDateTime($date) {
                                             <div class="col-md-6 mb-4">
                                                 <label for="profile_picture" class="form-label fw-semibold">Profile Picture</label>
                                                 <div class="mb-2">
-                                                    <?php if (!empty($student['profile_picture'])): ?>
-                                                        <div class="mb-2">
-                                                            <img src="<?php echo htmlspecialchars($student['profile_picture']); ?>" alt="Profile" class="img-thumbnail" style="max-width: 150px; max-height: 150px;">
-                                                        </div>
-                                                    <?php else: ?>
-                                                        <div class="alert alert-info mb-2 py-2 px-3">No profile picture uploaded</div>
-                                                    <?php endif; ?>
+                                                    <?php
+                                                        $profile_preview = resolve_profile_image_url((string)($student['profile_picture'] ?? ''));
+                                                        if ($profile_preview === null) {
+                                                            $profile_preview = 'assets/images/avatar/' . (($student_id % 5) + 1) . '.png';
+                                                        }
+                                                    ?>
+                                                    <div class="mb-2">
+                                                        <img src="<?php echo htmlspecialchars($profile_preview); ?>" alt="Profile" class="img-thumbnail" style="width: 150px; height: 150px; object-fit: cover;">
+                                                    </div>
                                                 </div>
                                                 <input type="file" class="form-control" id="profile_picture" name="profile_picture" 
                                                        accept="image/*">
-                                                <small class="form-text text-muted">JPG, PNG, GIF (Max 5MB)</small>
+                                                <small class="form-text text-muted">JPG, JPEG, PNG, GIF, WEBP (Max 5MB)</small>
                                             </div>
                                         </div>
                                     </div>
@@ -1460,14 +1500,23 @@ function formatDateTime($date) {
         // Initialize form elements
         document.addEventListener('DOMContentLoaded', function() {
             // Initialize select2 for dropdowns
-            $('#course_id, #department_id, #section_id, #status').each(function() {
+            $('#course_id, #department_id, #status').each(function() {
                 $(this).select2({
                     allowClear: false,
+                    minimumResultsForSearch: Infinity,
                     width: '100%',
                     dropdownAutoWidth: false,
                     theme: 'default',
                     dropdownParent: $('#editStudentForm')
                 });
+            });
+
+            $('#section_id').select2({
+                allowClear: false,
+                width: '100%',
+                dropdownAutoWidth: false,
+                theme: 'default',
+                dropdownParent: $('#editStudentForm')
             });
 
             $('#supervisor_id').select2({

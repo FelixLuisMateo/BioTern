@@ -1,4 +1,5 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 // Start session early to avoid headers-sent warnings
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -309,7 +310,9 @@ include 'includes/header.php';
                 <div class="page-header-right ms-auto">
                     <div class="d-flex align-items-center gap-2">
                         <span class="badge bg-soft-primary text-primary fs-11">
-                            <i class="feather-calendar me-1"></i> <?php echo date('M d, Y'); ?>
+                            <i class="feather-calendar me-1"></i> <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo date('M d, Y'); ?>
                         </span>
                         <button type="button" id="toggle-dashboard-layout" class="btn btn-sm btn-light-brand">
                             <i class="feather-move me-1"></i> Edit Layout
@@ -360,8 +363,12 @@ include 'includes/header.php';
                                 <div class="card mb-0 h-100 kpi-card">
                                     <div class="card-body d-flex flex-column justify-content-between gap-2">
                                         <span class="fs-11 text-muted d-block mb-2">Pending Attendance</span>
-                                        <h4 class="fw-bold text-dark mb-1"><?php echo $attendance_awaiting; ?></h4>
-                                        <span class="badge bg-soft-warning text-warning"><?php echo $attendance_pending_rate; ?>% pending</span>
+                                        <h4 class="fw-bold text-dark mb-1"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $attendance_awaiting; ?></h4>
+                                        <span class="badge bg-soft-warning text-warning"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $attendance_pending_rate; ?>% pending</span>
                                     </div>
                                 </div>
                             </div>
@@ -369,7 +376,9 @@ include 'includes/header.php';
                                 <div class="card mb-0 h-100 kpi-card">
                                     <div class="card-body d-flex flex-column justify-content-between gap-2">
                                         <span class="fs-11 text-muted d-block mb-2">Biometric Pending</span>
-                                        <h4 class="fw-bold text-dark mb-1"><?php echo $pending_biometrics; ?></h4>
+                                        <h4 class="fw-bold text-dark mb-1"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $pending_biometrics; ?></h4>
                                         <span class="badge bg-soft-danger text-danger text-wrap">students without registration</span>
                                     </div>
                                 </div>
@@ -378,8 +387,12 @@ include 'includes/header.php';
                                 <div class="card mb-0 h-100 kpi-card">
                                     <div class="card-body d-flex flex-column justify-content-between gap-2">
                                         <span class="fs-11 text-muted d-block mb-2">Active Students</span>
-                                        <h4 class="fw-bold text-dark mb-1"><?php echo $active_students; ?></h4>
-                                        <span class="badge bg-soft-primary text-primary"><?php echo $active_student_rate; ?>% of total students</span>
+                                        <h4 class="fw-bold text-dark mb-1"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $active_students; ?></h4>
+                                        <span class="badge bg-soft-primary text-primary"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $active_student_rate; ?>% of total students</span>
                                     </div>
                                 </div>
                             </div>
@@ -387,7 +400,9 @@ include 'includes/header.php';
                                 <div class="card mb-0 h-100 kpi-card">
                                     <div class="card-body d-flex flex-column justify-content-between gap-2">
                                         <span class="fs-11 text-muted d-block mb-2">Active Internships</span>
-                                        <h4 class="fw-bold text-dark mb-1"><?php echo $active_internships; ?></h4>
+                                        <h4 class="fw-bold text-dark mb-1"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $active_internships; ?></h4>
                                         <span class="badge bg-soft-info text-info">ongoing placements</span>
                                     </div>
                                 </div>
@@ -396,8 +411,12 @@ include 'includes/header.php';
                                 <div class="card mb-0 h-100 kpi-card">
                                     <div class="card-body d-flex flex-column justify-content-between gap-2">
                                         <span class="fs-11 text-muted d-block mb-2">Attendance Today</span>
-                                        <h4 class="fw-bold text-dark mb-1"><?php echo $today_attendance; ?></h4>
-                                        <span class="badge bg-soft-secondary text-dark"><?php echo date('M d, Y'); ?></span>
+                                        <h4 class="fw-bold text-dark mb-1"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $today_attendance; ?></h4>
+                                        <span class="badge bg-soft-secondary text-dark"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo date('M d, Y'); ?></span>
                                     </div>
                                 </div>
                             </div>
@@ -405,8 +424,12 @@ include 'includes/header.php';
                                 <div class="card mb-0 h-100 kpi-card">
                                     <div class="card-body d-flex flex-column justify-content-between gap-2">
                                         <span class="fs-11 text-muted d-block mb-2">Attendance Approved</span>
-                                        <h4 class="fw-bold text-dark mb-1"><?php echo $attendance_completed; ?></h4>
-                                        <span class="badge bg-soft-success text-success"><?php echo $attendance_approval_rate; ?>% approval rate</span>
+                                        <h4 class="fw-bold text-dark mb-1"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $attendance_completed; ?></h4>
+                                        <span class="badge bg-soft-success text-success"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $attendance_approval_rate; ?>% approval rate</span>
                                     </div>
                                 </div>
                             </div>
@@ -422,28 +445,46 @@ include 'includes/header.php';
                                 <div class="mb-4">
                                     <div class="d-flex justify-content-between mb-2">
                                         <span class="fs-12 text-muted">Attendance Approval Progress</span>
-                                        <span class="fs-12 fw-semibold text-dark"><?php echo $attendance_completed; ?>/<?php echo $attendance_total; ?></span>
+                                        <span class="fs-12 fw-semibold text-dark"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $attendance_completed; ?>/<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $attendance_total; ?></span>
                                     </div>
                                     <div class="progress ht-5">
-                                        <div class="progress-bar bg-success" role="progressbar" style="width: <?php echo $attendance_approval_rate; ?>%"></div>
+                                        <div class="progress-bar bg-success" role="progressbar" style="width: <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $attendance_approval_rate; ?>%"></div>
                                     </div>
                                 </div>
                                 <div class="mb-4">
                                     <div class="d-flex justify-content-between mb-2">
                                         <span class="fs-12 text-muted">Biometric Enrollment</span>
-                                        <span class="fs-12 fw-semibold text-dark"><?php echo $biometric_registered; ?>/<?php echo $student_count; ?></span>
+                                        <span class="fs-12 fw-semibold text-dark"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $biometric_registered; ?>/<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $student_count; ?></span>
                                     </div>
                                     <div class="progress ht-5">
-                                        <div class="progress-bar bg-primary" role="progressbar" style="width: <?php echo ($student_count > 0) ? round(($biometric_registered / $student_count) * 100) : 0; ?>%"></div>
+                                        <div class="progress-bar bg-primary" role="progressbar" style="width: <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo ($student_count > 0) ? round(($biometric_registered / $student_count) * 100) : 0; ?>%"></div>
                                     </div>
                                 </div>
                                 <div>
                                     <div class="d-flex justify-content-between mb-2">
                                         <span class="fs-12 text-muted">Internship Completion</span>
-                                        <span class="fs-12 fw-semibold text-dark"><?php echo $completed_internships; ?>/<?php echo $internship_count; ?></span>
+                                        <span class="fs-12 fw-semibold text-dark"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $completed_internships; ?>/<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $internship_count; ?></span>
                                     </div>
                                     <div class="progress ht-5">
-                                        <div class="progress-bar bg-info" role="progressbar" style="width: <?php echo ($internship_count > 0) ? round(($completed_internships / $internship_count) * 100) : 0; ?>%"></div>
+                                        <div class="progress-bar bg-info" role="progressbar" style="width: <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo ($internship_count > 0) ? round(($completed_internships / $internship_count) * 100) : 0; ?>%"></div>
                                     </div>
                                 </div>
                             </div>
@@ -466,21 +507,27 @@ include 'includes/header.php';
                                         <div class="fw-semibold text-dark">Attendance for Review</div>
                                         <div class="fs-12 text-muted">Pending submissions requiring approval</div>
                                     </div>
-                                    <span class="badge bg-soft-warning text-warning fs-12"><?php echo $attendance_awaiting; ?></span>
+                                    <span class="badge bg-soft-warning text-warning fs-12"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $attendance_awaiting; ?></span>
                                 </div>
                                 <div class="d-flex align-items-center justify-content-between p-3 border border-dashed rounded-3 mb-3">
                                     <div>
                                         <div class="fw-semibold text-dark">Students Without Biometrics</div>
                                         <div class="fs-12 text-muted">Needs registration to enable attendance flow</div>
                                     </div>
-                                    <span class="badge bg-soft-danger text-danger fs-12"><?php echo $pending_biometrics; ?></span>
+                                    <span class="badge bg-soft-danger text-danger fs-12"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $pending_biometrics; ?></span>
                                 </div>
                                 <div class="d-flex align-items-center justify-content-between p-3 border border-dashed rounded-3">
                                     <div>
                                         <div class="fw-semibold text-dark">OJT Not Yet Completed</div>
                                         <div class="fs-12 text-muted">Internships still active or pending</div>
                                     </div>
-                                    <span class="badge bg-soft-info text-info fs-12"><?php echo max(0, $internship_count - $completed_internships); ?></span>
+                                    <span class="badge bg-soft-info text-info fs-12"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo max(0, $internship_count - $completed_internships); ?></span>
                                 </div>
                             </div>
                         </div>
@@ -520,42 +567,67 @@ include 'includes/header.php';
                             </div>
                             <div class="card-body custom-card-action p-0">
                                 <div style="max-height: 400px; overflow-y: auto;">
-                                    <?php if (count($recent_activities) > 0): ?>
-                                        <?php foreach ($recent_activities as $activity): ?>
+                                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if (count($recent_activities) > 0): ?>
+                                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($recent_activities as $activity): ?>
                                         <div class="d-flex align-items-center gap-3 p-3 border-bottom">
                                             <div class="avatar-text avatar-sm rounded-circle" 
-                                                style="background-color: <?php 
-                                                    echo ($activity['activity_type'] === 'student_created') ? '#e3f2fd' : 
+                                                style="background-color: <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo ($activity['activity_type'] === 'student_created') ? '#e3f2fd' : 
                                                          (($activity['activity_type'] === 'attendance_recorded') ? '#f3e5f5' : '#e8f5e9');
                                                 ?>">
-                                                <i class="feather-<?php 
-                                                    echo ($activity['activity_type'] === 'student_created') ? 'user-plus' : 
+                                                <i class="feather-<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo ($activity['activity_type'] === 'student_created') ? 'user-plus' : 
                                                          (($activity['activity_type'] === 'attendance_recorded') ? 'clock' : 'check-circle');
                                                 ?>" style="font-size: 14px;"></i>
                                             </div>
                                             <div class="flex-grow-1">
                                                 <a href="javascript:void(0);" class="fw-semibold text-dark d-block">
-                                                    <?php echo htmlspecialchars($activity['activity']); ?>
+                                                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($activity['activity']); ?>
                                                 </a>
                                                 <span class="fs-12 text-muted">
-                                                    <?php if ($activity['activity_date']): ?>
-                                                        <?php echo date('M d, Y H:i', strtotime($activity['activity_date'])); ?>
-                                                    <?php else: ?>
+                                                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($activity['activity_date']): ?>
+                                                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo date('M d, Y H:i', strtotime($activity['activity_date'])); ?>
+                                                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+else: ?>
                                                         No date
-                                                    <?php endif; ?>
+                                                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
                                                 </span>
                                             </div>
-                                            <span class="badge <?php 
-                                                echo ($activity['activity_type'] === 'student_created') ? 'bg-soft-info text-info' : 
+                                            <span class="badge <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo ($activity['activity_type'] === 'student_created') ? 'bg-soft-info text-info' : 
                                                      (($activity['activity_type'] === 'attendance_recorded') ? 'bg-soft-warning text-warning' : 'bg-soft-success text-success');
                                             ?> fs-10">
-                                                <?php echo str_replace('_', ' ', ucfirst($activity['activity_type'])); ?>
+                                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo str_replace('_', ' ', ucfirst($activity['activity_type'])); ?>
                                             </span>
                                         </div>
-                                        <?php endforeach; ?>
-                                    <?php else: ?>
+                                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
+                                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+else: ?>
                                         <p class="text-muted text-center py-4">No recent activities found</p>
-                                    <?php endif; ?>
+                                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
                                 </div>
                             </div>
                             <a href="javascript:void(0);" class="card-footer fs-11 fw-bold text-uppercase text-center py-3">View All Activities</a>
@@ -564,7 +636,9 @@ include 'includes/header.php';
                     <!-- [Recent Activities & Logs] end -->
 
                     <!-- [Admin Quick Actions] (moved next to Recent Activities) -->
-                    <?php // Admin Quick Actions: moved to be side-by-side with Recent Activities ?>
+                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+// Admin Quick Actions: moved to be side-by-side with Recent Activities ?>
                     <div class="col-xxl-4 order-6 order-xxl-6 section-tight dashboard-movable" data-move-key="admin-quick-actions">
                         <div class="card stretch stretch-full">
                             <div class="card-header dashboard-move-handle" title="Drag to move this section">
@@ -582,7 +656,8 @@ include 'includes/header.php';
                             </div>
                             <div class="card-body">
                                 <?php
-                                $qa_total_students = 0;
+require_once dirname(__DIR__) . '/config/db.php';
+$qa_total_students = 0;
                                 $qa_total_internships = 0;
                                 $qa_attendance_today = 0;
                                 $qa_biometric_registered = 0;
@@ -606,7 +681,9 @@ include 'includes/header.php';
                                     <div class="col-6">
                                         <a href="students.php" class="btn btn-primary btn-lg w-100 d-flex align-items-center justify-content-center">
                                             <i class="feather-users me-2"></i> Students
-                                            <span class="badge bg-white text-dark ms-3"><?php echo $qa_total_students; ?></span>
+                                            <span class="badge bg-white text-dark ms-3"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $qa_total_students; ?></span>
                                         </a>
                                     </div>
                                     <div class="col-6">
@@ -617,19 +694,25 @@ include 'includes/header.php';
                                     <div class="col-6">
                                         <a href="ojt.php" class="btn btn-info btn-lg w-100 d-flex align-items-center justify-content-center">
                                             <i class="feather-briefcase me-2"></i> OJT List
-                                            <span class="badge bg-white text-dark ms-3"><?php echo $qa_total_internships; ?></span>
+                                            <span class="badge bg-white text-dark ms-3"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $qa_total_internships; ?></span>
                                         </a>
                                     </div>
                                     <div class="col-6">
                                         <a href="attendance.php" class="btn btn-warning btn-lg w-100 d-flex align-items-center justify-content-center">
                                             <i class="feather-calendar me-2"></i> Attendance Today
-                                            <span class="badge bg-white text-dark ms-3"><?php echo $qa_attendance_today; ?></span>
+                                            <span class="badge bg-white text-dark ms-3"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $qa_attendance_today; ?></span>
                                         </a>
                                     </div>
                                     <div class="col-6">
                                         <a href="demo-biometric.php" class="btn btn-secondary btn-lg w-100 d-flex align-items-center justify-content-center">
                                             <i class="feather-activity me-2"></i> Biometric Demo
-                                            <span class="badge bg-white text-dark ms-3"><?php echo $qa_biometric_registered; ?></span>
+                                            <span class="badge bg-white text-dark ms-3"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $qa_biometric_registered; ?></span>
                                         </a>
                                     </div>
                                     <div class="col-6">
@@ -649,7 +732,9 @@ include 'includes/header.php';
                     <div class="col-xxl-8 order-1 order-xxl-1 section-tight dashboard-movable" data-move-key="latest-attendance">
                         <div class="card stretch stretch-full">
                             <div class="card-header dashboard-move-handle" title="Drag to move this section">
-                                <h5 class="card-title latest-attendance-title">Latest Attendance Records <span class="badge bg-soft-success text-success fs-11">Active Today: <?php echo $today_attendance; ?></span></h5>
+                                <h5 class="card-title latest-attendance-title">Latest Attendance Records <span class="badge bg-soft-success text-success fs-11">Active Today: <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $today_attendance; ?></span></h5>
                                 <div class="card-header-action">
                                     <div class="card-header-btn">
                                         <div data-bs-toggle="tooltip" title="Delete">
@@ -693,29 +778,46 @@ include 'includes/header.php';
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <?php if (count($recent_attendance) > 0): ?>
-                                                <?php foreach ($recent_attendance as $attendance): ?>
+                                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if (count($recent_attendance) > 0): ?>
+                                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($recent_attendance as $attendance): ?>
                                             <tr>
                                                 <td>
                                                     <div class="d-flex align-items-center gap-3">
                                                         <div class="avatar-text avatar-sm bg-soft-primary text-primary">
-                                                            <?php echo strtoupper(substr($attendance['first_name'], 0, 1) . substr($attendance['last_name'], 0, 1)); ?>
+                                                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo strtoupper(substr($attendance['first_name'], 0, 1) . substr($attendance['last_name'], 0, 1)); ?>
                                                         </div>
-                                                        <a href="students-view.php?id=<?php echo $attendance['student_id']; ?>">
-                                                            <span class="d-block fw-semibold"><?php echo htmlspecialchars($attendance['first_name'] . ' ' . $attendance['last_name']); ?></span>
-                                                            <span class="fs-12 d-block fw-normal text-muted"><?php echo htmlspecialchars($attendance['student_num']); ?></span>
+                                                        <a href="students-view.php?id=<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $attendance['student_id']; ?>">
+                                                            <span class="d-block fw-semibold"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($attendance['first_name'] . ' ' . $attendance['last_name']); ?></span>
+                                                            <span class="fs-12 d-block fw-normal text-muted"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($attendance['student_num']); ?></span>
                                                         </a>
                                                     </div>
                                                 </td>
                                                 <td>
-                                                    <?php echo date('m/d/Y', strtotime($attendance['attendance_date'])); ?>
+                                                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo date('m/d/Y', strtotime($attendance['attendance_date'])); ?>
                                                 </td>
                                                 <td>
-                                                    <?php echo $attendance['morning_time_in'] ? date('h:i a', strtotime($attendance['morning_time_in'])) : 'N/A'; ?>
+                                                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $attendance['morning_time_in'] ? date('h:i a', strtotime($attendance['morning_time_in'])) : 'N/A'; ?>
                                                 </td>
                                                 <td>
-                                                    <?php 
-                                                    $status = $attendance['status'];
+                                                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+$status = $attendance['status'];
                                                     if ($status === 'approved') {
                                                         echo '<span class="badge bg-soft-success text-success">Approved</span>';
                                                     } elseif ($status === 'pending') {
@@ -729,12 +831,18 @@ include 'includes/header.php';
                                                     <a href="attendance.php"><i class="feather-more-vertical"></i></a>
                                                 </td>
                                             </tr>
-                                                <?php endforeach; ?>
-                                            <?php else: ?>
+                                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
+                                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+else: ?>
                                             <tr>
                                                 <td colspan="5" class="text-center text-muted py-4">No attendance records found</td>
                                             </tr>
-                                            <?php endif; ?>
+                                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
                                         </tbody>
                                     </table>
                                 </div>
@@ -798,12 +906,16 @@ include 'includes/header.php';
                                     <div class="d-flex justify-content-between">
                                         <div class="d-flex align-items-center gap-3">
                                             <div class="wd-50 ht-50 bg-soft-success text-success lh-1 d-flex align-items-center justify-content-center flex-column rounded-2">
-                                                <span class="fs-18 fw-bold mb-1 d-block"><?php echo $biometric_registered; ?></span>
+                                                <span class="fs-18 fw-bold mb-1 d-block"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $biometric_registered; ?></span>
                                                 <span class="fs-10 fw-semibold text-uppercase d-block">Registered</span>
                                             </div>
                                             <div class="text-dark">
                                                 <a href="demo-biometric.php" class="fw-bold mb-2 text-truncate-1-line">Students Registered</a>
-                                                <span class="fs-11 fw-normal text-muted text-truncate-1-line"><?php echo ($student_count > 0) ? round(($biometric_registered / $student_count) * 100) : 0; ?>% of total</span>
+                                                <span class="fs-11 fw-normal text-muted text-truncate-1-line"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo ($student_count > 0) ? round(($biometric_registered / $student_count) * 100) : 0; ?>% of total</span>
                                             </div>
                                         </div>
                                     </div>
@@ -812,18 +924,24 @@ include 'includes/header.php';
                                     <div class="d-flex justify-content-between">
                                         <div class="d-flex align-items-center gap-3">
                                             <div class="wd-50 ht-50 bg-soft-warning text-warning lh-1 d-flex align-items-center justify-content-center flex-column rounded-2">
-                                                <span class="fs-18 fw-bold mb-1 d-block"><?php echo ($student_count - $biometric_registered); ?></span>
+                                                <span class="fs-18 fw-bold mb-1 d-block"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo ($student_count - $biometric_registered); ?></span>
                                                 <span class="fs-10 fw-semibold text-uppercase d-block">Pending</span>
                                             </div>
                                             <div class="text-dark">
                                                 <a href="demo-biometric.php" class="fw-bold mb-2 text-truncate-1-line">Awaiting Registration</a>
-                                                <span class="fs-11 fw-normal text-muted text-truncate-1-line"><?php echo ($student_count > 0) ? round((($student_count - $biometric_registered) / $student_count) * 100) : 0; ?>% pending</span>
+                                                <span class="fs-11 fw-normal text-muted text-truncate-1-line"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo ($student_count > 0) ? round((($student_count - $biometric_registered) / $student_count) * 100) : 0; ?>% pending</span>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="progress mb-3 ht-5">
-                                    <div class="progress-bar bg-success" role="progressbar" style="width: <?php echo ($student_count > 0) ? round(($biometric_registered / $student_count) * 100) : 0; ?>%"></div>
+                                    <div class="progress-bar bg-success" role="progressbar" style="width: <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo ($student_count > 0) ? round(($biometric_registered / $student_count) * 100) : 0; ?>%"></div>
                                 </div>
                                 <p class="text-muted text-center fs-12 mb-0">Overall Biometric Registration Progress</p>
                             </div>
@@ -852,24 +970,40 @@ include 'includes/header.php';
                                 </div>
                             </div>
                             <div class="card-body custom-card-action">
-                                <?php if (count($coordinators) > 0): ?>
-                                    <?php foreach ($coordinators as $coordinator): ?>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if (count($coordinators) > 0): ?>
+                                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($coordinators as $coordinator): ?>
                                     <div class="hstack justify-content-between border border-dashed rounded-3 p-3 mb-3">
                                         <div class="hstack gap-3">
                                             <div class="avatar-text avatar-lg bg-soft-primary text-primary">
-                                                <?php echo strtoupper(substr($coordinator['name'], 0, 1)); ?>
+                                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo strtoupper(substr($coordinator['name'], 0, 1)); ?>
                                             </div>
                                             <div>
-                                                <a href="javascript:void(0);" class="fw-semibold"><?php echo htmlspecialchars($coordinator['name']); ?></a>
-                                                <div class="fs-11 text-muted"><?php echo htmlspecialchars($coordinator['email']); ?></div>
+                                                <a href="javascript:void(0);" class="fw-semibold"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($coordinator['name']); ?></a>
+                                                <div class="fs-11 text-muted"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($coordinator['email']); ?></div>
                                             </div>
                                         </div>
                                         <span class="badge bg-soft-info text-info fs-10">Coordinator</span>
                                     </div>
-                                    <?php endforeach; ?>
-                                <?php else: ?>
+                                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+else: ?>
                                     <p class="text-muted text-center">No coordinators found</p>
-                                <?php endif; ?>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
                             </div>
                             <a href="javascript:void(0);" class="card-footer fs-11 fw-bold text-uppercase text-center py-3">View All Coordinators</a>
                         </div>
@@ -895,24 +1029,40 @@ include 'includes/header.php';
                                 </div>
                             </div>
                             <div class="card-body custom-card-action">
-                                <?php if (count($supervisors) > 0): ?>
-                                    <?php foreach ($supervisors as $supervisor): ?>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if (count($supervisors) > 0): ?>
+                                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($supervisors as $supervisor): ?>
                                     <div class="hstack justify-content-between border border-dashed rounded-3 p-3 mb-3">
                                         <div class="hstack gap-3">
                                             <div class="avatar-text avatar-lg bg-soft-success text-success">
-                                                <?php echo strtoupper(substr($supervisor['name'], 0, 1)); ?>
+                                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo strtoupper(substr($supervisor['name'], 0, 1)); ?>
                                             </div>
                                             <div>
-                                                <a href="javascript:void(0);" class="fw-semibold"><?php echo htmlspecialchars($supervisor['name']); ?></a>
-                                                <div class="fs-11 text-muted"><?php echo htmlspecialchars($supervisor['email']); ?></div>
+                                                <a href="javascript:void(0);" class="fw-semibold"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($supervisor['name']); ?></a>
+                                                <div class="fs-11 text-muted"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($supervisor['email']); ?></div>
                                             </div>
                                         </div>
                                         <span class="badge bg-soft-success text-success fs-10">Supervisor</span>
                                     </div>
-                                    <?php endforeach; ?>
-                                <?php else: ?>
+                                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+else: ?>
                                     <p class="text-muted text-center">No supervisors found</p>
-                                <?php endif; ?>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
                             </div>
                             <a href="javascript:void(0);" class="card-footer fs-11 fw-bold text-uppercase text-center py-3">View All Supervisors</a>
                         </div>
@@ -926,7 +1076,7 @@ include 'includes/header.php';
         <!-- [ Footer ] start -->
         <footer class="footer">
             <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
-                <span>Copyright ©</span>
+                <span>Copyright Â©</span>
                 <script>
                     document.write(new Date().getFullYear());
                 </script>
@@ -962,7 +1112,15 @@ include 'includes/header.php';
         document.addEventListener('DOMContentLoaded', function() {
             try {
                 if (typeof ApexCharts === 'undefined') return;
-                var seriesData = [<?php echo isset($ojt_status_counts['pending']) ? intval($ojt_status_counts['pending']) : 0; ?>, <?php echo isset($ojt_status_counts['ongoing']) ? intval($ojt_status_counts['ongoing']) : 0; ?>, <?php echo isset($ojt_status_counts['completed']) ? intval($ojt_status_counts['completed']) : 0; ?>, <?php echo isset($ojt_status_counts['cancelled']) ? intval($ojt_status_counts['cancelled']) : 0; ?>];
+                var seriesData = [<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo isset($ojt_status_counts['pending']) ? intval($ojt_status_counts['pending']) : 0; ?>, <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo isset($ojt_status_counts['ongoing']) ? intval($ojt_status_counts['ongoing']) : 0; ?>, <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo isset($ojt_status_counts['completed']) ? intval($ojt_status_counts['completed']) : 0; ?>, <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo isset($ojt_status_counts['cancelled']) ? intval($ojt_status_counts['cancelled']) : 0; ?>];
                 var opts = {
                     chart: { type: 'donut', height: 260 },
                     series: seriesData,
@@ -1024,4 +1182,6 @@ include 'includes/header.php';
 </body>
 
 </html>
+
+
 

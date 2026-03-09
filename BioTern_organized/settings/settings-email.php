@@ -1,4 +1,5 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 $page_title = 'BioTern || Email Settings';
 $page_styles = ['assets/css/settings-customizer-like.css'];
 include 'includes/header.php';
@@ -142,7 +143,9 @@ include 'includes/header.php';
     </div>
 </div>
 
-<?php include 'includes/footer.php'; ?>
+<?php
+require_once dirname(__DIR__) . '/config/db.php';
+include 'includes/footer.php'; ?>
 
 <div class="main-content d-flex settings-theme-customizer">
                 <!-- [ Content Sidebar ] start -->
@@ -196,7 +199,9 @@ include 'includes/header.php';
                                     <i class="feather-life-buoy"></i>
                                     <span>Support</span>
                                 </a>
-                <?php include 'includes/footer.php'; ?>
+                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+include 'includes/footer.php'; ?>
                 <div class="text-white mb-0 mr-auto">Downloading...</div>
                 <a href="javascript:void(0)" class="ms-2 mb-1 close fw-normal" data-bs-dismiss="toast" aria-label="Close">
                     <span class="text-white">&times;</span>
@@ -407,5 +412,6 @@ include 'includes/header.php';
 </body>
 
 </html>
+
 
 

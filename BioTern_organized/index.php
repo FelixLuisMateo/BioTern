@@ -1,4 +1,5 @@
-<?php
+﻿<?php
+require_once __DIR__ . '/config/db.php';
 // Optional PHP logic (example)
 $year = date("Y");
 ?>
@@ -211,7 +212,9 @@ $year = date("Y");
     </div>
 
     <footer>
-        &copy; <?php echo $year; ?> All Rights Reserved
+        &copy; <?php
+require_once __DIR__ . '/config/db.php';
+echo $year; ?> All Rights Reserved
     </footer>
 
     <script>
@@ -230,3 +233,4 @@ $year = date("Y");
 
 </body>
 </html>
+

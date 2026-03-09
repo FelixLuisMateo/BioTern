@@ -1,4 +1,5 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 $page_title = 'SEO Settings';
 $page_styles = ['assets/css/settings-customizer-like.css'];
 include 'includes/header.php';
@@ -157,7 +158,7 @@ include 'includes/header.php';
                     <!-- [ Footer ] start -->
                     <footer class="footer">
                         <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
-                            <span>Copyright �</span>
+                            <span>Copyright ï¿½</span>
                             <script>
                                 document.write(new Date().getFullYear());
                             </script>
@@ -172,4 +173,7 @@ include 'includes/header.php';
                 </div>
                 <!-- [ Content Area ] end -->
             </div>
-            <?php include 'includes/footer.php'; ?>
+            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+include 'includes/footer.php'; ?>
+

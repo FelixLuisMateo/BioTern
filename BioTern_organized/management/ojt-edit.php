@@ -1,4 +1,5 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -10,10 +11,10 @@ if (file_exists($ops_helpers)) {
     }
 }
 
-$host = 'localhost';
-$db_user = 'root';
-$db_password = '';
-$db_name = 'biotern_db';
+$host = defined('DB_HOST') ? DB_HOST : 'localhost';
+$db_user = defined('DB_USER') ? DB_USER : 'root';
+$db_password = defined('DB_PASS') ? DB_PASS : ''; 
+$db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
 $conn = new mysqli($host, $db_user, $db_password, $db_name);
 if ($conn->connect_error) {
     die('Connection failed: ' . $conn->connect_error);
@@ -44,7 +45,7 @@ $current_role = strtolower((string)($_SESSION['role'] ?? $_SESSION['user_role'] 
 $can_edit_controls = in_array($current_role, ['admin', 'coordinator'], true);
 
 $student_id = isset($_GET['id']) ? intval($_GET['id']) : intval($_POST['student_id'] ?? 0);
-$message = '';
+$message = defined('DB_PASS') ? DB_PASS : ''; 
 $message_type = 'success';
 $change_log = [];
 
@@ -117,7 +118,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_ojt'])) {
         try {
                 $student_cols = get_columns($conn, 'students');
                 $updates = [];
-                $types = '';
+                $types = defined('DB_PASS') ? DB_PASS : ''; 
                 $values = [];
 
                 $editable_student_fields = [
@@ -172,8 +173,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_ojt'])) {
                     $i_end = trim((string)($_POST['end_date'] ?? ''));
                     $selected_supervisor_id = max(0, intval($_POST['supervisor_user_id'] ?? 0));
                     $selected_coordinator_id = max(0, intval($_POST['coordinator_user_id'] ?? 0));
-                    $selected_supervisor_name = '';
-                    $selected_coordinator_name = '';
+                    $selected_supervisor_name = defined('DB_PASS') ? DB_PASS : ''; 
+                    $selected_coordinator_name = defined('DB_PASS') ? DB_PASS : ''; 
                     if ($selected_supervisor_id > 0) {
                         $stmt_u = $conn->prepare("SELECT name FROM users WHERE id = ? LIMIT 1");
                         $stmt_u->bind_param('i', $selected_supervisor_id);
@@ -194,7 +195,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_ojt'])) {
 
                     if ($internship) {
                         $i_updates = [];
-                        $i_types = '';
+                        $i_types = defined('DB_PASS') ? DB_PASS : ''; 
                         $i_vals = [];
 
                         if (in_array('status', $intern_cols, true) && $i_status !== (string)($internship['status'] ?? '')) {
@@ -659,6 +660,7 @@ if ($student_id > 0 && ojt_edit_table_exists($conn, 'ojt_supervisor_reviews')) {
                             </div>
                             <div><?php echo htmlspecialchars((string)$audit['reason']); ?></div>
                             <?php
+require_once dirname(__DIR__) . '/config/db.php';
                             $lines = preg_split('/\r\n|\r|\n/', (string)($audit['changes_text'] ?? ''));
                             ?>
                             <div class="table-responsive mt-2">
@@ -673,6 +675,7 @@ if ($student_id > 0 && ojt_edit_table_exists($conn, 'ojt_supervisor_reviews')) {
                                     <tbody>
                                         <?php foreach ($lines as $ln): ?>
                                             <?php
+require_once dirname(__DIR__) . '/config/db.php';
                                             $ln = trim($ln);
                                             if ($ln === '') continue;
                                             $field = $ln;
@@ -708,4 +711,5 @@ if ($student_id > 0 && ojt_edit_table_exists($conn, 'ojt_supervisor_reviews')) {
 </body>
 </html>
 <?php $conn->close(); ?>
+
 

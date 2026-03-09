@@ -1,5 +1,5 @@
-<?php
-
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 require_once __DIR__ . '/ops_helpers.php';
 
 function eval_table_has_column(mysqli $conn, string $table, string $column): bool
@@ -367,3 +367,4 @@ function evaluate_and_finalize_student(mysqli $conn, int $student_id, int $actor
 
     return $state;
 }
+

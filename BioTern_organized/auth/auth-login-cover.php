@@ -1,4 +1,5 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -16,7 +17,7 @@ if (isset($_GET['logout']) && (string)$_GET['logout'] === '1') {
 $dbHost = '127.0.0.1';
 $dbUser = 'root';
 $dbPass = '';
-$dbName = 'biotern_db';
+$dbName = defined('DB_NAME') ? DB_NAME : 'biotern_db';
 $login_error = '';
 $next = isset($_GET['next']) ? basename((string)$_GET['next']) : '';
 if ($next !== '' && !preg_match('/^[A-Za-z0-9_-]+\.php$/', $next)) {
@@ -103,14 +104,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <h2 class="fs-25 fw-bolder mb-4">Login</h2>
                     <h4 class="fs-15 fw-bold mb-2">Log in to your Clark College of Science and Technology internship account.</h4>
 
-                    <?php if ($login_error !== ''): ?>
-                        <div class="alert alert-danger" role="alert"><?php echo htmlspecialchars($login_error); ?></div>
-                    <?php endif; ?>
+                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($login_error !== ''): ?>
+                        <div class="alert alert-danger" role="alert"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($login_error); ?></div>
+                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
 
                     <form action="auth-login-cover.php" method="post" class="w-100 mt-4 pt-2">
-                        <input type="hidden" name="next" value="<?php echo htmlspecialchars($next, ENT_QUOTES, 'UTF-8'); ?>">
+                        <input type="hidden" name="next" value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($next, ENT_QUOTES, 'UTF-8'); ?>">
                         <div class="mb-4">
-                            <input type="text" name="identifier" id="identifier" class="form-control" placeholder="Email or Username" value="<?php echo isset($_POST['identifier']) ? htmlspecialchars((string)$_POST['identifier']) : ''; ?>" required aria-required="true" aria-label="Email or Username" autofocus>
+                            <input type="text" name="identifier" id="identifier" class="form-control" placeholder="Email or Username" value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo isset($_POST['identifier']) ? htmlspecialchars((string)$_POST['identifier']) : ''; ?>" required aria-required="true" aria-label="Email or Username" autofocus>
                         </div>
                         <div class="mb-3 input-group">
                             <input type="password" name="password" id="passwordInput" class="form-control" placeholder="Password" required aria-required="true" aria-label="Password">
@@ -172,4 +183,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </script>
 </body>
 </html>
+
+
 

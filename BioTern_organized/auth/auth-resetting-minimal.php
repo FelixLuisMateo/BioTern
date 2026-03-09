@@ -1,4 +1,5 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -6,7 +7,7 @@ if (session_status() === PHP_SESSION_NONE) {
 $dbHost = '127.0.0.1';
 $dbUser = 'root';
 $dbPass = '';
-$dbName = 'biotern_db';
+$dbName = defined('DB_NAME') ? DB_NAME : 'biotern_db';
 
 $reset_error = '';
 $reset_success = '';
@@ -132,16 +133,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <h4 class="fs-13 fw-bold mb-2">Set your new password</h4>
                         <p class="fs-12 fw-medium text-muted">Enter your new password below to complete your password reset.</p>
 
-                        <?php if ($reset_error !== ''): ?>
-                            <div class="alert alert-danger" role="alert"><?php echo htmlspecialchars($reset_error); ?></div>
-                        <?php endif; ?>
+                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($reset_error !== ''): ?>
+                            <div class="alert alert-danger" role="alert"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($reset_error); ?></div>
+                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
 
-                        <?php if ($reset_success !== ''): ?>
-                            <div class="alert alert-success" role="alert"><?php echo htmlspecialchars($reset_success); ?></div>
+                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($reset_success !== ''): ?>
+                            <div class="alert alert-success" role="alert"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($reset_success); ?></div>
                             <div class="mt-4">
                                 <a href="auth-login-cover.php" class="btn btn-lg btn-primary w-100">Go to Login</a>
                             </div>
-                        <?php else: ?>
+                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+else: ?>
                             <form action="auth-resetting-minimal.php" method="post" class="w-100 mt-4 pt-2">
                                 <div class="mb-4 input-group">
                                     <input type="password" name="new_password" id="newPasswordInput" class="form-control" placeholder="New Password" minlength="8" required>
@@ -152,10 +165,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <button class="btn btn-outline-secondary" type="button" id="toggleConfirmPassword" aria-label="Show confirm password"><i></i></button>
                                 </div>
                                 <div class="mt-5">
-                                    <button type="submit" class="btn btn-lg btn-primary w-100" <?php echo (!$isVerified || $contact === '') ? 'disabled' : ''; ?>>Save Change</button>
+                                    <button type="submit" class="btn btn-lg btn-primary w-100" <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (!$isVerified || $contact === '') ? 'disabled' : ''; ?>>Save Change</button>
                                 </div>
                             </form>
-                        <?php endif; ?>
+                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
 
                         <div class="mt-5 text-muted">
                             <span>Remembered your password?</span>
@@ -197,4 +214,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </body>
 
 </html>
+
+
 

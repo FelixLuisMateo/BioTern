@@ -1,4 +1,5 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/attendance_rules.php';
 require_once dirname(__DIR__) . '/lib/ops_helpers.php';
 if (session_status() === PHP_SESSION_NONE) {
@@ -6,10 +7,10 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 require_roles_page(['admin', 'coordinator', 'supervisor', 'student']);
 // Database Connection
-$host = 'localhost';
-$db_user = 'root';
-$db_password = '';
-$db_name = 'biotern_db';
+$host = defined('DB_HOST') ? DB_HOST : 'localhost';
+$db_user = defined('DB_USER') ? DB_USER : 'root';
+$db_password = defined('DB_PASS') ? DB_PASS : ''; 
+$db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
 
 $conn = new mysqli($host, $db_user, $db_password, $db_name);
 if ($conn->connect_error) {
@@ -171,8 +172,8 @@ function validate_demo_biometric_transition(array $record, string $clock_type, s
 }
 
 // Handle clock in/out submission
-$message = '';
-$message_type = '';
+$message = defined('DB_PASS') ? DB_PASS : ''; 
+$message_type = defined('DB_PASS') ? DB_PASS : ''; 
 $selected_date = isset($_GET['date']) && $_GET['date'] !== '' ? $_GET['date'] : date('Y-m-d');
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
@@ -243,7 +244,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $message_type = "warning";
                 // If the time field is already set, prevent duplicate clock-in
                 } elseif (!empty($record[$db_column])) {
-                    $message = " — " . ucfirst(str_replace('_', ' ', $clock_type)) . " has already been recorded. Cannot clock in twice.";
+                    $message = " â€” " . ucfirst(str_replace('_', ' ', $clock_type)) . " has already been recorded. Cannot clock in twice.";
                     $message_type = "warning";
                 } else {
                     // Update existing attendance record with this new time
@@ -1454,40 +1455,44 @@ foreach ($today_records as $tr) {
                                             <td><?php echo $record['student_id'] ?? 'N/A'; ?></td>
                                             <td>
                                                 <?php
-                                                    $morning = '';
+require_once dirname(__DIR__) . '/config/db.php';
+                                                    $morning = defined('DB_PASS') ? DB_PASS : ''; 
                                                     if ($record['morning_time_in'] && $record['morning_time_out']) {
                                                         $morning = date('h:i A', strtotime($record['morning_time_in'])) . ' - ' . date('h:i A', strtotime($record['morning_time_out']));
                                                     } elseif ($record['morning_time_in']) {
-                                                        $morning = date('h:i A', strtotime($record['morning_time_in'])) . ' ✓';
+                                                        $morning = date('h:i A', strtotime($record['morning_time_in'])) . ' âœ“';
                                                     }
                                                     echo $morning ? '<span class="badge-time badge-morning">' . $morning . '</span>' : '-';
                                                 ?>
                                             </td>
                                             <td>
                                                 <?php
-                                                    $break = '';
+require_once dirname(__DIR__) . '/config/db.php';
+                                                    $break = defined('DB_PASS') ? DB_PASS : ''; 
                                                     if ($record['break_time_in'] && $record['break_time_out']) {
                                                         $break = date('h:i A', strtotime($record['break_time_in'])) . ' - ' . date('h:i A', strtotime($record['break_time_out']));
                                                     } elseif ($record['break_time_in']) {
-                                                        $break = date('h:i A', strtotime($record['break_time_in'])) . ' ✓';
+                                                        $break = date('h:i A', strtotime($record['break_time_in'])) . ' âœ“';
                                                     }
                                                     echo $break ? '<span class="badge-time badge-break">' . $break . '</span>' : '-';
                                                 ?>
                                             </td>
                                             <td>
                                                 <?php
-                                                    $afternoon = '';
+require_once dirname(__DIR__) . '/config/db.php';
+                                                    $afternoon = defined('DB_PASS') ? DB_PASS : ''; 
                                                     if ($record['afternoon_time_in'] && $record['afternoon_time_out']) {
                                                         $afternoon = date('h:i A', strtotime($record['afternoon_time_in'])) . ' - ' . date('h:i A', strtotime($record['afternoon_time_out']));
                                                     } elseif ($record['afternoon_time_in']) {
-                                                        $afternoon = date('h:i A', strtotime($record['afternoon_time_in'])) . ' ✓';
+                                                        $afternoon = date('h:i A', strtotime($record['afternoon_time_in'])) . ' âœ“';
                                                     }
                                                     echo $afternoon ? '<span class="badge-time badge-afternoon">' . $afternoon . '</span>' : '-';
                                                 ?>
                                             </td>
                                             <td>
                                                 <?php
-                                                    $status_badge = '';
+require_once dirname(__DIR__) . '/config/db.php';
+                                                    $status_badge = defined('DB_PASS') ? DB_PASS : ''; 
                                                     if ($record['status'] === 'approved') {
                                                         $status_badge = '<span class="badge bg-success">Approved</span>';
                                                     } elseif ($record['status'] === 'rejected') {
@@ -1526,10 +1531,10 @@ foreach ($today_records as $tr) {
         <!-- Footer -->
         <footer class="footer" style="margin-top: 50px;">
             <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
-                <span>Copyright ©</span>
+                <span>Copyright Â©</span>
                 <script>document.write(new Date().getFullYear());</script>
             </p>
-            <p><span>By: <a target="_blank" href="">ACT 2A</a></span> • <span>Distributed by: <a target="_blank" href="">Group 5</a></span></p>
+            <p><span>By: <a target="_blank" href="">ACT 2A</a></span> â€¢ <span>Distributed by: <a target="_blank" href="">Group 5</a></span></p>
         </footer>
     </main>
 
@@ -1604,8 +1609,10 @@ foreach ($today_records as $tr) {
 </html>
 
 <?php
+require_once dirname(__DIR__) . '/config/db.php';
 $conn->close();
 ?>
+
 
 
 

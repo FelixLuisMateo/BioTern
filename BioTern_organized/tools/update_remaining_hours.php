@@ -1,11 +1,12 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 header('Content-Type: application/json');
 require_once dirname(__DIR__) . '/lib/evaluation_unlock.php';
 
 $host = 'localhost';
 $db_user = 'root';
 $db_password = '';
-$db_name = 'biotern_db';
+$db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
 
 try {
     $conn = new mysqli($host, $db_user, $db_password, $db_name);
@@ -72,3 +73,5 @@ echo json_encode([
 
 $conn->close();
 ?>
+
+

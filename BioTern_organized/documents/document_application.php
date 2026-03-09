@@ -1,10 +1,11 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 // Documents page - provides UI to generate student documents (Application Letter etc.)
 
 $host = 'localhost';
 $db_user = 'root';
 $db_password = '';
-$db_name = 'biotern_db';
+$db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
 
 try {
     $conn = new mysqli($host, $db_user, $db_password, $db_name);
@@ -330,7 +331,9 @@ include __DIR__ . '/../includes/header.php';
             const APP_TEMPLATE_STORAGE_KEY = 'biotern_application_template_html_v1';
             const APP_FORM_STORAGE_KEY = 'biotern_application_form_values_v1';
             const APP_SELECTED_STUDENT_KEY = 'biotern_application_selected_student_v1';
-            const PREFILL_STUDENT_ID = <?php echo intval($prefill_student_id); ?>;
+            const PREFILL_STUDENT_ID = <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo intval($prefill_student_id); ?>;
             const select = $('#student_select');
             const inputName = document.getElementById('input_name');
             const inputPosition = document.getElementById('input_position');
@@ -541,7 +544,7 @@ include __DIR__ . '/../includes/header.php';
                 $(document).on('select2:select select2:closing', '#student_select', function(e){
                     setTimeout(function(){
                         var txt = $('#student_select').find('option:selected').text() || '';
-                        overlay.value = txt.replace(/\s+—\s+.*$/,'');
+                        overlay.value = txt.replace(/\s+â€”\s+.*$/,'');
                     }, 0);
                 });
 
@@ -730,6 +733,10 @@ include __DIR__ . '/../includes/header.php';
         })();
         });
     </script>
-<?php include __DIR__ . '/../includes/footer.php'; ?>
+<?php
+require_once dirname(__DIR__) . '/config/db.php';
+include __DIR__ . '/../includes/footer.php'; ?>
+
+
 
 

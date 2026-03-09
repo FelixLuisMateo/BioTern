@@ -1,11 +1,12 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 // Simple registration handler for demo purposes.
 // IMPORTANT: Review and secure before using in production.
 
 $dbHost = '127.0.0.1';
 $dbUser = 'root';
 $dbPass = '';
-$dbName = 'biotern_db';
+$dbName = defined('DB_NAME') ? DB_NAME : 'biotern_db';
 
 $mysqli = new mysqli($dbHost, $dbUser, $dbPass, $dbName);
 if ($mysqli->connect_errno) {
@@ -741,3 +742,5 @@ if ($role === 'admin') {
 // fallback
 header('Location: register_submit.php');
 exit;
+
+

@@ -1,5 +1,5 @@
-<?php
-
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 use App\Http\Controllers\Coordinator\DashboardController;
 use App\Http\Controllers\Coordinator\InternshipController;
 use App\Http\Controllers\Coordinator\StudentInternshipController;
@@ -20,3 +20,4 @@ Route::get('/reports/internship-progress', [DashboardController::class, 'interns
     ->name('coordinator.reports.internship-progress');
 Route::get('/reports/student-hours', [DashboardController::class, 'studentHours'])
     ->name('coordinator.reports.student-hours');
+

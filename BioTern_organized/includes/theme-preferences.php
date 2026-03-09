@@ -1,5 +1,5 @@
-<?php
-
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 if (!function_exists('biotern_theme_defaults')) {
     function biotern_theme_defaults(): array
     {
@@ -134,3 +134,4 @@ if (!function_exists('biotern_save_theme_preferences')) {
         return $sanitized;
     }
 }
+

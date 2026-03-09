@@ -1,4 +1,5 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -101,15 +102,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                     <h2 class="fs-20 fw-bolder mb-4">Verify</h2>
                     <h4 class="fs-13 fw-bold mb-2">Enter the 6-digit one-time password sent to your account.</h4>
-                    <p class="fs-12 fw-medium text-muted"><span>A code has been sent to</span> <strong><?php echo $masked_contact; ?></strong></p>
+                    <p class="fs-12 fw-medium text-muted"><span>A code has been sent to</span> <strong><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $masked_contact; ?></strong></p>
 
-                    <?php if ($verify_message !== ''): ?>
-                        <div class="alert alert-info" role="alert"><?php echo htmlspecialchars($verify_message, ENT_QUOTES, 'UTF-8'); ?></div>
-                    <?php endif; ?>
+                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($verify_message !== ''): ?>
+                        <div class="alert alert-info" role="alert"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($verify_message, ENT_QUOTES, 'UTF-8'); ?></div>
+                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
 
-                    <?php if ($verify_error !== ''): ?>
-                        <div class="alert alert-danger" role="alert"><?php echo htmlspecialchars($verify_error, ENT_QUOTES, 'UTF-8'); ?></div>
-                    <?php endif; ?>
+                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($verify_error !== ''): ?>
+                        <div class="alert alert-danger" role="alert"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($verify_error, ENT_QUOTES, 'UTF-8'); ?></div>
+                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
 
                     <form method="post" class="w-100 mt-4 pt-2" autocomplete="one-time-code">
                         <div id="otp" class="inputs d-flex flex-row justify-content-center mt-2">
@@ -213,4 +228,5 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </body>
 
 </html>
+
 

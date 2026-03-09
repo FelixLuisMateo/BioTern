@@ -1,4 +1,5 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -8,7 +9,7 @@ require_once dirname(__DIR__) . '/vendor/autoload.php';
 $dbHost = '127.0.0.1';
 $dbUser = 'root';
 $dbPass = '';
-$dbName = 'biotern_db';
+$dbName = defined('DB_NAME') ? DB_NAME : 'biotern_db';
 
 $reset_message = '';
 $reset_error = '';
@@ -244,17 +245,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['identifier'])) {
                     <h4 class="fs-13 fw-bold mb-2">Reset your password</h4>
                     <p class="fs-12 fw-medium text-muted">Enter your email or username and we'll send a verification code to your registered email.</p>
 
-                    <?php if ($reset_error !== '') : ?>
-                        <div class="alert alert-danger" role="alert"><?php echo htmlspecialchars($reset_error, ENT_QUOTES, 'UTF-8'); ?></div>
-                    <?php endif; ?>
+                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($reset_error !== '') : ?>
+                        <div class="alert alert-danger" role="alert"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($reset_error, ENT_QUOTES, 'UTF-8'); ?></div>
+                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
 
-                    <?php if ($reset_message !== '') : ?>
-                        <div class="alert alert-success" role="alert"><?php echo htmlspecialchars($reset_message, ENT_QUOTES, 'UTF-8'); ?></div>
-                    <?php endif; ?>
+                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($reset_message !== '') : ?>
+                        <div class="alert alert-success" role="alert"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($reset_message, ENT_QUOTES, 'UTF-8'); ?></div>
+                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
 
                     <form method="post" action="auth-reset-cover.php" class="w-100 mt-4 pt-2">
                         <div class="mb-4">
-                            <input name="identifier" class="form-control" placeholder="Email or Username" value="<?php echo htmlspecialchars($identifier_value, ENT_QUOTES, 'UTF-8'); ?>" required>
+                            <input name="identifier" class="form-control" placeholder="Email or Username" value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($identifier_value, ENT_QUOTES, 'UTF-8'); ?>" required>
                         </div>
                         <div class="mt-5">
                             <button type="submit" class="btn btn-lg btn-primary w-100">Reset Now</button>
@@ -275,4 +290,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['identifier'])) {
 </body>
 
 </html>
+
+
 

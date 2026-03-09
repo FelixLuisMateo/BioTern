@@ -1,4 +1,5 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -13,7 +14,7 @@ if (file_exists($ops_helpers)) {
 $host = 'localhost';
 $db_user = 'root';
 $db_password = '';
-$db_name = 'biotern_db';
+$db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
 $conn = new mysqli($host, $db_user, $db_password, $db_name);
 if ($conn->connect_error) die('Connection failed: ' . $conn->connect_error);
 
@@ -162,7 +163,9 @@ function status_label(string $s): string {
     </style>
 </head>
 <body>
-<?php include_once 'includes/navigation.php'; ?>
+<?php
+require_once dirname(__DIR__) . '/config/db.php';
+include_once 'includes/navigation.php'; ?>
 <header class="nxl-header">
     <div class="header-wrapper">
         <div class="header-left d-flex align-items-center gap-3">
@@ -198,24 +201,44 @@ function status_label(string $s): string {
             </div>
         </div>
 
-        <?php if ($message !== ''): ?>
-            <div class="alert alert-<?php echo htmlspecialchars($message_type); ?> py-2"><?php echo htmlspecialchars($message); ?></div>
-        <?php endif; ?>
+        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($message !== ''): ?>
+            <div class="alert alert-<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($message_type); ?> py-2"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($message); ?></div>
+        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
 
         <div class="card card-body mb-3">
             <form method="get" class="row g-2 align-items-end">
                 <div class="col-md-4">
                     <label class="form-label">Search Student</label>
-                    <input type="text" name="search" class="form-control" value="<?php echo htmlspecialchars($search); ?>" placeholder="Name / Student ID / Course">
+                    <input type="text" name="search" class="form-control" value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($search); ?>" placeholder="Name / Student ID / Course">
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Document Type</label>
                     <select name="doc_type" class="form-select">
-                        <option value="all" <?php echo $doc_filter === 'all' ? 'selected' : ''; ?>>All</option>
-                        <option value="application" <?php echo $doc_filter === 'application' ? 'selected' : ''; ?>>Application</option>
-                        <option value="endorsement" <?php echo $doc_filter === 'endorsement' ? 'selected' : ''; ?>>Endorsement</option>
-                        <option value="moa" <?php echo $doc_filter === 'moa' ? 'selected' : ''; ?>>MOA</option>
-                        <option value="dau_moa" <?php echo $doc_filter === 'dau_moa' ? 'selected' : ''; ?>>Dau MOA</option>
+                        <option value="all" <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $doc_filter === 'all' ? 'selected' : ''; ?>>All</option>
+                        <option value="application" <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $doc_filter === 'application' ? 'selected' : ''; ?>>Application</option>
+                        <option value="endorsement" <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $doc_filter === 'endorsement' ? 'selected' : ''; ?>>Endorsement</option>
+                        <option value="moa" <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $doc_filter === 'moa' ? 'selected' : ''; ?>>MOA</option>
+                        <option value="dau_moa" <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $doc_filter === 'dau_moa' ? 'selected' : ''; ?>>Dau MOA</option>
                     </select>
                 </div>
                 <div class="col-md-2">
@@ -228,47 +251,99 @@ function status_label(string $s): string {
         </div>
 
         <div class="row g-3">
-            <?php foreach (['draft', 'for_review', 'approved', 'rejected'] as $col_key): ?>
+            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach (['draft', 'for_review', 'approved', 'rejected'] as $col_key): ?>
                 <div class="col-lg-3 board-col">
                     <div class="card card-body h-100">
-                        <div class="board-head mb-2"><?php echo htmlspecialchars(status_label($col_key)); ?> (<?php echo count($columns[$col_key]); ?>)</div>
-                        <?php if (empty($columns[$col_key])): ?>
+                        <div class="board-head mb-2"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars(status_label($col_key)); ?> (<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo count($columns[$col_key]); ?>)</div>
+                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if (empty($columns[$col_key])): ?>
                             <div class="text-muted fs-12">No records.</div>
-                        <?php else: ?>
-                            <?php foreach ($columns[$col_key] as $item): ?>
+                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+else: ?>
+                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($columns[$col_key] as $item): ?>
                                 <div class="wf-card">
-                                    <div class="fw-semibold"><?php echo htmlspecialchars(trim(($item['first_name'] ?? '') . ' ' . ($item['last_name'] ?? ''))); ?></div>
-                                    <div class="wf-meta"><?php echo htmlspecialchars((string)($item['school_id'] ?? '')); ?> | <?php echo htmlspecialchars((string)($item['course_name'] ?? '-')); ?></div>
-                                    <div class="wf-meta mb-1">Doc: <?php echo htmlspecialchars(doc_label((string)($item['doc_type'] ?? ''))); ?></div>
-                                    <div class="wf-note mb-2"><?php echo htmlspecialchars((string)($item['review_notes'] ?? '')); ?></div>
-                                    <div class="wf-meta mb-2">Updated: <?php echo htmlspecialchars((string)($item['updated_at'] ?? '')); ?></div>
+                                    <div class="fw-semibold"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars(trim(($item['first_name'] ?? '') . ' ' . ($item['last_name'] ?? ''))); ?></div>
+                                    <div class="wf-meta"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars((string)($item['school_id'] ?? '')); ?> | <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars((string)($item['course_name'] ?? '-')); ?></div>
+                                    <div class="wf-meta mb-1">Doc: <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars(doc_label((string)($item['doc_type'] ?? ''))); ?></div>
+                                    <div class="wf-note mb-2"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars((string)($item['review_notes'] ?? '')); ?></div>
+                                    <div class="wf-meta mb-2">Updated: <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars((string)($item['updated_at'] ?? '')); ?></div>
                                     <div class="d-flex gap-2 mb-2">
-                                        <a href="ojt-view.php?id=<?php echo intval($item['student_id']); ?>#profileTab" class="btn btn-sm btn-light">Open</a>
+                                        <a href="ojt-view.php?id=<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo intval($item['student_id']); ?>#profileTab" class="btn btn-sm btn-light">Open</a>
                                     </div>
-                                    <?php if ($can_approve): ?>
+                                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($can_approve): ?>
                                         <form method="post" class="row g-1">
                                             <input type="hidden" name="update_workflow" value="1">
-                                            <input type="hidden" name="user_id" value="<?php echo intval($item['student_id']); ?>">
-                                            <input type="hidden" name="doc_type" value="<?php echo htmlspecialchars((string)$item['doc_type']); ?>">
+                                            <input type="hidden" name="user_id" value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo intval($item['student_id']); ?>">
+                                            <input type="hidden" name="doc_type" value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars((string)$item['doc_type']); ?>">
                                             <div class="col-12">
                                                 <select name="status" class="form-select form-select-sm">
-                                                    <?php foreach (['draft', 'for_review', 'approved', 'rejected'] as $st): ?>
-                                                        <option value="<?php echo $st; ?>" <?php echo ((string)$item['status'] === $st) ? 'selected' : ''; ?>><?php echo status_label($st); ?></option>
-                                                    <?php endforeach; ?>
+                                                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach (['draft', 'for_review', 'approved', 'rejected'] as $st): ?>
+                                                        <option value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $st; ?>" <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo ((string)$item['status'] === $st) ? 'selected' : ''; ?>><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo status_label($st); ?></option>
+                                                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
                                                 </select>
                                             </div>
                                             <div class="col-12">
-                                                <textarea name="review_notes" rows="2" class="form-control form-control-sm" placeholder="Review note"><?php echo htmlspecialchars((string)($item['review_notes'] ?? '')); ?></textarea>
+                                                <textarea name="review_notes" rows="2" class="form-control form-control-sm" placeholder="Review note"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars((string)($item['review_notes'] ?? '')); ?></textarea>
                                             </div>
                                             <div class="col-12"><button class="btn btn-sm btn-outline-primary w-100" type="submit">Save</button></div>
                                         </form>
-                                    <?php endif; ?>
+                                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
                                 </div>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
+                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
+                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
                     </div>
                 </div>
-            <?php endforeach; ?>
+            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
         </div>
     </div>
 </main>
@@ -277,5 +352,9 @@ function status_label(string $s): string {
 <script src="assets/js/theme-customizer-init.min.js"></script>
 </body>
 </html>
-<?php $conn->close(); ?>
+<?php
+require_once dirname(__DIR__) . '/config/db.php';
+$conn->close(); ?>
+
+
 

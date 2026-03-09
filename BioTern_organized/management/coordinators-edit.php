@@ -1,8 +1,9 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 $host = 'localhost';
 $db_user = 'root';
 $db_password = '';
-$db_name = 'biotern_db';
+$db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
 
 $message = '';
 $message_type = 'info';
@@ -111,35 +112,83 @@ include 'includes/header.php';
     <div class="card stretch stretch-full">
         <div class="card-header"><h5 class="card-title mb-0">Coordinator Form</h5></div>
         <div class="card-body">
-            <?php if ($message !== ''): ?><div class="alert alert-<?php echo h($message_type); ?>"><?php echo h($message); ?></div><?php endif; ?>
+            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($message !== ''): ?><div class="alert alert-<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo h($message_type); ?>"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo h($message); ?></div><?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
             <form method="post" class="row g-3">
-                <input type="hidden" name="id" value="<?php echo (int)$id; ?>">
+                <input type="hidden" name="id" value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$id; ?>">
                 <div class="col-md-4">
                     <label class="form-label">User *</label>
                     <select name="user_id" class="form-select" required>
-                        <?php foreach ($users as $u): ?>
-                            <option value="<?php echo (int)$u['id']; ?>" <?php echo ((int)$coordinator['user_id'] === (int)$u['id']) ? 'selected' : ''; ?>><?php echo h(($u['name'] ?? '') . ' (' . ($u['email'] ?? '') . ')'); ?></option>
-                        <?php endforeach; ?>
+                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($users as $u): ?>
+                            <option value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$u['id']; ?>" <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo ((int)$coordinator['user_id'] === (int)$u['id']) ? 'selected' : ''; ?>><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo h(($u['name'] ?? '') . ' (' . ($u['email'] ?? '') . ')'); ?></option>
+                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
                     </select>
                 </div>
-                <div class="col-md-4"><label class="form-label">First Name *</label><input type="text" name="first_name" class="form-control" value="<?php echo h($coordinator['first_name']); ?>" required></div>
-                <div class="col-md-4"><label class="form-label">Last Name *</label><input type="text" name="last_name" class="form-control" value="<?php echo h($coordinator['last_name']); ?>" required></div>
-                <div class="col-md-4"><label class="form-label">Middle Name</label><input type="text" name="middle_name" class="form-control" value="<?php echo h($coordinator['middle_name']); ?>"></div>
-                <div class="col-md-4"><label class="form-label">Email *</label><input type="email" name="email" class="form-control" value="<?php echo h($coordinator['email']); ?>" required></div>
-                <div class="col-md-4"><label class="form-label">Phone</label><input type="text" name="phone" class="form-control" value="<?php echo h($coordinator['phone']); ?>"></div>
+                <div class="col-md-4"><label class="form-label">First Name *</label><input type="text" name="first_name" class="form-control" value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo h($coordinator['first_name']); ?>" required></div>
+                <div class="col-md-4"><label class="form-label">Last Name *</label><input type="text" name="last_name" class="form-control" value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo h($coordinator['last_name']); ?>" required></div>
+                <div class="col-md-4"><label class="form-label">Middle Name</label><input type="text" name="middle_name" class="form-control" value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo h($coordinator['middle_name']); ?>"></div>
+                <div class="col-md-4"><label class="form-label">Email *</label><input type="email" name="email" class="form-control" value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo h($coordinator['email']); ?>" required></div>
+                <div class="col-md-4"><label class="form-label">Phone</label><input type="text" name="phone" class="form-control" value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo h($coordinator['phone']); ?>"></div>
                 <div class="col-md-4">
                     <label class="form-label">Department</label>
                     <select name="department_id" class="form-select">
                         <option value="">None</option>
-                        <?php foreach ($departments as $d): ?>
-                            <option value="<?php echo (int)$d['id']; ?>" <?php echo ((int)$coordinator['department_id'] === (int)$d['id']) ? 'selected' : ''; ?>><?php echo h($d['name']); ?></option>
-                        <?php endforeach; ?>
+                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($departments as $d): ?>
+                            <option value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$d['id']; ?>" <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo ((int)$coordinator['department_id'] === (int)$d['id']) ? 'selected' : ''; ?>><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo h($d['name']); ?></option>
+                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
                     </select>
                 </div>
-                <div class="col-md-4"><label class="form-label">Office Location</label><input type="text" name="office_location" class="form-control" value="<?php echo h($coordinator['office_location']); ?>"></div>
-                <div class="col-md-4"><label class="form-label">Profile Picture (path)</label><input type="text" name="profile_picture" class="form-control" value="<?php echo h($coordinator['profile_picture']); ?>"></div>
-                <div class="col-12"><label class="form-label">Bio</label><textarea name="bio" rows="2" class="form-control"><?php echo h($coordinator['bio']); ?></textarea></div>
-                <div class="col-12 form-check ms-1"><input class="form-check-input" type="checkbox" name="is_active" id="is_active_edit" <?php echo ((int)$coordinator['is_active'] === 1) ? 'checked' : ''; ?>><label class="form-check-label" for="is_active_edit">Active</label></div>
+                <div class="col-md-4"><label class="form-label">Office Location</label><input type="text" name="office_location" class="form-control" value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo h($coordinator['office_location']); ?>"></div>
+                <div class="col-md-4"><label class="form-label">Profile Picture (path)</label><input type="text" name="profile_picture" class="form-control" value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo h($coordinator['profile_picture']); ?>"></div>
+                <div class="col-12"><label class="form-label">Bio</label><textarea name="bio" rows="2" class="form-control"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo h($coordinator['bio']); ?></textarea></div>
+                <div class="col-12 form-check ms-1"><input class="form-check-input" type="checkbox" name="is_active" id="is_active_edit" <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo ((int)$coordinator['is_active'] === 1) ? 'checked' : ''; ?>><label class="form-check-label" for="is_active_edit">Active</label></div>
                 <div class="col-12 d-flex gap-2">
                     <button type="submit" class="btn btn-primary">Save Changes</button>
                     <a href="coordinators.php" class="btn btn-outline-secondary">Back to List</a>
@@ -147,11 +196,17 @@ include 'includes/header.php';
             </form>
             <hr>
             <form method="post" onsubmit="return confirm('Delete this coordinator?');">
-                <input type="hidden" name="id" value="<?php echo (int)$id; ?>">
+                <input type="hidden" name="id" value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$id; ?>">
                 <input type="hidden" name="action" value="delete">
                 <button type="submit" class="btn btn-outline-danger">Delete Coordinator</button>
             </form>
         </div>
     </div>
 </div>
-<?php include 'includes/footer.php'; $conn->close(); ?>
+<?php
+require_once dirname(__DIR__) . '/config/db.php';
+include 'includes/footer.php'; $conn->close(); ?>
+
+

@@ -1,9 +1,10 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 // Generate printable Application Letter for a student
-$host = 'localhost';
-$db_user = 'root';
-$db_password = '';
-$db_name = 'biotern_db';
+$host = defined('DB_HOST') ? DB_HOST : 'localhost';
+$db_user = defined('DB_USER') ? DB_USER : 'root';
+$db_password = defined('DB_PASS') ? DB_PASS : ''; 
+$db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
 
 try {
     $conn = new mysqli($host, $db_user, $db_password, $db_name);
@@ -318,7 +319,7 @@ if ($do_download_pdf || $do_download_html) ob_start();
     (function(){
         ensurePrintableHoursSpan(<?php echo json_encode($ap_hours); ?>);
 
-        // print button: open print dialog — note: browser headers/footers are controlled by print dialog settings
+        // print button: open print dialog â€” note: browser headers/footers are controlled by print dialog settings
         var printButton = document.getElementById('btn_print');
         if (printButton) {
             printButton.addEventListener('click', function(e){
@@ -388,6 +389,7 @@ if ($do_download_pdf || $do_download_html) ob_start();
 </html>
 
 <?php
+require_once dirname(__DIR__) . '/config/db.php';
 // If a download was requested, capture the generated output and return it as an attachment.
 if (isset($do_download_html) && $do_download_html) {
     $html = ob_get_clean();
@@ -425,3 +427,4 @@ if (isset($do_download_pdf) && $do_download_pdf) {
 // normal page close
 $conn->close();
 ?>
+

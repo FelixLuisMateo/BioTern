@@ -1,8 +1,9 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 $host = '127.0.0.1';
 $db_user = 'root';
 $db_password = '';
-$db_name = 'biotern_db';
+$db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
 
 try {
     $conn = new mysqli($host, $db_user, $db_password, $db_name);
@@ -88,7 +89,9 @@ include 'includes/header.php';
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="card-title mb-0">All Courses</h5>
-            <span class="badge bg-primary text-white px-3 py-1" style="font-weight:600;"><?php echo count($courses); ?> total</span>
+            <span class="badge bg-primary text-white px-3 py-1" style="font-weight:600;"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo count($courses); ?> total</span>
         </div>
         <div class="card-body p-0 pb-3">
             <div class="table-responsive">
@@ -98,48 +101,112 @@ include 'includes/header.php';
                             <th>ID</th>
                             <th>Code</th>
                             <th>Name</th>
-                            <?php if ($hasColumn('course_head')): ?><th>Course Head</th><?php endif; ?>
-                            <?php if ($hasColumn('total_ojt_hours')): ?><th>Total OJT Hours</th><?php endif; ?>
-                            <?php if ($hasColumn('is_active')): ?><th>Status</th><?php endif; ?>
-                            <?php if ($hasColumn('created_at')): ?><th>Created</th><?php endif; ?>
+                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($hasColumn('course_head')): ?><th>Course Head</th><?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
+                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($hasColumn('total_ojt_hours')): ?><th>Total OJT Hours</th><?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
+                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($hasColumn('is_active')): ?><th>Status</th><?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
+                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($hasColumn('created_at')): ?><th>Created</th><?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                    <?php if (!empty($courses)): ?>
-                        <?php foreach ($courses as $course): ?>
+                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if (!empty($courses)): ?>
+                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($courses as $course): ?>
                             <tr>
-                                <td><?php echo (int)$course['id']; ?></td>
-                                <td><?php echo htmlspecialchars((string)($course['code'] ?? '')); ?></td>
-                                <td><?php echo htmlspecialchars((string)($course['name'] ?? '')); ?></td>
-                                <?php if ($hasColumn('course_head')): ?>
-                                    <td><?php echo htmlspecialchars((string)($course['course_head'] ?? '-')); ?></td>
-                                <?php endif; ?>
-                                <?php if ($hasColumn('total_ojt_hours')): ?>
-                                    <td><?php echo htmlspecialchars((string)($course['total_ojt_hours'] ?? '-')); ?></td>
-                                <?php endif; ?>
-                                <?php if ($hasColumn('is_active')): ?>
+                                <td><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$course['id']; ?></td>
+                                <td><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars((string)($course['code'] ?? '')); ?></td>
+                                <td><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars((string)($course['name'] ?? '')); ?></td>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($hasColumn('course_head')): ?>
+                                    <td><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars((string)($course['course_head'] ?? '-')); ?></td>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($hasColumn('total_ojt_hours')): ?>
+                                    <td><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars((string)($course['total_ojt_hours'] ?? '-')); ?></td>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($hasColumn('is_active')): ?>
                                     <td>
-                                        <?php if ((string)($course['is_active'] ?? '0') === '1'): ?>
+                                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ((string)($course['is_active'] ?? '0') === '1'): ?>
                                             <span class="badge bg-success">Active</span>
-                                        <?php else: ?>
+                                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+else: ?>
                                             <span class="badge bg-secondary">Inactive</span>
-                                        <?php endif; ?>
+                                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
                                     </td>
-                                <?php endif; ?>
-                                <?php if ($hasColumn('created_at')): ?>
-                                    <td><?php echo htmlspecialchars((string)($course['created_at'] ?? '-')); ?></td>
-                                <?php endif; ?>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($hasColumn('created_at')): ?>
+                                    <td><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars((string)($course['created_at'] ?? '-')); ?></td>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
                                 <td class="action-cell">
-                                    <a href="courses-edit.php?id=<?php echo (int)$course['id']; ?>" class="btn btn-sm btn-outline-primary">Edit</a>
+                                    <a href="courses-edit.php?id=<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$course['id']; ?>" class="btn btn-sm btn-outline-primary">Edit</a>
                                 </td>
                             </tr>
-                        <?php endforeach; ?>
-                    <?php else: ?>
+                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
+                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+else: ?>
                         <tr>
-                            <td colspan="<?php echo $colCount; ?>" class="text-center py-4 text-muted">No courses found.</td>
+                            <td colspan="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $colCount; ?>" class="text-center py-4 text-muted">No courses found.</td>
                         </tr>
-                    <?php endif; ?>
+                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
                     </tbody>
                 </table>
             </div>
@@ -147,4 +214,7 @@ include 'includes/header.php';
     </div>
 </div>
 <?php
+require_once dirname(__DIR__) . '/config/db.php';
 include 'includes/footer.php';
+
+

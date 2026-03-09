@@ -1,4 +1,5 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 // Include database connection
 include_once dirname(__DIR__) . '/config/db.php';
 
@@ -134,3 +135,4 @@ try {
 }
 
 ?>
+
