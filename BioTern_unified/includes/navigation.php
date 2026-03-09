@@ -22,6 +22,7 @@ if ($nav_dir === '' || $nav_dir === '.') {
 }
 $nav_dir = preg_replace('#/(management|pages|auth)$#i', '', $nav_dir);
 $nav_asset_base = ($nav_dir === '' ? '' : $nav_dir) . '/assets';
+$nav_asset_fallback = '/BioTern/BioTern_unified/assets';
 ?>
 <style>
     @media (min-width: 1025px) {
@@ -90,9 +91,9 @@ $nav_asset_base = ($nav_dir === '' ? '' : $nav_dir) . '/assets';
 <nav class="nxl-navigation">
     <div class="navbar-wrapper">
         <div class="m-header">
-            <a href="/BioTern/BioTern_organized/legacy_router.php?file=homepage.php" class="b-brand">
-                    <img src="<?php echo htmlspecialchars($nav_asset_base); ?>/images/logo-full.png" alt="BioTern" class="logo logo-lg" style="width:210px;height:auto;object-fit:contain;" />
-                    <img src="<?php echo htmlspecialchars($nav_asset_base); ?>/images/logo-abbr.png" alt="" class="logo logo-sm" />
+            <a href="/BioTern/BioTern_unified/homepage.php" class="b-brand">
+                    <img src="<?php echo htmlspecialchars($nav_asset_base); ?>/images/logo-full.png" alt="BioTern" class="logo logo-lg" style="width:210px;height:auto;object-fit:contain;" onerror="this.onerror=null;this.src='<?php echo htmlspecialchars($nav_asset_fallback); ?>/images/logo-full.png';" />
+                    <img src="<?php echo htmlspecialchars($nav_asset_base); ?>/images/logo-abbr.png" alt="" class="logo logo-sm" onerror="this.onerror=null;this.src='<?php echo htmlspecialchars($nav_asset_fallback); ?>/images/logo-abbr.png';" />
             </a>
         </div>
         <div class="navbar-content">
