@@ -1,4 +1,12 @@
 <?php
+include 'filter.php';
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+$current_user_id = (int)($_SESSION['user_id'] ?? 0);
+$current_role = strtolower(trim((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? '')));
+
 $host = '127.0.0.1';
 $db_user = 'root';
 $db_password = '';
@@ -35,6 +43,15 @@ if ($hasColumn('description')) {
 if ($hasColumn('total_ojt_hours')) {
     $selectFields[] = 'total_ojt_hours';
 }
+if ($hasColumn('internal_hours')) {
+    $selectFields[] = 'internal_hours';
+}
+if ($hasColumn('external_hours')) {
+    $selectFields[] = 'external_hours';
+}
+if ($hasColumn('school_year')) {
+    $selectFields[] = 'school_year';
+}
 if ($hasColumn('is_active')) {
     $selectFields[] = 'is_active';
 }
@@ -42,7 +59,37 @@ if ($hasColumn('created_at')) {
     $selectFields[] = 'created_at';
 }
 
-$whereClause = $hasColumn('deleted_at') ? " WHERE deleted_at IS NULL" : "";
+$where = [];
+if ($hasColumn('deleted_at')) {
+    $where[] = "deleted_at IS NULL";
+}
+
+if ($current_role === 'coordinator' && $current_user_id > 0) {
+    $has_coord_courses = false;
+    $coord_course_tbl_res = $conn->query("SHOW TABLES LIKE 'coordinator_courses'");
+    if ($coord_course_tbl_res && $coord_course_tbl_res->num_rows > 0) {
+        $has_coord_courses = true;
+    }
+
+    if ($has_coord_courses) {
+        $where[] = "id IN (SELECT course_id FROM coordinator_courses WHERE coordinator_user_id = " . $current_user_id . ")";
+    } elseif ($hasColumn('coordinator_id')) {
+        $where[] = "coordinator_id = " . $current_user_id;
+    } else {
+        $coordCols = [];
+        $coordRes = $conn->query("SHOW COLUMNS FROM coordinators");
+        if ($coordRes) {
+            while ($coordCol = $coordRes->fetch_assoc()) {
+                $coordCols[] = strtolower((string)$coordCol['Field']);
+            }
+        }
+        if (in_array('course_id', $coordCols, true) && in_array('user_id', $coordCols, true)) {
+            $where[] = "id IN (SELECT course_id FROM coordinators WHERE user_id = " . $current_user_id . ")";
+        }
+    }
+}
+
+$whereClause = count($where) ? (" WHERE " . implode(' AND ', $where)) : "";
 $orderBy = $hasColumn('created_at') ? "created_at DESC" : "id DESC";
 
 $courses = [];
@@ -91,6 +138,9 @@ include 'includes/header.php';
                             <th>Name</th>
                             <?php if ($hasColumn('course_head')): ?><th>Course Head</th><?php endif; ?>
                             <?php if ($hasColumn('total_ojt_hours')): ?><th>Total OJT Hours</th><?php endif; ?>
+                            <?php if ($hasColumn('internal_hours')): ?><th>Internal Hours</th><?php endif; ?>
+                            <?php if ($hasColumn('external_hours')): ?><th>External Hours</th><?php endif; ?>
+                            <?php if ($hasColumn('school_year')): ?><th>School Year</th><?php endif; ?>
                             <?php if ($hasColumn('is_active')): ?><th>Status</th><?php endif; ?>
                             <?php if ($hasColumn('created_at')): ?><th>Created</th><?php endif; ?>
                             <th>Actions</th>
@@ -108,6 +158,15 @@ include 'includes/header.php';
                                 <?php endif; ?>
                                 <?php if ($hasColumn('total_ojt_hours')): ?>
                                     <td><?php echo htmlspecialchars((string)($course['total_ojt_hours'] ?? '-')); ?></td>
+                                <?php endif; ?>
+                                <?php if ($hasColumn('internal_hours')): ?>
+                                    <td><?php echo (int)($course['internal_hours'] ?? 0); ?></td>
+                                <?php endif; ?>
+                                <?php if ($hasColumn('external_hours')): ?>
+                                    <td><?php echo (int)($course['external_hours'] ?? 0); ?></td>
+                                <?php endif; ?>
+                                <?php if ($hasColumn('school_year')): ?>
+                                    <td><?php echo htmlspecialchars((string)($course['school_year'] ?? '-')); ?></td>
                                 <?php endif; ?>
                                 <?php if ($hasColumn('is_active')): ?>
                                     <td>

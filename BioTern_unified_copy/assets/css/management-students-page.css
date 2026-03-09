@@ -87,6 +87,33 @@ html, body {
             margin-bottom: 0.35rem;
         }
 
+        .app-students-filter-card {
+            background: linear-gradient(180deg, rgba(10, 23, 55, 0.96) 0%, rgba(8, 19, 47, 0.98) 100%);
+            border: 1px solid rgba(84, 111, 255, 0.18) !important;
+            border-radius: 18px;
+            box-shadow: 0 16px 40px rgba(3, 10, 28, 0.28);
+        }
+
+        .app-students-filter-card h6 {
+            color: #f8fafc;
+        }
+
+        .app-students-filter-card .text-muted {
+            color: rgba(226, 232, 240, 0.72) !important;
+        }
+
+        .app-students-filter-badge {
+            border-radius: 999px;
+            padding: 0.5rem 0.85rem;
+            font-weight: 600;
+        }
+
+        .page-header-right-items-wrapper .btn.active.btn-light-brand {
+            background-color: rgba(84, 111, 255, 0.18);
+            border-color: rgba(84, 111, 255, 0.45);
+            color: #dbe5ff;
+        }
+
         /* Calendar input design */
         .app-students-filter-form input[type="date"].form-control,
         .filter-form input[type="date"].form-control {
@@ -163,7 +190,8 @@ html, body {
         .filter-form .filter-actions {
             display: flex;
             gap: 0.5rem;
-            margin-top: 1.55rem;
+            margin-top: 0.25rem;
+            flex-wrap: wrap;
         }
 
         .app-students-filter-form .filter-actions .btn,
@@ -172,6 +200,7 @@ html, body {
             display: inline-flex;
             align-items: center;
             justify-content: center;
+            padding-inline: 1rem;
         }
 
         /* Match ALL filter dropboxes with date picker color */
@@ -215,6 +244,16 @@ html, body {
             .nxl-content .row.mb-3 {
                 z-index: 1 !important;
                 position: relative;
+            }
+        }
+
+        @media (max-width: 767.98px) {
+            .app-students-filter-card {
+                border-radius: 14px;
+            }
+
+            .app-students-filter-card .card-body {
+                padding: 1rem !important;
             }
         }
 

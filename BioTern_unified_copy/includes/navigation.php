@@ -18,7 +18,7 @@ $nav_can_reports = ($nav_is_admin || $nav_is_coordinator || $nav_is_supervisor);
 <nav class="nxl-navigation">
     <div class="navbar-wrapper">
         <div class="m-header">
-            <a href="/BioTern/BioTern_unified/legacy_router.php?file=homepage.php" class="b-brand">
+            <a href="legacy_router.php?file=homepage.php" class="b-brand">
                 <img src="assets/images/logo-full.png" alt="BioTern" class="logo logo-lg app-logo-lg" />
                 <img src="assets/images/logo-abbr.png" alt="" class="logo logo-sm" />
             </a>

@@ -8,7 +8,7 @@ if (session_status() === PHP_SESSION_NONE) {
 // Enforce authenticated session for all pages using the shared app header.
 $header_user_id_session = (int)($_SESSION['user_id'] ?? 0);
 if ($header_user_id_session <= 0) {
-    header('Location: /BioTern/BioTern_unified/auth-login-cover.php');
+    header('Location: auth-login-cover.php');
     exit;
 }
 
@@ -29,7 +29,7 @@ if (!$header_db->connect_errno) {
                 setcookie(session_name(), '', time() - 42000, $params['path'], $params['domain'], $params['secure'], $params['httponly']);
             }
             session_destroy();
-            header('Location: /BioTern/BioTern_unified/auth-login-cover.php');
+            header('Location: auth-login-cover.php');
             exit;
         }
 
@@ -51,8 +51,17 @@ if (!isset($base_href)) {
     $base_href = '';
 }
 
-$biotern_theme_api_endpoint = $base_href . 'api/theme-customizer.php';
+$asset_prefix = '';
+$script_name = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
+if ($base_href !== '') {
+    $asset_prefix = $base_href;
+} elseif (strpos($script_name, '/management/') !== false) {
+    $asset_prefix = '../';
+}
+
+$biotern_theme_api_endpoint = $asset_prefix . 'api/theme-customizer.php';
 require_once __DIR__ . '/theme-preferences.php';
+require_once dirname(__DIR__) . '/lib/notifications.php';
 
 $default_theme_prefs = [
     'skin' => 'light',
@@ -118,83 +127,29 @@ $header_notifications_unread = 0;
 if ($header_user_id_session > 0) {
     $hdr_db = @new mysqli('127.0.0.1', 'root', '', 'biotern_db');
     if (!$hdr_db->connect_errno) {
-        $has_title = false;
-        $has_message = false;
-        $has_type = false;
-        $has_data = false;
-        $col_res = $hdr_db->query("SHOW COLUMNS FROM notifications");
-        if ($col_res instanceof mysqli_result) {
-            while ($col = $col_res->fetch_assoc()) {
-                $field = strtolower((string)($col['Field'] ?? ''));
-                if ($field === 'title') $has_title = true;
-                if ($field === 'message') $has_message = true;
-                if ($field === 'type') $has_type = true;
-                if ($field === 'data') $has_data = true;
+        biotern_notifications_ensure_table($hdr_db);
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['biotern_notification_action'])) {
+            $action = trim((string)$_POST['biotern_notification_action']);
+            if ($action === 'mark_one') {
+                $notification_id = (int)($_POST['notification_id'] ?? 0);
+                if ($notification_id > 0) {
+                    biotern_notifications_mark_read($hdr_db, $header_user_id_session, $notification_id);
+                }
+            } elseif ($action === 'mark_all') {
+                biotern_notifications_mark_all_read($hdr_db, $header_user_id_session);
+            }
+
+            $redirect_url = $_SERVER['REQUEST_URI'] ?? '';
+            if ($redirect_url !== '') {
+                header('Location: ' . $redirect_url);
+                $hdr_db->close();
+                exit;
             }
         }
 
-        $count_stmt = $hdr_db->prepare("SELECT COUNT(*) AS unread_count FROM notifications WHERE user_id = ? AND (is_read = 0 OR is_read IS NULL)");
-        if ($count_stmt) {
-            $count_stmt->bind_param('i', $header_user_id_session);
-            $count_stmt->execute();
-            $row = $count_stmt->get_result()->fetch_assoc();
-            $count_stmt->close();
-            $header_notifications_unread = (int)($row['unread_count'] ?? 0);
-        }
-
-        if ($has_title && $has_message) {
-            $list_stmt = $hdr_db->prepare(
-                "SELECT id, title, message, is_read, created_at
-                 FROM notifications
-                 WHERE user_id = ?
-                 ORDER BY created_at DESC, id DESC
-                 LIMIT 6"
-            );
-            if ($list_stmt) {
-                $list_stmt->bind_param('i', $header_user_id_session);
-                $list_stmt->execute();
-                $res = $list_stmt->get_result();
-                while ($n = $res->fetch_assoc()) {
-                    $header_notifications[] = [
-                        'title' => (string)($n['title'] ?? 'Notification'),
-                        'message' => (string)($n['message'] ?? ''),
-                        'is_read' => (int)($n['is_read'] ?? 0),
-                        'created_at' => (string)($n['created_at'] ?? ''),
-                    ];
-                }
-                $list_stmt->close();
-            }
-        } elseif ($has_type && $has_data) {
-            $list_stmt = $hdr_db->prepare(
-                "SELECT id, type, data, is_read, created_at
-                 FROM notifications
-                 WHERE user_id = ?
-                 ORDER BY created_at DESC, id DESC
-                 LIMIT 6"
-            );
-            if ($list_stmt) {
-                $list_stmt->bind_param('i', $header_user_id_session);
-                $list_stmt->execute();
-                $res = $list_stmt->get_result();
-                while ($n = $res->fetch_assoc()) {
-                    $raw_data = (string)($n['data'] ?? '');
-                    $title = ucfirst((string)($n['type'] ?? 'notification'));
-                    $message = $raw_data;
-                    $json = json_decode($raw_data, true);
-                    if (is_array($json)) {
-                        $title = (string)($json['title'] ?? $title);
-                        $message = (string)($json['message'] ?? $message);
-                    }
-                    $header_notifications[] = [
-                        'title' => $title,
-                        'message' => $message,
-                        'is_read' => (int)($n['is_read'] ?? 0),
-                        'created_at' => (string)($n['created_at'] ?? ''),
-                    ];
-                }
-                $list_stmt->close();
-            }
-        }
+        $header_notifications_unread = biotern_notifications_count_unread($hdr_db, $header_user_id_session);
+        $header_notifications = biotern_notifications_fetch($hdr_db, $header_user_id_session, 6);
         $hdr_db->close();
     }
 }
@@ -217,7 +172,7 @@ if ($header_user_id_session > 0) {
     <title><?php echo htmlspecialchars($page_title, ENT_QUOTES, 'UTF-8'); ?></title>
     <!--! END:  Apps Title-->
     <!--! BEGIN: Favicon-->
-    <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
+    <link rel="shortcut icon" type="image/x-icon" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/favicon.ico">
     <!--! END: Favicon-->
     <!-- paceOptions are configured in assets/js/theme-preload-init.min.js -->
     <script src="assets/js/theme-preload-init.min.js"></script>
@@ -319,16 +274,31 @@ if ($header_user_id_session > 0) {
                         <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-notifications-menu">
                             <div class="d-flex justify-content-between align-items-center notifications-head px-3 py-2 border-bottom">
                                 <span class="fw-semibold">Notifications</span>
-                                <span class="badge bg-soft-primary text-primary"><?php echo (int)$header_notifications_unread; ?> unread</span>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="badge bg-soft-primary text-primary"><?php echo (int)$header_notifications_unread; ?> unread</span>
+                                    <?php if ($header_notifications_unread > 0): ?>
+                                        <form method="post" class="m-0">
+                                            <input type="hidden" name="biotern_notification_action" value="mark_all">
+                                            <button type="submit" class="btn btn-sm btn-light">Mark all read</button>
+                                        </form>
+                                    <?php endif; ?>
+                                </div>
                             </div>
                             <?php if (!empty($header_notifications)): ?>
                                 <?php foreach ($header_notifications as $n): ?>
                                     <div class="notifications-item">
                                         <img src="assets/images/avatar/1.png" alt="" class="rounded me-3 border">
                                         <div class="notifications-desc">
-                                            <a href="javascript:void(0);" class="font-body text-truncate-2-line"><?php echo htmlspecialchars($n['title'], ENT_QUOTES, 'UTF-8'); ?></a>
+                                            <a href="<?php echo htmlspecialchars($n['action_url'] !== '' ? $n['action_url'] : 'javascript:void(0);', ENT_QUOTES, 'UTF-8'); ?>" class="font-body text-truncate-2-line"><?php echo htmlspecialchars($n['title'], ENT_QUOTES, 'UTF-8'); ?></a>
                                             <div class="fs-12 text-muted text-truncate-2-line"><?php echo htmlspecialchars($n['message'], ENT_QUOTES, 'UTF-8'); ?></div>
                                             <div class="notifications-date text-muted border-bottom border-bottom-dashed"><?php echo htmlspecialchars($n['created_at'] !== '' ? date('M d, Y h:i A', strtotime($n['created_at'])) : 'Just now', ENT_QUOTES, 'UTF-8'); ?></div>
+                                            <?php if ((int)($n['is_read'] ?? 0) === 0): ?>
+                                                <form method="post" class="mt-1">
+                                                    <input type="hidden" name="biotern_notification_action" value="mark_one">
+                                                    <input type="hidden" name="notification_id" value="<?php echo (int)($n['id'] ?? 0); ?>">
+                                                    <button type="submit" class="btn btn-xs btn-light">Mark as read</button>
+                                                </form>
+                                            <?php endif; ?>
                                         </div>
                                     </div>
                                 <?php endforeach; ?>

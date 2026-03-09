@@ -29,12 +29,20 @@ $current_role = strtolower(trim((string) (
 $can_edit_sensitive_hours = in_array($current_role, ['admin', 'coordinator', 'supervisor'], true);
 $can_edit_hours = true;
 
+if (!in_array($current_role, ['admin', 'coordinator', 'supervisor'], true)) {
+    header('Location: students.php?denied=1');
+    exit;
+}
+
 // Ensure new student assignment/hour fields exist.
 $conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS internal_total_hours INT(11) DEFAULT NULL");
 $conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS internal_total_hours_remaining INT(11) DEFAULT NULL");
 $conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS external_total_hours INT(11) DEFAULT NULL");
 $conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS external_total_hours_remaining INT(11) DEFAULT NULL");
 $conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS assignment_track VARCHAR(20) NOT NULL DEFAULT 'internal'");
+$conn->query("ALTER TABLE courses ADD COLUMN IF NOT EXISTS internal_hours INT(11) NOT NULL DEFAULT 0");
+$conn->query("ALTER TABLE courses ADD COLUMN IF NOT EXISTS external_hours INT(11) NOT NULL DEFAULT 0");
+$conn->query("ALTER TABLE courses ADD COLUMN IF NOT EXISTS school_year VARCHAR(50) NULL");
 
 // Get student ID from URL parameter
 $student_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
@@ -95,7 +103,9 @@ $student_query = "
         i.supervisor_id as internship_supervisor_id,
         i.coordinator_id as internship_coordinator_id,
         sv.id as supervisor_id,
-        co.id as coordinator_id
+        co.id as coordinator_id,
+        sv.user_id as supervisor_user_id,
+        co.user_id as coordinator_user_id
     FROM students s
     LEFT JOIN courses c ON s.course_id = c.id
     LEFT JOIN internships i ON s.id = i.student_id AND i.status = 'ongoing'
@@ -117,11 +127,52 @@ if ($result->num_rows == 0) {
 
 $student = $result->fetch_assoc();
 
+$can_edit_student = false;
+if ($current_role === 'admin') {
+    $can_edit_student = true;
+} elseif ($current_role === 'coordinator') {
+    $assigned = (
+        (int)($student['internship_coordinator_id'] ?? 0) === (int)($_SESSION['user_id'] ?? 0) ||
+        (int)($student['coordinator_user_id'] ?? 0) === (int)($_SESSION['user_id'] ?? 0)
+    );
+
+    $course_scoped = false;
+    $tbl = $conn->query("SHOW TABLES LIKE 'coordinator_courses'");
+    if ($tbl && $tbl->num_rows > 0) {
+        $course_id_for_scope = (int)($student['course_id'] ?? 0);
+        if ($course_id_for_scope > 0) {
+            $stmt_scope = $conn->prepare("SELECT id FROM coordinator_courses WHERE coordinator_user_id = ? AND course_id = ? LIMIT 1");
+            if ($stmt_scope) {
+                $uid = (int)($_SESSION['user_id'] ?? 0);
+                $stmt_scope->bind_param('ii', $uid, $course_id_for_scope);
+                $stmt_scope->execute();
+                $course_scoped = (bool)$stmt_scope->get_result()->fetch_assoc();
+                $stmt_scope->close();
+            }
+        }
+    }
+
+    $can_edit_student = ($assigned || $course_scoped);
+} elseif ($current_role === 'supervisor') {
+    $can_edit_student = (
+        (int)($student['internship_supervisor_id'] ?? 0) === (int)($_SESSION['user_id'] ?? 0) ||
+        (int)($student['supervisor_user_id'] ?? 0) === (int)($_SESSION['user_id'] ?? 0)
+    );
+}
+
+if (!$can_edit_student) {
+    header('Location: students.php?denied=1');
+    exit;
+}
+
 // Fetch all courses for dropdown (be tolerant of differing schema columns)
 $courses = [];
 $db_esc = $conn->real_escape_string($db_name);
 $has_is_active = false;
 $has_status_col = false;
+$has_internal_hours_col = false;
+$has_external_hours_col = false;
+$has_total_ojt_hours_col = false;
 $col_check = $conn->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '" . $db_esc . "' AND TABLE_NAME = 'courses' AND COLUMN_NAME IN ('is_active','status')");
 if ($col_check && $col_check->num_rows) {
     while ($c = $col_check->fetch_assoc()) {
@@ -130,7 +181,27 @@ if ($col_check && $col_check->num_rows) {
     }
 }
 
-$courses_query = "SELECT id, name FROM courses";
+$policy_col_check = $conn->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '" . $db_esc . "' AND TABLE_NAME = 'courses' AND COLUMN_NAME IN ('internal_hours','external_hours','total_ojt_hours')");
+if ($policy_col_check && $policy_col_check->num_rows) {
+    while ($c = $policy_col_check->fetch_assoc()) {
+        if ($c['COLUMN_NAME'] === 'internal_hours') $has_internal_hours_col = true;
+        if ($c['COLUMN_NAME'] === 'external_hours') $has_external_hours_col = true;
+        if ($c['COLUMN_NAME'] === 'total_ojt_hours') $has_total_ojt_hours_col = true;
+    }
+}
+
+$course_select_fields = ['id', 'name'];
+if ($has_internal_hours_col) {
+    $course_select_fields[] = 'COALESCE(internal_hours, 0) AS internal_hours';
+}
+if ($has_external_hours_col) {
+    $course_select_fields[] = 'COALESCE(external_hours, 0) AS external_hours';
+}
+if ($has_total_ojt_hours_col) {
+    $course_select_fields[] = 'COALESCE(total_ojt_hours, 0) AS total_ojt_hours';
+}
+
+$courses_query = "SELECT " . implode(', ', $course_select_fields) . " FROM courses";
 if ($has_is_active) {
     $courses_query .= " WHERE is_active = 1";
 } elseif ($has_status_col) {
@@ -200,6 +271,66 @@ if ($coordinators_result->num_rows > 0) {
             'name' => $row['name']
         ];
     }
+}
+
+function students_edit_column_exists(mysqli $conn, string $table, string $column): bool {
+    $safeTable = $conn->real_escape_string($table);
+    $safeColumn = $conn->real_escape_string($column);
+    $res = $conn->query("SHOW COLUMNS FROM {$safeTable} LIKE '{$safeColumn}'");
+    return ($res && $res->num_rows > 0);
+}
+
+function students_edit_policy_required_hours(mysqli $conn, int $course_id, string $assignment_track, ?int $fallback_internal, ?int $fallback_external): int {
+    $track = strtolower(trim($assignment_track));
+    if ($track !== 'external') {
+        $track = 'internal';
+    }
+
+    $course_internal = 0;
+    $course_external = 0;
+    $course_total = 0;
+
+    if ($course_id > 0) {
+        $has_internal = students_edit_column_exists($conn, 'courses', 'internal_hours');
+        $has_external = students_edit_column_exists($conn, 'courses', 'external_hours');
+        $has_total = students_edit_column_exists($conn, 'courses', 'total_ojt_hours');
+
+        if ($has_internal || $has_external || $has_total) {
+            $fields = [];
+            if ($has_internal) $fields[] = 'COALESCE(internal_hours, 0) AS internal_hours';
+            if ($has_external) $fields[] = 'COALESCE(external_hours, 0) AS external_hours';
+            if ($has_total) $fields[] = 'COALESCE(total_ojt_hours, 0) AS total_ojt_hours';
+            $course_stmt = $conn->prepare("SELECT " . implode(', ', $fields) . " FROM courses WHERE id = ? LIMIT 1");
+            if ($course_stmt) {
+                $course_stmt->bind_param('i', $course_id);
+                $course_stmt->execute();
+                $course_row = $course_stmt->get_result()->fetch_assoc();
+                $course_stmt->close();
+                if ($course_row) {
+                    $course_internal = (int)($course_row['internal_hours'] ?? 0);
+                    $course_external = (int)($course_row['external_hours'] ?? 0);
+                    $course_total = (int)($course_row['total_ojt_hours'] ?? 0);
+                }
+            }
+        }
+    }
+
+    if ($track === 'external') {
+        $required = $course_external > 0 ? $course_external : (int)($fallback_external ?? 0);
+        if ($required <= 0) {
+            $required = 250;
+        }
+        return max(0, $required);
+    }
+
+    $required = $course_internal > 0 ? $course_internal : (int)($fallback_internal ?? 0);
+    if ($required <= 0) {
+        $required = $course_total;
+    }
+    if ($required <= 0) {
+        $required = 600;
+    }
+    return max(0, $required);
 }
 
 // Handle form submission
@@ -274,6 +405,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (!in_array($assignment_track, ['internal', 'external'], true)) {
         $assignment_track = 'internal';
     }
+
+    $course_for_policy = $course_id > 0 ? $course_id : (int)($student['course_id'] ?? 0);
+    $policy_required_hours = students_edit_policy_required_hours(
+        $conn,
+        $course_for_policy,
+        $assignment_track,
+        $internal_total_hours,
+        $external_total_hours
+    );
 
     $selected_supervisor_name = null;
     if ($supervisor_id !== null) {
@@ -448,11 +588,20 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     if (!empty($student['internship_id'])) {
                         $internship_update = $conn->prepare("
                             UPDATE internships
-                            SET supervisor_id = ?, coordinator_id = ?, status = 'ongoing', updated_at = NOW()
+                            SET supervisor_id = ?, coordinator_id = ?, course_id = NULLIF(?, 0), type = ?, required_hours = ?, status = 'ongoing', updated_at = NOW()
                             WHERE id = ?
                         ");
                             if ($internship_update) {
-                            $internship_update->bind_param("iii", $intern_supervisor_user_id, $intern_coordinator_user_id, $student['internship_id']);
+                            $internship_type = ($assignment_track === 'external') ? 'external' : 'internal';
+                            $internship_update->bind_param(
+                                "iiisii",
+                                $intern_supervisor_user_id,
+                                $intern_coordinator_user_id,
+                                $course_id,
+                                $internship_type,
+                                $policy_required_hours,
+                                $student['internship_id']
+                            );
                             $internship_update->execute();
                             $internship_update->close();
                         }
@@ -479,11 +628,20 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         if ($latest_internship_id) {
                             $internship_update = $conn->prepare("
                                 UPDATE internships
-                                SET supervisor_id = ?, coordinator_id = ?, status = 'ongoing', updated_at = NOW()
+                                SET supervisor_id = ?, coordinator_id = ?, course_id = NULLIF(?, 0), type = ?, required_hours = ?, status = 'ongoing', updated_at = NOW()
                                 WHERE id = ?
                             ");
                             if ($internship_update) {
-                                $internship_update->bind_param("iii", $intern_supervisor_user_id, $intern_coordinator_user_id, $latest_internship_id);
+                                $internship_type = ($assignment_track === 'external') ? 'external' : 'internal';
+                                $internship_update->bind_param(
+                                    "iiisii",
+                                    $intern_supervisor_user_id,
+                                    $intern_coordinator_user_id,
+                                    $course_id,
+                                    $internship_type,
+                                    $policy_required_hours,
+                                    $latest_internship_id
+                                );
                                 $internship_update->execute();
                                 $internship_update->close();
                             }
@@ -501,12 +659,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                 $year = (int)date('Y');
                                 $school_year = $year . '-' . ($year + 1);
                                 $type = ($assignment_track === 'external') ? 'external' : 'internal';
-                                $required_hours = ($assignment_track === 'external')
-                                    ? (int)($external_total_hours ?? 250)
-                                    : (int)($internal_total_hours ?? 600);
-                                if ($required_hours <= 0) {
-                                    $required_hours = ($assignment_track === 'external') ? 250 : 600;
-                                }
+                                $required_hours = students_edit_policy_required_hours(
+                                    $conn,
+                                    $course_for_intern,
+                                    $assignment_track,
+                                    $internal_total_hours,
+                                    $external_total_hours
+                                );
                                 $remaining = ($assignment_track === 'external')
                                     ? (int)($external_total_hours_remaining ?? $required_hours)
                                     : (int)($internal_total_hours_remaining ?? $required_hours);
@@ -572,6 +731,33 @@ function formatDateTime($date) {
     }
     return 'N/A';
 }
+
+$preview_course_id = (int)($student['course_id'] ?? 0);
+$preview_track = strtolower((string)($student['assignment_track'] ?? 'internal'));
+if (!in_array($preview_track, ['internal', 'external'], true)) {
+    $preview_track = 'internal';
+}
+$policy_required_preview = students_edit_policy_required_hours(
+    $conn,
+    $preview_course_id,
+    $preview_track,
+    isset($student['internal_total_hours']) ? (int)$student['internal_total_hours'] : 0,
+    isset($student['external_total_hours']) ? (int)$student['external_total_hours'] : 0
+);
+
+$course_policy_map = [];
+foreach ($courses as $course_item) {
+    $cid = (int)($course_item['id'] ?? 0);
+    if ($cid <= 0) {
+        continue;
+    }
+    $course_policy_map[$cid] = [
+        'internal' => (int)($course_item['internal_hours'] ?? 0),
+        'external' => (int)($course_item['external_hours'] ?? 0),
+        'total' => (int)($course_item['total_ojt_hours'] ?? 0),
+    ];
+}
+$course_policy_map_json = htmlspecialchars(json_encode($course_policy_map, JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8');
 
 ?>
 <?php
@@ -853,7 +1039,13 @@ include 'includes/header.php';
                                                 </select>
                                                 <small class="form-text text-muted">Rule: External is allowed only when Internal Hours Remaining is 0.</small>
                                             </div>
+                                            <div class="col-md-6 mb-4">
+                                                <label for="policy_required_hours_preview" class="form-label fw-semibold">Policy Required Hours</label>
+                                                <input type="number" class="form-control" id="policy_required_hours_preview" value="<?php echo (int)$policy_required_preview; ?>" readonly>
+                                                <small class="form-text text-muted">Auto-computed from selected course policy and assignment track.</small>
+                                            </div>
                                         </div>
+                                        <input type="hidden" id="course_policy_map_json" value="<?php echo $course_policy_map_json; ?>">
 
                                         <div class="row">
                                             <div class="col-md-3 mb-4">

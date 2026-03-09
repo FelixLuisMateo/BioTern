@@ -35,6 +35,13 @@ function ojt_table_exists(mysqli $conn, string $table): bool {
     return ($res && $res->num_rows > 0);
 }
 
+function ojt_column_exists(mysqli $conn, string $table, string $column): bool {
+    $safeTable = $conn->real_escape_string($table);
+    $safeColumn = $conn->real_escape_string($column);
+    $res = $conn->query("SHOW COLUMNS FROM {$safeTable} LIKE '{$safeColumn}'");
+    return ($res && $res->num_rows > 0);
+}
+
 function safe_pct($num, $den) {
     $d = (float)$den;
     if ($d <= 0) return 0;
@@ -137,10 +144,26 @@ $conn->query("CREATE TABLE IF NOT EXISTS document_workflow (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
 
 $search = trim((string)($_GET['search'] ?? ''));
+$school_year_filter_id = (int)($_GET['school_year_id'] ?? 0);
 $course_filter = trim((string)($_GET['course'] ?? ''));
 $section_filter = trim((string)($_GET['section'] ?? ''));
 $status_filter = trim((string)($_GET['stage'] ?? ''));
 $risk_filter = trim((string)($_GET['risk'] ?? 'all'));
+
+$school_years = [];
+$school_year_filter_value = '';
+$sy_tbl = $conn->query("SHOW TABLES LIKE 'school_years'");
+if ($sy_tbl && $sy_tbl->num_rows > 0) {
+    $sy_res = $conn->query("SELECT id, year FROM school_years ORDER BY year DESC");
+    if ($sy_res) {
+        while ($sy = $sy_res->fetch_assoc()) {
+            $school_years[] = $sy;
+            if ($school_year_filter_id > 0 && (int)$sy['id'] === $school_year_filter_id) {
+                $school_year_filter_value = (string)$sy['year'];
+            }
+        }
+    }
+}
 
 $courses = [];
 $cres = $conn->query('SELECT id, name FROM courses ORDER BY name');
@@ -158,6 +181,15 @@ if ($sres) {
     }
 }
 
+$where = [];
+if (strtolower(trim((string)($current_user_role ?? ''))) === 'coordinator') {
+    // Restrict to OJT assigned to this coordinator
+    $where[] = "i.coordinator_id = " . intval($current_user_id);
+}
+$course_internal_expr = ojt_column_exists($conn, 'courses', 'internal_hours') ? 'COALESCE(c.internal_hours, 0)' : '0';
+$course_external_expr = ojt_column_exists($conn, 'courses', 'external_hours') ? 'COALESCE(c.external_hours, 0)' : '0';
+$course_total_expr = ojt_column_exists($conn, 'courses', 'total_ojt_hours') ? 'COALESCE(c.total_ojt_hours, 0)' : '0';
+
 $sql = "
 SELECT
     s.id,
@@ -172,10 +204,18 @@ SELECT
     c.name AS course_name,
     COALESCE(NULLIF(sec.code, ''), NULLIF(sec.name, ''), '-') AS section_name,
     i.status AS internship_status,
+    i.type AS internship_type,
     i.required_hours,
     i.rendered_hours,
+    i.school_year,
     i.start_date,
     i.end_date,
+    s.assignment_track,
+    COALESCE(s.internal_total_hours, 0) AS student_internal_total_hours,
+    COALESCE(s.external_total_hours, 0) AS student_external_total_hours,
+    {$course_internal_expr} AS course_internal_hours,
+    {$course_external_expr} AS course_external_hours,
+    {$course_total_expr} AS course_total_ojt_hours,
     COALESCE(u_supervisor.name, s.supervisor_name) AS supervisor_name,
     COALESCE(u_coordinator.name, s.coordinator_name) AS coordinator_name,
     COALESCE(app.has_application, 0) AS has_application,
@@ -219,8 +259,13 @@ LEFT JOIN (
     FROM attendances
     GROUP BY student_id
 ) att ON att.student_id = s.id
-ORDER BY s.first_name, s.last_name
 ";
+
+if (count($where) > 0) {
+    $sql .= " WHERE " . implode(' AND ', $where);
+}
+
+$sql .= " ORDER BY s.first_name, s.last_name";
 
 $res = $conn->query($sql);
 $rows = [];
@@ -228,11 +273,43 @@ $today = date('Y-m-d');
 
 if ($res) {
     while ($row = $res->fetch_assoc()) {
-        $required = (float)($row['required_hours'] ?? 0);
+        $assignment_track = strtolower(trim((string)($row['assignment_track'] ?? '')));
+        if ($assignment_track === '') {
+            $assignment_track = strtolower(trim((string)($row['internship_type'] ?? 'internal')));
+        }
+        $required = 0.0;
+        if ($assignment_track === 'external') {
+            $required = (float)($row['course_external_hours'] ?? 0);
+            if ($required <= 0) {
+                $required = (float)($row['student_external_total_hours'] ?? 0);
+            }
+            if ($required <= 0) {
+                $required = (float)($row['required_hours'] ?? 0);
+            }
+            if ($required <= 0) {
+                $required = 250.0;
+            }
+        } else {
+            $required = (float)($row['course_internal_hours'] ?? 0);
+            if ($required <= 0) {
+                $required = (float)($row['student_internal_total_hours'] ?? 0);
+            }
+            if ($required <= 0) {
+                $required = (float)($row['required_hours'] ?? 0);
+            }
+            if ($required <= 0) {
+                $required = (float)($row['course_total_ojt_hours'] ?? 0);
+            }
+            if ($required <= 0) {
+                $required = 600.0;
+            }
+        }
         $rendered = (float)($row['rendered_hours'] ?? 0);
         if ($rendered <= 0) {
             $rendered = (float)($row['attendance_total_hours'] ?? 0);
         }
+        $row['effective_required_hours'] = $required;
+        $row['effective_rendered_hours'] = $rendered;
         $row['progress_pct'] = safe_pct($rendered, $required);
         $row['stage'] = pipeline_stage($row);
 
@@ -267,6 +344,9 @@ if ($res) {
             continue;
         }
         if ($course_filter !== '' && strcasecmp((string)($row['course_name'] ?? ''), $course_filter) !== 0) {
+            continue;
+        }
+        if ($school_year_filter_value !== '' && strcasecmp(trim((string)($row['school_year'] ?? '')), $school_year_filter_value) !== 0) {
             continue;
         }
         if ($section_filter !== '' && strcasecmp((string)($row['section_name'] ?? ''), $section_filter) !== 0) {
@@ -349,8 +429,8 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
     $out = fopen('php://output', 'w');
     fputcsv($out, ['Student ID', 'Name', 'Course', 'Stage', 'Risk Score', 'Risk Flags', 'Required Hours', 'Rendered Hours', 'Last Attendance']);
     foreach ($rows as $r) {
-        $required = (float)($r['required_hours'] ?? 0);
-        $rendered = (float)($r['rendered_hours'] ?? 0);
+        $required = (float)($r['effective_required_hours'] ?? ($r['required_hours'] ?? 0));
+        $rendered = (float)($r['effective_rendered_hours'] ?? ($r['rendered_hours'] ?? 0));
         if ($rendered <= 0) $rendered = (float)($r['attendance_total_hours'] ?? 0);
         fputcsv($out, [
             $r['student_id'] ?? '',
@@ -481,6 +561,15 @@ include 'includes/header.php';
                     <input type="text" name="search" id="ojtFilterSearch" class="form-control" value="<?php echo htmlspecialchars($search); ?>" placeholder="Name / Student ID / Course">
                 </div>
                 <div class="col-md-2">
+                    <label class="form-label">School Year</label>
+                    <select name="school_year_id" class="form-select">
+                        <option value="">All</option>
+                        <?php foreach ($school_years as $sy): ?>
+                            <option value="<?php echo (int)$sy['id']; ?>" <?php echo ($school_year_filter_id === (int)$sy['id']) ? 'selected' : ''; ?>><?php echo htmlspecialchars((string)$sy['year']); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="col-md-2">
                     <label class="form-label">Course</label>
                     <select name="course" id="ojtFilterCourse" class="form-select">
                         <option value="">All</option>
@@ -489,7 +578,7 @@ include 'includes/header.php';
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <div class="col-md-2">
+                <div class="col-md-1">
                     <label class="form-label">Section</label>
                     <select name="section" id="ojtFilterSection" class="form-select">
                         <option value="">All</option>
@@ -498,7 +587,7 @@ include 'includes/header.php';
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <div class="col-md-2">
+                <div class="col-md-1">
                     <label class="form-label">Stage</label>
                     <select name="stage" id="ojtFilterStage" class="form-select">
                         <option value="">All</option>
@@ -507,7 +596,7 @@ include 'includes/header.php';
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <div class="col-md-2">
+                <div class="col-md-1">
                     <label class="form-label">Risk</label>
                     <select name="risk" id="ojtFilterRisk" class="form-select">
                         <option value="all" <?php echo ($risk_filter === 'all') ? 'selected' : ''; ?>>All</option>
@@ -549,8 +638,8 @@ include 'includes/header.php';
                             if ($profile_url !== null) {
                                 $img = $profile_url;
                             }
-                            $required = (float)($r['required_hours'] ?? 0);
-                            $rendered = (float)($r['rendered_hours'] ?? 0);
+                            $required = (float)($r['effective_required_hours'] ?? ($r['required_hours'] ?? 0));
+                            $rendered = (float)($r['effective_rendered_hours'] ?? ($r['rendered_hours'] ?? 0));
                             if ($rendered <= 0) $rendered = (float)($r['attendance_total_hours'] ?? 0);
                             ?>
                             <tr>
