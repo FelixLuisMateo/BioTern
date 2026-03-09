@@ -1163,6 +1163,52 @@ $session_profile_picture_url = $session_profile_picture !== '' ? $session_profil
         .app-skin-dark .border { border-color: #253252 !important; }
         .app-skin-dark .form-control,
         .app-skin-dark .form-select { background-color: #0f172a; border-color: #2a3a57; color: #d8e2f4; }
+        .app-skin-dark .form-select option { background-color: #0f172a; color: #d8e2f4; }
+        .app-skin-dark .dropdown-menu {
+            background: #111a2e;
+            border-color: #2a3a57;
+            box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+        }
+        .app-skin-dark .dropdown-item {
+            color: #d8e2f4;
+        }
+        .app-skin-dark .dropdown-item:hover,
+        .app-skin-dark .dropdown-item:focus {
+            color: #ffffff;
+            background: #1c2944;
+        }
+        .app-skin-dark .dropdown-divider {
+            border-top-color: #2a3a57;
+        }
+        .app-skin-dark .select2-container--default .select2-selection--single,
+        .app-skin-dark .select2-container--default .select2-selection--multiple {
+            background: #0f172a;
+            border-color: #2a3a57;
+            color: #d8e2f4;
+        }
+        .app-skin-dark .select2-container--default .select2-selection--single .select2-selection__rendered,
+        .app-skin-dark .select2-container--default .select2-selection--multiple .select2-selection__choice {
+            color: #d8e2f4;
+        }
+        .app-skin-dark .select2-container--default .select2-selection--single .select2-selection__placeholder {
+            color: #9ab0d0;
+        }
+        .app-skin-dark .select2-dropdown {
+            background: #111a2e;
+            border-color: #2a3a57;
+        }
+        .app-skin-dark .select2-results__option {
+            color: #d8e2f4;
+        }
+        .app-skin-dark .select2-container--default .select2-results__option--highlighted[aria-selected] {
+            background: #1c2944;
+            color: #ffffff;
+        }
+        .app-skin-dark .select2-search--dropdown .select2-search__field {
+            background: #0f172a;
+            border-color: #2a3a57;
+            color: #d8e2f4;
+        }
         .app-skin-dark .table { color: #d8e2f4; }
         .app-skin-dark .table-sm > :not(caption) > * > * { border-color: #253252; }
         .document-card {
