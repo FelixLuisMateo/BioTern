@@ -8,7 +8,7 @@ if (session_status() === PHP_SESSION_NONE) {
 // Enforce authenticated session for all pages using the shared app header.
 $header_user_id_session = (int)($_SESSION['user_id'] ?? 0);
 if ($header_user_id_session <= 0) {
-    header('Location: /BioTern/BioTern_organized/auth-login-cover.php');
+    header('Location: /BioTern/BioTern_unified/auth-login-cover.php');
     exit;
 }
 
@@ -29,7 +29,7 @@ if (!$header_db->connect_errno) {
                 setcookie(session_name(), '', time() - 42000, $params['path'], $params['domain'], $params['secure'], $params['httponly']);
             }
             session_destroy();
-            header('Location: /BioTern/BioTern_organized/auth-login-cover.php');
+            header('Location: /BioTern/BioTern_unified/auth-login-cover.php');
             exit;
         }
 

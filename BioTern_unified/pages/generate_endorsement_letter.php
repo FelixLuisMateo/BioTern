@@ -119,30 +119,66 @@ if ($recipient !== '') {
     if ($recipient_title === 'ms') $recipient_print = 'Ms. ' . $recipient_base;
     if ($recipient_title === 'none') $recipient_print = 'Mr./Ms. ' . $recipient_base;
 }
-
-$script_name = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
-$asset_prefix = (strpos($script_name, '/pages/') !== false) ? '../' : '';
-$page_title = 'BioTern || Endorsement Letter';
-$base_href = $asset_prefix;
-$page_styles = [
-    'assets/css/generate-endorsement-letter-page.css',
-];
-$page_scripts = [
-    'assets/js/generate-endorsement-letter-runtime.js',
-];
-
-include __DIR__ . '/../includes/header.php';
 ?>
-<div class="main-content">
-<div class="container app-endorsement-letter-container">
-    <img class="crest app-endorsement-letter-crest" src="assets/images/auth/auth-cover-login-bg.png" alt="crest" data-hide-onerror="1">
-    <div class="header app-endorsement-letter-header">
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>BioTern || Endorsement Letter</title>
+    <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
+    <style>
+        @page { size: Letter portrait; margin: 0.5in; }
+        body { font-family: "Times New Roman", Times, serif; color:#111; font-size:12pt; margin:0; background:#eceff3; }
+        .container {
+            width:100%;
+            max-width:7.5in;
+            margin:18px auto;
+            padding:0.4in;
+            box-sizing:border-box;
+            position:relative;
+            background:#fff;
+            box-shadow:0 8px 28px rgba(0, 0, 0, 0.14);
+        }
+        .header { position:relative; min-height:56px; text-align:center; border-bottom:2px solid #1c5ab1; padding:8px 0 6px; margin-bottom:10px; }
+        .crest { position:absolute; left:30px; top:30px; width:70px; height:70px; object-fit:contain; }
+        .header h2 { font-family:'Times New Roman', Times, serif; color:#1b4f9c; font-size:13pt; margin:0; font-weight:600; }
+        .header .meta { font-family:'Times New Roman', Times, serif; color:#1b4f9c; font-size:10.5pt; line-height:1.2; font-weight:600; }
+        .header .tel { font-family:'Times New Roman', Times, serif; color:#1b4f9c; font-size:13pt; font-weight:600; margin-bottom: -21px; }
+        .content { font-size:12pt; line-height:1.45; }
+        .content h3 { text-align:center; margin:8px 0 12px; font-size:13pt; }
+        .signature { margin-top:28px; }
+        .ross-signatory { position: relative; margin-top:3px; padding-top:10px; }
+        .ross-signature {
+            position: absolute;
+            top: -16px;
+            left: 6px;
+            width: 230px;
+            max-width: none;
+            height: auto;
+            z-index: 2;
+            pointer-events: none;
+        }
+        .ross-signatory-text { position: relative; z-index: 1; }
+        .actions { margin-top:40px; padding-top:18px; border-top:2px dashed #cbd5e1; display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+        .tip-box { flex:1 1 100%; font-size:17px; line-height:1.6; border:1px solid #dbe4f0; background:#f8fafc; padding:12px 14px; border-radius:12px; color:#334155; }
+        .action-btn { min-width:104px; min-height:36px; font-size:14px; font-weight:600; padding:7px 14px; cursor:pointer; border-radius:12px; box-shadow:0 8px 18px rgba(15, 23, 42, 0.08); }
+        @media print {
+            body { background:#fff; }
+            .no-print { display:none !important; }
+            .container { margin:0; padding:10mm; background:#fff; box-shadow:none; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <img class="crest" src="../assets/images/auth/auth-cover-login-bg.png" alt="crest" onerror="this.style.display='none'">
+    <div class="header">
         <h2>CLARK COLLEGE OF SCIENCE AND TECHNOLOGY</h2>
-        <div class="meta app-endorsement-letter-meta">SNS Bldg. Aurea St., Samsonville Subd., Dau, Mabalacat, Pampanga</div>
-        <div class="tel app-endorsement-letter-tel">Telefax No.: (045) 624-0215</div>
+        <div class="meta">SNS Bldg. Aurea St., Samsonville Subd., Dau, Mabalacat, Pampanga</div>
+        <div class="tel">Telefax No.: (045) 624-0215</div>
     </div>
 
-    <div class="content app-endorsement-letter-content" id="endorsement_doc_content">
+    <div class="content" id="endorsement_doc_content">
         <h3>ENDORSEMENT LETTER</h3>
         <p><strong id="ed_recipient"><?php echo htmlspecialchars($recipient_print ?: '__________________________'); ?></strong><br>
         <span id="ed_position"><?php echo htmlspecialchars($position ?: '__________________________'); ?></span><br>
@@ -166,33 +202,49 @@ include __DIR__ . '/../includes/header.php';
         <p>We look forward to a productive partnership with your organization. Thank you for your consideration and support.</p>
 
         <p>Sincerely,</p>
-        <div class="signature app-endorsement-letter-signature">
+        <div class="signature">
             <p>MR. JOMAR G. SANGIL<br>
             <strong>ICT DEPARTMENT HEAD</strong><br>
             <strong>Clark College of Science and Technology</strong></p>
-            <div class="ross-signatory app-endorsement-letter-ross-signatory">
-                <img class="ross-signature app-endorsement-letter-ross-signature" src="pages/Ross-Signature.png" alt="Ross signature" data-hide-onerror="1">
-                <p class="ross-signatory-text app-endorsement-letter-ross-signatory-text">MR. ROSS CARVEL C. RAMIREZ<br>
+            <div class="ross-signatory">
+                <img class="ross-signature" src="Ross-Signature.png" alt="Ross signature" onerror="this.style.display='none'">
+                <p class="ross-signatory-text">MR. ROSS CARVEL C. RAMIREZ<br>
                 <strong>HEAD OF ACADEMIC AFFAIRS</strong><br>
                 <strong>Clark College of Science and Technology</strong></p>
             </div>
         </div>
     </div>
 
-    <div class="actions app-endorsement-letter-actions no-print app-endorsement-letter-no-print">
-        <div class="tip-box app-endorsement-letter-tip-box">Tip: Use A4 paper. In your print settings, set the margins to Top: 0, Bottom: 0 Left: 0.5, Right: 0.5, and uncheck "Headers and footers" or "Include headers and footers".</div>
-        <button id="btn_print" type="button" class="action-btn app-endorsement-letter-action-btn">Print</button>
-        <button id="btn_close" type="button" class="action-btn app-endorsement-letter-action-btn">Close</button>
+    <div class="actions no-print">
+        <div class="tip-box">Tip: Use A4 paper. In your print settings, set the margins to Top: 0, Bottom: 0 Left: 0.5, Right: 0.5, and uncheck "Headers and footers" or "Include headers and footers".</div>
+        <button id="btn_print" type="button" class="action-btn">Print</button>
+        <button id="btn_close" type="button" class="action-btn">Close</button>
     </div>
 </div>
 
 <script>
-    (function () {
-        if (!document.body) return;
-        document.body.dataset.useSavedTemplate = <?php echo json_encode($use_saved_template ? '1' : '0', JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
-    })();
-</script>
-</div>
+(function(){
+    document.getElementById('btn_print').addEventListener('click', function(){ window.print(); });
+    document.getElementById('btn_close').addEventListener('click', function(){
+        if (window.opener && !window.opener.closed) { window.close(); return; }
+        if (window.history.length > 1) { window.history.back(); return; }
+        window.location.href = '../documents/document_endorsement.php';
+    });
+})();
 
-<?php include __DIR__ . '/../includes/footer.php'; ?>
+(function(){
+    if (!<?php echo $use_saved_template ? 'true' : 'false'; ?>) return;
+    try {
+        var saved = localStorage.getItem('biotern_endorsement_template_html_v1');
+        if (!saved) return;
+        var temp = document.createElement('div');
+        temp.innerHTML = saved;
+        var content = temp.querySelector('.content') || temp;
+        var out = document.getElementById('endorsement_doc_content');
+        if (out && content) out.innerHTML = content.innerHTML;
+    } catch (e) {}
+})();
+</script>
+</body>
+</html>
 <?php $conn->close(); ?>
