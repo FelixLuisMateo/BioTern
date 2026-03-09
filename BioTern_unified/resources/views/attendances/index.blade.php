@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zxx">
 
 <head>
@@ -16,8 +16,6 @@
     <link rel="stylesheet" type="text/css" href="{{ asset('assets/vendors/css/select2.min.css') }}">
     <link rel="stylesheet" type="text/css" href="{{ asset('assets/vendors/css/select2-theme.min.css') }}">
     <link rel="stylesheet" type="text/css" href="{{ asset('assets/css/theme.min.css') }}">
-    <link rel="stylesheet" type="text/css" href="{{ asset('assets/css/core.css') }}">
-    <script src="{{ asset('assets/js/theme-preload-init.min.js') }}"></script>
     <style>
         .time-cell {
             font-family: 'Courier New', monospace;
@@ -42,7 +40,7 @@
     </style>
 </head>
 
-<body data-theme-prefs="{}" data-theme-api="{{ url('api/theme-customizer.php') }}">
+<body>
     <!--! Navigation !-->
     <nav class="nxl-navigation">
         <div class="navbar-wrapper">
@@ -108,21 +106,13 @@
                     <a href="javascript:void(0);" id="menu-mini-button">
                         <i class="feather-align-left"></i>
                     </a>
-                    <a href="javascript:void(0);" id="menu-expend-button">
+                    <a href="javascript:void(0);" id="menu-expend-button" style="display: none">
                         <i class="feather-arrow-right"></i>
                     </a>
                 </div>
             </div>
             <div class="header-right ms-auto">
                 <div class="d-flex align-items-center">
-                    <div class="nxl-h-item dark-light-theme">
-                        <a href="javascript:void(0);" class="nxl-head-link me-0 dark-button">
-                            <i class="feather-moon"></i>
-                        </a>
-                        <a href="javascript:void(0);" class="nxl-head-link me-0 light-button">
-                            <i class="feather-sun"></i>
-                        </a>
-                    </div>
                     <div class="dropdown nxl-h-item">
                         <a href="javascript:void(0);" class="nxl-head-link me-0" data-bs-toggle="dropdown" data-bs-auto-close="outside">
                             <img src="{{ asset('assets/images/avatar/1.png') }}" alt="user-image" class="img-fluid user-avtar me-0">
@@ -412,12 +402,12 @@
         <!-- Footer -->
         <footer class="footer">
             <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
-                <span>Copyright ©</span>
+                <span>Copyright Â©</span>
                 <script>
                     document.write(new Date().getFullYear());
                 </script>
             </p>
-            <p><span>By: <a target="_blank" href="">ACT 2A</a></span> • <span>Distributed by: <a target="_blank" href="">Group 5</a></span></p>
+            <p><span>By: <a target="_blank" href="">ACT 2A</a></span> â€¢ <span>Distributed by: <a target="_blank" href="">Group 5</a></span></p>
         </footer>
     </main>
 
@@ -426,8 +416,6 @@
     <script src="{{ asset('assets/vendors/js/dataTables.min.js') }}"></script>
     <script src="{{ asset('assets/vendors/js/dataTables.bs5.min.js') }}"></script>
     <script src="{{ asset('assets/js/common-init.min.js') }}"></script>
-    <script src="{{ asset('assets/js/theme-preferences-runtime.js') }}"></script>
-    <script src="{{ asset('assets/js/theme-customizer-init.min.js') }}"></script>
     <script>
         // Initialize DataTable
         document.addEventListener('DOMContentLoaded', function() {

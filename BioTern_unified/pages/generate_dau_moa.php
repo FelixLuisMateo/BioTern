@@ -1,4 +1,5 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 // Generate printable Dau Barangay Hall Memorandum of Agreement (MOA)
 function q($key, $default = '')
 {
@@ -107,7 +108,13 @@ $use_saved_template = q('use_saved_template', '0') === '1';
         </p>
         <p style="text-align:center; margin-top:8px; margin-bottom:8px;">And</p>
         <p>
-            <strong><u><?php echo htmlspecialchars($partner_name); ?></u></strong> a LOCAL GOVERNMENT UNIT duly organized and existing under Philippine Laws with office/business address at <strong><u><?php echo htmlspecialchars($partner_address); ?></u></strong> represented herein by <strong><u><?php echo htmlspecialchars($partner_rep); ?></u></strong> herein after referred to as the PARTNER LOCAL GOVERNMENT UNIT.
+            <strong><u><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($partner_name); ?></u></strong> a LOCAL GOVERNMENT UNIT duly organized and existing under Philippine Laws with office/business address at <strong><u><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($partner_address); ?></u></strong> represented herein by <strong><u><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($partner_rep); ?></u></strong> herein after referred to as the PARTNER LOCAL GOVERNMENT UNIT.
         </p>
         <p style="text-align:center; margin-top:6px; margin-bottom:6px;">Witnesseth:</p>
         <p>The parties hereby bind themselves to undertake a Memorandum of Agreement for the purpose of supporting the Internship for Learners under the following terms and condition</p>
@@ -121,7 +128,9 @@ $use_saved_template = q('use_saved_template', '0') === '1';
             <li>The Clark College of Science and Technology shall ensure that the Learner shall ensure that the Learner has an on-and off the campus insurance coverage within the duration of the training as part of their training fee.</li>
             <li>The Clark College of Science and Technology shall ensure Learner shall be personally responsible for any and all liabilities arising from negligence in the performance of his/her duties and functions while under OJT/Internship;</li>
             <li>There is no employer-employee relationship between the PARTNER LOCAL GOVERNMENT UNIT and the Learner;</li>
-            <li>The duration of the program shall be equivalent to <?php echo htmlspecialchars($total_hours); ?> working hours unless otherwise agreed upon by the PARTNER LOCAL GOVERNMENT UNIT and the School;</li>
+            <li>The duration of the program shall be equivalent to <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($total_hours); ?> working hours unless otherwise agreed upon by the PARTNER LOCAL GOVERNMENT UNIT and the School;</li>
             <li>Any violation of the foregoing covenants will warrant the cancellation of the Memorandum of Agreement by the PARTNER LOCAL GOVERNMENT UNIT within thirty (30) days upon notice to the school.</li>
         </ol>
 
@@ -132,36 +141,80 @@ $use_saved_template = q('use_saved_template', '0') === '1';
         </ol>
 
         <p>The Parties shall not divulge any information that it may have access to, and any such information will only be used for academic purposes. All Parties shall implement all reasonable security measures to maintain the confidentiality of all information exchanged between the parties during the term of this Agreement. This confidentiality clause shall continue for the duration of this Agreement and after its termination, unless it has become public knowledge or is already in the public domain. All parties are under obligation to return or appropriately dispose of any proprietary materials furnished during the tenure of the agreement.</p>
-        <p>This Memorandum of Agreement shall be effective from the date of its signing and shall be valid for a period of one (1) year. The Agreement may be renewed by giving the other party 30-day notice before the end of this Agreement. Either party may terminate this agreement, with or without cause, at any time by serving written notice to the other party, giving thirty (30) days lead-time before the intended date of termination. Any pre-termination of this Agreement shall be without prejudice to completion of the internship of student learners undergoing training as of the date of termination. In witness whereof the parties have signed this Memorandum of Agreement at <?php echo htmlspecialchars($signed_at); ?> this <?php echo htmlspecialchars($signed_day); ?> day of <?php echo htmlspecialchars($signed_month); ?>, <?php echo htmlspecialchars($signed_year); ?>.</p>
+        <p>This Memorandum of Agreement shall be effective from the date of its signing and shall be valid for a period of one (1) year. The Agreement may be renewed by giving the other party 30-day notice before the end of this Agreement. Either party may terminate this agreement, with or without cause, at any time by serving written notice to the other party, giving thirty (30) days lead-time before the intended date of termination. Any pre-termination of this Agreement shall be without prejudice to completion of the internship of student learners undergoing training as of the date of termination. In witness whereof the parties have signed this Memorandum of Agreement at <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($signed_at); ?> this <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($signed_day); ?> day of <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($signed_month); ?>, <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($signed_year); ?>.</p>
 
         <div class="row" style="margin-top:-12px;">
             <div class="col">
                 <p><strong>For the PARTNER LOCAL GOVERNMENT UNIT</strong></p>
-                <p style="margin-top:16px;"><strong><u><?php echo htmlspecialchars($partner_rep); ?></u></strong></p>
-                <p style="margin-top:-18px;"><strong><u><?php echo htmlspecialchars($partner_position); ?></u></strong></p>
+                <p style="margin-top:16px;"><strong><u><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($partner_rep); ?></u></strong></p>
+                <p style="margin-top:-18px;"><strong><u><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($partner_position); ?></u></strong></p>
             </div>
             <div class="col right">
-                <p style="margin-top:16px; text-align:right;"><strong><u><?php echo htmlspecialchars($school_rep); ?></u></strong></p>
-                <p style="margin-top:-18px; text-align:right;"><strong><u><?php echo htmlspecialchars($school_position); ?></u></strong></p>
+                <p style="margin-top:16px; text-align:right;"><strong><u><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($school_rep); ?></u></strong></p>
+                <p style="margin-top:-18px; text-align:right;"><strong><u><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($school_position); ?></u></strong></p>
             </div>
         </div>
 
         <div class="row">
             <div class="col">
-                <p style="margin-top:0px;"><strong><u><?php echo htmlspecialchars($company_receipt); ?></u></strong></p>
+                <p style="margin-top:0px;"><strong><u><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($company_receipt); ?></u></strong></p>
                 <p style="margin-top:-18px; white-space:nowrap;">Representative of the Partner LOCAL GOVERNMENT UNIT</p>
             </div>
             <div class="col right">
-                <p style="margin-top:0px; text-align:right;"><strong><u><?php echo htmlspecialchars($presence_school_admin); ?></u></strong></p>
-                <p style="margin-top:-18px; text-align:right;"><strong><u><?php echo htmlspecialchars($presence_school_admin_position); ?></u></strong></p>
+                <p style="margin-top:0px; text-align:right;"><strong><u><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($presence_school_admin); ?></u></strong></p>
+                <p style="margin-top:-18px; text-align:right;"><strong><u><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($presence_school_admin_position); ?></u></strong></p>
             </div>
         </div>
-            ACKNOWLEDGEMENT Before me, a Notary Public in the city <strong><u><?php echo htmlspecialchars($notary_city); ?></u></strong>, personally appeared <strong><u><?php echo htmlspecialchars($notary_appeared_1); ?></u></strong> and <strong><u><?php echo htmlspecialchars($notary_appeared_2); ?></u></strong> known to me to be the same persons who executed the foregoing instrument and they acknowledged to me that the same is their free will and voluntary deed and that of the LOCAL GOVERNMENT UNITs herein represented. Witness my hand and seal on this <strong><u><?php echo htmlspecialchars($notary_day); ?></u></strong> day of <strong><u><?php echo htmlspecialchars($notary_month); ?></u></strong> <strong><u><?php echo htmlspecialchars($notary_year); ?></u></strong> in <strong><u><?php echo htmlspecialchars($notary_place); ?></u></strong>.
+            ACKNOWLEDGEMENT Before me, a Notary Public in the city <strong><u><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($notary_city); ?></u></strong>, personally appeared <strong><u><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($notary_appeared_1); ?></u></strong> and <strong><u><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($notary_appeared_2); ?></u></strong> known to me to be the same persons who executed the foregoing instrument and they acknowledged to me that the same is their free will and voluntary deed and that of the LOCAL GOVERNMENT UNITs herein represented. Witness my hand and seal on this <strong><u><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($notary_day); ?></u></strong> day of <strong><u><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($notary_month); ?></u></strong> <strong><u><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($notary_year); ?></u></strong> in <strong><u><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($notary_place); ?></u></strong>.
         </p>
-        <p style="margin-bottom: -12px;">Doc No. : <span style="display:inline-block; min-width:28px; border-bottom:1px solid #000; line-height:1;"><?php echo htmlspecialchars($doc_no); ?></span></p>
-        <p style="margin-bottom: -12px;">Page No. : <span style="display:inline-block; min-width:28px; border-bottom:1px solid #000; line-height:1;"><?php echo htmlspecialchars($page_no); ?></span></p>
-        <p style="margin-bottom: -12px;">Book No. : <span style="display:inline-block; min-width:28px; border-bottom:1px solid #000; line-height:1;"><?php echo htmlspecialchars($book_no); ?></span></p>
-        <p style="margin-bottom: -12px;">Series of : <span style="display:inline-block; min-width:28px; border-bottom:1px solid #000; line-height:1;"><?php echo htmlspecialchars($series_no); ?></span></p>
+        <p style="margin-bottom: -12px;">Doc No. : <span style="display:inline-block; min-width:28px; border-bottom:1px solid #000; line-height:1;"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($doc_no); ?></span></p>
+        <p style="margin-bottom: -12px;">Page No. : <span style="display:inline-block; min-width:28px; border-bottom:1px solid #000; line-height:1;"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($page_no); ?></span></p>
+        <p style="margin-bottom: -12px;">Book No. : <span style="display:inline-block; min-width:28px; border-bottom:1px solid #000; line-height:1;"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($book_no); ?></span></p>
+        <p style="margin-bottom: -12px;">Series of : <span style="display:inline-block; min-width:28px; border-bottom:1px solid #000; line-height:1;"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($series_no); ?></span></p>
     </div>
 
     <div class="actions no-print">
@@ -170,7 +223,9 @@ $use_saved_template = q('use_saved_template', '0') === '1';
         <button class="btn action-btn" id="btn_close_moa" type="button">Close</button>
     </div>
 </div>
-<?php if ($use_saved_template): ?>
+<?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($use_saved_template): ?>
 <script>
     (function(){
         try {
@@ -182,7 +237,9 @@ $use_saved_template = q('use_saved_template', '0') === '1';
         } catch (err) {}
     })();
 </script>
-<?php endif; ?>
+<?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
 <script>
     (function(){
         var btn = document.getElementById('btn_close_moa');
@@ -202,3 +259,5 @@ $use_saved_template = q('use_saved_template', '0') === '1';
 </script>
 </body>
 </html>
+
+

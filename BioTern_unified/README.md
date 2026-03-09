@@ -39,14 +39,3 @@ Design and code is completely written by theme_ocean and development team.
  - Licensed cover under [MIT]
  - Distributed by [ThemeWagon](https://themewagon.com)
 
-## BioTern GitHub Update Workflow
-
-For this project copy, use the team workflow guide in `docs/GITHUB_WORKFLOW.md`.
-
-Quick update command:
-
-```powershell
-Set-Location "c:\xampp\htdocs\BioTern\BioTern_unified"
-.\scripts\github-update.ps1 -Branch main -CommitMessage "feat: your update"
-```
-

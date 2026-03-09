@@ -1,4 +1,5 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -13,7 +14,7 @@ if (file_exists($ops_helpers)) {
 $host = 'localhost';
 $db_user = 'root';
 $db_password = '';
-$db_name = 'biotern_db';
+$db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
 $conn = new mysqli($host, $db_user, $db_password, $db_name);
 if ($conn->connect_error) die('Connection failed: ' . $conn->connect_error);
 
@@ -120,98 +121,240 @@ function doc_label(string $doc): string {
 function status_label(string $s): string {
     return ucfirst(str_replace('_', ' ', $s));
 }
-
-$page_title = 'BioTern || OJT Workflow Board';
-$page_styles = [
-    'assets/css/management-ojt-workflow-board-page.css',
-];
-$page_scripts = [
-    'assets/js/theme-customizer-init.min.js',
-];
-
-include 'includes/header.php';
 ?>
-<div class="page-header app-ojt-workflow-page-header d-flex justify-content-between align-items-center">
-    <div>
-        <h5 class="m-b-10">OJT Document Workflow Board</h5>
-        <small class="text-muted">Centralized approval tracking for internship documents</small>
-    </div>
-</div>
-
-<?php if ($message !== ''): ?>
-    <div class="alert alert-<?php echo htmlspecialchars($message_type); ?> py-2"><?php echo htmlspecialchars($message); ?></div>
-<?php endif; ?>
-
-<div class="card app-ojt-workflow-surface-card card-body mb-3">
-    <form method="get" class="row g-2 align-items-end app-ojt-workflow-filter-form">
-        <div class="col-md-4">
-            <label class="form-label">Search Student</label>
-            <input type="text" name="search" class="form-control" value="<?php echo htmlspecialchars($search); ?>" placeholder="Name / Student ID / Course">
-        </div>
-        <div class="col-md-3">
-            <label class="form-label">Document Type</label>
-            <select name="doc_type" class="form-select">
-                <option value="all" <?php echo $doc_filter === 'all' ? 'selected' : ''; ?>>All</option>
-                <option value="application" <?php echo $doc_filter === 'application' ? 'selected' : ''; ?>>Application</option>
-                <option value="endorsement" <?php echo $doc_filter === 'endorsement' ? 'selected' : ''; ?>>Endorsement</option>
-                <option value="moa" <?php echo $doc_filter === 'moa' ? 'selected' : ''; ?>>MOA</option>
-                <option value="dau_moa" <?php echo $doc_filter === 'dau_moa' ? 'selected' : ''; ?>>Dau MOA</option>
-            </select>
-        </div>
-        <div class="col-md-2">
-            <button class="btn btn-primary w-100" type="submit">Apply</button>
-        </div>
-        <div class="col-md-2">
-            <a href="ojt-workflow-board.php" class="btn btn-light w-100">Reset</a>
-        </div>
-    </form>
-</div>
-
-<div class="row g-3">
-    <?php foreach (['draft', 'for_review', 'approved', 'rejected'] as $col_key): ?>
-        <div class="col-lg-3 board-col app-ojt-workflow-board-col">
-            <div class="card app-ojt-workflow-surface-card card-body h-100">
-                <div class="board-head app-ojt-workflow-board-head mb-2"><?php echo htmlspecialchars(status_label($col_key)); ?> (<?php echo count($columns[$col_key]); ?>)</div>
-                <?php if (empty($columns[$col_key])): ?>
-                    <div class="text-muted fs-12">No records.</div>
-                <?php else: ?>
-                    <?php foreach ($columns[$col_key] as $item): ?>
-                        <div class="wf-card app-ojt-workflow-card">
-                            <div class="fw-semibold"><?php echo htmlspecialchars(trim(($item['first_name'] ?? '') . ' ' . ($item['last_name'] ?? ''))); ?></div>
-                            <div class="wf-meta app-ojt-workflow-meta"><?php echo htmlspecialchars((string)($item['school_id'] ?? '')); ?> | <?php echo htmlspecialchars((string)($item['course_name'] ?? '-')); ?></div>
-                            <div class="wf-meta app-ojt-workflow-meta mb-1">Doc: <?php echo htmlspecialchars(doc_label((string)($item['doc_type'] ?? ''))); ?></div>
-                            <div class="wf-note app-ojt-workflow-note mb-2"><?php echo htmlspecialchars((string)($item['review_notes'] ?? '')); ?></div>
-                            <div class="wf-meta app-ojt-workflow-meta mb-2">Updated: <?php echo htmlspecialchars((string)($item['updated_at'] ?? '')); ?></div>
-                            <div class="d-flex gap-2 mb-2 app-ojt-workflow-card-actions">
-                                <a href="ojt-view.php?id=<?php echo intval($item['student_id']); ?>#profileTab" class="btn btn-sm btn-light">Open</a>
-                            </div>
-                            <?php if ($can_approve): ?>
-                                <form method="post" class="row g-1 app-ojt-workflow-update-form">
-                                    <input type="hidden" name="update_workflow" value="1">
-                                    <input type="hidden" name="user_id" value="<?php echo intval($item['student_id']); ?>">
-                                    <input type="hidden" name="doc_type" value="<?php echo htmlspecialchars((string)$item['doc_type']); ?>">
-                                    <div class="col-12">
-                                        <select name="status" class="form-select form-select-sm">
-                                            <?php foreach (['draft', 'for_review', 'approved', 'rejected'] as $st): ?>
-                                                <option value="<?php echo $st; ?>" <?php echo ((string)$item['status'] === $st) ? 'selected' : ''; ?>><?php echo status_label($st); ?></option>
-                                            <?php endforeach; ?>
-                                        </select>
-                                    </div>
-                                    <div class="col-12">
-                                        <textarea name="review_notes" rows="2" class="form-control form-control-sm" placeholder="Review note"><?php echo htmlspecialchars((string)($item['review_notes'] ?? '')); ?></textarea>
-                                    </div>
-                                    <div class="col-12"><button class="btn btn-sm btn-outline-primary w-100" type="submit">Save</button></div>
-                                </form>
-                            <?php endif; ?>
-                        </div>
-                    <?php endforeach; ?>
-                <?php endif; ?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>BioTern || OJT Workflow Board</title>
+    <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
+    <script src="assets/js/theme-preload-init.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/vendors/css/vendors.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css">
+    <style>
+        body { background: #f5f7fb; }
+        .board-col { min-height: 320px; }
+        .board-head { font-weight: 700; font-size: 13px; letter-spacing: 0.3px; text-transform: uppercase; }
+        .wf-card { border: 1px solid #e8edf6; border-radius: 10px; padding: 10px; background: #fff; margin-bottom: 10px; }
+        .wf-meta { font-size: 12px; color: #6c7a92; }
+        .wf-note { font-size: 12px; }
+        .app-skin-dark body { background: #0b1220; }
+        .app-skin-dark .wf-card { background: #111a2e; border-color: #253252; }
+        .app-skin-dark .wf-meta { color: #a6b4cf; }
+        .app-skin-dark .card { background: #111a2e; border-color: #253252; }
+        .app-skin-dark .form-control,
+        .app-skin-dark .form-select { background-color: #0f172a; border-color: #2a3a57; color: #d8e2f4; }
+        @media (max-width: 991.98px) {
+            .header-right .d-flex { display: grid !important; grid-template-columns: 1fr 1fr; gap: 8px !important; }
+            .header-right .btn { width: 100%; }
+            .board-col { min-height: auto; }
+        }
+        @media (max-width: 767.98px) {
+            .nxl-content { padding-left: 8px; padding-right: 8px; }
+            .header-right .d-flex { grid-template-columns: 1fr !important; }
+            .page-header { display: block !important; }
+            .board-head { font-size: 12px; }
+            .wf-card { border-radius: 14px; padding: 12px; }
+            .wf-card .d-flex.gap-2 { display: grid !important; grid-template-columns: 1fr; }
+            .wf-card .d-flex.gap-2 .btn { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+<?php
+require_once dirname(__DIR__) . '/config/db.php';
+include_once 'includes/navigation.php'; ?>
+<header class="nxl-header">
+    <div class="header-wrapper">
+        <div class="header-left d-flex align-items-center gap-3">
+            <a href="javascript:void(0);" class="nxl-head-mobile-toggler" id="mobile-collapse">
+                <div class="hamburger hamburger--arrowturn">
+                    <div class="hamburger-box">
+                        <div class="hamburger-inner"></div>
+                    </div>
+                </div>
+            </a>
+            <div class="nxl-navigation-toggle">
+                <a href="javascript:void(0);" id="menu-mini-button"><i class="feather-align-left"></i></a>
+                <a href="javascript:void(0);" id="menu-expend-button" style="display: none"><i class="feather-arrow-right"></i></a>
             </div>
         </div>
-    <?php endforeach; ?>
-</div>
+        <div class="header-right ms-auto">
+            <div class="d-flex align-items-center gap-2">
+                <div class="nxl-h-item dark-light-theme">
+                    <a href="javascript:void(0);" class="nxl-head-link me-0 dark-button" title="Dark mode"><i class="feather-moon"></i></a>
+                    <a href="javascript:void(0);" class="nxl-head-link me-0 light-button" style="display:none" title="Light mode"><i class="feather-sun"></i></a>
+                </div>
+                <a href="ojt.php" class="btn btn-light btn-sm">Back to OJT Dashboard</a>
+            </div>
+        </div>
+    </div>
+</header>
+<main class="nxl-container">
+    <div class="nxl-content">
+        <div class="page-header d-flex justify-content-between align-items-center">
+            <div>
+                <h5 class="m-b-10">OJT Document Workflow Board</h5>
+                <small class="text-muted">Centralized approval tracking for internship documents</small>
+            </div>
+        </div>
 
-<?php include 'includes/footer.php'; ?>
-<?php $conn->close(); ?>
+        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($message !== ''): ?>
+            <div class="alert alert-<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($message_type); ?> py-2"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($message); ?></div>
+        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
+
+        <div class="card card-body mb-3">
+            <form method="get" class="row g-2 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label">Search Student</label>
+                    <input type="text" name="search" class="form-control" value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($search); ?>" placeholder="Name / Student ID / Course">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Document Type</label>
+                    <select name="doc_type" class="form-select">
+                        <option value="all" <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $doc_filter === 'all' ? 'selected' : ''; ?>>All</option>
+                        <option value="application" <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $doc_filter === 'application' ? 'selected' : ''; ?>>Application</option>
+                        <option value="endorsement" <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $doc_filter === 'endorsement' ? 'selected' : ''; ?>>Endorsement</option>
+                        <option value="moa" <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $doc_filter === 'moa' ? 'selected' : ''; ?>>MOA</option>
+                        <option value="dau_moa" <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $doc_filter === 'dau_moa' ? 'selected' : ''; ?>>Dau MOA</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-primary w-100" type="submit">Apply</button>
+                </div>
+                <div class="col-md-2">
+                    <a href="ojt-workflow-board.php" class="btn btn-light w-100">Reset</a>
+                </div>
+            </form>
+        </div>
+
+        <div class="row g-3">
+            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach (['draft', 'for_review', 'approved', 'rejected'] as $col_key): ?>
+                <div class="col-lg-3 board-col">
+                    <div class="card card-body h-100">
+                        <div class="board-head mb-2"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars(status_label($col_key)); ?> (<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo count($columns[$col_key]); ?>)</div>
+                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if (empty($columns[$col_key])): ?>
+                            <div class="text-muted fs-12">No records.</div>
+                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+else: ?>
+                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($columns[$col_key] as $item): ?>
+                                <div class="wf-card">
+                                    <div class="fw-semibold"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars(trim(($item['first_name'] ?? '') . ' ' . ($item['last_name'] ?? ''))); ?></div>
+                                    <div class="wf-meta"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars((string)($item['school_id'] ?? '')); ?> | <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars((string)($item['course_name'] ?? '-')); ?></div>
+                                    <div class="wf-meta mb-1">Doc: <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars(doc_label((string)($item['doc_type'] ?? ''))); ?></div>
+                                    <div class="wf-note mb-2"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars((string)($item['review_notes'] ?? '')); ?></div>
+                                    <div class="wf-meta mb-2">Updated: <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars((string)($item['updated_at'] ?? '')); ?></div>
+                                    <div class="d-flex gap-2 mb-2">
+                                        <a href="ojt-view.php?id=<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo intval($item['student_id']); ?>#profileTab" class="btn btn-sm btn-light">Open</a>
+                                    </div>
+                                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($can_approve): ?>
+                                        <form method="post" class="row g-1">
+                                            <input type="hidden" name="update_workflow" value="1">
+                                            <input type="hidden" name="user_id" value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo intval($item['student_id']); ?>">
+                                            <input type="hidden" name="doc_type" value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars((string)$item['doc_type']); ?>">
+                                            <div class="col-12">
+                                                <select name="status" class="form-select form-select-sm">
+                                                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach (['draft', 'for_review', 'approved', 'rejected'] as $st): ?>
+                                                        <option value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $st; ?>" <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo ((string)$item['status'] === $st) ? 'selected' : ''; ?>><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo status_label($st); ?></option>
+                                                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
+                                                </select>
+                                            </div>
+                                            <div class="col-12">
+                                                <textarea name="review_notes" rows="2" class="form-control form-control-sm" placeholder="Review note"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars((string)($item['review_notes'] ?? '')); ?></textarea>
+                                            </div>
+                                            <div class="col-12"><button class="btn btn-sm btn-outline-primary w-100" type="submit">Save</button></div>
+                                        </form>
+                                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
+                                </div>
+                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
+                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
+                    </div>
+                </div>
+            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
+        </div>
+    </div>
+</main>
+<script src="assets/vendors/js/vendors.min.js"></script>
+<script src="assets/js/common-init.min.js"></script>
+<script src="assets/js/theme-customizer-init.min.js"></script>
+</body>
+</html>
+<?php
+require_once dirname(__DIR__) . '/config/db.php';
+$conn->close(); ?>
+
 
 

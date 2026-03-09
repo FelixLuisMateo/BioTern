@@ -1,8 +1,9 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 $host = '127.0.0.1';
-$db_user = 'root';
-$db_password = '';
-$db_name = 'biotern_db';
+$db_user = defined('DB_USER') ? DB_USER : 'root';
+$db_password = defined('DB_PASS') ? DB_PASS : ''; 
+$db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
 
 try {
     $conn = new mysqli($host, $db_user, $db_password, $db_name);
@@ -52,7 +53,7 @@ $filter_department = isset($_GET['department_id']) ? (int)$_GET['department_id']
 $filter_section = isset($_GET['section_id']) ? (int)$_GET['section_id'] : 0;
 $filter_status = strtolower(trim((string)($_GET['status'] ?? '')));
 if (!in_array($filter_status, ['', 'active', 'inactive'], true)) {
-    $filter_status = '';
+    $filter_status = defined('DB_PASS') ? DB_PASS : ''; 
 }
 
 $courses = [];
@@ -170,7 +171,80 @@ if ($sectionRes) {
 $page_title = 'Sections';
 include 'includes/header.php';
 ?>
-<link rel="stylesheet" type="text/css" href="assets/css/management-sections-page.css">
+<style>
+    .filter-form .form-label {
+        margin-bottom: 0.35rem;
+    }
+
+    .filter-form .form-control,
+    .filter-form .form-select {
+        min-height: 42px;
+        border-radius: 8px;
+    }
+
+    .filter-form .select2-container .select2-selection--single {
+        min-height: 42px;
+        display: flex;
+        align-items: center;
+    }
+
+    .filter-form .select2-container--default .select2-selection--single .select2-selection__rendered {
+        line-height: 40px;
+        padding-left: 0.15rem;
+        padding-right: 1.75rem;
+        text-align: left;
+    }
+
+    .filter-form .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 40px;
+    }
+
+    html.app-skin-dark .filter-form .form-control,
+    html.app-skin-dark .filter-form .form-select,
+    html.app-skin-dark .filter-form .select2-container--default .select2-selection--single {
+        color: #f0f0f0 !important;
+        background-color: #0f172a !important;
+        border-color: #4a5568 !important;
+    }
+
+    html.app-skin-dark .filter-form .form-control::placeholder {
+        color: #93a4bf !important;
+        opacity: 1;
+    }
+
+    html.app-skin-dark .filter-form .select2-container--default .select2-selection--single .select2-selection__rendered {
+        color: #f0f0f0 !important;
+    }
+
+    html.app-skin-dark #filter-q {
+        color: #ffffff !important;
+        -webkit-text-fill-color: #ffffff !important;
+    }
+
+    html.app-skin-dark #filter-q::placeholder {
+        color: #ffffff !important;
+        opacity: 0.95;
+    }
+
+    html.app-skin-dark .filter-form .select2-container--default .select2-selection--single .select2-selection__arrow b {
+        border-top-color: #f0f0f0 !important;
+    }
+
+    html.app-skin-dark .filter-form .select2-container--default.select2-container--open .select2-dropdown {
+        background-color: #0f172a !important;
+        border-color: #4a5568 !important;
+    }
+
+    html.app-skin-dark .select2-results__option {
+        color: #f0f0f0 !important;
+        background-color: #0f172a !important;
+    }
+
+    html.app-skin-dark .select2-results__option--highlighted[aria-selected] {
+        background-color: #334155 !important;
+        color: #ffffff !important;
+    }
+</style>
 <div class="page-header">
     <div class="page-header-left d-flex align-items-center">
         <div class="page-header-title">
@@ -241,7 +315,7 @@ include 'includes/header.php';
                     </select>
                 </div>
                 <div class="col-xl-1 col-lg-2 col-md-4 d-flex gap-2">
-                    <a href="sections.php" class="btn btn-outline-secondary btn-sm px-3 py-1 w-100 app-fs-085">Reset</a>
+                    <a href="sections.php" class="btn btn-outline-secondary btn-sm px-3 py-1 w-100" style="font-size: 0.85rem;">Reset</a>
                 </div>
             </form>
         </div>
@@ -250,7 +324,7 @@ include 'includes/header.php';
     <div class="card stretch stretch-full">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="card-title mb-0">All Sections</h5>
-            <span class="badge bg-primary text-white px-3 py-1 text-center fw-semibold app-minw-72"><?php echo count($sections); ?> total</span>
+            <span class="badge bg-primary text-white px-3 py-1 text-center" style="font-weight:600; min-width:72px;"><?php echo count($sections); ?> total</span>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
@@ -279,6 +353,7 @@ include 'includes/header.php';
                                 <?php if ($hasSectionStatus || $hasSectionIsActive): ?>
                                     <td>
                                         <?php
+require_once dirname(__DIR__) . '/config/db.php';
                                         $activeFlag = $hasSectionStatus
                                             ? (string)($sec['status'] ?? '0')
                                             : (string)($sec['is_active'] ?? '0');
@@ -310,5 +385,45 @@ include 'includes/header.php';
     </div>
 </div>
 <?php include 'includes/footer.php'; ?>
-<script src="assets/js/management-sections-runtime.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    if (window.jQuery) {
+        ['#filter-course', '#filter-department', '#filter-section', '#filter-status'].forEach(function (selector) {
+            if ($(selector).length) {
+                $(selector).select2({
+                    width: '100%',
+                    allowClear: false,
+                    dropdownAutoWidth: false,
+                    minimumResultsForSearch: Infinity
+                });
+            }
+        });
+    }
+
+    var filterForm = document.getElementById('sectionsFilterForm');
+    var searchInput = document.getElementById('filter-q');
+    var timer;
+    function submitFilters() {
+        if (filterForm) filterForm.submit();
+    }
+    function debounceSubmit() {
+        clearTimeout(timer);
+        timer = setTimeout(submitFilters, 350);
+    }
+
+    ['filter-course', 'filter-department', 'filter-section', 'filter-status'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.addEventListener('change', submitFilters);
+    });
+    if (searchInput) searchInput.addEventListener('input', debounceSubmit);
+
+    if (window.jQuery) {
+        ['#filter-course', '#filter-department', '#filter-section', '#filter-status'].forEach(function (selector) {
+            if ($(selector).length) {
+                $(selector).on('select2:select select2:clear', submitFilters);
+            }
+        });
+    }
+});
+</script>
 

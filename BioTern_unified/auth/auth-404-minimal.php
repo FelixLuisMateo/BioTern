@@ -1,8 +1,3 @@
-<?php
-$script_name = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
-$asset_prefix = (strpos($script_name, '/auth/') !== false) ? '../' : '';
-$route_prefix = $asset_prefix;
-?>
 <!DOCTYPE html>
 <html lang="zxx">
 
@@ -18,18 +13,17 @@ $route_prefix = $asset_prefix;
     <title>BioTern || 404 Minimal</title>
     <!--! END:  Apps Title-->
     <!--! BEGIN: Favicon-->
-    <link rel="shortcut icon" type="image/x-icon" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/favicon.ico">
-    <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/js/theme-preload-init.min.js"></script>
+    <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
+    <script src="assets/js/theme-preload-init.min.js"></script>
     <!--! END: Favicon-->
     <!--! BEGIN: Bootstrap CSS-->
-    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css">
     <!--! END: Bootstrap CSS-->
     <!--! BEGIN: Vendors CSS-->
-    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/vendors/css/vendors.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/vendors/css/vendors.min.css">
     <!--! END: Vendors CSS-->
     <!--! BEGIN: Custom CSS-->
-    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/theme.min.css">
-    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/auth-404-minimal-page.css">
+    <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css">
     <!--! END: Custom CSS-->
     <!--! HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries !-->
     <!--! WARNING: Respond.js doesn"t work if you view the page via file: !-->
@@ -46,16 +40,16 @@ $route_prefix = $asset_prefix;
     <main class="auth-minimal-wrapper">
         <div class="auth-minimal-inner">
             <div class="minimal-card-wrapper">
-                <div class="card mb-4 mt-5 mx-4 mx-sm-0 position-relative auth-minimal-card">
-                    <div class="wd-50 bg-white p-2 rounded-circle shadow-lg position-absolute translate-middle top-0 start-50 auth-minimal-logo-badge">
-                        <img src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/logo-abbr.png" alt="" class="img-fluid">
+                <div class="card mb-4 mt-5 mx-4 mx-sm-0 position-relative">
+                    <div class="wd-50 bg-white p-2 rounded-circle shadow-lg position-absolute translate-middle top-0 start-50">
+                        <img src="assets/images/logo-abbr.png" alt="" class="img-fluid">
                     </div>
-                    <div class="card-body p-sm-5 text-center auth-minimal-body">
-                        <h2 class="fw-bolder mb-4 auth-minimal-code">4<span class="text-danger">0</span>4</h2>
+                    <div class="card-body p-sm-5 text-center">
+                        <h2 class="fw-bolder mb-4" style="font-size: 120px">4<span class="text-danger">0</span>4</h2>
                         <h4 class="fw-bold mb-2">Page not found</h4>
                         <p class="fs-12 fw-medium text-muted">Sorry, the page you are looking for can't be found. Please check the URL or try to a different page on our site.</p>
                         <div class="mt-5">
-                            <a href="<?php echo htmlspecialchars($route_prefix, ENT_QUOTES, 'UTF-8'); ?>index.php" class="btn btn-light-brand w-100">Back Home</a>
+                            <a href="index.php" class="btn btn-light-brand w-100">Back Home</a>
                         </div>
                     </div>
                 </div>
@@ -69,14 +63,14 @@ $route_prefix = $asset_prefix;
     <!--! Footer Script !-->
     <!--! ================================================================ !-->
     <!--! BEGIN: Vendors JS !-->
-    <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/vendors/js/vendors.min.js"></script>
+    <script src="assets/vendors/js/vendors.min.js"></script>
     <!-- vendors.min.js {always must need to be top} -->
     <!--! END: Vendors JS !-->
     <!--! BEGIN: Apps Init  !-->
-    <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/js/common-init.min.js"></script>
+    <script src="assets/js/common-init.min.js"></script>
     <!--! END: Apps Init !-->
     <!--! BEGIN: Theme Customizer  !-->
-    <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/js/theme-customizer-init.min.js"></script>
+    <script src="assets/js/theme-customizer-init.min.js"></script>
     <!--! END: Theme Customizer !-->
 </body>
 

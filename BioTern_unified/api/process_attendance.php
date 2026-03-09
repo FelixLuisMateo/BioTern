@@ -1,4 +1,5 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/ops_helpers.php';
 require_once dirname(__DIR__) . '/lib/attendance_rules.php';
 // Start session if not already started
@@ -10,7 +11,7 @@ if (session_status() === PHP_SESSION_NONE) {
 $host = 'localhost';
 $db_user = 'root';
 $db_password = '';
-$db_name = 'biotern_db';
+$db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
 
 header('Content-Type: application/json');
 
@@ -446,3 +447,5 @@ function notifyAttendanceOwners(mysqli $conn, array $attendance_ids, string $tit
     }
 }
 ?>
+
+

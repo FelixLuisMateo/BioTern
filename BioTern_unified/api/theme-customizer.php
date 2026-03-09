@@ -1,5 +1,5 @@
-<?php
-
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/includes/theme-preferences.php';
 
 header('Content-Type: application/json; charset=utf-8');
@@ -50,3 +50,4 @@ echo json_encode([
     'success' => true,
     'preferences' => $saved,
 ]);
+

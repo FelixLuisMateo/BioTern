@@ -1,14 +1,15 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/ops_helpers.php';
 require_once dirname(__DIR__) . '/lib/attendance_rules.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 // Database Connection
-$host = 'localhost';
-$db_user = 'root';
-$db_password = '';
-$db_name = 'biotern_db';
+$host = defined('DB_HOST') ? DB_HOST : 'localhost';
+$db_user = defined('DB_USER') ? DB_USER : 'root';
+$db_password = defined('DB_PASS') ? DB_PASS : ''; 
+$db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
 
 try {
     $conn = new mysqli($host, $db_user, $db_password, $db_name);
@@ -171,32 +172,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $attendance_id > 0) {
 }
 
 $conn->close();
-
-$page_title = 'BioTern || Edit Attendance';
-$page_styles = [
-    'assets/css/edit-attendance-page.css',
-];
-$page_scripts = [
-    'assets/js/theme-customizer-init.min.js',
-];
-
-include 'includes/header.php';
 ?>
-            <div class="page-header">
-                <div class="page-header-left d-flex align-items-center">
-                    <div class="page-header-title">
-                        <h5 class="m-b-10">Edit Attendance</h5>
-                    </div>
-                    <ul class="breadcrumb">
-                        <li class="breadcrumb-item"><a href="index.php">Home</a></li>
-                        <li class="breadcrumb-item"><a href="attendance.php">Attendance</a></li>
-                        <li class="breadcrumb-item">Edit</li>
-                    </ul>
-                </div>
-            </div>
 
-            <div class="main-content">
-                <div class="container edit-container">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Attendance - BioTern</title>
+    <link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/vendors/css/vendors.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css">
+    <style>
+        body { background-color: #f5f5f5; }
+        .edit-container { max-width: 800px; margin: 30px auto; }
+        .time-input { max-width: 150px; }
+        .status-badge { font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+    <div class="container edit-container">
         <?php if (isset($success_msg)): ?>
             <div class="alert alert-success alert-dismissible fade show" role="alert">
                 <?php echo $success_msg; ?>
@@ -221,15 +216,11 @@ include 'includes/header.php';
                     <!-- Student Info -->
                     <div class="row mb-4 pb-3 border-bottom">
                         <div class="col-md-2">
-                            <?php
-                                $student_picture_rel = ltrim(str_replace('\\', '/', (string)($student['picture'] ?? '')), '/');
-                                $student_picture_abs = $student_picture_rel !== '' ? dirname(__DIR__) . '/' . $student_picture_rel : '';
-                            ?>
-                            <?php if ($student_picture_rel !== '' && is_file($student_picture_abs)): ?>
+                            <?php if ($student['picture'] && file_exists(__DIR__ . '/' . $student['picture'])): ?>
                                 <img src="<?php echo htmlspecialchars($student['picture']); ?>" alt="Student" class="img-fluid rounded">
                             <?php else: ?>
                                 <div class="bg-light rounded p-3 text-center">
-                                    <div class="edit-attendance-avatar-fallback-initial">
+                                    <div style="font-size: 2rem; color: #999;">
                                         <?php echo strtoupper(substr($student['name'], 0, 1)); ?>
                                     </div>
                                 </div>
@@ -324,7 +315,10 @@ include 'includes/header.php';
                 </div>
             </div>
         <?php endif; ?>
-                </div>
-            </div>
+    </div>
+    
+    <script src="assets/vendors/js/vendors.min.js"></script>
+    <script src="assets/js/common-init.min.js"></script>
+</body>
+</html>
 
-<?php include 'includes/footer.php'; ?>

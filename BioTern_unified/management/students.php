@@ -1,4 +1,5 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -27,7 +28,7 @@ $is_student_user = ($current_role === 'student');
 $host = 'localhost';
 $db_user = 'root';
 $db_password = '';
-$db_name = 'biotern_db';
+$db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
 
 try {
     $conn = new mysqli($host, $db_user, $db_password, $db_name);
@@ -38,69 +39,6 @@ try {
     die("Database Error: " . $e->getMessage());
 }
 
-$studentColumns = [];
-$studentColRes = $conn->query("SHOW COLUMNS FROM students");
-if ($studentColRes) {
-    while ($col = $studentColRes->fetch_assoc()) {
-        $studentColumns[] = strtolower((string)($col['Field'] ?? ''));
-    }
-}
-$has_student_deleted_at = in_array('deleted_at', $studentColumns, true);
-$has_student_status_col = in_array('status', $studentColumns, true);
-
-if (isset($_GET['student_action']) && isset($_GET['id']) && !$is_student_user) {
-    $student_action = trim((string)$_GET['student_action']);
-    $target_student_id = (int)$_GET['id'];
-
-    $can_manage_student_actions = in_array($current_role, ['admin', 'coordinator', 'supervisor'], true);
-    $can_delete_students = in_array($current_role, ['admin', 'coordinator'], true);
-
-    if ($target_student_id > 0 && $can_manage_student_actions) {
-        $ok = false;
-        if ($student_action === 'archive' && $has_student_status_col) {
-            $stmt_archive = $conn->prepare("UPDATE students SET status = 0, updated_at = NOW() WHERE id = ? LIMIT 1");
-            if ($stmt_archive) {
-                $stmt_archive->bind_param('i', $target_student_id);
-                $ok = $stmt_archive->execute() && $stmt_archive->affected_rows >= 0;
-                $stmt_archive->close();
-            }
-            $_SESSION['students_flash_message'] = $ok ? 'Student archived.' : 'Unable to archive student.';
-            $_SESSION['students_flash_type'] = $ok ? 'success' : 'danger';
-        } elseif ($student_action === 'delete' && $can_delete_students) {
-            if ($has_student_deleted_at) {
-                $stmt_del = $conn->prepare("UPDATE students SET deleted_at = NOW(), updated_at = NOW() WHERE id = ? LIMIT 1");
-                if ($stmt_del) {
-                    $stmt_del->bind_param('i', $target_student_id);
-                    $ok = $stmt_del->execute() && $stmt_del->affected_rows > 0;
-                    $stmt_del->close();
-                }
-            } else {
-                $stmt_del = $conn->prepare("DELETE FROM students WHERE id = ? LIMIT 1");
-                if ($stmt_del) {
-                    $stmt_del->bind_param('i', $target_student_id);
-                    $ok = $stmt_del->execute() && $stmt_del->affected_rows > 0;
-                    $stmt_del->close();
-                }
-            }
-            $_SESSION['students_flash_message'] = $ok ? 'Student deleted.' : 'Unable to delete student (record may be linked).';
-            $_SESSION['students_flash_type'] = $ok ? 'success' : 'danger';
-        }
-    }
-
-    $redirect_qs = $_SERVER['QUERY_STRING'] ?? '';
-    if ($redirect_qs !== '') {
-        parse_str($redirect_qs, $redirect_arr);
-        unset($redirect_arr['student_action'], $redirect_arr['id']);
-        $redirect_qs = http_build_query($redirect_arr);
-    }
-    header('Location: students.php' . ($redirect_qs !== '' ? ('?' . $redirect_qs) : ''));
-    exit;
-}
-
-$flash_message = (string)($_SESSION['students_flash_message'] ?? '');
-$flash_type = (string)($_SESSION['students_flash_type'] ?? 'success');
-unset($_SESSION['students_flash_message'], $_SESSION['students_flash_type']);
-
 // Fetch Students Statistics
 $stats_query = "
     SELECT 
@@ -109,14 +47,12 @@ $stats_query = "
         SUM(CASE WHEN status = 0 THEN 1 ELSE 0 END) as inactive_students,
         SUM(CASE WHEN biometric_registered = 1 THEN 1 ELSE 0 END) as biometric_registered
     FROM students
-" . ($has_student_deleted_at ? " WHERE deleted_at IS NULL" : "") . "
 ";
 $stats_result = $conn->query($stats_query);
 $stats = $stats_result->fetch_assoc();
 
 // Prepare filter inputs
 $filter_date = isset($_GET['date']) ? trim((string)$_GET['date']) : '';
-$filter_school_year = isset($_GET['school_year_id']) ? intval($_GET['school_year_id']) : 0;
 $filter_course = isset($_GET['course_id']) ? intval($_GET['course_id']) : 0;
 $filter_department = isset($_GET['department_id']) ? intval($_GET['department_id']) : 0;
 $filter_section = isset($_GET['section_id']) ? intval($_GET['section_id']) : 0;
@@ -149,15 +85,6 @@ $courses_query .= " ORDER BY name ASC";
 $courses_res = $conn->query($courses_query);
 if ($courses_res && $courses_res->num_rows) {
     while ($r = $courses_res->fetch_assoc()) $courses[] = $r;
-}
-
-$school_years = [];
-$school_year_table_res = $conn->query("SHOW TABLES LIKE 'school_years'");
-if ($school_year_table_res && $school_year_table_res->num_rows > 0) {
-    $school_year_res = $conn->query("SELECT id, year FROM school_years ORDER BY year DESC");
-    if ($school_year_res && $school_year_res->num_rows) {
-        while ($r = $school_year_res->fetch_assoc()) $school_years[] = $r;
-    }
 }
 
 $departments = [];
@@ -196,10 +123,6 @@ if ($coor_res && $coor_res->num_rows) {
 
 // Build WHERE clauses depending on provided filters
 $where = [];
-if ($current_role === 'coordinator') {
-    // Restrict to students assigned to this coordinator
-    $where[] = "(i.coordinator_id = " . intval($current_user_id) . ")";
-}
 if ($filter_date !== '') {
     // Filter students that have attendance logs on the selected date.
     $safe_date = $conn->real_escape_string($filter_date);
@@ -207,17 +130,6 @@ if ($filter_date !== '') {
         SELECT 1 FROM attendances a_date
         WHERE a_date.student_id = s.id
           AND a_date.attendance_date = '{$safe_date}'
-    )";
-}
-if ($filter_school_year > 0) {
-    $where[] = "EXISTS (
-        SELECT 1
-        FROM internships i_sy
-        INNER JOIN school_years sy
-            ON CONVERT(sy.year USING utf8mb4) COLLATE utf8mb4_unicode_ci
-             = CONVERT(i_sy.school_year USING utf8mb4) COLLATE utf8mb4_unicode_ci
-        WHERE i_sy.student_id = s.id
-          AND sy.id = " . intval($filter_school_year) . "
     )";
 }
 if ($filter_course > 0) {
@@ -271,7 +183,6 @@ if ($filter_status >= 0) {
 $students_query = "
     SELECT 
         s.id,
-        s.user_id,
         s.student_id,
         s.first_name,
         s.middle_name,
@@ -316,7 +227,7 @@ $students_query = "
     LEFT JOIN internships i ON s.id = i.student_id AND i.status = 'ongoing'
     LEFT JOIN supervisors sup ON i.supervisor_id = sup.id
     LEFT JOIN coordinators coor ON i.coordinator_id = coor.id
-    " . ((count($where) > 0 || $has_student_deleted_at) ? "WHERE " . implode(' AND ', array_merge($has_student_deleted_at ? ["s.deleted_at IS NULL"] : [], $where)) : "") . "
+    " . (count($where) > 0 ? "WHERE " . implode(' AND ', $where) : "") . "
     ORDER BY s.first_name ASC
     LIMIT 100
 ";
@@ -391,37 +302,369 @@ usort($print_students, function ($a, $b) {
     return strcmp($a_last, $b_last);
 });
 
-$has_active_filters = (
-    $filter_date !== '' ||
-    $filter_school_year > 0 ||
-    $filter_course > 0 ||
-    $filter_department > 0 ||
-    $filter_section > 0 ||
-    $filter_supervisor !== '' ||
-    $filter_coordinator !== '' ||
-    $filter_status >= 0
-);
+?>
 
-?>
-<?php
-$page_title = 'BioTern || Students';
-$page_styles = array('assets/css/management-students-page.css');
-$page_scripts = array(
-    'assets/js/students-page-runtime.js',
-    'assets/js/theme-customizer-init.min.js',
-);
-include 'includes/header.php';
-?>
-    <section class="student-list-print-sheet app-students-print-sheet">
-        <img class="crest" src="assets/images/auth/auth-cover-login-bg.png" alt="crest" data-hide-onerror="1">
+<!DOCTYPE html>
+<html lang="zxx">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="keyword" content="">
+    <meta name="author" content="ACT 2A Group 5">
+    <title>BioTern || Students</title>
+    <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
+    <script src="assets/js/theme-preload-init.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/vendors/css/vendors.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/vendors/css/dataTables.bs5.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2-theme.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css">
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        main.nxl-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        div.nxl-content {
+            flex: 1;
+        }
+        footer.footer {
+            margin-top: auto;
+        }
+        
+        /* Dark mode select and Select2 styling */
+        select.form-control,
+        select.form-select,
+        .select2-container--default .select2-selection--single,
+        .select2-container--default .select2-selection--multiple {
+            color: #333;
+            background-color: #ffffff;
+        }
+        
+        /* Dark mode support for Select2 - using app-skin-dark class */
+        html.app-skin-dark .select2-container--default .select2-selection--single,
+        html.app-skin-dark .select2-container--default .select2-selection--multiple {
+            color: #f0f0f0 !important;
+            background-color: #0f172a !important;
+            border-color: #4a5568 !important;
+        }
+        
+        html.app-skin-dark .select2-container--default .select2-selection--single .select2-selection__rendered {
+            color: #f0f0f0 !important;
+        }
+        
+        /* Dark mode dropdown menu */
+        html.app-skin-dark .select2-container--default.select2-container--open .select2-dropdown {
+            background-color: #0f172a !important;
+            border-color: #4a5568 !important;
+        }
+        
+        html.app-skin-dark .select2-results__option {
+            color: #f0f0f0 !important;
+            background-color: #0f172a !important;
+        }
+        
+        html.app-skin-dark .select2-results__option--highlighted[aria-selected] {
+            background-color: #667eea !important;
+            color: #ffffff !important;
+        }
+        
+        html.app-skin-dark select.form-control,
+        html.app-skin-dark select.form-select {
+            color: #f0f0f0 !important;
+            background-color: #0f172a !important;
+            border-color: #4a5568 !important;
+        }
+        
+        html.app-skin-dark select.form-control option,
+        html.app-skin-dark select.form-select option {
+            color: #f0f0f0 !important;
+            background-color: #0f172a !important;
+        }
+
+        /* Filter row alignment */
+        .filter-form .form-label {
+            margin-bottom: 0.35rem;
+        }
+
+        /* Calendar input design */
+        .filter-form input[type="date"].form-control {
+            min-height: 42px;
+            border-radius: 8px;
+            padding-right: 2.25rem;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .filter-form input[type="date"].form-control:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.2);
+        }
+
+        html.app-skin-dark .filter-form input[type="date"].form-control {
+            color: #f0f0f0 !important;
+            background-color: #0f172a !important;
+            border-color: #4a5568 !important;
+        }
+
+        html.app-skin-dark .filter-form input[type="date"].form-control::-webkit-calendar-picker-indicator {
+            filter: invert(1) brightness(1.2);
+            opacity: 0.9;
+            cursor: pointer;
+        }
+
+        html.app-skin-dark .filter-form input[type="date"].form-control::-webkit-datetime-edit,
+        html.app-skin-dark .filter-form input[type="date"].form-control::-webkit-datetime-edit-text,
+        html.app-skin-dark .filter-form input[type="date"].form-control::-webkit-datetime-edit-month-field,
+        html.app-skin-dark .filter-form input[type="date"].form-control::-webkit-datetime-edit-day-field,
+        html.app-skin-dark .filter-form input[type="date"].form-control::-webkit-datetime-edit-year-field {
+            color: #f0f0f0;
+        }
+
+        .filter-form .select2-container .select2-selection--single {
+            min-height: 42px;
+            display: flex;
+            align-items: center;
+        }
+
+        .filter-form .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 40px;
+        }
+
+        .filter-form select.form-control {
+            text-align: left;
+            text-align-last: left;
+        }
+
+        .filter-form .select2-container--default .select2-selection--single .select2-selection__rendered {
+            text-align: left;
+            padding-left: 0.15rem;
+            padding-right: 1.75rem;
+        }
+
+        .filter-form .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 40px;
+        }
+
+        .filter-form .filter-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1.55rem;
+        }
+
+        .filter-form .filter-actions .btn {
+            min-height: 42px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Match ALL filter dropboxes with date picker color */
+        html.app-skin-dark .filter-form select.form-control,
+        html.app-skin-dark .filter-form select.form-select,
+        html.app-skin-dark .filter-form .select2-container--default .select2-selection--single {
+            color: #f0f0f0 !important;
+            background-color: #0f172a !important;
+            border-color: #4a5568 !important;
+        }
+
+        html.app-skin-dark .filter-form .select2-container--default .select2-selection--single .select2-selection__rendered {
+            color: #f0f0f0 !important;
+        }
+
+        html.app-skin-dark .filter-form .select2-container--default.select2-container--open .select2-dropdown,
+        html.app-skin-dark .filter-form .select2-results__option {
+            background-color: #2d3748 !important;
+            color: #f0f0f0 !important;
+            border-color: #4a5568 !important;
+        }
+
+        /* Keep filter/select controls below sidebar when mobile nav is open */
+        @media (max-width: 1024px) {
+            .nxl-navigation,
+            .nxl-navigation.mob-navigation-active {
+                z-index: 4000 !important;
+            }
+
+            .select2-container,
+            .select2-container--open,
+            .select2-dropdown,
+            .filter-form,
+            .nxl-content .row.mb-3 {
+                z-index: 1 !important;
+                position: relative;
+            }
+        }
+
+        /* Footer layout fix */
+        .footer {
+            flex-wrap: wrap;
+            row-gap: 0.5rem;
+            column-gap: 1rem;
+        }
+
+        .footer .footer-meta {
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            flex-wrap: wrap;
+        }
+
+        .footer .footer-links {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        @media (max-width: 575.98px) {
+            .footer {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+
+        .student-list-print-sheet {
+            display: none;
+        }
+
+        @media print {
+            body * {
+                visibility: hidden !important;
+            }
+
+            .student-list-print-sheet,
+            .student-list-print-sheet * {
+                visibility: visible !important;
+            }
+
+            .student-list-print-sheet {
+                display: block !important;
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                background: #ffffff;
+                color: #111111;
+                font-family: Arial, Helvetica, sans-serif;
+                font-size: 12px;
+                padding: 18px 24px;
+            }
+
+            .student-list-print-sheet .header {
+                position: relative;
+                min-height: 0.9in;
+                text-align: center;
+                border-bottom: 1px solid #8ab0e6;
+                padding: 0.08in 0 0.06in 0;
+                margin-bottom: 14px;
+            }
+
+            .student-list-print-sheet .crest {
+                position: absolute;
+                top: 0.22in;
+                left: 0.22in;
+                width: 0.77in;
+                height: 0.76in;
+                object-fit: contain;
+            }
+
+            .student-list-print-sheet .header h2 {
+                font-family: Calibri, Arial, sans-serif;
+                color: #1b4f9c;
+                font-size: 14pt;
+                margin: 6px 0 2px 0;
+                font-weight: 700;
+                text-transform: uppercase;
+            }
+
+            .student-list-print-sheet .header .meta {
+                font-family: Calibri, Arial, sans-serif;
+                color: #1b4f9c;
+                font-size: 10pt;
+            }
+
+            .student-list-print-sheet .header .tel {
+                font-family: Calibri, Arial, sans-serif;
+                color: #1b4f9c;
+                font-size: 12pt;
+            }
+
+            .student-list-print-sheet .print-title {
+                text-align: center;
+                font-size: 34px;
+                letter-spacing: 1px;
+                font-weight: 700;
+                margin: 26px 0 22px;
+            }
+
+            .student-list-print-sheet .print-meta {
+                margin-bottom: 14px;
+                font-size: 13px;
+            }
+
+            .student-list-print-sheet .print-meta strong {
+                min-width: 76px;
+                display: inline-block;
+            }
+
+            .student-list-print-sheet table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 12px;
+            }
+
+            .student-list-print-sheet th,
+            .student-list-print-sheet td {
+                border: 1px solid #d9d9d9;
+                padding: 8px 8px;
+                text-align: left;
+            }
+
+            .student-list-print-sheet th {
+                text-transform: uppercase;
+                font-weight: 700;
+                background: #f8f8f8;
+            }
+
+            .student-list-print-sheet td.col-index,
+            .student-list-print-sheet th.col-index {
+                width: 46px;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <section class="student-list-print-sheet">
+        <img class="crest" src="assets/images/auth/auth-cover-login-bg.png" alt="crest" onerror="this.style.display='none'">
         <div class="header">
             <h2>CLARK COLLEGE OF SCIENCE AND TECHNOLOGY</h2>
             <div class="meta">SNS Bldg. Aurea St., Samsonville Subd., Dau, Mabalacat, Pampanga &middot;</div>
             <div class="tel">Telefax No.: (045) 624-0215</div>
         </div>
         <div class="print-title">STUDENT SECTION LIST</div>
-        <div class="print-meta"><strong>SECTION:</strong> <?php echo htmlspecialchars($selected_section_label); ?></div>
-        <div class="print-meta"><strong>ADVISER:</strong> <?php echo htmlspecialchars($selected_adviser); ?></div>
+        <div class="print-meta"><strong>SECTION:</strong> <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($selected_section_label); ?></div>
+        <div class="print-meta"><strong>ADVISER:</strong> <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($selected_adviser); ?></div>
         <table>
             <thead>
                 <tr>
@@ -434,28 +677,181 @@ include 'includes/header.php';
                 </tr>
             </thead>
             <tbody>
-                <?php if (!empty($print_students)): ?>
-                    <?php foreach ($print_students as $i => $student): ?>
+                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if (!empty($print_students)): ?>
+                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($print_students as $i => $student): ?>
                         <tr>
-                            <td class="col-index"><?php echo (int)$i + 1; ?></td>
-                            <td><?php echo htmlspecialchars((string)($student['student_id'] ?? '')); ?></td>
-                            <td><?php echo htmlspecialchars((string)($student['last_name'] ?? '')); ?></td>
-                            <td><?php echo htmlspecialchars((string)($student['first_name'] ?? '')); ?></td>
-                            <td><?php echo htmlspecialchars((string)($student['middle_name'] ?? '')); ?></td>
+                            <td class="col-index"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$i + 1; ?></td>
+                            <td><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars((string)($student['student_id'] ?? '')); ?></td>
+                            <td><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars((string)($student['last_name'] ?? '')); ?></td>
+                            <td><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars((string)($student['first_name'] ?? '')); ?></td>
+                            <td><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars((string)($student['middle_name'] ?? '')); ?></td>
                             <td></td>
                         </tr>
-                    <?php endforeach; ?>
-                <?php else: ?>
+                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
+                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+else: ?>
                     <tr>
                         <td class="col-index">1</td>
                         <td colspan="5">No students found for current filter.</td>
                     </tr>
-                <?php endif; ?>
+                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
             </tbody>
         </table>
     </section>
 
+    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+include_once 'includes/navigation.php'; ?>
 
+    <!--! Header !-->
+    <header class="nxl-header">
+        <div class="header-wrapper">
+            <div class="header-left d-flex align-items-center gap-4">
+                <a href="javascript:void(0);" class="nxl-head-mobile-toggler" id="mobile-collapse">
+                    <div class="hamburger hamburger--arrowturn">
+                        <div class="hamburger-box">
+                            <div class="hamburger-inner"></div>
+                        </div>
+                    </div>
+                </a>
+                <div class="nxl-navigation-toggle">
+                    <a href="javascript:void(0);" id="menu-mini-button">
+                        <i class="feather-align-left"></i>
+                    </a>
+                    <a href="javascript:void(0);" id="menu-expend-button" style="display: none">
+                        <i class="feather-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="header-right ms-auto">
+                <div class="d-flex align-items-center">
+                    <div class="dropdown nxl-h-item nxl-header-search">
+                        <a href="javascript:void(0);" class="nxl-head-link me-0" data-bs-toggle="dropdown" data-bs-auto-close="outside">
+                            <i class="feather-search"></i>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-search-dropdown">
+                            <div class="input-group search-form">
+                                <span class="input-group-text">
+                                    <i class="feather-search fs-6 text-muted"></i>
+                                </span>
+                                <input type="text" class="form-control search-input-field" placeholder="Search....">
+                                <span class="input-group-text">
+                                    <button type="button" class="btn-close"></button>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="nxl-h-item d-none d-sm-flex">
+                        <div class="full-screen-switcher">
+                            <a href="javascript:void(0);" class="nxl-head-link me-0" onclick="$('body').fullScreenHelper('toggle');">
+                                <i class="feather-maximize maximize"></i>
+                                <i class="feather-minimize minimize"></i>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="nxl-h-item dark-light-theme">
+                        <a href="javascript:void(0);" class="nxl-head-link me-0 dark-button">
+                            <i class="feather-moon"></i>
+                        </a>
+                        <a href="javascript:void(0);" class="nxl-head-link me-0 light-button" style="display: none">
+                            <i class="feather-sun"></i>
+                        </a>
+                    </div>
+                    <div class="dropdown nxl-h-item">
+                        <a class="nxl-head-link me-3" data-bs-toggle="dropdown" href="#" role="button" data-bs-auto-close="outside">
+                            <i class="feather-bell"></i>
+                            <span class="badge bg-danger nxl-h-badge">3</span>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-notifications-menu">
+                            <div class="d-flex justify-content-between align-items-center notifications-head">
+                                <h6 class="fw-bold text-dark mb-0">Notifications</h6>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="dropdown nxl-h-item">
+                        <a href="javascript:void(0);" data-bs-toggle="dropdown" role="button" data-bs-auto-close="outside">
+                            <img src="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($current_profile_img, ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar me-0" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-user-dropdown">
+                            <div class="dropdown-header">
+                                <div class="d-flex align-items-center">
+                                    <img src="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($current_profile_img, ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
+                                    <div>
+                                        <h6 class="text-dark mb-0">
+                                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($current_user_name, ENT_QUOTES, 'UTF-8'); ?>
+                                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($current_user_role_badge !== ''): ?>
+                                                <span class="badge bg-soft-success text-success ms-1"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars(ucfirst($current_user_role_badge), ENT_QUOTES, 'UTF-8'); ?></span>
+                                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
+                                        </h6>
+                                        <span class="fs-12 fw-medium text-muted"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($current_user_email, ENT_QUOTES, 'UTF-8'); ?></span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="dropdown-divider"></div>
+                            <a href="users.php" class="dropdown-item">
+                                <i class="feather-user"></i>
+                                <span>Profile Details</span>
+                            </a>
+                            <a href="analytics.php" class="dropdown-item">
+                                <i class="feather-activity"></i>
+                                <span>Activity Feed</span>
+                            </a>
+                            <a href="analytics.php" class="dropdown-item">
+                                <i class="feather-bell"></i>
+                                <span>Notifications</span>
+                            </a>
+                            <a href="settings-general.php" class="dropdown-item">
+                                <i class="feather-settings"></i>
+                                <span>Account Settings</span>
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <a href="./auth-login-cover.php?logout=1" class="dropdown-item">
+                                <i class="feather-log-out"></i>
+                                <span>Logout</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!--! Main Content !-->
+    <main class="nxl-container">
+        <div class="nxl-content">
             <!-- Page Header -->
             <div class="page-header">
                 <div class="page-header-left d-flex align-items-center">
@@ -479,16 +875,25 @@ include 'includes/header.php';
                             <a href="javascript:void(0);" class="btn btn-icon btn-light-brand" data-bs-toggle="collapse" data-bs-target="#collapseOne">
                                 <i class="feather-bar-chart"></i>
                             </a>
-                            <button
-                                type="button"
-                                class="btn btn-icon btn-light-brand <?php echo $has_active_filters ? 'active' : ''; ?>"
-                                data-bs-toggle="collapse"
-                                data-bs-target="#studentsFiltersCollapse"
-                                aria-expanded="<?php echo $has_active_filters ? 'true' : 'false'; ?>"
-                                aria-controls="studentsFiltersCollapse"
-                            >
+                            <div class="dropdown">
+                                <a class="btn btn-icon btn-light-brand" data-bs-toggle="dropdown" data-bs-offset="0, 10" data-bs-auto-close="outside">
                                     <i class="feather-filter"></i>
-                            </button>
+                                </a>
+                                <div class="dropdown-menu dropdown-menu-end">
+                                    <a href="javascript:void(0);" class="dropdown-item">
+                                        <i class="feather-eye me-3"></i>
+                                        <span>All</span>
+                                    </a>
+                                    <a href="javascript:void(0);" class="dropdown-item">
+                                        <i class="feather-user-check me-3"></i>
+                                        <span>Active</span>
+                                    </a>
+                                    <a href="javascript:void(0);" class="dropdown-item">
+                                        <i class="feather-user-minus me-3"></i>
+                                        <span>Inactive</span>
+                                    </a>
+                                </div>
+                            </div>
                             <div class="dropdown">
                                 <a class="btn btn-icon btn-light-brand" data-bs-toggle="dropdown" data-bs-offset="0, 10" data-bs-auto-close="outside">
                                     <i class="feather-paperclip"></i>
@@ -540,98 +945,117 @@ include 'includes/header.php';
             </div>
 
             <!-- Filters -->
-            <div id="studentsFiltersCollapse" class="collapse <?php echo $has_active_filters ? 'show' : ''; ?> mb-3">
-                <div class="card app-students-filter-card border-0 mx-3">
-                    <div class="card-body p-3 p-lg-4">
-                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
-                            <div>
-                                <h6 class="mb-1">Filter Students</h6>
-                                <p class="text-muted mb-0">Narrow the list only when you need it.</p>
-                            </div>
-                            <?php if ($has_active_filters): ?>
-                                <span class="badge bg-primary-subtle text-primary-emphasis app-students-filter-badge">Filters active</span>
-                            <?php endif; ?>
+            <div class="row mb-3 px-3">
+                <div class="col-12">
+                    <form method="GET" class="filter-form row g-2 align-items-end" id="studentsFilterForm">
+                        <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
+                            <label class="form-label" for="filter-date">Date</label>
+                            <input id="filter-date" type="date" name="date" class="form-control" value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($_GET['date'] ?? ''); ?>">
                         </div>
-                        <form method="GET" class="filter-form app-students-filter-form row g-3 align-items-end" id="studentsFilterForm">
-                            <div class="col-xl-3 col-lg-4 col-md-6">
-                                <label class="form-label" for="filter-date">Date</label>
-                                <input id="filter-date" type="date" name="date" class="form-control" value="<?php echo htmlspecialchars($_GET['date'] ?? ''); ?>">
+                        <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
+                            <label class="form-label" for="filter-course">Course</label>
+                            <select id="filter-course" name="course_id" class="form-control">
+                                <option value="0">-- All Courses --</option>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($courses as $course): ?>
+                                    <option value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $course['id']; ?>" <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $filter_course == $course['id'] ? 'selected' : ''; ?>><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($course['name']); ?></option>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
+                            <label class="form-label" for="filter-department">Department</label>
+                            <select id="filter-department" name="department_id" class="form-control">
+                                <option value="0">-- All Departments --</option>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($departments as $dept): ?>
+                                    <option value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $dept['id']; ?>" <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $filter_department == $dept['id'] ? 'selected' : ''; ?>><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($dept['name']); ?></option>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
+                            <label class="form-label" for="filter-section">Section</label>
+                            <select id="filter-section" name="section_id" class="form-control">
+                                <option value="0">-- All Sections --</option>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($sections as $section): ?>
+                                    <option value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$section['id']; ?>" <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $filter_section == $section['id'] ? 'selected' : ''; ?>><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($section['section_label']); ?></option>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
+                            <label class="form-label" for="filter-supervisor">Supervisor</label>
+                            <select id="filter-supervisor" name="supervisor" class="form-control">
+                                <option value="">-- Any Supervisor --</option>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($supervisors as $sup): ?>
+                                    <option value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($sup); ?>" <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $filter_supervisor == $sup ? 'selected' : ''; ?>><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($sup); ?></option>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
+                            <label class="form-label" for="filter-coordinator">Coordinator</label>
+                            <select id="filter-coordinator" name="coordinator" class="form-control">
+                                <option value="">-- Any Coordinator --</option>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($coordinators as $coor): ?>
+                                    <option value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($coor); ?>" <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $filter_coordinator == $coor ? 'selected' : ''; ?>><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($coor); ?></option>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
+                            <label class="form-label d-block invisible">Actions</label>
+                            <div class="d-flex gap-1" style="align-items: flex-end;">
+                                <a href="students.php" class="btn btn-outline-secondary btn-sm px-3 py-1" style="font-size: 0.85rem;">Reset</a>
                             </div>
-                            <div class="col-xl-3 col-lg-4 col-md-6">
-                                <label class="form-label" for="filter-school-year">School Year</label>
-                                <select id="filter-school-year" name="school_year_id" class="form-control">
-                                    <option value="0">-- All School Years --</option>
-                                    <?php foreach ($school_years as $school_year): ?>
-                                        <option value="<?php echo (int)$school_year['id']; ?>" <?php echo $filter_school_year == $school_year['id'] ? 'selected' : ''; ?>>
-                                            <?php echo htmlspecialchars((string)$school_year['year']); ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                            <div class="col-xl-3 col-lg-4 col-md-6">
-                                <label class="form-label" for="filter-course">Course</label>
-                                <select id="filter-course" name="course_id" class="form-control">
-                                    <option value="0">-- All Courses --</option>
-                                    <?php foreach ($courses as $course): ?>
-                                        <option value="<?php echo $course['id']; ?>" <?php echo $filter_course == $course['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($course['name']); ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                            <div class="col-xl-3 col-lg-4 col-md-6">
-                                <label class="form-label" for="filter-department">Department</label>
-                                <select id="filter-department" name="department_id" class="form-control">
-                                    <option value="0">-- All Departments --</option>
-                                    <?php foreach ($departments as $dept): ?>
-                                        <option value="<?php echo $dept['id']; ?>" <?php echo $filter_department == $dept['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($dept['name']); ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                            <div class="col-xl-3 col-lg-4 col-md-6">
-                                <label class="form-label" for="filter-section">Section</label>
-                                <select id="filter-section" name="section_id" class="form-control">
-                                    <option value="0">-- All Sections --</option>
-                                    <?php foreach ($sections as $section): ?>
-                                        <option value="<?php echo (int)$section['id']; ?>" <?php echo $filter_section == $section['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($section['section_label']); ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                            <div class="col-xl-3 col-lg-4 col-md-6">
-                                <label class="form-label" for="filter-supervisor">Supervisor</label>
-                                <select id="filter-supervisor" name="supervisor" class="form-control">
-                                    <option value="">-- Any Supervisor --</option>
-                                    <?php foreach ($supervisors as $sup): ?>
-                                        <option value="<?php echo htmlspecialchars($sup); ?>" <?php echo $filter_supervisor == $sup ? 'selected' : ''; ?>><?php echo htmlspecialchars($sup); ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                            <div class="col-xl-3 col-lg-4 col-md-6">
-                                <label class="form-label" for="filter-coordinator">Coordinator</label>
-                                <select id="filter-coordinator" name="coordinator" class="form-control">
-                                    <option value="">-- Any Coordinator --</option>
-                                    <?php foreach ($coordinators as $coor): ?>
-                                        <option value="<?php echo htmlspecialchars($coor); ?>" <?php echo $filter_coordinator == $coor ? 'selected' : ''; ?>><?php echo htmlspecialchars($coor); ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                            <div class="col-xl-3 col-lg-4 col-md-6">
-                                <label class="form-label" for="filter-status">Status</label>
-                                <select id="filter-status" name="status" class="form-control">
-                                    <option value="-1" <?php echo $filter_status === -1 ? 'selected' : ''; ?>>-- All Statuses --</option>
-                                    <option value="1" <?php echo $filter_status === 1 ? 'selected' : ''; ?>>Active</option>
-                                    <option value="0" <?php echo $filter_status === 0 ? 'selected' : ''; ?>>Inactive</option>
-                                </select>
-                            </div>
-                            <div class="col-12">
-                                <div class="filter-actions">
-                                    <button type="submit" class="btn btn-primary">
-                                        <i class="feather-search me-2"></i>
-                                        <span>Apply Filters</span>
-                                    </button>
-                                    <a href="students.php" class="btn btn-outline-secondary">Reset</a>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
+                        </div>
+                    </form>
                 </div>
             </div>
 
@@ -649,7 +1073,9 @@ include 'includes/header.php';
                                             </div>
                                             <a href="javascript:void(0);" class="fw-bold d-block">
                                                 <span class="text-truncate-1-line">Total Students</span>
-                                                <span class="fs-24 fw-bolder d-block"><?php echo $stats['total_students'] ? $stats['total_students'] : '0'; ?></span>
+                                                <span class="fs-24 fw-bolder d-block"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $stats['total_students'] ? $stats['total_students'] : '0'; ?></span>
                                             </a>
                                         </div>
                                     </div>
@@ -666,7 +1092,9 @@ include 'includes/header.php';
                                             </div>
                                             <a href="javascript:void(0);" class="fw-bold d-block">
                                                 <span class="text-truncate-1-line">Active Students</span>
-                                                <span class="fs-24 fw-bolder d-block"><?php echo $stats['active_students'] ? $stats['active_students'] : '0'; ?></span>
+                                                <span class="fs-24 fw-bolder d-block"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $stats['active_students'] ? $stats['active_students'] : '0'; ?></span>
                                             </a>
                                         </div>
                                     </div>
@@ -683,7 +1111,9 @@ include 'includes/header.php';
                                             </div>
                                             <a href="javascript:void(0);" class="fw-bold d-block">
                                                 <span class="text-truncate-1-line">Inactive Students</span>
-                                                <span class="fs-24 fw-bolder d-block"><?php echo $stats['inactive_students'] ? $stats['inactive_students'] : '0'; ?></span>
+                                                <span class="fs-24 fw-bolder d-block"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $stats['inactive_students'] ? $stats['inactive_students'] : '0'; ?></span>
                                             </a>
                                         </div>
                                     </div>
@@ -700,7 +1130,9 @@ include 'includes/header.php';
                                             </div>
                                             <a href="javascript:void(0);" class="fw-bold d-block">
                                                 <span class="text-truncate-1-line">Biometric Registered</span>
-                                                <span class="fs-24 fw-bolder d-block"><?php echo $stats['biometric_registered'] ? $stats['biometric_registered'] : '0'; ?></span>
+                                                <span class="fs-24 fw-bolder d-block"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $stats['biometric_registered'] ? $stats['biometric_registered'] : '0'; ?></span>
                                             </a>
                                         </div>
                                     </div>
@@ -712,16 +1144,13 @@ include 'includes/header.php';
             </div>
 
             <!-- Main Content -->
-            <div class="main-content app-students-main-content">
-                <?php if ($flash_message !== ''): ?>
-                    <div class="alert alert-<?php echo htmlspecialchars($flash_type); ?> mx-3 mb-3"><?php echo htmlspecialchars($flash_message); ?></div>
-                <?php endif; ?>
+            <div class="main-content">
                 <div class="row">
                     <div class="col-lg-12">
-                        <div class="card stretch stretch-full app-students-table-card">
+                        <div class="card stretch stretch-full">
                             <div class="card-body p-0">
                                 <div class="table-responsive">
-                                    <table class="table table-hover app-students-list-table" id="customerList">
+                                    <table class="table table-hover" id="customerList">
                                         <thead>
                                             <tr>
                                                 <th class="wd-30">
@@ -744,22 +1173,33 @@ include 'includes/header.php';
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <?php if (count($students) > 0): ?>
-                                                <?php foreach ($students as $index => $student): ?>
+                                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if (count($students) > 0): ?>
+                                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($students as $index => $student): ?>
                                                     <tr class="single-item">
                                                         <td>
                                                             <div class="item-checkbox ms-1">
                                                                 <div class="custom-control custom-checkbox">
-                                                                    <input type="checkbox" class="custom-control-input checkbox" id="checkBox_<?php echo $student['id']; ?>">
-                                                                    <label class="custom-control-label" for="checkBox_<?php echo $student['id']; ?>"></label>
+                                                                    <input type="checkbox" class="custom-control-input checkbox" id="checkBox_<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $student['id']; ?>">
+                                                                    <label class="custom-control-label" for="checkBox_<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $student['id']; ?>"></label>
                                                                 </div>
                                                             </div>
                                                         </td>
                                                         <td>
-                                                            <a href="students-view.php?id=<?php echo $student['id']; ?>" class="hstack gap-3">
+                                                            <a href="students-view.php?id=<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $student['id']; ?>" class="hstack gap-3">
                                                                 <div class="avatar-image avatar-md">
                                                                     <?php
-                                                                    $pp = $student['profile_picture'] ?? '';
+require_once dirname(__DIR__) . '/config/db.php';
+$pp = $student['profile_picture'] ?? '';
                                                                     $pp_url = resolve_profile_image_url($pp);
                                                                     if ($pp_url !== null) {
                                                                         echo '<img src="' . htmlspecialchars($pp_url) . '" alt="" class="img-fluid">';
@@ -769,74 +1209,102 @@ include 'includes/header.php';
                                                                     ?>
                                                                 </div>
                                                                 <div>
-                                                                    <span class="text-truncate-1-line"><?php echo htmlspecialchars($student['first_name'] . ' ' . $student['last_name']); ?></span>
+                                                                    <span class="text-truncate-1-line"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($student['first_name'] . ' ' . $student['last_name']); ?></span>
                                                                 </div>
                                                             </a>
                                                         </td>
-                                                        <td><a href="students-view.php?id=<?php echo $student['id']; ?>"><?php echo htmlspecialchars($student['student_id']); ?></a></td>
-                                                        <td><span><?php echo htmlspecialchars($student['course_name'] ?? 'N/A'); ?></span></td>
-                                                        <td><span><?php echo htmlspecialchars($student['section_name'] ?? '-'); ?></span></td>
-                                                        <td><span><?php echo htmlspecialchars($student['supervisor_name'] ?? '-'); ?></span></td>
-                                                        <td><span><?php echo htmlspecialchars($student['coordinator_name'] ?? '-'); ?></span></td>
-                                                        <td><?php echo formatDate($student['created_at']); ?></td>
-                                                        <td><?php echo getStatusBadge($student['live_clock_status']); ?></td>
+                                                        <td><a href="students-view.php?id=<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $student['id']; ?>"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($student['student_id']); ?></a></td>
+                                                        <td><a href="javascript:void(0);"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($student['course_name'] ?? 'N/A'); ?></a></td>
+                                                        <td><a href="javascript:void(0);"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($student['section_name'] ?? '-'); ?></a></td>
+                                                        <td><a href="javascript:void(0);"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($student['supervisor_name'] ?? '-'); ?></a></td>
+                                                        <td><a href="javascript:void(0);"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($student['coordinator_name'] ?? '-'); ?></a></td>
+                                                        <td><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo formatDate($student['created_at']); ?></td>
+                                                        <td><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo getStatusBadge($student['live_clock_status']); ?></td>
                                                         <td>
                                                             <div class="hstack gap-2 justify-content-end">
-                                                                <a href="students-view.php?id=<?php echo $student['id']; ?>" class="avatar-text avatar-md" title="View">
+                                                                <a href="students-view.php?id=<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $student['id']; ?>" class="avatar-text avatar-md" title="View">
                                                                     <i class="feather feather-eye"></i>
                                                                 </a>
-                                                                <?php if (!$is_student_user): ?>
+                                                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if (!$is_student_user): ?>
                                                                     <div class="dropdown">
                                                                         <a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="dropdown" data-bs-offset="0,21">
                                                                             <i class="feather feather-more-horizontal"></i>
                                                                         </a>
                                                                         <ul class="dropdown-menu">
                                                                             <li>
-                                                                                <a class="dropdown-item" href="students-edit.php?id=<?php echo (int)$student['id']; ?>">
+                                                                                <a class="dropdown-item" href="javascript:void(0)">
                                                                                     <i class="feather feather-edit-3 me-3"></i>
                                                                                     <span>Edit</span>
                                                                                 </a>
                                                                             </li>
                                                                             <li>
-                                                                                <a class="dropdown-item" href="students-dtr.php?id=<?php echo (int)$student['id']; ?>">
+                                                                                <a class="dropdown-item printBTN" href="javascript:void(0)">
                                                                                     <i class="feather feather-printer me-3"></i>
                                                                                     <span>Print</span>
                                                                                 </a>
                                                                             </li>
                                                                             <li>
-                                                                                <a class="dropdown-item" href="messages.php?receiver_id=<?php echo (int)($student['user_id'] ?? 0); ?>">
+                                                                                <a class="dropdown-item" href="javascript:void(0)">
                                                                                     <i class="feather feather-clock me-3"></i>
                                                                                     <span>Remind</span>
                                                                                 </a>
                                                                             </li>
                                                                             <li class="dropdown-divider"></li>
                                                                             <li>
-                                                                                <a class="dropdown-item" href="students.php?student_action=archive&id=<?php echo (int)$student['id']; ?>" onclick="return confirm('Archive this student?');">
+                                                                                <a class="dropdown-item" href="javascript:void(0)">
                                                                                     <i class="feather feather-archive me-3"></i>
                                                                                     <span>Archive</span>
                                                                                 </a>
                                                                             </li>
                                                                             <li>
-                                                                                <a class="dropdown-item" href="students-view.php?id=<?php echo (int)$student['id']; ?>#activityTab">
+                                                                                <a class="dropdown-item" href="javascript:void(0)">
                                                                                     <i class="feather feather-alert-octagon me-3"></i>
                                                                                     <span>Report Spam</span>
                                                                                 </a>
                                                                             </li>
                                                                             <li class="dropdown-divider"></li>
                                                                             <li>
-                                                                                <a class="dropdown-item" href="students.php?student_action=delete&id=<?php echo (int)$student['id']; ?>" onclick="return confirm('Delete this student?');">
+                                                                                <a class="dropdown-item" href="javascript:void(0)">
                                                                                     <i class="feather feather-trash-2 me-3"></i>
                                                                                     <span>Delete</span>
                                                                                 </a>
                                                                             </li>
                                                                         </ul>
                                                                     </div>
-                                                                <?php endif; ?>
+                                                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
                                                             </div>
                                                         </td>
                                                     </tr>
-                                                <?php endforeach; ?>
-                                            <?php endif; ?>
+                                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
+                                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
                                         </tbody>
                                     </table>
                                 </div>
@@ -846,6 +1314,88 @@ include 'includes/header.php';
                 </div>
             </div>
         </div>
-<?php include 'includes/footer.php'; ?>
+        <!-- [ Footer ] start -->
+        <footer class="footer">
+            <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
+                <span>Copyright Â©</span>
+                <script>
+                    document.write(new Date().getFullYear());
+                </script>
+            </p>
+            <p class="footer-meta fs-12 mb-0">
+                <span>By: <a href="javascript:void(0);">ACT 2A</a></span>
+                <span>Distributed by: <a href="javascript:void(0);">Group 5</a></span>
+            </p>
+            <div class="footer-links">
+                <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Help</a>
+                <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Terms</a>
+                <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Privacy</a>
+            </div>
+        </footer>
+        <!-- [ Footer ] end -->
+    </main>
+
+    <!-- Scripts -->
+    <script src="assets/vendors/js/vendors.min.js"></script>
+    <script src="assets/vendors/js/dataTables.min.js"></script>
+    <script src="assets/vendors/js/dataTables.bs5.min.js"></script>
+    <script src="assets/vendors/js/select2.min.js"></script>
+    <script src="assets/vendors/js/select2-active.min.js"></script>
+    <script src="assets/js/common-init.min.js"></script>
+    <script src="assets/js/customers-init.min.js"></script>
+    <script src="assets/js/theme-customizer-init.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Do not reinitialize DataTable here; `customers-init.min.js` handles it.
+            if (window.jQuery) {
+                ['#filter-course', '#filter-department', '#filter-section'].forEach(function (selector) {
+                    if ($(selector).length) {
+                        $(selector).select2({
+                            width: '100%',
+                            allowClear: false,
+                            dropdownAutoWidth: false,
+                            minimumResultsForSearch: Infinity
+                        });
+                    }
+                });
+
+                ['#filter-supervisor', '#filter-coordinator'].forEach(function (selector) {
+                    if ($(selector).length) {
+                        $(selector).select2({
+                            width: '100%',
+                            allowClear: false,
+                            dropdownAutoWidth: false
+                        });
+                    }
+                });
+            }
+
+            var filterForm = document.getElementById('studentsFilterForm');
+            function submitFilters() {
+                if (filterForm) filterForm.submit();
+            }
+            ['filter-date', 'filter-course', 'filter-department', 'filter-section', 'filter-supervisor', 'filter-coordinator'].forEach(function (id) {
+                var el = document.getElementById(id);
+                if (el) el.addEventListener('change', submitFilters);
+            });
+            if (window.jQuery) {
+                ['#filter-course', '#filter-department', '#filter-section', '#filter-supervisor', '#filter-coordinator'].forEach(function (selector) {
+                    if ($(selector).length) {
+                        $(selector).on('select2:select select2:clear', submitFilters);
+                    }
+                });
+            }
+
+            document.querySelectorAll('.js-print-page').forEach(function (btn) {
+                btn.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    window.print();
+                });
+            });
+        });
+    </script>
+</body>
+</html>
+
 
 

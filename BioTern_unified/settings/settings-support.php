@@ -1,8 +1,9 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 $dbHost = '127.0.0.1';
 $dbUser = 'root';
 $dbPass = '';
-$dbName = 'biotern_db';
+$dbName = defined('DB_NAME') ? DB_NAME : 'biotern_db';
 
 function support_h($value) {
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
@@ -217,166 +218,270 @@ include 'includes/header.php';
                         </div>
                     </div>
                     <div class="content-area-body">
-                        <?php if ($support_success !== ''): ?>
-                            <div class="alert alert-success" role="alert"><?php echo support_h($support_success); ?></div>
-                        <?php endif; ?>
-                        <?php if ($support_error !== ''): ?>
-                            <div class="alert alert-danger" role="alert"><?php echo support_h($support_error); ?></div>
-                        <?php endif; ?>
+                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($support_success !== ''): ?>
+                            <div class="alert alert-success" role="alert"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo support_h($support_success); ?></div>
+                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
+                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($support_error !== ''): ?>
+                            <div class="alert alert-danger" role="alert"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo support_h($support_error); ?></div>
+                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
                         <div class="card mb-0">
                             <form id="supportSettingsForm" method="post" action="settings-support.php">
                             <div class="card-body">
                                 <div class="mb-5">
                                     <label class="form-label">Default status selected when replying to ticket</label>
                                     <select name="default_reply_status" class="form-select" data-select2-selector="status">
-                                        <option value="open" data-bg="bg-dark"<?php echo support_is_selected(support_pick($support_settings, 'default_reply_status'), 'open'); ?>>Open</option>
-                                        <option value="in_progress" data-bg="bg-primary"<?php echo support_is_selected(support_pick($support_settings, 'default_reply_status'), 'in_progress'); ?>>In Progress</option>
-                                        <option value="answered" data-bg="bg-danger"<?php echo support_is_selected(support_pick($support_settings, 'default_reply_status'), 'answered'); ?>>Answered</option>
-                                        <option value="on_hold" data-bg="bg-success"<?php echo support_is_selected(support_pick($support_settings, 'default_reply_status'), 'on_hold'); ?>>On Hold</option>
-                                        <option value="closed" data-bg="bg-warning"<?php echo support_is_selected(support_pick($support_settings, 'default_reply_status'), 'closed'); ?>>Closed</option>
+                                        <option value="open" data-bg="bg-dark"<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo support_is_selected(support_pick($support_settings, 'default_reply_status'), 'open'); ?>>Open</option>
+                                        <option value="in_progress" data-bg="bg-primary"<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo support_is_selected(support_pick($support_settings, 'default_reply_status'), 'in_progress'); ?>>In Progress</option>
+                                        <option value="answered" data-bg="bg-danger"<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo support_is_selected(support_pick($support_settings, 'default_reply_status'), 'answered'); ?>>Answered</option>
+                                        <option value="on_hold" data-bg="bg-success"<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo support_is_selected(support_pick($support_settings, 'default_reply_status'), 'on_hold'); ?>>On Hold</option>
+                                        <option value="closed" data-bg="bg-warning"<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo support_is_selected(support_pick($support_settings, 'default_reply_status'), 'closed'); ?>>Closed</option>
                                     </select>
                                     <small class="form-text text-muted">Default status selected when replying to ticket [Ex: Open/Closed/Answered]</small>
                                 </div>
                                 <div class="mb-5">
                                     <label class="form-label">Default priority on piped ticket</label>
                                     <select name="default_piped_priority" class="form-select" data-select2-selector="priority">
-                                        <option value="low" data-bg="bg-dark"<?php echo support_is_selected(support_pick($support_settings, 'default_piped_priority'), 'low'); ?>>Low</option>
-                                        <option value="medium" data-bg="bg-primary"<?php echo support_is_selected(support_pick($support_settings, 'default_piped_priority'), 'medium'); ?>>Medium</option>
-                                        <option value="high" data-bg="bg-danger"<?php echo support_is_selected(support_pick($support_settings, 'default_piped_priority'), 'high'); ?>>High</option>
-                                        <option value="urgent" data-bg="bg-success"<?php echo support_is_selected(support_pick($support_settings, 'default_piped_priority'), 'urgent'); ?>>Urgent</option>
-                                        <option value="closed" data-bg="bg-warning"<?php echo support_is_selected(support_pick($support_settings, 'default_piped_priority'), 'closed'); ?>>Closed</option>
+                                        <option value="low" data-bg="bg-dark"<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo support_is_selected(support_pick($support_settings, 'default_piped_priority'), 'low'); ?>>Low</option>
+                                        <option value="medium" data-bg="bg-primary"<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo support_is_selected(support_pick($support_settings, 'default_piped_priority'), 'medium'); ?>>Medium</option>
+                                        <option value="high" data-bg="bg-danger"<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo support_is_selected(support_pick($support_settings, 'default_piped_priority'), 'high'); ?>>High</option>
+                                        <option value="urgent" data-bg="bg-success"<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo support_is_selected(support_pick($support_settings, 'default_piped_priority'), 'urgent'); ?>>Urgent</option>
+                                        <option value="closed" data-bg="bg-warning"<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo support_is_selected(support_pick($support_settings, 'default_piped_priority'), 'closed'); ?>>Closed</option>
                                     </select>
                                     <small class="form-text text-muted">Default priority on piped ticket [Ex: Low/Medium/High/Urgent/Closed]</small>
                                 </div>
                                 <div class="mb-5">
                                     <label class="form-label">Allowed attachments file extensions</label>
                                     <select name="allowed_extensions[]" class="form-select" data-select2-selector="label" multiple>
-                                        <option value=".jpg" data-bg="bg-primary"<?php echo in_array('.jpg', $selected_extensions, true) ? ' selected' : ''; ?>>.jpg</option>
-                                        <option value=".png" data-bg="bg-success"<?php echo in_array('.png', $selected_extensions, true) ? ' selected' : ''; ?>>.png</option>
-                                        <option value=".pdf" data-bg="bg-danger"<?php echo in_array('.pdf', $selected_extensions, true) ? ' selected' : ''; ?>>.pdf</option>
-                                        <option value=".doc" data-bg="bg-secondary"<?php echo in_array('.doc', $selected_extensions, true) ? ' selected' : ''; ?>>.doc</option>
-                                        <option value=".zip" data-bg="bg-dark"<?php echo in_array('.zip', $selected_extensions, true) ? ' selected' : ''; ?>>.zip</option>
-                                        <option value=".rar" data-bg="bg-warning"<?php echo in_array('.rar', $selected_extensions, true) ? ' selected' : ''; ?>>.rar</option>
+                                        <option value=".jpg" data-bg="bg-primary"<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo in_array('.jpg', $selected_extensions, true) ? ' selected' : ''; ?>>.jpg</option>
+                                        <option value=".png" data-bg="bg-success"<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo in_array('.png', $selected_extensions, true) ? ' selected' : ''; ?>>.png</option>
+                                        <option value=".pdf" data-bg="bg-danger"<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo in_array('.pdf', $selected_extensions, true) ? ' selected' : ''; ?>>.pdf</option>
+                                        <option value=".doc" data-bg="bg-secondary"<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo in_array('.doc', $selected_extensions, true) ? ' selected' : ''; ?>>.doc</option>
+                                        <option value=".zip" data-bg="bg-dark"<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo in_array('.zip', $selected_extensions, true) ? ' selected' : ''; ?>>.zip</option>
+                                        <option value=".rar" data-bg="bg-warning"<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo in_array('.rar', $selected_extensions, true) ? ' selected' : ''; ?>>.rar</option>
                                     </select>
                                     <small class="form-text text-muted">Allowed attachments file extensions [Ex: Facebook/Google/Others]</small>
                                 </div>
                                 <div class="mb-5">
                                     <label class="form-label">Ticket Replies Order</label>
                                     <select name="ticket_replies_order" class="form-select" data-select2-selector="label">
-                                        <option value="ascending" data-bg="bg-primary"<?php echo support_is_selected(support_pick($support_settings, 'ticket_replies_order'), 'ascending'); ?>>Ascending</option>
-                                        <option value="descending" data-bg="bg-success"<?php echo support_is_selected(support_pick($support_settings, 'ticket_replies_order'), 'descending'); ?>>Descending</option>
+                                        <option value="ascending" data-bg="bg-primary"<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo support_is_selected(support_pick($support_settings, 'ticket_replies_order'), 'ascending'); ?>>Ascending</option>
+                                        <option value="descending" data-bg="bg-success"<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo support_is_selected(support_pick($support_settings, 'ticket_replies_order'), 'descending'); ?>>Descending</option>
                                     </select>
                                     <small class="form-text text-muted">Ticket Replies Order [Ex: Ascending/Descending]</small>
                                 </div>
                                 <div class="mb-5">
                                     <label class="form-label">Allow staff to access only ticket that belongs to staff departments </label>
                                     <select name="staff_dept_only_access" class="form-select" data-select2-selector="icon">
-                                        <option value="1" data-icon="feather-check text-success"<?php echo support_is_selected(support_pick($support_settings, 'staff_dept_only_access'), '1'); ?>>Yes</option>
-                                        <option value="0" data-icon="feather-x text-danger"<?php echo support_is_selected(support_pick($support_settings, 'staff_dept_only_access'), '0'); ?>>No</option>
+                                        <option value="1" data-icon="feather-check text-success"<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo support_is_selected(support_pick($support_settings, 'staff_dept_only_access'), '1'); ?>>Yes</option>
+                                        <option value="0" data-icon="feather-x text-danger"<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo support_is_selected(support_pick($support_settings, 'staff_dept_only_access'), '0'); ?>>No</option>
                                     </select>
                                     <small class="form-text text-muted">Allow staff to access only ticket that belongs to staff departments [Ex: Yes/No]</small>
                                 </div>
                                 <div class="mb-5">
                                     <label class="form-label">Send staff-related ticket notifications to the ticket assignee only </label>
                                     <select name="notify_assignee_only" class="form-select" data-select2-selector="icon">
-                                        <option value="1" data-icon="feather-check text-success"<?php echo support_is_selected(support_pick($support_settings, 'notify_assignee_only'), '1'); ?>>Yes</option>
-                                        <option value="0" data-icon="feather-x text-danger"<?php echo support_is_selected(support_pick($support_settings, 'notify_assignee_only'), '0'); ?>>No</option>
+                                        <option value="1" data-icon="feather-check text-success"<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo support_is_selected(support_pick($support_settings, 'notify_assignee_only'), '1'); ?>>Yes</option>
+                                        <option value="0" data-icon="feather-x text-danger"<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo support_is_selected(support_pick($support_settings, 'notify_assignee_only'), '0'); ?>>No</option>
                                     </select>
                                     <small class="form-text text-muted">Send staff-related ticket notifications to the ticket assignee only [Ex: Yes/No]</small>
                                 </div>
                                 <div class="mb-5">
                                     <label class="form-label"> Receive notification on new ticket opened </label>
                                     <select name="notify_new_ticket" class="form-select" data-select2-selector="icon">
-                                        <option value="1" data-icon="feather-check text-success"<?php echo support_is_selected(support_pick($support_settings, 'notify_new_ticket'), '1'); ?>>Yes</option>
-                                        <option value="0" data-icon="feather-x text-danger"<?php echo support_is_selected(support_pick($support_settings, 'notify_new_ticket'), '0'); ?>>No</option>
+                                        <option value="1" data-icon="feather-check text-success"<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo support_is_selected(support_pick($support_settings, 'notify_new_ticket'), '1'); ?>>Yes</option>
+                                        <option value="0" data-icon="feather-x text-danger"<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo support_is_selected(support_pick($support_settings, 'notify_new_ticket'), '0'); ?>>No</option>
                                     </select>
                                     <small class="form-text text-muted"> Receive notification on new ticket opened [Ex: Yes/No]</small>
                                 </div>
                                 <div class="mb-5">
                                     <label class="form-label"> Receive notification when customer reply to a ticket </label>
                                     <select name="notify_customer_reply" class="form-select" data-select2-selector="icon">
-                                        <option value="1" data-icon="feather-check text-success"<?php echo support_is_selected(support_pick($support_settings, 'notify_customer_reply'), '1'); ?>>Yes</option>
-                                        <option value="0" data-icon="feather-x text-danger"<?php echo support_is_selected(support_pick($support_settings, 'notify_customer_reply'), '0'); ?>>No</option>
+                                        <option value="1" data-icon="feather-check text-success"<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo support_is_selected(support_pick($support_settings, 'notify_customer_reply'), '1'); ?>>Yes</option>
+                                        <option value="0" data-icon="feather-x text-danger"<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo support_is_selected(support_pick($support_settings, 'notify_customer_reply'), '0'); ?>>No</option>
                                     </select>
                                     <small class="form-text text-muted"> Receive notification when customer reply to a ticket [Ex: Yes/No]</small>
                                 </div>
                                 <div class="mb-5">
                                     <label class="form-label"> Allow staff members to open tickets to all contacts? </label>
                                     <select name="staff_open_all_contacts" class="form-select" data-select2-selector="icon">
-                                        <option value="1" data-icon="feather-check text-success"<?php echo support_is_selected(support_pick($support_settings, 'staff_open_all_contacts'), '1'); ?>>Yes</option>
-                                        <option value="0" data-icon="feather-x text-danger"<?php echo support_is_selected(support_pick($support_settings, 'staff_open_all_contacts'), '0'); ?>>No</option>
+                                        <option value="1" data-icon="feather-check text-success"<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo support_is_selected(support_pick($support_settings, 'staff_open_all_contacts'), '1'); ?>>Yes</option>
+                                        <option value="0" data-icon="feather-x text-danger"<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo support_is_selected(support_pick($support_settings, 'staff_open_all_contacts'), '0'); ?>>No</option>
                                     </select>
                                     <small class="form-text text-muted"> Allow staff members to open tickets to all contacts? [Ex: Yes/No]</small>
                                 </div>
                                 <div class="mb-5">
                                     <label class="form-label">Automatically assign the ticket to the first staff that post a reply? </label>
                                     <select name="auto_assign_first_replier" class="form-select" data-select2-selector="icon">
-                                        <option value="1" data-icon="feather-check text-success"<?php echo support_is_selected(support_pick($support_settings, 'auto_assign_first_replier'), '1'); ?>>Yes</option>
-                                        <option value="0" data-icon="feather-x text-danger"<?php echo support_is_selected(support_pick($support_settings, 'auto_assign_first_replier'), '0'); ?>>No</option>
+                                        <option value="1" data-icon="feather-check text-success"<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo support_is_selected(support_pick($support_settings, 'auto_assign_first_replier'), '1'); ?>>Yes</option>
+                                        <option value="0" data-icon="feather-x text-danger"<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo support_is_selected(support_pick($support_settings, 'auto_assign_first_replier'), '0'); ?>>No</option>
                                     </select>
                                     <small class="form-text text-muted">Automatically assign the ticket to the first staff that post a reply? [Ex: Yes/No]</small>
                                 </div>
                                 <div class="mb-5">
                                     <label class="form-label">Allow access to tickets for non staff members </label>
                                     <select name="allow_non_staff_ticket_access" class="form-select" data-select2-selector="icon">
-                                        <option value="1" data-icon="feather-check text-success"<?php echo support_is_selected(support_pick($support_settings, 'allow_non_staff_ticket_access'), '1'); ?>>Yes</option>
-                                        <option value="0" data-icon="feather-x text-danger"<?php echo support_is_selected(support_pick($support_settings, 'allow_non_staff_ticket_access'), '0'); ?>>No</option>
+                                        <option value="1" data-icon="feather-check text-success"<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo support_is_selected(support_pick($support_settings, 'allow_non_staff_ticket_access'), '1'); ?>>Yes</option>
+                                        <option value="0" data-icon="feather-x text-danger"<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo support_is_selected(support_pick($support_settings, 'allow_non_staff_ticket_access'), '0'); ?>>No</option>
                                     </select>
                                     <small class="form-text text-muted">Allow access to tickets for non staff members [Ex: Yes/No]</small>
                                 </div>
                                 <div class="mb-5">
                                     <label class="form-label">Allow non-admin staff members to delete ticket attachments </label>
                                     <select name="allow_non_admin_delete_attachments" class="form-select" data-select2-selector="icon">
-                                        <option value="1" data-icon="feather-check text-success"<?php echo support_is_selected(support_pick($support_settings, 'allow_non_admin_delete_attachments'), '1'); ?>>Yes</option>
-                                        <option value="0" data-icon="feather-x text-danger"<?php echo support_is_selected(support_pick($support_settings, 'allow_non_admin_delete_attachments'), '0'); ?>>No</option>
+                                        <option value="1" data-icon="feather-check text-success"<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo support_is_selected(support_pick($support_settings, 'allow_non_admin_delete_attachments'), '1'); ?>>Yes</option>
+                                        <option value="0" data-icon="feather-x text-danger"<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo support_is_selected(support_pick($support_settings, 'allow_non_admin_delete_attachments'), '0'); ?>>No</option>
                                     </select>
                                     <small class="form-text text-muted">Allow non-admin staff members to delete ticket attachments [Ex: Yes/No]</small>
                                 </div>
                                 <div class="mb-5">
                                     <label class="form-label">Allow customer to change ticket status from Studentsarea </label>
                                     <select name="allow_customer_change_status" class="form-select" data-select2-selector="icon">
-                                        <option value="1" data-icon="feather-check text-success"<?php echo support_is_selected(support_pick($support_settings, 'allow_customer_change_status'), '1'); ?>>Yes</option>
-                                        <option value="0" data-icon="feather-x text-danger"<?php echo support_is_selected(support_pick($support_settings, 'allow_customer_change_status'), '0'); ?>>No</option>
+                                        <option value="1" data-icon="feather-check text-success"<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo support_is_selected(support_pick($support_settings, 'allow_customer_change_status'), '1'); ?>>Yes</option>
+                                        <option value="0" data-icon="feather-x text-danger"<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo support_is_selected(support_pick($support_settings, 'allow_customer_change_status'), '0'); ?>>No</option>
                                     </select>
                                     <small class="form-text text-muted">Allow customer to change ticket status from Studentsarea [Ex: Yes/No]</small>
                                 </div>
                                 <div class="mb-5">
                                     <label class="form-label">In Studentsarea only show tickets related to the logged in contact (Primary contact not applied) </label>
                                     <select name="show_contact_tickets_only" class="form-select" data-select2-selector="icon">
-                                        <option value="1" data-icon="feather-check text-success"<?php echo support_is_selected(support_pick($support_settings, 'show_contact_tickets_only'), '1'); ?>>Yes</option>
-                                        <option value="0" data-icon="feather-x text-danger"<?php echo support_is_selected(support_pick($support_settings, 'show_contact_tickets_only'), '0'); ?>>No</option>
+                                        <option value="1" data-icon="feather-check text-success"<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo support_is_selected(support_pick($support_settings, 'show_contact_tickets_only'), '1'); ?>>Yes</option>
+                                        <option value="0" data-icon="feather-x text-danger"<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo support_is_selected(support_pick($support_settings, 'show_contact_tickets_only'), '0'); ?>>No</option>
                                     </select>
                                     <small class="form-text text-muted">In Studentsarea only show tickets related to the logged in contact (Primary contact not applied) [Ex: Yes/No]</small>
                                 </div>
                                 <div class="mb-5">
                                     <label class="form-label">Enable support menu item badge </label>
                                     <select name="enable_support_badge" class="form-select" data-select2-selector="icon">
-                                        <option value="1" data-icon="feather-check text-success"<?php echo support_is_selected(support_pick($support_settings, 'enable_support_badge'), '1'); ?>>Yes</option>
-                                        <option value="0" data-icon="feather-x text-danger"<?php echo support_is_selected(support_pick($support_settings, 'enable_support_badge'), '0'); ?>>No</option>
+                                        <option value="1" data-icon="feather-check text-success"<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo support_is_selected(support_pick($support_settings, 'enable_support_badge'), '1'); ?>>Yes</option>
+                                        <option value="0" data-icon="feather-x text-danger"<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo support_is_selected(support_pick($support_settings, 'enable_support_badge'), '0'); ?>>No</option>
                                     </select>
                                     <small class="form-text text-muted">Enable support menu item badge [Ex: Yes/No]</small>
                                 </div>
                                 <div class="mb-5">
                                     <label class="form-label">Pipe Only on Registered Users </label>
                                     <select name="pipe_registered_users_only" class="form-select" data-select2-selector="icon">
-                                        <option value="1" data-icon="feather-check text-success"<?php echo support_is_selected(support_pick($support_settings, 'pipe_registered_users_only'), '1'); ?>>Yes</option>
-                                        <option value="0" data-icon="feather-x text-danger"<?php echo support_is_selected(support_pick($support_settings, 'pipe_registered_users_only'), '0'); ?>>No</option>
+                                        <option value="1" data-icon="feather-check text-success"<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo support_is_selected(support_pick($support_settings, 'pipe_registered_users_only'), '1'); ?>>Yes</option>
+                                        <option value="0" data-icon="feather-x text-danger"<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo support_is_selected(support_pick($support_settings, 'pipe_registered_users_only'), '0'); ?>>No</option>
                                     </select>
                                     <small class="form-text text-muted">Pipe Only on Registered Users [Ex: Yes/No]</small>
                                 </div>
                                 <div class="mb-5">
                                     <label class="form-label">Only Replies Allowed by Email </label>
                                     <select name="email_replies_only" class="form-select" data-select2-selector="icon">
-                                        <option value="1" data-icon="feather-check text-success"<?php echo support_is_selected(support_pick($support_settings, 'email_replies_only'), '1'); ?>>Yes</option>
-                                        <option value="0" data-icon="feather-x text-danger"<?php echo support_is_selected(support_pick($support_settings, 'email_replies_only'), '0'); ?>>No</option>
+                                        <option value="1" data-icon="feather-check text-success"<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo support_is_selected(support_pick($support_settings, 'email_replies_only'), '1'); ?>>Yes</option>
+                                        <option value="0" data-icon="feather-x text-danger"<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo support_is_selected(support_pick($support_settings, 'email_replies_only'), '0'); ?>>No</option>
                                     </select>
                                     <small class="form-text text-muted">Only Replies Allowed by Email [Ex: Yes/No]</small>
                                 </div>
                                 <div class="mb-0">
                                     <label class="form-label">Try to import only the actual ticket reply (without quoted/forwarded message) </label>
                                     <select name="import_actual_reply_only" class="form-select" data-select2-selector="icon">
-                                        <option value="1" data-icon="feather-check text-success"<?php echo support_is_selected(support_pick($support_settings, 'import_actual_reply_only'), '1'); ?>>Yes</option>
-                                        <option value="0" data-icon="feather-x text-danger"<?php echo support_is_selected(support_pick($support_settings, 'import_actual_reply_only'), '0'); ?>>No</option>
+                                        <option value="1" data-icon="feather-check text-success"<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo support_is_selected(support_pick($support_settings, 'import_actual_reply_only'), '1'); ?>>Yes</option>
+                                        <option value="0" data-icon="feather-x text-danger"<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo support_is_selected(support_pick($support_settings, 'import_actual_reply_only'), '0'); ?>>No</option>
                                     </select>
                                     <small class="form-text text-muted">Try to import only the actual ticket reply (without quoted/forwarded message) [Ex: Yes/No]</small>
                                 </div>
@@ -387,7 +492,10 @@ include 'includes/header.php';
                     <!-- [ Footer ] start -->
                     <footer class="footer">
                         <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
-                            <span>Copyright &copy; <span class="app-current-year"><?php echo date('Y'); ?></span></span>
+                            <span>Copyright ï¿½</span>
+                            <script>
+                                document.write(new Date().getFullYear());
+                            </script>
                         </p>
                         <div class="d-flex align-items-center gap-4">
                             <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Help</a>
@@ -399,4 +507,8 @@ include 'includes/header.php';
                 </div>
                 <!-- [ Content Area ] end -->
             </div>
-            <?php include 'includes/footer.php'; ?>
+            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+include 'includes/footer.php'; ?>
+
+

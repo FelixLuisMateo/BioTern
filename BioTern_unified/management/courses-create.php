@@ -1,10 +1,11 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 $host = '127.0.0.1';
-$db_user = 'root';
-$db_password = '';
-$db_name = 'biotern_db';
+$db_user = defined('DB_USER') ? DB_USER : 'root';
+$db_password = defined('DB_PASS') ? DB_PASS : ''; 
+$db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
 
-$message = '';
+$message = defined('DB_PASS') ? DB_PASS : ''; 
 $message_type = 'info';
 
 try {
@@ -15,10 +16,6 @@ try {
 } catch (Exception $e) {
     die("Database Error: " . $e->getMessage());
 }
-
-$conn->query("ALTER TABLE courses ADD COLUMN IF NOT EXISTS internal_hours INT(11) NOT NULL DEFAULT 0");
-$conn->query("ALTER TABLE courses ADD COLUMN IF NOT EXISTS external_hours INT(11) NOT NULL DEFAULT 0");
-$conn->query("ALTER TABLE courses ADD COLUMN IF NOT EXISTS school_year VARCHAR(50) NULL");
 
 $courseColumns = [];
 $columnResult = $conn->query("SHOW COLUMNS FROM courses");
@@ -39,9 +36,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $name = trim((string)($_POST['name'] ?? ''));
     $code = strtoupper(trim((string)($_POST['code'] ?? '')));
     $course_head = trim((string)($_POST['course_head'] ?? ''));
-    $internal_hours = max(0, (int)($_POST['internal_hours'] ?? 0));
-    $external_hours = max(0, (int)($_POST['external_hours'] ?? 0));
-    $school_year = trim((string)($_POST['school_year'] ?? ''));
 
     if ($name === '' || $code === '') {
         $message = 'Course name and code are required.';
@@ -63,16 +57,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $message_type = 'warning';
             } else {
                 if ($hasCourseHead) {
-                    $insertQuery = "INSERT INTO courses (name, code, course_head, internal_hours, external_hours, school_year, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())";
+                    $insertQuery = "INSERT INTO courses (name, code, course_head, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())";
                     $insertStmt = $conn->prepare($insertQuery);
                     if ($insertStmt) {
-                        $insertStmt->bind_param("sssiis", $name, $code, $course_head, $internal_hours, $external_hours, $school_year);
+                        $insertStmt->bind_param("sss", $name, $code, $course_head);
                     }
                 } else {
-                    $insertQuery = "INSERT INTO courses (name, code, internal_hours, external_hours, school_year, created_at, updated_at) VALUES (?, ?, ?, ?, ?, NOW(), NOW())";
+                    $insertQuery = "INSERT INTO courses (name, code, created_at, updated_at) VALUES (?, ?, NOW(), NOW())";
                     $insertStmt = $conn->prepare($insertQuery);
                     if ($insertStmt) {
-                        $insertStmt->bind_param("ssiis", $name, $code, $internal_hours, $external_hours, $school_year);
+                        $insertStmt->bind_param("ss", $name, $code);
                     }
                 }
 
@@ -102,15 +96,6 @@ $selectFields = ['id', 'name', 'code'];
 if ($hasColumn('course_head')) {
     $selectFields[] = 'course_head';
 }
-if ($hasColumn('internal_hours')) {
-    $selectFields[] = 'internal_hours';
-}
-if ($hasColumn('external_hours')) {
-    $selectFields[] = 'external_hours';
-}
-if ($hasColumn('school_year')) {
-    $selectFields[] = 'school_year';
-}
 if ($hasColumn('created_at')) {
     $selectFields[] = 'created_at';
 }
@@ -130,7 +115,22 @@ if ($listResult) {
 $page_title = 'Create Course';
 include 'includes/header.php';
 ?>
-<link rel="stylesheet" type="text/css" href="assets/css/management-create-shared-page.css">
+<style>
+    .create-form-actions {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .create-form-actions .btn {
+        width: auto !important;
+        min-width: 140px;
+        display: inline-flex;
+        justify-content: center;
+        align-items: center;
+    }
+</style>
 <div class="page-header">
     <div class="page-header-left d-flex align-items-center">
         <div class="page-header-title">
@@ -172,19 +172,7 @@ include 'includes/header.php';
                                 <input type="text" name="course_head" class="form-control" placeholder="Prof. Juan Dela Cruz" required>
                             </div>
                         <?php endif; ?>
-                        <div class="mb-3">
-                            <label class="form-label">Internal Hours</label>
-                            <input type="number" min="0" name="internal_hours" class="form-control" value="140">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">External Hours</label>
-                            <input type="number" min="0" name="external_hours" class="form-control" value="0">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">School Year</label>
-                            <input type="text" name="school_year" class="form-control" placeholder="2026-2027">
-                        </div>
-                        <div class="create-form-actions app-form-actions">
+                        <div class="create-form-actions">
                             <button type="submit" class="btn btn-primary">Save Course</button>
                             <a href="courses.php" class="btn btn-outline-secondary">Cancel</a>
                         </div>
@@ -208,9 +196,6 @@ include 'includes/header.php';
                                     <th>Code</th>
                                     <th>Name</th>
                                     <?php if ($hasCourseHead): ?><th>Course Head</th><?php endif; ?>
-                                    <?php if ($hasColumn('internal_hours')): ?><th>Internal</th><?php endif; ?>
-                                    <?php if ($hasColumn('external_hours')): ?><th>External</th><?php endif; ?>
-                                    <?php if ($hasColumn('school_year')): ?><th>School Year</th><?php endif; ?>
                                     <?php if ($hasColumn('created_at')): ?><th>Created</th><?php endif; ?>
                                 </tr>
                             </thead>
@@ -223,15 +208,6 @@ include 'includes/header.php';
                                         <td><?php echo htmlspecialchars((string)$course['name']); ?></td>
                                         <?php if ($hasCourseHead): ?>
                                             <td><?php echo htmlspecialchars((string)($course['course_head'] ?? '-')); ?></td>
-                                        <?php endif; ?>
-                                        <?php if ($hasColumn('internal_hours')): ?>
-                                            <td><?php echo (int)($course['internal_hours'] ?? 0); ?></td>
-                                        <?php endif; ?>
-                                        <?php if ($hasColumn('external_hours')): ?>
-                                            <td><?php echo (int)($course['external_hours'] ?? 0); ?></td>
-                                        <?php endif; ?>
-                                        <?php if ($hasColumn('school_year')): ?>
-                                            <td><?php echo htmlspecialchars((string)($course['school_year'] ?? '-')); ?></td>
                                         <?php endif; ?>
                                         <?php if ($hasColumn('created_at')): ?>
                                             <td><?php echo htmlspecialchars((string)($course['created_at'] ?? '-')); ?></td>
@@ -253,6 +229,7 @@ include 'includes/header.php';
     </div>
 </div>
 <?php
+require_once dirname(__DIR__) . '/config/db.php';
 include 'includes/footer.php';
 $conn->close();
 ?>

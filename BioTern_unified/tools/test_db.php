@@ -1,4 +1,5 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 include dirname(__DIR__) . '/config/db.php';
 
 // Test database connection
@@ -26,11 +27,12 @@ try {
     $row = $result->fetch_assoc();
     echo "Total Courses: " . $row['count'] . "\n";
     
-    echo "\n✓ Database connection successful!";
+    echo "\nâœ“ Database connection successful!";
     
 } catch (Exception $e) {
-    echo "✗ Error: " . $e->getMessage();
+    echo "âœ— Error: " . $e->getMessage();
 }
 
 $conn->close();
 ?>
+

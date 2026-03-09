@@ -1,8 +1,9 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 $host = '127.0.0.1';
 $db_user = 'root';
 $db_password = '';
-$db_name = 'biotern_db';
+$db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
 
 $message = '';
 $message_type = 'info';
@@ -224,51 +225,93 @@ include 'includes/header.php';
             <h5 class="card-title mb-0">Section Form</h5>
         </div>
         <div class="card-body">
-            <?php if ($message !== ''): ?>
-                <div class="alert alert-<?php echo htmlspecialchars($message_type); ?>" role="alert">
-                    <?php echo htmlspecialchars($message); ?>
+            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($message !== ''): ?>
+                <div class="alert alert-<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($message_type); ?>" role="alert">
+                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($message); ?>
                 </div>
-            <?php endif; ?>
+            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
             <form method="post" action="">
-                <input type="hidden" name="id" value="<?php echo (int)$section['id']; ?>">
+                <input type="hidden" name="id" value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$section['id']; ?>">
                 <div class="row g-3">
                     <div class="col-md-4">
                         <label class="form-label">Section Code *</label>
-                        <input type="text" name="code" class="form-control" value="<?php echo htmlspecialchars((string)$section['code']); ?>" required>
+                        <input type="text" name="code" class="form-control" value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars((string)$section['code']); ?>" required>
                     </div>
                     <div class="col-md-8">
                         <label class="form-label">Section Name *</label>
-                        <input type="text" name="name" class="form-control" value="<?php echo htmlspecialchars((string)$section['name']); ?>" required>
+                        <input type="text" name="name" class="form-control" value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars((string)$section['name']); ?>" required>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Course *</label>
                         <select name="course_id" class="form-select" required>
                             <option value="">Select Course</option>
-                            <?php foreach ($courses as $course): ?>
-                                <option value="<?php echo (int)$course['id']; ?>" <?php echo ((int)$section['course_id'] === (int)$course['id']) ? 'selected' : ''; ?>>
-                                    <?php echo htmlspecialchars((string)($course['code'] ?: $course['name'])); ?>
+                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($courses as $course): ?>
+                                <option value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$course['id']; ?>" <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo ((int)$section['course_id'] === (int)$course['id']) ? 'selected' : ''; ?>>
+                                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars((string)($course['code'] ?: $course['name'])); ?>
                                 </option>
-                            <?php endforeach; ?>
+                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
                         </select>
                     </div>
-                    <?php if ($hasSectionDepartment): ?>
+                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($hasSectionDepartment): ?>
                         <div class="col-md-6">
                             <label class="form-label">Department *</label>
                             <select name="department_id" class="form-select" required>
                                 <option value="">Select Department</option>
-                                <?php foreach ($departments as $dept): ?>
-                                    <option value="<?php echo (int)$dept['id']; ?>" <?php echo ((int)($section['department_id'] ?? 0) === (int)$dept['id']) ? 'selected' : ''; ?>>
-                                        <?php echo htmlspecialchars((string)($dept['code'] ?: $dept['name'])); ?>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($departments as $dept): ?>
+                                    <option value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$dept['id']; ?>" <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo ((int)($section['department_id'] ?? 0) === (int)$dept['id']) ? 'selected' : ''; ?>>
+                                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars((string)($dept['code'] ?: $dept['name'])); ?>
                                     </option>
-                                <?php endforeach; ?>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
                             </select>
                         </div>
-                    <?php endif; ?>
+                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
                     <div class="col-md-3">
                         <label class="form-label">Status</label>
                         <select name="status" class="form-select">
-                            <option value="active" <?php echo $activeValue === '1' ? 'selected' : ''; ?>>Active</option>
-                            <option value="inactive" <?php echo $activeValue === '0' ? 'selected' : ''; ?>>Inactive</option>
+                            <option value="active" <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $activeValue === '1' ? 'selected' : ''; ?>>Active</option>
+                            <option value="inactive" <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $activeValue === '0' ? 'selected' : ''; ?>>Inactive</option>
                         </select>
                     </div>
                 </div>
@@ -281,6 +324,9 @@ include 'includes/header.php';
     </div>
 </div>
 <?php
+require_once dirname(__DIR__) . '/config/db.php';
 include 'includes/footer.php';
 $conn->close();
 ?>
+
+

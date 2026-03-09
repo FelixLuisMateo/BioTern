@@ -1,4 +1,5 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -7,10 +8,49 @@ $page_title = 'BioTern || OJT Create';
 $page_styles = array();
 include 'includes/header.php';
 ?>
-<link rel="stylesheet" type="text/css" href="assets/css/management-ojt-create-page.css">
+<style>
+        .app-skin-dark body { background: #0b1220; }
+        .app-skin-dark .card { background: #111a2e; border-color: #253252; }
+        .app-skin-dark .form-control,
+        .app-skin-dark .form-select { background-color: #0f172a; border-color: #2a3a57; color: #d8e2f4; }
+        .nxl-header .user-avtar,
+        .nxl-user-dropdown .user-avtar {
+            width: 40px !important;
+            height: 40px !important;
+            min-width: 40px !important;
+            min-height: 40px !important;
+            border-radius: 50% !important;
+            object-fit: cover !important;
+            object-position: center !important;
+        }
+        @media (max-width: 991.98px) {
+            .page-header { display: block; }
+            .page-header-left { margin-bottom: 10px; }
+            .page-header-right-items-wrapper {
+                display: grid !important;
+                grid-template-columns: 1fr 1fr;
+                gap: 8px !important;
+                width: 100%;
+            }
+            .page-header-right-items-wrapper .btn { width: 100%; }
+            .lead-status .row > [class*="col-"],
+            .general-info .row > [class*="col-"] { margin-bottom: 8px; }
+        }
+        @media (max-width: 767.98px) {
+            .nxl-content { padding-left: 8px; padding-right: 8px; }
+            .page-header-right-items-wrapper { grid-template-columns: 1fr; }
+            .card.card-body { border-radius: 14px; padding: 12px; }
+            .lead-status .mb-5.d-flex,
+            .general-info .mb-5.d-flex {
+                flex-direction: column;
+                align-items: flex-start !important;
+                gap: 8px;
+            }
+        }
+    </style>
 
-<div class="page-header app-ojt-create-page-header">
-                <div class="page-header-left app-ojt-create-page-header-left d-flex align-items-center">
+<div class="page-header">
+                <div class="page-header-left d-flex align-items-center">
                     <div class="page-header-title">
                         <h5 class="m-b-10">Leads</h5>
                     </div>
@@ -20,26 +60,26 @@ include 'includes/header.php';
                     </ul>
                 </div>
                 <div class="page-header-right ms-auto">
-                    <div class="page-header-right-items app-ojt-create-header-items">
+                    <div class="page-header-right-items">
                         <div class="d-flex d-md-none">
-                            <a href="javascript:void(0)" class="page-header-right-close-toggle app-ojt-create-header-close-toggle">
+                            <a href="javascript:void(0)" class="page-header-right-close-toggle">
                                 <i class="feather-arrow-left me-2"></i>
                                 <span>Back</span>
                             </a>
                         </div>
-                        <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper app-ojt-create-page-header-actions">
-                            <a href="javascript:void(0);" class="btn btn-light-brand successAlertMessage app-ojt-create-success-alert-trigger">
+                        <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
+                            <a href="javascript:void(0);" class="btn btn-light-brand successAlertMessage">
                                 <i class="feather-layers me-2"></i>
                                 <span>Save as Draft</span>
                             </a>
-                            <a href="javascript:void(0);" class="btn btn-primary successAlertMessage app-ojt-create-success-alert-trigger">
+                            <a href="javascript:void(0);" class="btn btn-primary successAlertMessage">
                                 <i class="feather-user-plus me-2"></i>
                                 <span>Create Lead</span>
                             </a>
                         </div>
                     </div>
                     <div class="d-md-none d-flex align-items-center">
-                        <a href="javascript:void(0)" class="page-header-right-open-toggle app-ojt-create-header-open-toggle">
+                        <a href="javascript:void(0)" class="page-header-right-open-toggle">
                             <i class="feather-align-right fs-20"></i>
                         </a>
                     </div>
@@ -47,12 +87,12 @@ include 'includes/header.php';
             </div>
             <!-- [ page-header ] end -->
             <!-- [ Main Content ] start -->
-            <div class="main-content app-ojt-create-main-content">
+            <div class="main-content">
                 <div class="row">
                     <div class="col-lg-12">
-                        <div class="card app-ojt-create-surface-card stretch stretch-full">
-                            <div class="card-body lead-status app-ojt-create-lead-status">
-                                <div class="mb-5 d-flex align-items-center justify-content-between app-ojt-create-section-head">
+                        <div class="card stretch stretch-full">
+                            <div class="card-body lead-status">
+                                <div class="mb-5 d-flex align-items-center justify-content-between">
                                     <h5 class="fw-bold mb-0 me-4">
                                         <span class="d-block mb-2">Lead Status :</span>
                                         <span class="fs-12 fw-normal text-muted text-truncate-1-line">Typically refers to adding a new potential customer or sales prospect</span>
@@ -61,7 +101,7 @@ include 'includes/header.php';
                                 </div>
                                 <div class="row">
                                     <div class="col-lg-4 mb-4">
-                                        <label class="form-label app-ojt-create-form-label">Status</label>
+                                        <label class="form-label">Status</label>
                                         <select class="form-control" data-select2-selector="status">
                                             <option value="primary" data-bg="bg-primary">New</option>
                                             <option value="teal" data-bg="bg-teal">Contacted</option>
@@ -72,7 +112,7 @@ include 'includes/header.php';
                                         </select>
                                     </div>
                                     <div class="col-lg-4 mb-4">
-                                        <label class="form-label app-ojt-create-form-label">Source</label>
+                                        <label class="form-label">Source</label>
                                         <select class="form-control" data-select2-selector="icon">
                                             <option value="facebook" data-icon="feather-facebook">Facebook</option>
                                             <option value="twitter" data-icon="feather-twitter">Twitter</option>
@@ -83,7 +123,7 @@ include 'includes/header.php';
                                         </select>
                                     </div>
                                     <div class="col-lg-4 mb-4">
-                                        <label class="form-label app-ojt-create-form-label">Visibility:</label>
+                                        <label class="form-label">Visibility:</label>
                                         <select class="form-select form-control" data-select2-selector="visibility">
                                             <option value="public" data-icon="feather-globe">Public</option>
                                             <option value="private" data-icon="feather-lock">Private</option>
@@ -92,7 +132,7 @@ include 'includes/header.php';
                                         </select>
                                     </div>
                                     <div class="col-lg-4 mb-4">
-                                        <label class="form-label app-ojt-create-form-label">Tags</label>
+                                        <label class="form-label">Tags</label>
                                         <select class="form-select form-control" data-select2-selector="tag" multiple>
                                             <option value="success" data-bg="bg-success">VIP</option>
                                             <option value="info" data-bg="bg-info">Bugs</option>
@@ -108,7 +148,7 @@ include 'includes/header.php';
                                         </select>
                                     </div>
                                     <div class="col-lg-4 mb-4">
-                                        <label class="form-label app-ojt-create-form-label">Assigned</label>
+                                        <label class="form-label">Assigned</label>
                                         <select class="form-select form-control" data-select2-selector="user" multiple>
                                             <option value="alex@outlook.com" data-user="1">alex@outlook.com</option>
                                             <option value="john.deo@outlook.com" data-user="2">john.deo@outlook.com</option>
@@ -125,7 +165,7 @@ include 'includes/header.php';
                                         </select>
                                     </div>
                                     <div class="col-lg-4 mb-4">
-                                        <label class="form-label app-ojt-create-form-label">Groups</label>
+                                        <label class="form-label">Groups</label>
                                         <select class="form-control" data-select2-selector="tag" multiple>
                                             <option value="success" data-bg="bg-success">Group-A</option>
                                             <option value="dark" data-bg="bg-dark">Group-B</option>
@@ -143,127 +183,127 @@ include 'includes/header.php';
                                 </div>
                             </div>
                             <hr class="mt-0">
-                            <div class="card-body general-info app-ojt-create-general-info">
-                                <div class="mb-5 d-flex align-items-center justify-content-between app-ojt-create-section-head">
+                            <div class="card-body general-info">
+                                <div class="mb-5 d-flex align-items-center justify-content-between">
                                     <h5 class="fw-bold mb-0 me-4">
                                         <span class="d-block mb-2">Lead Info :</span>
                                         <span class="fs-12 fw-normal text-muted text-truncate-1-line">General information for your lead</span>
                                     </h5>
                                     <a href="javascript:void(0);" class="btn btn-sm btn-light-brand">Edit Lead</a>
                                 </div>
-                                <div class="row mb-4 align-items-center app-ojt-create-info-row">
+                                <div class="row mb-4 align-items-center">
                                     <div class="col-lg-4">
-                                        <label for="fullnameInput" class="fw-semibold app-ojt-create-info-label">Name: </label>
+                                        <label for="fullnameInput" class="fw-semibold">Name: </label>
                                     </div>
                                     <div class="col-lg-8">
-                                        <div class="input-group app-ojt-create-input-group">
+                                        <div class="input-group">
                                             <div class="input-group-text"><i class="feather-user"></i></div>
                                             <input type="text" class="form-control" id="fullnameInput" placeholder="Name">
                                         </div>
                                     </div>
                                 </div>
-                                <div class="row mb-4 align-items-center app-ojt-create-info-row">
+                                <div class="row mb-4 align-items-center">
                                     <div class="col-lg-4">
-                                        <label for="mailInput" class="fw-semibold app-ojt-create-info-label">Email: </label>
+                                        <label for="mailInput" class="fw-semibold">Email: </label>
                                     </div>
                                     <div class="col-lg-8">
-                                        <div class="input-group app-ojt-create-input-group">
+                                        <div class="input-group">
                                             <div class="input-group-text"><i class="feather-mail"></i></div>
                                             <input type="text" class="form-control" id="mailInput" placeholder="Email">
                                         </div>
                                     </div>
                                 </div>
-                                <div class="row mb-4 align-items-center app-ojt-create-info-row">
+                                <div class="row mb-4 align-items-center">
                                     <div class="col-lg-4">
-                                        <label for="usernameInput" class="fw-semibold app-ojt-create-info-label">Username: </label>
+                                        <label for="usernameInput" class="fw-semibold">Username: </label>
                                     </div>
                                     <div class="col-lg-8">
-                                        <div class="input-group app-ojt-create-input-group">
+                                        <div class="input-group">
                                             <div class="input-group-text"><i class="feather-link-2"></i></div>
                                             <input type="url" class="form-control" id="usernameInput" placeholder="Username">
                                         </div>
                                     </div>
                                 </div>
-                                <div class="row mb-4 align-items-center app-ojt-create-info-row">
+                                <div class="row mb-4 align-items-center">
                                     <div class="col-lg-4">
-                                        <label for="phoneInput" class="fw-semibold app-ojt-create-info-label">Phone: </label>
+                                        <label for="phoneInput" class="fw-semibold">Phone: </label>
                                     </div>
                                     <div class="col-lg-8">
-                                        <div class="input-group app-ojt-create-input-group">
+                                        <div class="input-group">
                                             <div class="input-group-text"><i class="feather-phone"></i></div>
                                             <input type="text" class="form-control" id="phoneInput" placeholder="Phone">
                                         </div>
                                     </div>
                                 </div>
-                                <div class="row mb-4 align-items-center app-ojt-create-info-row">
+                                <div class="row mb-4 align-items-center">
                                     <div class="col-lg-4">
-                                        <label for="companyInput" class="fw-semibold app-ojt-create-info-label">Company: </label>
+                                        <label for="companyInput" class="fw-semibold">Company: </label>
                                     </div>
                                     <div class="col-lg-8">
-                                        <div class="input-group app-ojt-create-input-group">
+                                        <div class="input-group">
                                             <div class="input-group-text"><i class="feather-compass"></i></div>
                                             <input type="text" class="form-control" id="companyInput" placeholder="Company">
                                         </div>
                                     </div>
                                 </div>
-                                <div class="row mb-4 align-items-center app-ojt-create-info-row">
+                                <div class="row mb-4 align-items-center">
                                     <div class="col-lg-4">
-                                        <label for="designationInput" class="fw-semibold app-ojt-create-info-label">Designation: </label>
+                                        <label for="designationInput" class="fw-semibold">Designation: </label>
                                     </div>
                                     <div class="col-lg-8">
-                                        <div class="input-group app-ojt-create-input-group">
+                                        <div class="input-group">
                                             <div class="input-group-text"><i class="feather-briefcase"></i></div>
                                             <input type="text" class="form-control" id="designationInput" placeholder="Designation">
                                         </div>
                                     </div>
                                 </div>
-                                <div class="row mb-4 align-items-center app-ojt-create-info-row">
+                                <div class="row mb-4 align-items-center">
                                     <div class="col-lg-4">
-                                        <label for="websiteInput" class="fw-semibold app-ojt-create-info-label">Website: </label>
+                                        <label for="websiteInput" class="fw-semibold">Website: </label>
                                     </div>
                                     <div class="col-lg-8">
-                                        <div class="input-group app-ojt-create-input-group">
+                                        <div class="input-group">
                                             <div class="input-group-text"><i class="feather-link"></i></div>
                                             <input type="text" class="form-control" id="websiteInput" placeholder="Website">
                                         </div>
                                     </div>
                                 </div>
-                                <div class="row mb-4 align-items-center app-ojt-create-info-row">
+                                <div class="row mb-4 align-items-center">
                                     <div class="col-lg-4">
-                                        <label for="VATInput" class="fw-semibold app-ojt-create-info-label">VAT: </label>
+                                        <label for="VATInput" class="fw-semibold">VAT: </label>
                                     </div>
                                     <div class="col-lg-8">
-                                        <div class="input-group app-ojt-create-input-group">
+                                        <div class="input-group">
                                             <div class="input-group-text"><i class="feather-dollar-sign"></i></div>
                                             <input type="text" class="form-control" id="VATInput" placeholder="VAT">
                                         </div>
                                     </div>
                                 </div>
-                                <div class="row mb-4 align-items-center app-ojt-create-info-row">
+                                <div class="row mb-4 align-items-center">
                                     <div class="col-lg-4">
-                                        <label for="addressInput" class="fw-semibold app-ojt-create-info-label">Address: </label>
+                                        <label for="addressInput" class="fw-semibold">Address: </label>
                                     </div>
                                     <div class="col-lg-8">
-                                        <div class="input-group app-ojt-create-input-group">
+                                        <div class="input-group">
                                             <div class="input-group-text"><i class="feather-map-pin"></i></div>
                                             <textarea class="form-control" id="addressInput" cols="30" rows="3" placeholder="Address"></textarea>
                                         </div>
                                     </div>
                                 </div>
-                                <div class="row mb-4 align-items-center app-ojt-create-info-row">
+                                <div class="row mb-4 align-items-center">
                                     <div class="col-lg-4">
-                                        <label for="descriptionInput" class="fw-semibold app-ojt-create-info-label">Description: </label>
+                                        <label for="descriptionInput" class="fw-semibold">Description: </label>
                                     </div>
                                     <div class="col-lg-8">
-                                        <div class="input-group app-ojt-create-input-group">
+                                        <div class="input-group">
                                             <div class="input-group-text"><i class="feather-type"></i></div>
                                             <textarea class="form-control" id="descriptionInput" cols="30" rows="5" placeholder="Description"></textarea>
                                         </div>
                                     </div>
                                 </div>
-                                <div class="row mb-4 align-items-center app-ojt-create-info-row">
+                                <div class="row mb-4 align-items-center">
                                     <div class="col-lg-4">
-                                        <label class="fw-semibold app-ojt-create-info-label">Country: </label>
+                                        <label class="fw-semibold">Country: </label>
                                     </div>
                                     <div class="col-lg-8">
                                         <select class="form-control" data-select2-selector="country">
@@ -522,9 +562,9 @@ include 'includes/header.php';
                                         </select>
                                     </div>
                                 </div>
-                                <div class="row mb-4 align-items-center app-ojt-create-info-row">
+                                <div class="row mb-4 align-items-center">
                                     <div class="col-lg-4">
-                                        <label class="fw-semibold app-ojt-create-info-label">State: </label>
+                                        <label class="fw-semibold">State: </label>
                                     </div>
                                     <div class="col-lg-8">
                                         <select class="form-control" data-select2-selector="state">
@@ -597,9 +637,9 @@ include 'includes/header.php';
                                         </select>
                                     </div>
                                 </div>
-                                <div class="row mb-4 align-items-center app-ojt-create-info-row">
+                                <div class="row mb-4 align-items-center">
                                     <div class="col-lg-4">
-                                        <label class="fw-semibold app-ojt-create-info-label">City: </label>
+                                        <label class="fw-semibold">City: </label>
                                     </div>
                                     <div class="col-lg-8">
                                         <select class="form-control" data-select2-selector="city">
@@ -663,9 +703,9 @@ include 'includes/header.php';
                                         </select>
                                     </div>
                                 </div>
-                                <div class="row mb-4 align-items-center app-ojt-create-info-row">
+                                <div class="row mb-4 align-items-center">
                                     <div class="col-lg-4">
-                                        <label class="fw-semibold app-ojt-create-info-label">Time Zone: </label>
+                                        <label class="fw-semibold">Time Zone: </label>
                                     </div>
                                     <div class="col-lg-8">
                                         <select class="form-control" data-select2-selector="tzone">
@@ -712,9 +752,9 @@ include 'includes/header.php';
                                         </select>
                                     </div>
                                 </div>
-                                <div class="row mb-4 align-items-center app-ojt-create-info-row">
+                                <div class="row mb-4 align-items-center">
                                     <div class="col-lg-4">
-                                        <label class="fw-semibold app-ojt-create-info-label">Languages: </label>
+                                        <label class="fw-semibold">Languages: </label>
                                     </div>
                                     <div class="col-lg-8">
                                         <select class="form-control" data-select2-selector="language" multiple>
@@ -863,9 +903,9 @@ include 'includes/header.php';
                                         </select>
                                     </div>
                                 </div>
-                                <div class="row mb-4 align-items-center app-ojt-create-info-row">
+                                <div class="row mb-4 align-items-center">
                                     <div class="col-lg-4">
-                                        <label class="fw-semibold app-ojt-create-info-label">Currency: </label>
+                                        <label class="fw-semibold">Currency: </label>
                                     </div>
                                     <div class="col-lg-8">
                                         <select class="form-control" data-select2-selector="currency">
@@ -1046,7 +1086,9 @@ include 'includes/header.php';
         <footer class="footer">
             <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
                 <span>Copyright Â©</span>
-                <span class="app-current-year"></span>
+                <script>
+                    document.write(new Date().getFullYear());
+                </script>
             </p>
             <p class="footer-meta fs-12 mb-0"><span>By: <a href="javascript:void(0);">ACT 2A</a></span> <span>Distributed by: <a href="javascript:void(0);">Group 5</a></span></p>
             <div class="d-flex align-items-center gap-4">
@@ -1075,9 +1117,8 @@ include 'includes/header.php';
     <!--! END: Vendors JS !-->
     <!--! BEGIN: Apps Init  !-->
     <script src="assets/js/common-init.min.js"></script>
-    <script src="assets/js/global-ui-helpers.js"></script>
     <script src="assets/js/theme-customizer-init.min.js"></script>
-    <script src="assets/js/page-init-noop.min.js"></script>
+    <script src="assets/js/leads-view-init.min.js"></script>
     <!--! END: Apps Init !-->
 </body>
 

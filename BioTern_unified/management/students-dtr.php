@@ -1,8 +1,9 @@
-<?php
-$host = 'localhost';
-$db_user = 'root';
-$db_password = '';
-$db_name = 'biotern_db';
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
+$host = defined('DB_HOST') ? DB_HOST : 'localhost';
+$db_user = defined('DB_USER') ? DB_USER : 'root';
+$db_password = defined('DB_PASS') ? DB_PASS : ''; 
+$db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
 
 try {
     $conn = new mysqli($host, $db_user, $db_password, $db_name);
@@ -122,7 +123,219 @@ function status_badge($status) {
 $page_title = 'BioTern || Student DTR';
 include 'includes/header.php';
 ?>
-<link rel="stylesheet" type="text/css" href="assets/css/management-students-dtr-page.css">
+<style>
+    .dtr-summary-card {
+        border: 1px solid #e9ecef;
+        border-radius: 12px;
+        padding: 14px;
+        background: #fff;
+        height: 100%;
+    }
+    .dtr-summary-label {
+        font-size: 12px;
+        color: #6c757d;
+        margin-bottom: 6px;
+    }
+    .dtr-summary-value {
+        font-size: 22px;
+        font-weight: 700;
+        line-height: 1.1;
+    }
+    .dtr-table th {
+        white-space: nowrap;
+        font-size: 12px;
+    }
+    .dtr-table td {
+        vertical-align: middle;
+        font-size: 12px;
+    }
+    .toolbar {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .student-meta-highlight {
+        display: inline-flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 6px;
+    }
+    .student-meta-highlight .chip {
+        background: #edf4ff;
+        border: 1px solid #b9d4ff;
+        color: #1f3c6b;
+        border-radius: 999px;
+        padding: 6px 10px;
+        font-weight: 700;
+        font-size: 12px;
+    }
+    .dtr-mobile-list {
+        display: none;
+    }
+
+    @media (max-width: 767.98px) {
+        .toolbar {
+            align-items: stretch;
+        }
+        .toolbar > div {
+            width: 100%;
+        }
+        .toolbar .d-flex {
+            width: 100%;
+            flex-wrap: wrap;
+        }
+        .toolbar form {
+            width: 100%;
+            flex-wrap: wrap;
+        }
+        .toolbar input[type="month"],
+        .toolbar form button,
+        .toolbar .btn {
+            width: 100%;
+        }
+        .dtr-summary-card {
+            border: 0;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #f8fbff 0%, #eef4ff 100%);
+            box-shadow: 0 6px 16px rgba(31, 60, 107, 0.08);
+        }
+        .student-meta-highlight .chip {
+            width: 100%;
+        }
+        .dtr-desktop-table {
+            display: none;
+        }
+        .dtr-mobile-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 12px;
+            background: linear-gradient(180deg, #f7faff 0%, #ffffff 100%);
+        }
+        .dtr-day-card {
+            border: 1px solid #dbe8ff;
+            border-radius: 14px;
+            background: #fff;
+            padding: 12px;
+            box-shadow: 0 6px 18px rgba(15, 34, 62, 0.06);
+        }
+        .dtr-day-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+        .dtr-day-title {
+            margin: 0;
+            font-size: 14px;
+            font-weight: 700;
+            color: #17345a;
+            line-height: 1.3;
+        }
+        .dtr-slot-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .dtr-slot {
+            border: 1px solid #edf2fb;
+            border-radius: 10px;
+            padding: 8px;
+            background: #fbfdff;
+        }
+        .dtr-slot-label {
+            margin: 0;
+            font-size: 11px;
+            color: #627089;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+        }
+        .dtr-slot-value {
+            margin: 2px 0 0;
+            font-size: 13px;
+            font-weight: 700;
+            color: #1d2f4d;
+        }
+        .dtr-hours-row {
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-top: 1px dashed #d8e4f8;
+            padding-top: 8px;
+        }
+        .dtr-hours-label {
+            margin: 0;
+            font-size: 12px;
+            color: #61708a;
+        }
+        .dtr-hours-value {
+            margin: 0;
+            font-size: 14px;
+            font-weight: 700;
+            color: #12375f;
+        }
+        .dtr-empty-note {
+            margin: 8px 0 0;
+            font-size: 12px;
+            color: #8b94a7;
+        font-style: italic;
+        }
+    }
+
+    .app-skin-dark .dtr-summary-card {
+        background: linear-gradient(135deg, #1c2432 0%, #111827 100%);
+        border-color: #2a3448;
+    }
+    .app-skin-dark .dtr-summary-label {
+        color: #93a4bf;
+    }
+    .app-skin-dark .dtr-summary-value {
+        color: #e5edf8;
+    }
+    .app-skin-dark .student-meta-highlight .chip {
+        background: #1b2a42;
+        border-color: #30496f;
+        color: #c9dbf8;
+    }
+    .app-skin-dark .dtr-mobile-list {
+        background: linear-gradient(180deg, #111827 0%, #0f172a 100%);
+    }
+    .app-skin-dark .dtr-day-card {
+        background: #1a2332;
+        border-color: #2e3a51;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+    }
+    .app-skin-dark .dtr-day-title {
+        color: #e8eefb;
+    }
+    .app-skin-dark .dtr-slot {
+        background: #0f172a;
+        border-color: #2d3a52;
+    }
+    .app-skin-dark .dtr-slot-label {
+        color: #9aabc6;
+    }
+    .app-skin-dark .dtr-slot-value {
+        color: #e2eaf8;
+    }
+    .app-skin-dark .dtr-hours-row {
+        border-top-color: #334155;
+    }
+    .app-skin-dark .dtr-hours-label {
+        color: #9aabc6;
+    }
+    .app-skin-dark .dtr-hours-value {
+        color: #f3f7ff;
+    }
+    .app-skin-dark .dtr-empty-note {
+        color: #8a9ab2;
+    }
+</style>
 
 <div class="page-header">
     <div class="page-header-left d-flex align-items-center">
@@ -139,13 +352,13 @@ include 'includes/header.php';
 <div class="main-content">
     <div class="card stretch stretch-full mb-3">
         <div class="card-body">
-            <div class="toolbar app-students-dtr-toolbar">
+            <div class="toolbar">
                 <div>
                     <h5 class="mb-1"><?php echo h($student_name); ?></h5>
-                    <div class="student-meta-highlight app-students-dtr-meta-highlight">
-                        <span class="chip app-students-dtr-chip">Student ID: <?php echo h($student['student_id']); ?></span>
-                        <span class="chip app-students-dtr-chip">Course: <?php echo h($student['course_name'] ?? 'N/A'); ?></span>
-                        <span class="chip app-students-dtr-chip">Track: <?php echo h(strtoupper((string)($student['assignment_track'] ?? 'internal'))); ?></span>
+                    <div class="student-meta-highlight">
+                        <span class="chip">Student ID: <?php echo h($student['student_id']); ?></span>
+                        <span class="chip">Course: <?php echo h($student['course_name'] ?? 'N/A'); ?></span>
+                        <span class="chip">Track: <?php echo h(strtoupper((string)($student['assignment_track'] ?? 'internal'))); ?></span>
                     </div>
                 </div>
                 <div class="d-flex gap-2 align-items-center">
@@ -156,7 +369,7 @@ include 'includes/header.php';
                     </form>
                     <a href="students-dtr.php?id=<?php echo intval($student_id); ?>&month=<?php echo h($prev_month_input); ?>" class="btn btn-outline-dark">Last Month</a>
                     <a href="students-view.php?id=<?php echo intval($student_id); ?>" class="btn btn-outline-primary">Back</a>
-                    <button type="button" class="btn btn-primary" data-action="print-page">Print</button>
+                    <button type="button" class="btn btn-primary" onclick="window.print()">Print</button>
                 </div>
             </div>
         </div>
@@ -164,27 +377,27 @@ include 'includes/header.php';
 
     <div class="row g-3 mb-3">
         <div class="col-md-3 col-6">
-            <div class="dtr-summary-card app-students-dtr-summary-card">
-                <div class="dtr-summary-label app-students-dtr-summary-label">Month</div>
-                <div class="dtr-summary-value app-students-dtr-summary-value"><?php echo h($month_label); ?></div>
+            <div class="dtr-summary-card">
+                <div class="dtr-summary-label">Month</div>
+                <div class="dtr-summary-value"><?php echo h($month_label); ?></div>
             </div>
         </div>
         <div class="col-md-3 col-6">
-            <div class="dtr-summary-card app-students-dtr-summary-card">
-                <div class="dtr-summary-label app-students-dtr-summary-label">Present Days</div>
-                <div class="dtr-summary-value app-students-dtr-summary-value"><?php echo intval($present_days); ?></div>
+            <div class="dtr-summary-card">
+                <div class="dtr-summary-label">Present Days</div>
+                <div class="dtr-summary-value"><?php echo intval($present_days); ?></div>
             </div>
         </div>
         <div class="col-md-3 col-6">
-            <div class="dtr-summary-card app-students-dtr-summary-card">
-                <div class="dtr-summary-label app-students-dtr-summary-label">Total Hours Remaining</div>
-                <div class="dtr-summary-value app-students-dtr-summary-value"><?php echo h(fmt_hours_hm($total_hours_remaining)); ?></div>
+            <div class="dtr-summary-card">
+                <div class="dtr-summary-label">Total Hours Remaining</div>
+                <div class="dtr-summary-value"><?php echo h(fmt_hours_hm($total_hours_remaining)); ?></div>
             </div>
         </div>
         <div class="col-md-3 col-6">
-            <div class="dtr-summary-card app-students-dtr-summary-card">
-                <div class="dtr-summary-label app-students-dtr-summary-label">Total Hours</div>
-                <div class="dtr-summary-value app-students-dtr-summary-value"><?php echo h(fmt_hours_hm($month_total_hours)); ?></div>
+            <div class="dtr-summary-card">
+                <div class="dtr-summary-label">Total Hours</div>
+                <div class="dtr-summary-value"><?php echo h(fmt_hours_hm($month_total_hours)); ?></div>
             </div>
         </div>
     </div>
@@ -194,8 +407,8 @@ include 'includes/header.php';
             <h6 class="mb-0">Attendance History</h6>
         </div>
         <div class="card-body p-0">
-            <div class="table-responsive dtr-desktop-table app-students-dtr-desktop-table">
-                <table class="table table-hover dtr-table app-students-dtr-table mb-0">
+            <div class="table-responsive dtr-desktop-table">
+                <table class="table table-hover dtr-table mb-0">
                     <thead>
                         <tr>
                             <th>Day</th>
@@ -211,6 +424,7 @@ include 'includes/header.php';
                     <tbody>
                         <?php for ($day = 1; $day <= $days_in_month; $day++): ?>
                             <?php
+require_once dirname(__DIR__) . '/config/db.php';
                             $row = $records_by_day[$day] ?? null;
                             $date_iso = date('Y-m-', $month_ts) . str_pad((string)$day, 2, '0', STR_PAD_LEFT);
                             ?>
@@ -228,42 +442,43 @@ include 'includes/header.php';
                     </tbody>
                 </table>
             </div>
-            <div class="dtr-mobile-list app-students-dtr-mobile-list">
+            <div class="dtr-mobile-list">
                 <?php for ($day = 1; $day <= $days_in_month; $day++): ?>
                     <?php
+require_once dirname(__DIR__) . '/config/db.php';
                     $row = $records_by_day[$day] ?? null;
                     $date_iso = date('Y-m-', $month_ts) . str_pad((string)$day, 2, '0', STR_PAD_LEFT);
                     ?>
-                    <div class="dtr-day-card app-students-dtr-day-card">
-                        <div class="dtr-day-top app-students-dtr-day-top">
-                            <p class="dtr-day-title app-students-dtr-day-title">Day <?php echo $day; ?> - <?php echo h(date('M d, Y', strtotime($date_iso))); ?></p>
+                    <div class="dtr-day-card">
+                        <div class="dtr-day-top">
+                            <p class="dtr-day-title">Day <?php echo $day; ?> - <?php echo h(date('M d, Y', strtotime($date_iso))); ?></p>
                             <?php echo $row ? status_badge($row['status']) : '<span class="badge bg-soft-secondary text-secondary">No Record</span>'; ?>
                         </div>
                         <?php if ($row): ?>
-                            <div class="dtr-slot-grid app-students-dtr-slot-grid">
-                                <div class="dtr-slot app-students-dtr-slot">
-                                    <p class="dtr-slot-label app-students-dtr-slot-label">Morning In</p>
-                                    <p class="dtr-slot-value app-students-dtr-slot-value"><?php echo h(fmt_time($row['morning_time_in'])); ?></p>
+                            <div class="dtr-slot-grid">
+                                <div class="dtr-slot">
+                                    <p class="dtr-slot-label">Morning In</p>
+                                    <p class="dtr-slot-value"><?php echo h(fmt_time($row['morning_time_in'])); ?></p>
                                 </div>
-                                <div class="dtr-slot app-students-dtr-slot">
-                                    <p class="dtr-slot-label app-students-dtr-slot-label">Morning Out</p>
-                                    <p class="dtr-slot-value app-students-dtr-slot-value"><?php echo h(fmt_time($row['morning_time_out'])); ?></p>
+                                <div class="dtr-slot">
+                                    <p class="dtr-slot-label">Morning Out</p>
+                                    <p class="dtr-slot-value"><?php echo h(fmt_time($row['morning_time_out'])); ?></p>
                                 </div>
-                                <div class="dtr-slot app-students-dtr-slot">
-                                    <p class="dtr-slot-label app-students-dtr-slot-label">Afternoon In</p>
-                                    <p class="dtr-slot-value app-students-dtr-slot-value"><?php echo h(fmt_time($row['afternoon_time_in'])); ?></p>
+                                <div class="dtr-slot">
+                                    <p class="dtr-slot-label">Afternoon In</p>
+                                    <p class="dtr-slot-value"><?php echo h(fmt_time($row['afternoon_time_in'])); ?></p>
                                 </div>
-                                <div class="dtr-slot app-students-dtr-slot">
-                                    <p class="dtr-slot-label app-students-dtr-slot-label">Afternoon Out</p>
-                                    <p class="dtr-slot-value app-students-dtr-slot-value"><?php echo h(fmt_time($row['afternoon_time_out'])); ?></p>
+                                <div class="dtr-slot">
+                                    <p class="dtr-slot-label">Afternoon Out</p>
+                                    <p class="dtr-slot-value"><?php echo h(fmt_time($row['afternoon_time_out'])); ?></p>
                                 </div>
                             </div>
-                            <div class="dtr-hours-row app-students-dtr-hours-row">
-                                <p class="dtr-hours-label app-students-dtr-hours-label">Total Hours</p>
-                                <p class="dtr-hours-value app-students-dtr-hours-value"><?php echo h(fmt_hours_hm((float)($row['total_hours'] ?? 0))); ?></p>
+                            <div class="dtr-hours-row">
+                                <p class="dtr-hours-label">Total Hours</p>
+                                <p class="dtr-hours-value"><?php echo h(fmt_hours_hm((float)($row['total_hours'] ?? 0))); ?></p>
                             </div>
                         <?php else: ?>
-                            <p class="dtr-empty-note app-students-dtr-empty-note">No attendance logs for this day.</p>
+                            <p class="dtr-empty-note">No attendance logs for this day.</p>
                         <?php endif; ?>
                     </div>
                 <?php endfor; ?>

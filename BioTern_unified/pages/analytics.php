@@ -1,4 +1,5 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -76,28 +77,152 @@ $sparkline_approval = [];
 
 $project_remainders = [];
 
-// Build a stable last-12-month keyset for campaign chart aggregation.
-$campaign_keys = [];
-for ($i = 11; $i >= 0; $i--) {
-    $month_ts = strtotime("-{$i} months");
-    $campaign_keys[] = date('Y-m', $month_ts);
-    $campaign_labels[] = date('M y', $month_ts);
-}
-
-// Provide baseline labels for visitors chart so frontend render stays stable.
-$visitors_labels = $campaign_labels;
-if (empty($visitors_students)) {
-    $visitors_students = array_fill(0, count($visitors_labels), 0);
-}
-if (empty($visitors_attendances)) {
-    $visitors_attendances = array_fill(0, count($visitors_labels), 0);
-}
-if (empty($visitors_internships)) {
-    $visitors_internships = array_fill(0, count($visitors_labels), 0);
-}
-
 try {
+    // Calculate bounce rate based on attendance rejection ratio
+    $total_att = $conn->query("SELECT COUNT(*) as count FROM attendances");
+    $total_attendances = $total_att ? (int)$total_att->fetch_assoc()['count'] : 0;
+    
+    $rejected_att = $conn->query("SELECT COUNT(*) as count FROM attendances WHERE status = 'rejected'");
+    $rejected_attendances = $rejected_att ? (int)$rejected_att->fetch_assoc()['count'] : 0;
+    $bounce_rate = ($total_attendances > 0) ? round(($rejected_attendances / $total_attendances) * 100, 2) : 0;
+    
+    // Calculate page views based on active internships
+    $total_int = $conn->query("SELECT COUNT(*) as count FROM internships");
+    $total_internships = $total_int ? (int)$total_int->fetch_assoc()['count'] : 0;
+    
+    $active_int = $conn->query("SELECT COUNT(*) as count FROM internships WHERE status = 'ongoing'");
+    $active_internships = $active_int ? (int)$active_int->fetch_assoc()['count'] : 0;
+    $page_views = ($total_internships > 0) ? round(($active_internships / $total_internships) * 100, 2) : 0;
 
+    $completed_int = $conn->query("SELECT COUNT(*) as count FROM internships WHERE status = 'completed'");
+    $completed_internships = $completed_int ? (int)$completed_int->fetch_assoc()['count'] : 0;
+    $completed_internships_rate = ($total_internships > 0) ? round(($completed_internships / $total_internships) * 100, 2) : 0;
+
+    $internal_int = $conn->query("SELECT COUNT(*) as count FROM internships WHERE deleted_at IS NULL AND type = 'internal'");
+    $internal_internships = $internal_int ? (int)$internal_int->fetch_assoc()['count'] : 0;
+    $external_int = $conn->query("SELECT COUNT(*) as count FROM internships WHERE deleted_at IS NULL AND type = 'external'");
+    $external_internships = $external_int ? (int)$external_int->fetch_assoc()['count'] : 0;
+    
+    // Calculate site impressions based on biometric registration
+    $total_std = $conn->query("SELECT COUNT(*) as count FROM students WHERE deleted_at IS NULL");
+    $total_students = $total_std ? (int)$total_std->fetch_assoc()['count'] : 0;
+    
+    $biometric_std = $conn->query("SELECT COUNT(*) as count FROM students WHERE biometric_registered = 1 AND deleted_at IS NULL");
+    $biometric_students = $biometric_std ? (int)$biometric_std->fetch_assoc()['count'] : 0;
+    $site_impressions = ($total_students > 0) ? round(($biometric_students / $total_students) * 100, 2) : 0;
+
+    $with_email_q = $conn->query("SELECT COUNT(*) as count FROM students WHERE deleted_at IS NULL AND COALESCE(email, '') <> ''");
+    $students_with_email = $with_email_q ? (int)$with_email_q->fetch_assoc()['count'] : 0;
+    
+    // Calculate conversion rate based on approved attendances
+    $approved_att = $conn->query("SELECT COUNT(*) as count FROM attendances WHERE status = 'approved'");
+    $approved_attendances = $approved_att ? (int)$approved_att->fetch_assoc()['count'] : 0;
+    $pending_att = $conn->query("SELECT COUNT(*) as count FROM attendances WHERE status = 'pending'");
+    $pending_attendances = $pending_att ? (int)$pending_att->fetch_assoc()['count'] : 0;
+    $conversion_rate = ($total_attendances > 0) ? round(($approved_attendances / $total_attendances) * 100, 2) : 0;
+    $attendance_pending_rate = ($total_attendances > 0) ? round(($pending_attendances / $total_attendances) * 100, 2) : 0;
+    
+    // Additional analytics for Goal Progress and other widgets
+    // New students in last 30 days
+    $new_std_q = $conn->query("SELECT COUNT(*) as count FROM students WHERE deleted_at IS NULL AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)");
+    $new_students_30 = $new_std_q ? (int)$new_std_q->fetch_assoc()['count'] : 0;
+
+    // Coordinators and supervisors counts
+    $coord_q = $conn->query("SELECT COUNT(*) as count FROM coordinators WHERE deleted_at IS NULL AND is_active = 1");
+    $coordinators_count = $coord_q ? (int)$coord_q->fetch_assoc()['count'] : 0;
+    $sup_q = $conn->query("SELECT COUNT(*) as count FROM supervisors WHERE deleted_at IS NULL AND is_active = 1");
+    $supervisors_count = $sup_q ? (int)$sup_q->fetch_assoc()['count'] : 0;
+
+    // Internship hours totals for OJT Goal
+    $hours_q = $conn->query("SELECT COALESCE(SUM(required_hours),0) as total_required, COALESCE(SUM(rendered_hours),0) as total_rendered FROM internships WHERE deleted_at IS NULL");
+    $total_required_hours = 0;
+    $total_rendered_hours = 0;
+    if ($hours_q) {
+        $hrow = $hours_q->fetch_assoc();
+        if ($hrow) {
+            $total_required_hours = (int)$hrow['total_required'];
+            $total_rendered_hours = (int)$hrow['total_rendered'];
+        }
+    }
+
+    // Ensure totals exist to avoid division by zero elsewhere
+    $total_students = isset($total_students) ? (int)$total_students : 0;
+    $total_attendances = isset($total_attendances) ? (int)$total_attendances : 0;
+
+    // Goal widgets: define goals and current values from DB
+    $marketing_goal = max(1, $total_students);
+    $marketing_current = isset($new_students_30) ? (int)$new_students_30 : 0;
+    $teams_goal = max(1, $total_students);
+    $teams_current = (isset($coordinators_count) ? (int)$coordinators_count : 0) + (isset($supervisors_count) ? (int)$supervisors_count : 0);
+    $ojt_goal_hours = max(1, (int)$total_required_hours);
+    $ojt_current_hours = (int)$total_rendered_hours;
+    $revenue_goal = max(1, (int)$total_attendances);
+    $revenue_current = (int)$approved_attendances;
+    // compute simple percentages for client-side progress if needed
+    $marketing_progress = $marketing_goal > 0 ? round(min(100, ($marketing_current / $marketing_goal) * 100), 2) : 0;
+    $teams_progress = $teams_goal > 0 ? round(min(100, ($teams_current / $teams_goal) * 100), 2) : 0;
+    $ojt_progress = $ojt_goal_hours > 0 ? round(min(100, ($ojt_current_hours / $ojt_goal_hours) * 100), 2) : 0;
+    $revenue_progress = $revenue_goal > 0 ? round(min(100, ($revenue_current / $revenue_goal) * 100), 2) : 0;
+
+    // Visitors Overview (last 7 months)
+    $month_keys = [];
+    $month_labels = [];
+    for ($i = 6; $i >= 0; $i--) {
+        $month_key = date('Y-m', strtotime("-{$i} months"));
+        $month_keys[] = $month_key;
+        $month_labels[] = strtoupper(date('M/y', strtotime("{$month_key}-01")));
+    }
+
+    $students_by_month = array_fill_keys($month_keys, 0);
+    $att_by_month = array_fill_keys($month_keys, 0);
+    $intern_by_month = array_fill_keys($month_keys, 0);
+
+    $start_7m = date('Y-m-01', strtotime('-6 months'));
+
+    $q_students_month = $conn->query("SELECT DATE_FORMAT(created_at, '%Y-%m') AS ym, COUNT(*) AS cnt FROM students WHERE deleted_at IS NULL AND created_at >= '{$start_7m}' GROUP BY ym");
+    if ($q_students_month) {
+        while ($row = $q_students_month->fetch_assoc()) {
+            $ym = $row['ym'];
+            if (isset($students_by_month[$ym])) {
+                $students_by_month[$ym] = (int)$row['cnt'];
+            }
+        }
+    }
+
+    $q_att_month = $conn->query("SELECT DATE_FORMAT(attendance_date, '%Y-%m') AS ym, COUNT(*) AS cnt FROM attendances WHERE attendance_date >= '{$start_7m}' GROUP BY ym");
+    if ($q_att_month) {
+        while ($row = $q_att_month->fetch_assoc()) {
+            $ym = $row['ym'];
+            if (isset($att_by_month[$ym])) {
+                $att_by_month[$ym] = (int)$row['cnt'];
+            }
+        }
+    }
+
+    $q_intern_month = $conn->query("SELECT DATE_FORMAT(created_at, '%Y-%m') AS ym, COUNT(*) AS cnt FROM internships WHERE deleted_at IS NULL AND created_at >= '{$start_7m}' GROUP BY ym");
+    if ($q_intern_month) {
+        while ($row = $q_intern_month->fetch_assoc()) {
+            $ym = $row['ym'];
+            if (isset($intern_by_month[$ym])) {
+                $intern_by_month[$ym] = (int)$row['cnt'];
+            }
+        }
+    }
+
+    $visitors_labels = $month_labels;
+    foreach ($month_keys as $key) {
+        $visitors_students[] = $students_by_month[$key];
+        $visitors_attendances[] = $att_by_month[$key];
+        $visitors_internships[] = $intern_by_month[$key];
+    }
+
+    // Campaign chart (last 12 months, internal vs external internships by start date)
+    $campaign_keys = [];
+    for ($i = 11; $i >= 0; $i--) {
+        $campaign_key = date('Y-m', strtotime("-{$i} months"));
+        $campaign_keys[] = $campaign_key;
+        $campaign_labels[] = date('M', strtotime("{$campaign_key}-01"));
+    }
     $campaign_internal_map = array_fill_keys($campaign_keys, 0);
     $campaign_external_map = array_fill_keys($campaign_keys, 0);
     $start_12m = date('Y-m-01', strtotime('-11 months'));
@@ -247,39 +372,290 @@ try {
     // Database error - fallback to 0 values
 }
 ?>
-<?php
-$page_title = 'BioTern || Analytics';
-$page_body_class = 'page-analytics';
-$page_styles = array(
-    'assets/vendors/css/daterangepicker.min.css',
-    'assets/vendors/css/jquery-jvectormap.min.css',
-    'assets/vendors/css/jquery.time-to.min.css',
-    'assets/css/homepage-dashboard.css',
-);
-$page_vendor_scripts = array(
-    'assets/vendors/js/daterangepicker.min.js',
-    'assets/vendors/js/apexcharts.min.js',
-    'assets/vendors/js/jquery.time-to.min.js',
-    'assets/vendors/js/circle-progress.min.js',
-);
-$page_scripts = array(
-    'assets/js/analytics-page-runtime.js',
-    'assets/js/theme-customizer-init.min.js',
-);
-include 'includes/header.php';
-?>
-<style>
-    .analytics-hero .card-body {
-        background: linear-gradient(95deg, rgba(var(--bs-primary-rgb), 0.95), rgba(31, 90, 166, 0.84));
-    }
+<!DOCTYPE html>
+<html lang="zxx">
 
-    .analytics-chart-panel {
-        border: 1px dashed rgba(0, 0, 0, 0.08);
-        border-radius: 12px;
-        padding: 10px;
-    }
-</style>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="keyword" content="">
+    <meta name="author" content="ACT 2A Group 5">
+    <!--! The above 6 meta tags *must* come first in the head; any other head content must come *after* these tags !-->
+    <!--! BEGIN: Apps Title-->
+    <title>BioTern || Analytics</title>
+    <!--! END:  Apps Title-->
+    <!--! BEGIN: Favicon-->
+    <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
+    <script src="assets/js/theme-preload-init.min.js"></script>
+    <!--! END: Favicon-->
+    <!--! BEGIN: Bootstrap CSS-->
+    <link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css">
+    <!--! END: Bootstrap CSS-->
+    <!--! BEGIN: Vendors CSS-->
+    <link rel="stylesheet" type="text/css" href="assets/vendors/css/vendors.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/vendors/css/daterangepicker.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/vendors/css/jquery-jvectormap.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2-theme.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/vendors/css/jquery.time-to.min.css">
+    <!--! END: Vendors CSS-->
+    <!--! BEGIN: Custom CSS-->
+    <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/css/homepage-dashboard.css">
+    <style>
+        .analytics-hero .card-body {
+            background: linear-gradient(95deg, rgba(var(--bs-primary-rgb), 0.95), rgba(31, 90, 166, 0.84));
+        }
 
+        .analytics-chart-panel {
+            border: 1px dashed rgba(0, 0, 0, 0.08);
+            border-radius: 12px;
+            padding: 10px;
+        }
+    </style>
+    <!--! END: Custom CSS-->
+    <!--! HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries !-->
+    <!--! WARNING: Respond.js doesn"t work if you view the page via file: !-->
+    <!--[if lt IE 9]>
+			<script src="https:oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+			<script src="https:oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+		<![endif]-->
+</head>
+
+<body>
+    <!--! Navigation (central include) -->
+    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+include_once 'includes/navigation.php'; ?>
+    <!--! ================================================================ !-->
+    <!--! [Start] Header !-->
+    <!--! ================================================================ !-->
+    <header class="nxl-header">
+        <div class="header-wrapper">
+            <!--! [Start] Header Left !-->
+            <div class="header-left d-flex align-items-center gap-4">
+                <!--! [Start] nxl-head-mobile-toggler !-->
+                <a href="javascript:void(0);" class="nxl-head-mobile-toggler" id="mobile-collapse">
+                    <div class="hamburger hamburger--arrowturn">
+                        <div class="hamburger-box">
+                            <div class="hamburger-inner"></div>
+                        </div>
+                    </div>
+                </a>
+                <!--! [Start] nxl-head-mobile-toggler !-->
+                <!--! [Start] nxl-navigation-toggle !-->
+                <div class="nxl-navigation-toggle">
+                    <a href="javascript:void(0);" id="menu-mini-button">
+                        <i class="feather-align-left"></i>
+                    </a>
+                    <a href="javascript:void(0);" id="menu-expend-button" style="display: none">
+                        <i class="feather-arrow-right"></i>
+                    </a>
+                </div>
+                <!--! [End] nxl-navigation-toggle !-->
+            </div>
+            <!--! [End] Header Left !-->
+            <!--! [Start] Header Right !-->
+            <div class="header-right ms-auto">
+                <div class="d-flex align-items-center">
+                    <div class="dropdown nxl-h-item nxl-header-search">
+                        <a href="javascript:void(0);" class="nxl-head-link me-0" data-bs-toggle="dropdown" data-bs-auto-close="outside">
+                            <i class="feather-search"></i>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-search-dropdown">
+                            <div class="input-group search-form">
+                                <span class="input-group-text">
+                                    <i class="feather-search fs-6 text-muted"></i>
+                                </span>
+                                <input type="text" class="form-control search-input-field" placeholder="Search....">
+                                <span class="input-group-text">
+                                    <button type="button" class="btn-close"></button>
+                                </span>
+                            </div>
+                            <div class="dropdown-divider mt-0"></div>
+                            <!--! search coding for database !-->
+                        </div>
+                    </div>
+                    
+                    <div class="nxl-h-item d-none d-sm-flex">
+                        <div class="full-screen-switcher">
+                            <a href="javascript:void(0);" class="nxl-head-link me-0" onclick="$('body').fullScreenHelper('toggle');">
+                                <i class="feather-maximize maximize"></i>
+                                <i class="feather-minimize minimize"></i>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="nxl-h-item dark-light-theme">
+                        <a href="javascript:void(0);" class="nxl-head-link me-0 dark-button">
+                            <i class="feather-moon"></i>
+                        </a>
+                        <a href="javascript:void(0);" class="nxl-head-link me-0 light-button" style="display: none">
+                            <i class="feather-sun"></i>
+                        </a>
+                    </div>
+                    <div class="dropdown nxl-h-item">
+                        <a class="nxl-head-link me-3" data-bs-toggle="dropdown" href="#" role="button" data-bs-auto-close="outside">
+                            <i class="feather-bell"></i>
+                            <span class="badge bg-danger nxl-h-badge"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $unread_notifications > 99 ? '99+' : (int)$unread_notifications; ?></span>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-notifications-menu">
+                            <div class="d-flex justify-content-between align-items-center notifications-head">
+                                <h6 class="fw-bold text-dark mb-0">Notifications</h6>
+                                <a href="javascript:void(0);" class="fs-11 text-success text-end ms-auto" data-bs-toggle="tooltip" title="Make as Read">
+                                    <i class="feather-check"></i>
+                                    <span><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$unread_notifications; ?> Unread</span>
+                                </a>
+                            </div>
+                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if (!empty($latest_notifications)): ?>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($latest_notifications as $notif): ?>
+                                    <div class="notifications-item">
+                                        <img src="assets/images/avatar/1.png" alt="" class="rounded me-3 border">
+                                        <div class="notifications-desc">
+                                            <a href="javascript:void(0);" class="font-body text-truncate-2-line">
+                                                <span class="fw-semibold text-dark"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($notif['user_name'], ENT_QUOTES, 'UTF-8'); ?></span>
+                                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($notif['title'], ENT_QUOTES, 'UTF-8'); ?>
+                                            </a>
+                                            <div class="fs-11 text-muted text-truncate-1-line mb-1"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($notif['message'], ENT_QUOTES, 'UTF-8'); ?></div>
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div class="notifications-date text-muted border-bottom border-bottom-dashed">
+                                                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $notif['created_at'] !== '' ? date('M d, Y h:i A', strtotime($notif['created_at'])) : '-'; ?>
+                                                </div>
+                                                <div class="d-flex align-items-center float-end gap-2">
+                                                    <span class="d-block wd-8 ht-8 rounded-circle <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$notif['is_read'] === 1 ? 'bg-success' : 'bg-warning'; ?>" data-bs-toggle="tooltip" title="Read status"></span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
+                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+else: ?>
+                                <div class="px-3 py-4 text-center text-muted fs-12">No notifications available.</div>
+                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
+                            <div class="text-center notifications-footer">
+                                <a href="javascript:void(0);" class="fs-13 fw-semibold text-dark">All Notifications</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="dropdown nxl-h-item">
+                        <a href="javascript:void(0);" data-bs-toggle="dropdown" role="button" data-bs-auto-close="outside">
+                            <img src="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($current_profile_img, ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar me-0" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-user-dropdown">
+                            <div class="dropdown-header">
+                                <div class="d-flex align-items-center">
+                                    <img src="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($current_profile_img, ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
+                                    <div>
+                                        <h6 class="text-dark mb-0">
+                                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($current_user_name, ENT_QUOTES, 'UTF-8'); ?>
+                                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($current_user_role_badge !== ''): ?>
+                                                <span class="badge bg-soft-success text-success ms-1"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars(ucfirst($current_user_role_badge), ENT_QUOTES, 'UTF-8'); ?></span>
+                                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
+                                        </h6>
+                                        <span class="fs-12 fw-medium text-muted"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($current_user_email, ENT_QUOTES, 'UTF-8'); ?></span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="dropdown">
+                                <a href="javascript:void(0);" class="dropdown-item" data-bs-toggle="dropdown">
+                                    <span class="hstack">
+                                        <i class="wd-10 ht-10 border border-2 border-gray-1 bg-success rounded-circle me-2"></i>
+                                        <span>Active</span>
+                                    </span>
+                                    <i class="feather-chevron-right ms-auto me-0"></i>
+                                </a>
+                                <div class="dropdown-menu">
+                                    <a href="javascript:void(0);" class="dropdown-item">
+                                        <span class="hstack">
+                                            <i class="wd-10 ht-10 border border-2 border-gray-1 bg-warning rounded-circle me-2"></i>
+                                            <span>Always</span>
+                                        </span>
+                                    </a>
+                                    <a href="javascript:void(0);" class="dropdown-item">
+                                        <span class="hstack">
+                                            <i class="wd-10 ht-10 border border-2 border-gray-1 bg-success rounded-circle me-2"></i>
+                                            <span>Active</span>
+                                        </span>
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="dropdown-divider"></div>
+
+                            <div class="dropdown-divider"></div>
+                            <a href="users.php" class="dropdown-item">
+                                <i class="feather-user"></i>
+                                <span>Profile Details</span>
+                            </a>
+                            <a href="analytics.php" class="dropdown-item">
+                                <i class="feather-activity"></i>
+                                <span>Activity Feed</span>
+                            </a>
+                            <a href="analytics.php" class="dropdown-item">
+                                <i class="feather-bell"></i>
+                                <span>Notifications</span>
+                            </a>
+                            <a href="settings-general.php" class="dropdown-item">
+                                <i class="feather-settings"></i>
+                                <span>Account Settings</span>
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <a href="./auth-login-cover.php?logout=1" class="dropdown-item">
+                                <i class="feather-log-out"></i>
+                                <span>Logout</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!--! [End] Header Right !-->
+        </div>
+    </header>
+    <!--! ================================================================ !-->
+    <!--! [End] Header !-->
+    <!--! ================================================================ !-->
+    <!--! ================================================================ !-->
+    <!--! [Start] Main Content !-->
+    <!--! ================================================================ !-->
+    <main class="nxl-container">
+        <div class="nxl-content">
             <!-- [ page-header ] start -->
             <div class="page-header">
                 <div class="page-header-left d-flex align-items-center">
@@ -294,7 +670,9 @@ include 'includes/header.php';
                 <div class="page-header-right ms-auto">
                     <div class="d-flex align-items-center gap-2">
                         <span class="badge bg-soft-primary text-primary fs-11">
-                            <i class="feather-calendar me-1"></i> <?php echo date('M d, Y'); ?>
+                            <i class="feather-calendar me-1"></i> <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo date('M d, Y'); ?>
                         </span>
                         <div id="reportrange" class="reportrange-picker d-flex align-items-center btn btn-sm btn-light-brand">
                             <span class="reportrange-picker-field"></span>
@@ -342,8 +720,12 @@ include 'includes/header.php';
                                 <div class="card h-100 kpi-card">
                                     <div class="card-body d-flex flex-column justify-content-between gap-2">
                                         <span class="fs-11 text-muted d-block mb-2">Total Students</span>
-                                        <h4 class="fw-bold text-dark mb-1"><?php echo number_format($total_students); ?></h4>
-                                        <span class="badge bg-soft-primary text-primary"><?php echo number_format($students_with_email); ?> with email</span>
+                                        <h4 class="fw-bold text-dark mb-1"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format($total_students); ?></h4>
+                                        <span class="badge bg-soft-primary text-primary"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format($students_with_email); ?> with email</span>
                                     </div>
                                 </div>
                             </div>
@@ -351,8 +733,12 @@ include 'includes/header.php';
                                 <div class="card h-100 kpi-card">
                                     <div class="card-body d-flex flex-column justify-content-between gap-2">
                                         <span class="fs-11 text-muted d-block mb-2">Active Internships</span>
-                                        <h4 class="fw-bold text-dark mb-1"><?php echo number_format($active_internships); ?></h4>
-                                        <span class="badge bg-soft-info text-info"><?php echo format_pct($page_views); ?> ongoing ratio</span>
+                                        <h4 class="fw-bold text-dark mb-1"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format($active_internships); ?></h4>
+                                        <span class="badge bg-soft-info text-info"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo format_pct($page_views); ?> ongoing ratio</span>
                                     </div>
                                 </div>
                             </div>
@@ -360,8 +746,12 @@ include 'includes/header.php';
                                 <div class="card h-100 kpi-card">
                                     <div class="card-body d-flex flex-column justify-content-between gap-2">
                                         <span class="fs-11 text-muted d-block mb-2">Total Attendances</span>
-                                        <h4 class="fw-bold text-dark mb-1"><?php echo number_format($total_attendances); ?></h4>
-                                        <span class="badge bg-soft-warning text-warning"><?php echo format_pct($attendance_pending_rate); ?> pending</span>
+                                        <h4 class="fw-bold text-dark mb-1"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format($total_attendances); ?></h4>
+                                        <span class="badge bg-soft-warning text-warning"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo format_pct($attendance_pending_rate); ?> pending</span>
                                     </div>
                                 </div>
                             </div>
@@ -369,8 +759,12 @@ include 'includes/header.php';
                                 <div class="card h-100 kpi-card">
                                     <div class="card-body d-flex flex-column justify-content-between gap-2">
                                         <span class="fs-11 text-muted d-block mb-2">Approved Attendance</span>
-                                        <h4 class="fw-bold text-dark mb-1"><?php echo number_format($approved_attendances); ?></h4>
-                                        <span class="badge bg-soft-success text-success"><?php echo format_pct($conversion_rate); ?> approval rate</span>
+                                        <h4 class="fw-bold text-dark mb-1"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format($approved_attendances); ?></h4>
+                                        <span class="badge bg-soft-success text-success"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo format_pct($conversion_rate); ?> approval rate</span>
                                     </div>
                                 </div>
                             </div>
@@ -378,8 +772,12 @@ include 'includes/header.php';
                                 <div class="card h-100 kpi-card">
                                     <div class="card-body d-flex flex-column justify-content-between gap-2">
                                         <span class="fs-11 text-muted d-block mb-2">Rejected Attendance</span>
-                                        <h4 class="fw-bold text-dark mb-1"><?php echo number_format($rejected_attendances); ?></h4>
-                                        <span class="badge bg-soft-danger text-danger"><?php echo format_pct($bounce_rate); ?> rejection rate</span>
+                                        <h4 class="fw-bold text-dark mb-1"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format($rejected_attendances); ?></h4>
+                                        <span class="badge bg-soft-danger text-danger"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo format_pct($bounce_rate); ?> rejection rate</span>
                                     </div>
                                 </div>
                             </div>
@@ -387,8 +785,12 @@ include 'includes/header.php';
                                 <div class="card h-100 kpi-card">
                                     <div class="card-body d-flex flex-column justify-content-between gap-2">
                                         <span class="fs-11 text-muted d-block mb-2">Biometric Registered</span>
-                                        <h4 class="fw-bold text-dark mb-1"><?php echo number_format(isset($biometric_students)?$biometric_students:0); ?></h4>
-                                        <span class="badge bg-soft-primary text-primary"><?php echo format_pct($site_impressions); ?> enrollment</span>
+                                        <h4 class="fw-bold text-dark mb-1"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format(isset($biometric_students)?$biometric_students:0); ?></h4>
+                                        <span class="badge bg-soft-primary text-primary"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo format_pct($site_impressions); ?> enrollment</span>
                                     </div>
                                 </div>
                             </div>
@@ -407,7 +809,8 @@ include 'includes/header.php';
                                     <a href="javascript:void(0);" class="btn btn-light-brand">Live Overview</a>
                                 </div>
                                 <?php
-                                // Build student-centric metrics for the Email Reports area
+require_once dirname(__DIR__) . '/config/db.php';
+// Build student-centric metrics for the Email Reports area
                                 $erp_total_students = isset($total_students) ? (int)$total_students : 0;
                                 // students with non-empty email
                                 $erp_with_email = isset($students_with_email) ? (int)$students_with_email : 0;
@@ -434,7 +837,9 @@ include 'includes/header.php';
                                         <div class="card stretch stretch-full border border-dashed border-gray-5">
                                             <div class="card-body rounded-3 text-center">
                                                 <i class="bi bi-people fs-3 text-primary"></i>
-                                                <div class="fs-4 fw-bolder text-dark mt-3 mb-1"><?php echo number_format($erp_total_students); ?></div>
+                                                <div class="fs-4 fw-bolder text-dark mt-3 mb-1"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format($erp_total_students); ?></div>
                                                 <p class="fs-12 fw-medium text-muted text-spacing-1 mb-0 text-truncate-1-line">Total Students</p>
                                             </div>
                                         </div>
@@ -443,8 +848,12 @@ include 'includes/header.php';
                                         <div class="card stretch stretch-full border border-dashed border-gray-5">
                                             <div class="card-body rounded-3 text-center">
                                                 <i class="bi bi-envelope fs-3 text-warning"></i>
-                                                <div class="fs-4 fw-bolder text-dark mt-3 mb-1"><?php echo number_format($erp_with_email); ?></div>
-                                                <p class="fs-12 fw-medium text-muted text-spacing-1 mb-0 text-truncate-1-line">With Email (<?php echo format_pct($pct_with_email); ?>)</p>
+                                                <div class="fs-4 fw-bolder text-dark mt-3 mb-1"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format($erp_with_email); ?></div>
+                                                <p class="fs-12 fw-medium text-muted text-spacing-1 mb-0 text-truncate-1-line">With Email (<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo format_pct($pct_with_email); ?>)</p>
                                             </div>
                                         </div>
                                     </div>
@@ -452,8 +861,12 @@ include 'includes/header.php';
                                         <div class="card stretch stretch-full border border-dashed border-gray-5">
                                             <div class="card-body rounded-3 text-center">
                                                 <i class="bi bi-person-check fs-3 text-success"></i>
-                                                <div class="fs-4 fw-bolder text-dark mt-3 mb-1"><?php echo number_format($erp_biometric); ?></div>
-                                                <p class="fs-12 fw-medium text-muted text-spacing-1 mb-0 text-truncate-1-line">Biometric Registered (<?php echo format_pct($pct_biometric); ?>)</p>
+                                                <div class="fs-4 fw-bolder text-dark mt-3 mb-1"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format($erp_biometric); ?></div>
+                                                <p class="fs-12 fw-medium text-muted text-spacing-1 mb-0 text-truncate-1-line">Biometric Registered (<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo format_pct($pct_biometric); ?>)</p>
                                             </div>
                                         </div>
                                     </div>
@@ -461,8 +874,12 @@ include 'includes/header.php';
                                         <div class="card stretch stretch-full border border-dashed border-gray-5">
                                             <div class="card-body rounded-3 text-center">
                                                 <i class="bi bi-person-plus fs-3 text-indigo"></i>
-                                                <div class="fs-4 fw-bolder text-dark mt-3 mb-1"><?php echo number_format($erp_new30); ?></div>
-                                                <p class="fs-12 fw-medium text-muted text-spacing-1 mb-0 text-truncate-1-line">New (30d) (<?php echo format_pct($pct_new30); ?>)</p>
+                                                <div class="fs-4 fw-bolder text-dark mt-3 mb-1"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format($erp_new30); ?></div>
+                                                <p class="fs-12 fw-medium text-muted text-spacing-1 mb-0 text-truncate-1-line">New (30d) (<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo format_pct($pct_new30); ?>)</p>
                                             </div>
                                         </div>
                                     </div>
@@ -470,8 +887,12 @@ include 'includes/header.php';
                                         <div class="card stretch stretch-full border border-dashed border-gray-5">
                                             <div class="card-body rounded-3 text-center">
                                                 <i class="bi bi-calendar-check fs-3 text-teal"></i>
-                                                <div class="fs-4 fw-bolder text-dark mt-3 mb-1"><?php echo number_format($erp_att_today); ?></div>
-                                                <p class="fs-12 fw-medium text-muted text-spacing-1 mb-0 text-truncate-1-line">Attended Today (<?php echo format_pct($pct_att_today); ?>)</p>
+                                                <div class="fs-4 fw-bolder text-dark mt-3 mb-1"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format($erp_att_today); ?></div>
+                                                <p class="fs-12 fw-medium text-muted text-spacing-1 mb-0 text-truncate-1-line">Attended Today (<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo format_pct($pct_att_today); ?>)</p>
                                             </div>
                                         </div>
                                     </div>
@@ -479,8 +900,12 @@ include 'includes/header.php';
                                         <div class="card stretch stretch-full border border-dashed border-gray-5">
                                             <div class="card-body rounded-3 text-center">
                                                 <i class="bi bi-briefcase fs-3 text-danger"></i>
-                                                <div class="fs-4 fw-bolder text-dark mt-3 mb-1"><?php echo number_format(isset($active_internships)?$active_internships:0); ?></div>
-                                                <p class="fs-12 fw-medium text-muted text-spacing-1 mb-0 text-truncate-1-line">Active Internships (<?php echo format_pct($page_views); ?>)</p>
+                                                <div class="fs-4 fw-bolder text-dark mt-3 mb-1"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format(isset($active_internships)?$active_internships:0); ?></div>
+                                                <p class="fs-12 fw-medium text-muted text-spacing-1 mb-0 text-truncate-1-line">Active Internships (<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo format_pct($page_views); ?>)</p>
                                             </div>
                                         </div>
                                     </div>
@@ -577,7 +1002,8 @@ include 'includes/header.php';
                                 <div class="table-responsive">
                                     <table class="table table-hover mb-0">
                                         <?php
-                                        $colors = ['pending' => 'bg-warning', 'ongoing' => 'bg-success', 'completed' => 'bg-primary', 'cancelled' => 'bg-danger'];
+require_once dirname(__DIR__) . '/config/db.php';
+$colors = ['pending' => 'bg-warning', 'ongoing' => 'bg-success', 'completed' => 'bg-primary', 'cancelled' => 'bg-danger'];
                                         foreach ($status_counts as $k => $v) {
                                             $pct = $total_interns > 0 ? round(($v / $total_interns) * 100, 2) : 0;
                                             $label = ucfirst($k);
@@ -594,25 +1020,34 @@ include 'includes/header.php';
                                     <div id="internship-pie-chart" style="height:240px;"></div>
                                     <div class="d-flex justify-content-around mt-3">
                                         <div class="text-center">
-                                            <div class="fs-5 fw-bold"><?php echo number_format($status_counts['completed'] ?? 0); ?></div>
+                                            <div class="fs-5 fw-bold"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format($status_counts['completed'] ?? 0); ?></div>
                                             <div class="fs-12 text-muted">Completed</div>
                                         </div>
                                         <div class="text-center">
-                                            <div class="fs-5 fw-bold"><?php echo number_format($status_counts['ongoing'] ?? 0); ?></div>
+                                            <div class="fs-5 fw-bold"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format($status_counts['ongoing'] ?? 0); ?></div>
                                             <div class="fs-12 text-muted">Ongoing</div>
                                         </div>
                                         <div class="text-center">
-                                            <div class="fs-5 fw-bold"><?php echo number_format($status_counts['pending'] ?? 0); ?></div>
+                                            <div class="fs-5 fw-bold"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format($status_counts['pending'] ?? 0); ?></div>
                                             <div class="fs-12 text-muted">Pending</div>
                                         </div>
                                         <div class="text-center">
-                                            <div class="fs-5 fw-bold"><?php echo number_format($status_counts['cancelled'] ?? 0); ?></div>
+                                            <div class="fs-5 fw-bold"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format($status_counts['cancelled'] ?? 0); ?></div>
                                             <div class="fs-12 text-muted">Cancelled</div>
                                         </div>
                                     </div>
                                 </div>
                                 <?php
-                                // Prepare pie chart data for client-side
+require_once dirname(__DIR__) . '/config/db.php';
+// Prepare pie chart data for client-side
                                 $pie_labels = array_map('ucfirst', array_keys($status_counts));
                                 $pie_values = array_values($status_counts);
                                 ?>
@@ -620,8 +1055,12 @@ include 'includes/header.php';
                                 document.addEventListener('DOMContentLoaded', function(){
                                     var options = {
                                         chart: { type: 'pie', height: 240 },
-                                        series: <?php echo json_encode($pie_values); ?>,
-                                        labels: <?php echo json_encode($pie_labels); ?>,
+                                        series: <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo json_encode($pie_values); ?>,
+                                        labels: <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo json_encode($pie_labels); ?>,
                                         colors: ['#ffc107','#28a745','#007bff','#dc3545'],
                                         legend: { position: 'bottom' }
                                     };
@@ -644,8 +1083,14 @@ include 'includes/header.php';
                                         <div class="fs-11 text-muted">Based on attendance records</div>
                                     </div>
                                     <div class="text-end">
-                                        <div class="fs-24 fw-bold mb-2 text-dark"><span class="counter"><?php echo $bounce_rate; ?></span>%</div>
-                                        <div class="fs-11 text-danger"><?php echo number_format($rejected_attendances); ?> of <?php echo number_format($total_attendances); ?></div>
+                                        <div class="fs-24 fw-bold mb-2 text-dark"><span class="counter"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $bounce_rate; ?></span>%</div>
+                                        <div class="fs-11 text-danger"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format($rejected_attendances); ?> of <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format($total_attendances); ?></div>
                                     </div>
                                 </div>
                                 <div id="bounce-rate"></div>
@@ -661,8 +1106,14 @@ include 'includes/header.php';
                                         <div class="fs-11 text-muted">Ongoing vs Total internships</div>
                                     </div>
                                     <div class="text-end">
-                                        <div class="fs-24 fw-bold mb-2 text-dark"><span class="counter"><?php echo $page_views; ?></span>%</div>
-                                        <div class="fs-11 text-success"><?php echo number_format($active_internships); ?> active of <?php echo number_format($total_internships); ?></div>
+                                        <div class="fs-24 fw-bold mb-2 text-dark"><span class="counter"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $page_views; ?></span>%</div>
+                                        <div class="fs-11 text-success"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format($active_internships); ?> active of <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format($total_internships); ?></div>
                                     </div>
                                 </div>
                                 <div id="page-views"></div>
@@ -678,8 +1129,14 @@ include 'includes/header.php';
                                         <div class="fs-11 text-muted">Registered vs Total students</div>
                                     </div>
                                     <div class="tx-right">
-                                        <div class="fs-24 fw-bold mb-2 text-dark"><span class="counter"><?php echo $site_impressions; ?></span>%</div>
-                                        <div class="fs-11 text-success"><?php echo number_format($biometric_students); ?> registered of <?php echo number_format($total_students); ?></div>
+                                        <div class="fs-24 fw-bold mb-2 text-dark"><span class="counter"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $site_impressions; ?></span>%</div>
+                                        <div class="fs-11 text-success"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format($biometric_students); ?> registered of <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format($total_students); ?></div>
                                     </div>
                                 </div>
                                 <div id="site-impressions"></div>
@@ -695,8 +1152,14 @@ include 'includes/header.php';
                                         <div class="fs-11 text-muted">Approved vs Total records</div>
                                     </div>
                                     <div class="tx-right">
-                                        <div class="fs-24 fw-bold mb-2 text-dark"><span class="counter"><?php echo $conversion_rate; ?></span>%</div>
-                                        <div class="fs-11 text-success"><?php echo number_format($approved_attendances); ?> approved, <?php echo number_format($pending_attendances); ?> pending</div>
+                                        <div class="fs-24 fw-bold mb-2 text-dark"><span class="counter"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $conversion_rate; ?></span>%</div>
+                                        <div class="fs-11 text-success"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format($approved_attendances); ?> approved, <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format($pending_attendances); ?> pending</div>
                                     </div>
                                 </div>
                                 <div id="conversions-rate"></div>
@@ -747,7 +1210,13 @@ include 'includes/header.php';
                                                 <div class="goal-progress-1"></div>
                                             </div>
                                             <h2 class="fs-13 tx-spacing-1">Marketing Goal</h2>
-                                            <div class="fs-11 text-muted text-truncate-1-line"><?php echo $marketing_current; ?>/<?php echo $marketing_goal; ?> Users (<?php echo format_pct($marketing_progress); ?>)</div>
+                                            <div class="fs-11 text-muted text-truncate-1-line"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $marketing_current; ?>/<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $marketing_goal; ?> Users (<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo format_pct($marketing_progress); ?>)</div>
                                         </div>
                                     </div>
                                     <div class="col-sm-6">
@@ -756,7 +1225,13 @@ include 'includes/header.php';
                                                 <div class="goal-progress-2"></div>
                                             </div>
                                             <h2 class="fs-13 tx-spacing-1">Teams Goal</h2>
-                                            <div class="fs-11 text-muted text-truncate-1-line"><?php echo $teams_current; ?>/<?php echo $teams_goal; ?> Members (<?php echo format_pct($teams_progress); ?>)</div>
+                                            <div class="fs-11 text-muted text-truncate-1-line"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $teams_current; ?>/<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $teams_goal; ?> Members (<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo format_pct($teams_progress); ?>)</div>
                                         </div>
                                     </div>
                                     <div class="col-sm-6">
@@ -765,7 +1240,13 @@ include 'includes/header.php';
                                                 <div class="goal-progress-3"></div>
                                             </div>
                                             <h2 class="fs-13 tx-spacing-1">OJT Goal</h2>
-                                            <div class="fs-11 text-muted text-truncate-1-line"><?php echo $ojt_current_hours; ?>/<?php echo $ojt_goal_hours; ?> hrs (<?php echo format_pct($ojt_progress); ?>)</div>
+                                            <div class="fs-11 text-muted text-truncate-1-line"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $ojt_current_hours; ?>/<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $ojt_goal_hours; ?> hrs (<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo format_pct($ojt_progress); ?>)</div>
                                         </div>
                                     </div>
                                     <div class="col-sm-6">
@@ -774,7 +1255,13 @@ include 'includes/header.php';
                                                 <div class="goal-progress-4"></div>
                                             </div>
                                             <h2 class="fs-13 tx-spacing-1">Revenue Goal</h2>
-                                            <div class="fs-11 text-muted text-truncate-1-line"><?php echo $revenue_current; ?>/<?php echo $revenue_goal; ?> (<?php echo format_pct($revenue_progress); ?>)</div>
+                                            <div class="fs-11 text-muted text-truncate-1-line"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $revenue_current; ?>/<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $revenue_goal; ?> (<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo format_pct($revenue_progress); ?>)</div>
                                         </div>
                                     </div>
                                 </div>
@@ -831,7 +1318,8 @@ include 'includes/header.php';
                             <div class="card-footer">
                                 <div class="row g-4">
                                     <?php
-                                    // Use previously calculated analytics percentages when available
+require_once dirname(__DIR__) . '/config/db.php';
+// Use previously calculated analytics percentages when available
                                     $reach_count = isset($total_students) ? (int)$total_students : 0;
                                     $opened_pct = isset($site_impressions) ? $site_impressions : 0; // biometric registration %
                                     $clicked_pct = isset($page_views) ? $page_views : 0; // active internships %
@@ -844,36 +1332,52 @@ include 'includes/header.php';
                                     <div class="col-lg-3">
                                         <div class="p-3 border border-dashed rounded">
                                             <div class="fs-12 text-muted mb-1">Reach</div>
-                                            <h6 class="fw-bold text-dark"><?php echo number_format($reach_count); ?></h6>
+                                            <h6 class="fw-bold text-dark"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format($reach_count); ?></h6>
                                             <div class="progress mt-2 ht-3">
-                                                <div class="progress-bar bg-primary" role="progressbar" style="width: <?php echo ($reach_count>0? min(100, round(($reach_count/ max(1,$reach_count))*100)):0); ?>%"></div>
+                                                <div class="progress-bar bg-primary" role="progressbar" style="width: <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo ($reach_count>0? min(100, round(($reach_count/ max(1,$reach_count))*100)):0); ?>%"></div>
                                             </div>
                                         </div>
                                     </div>
                                     <div class="col-lg-3">
                                         <div class="p-3 border border-dashed rounded">
                                             <div class="fs-12 text-muted mb-1">Opened</div>
-                                            <h6 class="fw-bold text-dark"><?php echo format_pct($opened_pct); ?></h6>
+                                            <h6 class="fw-bold text-dark"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo format_pct($opened_pct); ?></h6>
                                             <div class="progress mt-2 ht-3">
-                                                <div class="progress-bar bg-success" role="progressbar" style="width: <?php echo $w_opened; ?>%"></div>
+                                                <div class="progress-bar bg-success" role="progressbar" style="width: <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $w_opened; ?>%"></div>
                                             </div>
                                         </div>
                                     </div>
                                     <div class="col-lg-3">
                                         <div class="p-3 border border-dashed rounded">
                                             <div class="fs-12 text-muted mb-1">Clicked</div>
-                                            <h6 class="fw-bold text-dark"><?php echo format_pct($clicked_pct); ?></h6>
+                                            <h6 class="fw-bold text-dark"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo format_pct($clicked_pct); ?></h6>
                                             <div class="progress mt-2 ht-3">
-                                                <div class="progress-bar bg-danger" role="progressbar" style="width: <?php echo $w_clicked; ?>%"></div>
+                                                <div class="progress-bar bg-danger" role="progressbar" style="width: <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $w_clicked; ?>%"></div>
                                             </div>
                                         </div>
                                     </div>
                                     <div class="col-lg-3">
                                         <div class="p-3 border border-dashed rounded">
                                             <div class="fs-12 text-muted mb-1">Conversion</div>
-                                            <h6 class="fw-bold text-dark"><?php echo format_pct($conversion_pct); ?></h6>
+                                            <h6 class="fw-bold text-dark"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo format_pct($conversion_pct); ?></h6>
                                             <div class="progress mt-2 ht-3">
-                                                <div class="progress-bar bg-dark" role="progressbar" style="width: <?php echo $w_conversion; ?>%"></div>
+                                                <div class="progress-bar bg-dark" role="progressbar" style="width: <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $w_conversion; ?>%"></div>
                                             </div>
                                         </div>
                                     </div>
@@ -931,7 +1435,8 @@ include 'includes/header.php';
                                         </thead>
                                         <tbody>
                                             <?php
-                                            $status_class_map = [
+require_once dirname(__DIR__) . '/config/db.php';
+$status_class_map = [
                                                 'pending' => 'bg-soft-warning text-warning',
                                                 'ongoing' => 'bg-soft-primary text-primary',
                                                 'completed' => 'bg-soft-success text-success',
@@ -948,40 +1453,65 @@ include 'includes/header.php';
                                                     <div class="hstack gap-2">
                                                         <span class="wd-10 ht-10 bg-gray-400 rounded-circle d-inline-block me-2 lh-base"></span>
                                                         <div class="border-3 border-start rounded ps-3">
-                                                            <a href="ojt-view.php?id=<?php echo (int)$project['id']; ?>" class="mb-2 d-block">
-                                                                <span><?php echo htmlspecialchars($project['name'] ?: ('Internship #' . $project['id'])); ?></span>
+                                                            <a href="ojt-view.php?id=<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$project['id']; ?>" class="mb-2 d-block">
+                                                                <span><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($project['name'] ?: ('Internship #' . $project['id'])); ?></span>
                                                             </a>
-                                                            <p class="fs-12 text-muted mb-0">Rendered <?php echo (int)$project['rendered_hours']; ?> / <?php echo (int)$project['required_hours']; ?> hours</p>
+                                                            <p class="fs-12 text-muted mb-0">Rendered <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$project['rendered_hours']; ?> / <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$project['required_hours']; ?> hours</p>
                                                         </div>
                                                     </div>
                                                 </td>
                                                 <td>
-                                                    <span class="badge <?php echo $badge_class; ?>"><?php echo ucfirst($status); ?></span>
+                                                    <span class="badge <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $badge_class; ?>"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo ucfirst($status); ?></span>
                                                 </td>
                                                 <td>
-                                                    <span class="fs-12 fw-semibold"><?php echo (int)$project['remaining_hours']; ?> hrs</span>
+                                                    <span class="fs-12 fw-semibold"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$project['remaining_hours']; ?> hrs</span>
                                                 </td>
                                                 <td>
                                                     <div class="hstack gap-1">
-                                                        <?php for ($i = 1; $i <= 6; $i++): ?>
-                                                            <div class="wd-15 ht-4 rounded-pill <?php echo $i <= $stage_steps ? 'bg-success opacity-75' : 'bg-gray-300'; ?>"></div>
-                                                        <?php endfor; ?>
+                                                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+for ($i = 1; $i <= 6; $i++): ?>
+                                                            <div class="wd-15 ht-4 rounded-pill <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $i <= $stage_steps ? 'bg-success opacity-75' : 'bg-gray-300'; ?>"></div>
+                                                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endfor; ?>
                                                     </div>
                                                 </td>
                                                 <td>
-                                                    <a href="ojt-view.php?id=<?php echo (int)$project['id']; ?>" class="avatar-text avatar-md ms-auto">
+                                                    <a href="ojt-view.php?id=<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$project['id']; ?>" class="avatar-text avatar-md ms-auto">
                                                         <i class="feather-arrow-right"></i>
                                                     </a>
                                                 </td>
                                             </tr>
                                             <?php
-                                                endforeach;
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach;
                                             else:
                                             ?>
                                             <tr>
                                                 <td colspan="5" class="text-center text-muted py-4">No internship records found.</td>
                                             </tr>
-                                            <?php endif; ?>
+                                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
                                         </tbody>
                                     </table>
                                 </div>
@@ -1043,7 +1573,8 @@ include 'includes/header.php';
                             </div>
                             <div class="card-body">
                                 <?php
-                                // Build simple DB-driven social stats summary
+require_once dirname(__DIR__) . '/config/db.php';
+// Build simple DB-driven social stats summary
                                 $total_students = isset($total_students) ? (int)$total_students : 0;
                                 $biometric_students = isset($biometric_students) ? (int)$biometric_students : 0;
                                 $total_internships = isset($total_internships) ? (int)$total_internships : 0;
@@ -1057,29 +1588,49 @@ include 'includes/header.php';
                                     <div class="col-6">
                                         <div class="p-3 border border-dashed rounded">
                                             <div class="fs-12 text-muted mb-1">Students</div>
-                                            <h6 class="fw-bold text-dark"><?php echo number_format($total_students); ?></h6>
-                                            <div class="fs-11 text-muted"><?php echo format_pct($biometric_pct); ?> Biometric</div>
+                                            <h6 class="fw-bold text-dark"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format($total_students); ?></h6>
+                                            <div class="fs-11 text-muted"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo format_pct($biometric_pct); ?> Biometric</div>
                                         </div>
                                     </div>
                                     <div class="col-6">
                                         <div class="p-3 border border-dashed rounded">
                                             <div class="fs-12 text-muted mb-1">OJT Internships</div>
-                                            <h6 class="fw-bold text-dark"><?php echo number_format($total_internships); ?></h6>
-                                            <div class="fs-11 text-muted"><?php echo format_pct($internship_active_pct); ?> Active</div>
+                                            <h6 class="fw-bold text-dark"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format($total_internships); ?></h6>
+                                            <div class="fs-11 text-muted"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo format_pct($internship_active_pct); ?> Active</div>
                                         </div>
                                     </div>
                                     <div class="col-6">
                                         <div class="p-3 border border-dashed rounded">
                                             <div class="fs-12 text-muted mb-1">Completed OJT</div>
-                                            <h6 class="fw-bold text-dark"><?php echo number_format($completed_internships); ?></h6>
-                                            <div class="fs-11 text-muted"><?php echo format_pct($completed_internships_rate); ?> Completion</div>
+                                            <h6 class="fw-bold text-dark"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format($completed_internships); ?></h6>
+                                            <div class="fs-11 text-muted"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo format_pct($completed_internships_rate); ?> Completion</div>
                                         </div>
                                     </div>
                                     <div class="col-6">
                                         <div class="p-3 border border-dashed rounded">
                                             <div class="fs-12 text-muted mb-1">Internal vs External</div>
-                                            <h6 class="fw-bold text-dark"><?php echo number_format($internal_internships); ?> / <?php echo number_format($external_internships); ?></h6>
-                                            <div class="fs-11 text-muted"><?php echo format_pct($internal_pct); ?> / <?php echo format_pct($external_pct); ?></div>
+                                            <h6 class="fw-bold text-dark"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format($internal_internships); ?> / <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo number_format($external_internships); ?></h6>
+                                            <div class="fs-11 text-muted"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo format_pct($internal_pct); ?> / <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo format_pct($external_pct); ?></div>
                                         </div>
                                     </div>
                                     <div class="col-12">
@@ -1097,30 +1648,253 @@ include 'includes/header.php';
             </div>
             <!-- [ Main Content ] end -->
         </div>
+        <!-- [ Footer ] start -->
+        <footer class="footer">
+            <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
+                <span>Copyright Â©</span>
+                <script>
+                    document.write(new Date().getFullYear());
+                </script>
+            </p>
+            <p class="footer-meta fs-12 mb-0"><span>By: <a href="javascript:void(0);">ACT 2A</a></span> <span>Distributed by: <a href="javascript:void(0);">Group 5</a></span></p>
+            <div class="d-flex align-items-center gap-4">
+                <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Help</a>
+                <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Terms</a>
+                <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Privacy</a>
+            </div>
+        </footer>
+        <!-- [ Footer ] end -->
+    </main>
+    <!--! ================================================================ !-->
+    <!--! [End] Main Content !-->
+    <!--! ================================================================ !-->
+ 
+    <!--! ================================================================ !-->
+    <!--! Footer Script !-->
+    <!--! ================================================================ !-->
+    <!--! BEGIN: Vendors JS !-->
+    <script src="assets/vendors/js/vendors.min.js"></script>
+    <!-- vendors.min.js {always must need to be top} -->
+    <script src="assets/vendors/js/daterangepicker.min.js"></script>
+    <script src="assets/vendors/js/apexcharts.min.js"></script>
+    <script src="assets/vendors/js/jquery.time-to.min.js "></script>
+    <script src="assets/vendors/js/circle-progress.min.js"></script>
+    <!--! END: Vendors JS !-->
+    <!--! BEGIN: Apps Init  !-->
+    <script src="assets/js/common-init.min.js"></script>
+    <script>
+        (function () {
+            var sparklineBounce = <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo json_encode($sparkline_bounce); ?>;
+            var sparklineActive = <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo json_encode($sparkline_active); ?>;
+            var sparklineBiometric = <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo json_encode($sparkline_biometric); ?>;
+            var sparklineApproval = <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo json_encode($sparkline_approval); ?>;
 
-    <div
-        id="analytics-data"
-        class="d-none"
-        data-sparkline-bounce='<?php echo htmlspecialchars(json_encode($sparkline_bounce), ENT_QUOTES, 'UTF-8'); ?>'
-        data-sparkline-active='<?php echo htmlspecialchars(json_encode($sparkline_active), ENT_QUOTES, 'UTF-8'); ?>'
-        data-sparkline-biometric='<?php echo htmlspecialchars(json_encode($sparkline_biometric), ENT_QUOTES, 'UTF-8'); ?>'
-        data-sparkline-approval='<?php echo htmlspecialchars(json_encode($sparkline_approval), ENT_QUOTES, 'UTF-8'); ?>'
-        data-visitors-labels='<?php echo htmlspecialchars(json_encode($visitors_labels), ENT_QUOTES, 'UTF-8'); ?>'
-        data-visitors-students='<?php echo htmlspecialchars(json_encode($visitors_students), ENT_QUOTES, 'UTF-8'); ?>'
-        data-visitors-attendances='<?php echo htmlspecialchars(json_encode($visitors_attendances), ENT_QUOTES, 'UTF-8'); ?>'
-        data-visitors-internships='<?php echo htmlspecialchars(json_encode($visitors_internships), ENT_QUOTES, 'UTF-8'); ?>'
-        data-campaign-labels='<?php echo htmlspecialchars(json_encode($campaign_labels), ENT_QUOTES, 'UTF-8'); ?>'
-        data-campaign-internal='<?php echo htmlspecialchars(json_encode($campaign_internal), ENT_QUOTES, 'UTF-8'); ?>'
-        data-campaign-external='<?php echo htmlspecialchars(json_encode($campaign_external), ENT_QUOTES, 'UTF-8'); ?>'
-        data-social-overview-labels='<?php echo htmlspecialchars(json_encode($engagement_labels), ENT_QUOTES, 'UTF-8'); ?>'
-        data-social-overview-values='<?php echo htmlspecialchars(json_encode($engagement_values), ENT_QUOTES, 'UTF-8'); ?>'
-        data-goal-progress='<?php echo htmlspecialchars(json_encode([
-            'marketing' => $marketing_progress,
-            'teams' => $teams_progress,
-            'ojt' => $ojt_progress,
-            'revenue' => $revenue_progress,
-        ]), ENT_QUOTES, 'UTF-8'); ?>'>
-    </div>
-<?php include 'includes/footer.php'; ?>
+            var visitorsLabels = <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo json_encode($visitors_labels); ?>;
+            var visitorsStudents = <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo json_encode($visitors_students); ?>;
+            var visitorsAttendances = <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo json_encode($visitors_attendances); ?>;
+            var visitorsInternships = <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo json_encode($visitors_internships); ?>;
+
+            var campaignLabels = <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo json_encode($campaign_labels); ?>;
+            var campaignInternal = <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo json_encode($campaign_internal); ?>;
+            var campaignExternal = <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo json_encode($campaign_external); ?>;
+
+            var socialOverviewLabels = <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo json_encode($engagement_labels); ?>;
+            var socialOverviewValues = <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo json_encode($engagement_values); ?>;
+
+            var goalProgress = {
+                marketing: <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo json_encode($marketing_progress); ?>,
+                teams: <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo json_encode($teams_progress); ?>,
+                ojt: <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo json_encode($ojt_progress); ?>,
+                revenue: <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo json_encode($revenue_progress); ?>
+            };
+
+            function initDateRange() {
+                if (typeof $ === 'undefined' || typeof moment === 'undefined' || !$('#reportrange').length || !$.fn.daterangepicker) {
+                    return;
+                }
+                var start = moment().subtract(29, 'days');
+                var end = moment();
+                function setRangeLabel(s, e) {
+                    $('#reportrange span').html(s.format('MMM D, YY') + ' - ' + e.format('MMM D, YY'));
+                }
+                $('#reportrange').daterangepicker({
+                    startDate: start,
+                    endDate: end,
+                    ranges: {
+                        'Today': [moment(), moment()],
+                        'Yesterday': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+                        'Last 7 Days': [moment().subtract(6, 'days'), moment()],
+                        'Last 30 Days': [moment().subtract(29, 'days'), moment()],
+                        'This Month': [moment().startOf('month'), moment().endOf('month')],
+                        'Last Month': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
+                    }
+                }, setRangeLabel);
+                setRangeLabel(start, end);
+            }
+
+            function renderSparkline(selector, seriesData, color) {
+                var el = document.querySelector(selector);
+                if (!el || typeof ApexCharts === 'undefined') return;
+                new ApexCharts(el, {
+                    chart: { type: 'area', height: 80, sparkline: { enabled: true } },
+                    series: [{ name: 'Rate', data: seriesData }],
+                    stroke: { width: 1, curve: 'smooth' },
+                    fill: {
+                        opacity: [0.85, 0.25, 1, 1],
+                        gradient: { inverseColors: false, shade: 'light', type: 'vertical', opacityFrom: 0.5, opacityTo: 0.1, stops: [0, 100, 100, 100] }
+                    },
+                    yaxis: { min: 0, max: 100 },
+                    colors: [color],
+                    dataLabels: { enabled: false }
+                }).render();
+            }
+
+            function initCharts() {
+                if (typeof ApexCharts === 'undefined') return;
+
+                renderSparkline('#bounce-rate', sparklineBounce, '#64748a');
+                renderSparkline('#page-views', sparklineActive, '#3454d1');
+                renderSparkline('#site-impressions', sparklineBiometric, '#e49e3d');
+                renderSparkline('#conversions-rate', sparklineApproval, '#25b865');
+
+                var visitorsEl = document.querySelector('#visitors-overview-statistics-chart');
+                if (visitorsEl) {
+                    new ApexCharts(visitorsEl, {
+                        chart: { height: 370, type: 'area', stacked: false, toolbar: { show: false } },
+                        xaxis: {
+                            categories: visitorsLabels,
+                            axisBorder: { show: false },
+                            axisTicks: { show: false },
+                            labels: { style: { fontSize: '11px', colors: '#64748b' } }
+                        },
+                        yaxis: { labels: { style: { fontSize: '11px', color: '#64748b' } } },
+                        stroke: { curve: 'smooth', width: [1, 1, 1], dashArray: [3, 3, 3], lineCap: 'round' },
+                        grid: { padding: { left: 0, right: 0 }, strokeDashArray: 3, borderColor: '#ebebf3', row: { colors: ['#ebebf3', 'transparent'], opacity: 0.02 } },
+                        legend: { show: false },
+                        colors: ['#3454d1', '#25b865', '#d13b4c'],
+                        dataLabels: { enabled: false },
+                        fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.3, stops: [0, 90, 100] } },
+                        series: [
+                            { name: 'New Students', data: visitorsStudents, type: 'area' },
+                            { name: 'Attendance Logs', data: visitorsAttendances, type: 'area' },
+                            { name: 'New Internships', data: visitorsInternships, type: 'area' }
+                        ]
+                    }).render();
+                }
+
+                var campaignEl = document.querySelector('#campaign-alytics-bar-chart');
+                if (campaignEl) {
+                    new ApexCharts(campaignEl, {
+                        chart: { type: 'bar', height: 370, toolbar: { show: false } },
+                        series: [
+                            { name: 'Internal Internships', data: campaignInternal },
+                            { name: 'External Internships', data: campaignExternal }
+                        ],
+                        plotOptions: { bar: { horizontal: false, endingShape: 'rounded', columnWidth: '30%' } },
+                        dataLabels: { enabled: false },
+                        stroke: { show: false, width: 1, colors: ['#fff'] },
+                        colors: ['#E1E3EA', '#3454d1'],
+                        xaxis: {
+                            categories: campaignLabels,
+                            axisBorder: { show: false },
+                            axisTicks: { show: false },
+                            labels: { style: { colors: '#64748b', fontFamily: 'Inter' } }
+                        },
+                        yaxis: { labels: { style: { color: '#64748b', fontFamily: 'Inter' } } },
+                        grid: { strokeDashArray: 3, borderColor: '#e9ecef' },
+                        tooltip: { style: { colors: '#64748b', fontFamily: 'Inter' } },
+                        legend: { show: false }
+                    }).render();
+                }
+
+                var socialOverviewEl = document.querySelector('#social-overview-chart');
+                if (socialOverviewEl) {
+                    new ApexCharts(socialOverviewEl, {
+                        chart: { type: 'radar', height: 260, toolbar: { show: false } },
+                        series: [{ name: 'Coverage %', data: socialOverviewValues }],
+                        labels: socialOverviewLabels,
+                        colors: ['#3454d1'],
+                        yaxis: { min: 0, max: 100 },
+                        dataLabels: { enabled: true },
+                        stroke: { width: 2 },
+                        fill: { opacity: 0.2 },
+                        markers: { size: 4 }
+                    }).render();
+                }
+            }
+
+            function initGoalProgress() {
+                if (typeof $ === 'undefined' || !$.fn.circleProgress) return;
+                $('.goal-progress-1').circleProgress({ max: 100, value: goalProgress.marketing, textFormat: 'percent' });
+                $('.goal-progress-2').circleProgress({ max: 100, value: goalProgress.teams, textFormat: 'percent' });
+                $('.goal-progress-3').circleProgress({ max: 100, value: goalProgress.ojt, textFormat: 'percent' });
+                $('.goal-progress-4').circleProgress({ max: 100, value: goalProgress.revenue, textFormat: 'percent' });
+            }
+
+            function initCountdowns() {
+                if (typeof $ === 'undefined' || !$.fn.timeTo) return;
+                var base = new Date();
+                $('[data-time-countdown="countdown_1"]').timeTo(new Date(base.getTime() + 10 * 24 * 60 * 60 * 1000));
+                $('[data-time-countdown="countdown_2"]').timeTo(new Date(base.getTime() + 15 * 24 * 60 * 60 * 1000));
+                $('[data-time-countdown="countdown_3"]').timeTo(new Date(base.getTime() + 20 * 24 * 60 * 60 * 1000));
+                $('[data-time-countdown="countdown_4"]').timeTo(new Date(base.getTime() + 25 * 24 * 60 * 60 * 1000));
+                $('[data-time-countdown="countdown_5"]').timeTo(new Date(base.getTime() + 30 * 24 * 60 * 60 * 1000));
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', function () {
+                    initDateRange();
+                    initCharts();
+                    initGoalProgress();
+                    initCountdowns();
+                });
+            } else {
+                initDateRange();
+                initCharts();
+                initGoalProgress();
+                initCountdowns();
+            }
+        })();
+    </script>
+    <!--! END: Apps Init !-->
+    <script src="assets/js/theme-customizer-init.min.js"></script>
+</body>
+
+</html>
+
 
 

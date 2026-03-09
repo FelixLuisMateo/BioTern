@@ -1,5 +1,5 @@
-<?php
-
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 function get_current_user_role(): string
 {
     if (session_status() === PHP_SESSION_NONE) {
@@ -150,4 +150,5 @@ function create_notification(mysqli $conn, int $user_id, string $title, string $
         }
     }
 }
+
 

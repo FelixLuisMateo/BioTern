@@ -17,20 +17,12 @@ $current_role = strtolower(trim((string) (
 $can_edit_sensitive_hours = in_array($current_role, ['admin', 'coordinator', 'supervisor'], true);
 $can_edit_hours = true;
 
-if (!in_array($current_role, ['admin', 'coordinator', 'supervisor'], true)) {
-    header('Location: students.php?denied=1');
-    exit;
-}
-
 // Ensure new student assignment/hour fields exist.
 $conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS internal_total_hours INT(11) DEFAULT NULL");
 $conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS internal_total_hours_remaining INT(11) DEFAULT NULL");
 $conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS external_total_hours INT(11) DEFAULT NULL");
 $conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS external_total_hours_remaining INT(11) DEFAULT NULL");
 $conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS assignment_track VARCHAR(20) NOT NULL DEFAULT 'internal'");
-$conn->query("ALTER TABLE courses ADD COLUMN IF NOT EXISTS internal_hours INT(11) NOT NULL DEFAULT 0");
-$conn->query("ALTER TABLE courses ADD COLUMN IF NOT EXISTS external_hours INT(11) NOT NULL DEFAULT 0");
-$conn->query("ALTER TABLE courses ADD COLUMN IF NOT EXISTS school_year VARCHAR(50) NULL");
 
 // Get student ID from URL parameter
 $student_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
@@ -62,7 +54,7 @@ $student_query = "
         s.id,
         s.user_id,
         s.student_id,
-        s.profile_picture,
+        COALESCE(NULLIF(u_student.profile_picture, ''), NULLIF(s.profile_picture, '')) AS profile_picture,
         s.first_name,
         s.last_name,
         s.middle_name,
@@ -92,10 +84,9 @@ $student_query = "
         i.supervisor_id as internship_supervisor_id,
         i.coordinator_id as internship_coordinator_id,
         sv.id as supervisor_id,
-        co.id as coordinator_id,
-        sv.user_id as supervisor_user_id,
-        co.user_id as coordinator_user_id
+        co.id as coordinator_id
     FROM students s
+    LEFT JOIN users u_student ON s.user_id = u_student.id
     LEFT JOIN courses c ON s.course_id = c.id
     LEFT JOIN internships i ON s.id = i.student_id AND i.status = 'ongoing'
     LEFT JOIN supervisors sv ON (sv.user_id = i.supervisor_id OR sv.id = i.supervisor_id)
@@ -116,52 +107,11 @@ if ($result->num_rows == 0) {
 
 $student = $result->fetch_assoc();
 
-$can_edit_student = false;
-if ($current_role === 'admin') {
-    $can_edit_student = true;
-} elseif ($current_role === 'coordinator') {
-    $assigned = (
-        (int)($student['internship_coordinator_id'] ?? 0) === (int)($_SESSION['user_id'] ?? 0) ||
-        (int)($student['coordinator_user_id'] ?? 0) === (int)($_SESSION['user_id'] ?? 0)
-    );
-
-    $course_scoped = false;
-    $tbl = $conn->query("SHOW TABLES LIKE 'coordinator_courses'");
-    if ($tbl && $tbl->num_rows > 0) {
-        $course_id_for_scope = (int)($student['course_id'] ?? 0);
-        if ($course_id_for_scope > 0) {
-            $stmt_scope = $conn->prepare("SELECT id FROM coordinator_courses WHERE coordinator_user_id = ? AND course_id = ? LIMIT 1");
-            if ($stmt_scope) {
-                $uid = (int)($_SESSION['user_id'] ?? 0);
-                $stmt_scope->bind_param('ii', $uid, $course_id_for_scope);
-                $stmt_scope->execute();
-                $course_scoped = (bool)$stmt_scope->get_result()->fetch_assoc();
-                $stmt_scope->close();
-            }
-        }
-    }
-
-    $can_edit_student = ($assigned || $course_scoped);
-} elseif ($current_role === 'supervisor') {
-    $can_edit_student = (
-        (int)($student['internship_supervisor_id'] ?? 0) === (int)($_SESSION['user_id'] ?? 0) ||
-        (int)($student['supervisor_user_id'] ?? 0) === (int)($_SESSION['user_id'] ?? 0)
-    );
-}
-
-if (!$can_edit_student) {
-    header('Location: students.php?denied=1');
-    exit;
-}
-
 // Fetch all courses for dropdown (be tolerant of differing schema columns)
 $courses = [];
 $db_esc = $conn->real_escape_string((string)(defined('DB_NAME') ? DB_NAME : ''));
 $has_is_active = false;
 $has_status_col = false;
-$has_internal_hours_col = false;
-$has_external_hours_col = false;
-$has_total_ojt_hours_col = false;
 $col_check = $conn->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '" . $db_esc . "' AND TABLE_NAME = 'courses' AND COLUMN_NAME IN ('is_active','status')");
 if ($col_check && $col_check->num_rows) {
     while ($c = $col_check->fetch_assoc()) {
@@ -170,27 +120,7 @@ if ($col_check && $col_check->num_rows) {
     }
 }
 
-$policy_col_check = $conn->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '" . $db_esc . "' AND TABLE_NAME = 'courses' AND COLUMN_NAME IN ('internal_hours','external_hours','total_ojt_hours')");
-if ($policy_col_check && $policy_col_check->num_rows) {
-    while ($c = $policy_col_check->fetch_assoc()) {
-        if ($c['COLUMN_NAME'] === 'internal_hours') $has_internal_hours_col = true;
-        if ($c['COLUMN_NAME'] === 'external_hours') $has_external_hours_col = true;
-        if ($c['COLUMN_NAME'] === 'total_ojt_hours') $has_total_ojt_hours_col = true;
-    }
-}
-
-$course_select_fields = ['id', 'name'];
-if ($has_internal_hours_col) {
-    $course_select_fields[] = 'COALESCE(internal_hours, 0) AS internal_hours';
-}
-if ($has_external_hours_col) {
-    $course_select_fields[] = 'COALESCE(external_hours, 0) AS external_hours';
-}
-if ($has_total_ojt_hours_col) {
-    $course_select_fields[] = 'COALESCE(total_ojt_hours, 0) AS total_ojt_hours';
-}
-
-$courses_query = "SELECT " . implode(', ', $course_select_fields) . " FROM courses";
+$courses_query = "SELECT id, name FROM courses";
 if ($has_is_active) {
     $courses_query .= " WHERE is_active = 1";
 } elseif ($has_status_col) {
@@ -262,66 +192,6 @@ if ($coordinators_result->num_rows > 0) {
     }
 }
 
-function students_edit_column_exists(mysqli $conn, string $table, string $column): bool {
-    $safeTable = $conn->real_escape_string($table);
-    $safeColumn = $conn->real_escape_string($column);
-    $res = $conn->query("SHOW COLUMNS FROM {$safeTable} LIKE '{$safeColumn}'");
-    return ($res && $res->num_rows > 0);
-}
-
-function students_edit_policy_required_hours(mysqli $conn, int $course_id, string $assignment_track, ?int $fallback_internal, ?int $fallback_external): int {
-    $track = strtolower(trim($assignment_track));
-    if ($track !== 'external') {
-        $track = 'internal';
-    }
-
-    $course_internal = 0;
-    $course_external = 0;
-    $course_total = 0;
-
-    if ($course_id > 0) {
-        $has_internal = students_edit_column_exists($conn, 'courses', 'internal_hours');
-        $has_external = students_edit_column_exists($conn, 'courses', 'external_hours');
-        $has_total = students_edit_column_exists($conn, 'courses', 'total_ojt_hours');
-
-        if ($has_internal || $has_external || $has_total) {
-            $fields = [];
-            if ($has_internal) $fields[] = 'COALESCE(internal_hours, 0) AS internal_hours';
-            if ($has_external) $fields[] = 'COALESCE(external_hours, 0) AS external_hours';
-            if ($has_total) $fields[] = 'COALESCE(total_ojt_hours, 0) AS total_ojt_hours';
-            $course_stmt = $conn->prepare("SELECT " . implode(', ', $fields) . " FROM courses WHERE id = ? LIMIT 1");
-            if ($course_stmt) {
-                $course_stmt->bind_param('i', $course_id);
-                $course_stmt->execute();
-                $course_row = $course_stmt->get_result()->fetch_assoc();
-                $course_stmt->close();
-                if ($course_row) {
-                    $course_internal = (int)($course_row['internal_hours'] ?? 0);
-                    $course_external = (int)($course_row['external_hours'] ?? 0);
-                    $course_total = (int)($course_row['total_ojt_hours'] ?? 0);
-                }
-            }
-        }
-    }
-
-    if ($track === 'external') {
-        $required = $course_external > 0 ? $course_external : (int)($fallback_external ?? 0);
-        if ($required <= 0) {
-            $required = 250;
-        }
-        return max(0, $required);
-    }
-
-    $required = $course_internal > 0 ? $course_internal : (int)($fallback_internal ?? 0);
-    if ($required <= 0) {
-        $required = $course_total;
-    }
-    if ($required <= 0) {
-        $required = 600;
-    }
-    return max(0, $required);
-}
-
 // Handle form submission
 $success_message = '';
 $error_message = '';
@@ -336,12 +206,37 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $file_name = $_FILES['profile_picture']['name'];
         $file_size = $_FILES['profile_picture']['size'];
         $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
-        
+
         // Validate file type and size
-        $allowed_types = ['jpg', 'jpeg', 'png', 'gif'];
+        $allowed_types = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+        $allowed_mimes = [
+            'jpg' => 'image/jpeg',
+            'jpeg' => 'image/jpeg',
+            'png' => 'image/png',
+            'gif' => 'image/gif',
+            'webp' => 'image/webp',
+        ];
         $max_file_size = 5 * 1024 * 1024; // 5MB
-        
-        if (in_array($file_ext, $allowed_types) && $file_size <= $max_file_size) {
+
+        $mime_type = '';
+        if (function_exists('finfo_open')) {
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            if ($finfo) {
+                $mime_type = (string)finfo_file($finfo, $file_tmp);
+                finfo_close($finfo);
+            }
+        }
+        if ($mime_type === '' || $mime_type === 'application/octet-stream') {
+            $img_info = @getimagesize($file_tmp);
+            if (is_array($img_info) && !empty($img_info['mime'])) {
+                $mime_type = (string)$img_info['mime'];
+            }
+        }
+
+        $is_valid_ext = in_array($file_ext, $allowed_types, true);
+        $is_valid_mime = $mime_type !== '' && in_array($mime_type, $allowed_mimes, true);
+
+        if ($is_valid_ext && $is_valid_mime && $file_size <= $max_file_size) {
             // Create unique filename
             $unique_name = 'student_' . $student_id . '_' . time() . '.' . $file_ext;
             $file_path = $uploads_dir . '/' . $unique_name;
@@ -360,7 +255,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $error_message = "Failed to upload profile picture. Please try again.";
             }
         } else {
-            $error_message = "Invalid file type or file size exceeds 5MB. Allowed types: JPG, PNG, GIF.";
+            $error_message = "Invalid image file or file size exceeds 5MB. Allowed types: JPG, JPEG, PNG, GIF, WEBP.";
         }
     }
     
@@ -396,15 +291,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (!in_array($assignment_track, ['internal', 'external'], true)) {
         $assignment_track = 'internal';
     }
-
-    $course_for_policy = $course_id > 0 ? $course_id : (int)($student['course_id'] ?? 0);
-    $policy_required_hours = students_edit_policy_required_hours(
-        $conn,
-        $course_for_policy,
-        $assignment_track,
-        $internal_total_hours,
-        $external_total_hours
-    );
 
     $selected_supervisor_name = null;
     if ($supervisor_id !== null) {
@@ -566,21 +452,21 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     if (!empty($student['user_id'])) {
                         $user_id_for_sync = (int)$student['user_id'];
                         $display_name = trim($first_name . ' ' . $last_name);
-
                         $sync_user_stmt = $conn->prepare("UPDATE users SET name = ?, email = ?, updated_at = NOW() WHERE id = ?");
                         if ($sync_user_stmt) {
                             $sync_user_stmt->bind_param("ssi", $display_name, $email, $user_id_for_sync);
                             $sync_user_stmt->execute();
                             $sync_user_stmt->close();
                         }
+                    }
 
-                        if ($profile_picture_uploaded) {
-                            $sync_user_photo = $conn->prepare("UPDATE users SET profile_picture = ? WHERE id = ?");
-                            if ($sync_user_photo) {
-                                $sync_user_photo->bind_param("si", $profile_picture_path, $user_id_for_sync);
-                                $sync_user_photo->execute();
-                                $sync_user_photo->close();
-                            }
+                    if ($profile_picture_uploaded && !empty($student['user_id'])) {
+                        $user_id_for_photo = (int)$student['user_id'];
+                        $sync_user_photo = $conn->prepare("UPDATE users SET profile_picture = ? WHERE id = ?");
+                        if ($sync_user_photo) {
+                            $sync_user_photo->bind_param("si", $profile_picture_path, $user_id_for_photo);
+                            $sync_user_photo->execute();
+                            $sync_user_photo->close();
                         }
                     }
 
@@ -588,20 +474,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     if (!empty($student['internship_id'])) {
                         $internship_update = $conn->prepare("
                             UPDATE internships
-                            SET supervisor_id = ?, coordinator_id = ?, course_id = NULLIF(?, 0), type = ?, required_hours = ?, status = 'ongoing', updated_at = NOW()
+                            SET supervisor_id = ?, coordinator_id = ?, status = 'ongoing', updated_at = NOW()
                             WHERE id = ?
                         ");
                             if ($internship_update) {
-                            $internship_type = ($assignment_track === 'external') ? 'external' : 'internal';
-                            $internship_update->bind_param(
-                                "iiisii",
-                                $intern_supervisor_user_id,
-                                $intern_coordinator_user_id,
-                                $course_id,
-                                $internship_type,
-                                $policy_required_hours,
-                                $student['internship_id']
-                            );
+                            $internship_update->bind_param("iii", $intern_supervisor_user_id, $intern_coordinator_user_id, $student['internship_id']);
                             $internship_update->execute();
                             $internship_update->close();
                         }
@@ -628,20 +505,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         if ($latest_internship_id) {
                             $internship_update = $conn->prepare("
                                 UPDATE internships
-                                SET supervisor_id = ?, coordinator_id = ?, course_id = NULLIF(?, 0), type = ?, required_hours = ?, status = 'ongoing', updated_at = NOW()
+                                SET supervisor_id = ?, coordinator_id = ?, status = 'ongoing', updated_at = NOW()
                                 WHERE id = ?
                             ");
                             if ($internship_update) {
-                                $internship_type = ($assignment_track === 'external') ? 'external' : 'internal';
-                                $internship_update->bind_param(
-                                    "iiisii",
-                                    $intern_supervisor_user_id,
-                                    $intern_coordinator_user_id,
-                                    $course_id,
-                                    $internship_type,
-                                    $policy_required_hours,
-                                    $latest_internship_id
-                                );
+                                $internship_update->bind_param("iii", $intern_supervisor_user_id, $intern_coordinator_user_id, $latest_internship_id);
                                 $internship_update->execute();
                                 $internship_update->close();
                             }
@@ -659,13 +527,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                 $year = (int)date('Y');
                                 $school_year = $year . '-' . ($year + 1);
                                 $type = ($assignment_track === 'external') ? 'external' : 'internal';
-                                $required_hours = students_edit_policy_required_hours(
-                                    $conn,
-                                    $course_for_intern,
-                                    $assignment_track,
-                                    $internal_total_hours,
-                                    $external_total_hours
-                                );
+                                $required_hours = ($assignment_track === 'external')
+                                    ? (int)($external_total_hours ?? 250)
+                                    : (int)($internal_total_hours ?? 600);
+                                if ($required_hours <= 0) {
+                                    $required_hours = ($assignment_track === 'external') ? 250 : 600;
+                                }
                                 $remaining = ($assignment_track === 'external')
                                     ? (int)($external_total_hours_remaining ?? $required_hours)
                                     : (int)($internal_total_hours_remaining ?? $required_hours);
@@ -700,7 +567,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         }
                     }
 
-                    $success_message = "ï¿½ Student information updated successfully!";
+                    $success_message = "� Student information updated successfully!";
                     // Refresh student data
                     $stmt = $conn->prepare($student_query);
                     $stmt->bind_param("i", $student_id);
@@ -732,47 +599,535 @@ function formatDateTime($date) {
     return 'N/A';
 }
 
-$preview_course_id = (int)($student['course_id'] ?? 0);
-$preview_track = strtolower((string)($student['assignment_track'] ?? 'internal'));
-if (!in_array($preview_track, ['internal', 'external'], true)) {
-    $preview_track = 'internal';
-}
-$policy_required_preview = students_edit_policy_required_hours(
-    $conn,
-    $preview_course_id,
-    $preview_track,
-    isset($student['internal_total_hours']) ? (int)$student['internal_total_hours'] : 0,
-    isset($student['external_total_hours']) ? (int)$student['external_total_hours'] : 0
-);
-
-$course_policy_map = [];
-foreach ($courses as $course_item) {
-    $cid = (int)($course_item['id'] ?? 0);
-    if ($cid <= 0) {
-        continue;
+function resolve_profile_image_url(string $profilePath): ?string {
+    $clean = ltrim(str_replace('\\', '/', trim($profilePath)), '/');
+    if ($clean === '') {
+        return null;
     }
-    $course_policy_map[$cid] = [
-        'internal' => (int)($course_item['internal_hours'] ?? 0),
-        'external' => (int)($course_item['external_hours'] ?? 0),
-        'total' => (int)($course_item['total_ojt_hours'] ?? 0),
-    ];
+    $rootPath = dirname(__DIR__) . '/' . $clean;
+    if (!file_exists($rootPath)) {
+        return null;
+    }
+    $mtime = @filemtime($rootPath);
+    return $clean . ($mtime ? ('?v=' . $mtime) : '');
 }
-$course_policy_map_json = htmlspecialchars(json_encode($course_policy_map, JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8');
 
 ?>
-<?php
-$page_title = 'BioTern || Edit Student - ' . $student['first_name'] . ' ' . $student['last_name'];
-$page_styles = array(
-    'assets/vendors/css/datepicker.min.css',
-    'assets/css/management-students-edit-page.css',
-);
-$page_vendor_scripts = array('assets/vendors/js/datepicker.min.js');
-$page_scripts = array(
-    'assets/js/students-edit-runtime.js',
-    'assets/js/theme-customizer-init.min.js',
-);
-include 'includes/header.php';
-?>
+
+<!DOCTYPE html>
+<html lang="zxx">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="keyword" content="">
+    <meta name="author" content="ACT 2A Group 5">
+    <title>BioTern || Edit Student - <?php echo htmlspecialchars($student['first_name'] . ' ' . $student['last_name']); ?></title>
+    <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
+    <script src="assets/js/theme-preload-init.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/vendors/css/vendors.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2-theme.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/vendors/css/datepicker.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css">
+    
+    <style>
+        /* Select2 styling adjustments - avoid overriding position computed by plugin */
+        .select2-container--default .select2-selection--single {
+            height: 40px;
+            padding: 6px 12px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            border: 1px solid #d3d3d3;
+            background-color: #fff;
+            color: #333;
+        }
+
+        .select2-container--default.select2-container--open .select2-selection--single {
+            border-bottom-left-radius: 0;
+            border-bottom-right-radius: 0;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            padding-left: 0;
+            align-items: center;
+            display: flex;
+        }
+
+        /* Let Select2 calculate dropdown position. Only ensure visuals and stacking. */
+        .select2-container--default .select2-dropdown {
+            border: 1px solid #dddddd;
+            border-radius: 0 0 4px 4px;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.08);
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .select2-container {
+            width: 100% !important;
+            max-width: 100%;
+        }
+
+        .form-control.select2-hidden-accessible {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+        }
+
+        /* Small tweak for arrow height and layout */
+        .select2-container--default .select2-selection--single {
+            position: relative;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 28px;
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        /* Clear (×) button styling */
+        .select2-selection__clear {
+            position: absolute;
+            right: 36px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 22px;
+            height: 22px;
+            border-radius: 3px;
+            border: 1px solid #e0e0e0;
+            background: #fff;
+            color: #333;
+            box-shadow: none;
+            font-size: 12px;
+        }
+
+        /* Truncate selected text so it doesn't overflow under icons */
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            display: inline-block;
+            vertical-align: middle;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: calc(100% - 80px);
+        }
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        main.nxl-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        div.nxl-content {
+            flex: 1;
+        }
+        footer.footer {
+            margin-top: auto;
+        }
+        
+        /* Dark mode select and Select2 styling */
+        select.form-control,
+        select.form-select,
+        .select2-container--default .select2-selection--single,
+        .select2-container--default .select2-selection--multiple {
+            color: #333 !important;
+            background-color: #ffffff !important;
+        }
+        
+        /* Dark mode support for Select2 - using app-skin-dark class */
+        html.app-skin-dark .select2-container--default .select2-selection--single,
+        html.app-skin-dark .select2-container--default .select2-selection--multiple {
+            color: #f0f0f0 !important;
+            background-color: #2d3748 !important;
+            border-color: #4a5568 !important;
+        }
+        
+        html.app-skin-dark .select2-container--default.select2-container--focus .select2-selection--single,
+        html.app-skin-dark .select2-container--default.select2-container--focus .select2-selection--multiple {
+            color: #f0f0f0 !important;
+            background-color: #2d3748 !important;
+            border-color: #667eea !important;
+        }
+        
+        html.app-skin-dark .select2-container--default .select2-selection--single .select2-selection__rendered {
+            color: #f0f0f0 !important;
+        }
+        
+        html.app-skin-dark .select2-container--default .select2-selection__placeholder {
+            color: #a0aec0 !important;
+        }
+        
+        /* Dark mode dropdown menu */
+        html.app-skin-dark .select2-container--default.select2-container--open .select2-dropdown {
+            background-color: #2d3748 !important;
+            border-color: #4a5568 !important;
+        }
+        
+        html.app-skin-dark .select2-results {
+            background-color: #2d3748 !important;
+        }
+        
+        html.app-skin-dark .select2-results__option {
+            color: #f0f0f0 !important;
+            background-color: #2d3748 !important;
+        }
+        
+        html.app-skin-dark .select2-results__option--highlighted[aria-selected] {
+            background-color: #667eea !important;
+            color: #ffffff !important;
+        }
+        
+        html.app-skin-dark .select2-container--default {
+            background-color: #2d3748 !important;
+        }
+        
+        html.app-skin-dark select.form-control,
+        html.app-skin-dark select.form-select {
+            color: #f0f0f0 !important;
+            background-color: #2d3748 !important;
+            border-color: #4a5568 !important;
+        }
+        
+        html.app-skin-dark select.form-control option,
+        html.app-skin-dark select.form-select option {
+            color: #f0f0f0 !important;
+            background-color: #2d3748 !important;
+        }
+
+        /* Dark mode support for file input (upload button + filename text) */
+        html.app-skin-dark input[type="file"].form-control {
+            color: #f0f0f0 !important;
+            background-color: #2d3748 !important;
+            border-color: #4a5568 !important;
+        }
+
+        html.app-skin-dark input[type="file"].form-control::file-selector-button {
+            color: #f0f0f0 !important;
+            background: #1f2937 !important;
+            border: 1px solid #4a5568 !important;
+            margin-right: 12px;
+        }
+
+        html.app-skin-dark input[type="file"].form-control::-webkit-file-upload-button {
+            color: #f0f0f0 !important;
+            background: #1f2937 !important;
+            border: 1px solid #4a5568 !important;
+            margin-right: 12px;
+        }
+
+        /* Dropdown design sync from students-edit.blade.php */
+        .select2-container--default .select2-selection--single {
+            border: 1px solid #e5e7eb;
+            border-radius: 0.375rem;
+            min-height: 40px;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 38px;
+            padding-left: 0.75rem;
+            padding-right: 2rem;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 38px;
+            right: 8px;
+        }
+
+        .select2-container--default .select2-dropdown {
+            border: 1px solid #e5e7eb;
+            border-radius: 0.375rem;
+            overflow: hidden;
+            z-index: 1060;
+        }
+
+        .select2-container--default.select2-container--open .select2-selection--single {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.15);
+        }
+
+        .select2-selection__clear {
+            margin-right: 0.25rem;
+            color: #6b7280;
+        }
+
+        #editStudentForm {
+            max-width: 1240px;
+            margin: 0 auto;
+        }
+        .edit-form-hero {
+            border: 1px solid #d6dbe6;
+            border-radius: 14px;
+            padding: 16px 18px;
+            margin-bottom: 16px;
+            background: #f8fafc;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .edit-form-hero .meta {
+            font-size: 13px;
+            color: #5b6476;
+        }
+        .edit-form-hero .meta strong {
+            color: #1f2937;
+            font-size: 15px;
+            margin-right: 8px;
+        }
+        .edit-section-card {
+            border: 1px solid #d6dbe6;
+            border-radius: 14px;
+            padding: 18px 18px 8px;
+            background: #fff;
+            margin-bottom: 16px;
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.04);
+        }
+        .edit-section-card h6 {
+            margin-bottom: 6px !important;
+            font-size: 15px;
+        }
+        .section-subtitle {
+            font-size: 12px;
+            color: #6b7280;
+            margin-bottom: 14px;
+        }
+        #editStudentForm .row {
+            --bs-gutter-x: 1rem;
+            --bs-gutter-y: 0.2rem;
+        }
+        #editStudentForm .form-label {
+            font-size: 12px;
+            margin-bottom: 6px;
+            color: #495670;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+            font-weight: 700 !important;
+        }
+        #editStudentForm .form-control,
+        #editStudentForm .select2-container--default .select2-selection--single {
+            min-height: 44px;
+            font-size: 14px;
+            border-radius: 9px;
+        }
+        #editStudentForm textarea.form-control {
+            min-height: 98px;
+        }
+        .save-actions-bar {
+            background: transparent;
+            border-top: 0;
+            padding-top: 8px;
+            padding-bottom: 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .save-actions-bar > .d-flex {
+            flex-wrap: wrap;
+            gap: 8px !important;
+        }
+        html.app-skin-dark .edit-form-hero {
+            border-color: #3a455a;
+            background: #192233;
+        }
+        html.app-skin-dark .edit-form-hero .meta {
+            color: #b6c0d4;
+        }
+        html.app-skin-dark .edit-form-hero .meta strong {
+            color: #e5ebf7;
+        }
+        html.app-skin-dark .edit-section-card {
+            border-color: #3a455a;
+            background: #1f2937;
+        }
+        html.app-skin-dark .section-subtitle {
+            color: #a9b3c8;
+        }
+        html.app-skin-dark #editStudentForm .form-label {
+            color: #c8d1e2;
+        }
+
+        /* Select2 + zoom-safe overrides */
+        #editStudentForm select.form-control + .select2-container {
+            position: relative !important;
+            top: auto !important;
+            left: auto !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            display: block !important;
+            float: none !important;
+            z-index: 1 !important;
+        }
+        #editStudentForm .select2-container--open {
+            z-index: 1060 !important;
+        }
+        #editStudentForm .select2-container--default .select2-selection--single {
+            min-height: 44px !important;
+            height: 44px !important;
+            padding: 6px 12px !important;
+            display: flex !important;
+            align-items: center !important;
+            border-radius: 9px !important;
+        }
+        #editStudentForm .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 28px !important;
+            padding-left: 0 !important;
+            padding-right: 30px !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            max-width: 100% !important;
+        }
+        #editStudentForm .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 100% !important;
+            top: 0 !important;
+            right: 8px !important;
+            transform: none !important;
+        }
+        #editStudentForm .select2-selection__clear {
+            display: none !important;
+        }
+        #editStudentForm .select2-dropdown {
+            z-index: 1055 !important;
+        }
+        @media (max-width: 1200px) {
+            #editStudentForm .row > [class*="col-md-6"],
+            #editStudentForm .row > [class*="col-md-4"],
+            #editStudentForm .row > [class*="col-md-3"] {
+                flex: 0 0 100% !important;
+                max-width: 100% !important;
+            }
+            .save-actions-bar {
+                justify-content: flex-start !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <?php include_once 'includes/navigation.php'; ?>
+
+    <!--! Header !-->
+    <header class="nxl-header">
+        <div class="header-wrapper">
+            <div class="header-left d-flex align-items-center gap-4">
+                <a href="javascript:void(0);" class="nxl-head-mobile-toggler" id="mobile-collapse">
+                    <div class="hamburger hamburger--arrowturn">
+                        <div class="hamburger-box">
+                            <div class="hamburger-inner"></div>
+                        </div>
+                    </div>
+                </a>
+                <div class="nxl-navigation-toggle">
+                    <a href="javascript:void(0);" id="menu-mini-button">
+                        <i class="feather-align-left"></i>
+                    </a>
+                    <a href="javascript:void(0);" id="menu-expend-button" style="display: none">
+                        <i class="feather-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="header-right ms-auto">
+                <div class="d-flex align-items-center">
+                    <div class="dropdown nxl-h-item nxl-header-search">
+                        <a href="javascript:void(0);" class="nxl-head-link me-0" data-bs-toggle="dropdown" data-bs-auto-close="outside">
+                            <i class="feather-search"></i>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-search-dropdown">
+                            <div class="input-group search-form">
+                                <span class="input-group-text">
+                                    <i class="feather-search fs-6 text-muted"></i>
+                                </span>
+                                <input type="text" class="form-control search-input-field" placeholder="Search....">
+                                <span class="input-group-text">
+                                    <button type="button" class="btn-close"></button>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="nxl-h-item d-none d-sm-flex">
+                        <div class="full-screen-switcher">
+                            <a href="javascript:void(0);" class="nxl-head-link me-0">
+                                <i class="feather-maximize maximize"></i>
+                                <i class="feather-minimize minimize"></i>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="nxl-h-item dark-light-theme">
+                        <a href="javascript:void(0);" class="nxl-head-link me-0 dark-button">
+                            <i class="feather-moon"></i>
+                        </a>
+                        <a href="javascript:void(0);" class="nxl-head-link me-0 light-button" style="display: none">
+                            <i class="feather-sun"></i>
+                        </a>
+                    </div>
+                    <div class="dropdown nxl-h-item">
+                        <a class="nxl-head-link me-3" data-bs-toggle="dropdown" href="#" role="button" data-bs-auto-close="outside">
+                            <i class="feather-bell"></i>
+                            <span class="badge bg-danger nxl-h-badge">3</span>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-notifications-menu">
+                            <div class="d-flex justify-content-between align-items-center notifications-head">
+                                <h6 class="fw-bold text-dark mb-0">Notifications</h6>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="dropdown nxl-h-item">
+                        <a href="javascript:void(0);" data-bs-toggle="dropdown" role="button" data-bs-auto-close="outside">
+                            <img src="<?php echo htmlspecialchars((isset($_SESSION['profile_picture']) && trim((string)$_SESSION['profile_picture']) !== '' ? ltrim(str_replace('\\', '/', trim((string)$_SESSION['profile_picture'])), '/') : ('assets/images/avatar/' . (((int)($_SESSION['user_id'] ?? 0) % 5) + 1) . '.png')), ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar me-0" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-user-dropdown">
+                            <div class="dropdown-header">
+                                <div class="d-flex align-items-center">
+                                    <img src="<?php echo htmlspecialchars((isset($_SESSION['profile_picture']) && trim((string)$_SESSION['profile_picture']) !== '' ? ltrim(str_replace('\\', '/', trim((string)$_SESSION['profile_picture'])), '/') : ('assets/images/avatar/' . (((int)($_SESSION['user_id'] ?? 0) % 5) + 1) . '.png')), ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
+                                    <div>
+                                        <h6 class="text-dark mb-0"><?php echo htmlspecialchars((string)($_SESSION['name'] ?? $_SESSION['username'] ?? 'BioTern User'), ENT_QUOTES, 'UTF-8'); ?></h6>
+                                        <span class="fs-12 fw-medium text-muted"><?php echo htmlspecialchars((string)($_SESSION['email'] ?? 'admin@biotern.local'), ENT_QUOTES, 'UTF-8'); ?></span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="dropdown-divider"></div>
+                            <a href="javascript:void(0);" class="dropdown-item">
+                                <i class="feather-settings"></i>
+                                <span>Account Settings</span>
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <a href="./auth-login-cover.php?logout=1" class="dropdown-item">
+                                <i class="feather-log-out"></i>
+                                <span>Logout</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!--! Main Content !-->
+    <main class="nxl-container">
+        <div class="nxl-content">
             <!-- Page Header -->
             <div class="page-header">
                 <div class="page-header-left d-flex align-items-center">
@@ -803,7 +1158,7 @@ include 'includes/header.php';
             </div>
 
             <!-- Main Content -->
-            <div class="main-content app-students-edit-main-content">
+            <div class="main-content">
                 <div class="row">
                     <div class="col-lg-12">
                         <div class="card stretch stretch-full">
@@ -831,20 +1186,20 @@ include 'includes/header.php';
                                 <?php endif; ?>
 
                                 <!-- Edit Form -->
-                                <form method="POST" action="" id="editStudentForm" class="app-students-edit-form" enctype="multipart/form-data">
+                                <form method="POST" action="" id="editStudentForm" enctype="multipart/form-data">
                                     <input type="hidden" name="original_updated_at" value="<?php echo htmlspecialchars((string)($student['updated_at'] ?? '')); ?>">
-                                    <div class="edit-form-hero app-students-edit-form-hero">
-                                        <div class="meta app-students-edit-form-meta">
+                                    <div class="edit-form-hero">
+                                        <div class="meta">
                                             <strong><?php echo htmlspecialchars(trim(($student['first_name'] ?? '') . ' ' . ($student['last_name'] ?? ''))); ?></strong>
                                             <span>Student profile editor</span>
                                         </div>
-                                        <div class="meta app-students-edit-form-meta">
+                                        <div class="meta">
                                             <span>ID:</span> <strong><?php echo htmlspecialchars($student['student_id'] ?? 'N/A'); ?></strong>
                                             <span class="ms-2">Email:</span> <?php echo htmlspecialchars($student['email'] ?? 'N/A'); ?>
                                         </div>
                                     </div>
                                     <!-- Personal Information Section -->
-                                    <div class="edit-section-card app-students-edit-section-card">
+                                    <div class="edit-section-card">
                                         <h6 class="fw-bold mb-4">
                                             <i class="feather-user me-2"></i>Personal Information
                                         </h6>
@@ -922,24 +1277,26 @@ include 'includes/header.php';
                                             <div class="col-md-6 mb-4">
                                                 <label for="profile_picture" class="form-label fw-semibold">Profile Picture</label>
                                                 <div class="mb-2">
-                                                    <?php if (!empty($student['profile_picture'])): ?>
-                                                        <div class="mb-2">
-                                                            <img src="<?php echo htmlspecialchars($student['profile_picture']); ?>" alt="Profile" class="img-thumbnail app-thumb-150">
-                                                        </div>
-                                                    <?php else: ?>
-                                                        <div class="alert alert-info mb-2 py-2 px-3">No profile picture uploaded</div>
-                                                    <?php endif; ?>
+                                                    <?php
+                                                        $profile_preview = resolve_profile_image_url((string)($student['profile_picture'] ?? ''));
+                                                        if ($profile_preview === null) {
+                                                            $profile_preview = 'assets/images/avatar/' . (($student_id % 5) + 1) . '.png';
+                                                        }
+                                                    ?>
+                                                    <div class="mb-2">
+                                                        <img src="<?php echo htmlspecialchars($profile_preview); ?>" alt="Profile" class="img-thumbnail" style="width: 150px; height: 150px; object-fit: cover;">
+                                                    </div>
                                                 </div>
                                                 <input type="file" class="form-control" id="profile_picture" name="profile_picture" 
                                                        accept="image/*">
-                                                <small class="form-text text-muted">JPG, PNG, GIF (Max 5MB)</small>
+                                                <small class="form-text text-muted">JPG, JPEG, PNG, GIF, WEBP (Max 5MB)</small>
                                             </div>
                                         </div>
                                     </div>
 
 
                                     <!-- Internship Information Section -->
-                                    <div class="edit-section-card app-students-edit-section-card">
+                                    <div class="edit-section-card">
                                         <h6 class="fw-bold mb-4">
                                             <i class="feather-briefcase me-2"></i>Internship Information
                                         </h6>
@@ -975,7 +1332,7 @@ include 'includes/header.php';
                                     </div>
 
                                     <!-- Academic Information Section -->
-                                    <div class="edit-section-card app-students-edit-section-card">
+                                    <div class="edit-section-card">
                                         <h6 class="fw-bold mb-4">
                                             <i class="feather-book me-2"></i>Academic Information
                                         </h6>
@@ -1039,13 +1396,7 @@ include 'includes/header.php';
                                                 </select>
                                                 <small class="form-text text-muted">Rule: External is allowed only when Internal Hours Remaining is 0.</small>
                                             </div>
-                                            <div class="col-md-6 mb-4">
-                                                <label for="policy_required_hours_preview" class="form-label fw-semibold">Policy Required Hours</label>
-                                                <input type="number" class="form-control" id="policy_required_hours_preview" value="<?php echo (int)$policy_required_preview; ?>" readonly>
-                                                <small class="form-text text-muted">Auto-computed from selected course policy and assignment track.</small>
-                                            </div>
                                         </div>
-                                        <input type="hidden" id="course_policy_map_json" value="<?php echo $course_policy_map_json; ?>">
 
                                         <div class="row">
                                             <div class="col-md-3 mb-4">
@@ -1097,7 +1448,7 @@ include 'includes/header.php';
 
 
                                     <!-- Form Actions -->
-                                    <div class="d-flex gap-2 justify-content-between save-actions-bar app-students-edit-save-actions mt-3">
+                                    <div class="d-flex gap-2 justify-content-between save-actions-bar mt-3">
                                         <a href="generate_resume.php?id=<?php echo $student['id']; ?>" class="btn btn-success" target="_blank">
                                             <i class="feather-file-text me-2"></i>Generate Resume
                                         </a>
@@ -1121,11 +1472,120 @@ include 'includes/header.php';
             </div>
         </div>
 
-<?php include 'includes/footer.php'; ?>
+        <!-- Footer -->
+        <footer class="footer">
+            <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
+                <span>Copyright �</span>
+                <script>
+                    document.write(new Date().getFullYear());
+                </script>
+            </p>
+            <p class="footer-meta fs-12 mb-0"><span>By: <a href="javascript:void(0);">ACT 2A</a></span> <span>Distributed by: <a href="javascript:void(0);">Group 5</a></span></p>
+            <div class="d-flex align-items-center gap-4">
+                <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Help</a>
+                <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Terms</a>
+                <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Privacy</a>
+            </div>
+        </footer>
+    </main>
+
+    <!-- Scripts -->
+    <script src="assets/vendors/js/vendors.min.js"></script>
+    <script src="assets/vendors/js/select2.min.js"></script>
+    <script src="assets/vendors/js/datepicker.min.js"></script>
+    <script src="assets/js/common-init.min.js"></script>
+    <script src="assets/js/theme-customizer-init.min.js"></script>
+
+    <script>
+        // Initialize form elements
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize select2 for dropdowns
+            $('#course_id, #department_id, #status').each(function() {
+                $(this).select2({
+                    allowClear: false,
+                    minimumResultsForSearch: Infinity,
+                    width: '100%',
+                    dropdownAutoWidth: false,
+                    theme: 'default',
+                    dropdownParent: $('#editStudentForm')
+                });
+            });
+
+            $('#section_id').select2({
+                allowClear: false,
+                width: '100%',
+                dropdownAutoWidth: false,
+                theme: 'default',
+                dropdownParent: $('#editStudentForm')
+            });
+
+            $('#supervisor_id').select2({
+                placeholder: 'Select supervisor',
+                allowClear: false,
+                minimumResultsForSearch: 0,
+                width: '100%',
+                dropdownAutoWidth: false,
+                theme: 'default',
+                dropdownParent: $('#editStudentForm')
+            });
+
+            $('#coordinator_id').select2({
+                placeholder: 'Select coordinator',
+                allowClear: false,
+                minimumResultsForSearch: 0,
+                width: '100%',
+                dropdownAutoWidth: false,
+                theme: 'default',
+                dropdownParent: $('#editStudentForm')
+            });
+
+            // Initialize datepicker for date fields
+            $('#date_of_birth').datepicker({
+                format: 'yyyy-mm-dd',
+                autoclose: true
+            });
+
+            // Form validation
+            document.getElementById('editStudentForm').addEventListener('submit', function(e) {
+                var firstName = document.getElementById('first_name').value.trim();
+                var lastName = document.getElementById('last_name').value.trim();
+                var email = document.getElementById('email').value.trim();
+
+                if (!firstName || !lastName || !email) {
+                    e.preventDefault();
+                    alert('Please fill in all required fields!');
+                    return false;
+                }
+
+                // Email validation
+                var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(email)) {
+                    e.preventDefault();
+                    alert('Please enter a valid email address!');
+                    return false;
+                }
+
+                return true;
+            });
+        });
+
+        // Auto-hide alerts after 5 seconds
+        document.addEventListener('DOMContentLoaded', function() {
+            var alerts = document.querySelectorAll('.alert');
+            alerts.forEach(function(alert) {
+                setTimeout(function() {
+                    var bsAlert = new bootstrap.Alert(alert);
+                    bsAlert.close();
+                }, 5000);
+            });
+        });
+    </script>
+</body>
+
+</html>
 
 <?php
 $conn->close();
 ?>
-
 
 

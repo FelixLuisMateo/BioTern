@@ -1,10 +1,11 @@
-<?php
-$host = 'localhost';
-$db_user = 'root';
-$db_password = '';
-$db_name = 'biotern_db';
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
+$host = defined('DB_HOST') ? DB_HOST : 'localhost';
+$db_user = defined('DB_USER') ? DB_USER : 'root';
+$db_password = defined('DB_PASS') ? DB_PASS : ''; 
+$db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
 
-$message = '';
+$message = defined('DB_PASS') ? DB_PASS : ''; 
 $message_type = 'info';
 
 $conn = new mysqli($host, $db_user, $db_password, $db_name);
@@ -146,7 +147,7 @@ include 'includes/header.php';
                 </div>
             </form>
             <hr>
-            <form method="post" data-confirm-message="Delete this supervisor?">
+            <form method="post" onsubmit="return confirm('Delete this supervisor?');">
                 <input type="hidden" name="id" value="<?php echo (int)$id; ?>">
                 <input type="hidden" name="action" value="delete">
                 <button type="submit" class="btn btn-outline-danger">Delete Supervisor</button>
@@ -155,3 +156,4 @@ include 'includes/header.php';
     </div>
 </div>
 <?php include 'includes/footer.php'; $conn->close(); ?>
+

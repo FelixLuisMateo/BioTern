@@ -1,4 +1,5 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -6,9 +7,6 @@ if (session_status() === PHP_SESSION_NONE) {
 $verify_error = '';
 $verify_message = '';
 $otpTtlSeconds = 600;
-$script_name = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
-$asset_prefix = (strpos($script_name, '/auth/') !== false) ? '../' : '';
-$route_prefix = $asset_prefix;
 
 $contactRaw = isset($_SESSION['password_reset_contact']) ? trim((string)$_SESSION['password_reset_contact']) : '';
 $expected = isset($_SESSION['password_reset_code']) ? (string)$_SESSION['password_reset_code'] : '';
@@ -80,11 +78,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="keyword" content="">
     <meta name="author" content="ACT 2A Group 5">
     <title>BioTern || Verify Cover</title>
-    <link rel="shortcut icon" type="image/x-icon" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/favicon.ico">
-    <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/js/theme-preload-init.min.js"></script>
-    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/bootstrap.min.css">
-    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/vendors/css/vendors.min.css">
-    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/theme.min.css">
+    <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
+    <script src="assets/js/theme-preload-init.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/vendors/css/vendors.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css">
 </head>
 
 <body>
@@ -92,7 +90,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="auth-cover-content-inner">
             <div class="auth-cover-content-wrapper">
                 <div class="auth-img">
-                    <img src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/auth/auth-cover-verify-bg.svg" alt="" class="img-fluid">
+                    <img src="assets/images/auth/auth-cover-verify-bg.svg" alt="" class="img-fluid">
                 </div>
             </div>
         </div>
@@ -100,19 +98,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="auth-cover-card-wrapper">
                 <div class="auth-cover-card p-sm-5">
                     <div class="wd-50 mb-5">
-                        <img src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/logo-abbr.png" alt="" class="img-fluid">
+                        <img src="assets/images/logo-abbr.png" alt="" class="img-fluid">
                     </div>
                     <h2 class="fs-20 fw-bolder mb-4">Verify</h2>
                     <h4 class="fs-13 fw-bold mb-2">Enter the 6-digit one-time password sent to your account.</h4>
-                    <p class="fs-12 fw-medium text-muted"><span>A code has been sent to</span> <strong><?php echo $masked_contact; ?></strong></p>
+                    <p class="fs-12 fw-medium text-muted"><span>A code has been sent to</span> <strong><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $masked_contact; ?></strong></p>
 
-                    <?php if ($verify_message !== ''): ?>
-                        <div class="alert alert-info" role="alert"><?php echo htmlspecialchars($verify_message, ENT_QUOTES, 'UTF-8'); ?></div>
-                    <?php endif; ?>
+                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($verify_message !== ''): ?>
+                        <div class="alert alert-info" role="alert"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($verify_message, ENT_QUOTES, 'UTF-8'); ?></div>
+                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
 
-                    <?php if ($verify_error !== ''): ?>
-                        <div class="alert alert-danger" role="alert"><?php echo htmlspecialchars($verify_error, ENT_QUOTES, 'UTF-8'); ?></div>
-                    <?php endif; ?>
+                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($verify_error !== ''): ?>
+                        <div class="alert alert-danger" role="alert"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($verify_error, ENT_QUOTES, 'UTF-8'); ?></div>
+                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
 
                     <form method="post" class="w-100 mt-4 pt-2" autocomplete="one-time-code">
                         <div id="otp" class="inputs d-flex flex-row justify-content-center mt-2">
@@ -128,7 +140,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
                         <div class="mt-5 text-muted">
                             <span>Didn't get the code</span>
-                            <a href="<?php echo htmlspecialchars($route_prefix, ENT_QUOTES, 'UTF-8'); ?>auth-reset-cover.php?resend=1">Resend</a>
+                            <a href="auth-reset-cover.php?resend=1">Resend</a>
                         </div>
                     </form>
                 </div>
@@ -136,9 +148,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </main>
 
-    <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/vendors/js/vendors.min.js"></script>
-    <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/js/common-init.min.js"></script>
-    <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/js/theme-customizer-init.min.js"></script>
+    <script src="assets/vendors/js/vendors.min.js"></script>
+    <script src="assets/js/common-init.min.js"></script>
+    <script src="assets/js/theme-customizer-init.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             var otpWrap = document.getElementById('otp');
@@ -216,4 +228,5 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </body>
 
 </html>
+
 

@@ -1,8 +1,9 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 require_once __DIR__ . '/../lib/attendance_rules.php';
 require_once __DIR__ . '/../lib/ops_helpers.php';
 
-$conn = new mysqli('localhost', 'root', '', 'biotern_db');
+$conn = new mysqli(defined('DB_HOST') ? DB_HOST : 'localhost', defined('DB_USER') ? DB_USER : 'root', defined('DB_PASS') ? DB_PASS : '', defined('DB_NAME') ? DB_NAME : 'biotern_db');
 if ($conn->connect_error) {
     fwrite(STDERR, "DB connection failed\n");
     exit(1);
@@ -111,4 +112,5 @@ function markFailed(mysqli $conn, int $queueId, string $error): void
     $stmt->execute();
     $stmt->close();
 }
+
 

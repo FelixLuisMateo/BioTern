@@ -1,11 +1,12 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 // Simple registration handler for demo purposes.
 // IMPORTANT: Review and secure before using in production.
 
 $dbHost = '127.0.0.1';
 $dbUser = 'root';
 $dbPass = '';
-$dbName = 'biotern_db';
+$dbName = defined('DB_NAME') ? DB_NAME : 'biotern_db';
 
 $mysqli = new mysqli($dbHost, $dbUser, $dbPass, $dbName);
 if ($mysqli->connect_errno) {
@@ -92,7 +93,10 @@ function tableHasColumn($mysqli, $tableName, $columnName) {
         return false;
     }
 
+<<<<<<< HEAD
     // Avoid placeholders in SHOW statements; MariaDB may reject that syntax.
+=======
+>>>>>>> fcc44e66f14b7cec6a1148dc66ac13f5b7f30778
     $sql = "
         SELECT 1
         FROM information_schema.COLUMNS
@@ -738,3 +742,5 @@ if ($role === 'admin') {
 // fallback
 header('Location: register_submit.php');
 exit;
+
+

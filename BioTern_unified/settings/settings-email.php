@@ -1,4 +1,5 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 $page_title = 'BioTern || Email Settings';
 $page_styles = ['assets/css/settings-customizer-like.css'];
 include 'includes/header.php';
@@ -142,7 +143,9 @@ include 'includes/header.php';
     </div>
 </div>
 
-<?php include 'includes/footer.php'; ?>
+<?php
+require_once dirname(__DIR__) . '/config/db.php';
+include 'includes/footer.php'; ?>
 
 <div class="main-content d-flex settings-theme-customizer">
                 <!-- [ Content Sidebar ] start -->
@@ -196,7 +199,9 @@ include 'includes/header.php';
                                     <i class="feather-life-buoy"></i>
                                     <span>Support</span>
                                 </a>
-                <?php include 'includes/footer.php'; ?>
+                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+include 'includes/footer.php'; ?>
                 <div class="text-white mb-0 mr-auto">Downloading...</div>
                 <a href="javascript:void(0)" class="ms-2 mb-1 close fw-normal" data-bs-dismiss="toast" aria-label="Close">
                     <span class="text-white">&times;</span>
@@ -207,7 +212,7 @@ include 'includes/header.php';
                 <span class="text-light fs-11">4.2mb of 5.5mb</span>
             </div>
             <div class="toast-footer p-3 pt-0 border-top border-light border-opacity-10">
-                <div class="progress mt-3 theme-progress-thin">
+                <div class="progress mt-3" style="height: 5px">
                     <div class="progress-bar progress-bar-striped progress-bar-animated w-75 bg-dark" role="progressbar" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100"></div>
                 </div>
             </div>
@@ -235,7 +240,7 @@ include 'includes/header.php';
             <div class="customizer-sidebar-body position-relative p-4" data-scrollbar-target="#psScrollbarInit">
                 <!--! BEGIN: [Navigation] !-->
                 <div class="position-relative px-3 pb-3 pt-4 mt-3 mb-5 border border-gray-2 theme-options-set">
-                    <label class="py-1 px-2 fs-8 fw-bold text-uppercase text-muted text-spacing-2 bg-white border border-gray-2 position-absolute rounded-2 options-label theme-options-label-offset">Navigation</label>
+                    <label class="py-1 px-2 fs-8 fw-bold text-uppercase text-muted text-spacing-2 bg-white border border-gray-2 position-absolute rounded-2 options-label" style="top: -12px">Navigation</label>
                     <div class="row g-2 theme-options-items app-navigation" id="appNavigationList">
                         <div class="col-6 text-center single-option">
                             <input type="radio" class="btn-check" id="app-navigation-light" name="app-navigation" value="1" data-app-navigation="app-navigation-light" checked>
@@ -250,7 +255,7 @@ include 'includes/header.php';
                 <!--! END: [Navigation] !-->
                 <!--! BEGIN: [Header] !-->
                 <div class="position-relative px-3 pb-3 pt-4 mt-3 mb-5 border border-gray-2 theme-options-set mt-5">
-                    <label class="py-1 px-2 fs-8 fw-bold text-uppercase text-muted text-spacing-2 bg-white border border-gray-2 position-absolute rounded-2 options-label theme-options-label-offset">Header</label>
+                    <label class="py-1 px-2 fs-8 fw-bold text-uppercase text-muted text-spacing-2 bg-white border border-gray-2 position-absolute rounded-2 options-label" style="top: -12px">Header</label>
                     <div class="row g-2 theme-options-items app-header" id="appHeaderList">
                         <div class="col-6 text-center single-option">
                             <input type="radio" class="btn-check" id="app-header-light" name="app-header" value="1" data-app-header="app-header-light" checked>
@@ -265,7 +270,7 @@ include 'includes/header.php';
                 <!--! END: [Header] !-->
                 <!--! BEGIN: [Skins] !-->
                 <div class="position-relative px-3 pb-3 pt-4 mt-3 mb-5 border border-gray-2 theme-options-set">
-                    <label class="py-1 px-2 fs-8 fw-bold text-uppercase text-muted text-spacing-2 bg-white border border-gray-2 position-absolute rounded-2 options-label theme-options-label-offset">Skins</label>
+                    <label class="py-1 px-2 fs-8 fw-bold text-uppercase text-muted text-spacing-2 bg-white border border-gray-2 position-absolute rounded-2 options-label" style="top: -12px">Skins</label>
                     <div class="row g-2 theme-options-items app-skin" id="appSkinList">
                         <div class="col-6 text-center position-relative single-option light-button active">
                             <input type="radio" class="btn-check" id="app-skin-light" name="app-skin" value="1" data-app-skin="app-skin-light">
@@ -280,7 +285,7 @@ include 'includes/header.php';
                 <!--! END: [Skins] !-->
                 <!--! BEGIN: [Typography] !-->
                 <div class="position-relative px-3 pb-3 pt-4 mt-3 mb-0 border border-gray-2 theme-options-set">
-                    <label class="py-1 px-2 fs-8 fw-bold text-uppercase text-muted text-spacing-2 bg-white border border-gray-2 position-absolute rounded-2 options-label theme-options-label-offset">Typography</label>
+                    <label class="py-1 px-2 fs-8 fw-bold text-uppercase text-muted text-spacing-2 bg-white border border-gray-2 position-absolute rounded-2 options-label" style="top: -12px">Typography</label>
                     <div class="row g-2 theme-options-items font-family" id="fontFamilyList">
                         <div class="col-6 text-center single-option">
                             <input type="radio" class="btn-check" id="app-font-family-lato" name="font-family" value="1" data-font-family="app-font-family-lato">
@@ -407,5 +412,6 @@ include 'includes/header.php';
 </body>
 
 </html>
+
 
 

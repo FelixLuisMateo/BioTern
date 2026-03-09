@@ -1,5 +1,5 @@
-<?php
-
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\CourseController;
 use App\Http\Controllers\Admin\DepartmentController;
@@ -15,3 +15,4 @@ Route::get('/reports/internship-summary', [DashboardController::class, 'internsh
     ->name('admin.reports.internship-summary');
 Route::get('/reports/system-logs', [DashboardController::class, 'systemLogs'])
     ->name('admin.reports.system-logs');
+

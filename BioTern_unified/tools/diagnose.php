@@ -1,4 +1,5 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 // Check Laravel migration status
 echo "=== Laravel Migration Status ===\n\n";
 
@@ -43,10 +44,10 @@ if (!empty($migrate_output)) {
 
 // Check database connection
 echo "\n=== Database Connection Check ===\n";
-$host = 'localhost';
-$username = 'root';
-$password = '';
-$database = 'biotern_db';
+$host = defined('DB_HOST') ? DB_HOST : 'localhost';
+$username = defined('DB_USER') ? DB_USER : 'root';
+$password = defined('DB_PASS') ? DB_PASS : ''; 
+$database = defined('DB_NAME') ? DB_NAME : 'biotern_db';
 
 try {
     $conn = new mysqli($host, $username, $password, $database);
@@ -66,3 +67,4 @@ try {
     echo "Error: " . $e->getMessage() . "\n";
 }
 ?>
+

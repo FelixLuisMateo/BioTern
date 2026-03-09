@@ -1,15 +1,16 @@
-<?php
-$host = 'localhost';
-$db_user = 'root';
-$db_password = '';
-$db_name = 'biotern_db';
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
+$host = defined('DB_HOST') ? DB_HOST : 'localhost';
+$db_user = defined('DB_USER') ? DB_USER : 'root';
+$db_password = defined('DB_PASS') ? DB_PASS : ''; 
+$db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
 
 $conn = new mysqli($host, $db_user, $db_password, $db_name);
 if ($conn->connect_error) {
     die('Connection failed: ' . $conn->connect_error);
 }
 
-$message = '';
+$message = defined('DB_PASS') ? DB_PASS : ''; 
 $message_type = 'success';
 
 function h($value): string
@@ -76,7 +77,7 @@ include 'includes/header.php';
     <div class="card stretch stretch-full">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="card-title mb-0">All Coordinators</h5>
-            <span class="badge bg-primary text-white px-3 py-1 fw-semibold"><?php echo count($rows); ?> total</span>
+            <span class="badge bg-primary text-white px-3 py-1" style="font-weight:600;"><?php echo count($rows); ?> total</span>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
@@ -117,7 +118,7 @@ include 'includes/header.php';
                                 <td>
                                     <div class="d-flex gap-2">
                                         <a href="coordinators-edit.php?id=<?php echo (int)$r['id']; ?>" class="btn btn-sm btn-outline-primary">Edit</a>
-                                        <form method="post" data-confirm-message="Delete this coordinator?">
+                                        <form method="post" onsubmit="return confirm('Delete this coordinator?');">
                                             <input type="hidden" name="action" value="delete">
                                             <input type="hidden" name="id" value="<?php echo (int)$r['id']; ?>">
                                             <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
@@ -134,6 +135,8 @@ include 'includes/header.php';
 </div>
 
 <?php
+require_once dirname(__DIR__) . '/config/db.php';
 include 'includes/footer.php';
 $conn->close();
 ?>
+

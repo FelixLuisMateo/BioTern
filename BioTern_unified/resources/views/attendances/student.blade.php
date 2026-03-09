@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zxx">
 
 <head>
@@ -12,8 +12,6 @@
     <link rel="stylesheet" type="text/css" href="{{ asset('assets/vendors/css/vendors.min.css') }}">
     <link rel="stylesheet" type="text/css" href="{{ asset('assets/vendors/css/dataTables.bs5.min.css') }}">
     <link rel="stylesheet" type="text/css" href="{{ asset('assets/css/theme.min.css') }}">
-    <link rel="stylesheet" type="text/css" href="{{ asset('assets/css/core.css') }}">
-    <script src="{{ asset('assets/js/theme-preload-init.min.js') }}"></script>
     <style>
         .student-header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -28,7 +26,7 @@
     </style>
 </head>
 
-<body data-theme-prefs="{}" data-theme-api="{{ url('api/theme-customizer.php') }}">
+<body>
     <!--! Navigation !-->
     <nav class="nxl-navigation">
         <div class="navbar-wrapper">
@@ -136,7 +134,7 @@
         <!-- Footer -->
         <footer class="footer">
             <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
-                <span>Copyright ©</span>
+                <span>Copyright Â©</span>
                 <script>
                     document.write(new Date().getFullYear());
                 </script>
@@ -146,8 +144,6 @@
 
     <script src="{{ asset('assets/vendors/js/vendors.min.js') }}"></script>
     <script src="{{ asset('assets/js/common-init.min.js') }}"></script>
-    <script src="{{ asset('assets/js/theme-preferences-runtime.js') }}"></script>
-    <script src="{{ asset('assets/js/theme-customizer-init.min.js') }}"></script>
 </body>
 
 </html>

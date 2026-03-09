@@ -1,11 +1,12 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/ops_helpers.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 require_roles_page(['admin', 'coordinator', 'supervisor']);
 
-$conn = new mysqli('localhost', 'root', '', 'biotern_db');
+$conn = new mysqli(defined('DB_HOST') ? DB_HOST : 'localhost', defined('DB_USER') ? DB_USER : 'root', defined('DB_PASS') ? DB_PASS : '', defined('DB_NAME') ? DB_NAME : 'biotern_db');
 if ($conn->connect_error) {
     die("DB connection failed");
 }
@@ -29,66 +30,70 @@ if ($res) {
         $rows[] = $r;
     }
 }
-
-$page_title = 'BioTern || Attendance Corrections';
-$page_styles = [
-    'assets/css/pages-attendance-page.css',
-];
-$page_scripts = [
-    'assets/js/theme-customizer-init.min.js',
-];
-
-include 'includes/header.php';
 ?>
-            <div class="page-header">
-                <div class="page-header-left d-flex align-items-center">
-                    <div class="page-header-title">
-                        <h5 class="m-b-10">Attendance Corrections</h5>
-                    </div>
-                    <ul class="breadcrumb">
-                        <li class="breadcrumb-item"><a href="index.php">Home</a></li>
-                        <li class="breadcrumb-item">Attendance Corrections</li>
-                    </ul>
-                </div>
-            </div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance Corrections</title>
+    <link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css">
+</head>
+<body class="bg-light">
+<div class="container py-4">
+    <h3 class="mb-3">Attendance Correction Requests</h3>
+    <table class="table table-striped table-bordered bg-white">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Student</th>
+                <th>Date</th>
+                <th>Reason</th>
+                <th>Status</th>
+                <th>Requested</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if (empty($rows)): ?>
+                <tr><td colspan="6" class="text-center">No correction requests.</td></tr>
+            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+else: ?>
+                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($rows as $row): ?>
+                    <tr>
+                        <td><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$row['id']; ?></td>
+                        <td><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars(trim(($row['first_name'] ?? '') . ' ' . ($row['last_name'] ?? ''))); ?></td>
+                        <td><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($row['attendance_date'] ?? '-'); ?></td>
+                        <td><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($row['correction_reason']); ?></td>
+                        <td><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($row['status']); ?></td>
+                        <td><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($row['created_at']); ?></td>
+                    </tr>
+                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
+            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
+        </tbody>
+    </table>
+</div>
+</body>
+</html>
 
-            <div class="main-content">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title mb-3">Attendance Correction Requests</h5>
-                        <div class="table-responsive">
-                            <table class="table table-striped table-bordered mb-0">
-                                <thead>
-                                    <tr>
-                                        <th>ID</th>
-                                        <th>Student</th>
-                                        <th>Date</th>
-                                        <th>Reason</th>
-                                        <th>Status</th>
-                                        <th>Requested</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php if (empty($rows)): ?>
-                                        <tr><td colspan="6" class="text-center">No correction requests.</td></tr>
-                                    <?php else: ?>
-                                        <?php foreach ($rows as $row): ?>
-                                            <tr>
-                                                <td><?php echo (int)$row['id']; ?></td>
-                                                <td><?php echo htmlspecialchars(trim(($row['first_name'] ?? '') . ' ' . ($row['last_name'] ?? ''))); ?></td>
-                                                <td><?php echo htmlspecialchars($row['attendance_date'] ?? '-'); ?></td>
-                                                <td><?php echo htmlspecialchars($row['correction_reason']); ?></td>
-                                                <td><?php echo htmlspecialchars($row['status']); ?></td>
-                                                <td><?php echo htmlspecialchars($row['created_at']); ?></td>
-                                            </tr>
-                                        <?php endforeach; ?>
-                                    <?php endif; ?>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-<?php include 'includes/footer.php'; ?>
 

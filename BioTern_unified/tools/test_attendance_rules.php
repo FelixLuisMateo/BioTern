@@ -1,4 +1,5 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 require_once __DIR__ . '/../lib/attendance_rules.php';
 
 function assert_true($condition, $message)
@@ -40,4 +41,5 @@ $v4 = attendance_validate_full_record($bad);
 assert_true($v4['ok'] === false, 'morning_out earlier than morning_in should be invalid');
 
 echo "Attendance rule tests passed.\n";
+
 

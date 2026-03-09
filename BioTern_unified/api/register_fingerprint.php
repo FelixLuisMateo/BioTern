@@ -1,8 +1,3 @@
-<?php
-$script_name = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
-$asset_prefix = (strpos($script_name, '/api/') !== false) ? '../' : '';
-$route_prefix = $asset_prefix;
-?>
 <!DOCTYPE html>
 <html lang="zxx">
 <head>
@@ -17,17 +12,17 @@ $route_prefix = $asset_prefix;
     <title>BioTern || Register Fingerprint</title>
     <!--! END:  Apps Title-->
     <!--! BEGIN: Favicon-->
-    <link rel="shortcut icon" type="image/x-icon" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/favicon.ico">
-    <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/js/theme-preload-init.min.js"></script>
+    <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
+    <script src="assets/js/theme-preload-init.min.js"></script>
     <!--! END: Favicon-->
     <!--! BEGIN: Bootstrap CSS-->
-    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css">
     <!--! END: Bootstrap CSS-->
     <!--! BEGIN: Vendors CSS-->
-    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/vendors/css/vendors.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/vendors/css/vendors.min.css">
     <!--! END: Vendors CSS-->
     <!--! BEGIN: Custom CSS-->
-    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/theme.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css">
     <!--! END: Custom CSS-->
 </head>
 
@@ -84,7 +79,7 @@ $route_prefix = $asset_prefix;
             <div class="minimal-card-wrapper">
                 <div class="card mb-4 mt-5 mx-2 mx-sm-0 position-relative" style="width: 100%; max-width: 600px; margin: 40px auto;">
                     <div class="wd-50 bg-white p-2 rounded-circle shadow-lg position-absolute translate-middle top-0 start-50">
-                        <img src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/logo-abbr.png" alt="" class="img-fluid">
+                        <img src="assets/images/logo-abbr.png" alt="" class="img-fluid">
                     </div>
                     <div class="card-body p-sm-5" style="padding: 50px !important; min-height: auto;">
                         <div class="fingerprint-section">
@@ -113,7 +108,7 @@ $route_prefix = $asset_prefix;
                                 <button id="retryBtn" class="btn btn-lg btn-secondary w-100 mb-2" onclick="retryFingerprintScan()" style="display: none;">
                                     Retry Scan
                                 </button>
-                                <a href="<?php echo htmlspecialchars($route_prefix, ENT_QUOTES, 'UTF-8'); ?>auth-register-creative.php" class="btn btn-lg btn-outline-secondary w-100">
+                                <a href="auth-register-creative.php" class="btn btn-lg btn-outline-secondary w-100">
                                     Back to Registration
                                 </a>
                             </div>
@@ -134,13 +129,13 @@ $route_prefix = $asset_prefix;
     <!--! ================================================================ !-->
 
     <!--! BEGIN: Vendors JS !-->
-    <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/vendors/js/vendors.min.js"></script>
+    <script src="assets/vendors/js/vendors.min.js"></script>
     <!--! END: Vendors JS !-->
     <!--! BEGIN: Apps Init  !-->
-    <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/js/common-init.min.js"></script>
+    <script src="assets/js/common-init.min.js"></script>
     <!--! END: Apps Init !-->
     <!--! BEGIN: Theme Customizer  !-->
-    <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/js/theme-customizer-init.min.js"></script>
+    <script src="assets/js/theme-customizer-init.min.js"></script>
     <!--! END: Theme Customizer !-->
 
     <script>

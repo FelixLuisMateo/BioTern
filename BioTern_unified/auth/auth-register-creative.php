@@ -1,4 +1,5 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 // Handle submissions immediately to avoid rendering/query side effects before redirects.
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     require_once dirname(__DIR__) . '/api/register_submit.php';
@@ -11,13 +12,10 @@ $sectionOptions = [];
 $coordinatorOptions = [];
 $supervisorOptions = [];
 $courseDepartmentMap = [];
-$script_name = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
-$asset_prefix = (strpos($script_name, '/auth/') !== false) ? '../' : '';
-$route_prefix = $asset_prefix;
 $dbHost = '127.0.0.1';
 $dbUser = 'root';
 $dbPass = '';
-$dbName = 'biotern_db';
+$dbName = defined('DB_NAME') ? DB_NAME : 'biotern_db';
 
 $departmentsConn = new mysqli($dbHost, $dbUser, $dbPass, $dbName);
 if ($departmentsConn && $departmentsConn->connect_errno === 0) {
@@ -379,20 +377,20 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
     <title>BioTern || Register Minimal</title>
     <!--! END:  Apps Title-->
     <!--! BEGIN: Favicon-->
-    <link rel="shortcut icon" type="image/x-icon" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/favicon.ico">
-    <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/js/theme-preload-init.min.js"></script>
+    <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
+    <script src="assets/js/theme-preload-init.min.js"></script>
     <!--! END: Favicon-->
     <!--! BEGIN: Bootstrap CSS-->
-    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css">
     <!--! END: Bootstrap CSS-->
     <!--! BEGIN: Vendors CSS-->
-    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/vendors/css/vendors.min.css">
-    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/vendors/css/select2.min.css">
-    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/vendors/css/select2-theme.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/vendors/css/vendors.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2-theme.min.css">
     <!--! END: Vendors CSS-->
     <!--! BEGIN: Custom CSS-->
-    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/theme.min.css">
-    <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/js/skin-init.js"></script>
+    <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css">
+    <script src="assets/js/skin-init.js"></script>
     <!--! END: Custom CSS-->
     <style>
         /* Ensure select text and option text are visible (black) */
@@ -498,17 +496,18 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
             <div class="minimal-card-wrapper">
                 <div class="card mb-4 mt-5 mx-2 mx-sm-0 position-relative" style="width: 130%; max-width: 1500px; margin: 40px auto;">
                     <div class="wd-50 bg-white p-2 rounded-circle shadow-lg position-absolute translate-middle top-0 start-50">
-                        <img src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/logo-abbr.png" alt="" class="img-fluid">
+                        <img src="assets/images/logo-abbr.png" alt="" class="img-fluid">
                     </div>
                     <div class="card-body p-sm-5" style="padding: 50px !important; min-height: auto;">
                         <h2 class="fs-20 fw-bolder mb-4">Register</h2>
                         <div class="mb-3">
-                            <a href="<?php echo htmlspecialchars($route_prefix, ENT_QUOTES, 'UTF-8'); ?>homepage.php" class="btn btn-sm btn-outline-primary">&#8592; Back to Admin Dashboard</a>
+                            <a href="homepage.php" class="btn btn-sm btn-outline-primary">&#8592; Back to Admin Dashboard</a>
                         </div>
                         <h4 class="fs-13 fw-bold mb-2">Manage your Internship account in one place.</h4>
                         <p class="fs-12 fw-medium text-muted">Let's get you all setup, so you can verify your personal account and begin setting up your profile.</p>
                         <?php
-                        if (isset($_GET['registered'])) {
+require_once dirname(__DIR__) . '/config/db.php';
+if (isset($_GET['registered'])) {
                             $reg = $_GET['registered'];
                             $msg = isset($_GET['msg']) ? htmlspecialchars($_GET['msg']) : '';
                             if ($reg === 'exists') {
@@ -556,7 +555,7 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
                         </div>
 
                         <!-- STUDENT REGISTRATION FORM -->
-                        <form id="studentForm" class="w-100 mt-4 pt-2 hide-form" action="<?php echo htmlspecialchars($route_prefix, ENT_QUOTES, 'UTF-8'); ?>register_submit.php" method="post">
+                        <form id="studentForm" class="w-100 mt-4 pt-2 hide-form" action="register_submit.php" method="post">
                             <input type="hidden" name="role" value="student">
                             <div class="form-section">
                                 <h3 class="fs-18 fw-bold mb-3">Student Registration</h3>
@@ -599,40 +598,58 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
                                         <label class="form-label fs-12" for="studentCourseSelect">Course</label>
                                         <select name="course_id" id="studentCourseSelect" class="form-control dynamic-course-select" data-section-target="studentSectionSelect" required>
                                             <option value="" disabled selected>Select Course</option>
-                                            <?php foreach ($courseOptions as $course): ?>
+                                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($courseOptions as $course): ?>
                                                 <option
-                                                    value="<?php echo htmlspecialchars((string) $course['id']); ?>"
-                                                    data-course-code="<?php echo htmlspecialchars((string) $course['code']); ?>"
+                                                    value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars((string) $course['id']); ?>"
+                                                    data-course-code="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars((string) $course['code']); ?>"
                                                 >
                                                     <?php
-                                                    echo htmlspecialchars(
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars(
                                                         $course['name'] !== '' && $course['code'] !== ''
                                                             ? ($course['code'] . ' - ' . $course['name'])
                                                             : ($course['name'] !== '' ? $course['name'] : $course['code'])
                                                     );
                                                     ?>
                                                 </option>
-                                            <?php endforeach; ?>
+                                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
                                         </select>
                                     </div>
                                     <div class="col-4 mb-2">
                                         <label class="form-label fs-12" for="studentDepartmentSelect">Department</label>
                                         <select name="department_id" id="studentDepartmentSelect" class="form-control" required>
                                             <option value="" selected>Select Department</option>
-                                            <?php foreach ($departmentOptions as $department): ?>
+                                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($departmentOptions as $department): ?>
                                                 <option
-                                                    value="<?php echo (int)$department['id']; ?>"
-                                                    data-default-label="<?php echo htmlspecialchars($department['name'] !== '' ? ($department['name'] . ' (' . $department['code'] . ')') : $department['code']); ?>"
+                                                    value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$department['id']; ?>"
+                                                    data-default-label="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($department['name'] !== '' ? ($department['name'] . ' (' . $department['code'] . ')') : $department['code']); ?>"
                                                 >
                                                     <?php
-                                                    echo htmlspecialchars(
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars(
                                                         $department['name'] !== ''
                                                             ? ($department['name'] . ' (' . $department['code'] . ')')
                                                             : $department['code']
                                                     );
                                                     ?>
                                                 </option>
-                                            <?php endforeach; ?>
+                                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
                                         </select>
                                     </div>
                                     <div class="col-4 mb-2">
@@ -647,44 +664,74 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
                                         <label class="form-label fs-12" for="studentCoordinatorSelect">Coordinator</label>
                                         <select name="coordinator_id" id="studentCoordinatorSelect" class="form-control" required>
                                             <option value="" disabled selected>Select Coordinator</option>
-                                            <?php foreach ($coordinatorOptions as $coordinator): ?>
+                                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($coordinatorOptions as $coordinator): ?>
                                                 <?php
-                                                $fullName = (string)$coordinator['full_name'];
+require_once dirname(__DIR__) . '/config/db.php';
+$fullName = (string)$coordinator['full_name'];
                                                 $office = (string)$coordinator['office_location'];
                                                 $defaultLabel = $fullName;
                                                 $actLabel = $fullName . ' - Coordinator | Office: ' . $office;
                                                 ?>
                                                 <option
-                                                    value="<?php echo (int)$coordinator['id']; ?>"
-                                                    data-department-id="<?php echo (int)$coordinator['department_id']; ?>"
-                                                    data-default-label="<?php echo htmlspecialchars($defaultLabel); ?>"
-                                                    data-act-label="<?php echo htmlspecialchars($actLabel); ?>"
+                                                    value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$coordinator['id']; ?>"
+                                                    data-department-id="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$coordinator['department_id']; ?>"
+                                                    data-default-label="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($defaultLabel); ?>"
+                                                    data-act-label="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($actLabel); ?>"
                                                 >
-                                                    <?php echo htmlspecialchars($defaultLabel); ?>
+                                                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($defaultLabel); ?>
                                                 </option>
-                                            <?php endforeach; ?>
+                                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
                                         </select>
                                     </div>
                                     <div class="col-6 mb-2">
                                         <label class="form-label fs-12" for="studentSupervisorSelect">Supervisor</label>
                                         <select name="supervisor_id" id="studentSupervisorSelect" class="form-control" required>
                                             <option value="" disabled selected>Select Supervisor</option>
-                                            <?php foreach ($supervisorOptions as $supervisor): ?>
+                                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($supervisorOptions as $supervisor): ?>
                                                 <?php
-                                                $fullName = (string)$supervisor['full_name'];
+require_once dirname(__DIR__) . '/config/db.php';
+$fullName = (string)$supervisor['full_name'];
                                                 $office = (string)$supervisor['office_location'];
                                                 $defaultLabel = $fullName;
                                                 $actLabel = $fullName . ' - Supervisor | Office: ' . $office;
                                                 ?>
                                                 <option
-                                                    value="<?php echo (int)$supervisor['id']; ?>"
-                                                    data-department-id="<?php echo (int)$supervisor['department_id']; ?>"
-                                                    data-default-label="<?php echo htmlspecialchars($defaultLabel); ?>"
-                                                    data-act-label="<?php echo htmlspecialchars($actLabel); ?>"
+                                                    value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$supervisor['id']; ?>"
+                                                    data-department-id="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$supervisor['department_id']; ?>"
+                                                    data-default-label="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($defaultLabel); ?>"
+                                                    data-act-label="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($actLabel); ?>"
                                                 >
-                                                    <?php echo htmlspecialchars($defaultLabel); ?>
+                                                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($defaultLabel); ?>
                                                 </option>
-                                            <?php endforeach; ?>
+                                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
                                         </select>
                                     </div>
                                 </div>
@@ -785,7 +832,7 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
                         </form>
 
                         <!-- COORDINATOR REGISTRATION FORM -->
-                        <form id="coordinatorForm" class="w-100 mt-4 pt-2 hide-form" action="<?php echo htmlspecialchars($route_prefix, ENT_QUOTES, 'UTF-8'); ?>register_submit.php" method="post">
+                        <form id="coordinatorForm" class="w-100 mt-4 pt-2 hide-form" action="register_submit.php" method="post">
                             <input type="hidden" name="role" value="coordinator">
                             <div class="form-section">
                                 <h3 class="fs-18 fw-bold mb-3">Coordinator Registration</h3>
@@ -820,17 +867,24 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
                                     <label class="form-label fs-12" for="coordDepartmentCode">Department Code</label>
                                     <select id="coordDepartmentCode" name="department_code" class="form-control" required>
                                         <option value="" disabled selected>Select Department</option>
-                                        <?php foreach ($departmentOptions as $department): ?>
-                                            <option value="<?php echo htmlspecialchars($department['code']); ?>">
+                                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($departmentOptions as $department): ?>
+                                            <option value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($department['code']); ?>">
                                                 <?php
-                                                echo htmlspecialchars(
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars(
                                                     $department['name'] !== ''
                                                         ? ($department['name'] . ' (' . $department['code'] . ')')
                                                         : $department['code']
                                                 );
                                                 ?>
                                             </option>
-                                        <?php endforeach; ?>
+                                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
                                     </select>
                                 </div>
                                 <div class="col-6 mb-2">
@@ -878,7 +932,7 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
                         </form>
 
                         <!-- SUPERVISOR REGISTRATION FORM -->
-                        <form id="supervisorForm" class="w-100 mt-4 pt-2 hide-form" action="<?php echo htmlspecialchars($route_prefix, ENT_QUOTES, 'UTF-8'); ?>register_submit.php" method="post">
+                        <form id="supervisorForm" class="w-100 mt-4 pt-2 hide-form" action="register_submit.php" method="post">
                             <input type="hidden" name="role" value="supervisor">
                             <div class="form-section">
                                 <h3 class="fs-18 fw-bold mb-3">Supervisor Registration</h3>
@@ -915,17 +969,24 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
                                 <div class="col-6 mb-2">
                                     <select name="department_code" class="form-control" required>
                                         <option value="" disabled selected>Select Department</option>
-                                        <?php foreach ($departmentOptions as $department): ?>
-                                            <option value="<?php echo htmlspecialchars($department['code']); ?>">
+                                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($departmentOptions as $department): ?>
+                                            <option value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($department['code']); ?>">
                                                 <?php
-                                                echo htmlspecialchars(
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars(
                                                     $department['name'] !== ''
                                                         ? ($department['name'] . ' (' . $department['code'] . ')')
                                                         : $department['code']
                                                 );
                                                 ?>
                                             </option>
-                                        <?php endforeach; ?>
+                                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
                                     </select>
                                 </div>
                                 <div class="col-6 mb-2">
@@ -977,7 +1038,7 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
                         </form>
 
                         <!-- ADMIN REGISTRATION FORM -->
-                        <form id="adminForm" class="w-100 mt-4 pt-2 hide-form" action="<?php echo htmlspecialchars($route_prefix, ENT_QUOTES, 'UTF-8'); ?>register_submit.php" method="post">
+                        <form id="adminForm" class="w-100 mt-4 pt-2 hide-form" action="register_submit.php" method="post">
                             <input type="hidden" name="role" value="admin">
                             <div class="form-section">
                                 <h3 class="fs-18 fw-bold mb-3">Admin Registration</h3>
@@ -1016,17 +1077,24 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
                                     <label class="form-label fs-12" for="adminDepartmentCode">Department Code</label>
                                     <select id="adminDepartmentCode" name="department_code" class="form-control" required>
                                         <option value="" disabled selected>Select Department</option>
-                                        <?php foreach ($departmentOptions as $department): ?>
-                                            <option value="<?php echo htmlspecialchars($department['code']); ?>">
+                                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($departmentOptions as $department): ?>
+                                            <option value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($department['code']); ?>">
                                                 <?php
-                                                echo htmlspecialchars(
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars(
                                                     $department['name'] !== ''
                                                         ? ($department['name'] . ' (' . $department['code'] . ')')
                                                         : $department['code']
                                                 );
                                                 ?>
                                             </option>
-                                        <?php endforeach; ?>
+                                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
                                     </select>
                                 </div>
                             </div>
@@ -1079,11 +1147,11 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
 
                         <div id="loginLink" class="mt-5 text-muted show-form">
                             <span>Already have an account?</span>
-                            <a href="<?php echo htmlspecialchars($route_prefix, ENT_QUOTES, 'UTF-8'); ?>auth-login-cover.php" class="fw-bold">Login</a>
+                            <a href="auth-login-cover.php" class="fw-bold">Login</a>
                         </div>
                         <div id="loginLinkHidden" class="mt-5 text-muted hide-form">
                             <span>Already have an account?</span>
-                            <a href="<?php echo htmlspecialchars($route_prefix, ENT_QUOTES, 'UTF-8'); ?>auth-login-cover.php" class="fw-bold">Login</a>
+                            <a href="auth-login-cover.php" class="fw-bold">Login</a>
                         </div>
                     </div>
                 </div>
@@ -1097,15 +1165,15 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
     <!--! Footer Script !-->
     <!--! ================================================================ !-->
     <!--! BEGIN: Vendors JS !-->
-    <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/vendors/js/vendors.min.js"></script>
-    <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/vendors/js/select2.min.js"></script>
+    <script src="assets/vendors/js/vendors.min.js"></script>
+    <script src="assets/vendors/js/select2.min.js"></script>
     <!-- vendors.min.js {always must need to be top} -->
-    <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/vendors/js/lslstrength.min.js"></script>
+    <script src="assets/vendors/js/lslstrength.min.js"></script>
     <!--! END: Vendors JS !-->
     <!--! BEGIN: Apps Init  !-->
-    <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/js/common-init.min.js"></script>
+    <script src="assets/js/common-init.min.js"></script>
     <!--! END: Apps Init !-->
-    <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/js/theme-customizer-init.min.js"></script>
+    <script src="assets/js/theme-customizer-init.min.js"></script>
 
     <script>
         let currentRole = null;
@@ -1248,8 +1316,12 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
             syncExternalField();
         }
 
-        const courseDepartmentMap = <?php echo json_encode($courseDepartmentMap, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
-        const sectionRecords = <?php echo json_encode($sectionOptions, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+        const courseDepartmentMap = <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo json_encode($courseDepartmentMap, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+        const sectionRecords = <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo json_encode($sectionOptions, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
 
         function getCourseAllowedDepartmentIds(courseId) {
             const bucket = courseDepartmentMap[String(courseId)] || {};
@@ -1472,6 +1544,8 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
 </body>
 
 </html>
+
+
 
 
 

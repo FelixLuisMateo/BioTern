@@ -1,12 +1,79 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 $page_title = 'BioTern || Theme Customizer';
-$page_scripts = [
-    'assets/js/theme-customizer-init.min.js',
-    'assets/js/theme-customizer-page-runtime.js',
-];
 include 'includes/header.php';
 ?>
-<link rel="stylesheet" type="text/css" href="assets/css/theme-customizer-page.css">
+
+<style>
+    .theme-customizer-page .content-area-body {
+        padding: 1.75rem;
+    }
+
+    .theme-customizer-page .content-sidebar-header,
+    .theme-customizer-page .content-area-header {
+        background-color: var(--bs-body-bg) !important;
+        border-bottom: 1px dashed var(--bs-border-color);
+    }
+
+    .theme-customizer-page .content-area-body > .card.mb-0 {
+        border: 0;
+        background: transparent;
+    }
+
+    .theme-customizer-page .content-area-body > .card.mb-0 > .card-body {
+        padding: 0;
+    }
+
+    .theme-setting-card .card-header {
+        padding: 1rem 1.25rem;
+        border-bottom: 1px dashed var(--bs-border-color);
+    }
+
+    .theme-setting-card {
+        border: 1px solid var(--bs-border-color);
+        border-radius: 12px;
+        overflow: hidden;
+        background: var(--bs-body-bg);
+    }
+
+    .theme-setting-card .card-body {
+        padding: 1rem;
+    }
+
+    .theme-setting-card .option-row {
+        padding: 16px;
+        border: 1px solid var(--bs-border-color);
+        border-radius: 10px;
+        margin-bottom: 14px;
+        background: var(--bs-light);
+        transition: border-color .2s ease, transform .2s ease;
+    }
+
+    .theme-setting-card .option-row:hover {
+        border-color: var(--bs-primary);
+        transform: translateY(-1px);
+    }
+
+    html.app-skin-dark .theme-setting-card .option-row {
+        background: rgba(255, 255, 255, 0.04);
+    }
+
+    .theme-setting-card .btn-check + .btn {
+        min-width: 110px;
+        text-transform: uppercase;
+        font-size: .75rem;
+        letter-spacing: .02em;
+    }
+
+    .theme-setting-card .form-select {
+        min-height: 42px;
+    }
+
+    .theme-setting-card .badge {
+        border: 1px solid var(--bs-border-color);
+        font-weight: 600;
+    }
+</style>
 
 <div class="main-content d-flex theme-customizer-page">
     <div class="content-sidebar content-sidebar-md" data-scrollbar-target="#psScrollbarInit">
@@ -82,7 +149,7 @@ include 'includes/header.php';
                                 <label class="form-label mb-1" for="theme-page-menu">Sidebar Mode</label>
                                 <div class="fs-12 text-muted">Auto follows screen width behavior.</div>
                             </div>
-                            <div class="theme-select-wrap">
+                            <div style="min-width: 240px;">
                                 <select id="theme-page-menu" class="form-select">
                                     <option value="auto">Auto</option>
                                     <option value="mini">Mini</option>
@@ -98,7 +165,7 @@ include 'includes/header.php';
                                 <label class="form-label mb-1" for="theme-page-font">Font Family</label>
                                 <div class="fs-12 text-muted">Apply typography across the interface.</div>
                             </div>
-                            <div class="theme-select-wrap">
+                            <div style="min-width: 240px;">
                                 <select id="theme-page-font" class="form-select">
                                     <option value="default">Default (Inter)</option>
                                     <option value="app-font-family-inter">Inter</option>
@@ -169,4 +236,88 @@ include 'includes/header.php';
     </div>
 </div>
 
-<?php include 'includes/footer.php'; ?>
+<script>
+    (function () {
+        document.addEventListener('DOMContentLoaded', function () {
+            var navHidden = document.getElementById('theme-page-navigation');
+            var navLight = document.getElementById('theme-page-navigation-light');
+            var navDark = document.getElementById('theme-page-navigation-dark');
+            var headerHidden = document.getElementById('theme-page-header');
+            var headerLight = document.getElementById('theme-page-header-light');
+            var headerDark = document.getElementById('theme-page-header-dark');
+
+            function syncNavigationRadios() {
+                if (!navHidden) return;
+                if (navDark) navDark.checked = navHidden.value === 'dark';
+                if (navLight) navLight.checked = navHidden.value !== 'dark';
+            }
+
+            function syncHeaderRadios() {
+                if (!headerHidden) return;
+                if (headerDark) headerDark.checked = headerHidden.value === 'dark';
+                if (headerLight) headerLight.checked = headerHidden.value !== 'dark';
+            }
+
+            if (navLight && navHidden) {
+                navLight.addEventListener('change', function () {
+                    if (navLight.checked) navHidden.value = 'light';
+                });
+            }
+            if (navDark && navHidden) {
+                navDark.addEventListener('change', function () {
+                    if (navDark.checked) navHidden.value = 'dark';
+                });
+            }
+
+            if (headerLight && headerHidden) {
+                headerLight.addEventListener('change', function () {
+                    if (headerLight.checked) headerHidden.value = 'light';
+                });
+            }
+            if (headerDark && headerHidden) {
+                headerDark.addEventListener('change', function () {
+                    if (headerDark.checked) headerHidden.value = 'dark';
+                });
+            }
+
+            var observer = new MutationObserver(function () {
+                syncNavigationRadios();
+                syncHeaderRadios();
+            });
+
+            if (navHidden) {
+                observer.observe(navHidden, { attributes: true, attributeFilter: ['value'] });
+            }
+            if (headerHidden) {
+                observer.observe(headerHidden, { attributes: true, attributeFilter: ['value'] });
+            }
+
+            syncNavigationRadios();
+            syncHeaderRadios();
+
+            var saveLink = document.getElementById('theme-page-save-link');
+            var cancelLink = document.getElementById('theme-page-cancel-link');
+            var saveButton = document.getElementById('theme-page-save');
+            var resetButton = document.getElementById('theme-page-reset');
+
+            if (saveLink && saveButton) {
+                saveLink.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    saveButton.click();
+                });
+            }
+
+            if (cancelLink && resetButton) {
+                cancelLink.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    resetButton.click();
+                });
+            }
+        });
+    })();
+</script>
+
+<?php
+require_once dirname(__DIR__) . '/config/db.php';
+include 'includes/footer.php'; ?>
+

@@ -1,5 +1,5 @@
-<?php
-
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 use App\Http\Controllers\Supervisor\DashboardController;
 use App\Http\Controllers\Supervisor\DTRController;
 use App\Http\Controllers\Supervisor\StudentMonitoringController;
@@ -22,3 +22,4 @@ Route::post('/messages', [MessagingController::class, 'store'])->name('superviso
 
 Route::get('/reports/attendance-concerns', [DashboardController::class, 'attendanceConcerns'])
     ->name('supervisor.reports.attendance-concerns');
+

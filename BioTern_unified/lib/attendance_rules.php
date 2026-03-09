@@ -1,5 +1,5 @@
-<?php
-
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 function attendance_action_to_column(string $clock_type): ?string
 {
     $map = [
@@ -141,4 +141,5 @@ function attendance_validate_full_record(array $record): array
 
     return ['ok' => true, 'message' => 'OK'];
 }
+
 

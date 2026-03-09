@@ -1,8 +1,12 @@
-<?php
-$host = 'localhost';
-$db_user = 'root';
-$db_password = '';
-$db_name = 'biotern_db';
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+$host = defined('DB_HOST') ? DB_HOST : 'localhost';
+$db_user = defined('DB_USER') ? DB_USER : 'root';
+$db_password = defined('DB_PASS') ? DB_PASS : ''; 
+$db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
 
 $conn = null;
 $view_user_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
@@ -78,7 +82,7 @@ $dau_moa_data = [
 $active_tab = 'profileTab';
 $internship_data = null;
 $attendance_summary = ['last_attendance_date' => '', 'pending_count' => 0, 'total_hours' => 0.0];
-$document_completion = ['application' => false, 'endorsement' => false, 'moa' => false, 'dau_moa' => false];
+$document_completion = ['application' => 'missing', 'endorsement' => 'missing', 'moa' => 'missing', 'dau_moa' => 'missing'];
 $document_last_saved = ['application' => '', 'endorsement' => '', 'moa' => '', 'dau_moa' => ''];
 $pipeline_stage = 'Applied';
 $risk_flags = [];
@@ -132,6 +136,64 @@ function split_date_parts($value)
     ];
 }
 
+function has_nonempty_fields(array $row, array $fields): bool
+{
+    foreach ($fields as $field) {
+        $value = trim((string)($row[$field] ?? ''));
+        if ($value !== '' && $value !== '0' && strtolower($value) !== 'null') {
+            return true;
+        }
+    }
+    return false;
+}
+
+function document_completion_status(array $row, array $required_fields): string
+{
+    $filled = 0;
+    $total = count($required_fields);
+    if ($total <= 0) {
+        return 'missing';
+    }
+    foreach ($required_fields as $field) {
+        $value = trim((string)($row[$field] ?? ''));
+        if ($value !== '' && $value !== '0' && strtolower($value) !== 'null') {
+            $filled++;
+        }
+    }
+    if ($filled === 0) {
+        return 'missing';
+    }
+    if ($filled === $total) {
+        return 'complete';
+    }
+    return 'incomplete';
+}
+
+function is_doc_complete(string $status): bool
+{
+    return strtolower(trim($status)) === 'complete';
+}
+
+function document_status_badge_class(string $status): string
+{
+    $s = strtolower(trim($status));
+    if ($s === 'complete') {
+        return 'bg-soft-success text-success';
+    }
+    if ($s === 'incomplete') {
+        return 'bg-soft-warning text-warning';
+    }
+    return 'bg-soft-danger text-danger';
+}
+
+function document_status_label(string $status): string
+{
+    $s = strtolower(trim($status));
+    if ($s === 'complete') return 'Complete';
+    if ($s === 'incomplete') return 'Incomplete';
+    return 'Missing';
+}
+
 function app_base_path()
 {
     $dir = str_replace('\\', '/', dirname($_SERVER['PHP_SELF'] ?? ''));
@@ -162,14 +224,6 @@ function ojt_table_exists(mysqli $conn, string $table): bool
 {
     $safe = $conn->real_escape_string($table);
     $res = $conn->query("SHOW TABLES LIKE '{$safe}'");
-    return ($res && $res->num_rows > 0);
-}
-
-function ojt_column_exists(mysqli $conn, string $table, string $column): bool
-{
-    $safeTable = $conn->real_escape_string($table);
-    $safeColumn = $conn->real_escape_string($column);
-    $res = $conn->query("SHOW COLUMNS FROM {$safeTable} LIKE '{$safeColumn}'");
     return ($res && $res->num_rows > 0);
 }
 
@@ -683,14 +737,7 @@ try {
         $candidate_sql = implode(' OR ', array_unique($candidate_wheres));
         // Priority order is critical:
         // 1) exact students.id match, 2) user_id match, 3) student_id string match.
-        $course_internal_expr = ojt_column_exists($conn, 'courses', 'internal_hours') ? 'COALESCE(c.internal_hours, 0)' : '0';
-        $course_external_expr = ojt_column_exists($conn, 'courses', 'external_hours') ? 'COALESCE(c.external_hours, 0)' : '0';
-        $course_total_expr = ojt_column_exists($conn, 'courses', 'total_ojt_hours') ? 'COALESCE(c.total_ojt_hours, 0)' : '0';
-
         $student_sql = "SELECT s.*, c.name AS course_name,
-            {$course_internal_expr} AS course_internal_hours,
-            {$course_external_expr} AS course_external_hours,
-            {$course_total_expr} AS course_total_ojt_hours,
                 COALESCE(NULLIF(u_student.profile_picture, ''), NULLIF(s.profile_picture, '')) AS user_profile_picture
             FROM students s
             LEFT JOIN users u_student ON s.user_id = u_student.id
@@ -724,7 +771,7 @@ try {
 
         $row = null;
         foreach ($doc_lookup_ids as $lookup_id) {
-            $stmt_app = $conn->prepare("SELECT * FROM application_letter WHERE user_id = ? LIMIT 1");
+            $stmt_app = $conn->prepare("SELECT * FROM application_letter WHERE user_id = ? ORDER BY id DESC LIMIT 1");
             $stmt_app->bind_param('i', $lookup_id);
             $stmt_app->execute();
             $res_app = $stmt_app->get_result();
@@ -737,13 +784,13 @@ try {
             $app_letter['position'] = $row['position'] ?? '';
             $app_letter['company_name'] = isset($row['company_name']) ? (string)$row['company_name'] : '';
             $app_letter['company_address'] = $row['company_address'] ?? '';
-            $document_completion['application'] = true;
+            $document_completion['application'] = document_completion_status($row, ['application_person', 'position', 'company_name', 'company_address']);
             $document_last_saved['application'] = (string)($row['updated_at'] ?? ($row['date'] ?? ''));
         }
 
         $moa_row = null;
         foreach ($doc_lookup_ids as $lookup_id) {
-            $stmt_moa = $conn->prepare("SELECT * FROM moa WHERE user_id = ? LIMIT 1");
+            $stmt_moa = $conn->prepare("SELECT * FROM moa WHERE user_id = ? ORDER BY id DESC LIMIT 1");
             $stmt_moa->bind_param('i', $lookup_id);
             $stmt_moa->execute();
             $res_moa = $stmt_moa->get_result();
@@ -757,13 +804,13 @@ try {
             foreach ($moa_data as $k => $v) {
                 $moa_data[$k] = isset($moa_row[$k]) ? (string)$moa_row[$k] : '';
             }
-            $document_completion['moa'] = true;
+            $document_completion['moa'] = document_completion_status($moa_row, ['company_name', 'company_address', 'partner_representative', 'position', 'total_hours']);
             $document_last_saved['moa'] = (string)($moa_row['updated_at'] ?? ($moa_row['moa_date'] ?? ''));
         }
 
         $endorsement_row = null;
         foreach ($doc_lookup_ids as $lookup_id) {
-            $stmt_endorse = $conn->prepare("SELECT * FROM endorsement_letter WHERE user_id = ? LIMIT 1");
+            $stmt_endorse = $conn->prepare("SELECT * FROM endorsement_letter WHERE user_id = ? ORDER BY id DESC LIMIT 1");
             $stmt_endorse->bind_param('i', $lookup_id);
             $stmt_endorse->execute();
             $res_endorse = $stmt_endorse->get_result();
@@ -774,13 +821,13 @@ try {
             foreach ($endorsement_data as $k => $v) {
                 $endorsement_data[$k] = isset($endorsement_row[$k]) ? (string)$endorsement_row[$k] : '';
             }
-            $document_completion['endorsement'] = true;
-            $document_last_saved['endorsement'] = (string)($endorsement_row['updated_at'] ?? '');
+            $document_completion['endorsement'] = document_completion_status($endorsement_row, ['recipient_name', 'recipient_position', 'company_name', 'company_address', 'students_to_endorse']);
+            $document_last_saved['endorsement'] = (string)($endorsement_row['updated_at'] ?? ($endorsement_row['created_at'] ?? ''));
         }
 
         $dau_row = null;
         foreach ($doc_lookup_ids as $lookup_id) {
-            $stmt_dau = $conn->prepare("SELECT * FROM dau_moa WHERE user_id = ? LIMIT 1");
+            $stmt_dau = $conn->prepare("SELECT * FROM dau_moa WHERE user_id = ? ORDER BY id DESC LIMIT 1");
             $stmt_dau->bind_param('i', $lookup_id);
             $stmt_dau->execute();
             $res_dau = $stmt_dau->get_result();
@@ -791,8 +838,8 @@ try {
             foreach ($dau_moa_data as $k => $v) {
                 $dau_moa_data[$k] = isset($dau_row[$k]) ? (string)$dau_row[$k] : '';
             }
-            $document_completion['dau_moa'] = true;
-            $document_last_saved['dau_moa'] = (string)($dau_row['updated_at'] ?? '');
+            $document_completion['dau_moa'] = document_completion_status($dau_row, ['company_name', 'company_address', 'partner_representative', 'position', 'total_hours']);
+            $document_last_saved['dau_moa'] = (string)($dau_row['updated_at'] ?? ($dau_row['created_at'] ?? ''));
         } else {
             $dau_moa_data['company_name'] = $moa_data['company_name'];
             $dau_moa_data['company_address'] = $moa_data['company_address'];
@@ -840,37 +887,7 @@ try {
         }
 
         $intern_status = strtolower((string)($internship_data['status'] ?? ''));
-        $assignment_track = strtolower(trim((string)($student['assignment_track'] ?? '')));
-        if ($assignment_track === '') {
-            $assignment_track = strtolower(trim((string)($internship_data['type'] ?? 'internal')));
-        }
-        $required_hours = 0.0;
-        if ($assignment_track === 'external') {
-            $required_hours = (float)($student['course_external_hours'] ?? 0);
-            if ($required_hours <= 0) {
-                $required_hours = (float)($student['external_total_hours'] ?? 0);
-            }
-            if ($required_hours <= 0) {
-                $required_hours = (float)($internship_data['required_hours'] ?? 0);
-            }
-            if ($required_hours <= 0) {
-                $required_hours = 250.0;
-            }
-        } else {
-            $required_hours = (float)($student['course_internal_hours'] ?? 0);
-            if ($required_hours <= 0) {
-                $required_hours = (float)($student['internal_total_hours'] ?? 0);
-            }
-            if ($required_hours <= 0) {
-                $required_hours = (float)($internship_data['required_hours'] ?? 0);
-            }
-            if ($required_hours <= 0) {
-                $required_hours = (float)($student['course_total_ojt_hours'] ?? 0);
-            }
-            if ($required_hours <= 0) {
-                $required_hours = 600.0;
-            }
-        }
+        $required_hours = (float)($internship_data['required_hours'] ?? 0);
         $rendered_hours = (float)($internship_data['rendered_hours'] ?? 0);
         if ($rendered_hours <= 0) {
             $rendered_hours = (float)$attendance_summary['total_hours'];
@@ -880,9 +897,9 @@ try {
             $pipeline_stage = 'Completed';
         } elseif ($intern_status === 'ongoing') {
             $pipeline_stage = 'Ongoing';
-        } elseif (!empty($document_completion['moa'])) {
+        } elseif (is_doc_complete((string)$document_completion['moa'])) {
             $pipeline_stage = 'Accepted';
-        } elseif (!empty($document_completion['endorsement'])) {
+        } elseif (is_doc_complete((string)$document_completion['endorsement'])) {
             $pipeline_stage = 'Endorsed';
         } else {
             $pipeline_stage = 'Applied';
@@ -891,8 +908,8 @@ try {
             $pipeline_stage = 'Dropped';
         }
 
-        if (!$document_completion['moa']) $risk_flags[] = 'Missing MOA';
-        if (!$document_completion['endorsement']) $risk_flags[] = 'Missing Endorsement';
+        if (!is_doc_complete((string)$document_completion['moa'])) $risk_flags[] = 'Missing MOA';
+        if (!is_doc_complete((string)$document_completion['endorsement'])) $risk_flags[] = 'Missing Endorsement';
         if ($attendance_summary['pending_count'] > 0) $risk_flags[] = 'Pending attendance approvals';
         if ($intern_status === 'ongoing' && !empty($attendance_summary['last_attendance_date'])) {
             $days_since = (int)floor((time() - strtotime($attendance_summary['last_attendance_date'])) / 86400);
@@ -951,6 +968,12 @@ try {
             }
             $stmt_wf->close();
             foreach (['application', 'endorsement', 'moa', 'dau_moa'] as $wf_key) {
+                if (($workflow[$wf_key]['status'] ?? '') === 'approved') {
+                    $document_completion[$wf_key] = 'complete';
+                    if (empty($document_last_saved[$wf_key])) {
+                        $document_last_saved[$wf_key] = (string)($workflow[$wf_key]['approved_at'] ?? '');
+                    }
+                }
                 if (($workflow[$wf_key]['status'] ?? '') === 'rejected') {
                     $risk_flags[] = strtoupper($wf_key) . ' workflow rejected';
                 }
@@ -1084,21 +1107,507 @@ $dau_print_url = $app_base . 'pages/generate_dau_moa.php?' . http_build_query([
     'book_no' => (string)($dau_moa_data['book_no'] ?? ''),
     'series_no' => (string)($dau_moa_data['series_no'] ?? ''),
 ]);
-$page_title = 'BioTern || OJT View';
-$page_styles = [
-    'assets/css/management-ojt-view-page.css',
-];
-$page_scripts = [
-    'assets/js/theme-customizer-init.min.js',
-    'assets/js/page-init-noop.min.js',
-    'assets/js/ojt-view-runtime.js',
-];
+$asset_base = rtrim(app_base_path(), '/') . '/assets';
+$default_user_avatar = $asset_base . '/images/avatar/' . ((((int)($_SESSION['user_id'] ?? 0)) % 5) + 1) . '.png';
+$session_profile_picture = trim((string)($_SESSION['profile_picture'] ?? ''));
+if ($session_profile_picture !== '') {
+    $session_profile_picture = str_replace('\\', '/', $session_profile_picture);
+    if (!preg_match('#^(https?:)?//#i', $session_profile_picture) && strpos($session_profile_picture, '/') !== 0) {
+        $session_profile_picture = rtrim(app_base_path(), '/') . '/' . ltrim($session_profile_picture, '/');
+    }
+}
+$session_profile_picture_url = $session_profile_picture !== '' ? $session_profile_picture : $default_user_avatar;
+?><!DOCTYPE html>
+<html lang="zxx">
 
-include 'includes/header.php';
-?>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="keyword" content="">
+    <meta name="author" content="ACT 2A Group 5">
+    <!--! The above 6 meta tags *must* come first in the head; any other head content must come *after* these tags !-->
+    <!--! BEGIN: Apps Title-->
+    <title>BioTern || OJT View</title>
+    <!--! END:  Apps Title-->
+    <!--! BEGIN: Favicon-->
+    <!--! BEGIN: Favicon-->
+    <link rel="shortcut icon" type="image/x-icon" href="<?php echo htmlspecialchars($asset_base); ?>/images/favicon.ico">
+    <script src="<?php echo htmlspecialchars($asset_base); ?>/js/theme-preload-init.min.js"></script>
+    <!--! END: Favicon-->
+    <!--! BEGIN: Bootstrap CSS-->
+    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_base); ?>/css/bootstrap.min.css">
+    <!--! END: Bootstrap CSS-->
+    <!--! BEGIN: Vendors CSS-->
+    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_base); ?>/vendors/css/vendors.min.css">
+    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_base); ?>/vendors/css/select2.min.css">
+    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_base); ?>/vendors/css/select2-theme.min.css">
+    <!--! END: Vendors CSS-->
+    <!--! BEGIN: Custom CSS-->
+    <script>try{var s=localStorage.getItem('app-skin')||localStorage.getItem('app_skin')||localStorage.getItem('theme'); if(s&&s.indexOf('dark')!==-1)document.documentElement.classList.add('app-skin-dark');}catch(e){};</script>
+    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_base); ?>/css/theme.min.css">
+    <style>
+        body { background: #f5f7fb; }
+        .card { border: 1px solid #e8edf6; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04); }
+        .page-header .m-b-10 { margin-bottom: 4px !important; }
+        .nav-tabs-custom-style .nav-link { font-weight: 600; }
+        .list-group-item { border-color: #edf1f7; }
+        .form-label { font-weight: 600; font-size: 12px; letter-spacing: 0.2px; }
+        .app-skin-dark body { background: #0b1220; }
+        .app-skin-dark .card { border-color: #253252; background: #111a2e; box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35); }
+        .app-skin-dark .list-group-item { border-color: #253252; background: #111a2e; color: #d8e2f4; }
+        .app-skin-dark .text-muted { color: #9ab0d0 !important; }
+        .app-skin-dark .nav-tabs-custom-style .nav-link { color: #c4d3ea; }
+        .app-skin-dark .nav-tabs-custom-style .nav-link.active { color: #fff; background: #22314b; border-color: #314c72; }
+        .app-skin-dark .border { border-color: #253252 !important; }
+        .app-skin-dark .form-control,
+        .app-skin-dark .form-select { background-color: #0f172a; border-color: #2a3a57; color: #d8e2f4; }
+        .app-skin-dark .form-select option { background-color: #0f172a; color: #d8e2f4; }
+        .app-skin-dark .dropdown-menu {
+            background: #111a2e;
+            border-color: #2a3a57;
+            box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+        }
+        .app-skin-dark .dropdown-item {
+            color: #d8e2f4;
+        }
+        .app-skin-dark .dropdown-item:hover,
+        .app-skin-dark .dropdown-item:focus {
+            color: #ffffff;
+            background: #1c2944;
+        }
+        .app-skin-dark .dropdown-divider {
+            border-top-color: #2a3a57;
+        }
+        .app-skin-dark .select2-container--default .select2-selection--single,
+        .app-skin-dark .select2-container--default .select2-selection--multiple {
+            background: #0f172a;
+            border-color: #2a3a57;
+            color: #d8e2f4;
+        }
+        .app-skin-dark .select2-container--default .select2-selection--single .select2-selection__rendered,
+        .app-skin-dark .select2-container--default .select2-selection--multiple .select2-selection__choice {
+            color: #d8e2f4;
+        }
+        .app-skin-dark .select2-container--default .select2-selection--single .select2-selection__placeholder {
+            color: #9ab0d0;
+        }
+        .app-skin-dark .select2-dropdown {
+            background: #111a2e;
+            border-color: #2a3a57;
+        }
+        .app-skin-dark .select2-results__option {
+            color: #d8e2f4;
+        }
+        .app-skin-dark .select2-container--default .select2-results__option--highlighted[aria-selected] {
+            background: #1c2944;
+            color: #ffffff;
+        }
+        .app-skin-dark .select2-search--dropdown .select2-search__field {
+            background: #0f172a;
+            border-color: #2a3a57;
+            color: #d8e2f4;
+        }
+        .app-skin-dark .table { color: #d8e2f4; }
+        .app-skin-dark .table-sm > :not(caption) > * > * { border-color: #253252; }
+        .document-card {
+            border-radius: 14px;
+        }
+        .document-form .form-control,
+        .document-form .form-select {
+            min-height: 42px;
+        }
+        .document-form textarea.form-control {
+            min-height: 88px;
+        }
+        .document-form-actions .btn {
+            min-height: 40px;
+        }
+        .print-doc-option {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            width: 100%;
+            border: 1px solid #2a3a57;
+            border-radius: 10px;
+            padding: 10px 12px;
+            background: #0f1a33;
+            cursor: pointer;
+            transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+            color: #dbe5f1;
+            min-height: 44px;
+        }
+        .print-doc-option:hover {
+            border-color: #3c5ea6;
+            box-shadow: 0 0 0 2px rgba(76, 124, 245, 0.12);
+            transform: translateY(-1px);
+        }
+        .print-doc-option .print-doc-check {
+            display: none;
+        }
+        .print-doc-option .print-doc-label {
+            font-weight: 600;
+            font-size: 13px;
+            line-height: 1.15;
+            color: inherit;
+        }
+        .print-doc-option .print-doc-state {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            color: #8ea6cc;
+        }
+        .print-doc-option.is-checked {
+            border-color: #4c7cf5;
+            box-shadow: 0 0 0 2px rgba(76, 124, 245, 0.2);
+            background: #132244;
+        }
+        .print-doc-option.is-checked .print-doc-state {
+            color: #b9ccff;
+        }
+        .print-doc-actions .btn {
+            min-height: 40px;
+            border-radius: 8px;
+        }
+        .print-doc-actions .print-doc-hint {
+            font-size: 12px;
+        }
+
+        @media (max-width: 991.98px) {
+            .page-header { display: block; }
+            .page-header-left { margin-bottom: 10px; }
+            .page-header-right-items-wrapper {
+                display: grid !important;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 8px !important;
+                width: 100%;
+            }
+            .page-header-right-items-wrapper .btn { width: 100%; }
+            .nav-tabs-custom-style { flex-wrap: nowrap; overflow-x: auto; white-space: nowrap; padding-bottom: 6px; scrollbar-width: thin; }
+            .nav-tabs-custom-style .nav-item { flex: 0 0 auto; }
+            .nav-tabs-custom-style .nav-link { border-radius: 999px; margin-right: 6px; }
+            .lead-info .row,
+            .general-info .row {
+                margin-bottom: 10px !important;
+                border: 1px solid #e8edf6;
+                border-radius: 12px;
+                padding: 10px;
+                background: #fff;
+            }
+            .app-skin-dark .lead-info .row,
+            .app-skin-dark .general-info .row {
+                border-color: #253252;
+                background: #111a2e;
+            }
+            .lead-info .row .col-lg-2,
+            .general-info .row .col-lg-2 {
+                font-size: 11px;
+                text-transform: uppercase;
+                letter-spacing: .05em;
+                color: #6c7a92;
+                margin-bottom: 4px;
+            }
+            .app-skin-dark .lead-info .row .col-lg-2,
+            .app-skin-dark .general-info .row .col-lg-2 { color: #99abc8; }
+            .overview-actions,
+            .tab-pane .mt-3.d-flex.gap-2,
+            .tab-pane .d-flex.gap-2.align-items-center {
+                flex-wrap: wrap;
+            }
+            .overview-actions .btn,
+            .tab-pane .mt-3.d-flex.gap-2 .btn,
+            .tab-pane .d-flex.gap-2.align-items-center .btn {
+                width: 100%;
+            }
+            .document-pane .document-card {
+                padding: 14px;
+            }
+            .document-pane .row.g-3 {
+                --bs-gutter-x: 0.65rem;
+                --bs-gutter-y: 0.65rem;
+            }
+            .document-pane .document-form-actions {
+                display: grid !important;
+                grid-template-columns: 1fr 1fr;
+                gap: 8px !important;
+            }
+            .document-pane .document-form-actions .btn {
+                width: 100%;
+            }
+        }
+        @media (max-width: 767.98px) {
+            .nxl-content { padding-left: 8px; padding-right: 8px; }
+            .page-header-right-items-wrapper { grid-template-columns: 1fr !important; }
+            .card.card-body { padding: 12px; border-radius: 14px; }
+            .tab-pane .table-responsive table thead { display: none; }
+            .tab-pane .table-responsive table,
+            .tab-pane .table-responsive tbody,
+            .tab-pane .table-responsive tr,
+            .tab-pane .table-responsive td {
+                display: block;
+                width: 100%;
+            }
+            .tab-pane .table-responsive tr {
+                border: 1px solid #e8edf6;
+                border-radius: 12px;
+                padding: 8px;
+                margin-bottom: 8px;
+                background: #fff;
+            }
+            .app-skin-dark .tab-pane .table-responsive tr {
+                border-color: #253252;
+                background: #111a2e;
+            }
+            .tab-pane .table-responsive td {
+                border: 0;
+                padding: 0 0 6px 0;
+            }
+            .tab-pane .table-responsive td::before {
+                content: attr(data-label);
+                display: block;
+                font-size: 11px;
+                text-transform: uppercase;
+                letter-spacing: .05em;
+                color: #6c7a92;
+                margin-bottom: 2px;
+                font-weight: 700;
+            }
+            .app-skin-dark .tab-pane .table-responsive td::before { color: #99abc8; }
+            .document-pane .mb-4,
+            .document-pane .mb-3 {
+                margin-bottom: 10px !important;
+            }
+            .document-pane .document-card {
+                padding: 12px;
+                border-radius: 14px;
+            }
+            .document-pane .document-form .row.g-3 > [class*="col-"] {
+                width: 100%;
+            }
+            .document-pane .document-form .form-label {
+                font-size: 11px;
+                margin-bottom: 4px;
+            }
+            .document-pane .document-form .form-control,
+            .document-pane .document-form .form-select {
+                font-size: 13px;
+            }
+            .document-pane .document-form-actions {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+    <!--! END: Custom CSS-->
+    <!--! HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries !-->
+    <!--! WARNING: Respond.js doesn"t work if you view the page via file: !-->
+    <!--[if lt IE 9]>
+			<script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+			<script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+		<![endif]-->
+</head>
+
+<body>
+    <?php include_once dirname(__DIR__) . '/includes/navigation.php'; ?>
+    <!--! ================================================================ !-->
+    <!--! [Start] Header !-->
+    <!--! ================================================================ !-->
+    <header class="nxl-header">
+        <div class="header-wrapper">
+            <!--! [Start] Header Left !-->
+            <div class="header-left d-flex align-items-center gap-4">
+                <!--! [Start] nxl-head-mobile-toggler !-->
+                <a href="javascript:void(0);" class="nxl-head-mobile-toggler" id="mobile-collapse">
+                    <div class="hamburger hamburger--arrowturn">
+                        <div class="hamburger-box">
+                            <div class="hamburger-inner"></div>
+                        </div>
+                    </div>
+                </a>
+                <!--! [Start] nxl-head-mobile-toggler !-->
+                <!--! [Start] nxl-navigation-toggle !-->
+                <div class="nxl-navigation-toggle">
+                    <a href="javascript:void(0);" id="menu-mini-button">
+                        <i class="feather-align-left"></i>
+                    </a>
+                    <a href="javascript:void(0);" id="menu-expend-button" style="display: none">
+                        <i class="feather-arrow-right"></i>
+                    </a>
+                </div>
+                <!--! [End] nxl-navigation-toggle !-->
+            </div>
+            <!--! [End] Header Left !-->
+            <!--! [Start] Header Right !-->
+            <div class="header-right ms-auto">
+                <div class="d-flex align-items-center">
+                    <div class="dropdown nxl-h-item nxl-header-search">
+                        <a href="javascript:void(0);" class="nxl-head-link me-0" data-bs-toggle="dropdown" data-bs-auto-close="outside">
+                            <i class="feather-search"></i>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-search-dropdown">
+                            <div class="input-group search-form">
+                                <span class="input-group-text">
+                                    <i class="feather-search fs-6 text-muted"></i>
+                                </span>
+                                <input type="text" class="form-control search-input-field" placeholder="Search....">
+                                <span class="input-group-text">
+                                    <button type="button" class="btn-close"></button>
+                                </span>
+                            </div>
+                            <div class="dropdown-divider mt-0"></div>
+                            <!--! search coding for database !-->
+                        </div>
+                    </div>
+                    <div class="nxl-h-item d-none d-sm-flex">
+                        <div class="full-screen-switcher">
+                            <a href="javascript:void(0);" class="nxl-head-link me-0" onclick="$('body').fullScreenHelper('toggle');">
+                                <i class="feather-maximize maximize"></i>
+                                <i class="feather-minimize minimize"></i>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="nxl-h-item dark-light-theme">
+                        <a href="javascript:void(0);" class="nxl-head-link me-0 dark-button">
+                            <i class="feather-moon"></i>
+                        </a>
+                        <a href="javascript:void(0);" class="nxl-head-link me-0 light-button" style="display: none">
+                            <i class="feather-sun"></i>
+                        </a>
+                    </div>
+                    <div class="dropdown nxl-h-item">
+                        <a href="javascript:void(0);" class="nxl-head-link me-0" data-bs-toggle="dropdown" role="button" data-bs-auto-close="outside">
+                            <i class="feather-clock"></i>
+                            <span class="badge bg-success nxl-h-badge">2</span>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-timesheets-menu">
+                            <div class="d-flex justify-content-between align-items-center timesheets-head">
+                                <h6 class="fw-bold text-dark mb-0">Timesheets</h6>
+                                <a href="javascript:void(0);" class="fs-11 text-success text-end ms-auto" data-bs-toggle="tooltip" title="Upcomming Timers">
+                                    <i class="feather-clock"></i>
+                                    <span>3 Upcomming</span>
+                                </a>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center flex-column timesheets-body">
+                                <i class="feather-clock fs-1 mb-4"></i>
+                                <p class="text-muted">No started timers found yes!</p>
+                                <a href="javascript:void(0);" class="btn btn-sm btn-primary">Started Timer</a>
+                            </div>
+                            <div class="text-center timesheets-footer">
+                                <a href="javascript:void(0);" class="fs-13 fw-semibold text-dark">Alls Timesheets</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="dropdown nxl-h-item">
+                        <a class="nxl-head-link me-3" data-bs-toggle="dropdown" href="#" role="button" data-bs-auto-close="outside">
+                            <i class="feather-bell"></i>
+                            <span class="badge bg-danger nxl-h-badge">3</span>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-notifications-menu">
+                            <div class="d-flex justify-content-between align-items-center notifications-head">
+                                <h6 class="fw-bold text-dark mb-0">Notifications</h6>
+                                <a href="javascript:void(0);" class="fs-11 text-success text-end ms-auto" data-bs-toggle="tooltip" title="Make as Read">
+                                    <i class="feather-check"></i>
+                                    <span>Make as Read</span>
+                                </a>
+                            </div>
+                            <div class="notifications-item">
+                                        <img src="<?php echo htmlspecialchars($asset_base); ?>/images/avatar/2.png" alt="" class="rounded me-3 border">
+                                <div class="notifications-desc">
+                                    <a href="javascript:void(0);" class="font-body text-truncate-2-line"> <span class="fw-semibold text-dark">Malanie Hanvey</span> We should talk about that at lunch!</a>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div class="notifications-date text-muted border-bottom border-bottom-dashed">2 minutes ago</div>
+                                        <div class="d-flex align-items-center float-end gap-2">
+                                            <a href="javascript:void(0);" class="d-block wd-8 ht-8 rounded-circle bg-gray-300" data-bs-toggle="tooltip" title="Make as Read"></a>
+                                            <a href="javascript:void(0);" class="text-danger" data-bs-toggle="tooltip" title="Remove">
+                                                <i class="feather-x fs-12"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="dropdown nxl-h-item">
+                        <a href="javascript:void(0);" data-bs-toggle="dropdown" role="button" data-bs-auto-close="outside">
+                                    <img src="<?php echo htmlspecialchars($session_profile_picture_url, ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar me-0" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-user-dropdown">
+                            <div class="dropdown-header">
+                                <div class="d-flex align-items-center">
+                                    <img src="<?php echo htmlspecialchars($session_profile_picture_url, ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
+                                    <div>
+                                        <h6 class="text-dark mb-0"><?php echo htmlspecialchars((string)($_SESSION['name'] ?? $_SESSION['username'] ?? 'BioTern User'), ENT_QUOTES, 'UTF-8'); ?></h6>
+                                        <span class="fs-12 fw-medium text-muted"><?php echo htmlspecialchars((string)($_SESSION['email'] ?? 'admin@biotern.local'), ENT_QUOTES, 'UTF-8'); ?></span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="dropdown">
+                                <a href="javascript:void(0);" class="dropdown-item" data-bs-toggle="dropdown">
+                                    <span class="hstack">
+                                        <i class="wd-10 ht-10 border border-2 border-gray-1 bg-success rounded-circle me-2"></i>
+                                        <span>Active</span>
+                                    </span>
+                                    <i class="feather-chevron-right ms-auto me-0"></i>
+                                </a>
+                                <div class="dropdown-menu">
+                                    <a href="javascript:void(0);" class="dropdown-item">
+                                        <span class="hstack">
+                                            <i class="wd-10 ht-10 border border-2 border-gray-1 bg-warning rounded-circle me-2"></i>
+                                            <span>Always</span>
+                                        </span>
+                                    </a>
+                                    <a href="javascript:void(0);" class="dropdown-item">
+                                        <span class="hstack">
+                                            <i class="wd-10 ht-10 border border-2 border-gray-1 bg-success rounded-circle me-2"></i>
+                                            <span>Active</span>
+                                        </span>
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="dropdown-divider"></div>
+
+                            <div class="dropdown-divider"></div>
+                            <a href="javascript:void(0);" class="dropdown-item">
+                                <i class="feather-user"></i>
+                                <span>Profile Details</span>
+                            </a>
+                            <a href="javascript:void(0);" class="dropdown-item">
+                                <i class="feather-activity"></i>
+                                <span>Activity Feed</span>
+                            </a>
+                            <a href="javascript:void(0);" class="dropdown-item">
+                                <i class="feather-bell"></i>
+                                <span>Notifications</span>
+                            </a>
+                            <a href="javascript:void(0);" class="dropdown-item">
+                                <i class="feather-settings"></i>
+                                <span>Account Settings</span>
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <a href="./auth-login-cover.php?logout=1" class="dropdown-item">
+                                <i class="feather-log-out"></i>
+                                <span>Logout</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!--! [End] Header Right !-->
+        </div>
+    </header>
+    <!--! ================================================================ !-->
+    <!--! [End] Header !-->
+    <!--! ================================================================ !-->
+    <!--! ================================================================ !-->
+    <!--! [Start] Main Content !-->
+    <!--! ================================================================ !-->
+    <main class="nxl-container">
+        <div class="nxl-content">
             <!-- [ page-header ] start -->
-            <div class="page-header app-ojt-view-page-header">
-                <div class="page-header-left app-ojt-view-page-header-left d-flex align-items-center">
+            <div class="page-header">
+                <div class="page-header-left d-flex align-items-center">
                     <div class="page-header-title">
                         <h5 class="m-b-10">OJT</h5>
                     </div>
@@ -1112,7 +1621,7 @@ include 'includes/header.php';
             <div class="bg-white py-3 border-bottom rounded-0 p-md-0 mb-0">
                 <div class="d-flex align-items-center justify-content-between">
                     <div class="nav-tabs-wrapper page-content-left-sidebar-wrapper">
-                        <ul class="nav nav-tabs nav-tabs-custom-style app-ojt-view-tabs" id="myTab" role="tablist">
+                        <ul class="nav nav-tabs nav-tabs-custom-style" id="myTab" role="tablist">
                             <li class="nav-item" role="presentation">
                                 <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#profileTab">Profile</button>
                             </li>
@@ -1133,24 +1642,25 @@ include 'includes/header.php';
                 </div>
             </div>
             <!-- [ Main Content ] start -->
-            <div class="main-content app-ojt-view-main-content">
+            <div class="main-content">
                 <div class="tab-content">
                     <div class="tab-pane fade show active" id="profileTab" role="tabpanel">
                         <?php if (!$student): ?>
-                            <div class="card app-ojt-view-surface-card card-body">
+                            <div class="card card-body">
                                 <div class="alert alert-warning mb-0">No student found for this ID.</div>
                             </div>
                         <?php else: ?>
                             <?php
+require_once dirname(__DIR__) . '/config/db.php';
                             $full_name = trim(($student['first_name'] ?? '') . ' ' . ($student['middle_name'] ?? '') . ' ' . ($student['last_name'] ?? ''));
                             $profile_picture = trim((string)($student['profile_picture'] ?? ''));
-                            $profile_img_src = 'assets/images/avatar/1.png';
+                                            $profile_img_src = $asset_base . '/images/avatar/1.png';
                             $profile_img_url = resolve_profile_image_url($profile_picture);
                             if ($profile_img_url !== null) {
                                 $profile_img_src = $profile_img_url;
                             }
                             ?>
-                            <div class="card app-ojt-view-surface-card card-body lead-info app-ojt-student-info-card app-ojt-view-lead-info">
+                            <div class="card card-body lead-info">
                                 <div class="mb-4 d-flex align-items-center justify-content-between">
                                     <h5 class="fw-bold mb-0">
                                         <span class="d-block mb-2">Student Information :</span>
@@ -1160,7 +1670,7 @@ include 'includes/header.php';
                                 </div>
                                 <div class="row mb-4">
                                     <div class="col-lg-2 fw-medium">Profile</div>
-                                    <div class="col-lg-10"><img src="<?php echo htmlspecialchars($profile_img_src); ?>" alt="profile" class="img-fluid rounded-circle app-avatar-56"></div>
+                                    <div class="col-lg-10"><img src="<?php echo htmlspecialchars($profile_img_src); ?>" alt="profile" class="img-fluid rounded-circle" style="width:56px;height:56px;object-fit:cover;"></div>
                                 </div>
                                 <div class="row mb-4">
                                     <div class="col-lg-2 fw-medium">Name</div>
@@ -1196,7 +1706,7 @@ include 'includes/header.php';
                                 </div>
                             </div>
                             <hr>
-                            <div class="card app-ojt-view-surface-card card-body general-info app-ojt-view-general-info">
+                            <div class="card card-body general-info">
                                 <div class="mb-4 d-flex align-items-center justify-content-between">
                                     <h5 class="fw-bold mb-0">
                                         <span class="d-block mb-2">General Information :</span>
@@ -1245,10 +1755,10 @@ include 'includes/header.php';
                                 </div>
                             </div>
                             <hr>
-                            <div class="card app-ojt-view-surface-card card-body mb-3">
+                            <div class="card card-body mb-3">
                                 <div class="d-flex justify-content-between align-items-center mb-3">
                                     <h5 class="fw-bold mb-0">Internship Monitoring Overview</h5>
-                                <div class="d-flex gap-2 overview-actions app-ojt-view-overview-actions">
+                                <div class="d-flex gap-2 overview-actions">
                                     <a href="ojt-edit.php?id=<?php echo intval($selected_student_id); ?>" class="btn btn-sm btn-outline-primary">Controlled Edit</a>
                                     <a href="students-dtr.php?id=<?php echo intval($selected_student_id); ?>" class="btn btn-sm btn-outline-success">Attendance History</a>
                                     <a href="ojt-workflow-board.php" class="btn btn-sm btn-outline-info">Workflow Board</a>
@@ -1264,7 +1774,7 @@ include 'includes/header.php';
                                     <div class="col-md-3">
                                         <div class="p-3 border rounded">
                                             <div class="text-muted fs-12">Required Hours</div>
-                                            <div class="fs-5 fw-semibold"><?php echo number_format((float)$required_hours, 1); ?></div>
+                                            <div class="fs-5 fw-semibold"><?php echo htmlspecialchars((string)($internship_data['required_hours'] ?? 0)); ?></div>
                                         </div>
                                     </div>
                                     <div class="col-md-3">
@@ -1285,10 +1795,10 @@ include 'includes/header.php';
                                         <div class="p-3 border rounded">
                                             <h6 class="fw-bold">Document Completion</h6>
                                             <div class="d-flex flex-wrap gap-2">
-                                                <span class="badge <?php echo $document_completion['application'] ? 'bg-soft-success text-success' : 'bg-soft-danger text-danger'; ?>">Application <?php echo $document_completion['application'] ? 'Ready' : 'Missing'; ?></span>
-                                                <span class="badge <?php echo $document_completion['endorsement'] ? 'bg-soft-success text-success' : 'bg-soft-danger text-danger'; ?>">Endorsement <?php echo $document_completion['endorsement'] ? 'Ready' : 'Missing'; ?></span>
-                                                <span class="badge <?php echo $document_completion['moa'] ? 'bg-soft-success text-success' : 'bg-soft-danger text-danger'; ?>">MOA <?php echo $document_completion['moa'] ? 'Ready' : 'Missing'; ?></span>
-                                                <span class="badge <?php echo $document_completion['dau_moa'] ? 'bg-soft-success text-success' : 'bg-soft-danger text-danger'; ?>">Dau MOA <?php echo $document_completion['dau_moa'] ? 'Ready' : 'Missing'; ?></span>
+                                                <span class="badge <?php echo document_status_badge_class((string)$document_completion['application']); ?>">Application <?php echo document_status_label((string)$document_completion['application']); ?></span>
+                                                <span class="badge <?php echo document_status_badge_class((string)$document_completion['endorsement']); ?>">Endorsement <?php echo document_status_label((string)$document_completion['endorsement']); ?></span>
+                                                <span class="badge <?php echo document_status_badge_class((string)$document_completion['moa']); ?>">MOA <?php echo document_status_label((string)$document_completion['moa']); ?></span>
+                                                <span class="badge <?php echo document_status_badge_class((string)$document_completion['dau_moa']); ?>">Dau MOA <?php echo document_status_label((string)$document_completion['dau_moa']); ?></span>
                                             </div>
                                             <div class="mt-2 fs-12 text-muted">
                                                 Last save: Application <?php echo htmlspecialchars(format_dt($document_last_saved['application'])); ?>,
@@ -1316,7 +1826,7 @@ include 'includes/header.php';
                                 <div class="row g-3 mt-1">
                                     <?php foreach (['application' => 'Application', 'endorsement' => 'Endorsement', 'moa' => 'MOA', 'dau_moa' => 'Dau MOA'] as $doc_key => $doc_label): ?>
                                         <div class="col-md-3">
-                                            <form method="post" action="ojt-view.php?id=<?php echo intval($selected_student_id); ?>" class="p-2 border rounded app-ojt-view-workflow-form">
+                                            <form method="post" action="ojt-view.php?id=<?php echo intval($selected_student_id); ?>" class="p-2 border rounded">
                                                 <input type="hidden" name="save_document_workflow" value="1">
                                                 <input type="hidden" name="user_id" value="<?php echo intval($selected_student_id); ?>">
                                                 <input type="hidden" name="doc_type" value="<?php echo htmlspecialchars($doc_key); ?>">
@@ -1334,7 +1844,7 @@ include 'includes/header.php';
                                         </div>
                                     <?php endforeach; ?>
                                 </div>
-                                <div class="card app-ojt-view-surface-card card-body mt-3">
+                                <div class="card card-body mt-3">
                                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
                                         <h6 class="fw-bold mb-0">Print Selected Documents</h6>
                                         <button type="button" class="btn btn-sm btn-outline-secondary" id="toggleAllPrintDocs">Select All</button>
@@ -1344,49 +1854,49 @@ include 'includes/header.php';
                                     <?php else: ?>
                                         <div class="row g-2 mb-3" id="printDocsSelection">
                                             <div class="col-md-3 col-sm-6">
-                                                <label class="print-doc-option app-ojt-view-print-doc-option mb-0"
+                                                <label class="print-doc-option mb-0"
                                                     data-doc-url="<?php echo htmlspecialchars($application_print_url); ?>"
                                                     data-doc-label="Application Letter">
-                                                    <span class="print-doc-label app-ojt-view-print-doc-label">Application Letter</span>
-                                                    <span class="print-doc-state app-ojt-view-print-doc-state">Select</span>
+                                                    <span class="print-doc-label">Application Letter</span>
+                                                    <span class="print-doc-state">Select</span>
                                                 </label>
                                             </div>
                                             <div class="col-md-3 col-sm-6">
-                                                <label class="print-doc-option app-ojt-view-print-doc-option mb-0"
+                                                <label class="print-doc-option mb-0"
                                                     data-doc-url="<?php echo htmlspecialchars($endorsement_print_url); ?>"
                                                     data-doc-label="Endorsement Letter">
-                                                    <span class="print-doc-label app-ojt-view-print-doc-label">Endorsement Letter</span>
-                                                    <span class="print-doc-state app-ojt-view-print-doc-state">Select</span>
+                                                    <span class="print-doc-label">Endorsement Letter</span>
+                                                    <span class="print-doc-state">Select</span>
                                                 </label>
                                             </div>
                                             <div class="col-md-3 col-sm-6">
-                                                <label class="print-doc-option app-ojt-view-print-doc-option mb-0"
+                                                <label class="print-doc-option mb-0"
                                                     data-doc-url="<?php echo htmlspecialchars($moa_print_url); ?>"
                                                     data-doc-label="MOA">
-                                                    <span class="print-doc-label app-ojt-view-print-doc-label">MOA</span>
-                                                    <span class="print-doc-state app-ojt-view-print-doc-state">Select</span>
+                                                    <span class="print-doc-label">MOA</span>
+                                                    <span class="print-doc-state">Select</span>
                                                 </label>
                                             </div>
                                             <div class="col-md-3 col-sm-6">
-                                                <label class="print-doc-option app-ojt-view-print-doc-option mb-0"
+                                                <label class="print-doc-option mb-0"
                                                     data-doc-url="<?php echo htmlspecialchars($dau_print_url); ?>"
                                                     data-doc-label="Dau MOA">
-                                                    <span class="print-doc-label app-ojt-view-print-doc-label">Dau MOA</span>
-                                                    <span class="print-doc-state app-ojt-view-print-doc-state">Select</span>
+                                                    <span class="print-doc-label">Dau MOA</span>
+                                                    <span class="print-doc-state">Select</span>
                                                 </label>
                                             </div>
                                         </div>
-                                        <div class="d-flex align-items-center gap-2 flex-wrap print-doc-actions app-ojt-view-print-doc-actions">
+                                        <div class="d-flex align-items-center gap-2 flex-wrap print-doc-actions">
                                             <button type="button" class="btn btn-success" id="printSelectedDocsBtn">Print Selected</button>
                                             <button type="button" class="btn btn-primary" id="printAllDocsBtn">Print All Documents</button>
-                                            <span class="text-muted print-doc-hint app-ojt-view-print-doc-hint" id="printDocsHint">Documents will print one by one from this page.</span>
+                                            <span class="text-muted print-doc-hint" id="printDocsHint">Documents will print one by one from this page.</span>
                                         </div>
                                     <?php endif; ?>
                                 </div>
                             </div>
                             <div class="row g-3">
                                 <div class="col-lg-6">
-                                    <div class="card app-ojt-view-surface-card card-body h-100">
+                                    <div class="card card-body h-100">
                                         <h6 class="fw-bold mb-3">Student Timeline</h6>
                                         <?php if (!$profile_timeline): ?>
                                             <div class="text-muted">No timeline events.</div>
@@ -1403,7 +1913,7 @@ include 'includes/header.php';
                                     </div>
                                 </div>
                                 <div class="col-lg-6">
-                                    <div class="card app-ojt-view-surface-card card-body h-100">
+                                    <div class="card card-body h-100">
                                         <h6 class="fw-bold mb-3">Edit Audit Trail</h6>
                                         <?php if (!$audit_trail): ?>
                                             <div class="text-muted">No OJT edit audit entries.</div>
@@ -1425,7 +1935,7 @@ include 'includes/header.php';
                             </div>
                             <div class="row g-3 mt-1">
                                 <div class="col-lg-6">
-                                    <div class="card app-ojt-view-surface-card card-body h-100">
+                                    <div class="card card-body h-100">
                                         <h6 class="fw-bold mb-3">Attendance Event Audit (Latest 10)</h6>
                                         <?php if (!$attendance_audit_rows): ?>
                                             <div class="text-muted">No attendance audit records.</div>
@@ -1456,7 +1966,7 @@ include 'includes/header.php';
                                     </div>
                                 </div>
                                 <div class="col-lg-6">
-                                    <div class="card app-ojt-view-surface-card card-body h-100">
+                                    <div class="card card-body h-100">
                                         <h6 class="fw-bold mb-3">Supervisor Review Notes</h6>
                                         <form method="post" action="ojt-view.php?id=<?php echo intval($selected_student_id); ?>" class="mb-3">
                                             <input type="hidden" name="save_review_note" value="1">
@@ -1484,7 +1994,7 @@ include 'includes/header.php';
                         <?php endif; ?>
                     </div>
                     <div class="tab-pane fade document-pane" id="applicationTab" role="tabpanel">
-                        <div class="card app-ojt-view-surface-card card-body document-card app-ojt-view-document-card">
+                        <div class="card card-body document-card">
                             <?php if ($flash_message !== ''): ?>
                                 <div class="alert alert-<?php echo htmlspecialchars($flash_type); ?> mb-3"><?php echo htmlspecialchars($flash_message); ?></div>
                             <?php endif; ?>
@@ -1500,41 +2010,42 @@ include 'includes/header.php';
                                 <div class="mb-3">
                                     <strong>Student:</strong>
                                     <?php
+require_once dirname(__DIR__) . '/config/db.php';
                                     $student_name = $student ? trim(($student['first_name'] ?? '') . ' ' . ($student['middle_name'] ?? '') . ' ' . ($student['last_name'] ?? '')) : 'Unknown';
                                     echo htmlspecialchars($student_name);
                                     ?>
                                     <span class="text-muted">(ID: <?php echo intval($view_user_id); ?>)</span>
                                 </div>
 
-                                <form method="post" action="ojt-view.php?id=<?php echo intval($selected_student_id); ?>" class="document-form app-ojt-view-document-form">
+                                <form method="post" action="ojt-view.php?id=<?php echo intval($selected_student_id); ?>" class="document-form">
                                     <input type="hidden" name="save_application_letter" value="1">
                                     <input type="hidden" name="user_id" value="<?php echo intval($selected_student_id); ?>">
                                     <input type="hidden" name="active_tab" value="applicationTab">
 
                                     <div class="row g-3">
                                         <div class="col-md-4">
-                                            <label class="form-label app-ojt-view-form-label">Date</label>
+                                            <label class="form-label">Date</label>
                                             <input type="date" name="date" class="form-control" value="<?php echo htmlspecialchars($app_letter['date']); ?>">
                                         </div>
                                         <div class="col-md-8">
-                                            <label class="form-label app-ojt-view-form-label">Mr./Ms. (as to appear)</label>
+                                            <label class="form-label">Mr./Ms. (as to appear)</label>
                                             <input type="text" name="application_person" class="form-control" value="<?php echo htmlspecialchars($app_letter['application_person']); ?>" placeholder="Recipient full name">
                                         </div>
                                         <div class="col-md-6">
-                                            <label class="form-label app-ojt-view-form-label">Position</label>
+                                            <label class="form-label">Position</label>
                                             <input type="text" name="position" class="form-control" value="<?php echo htmlspecialchars($app_letter['position']); ?>" placeholder="Position">
                                         </div>
                                         <div class="col-md-6">
-                                            <label class="form-label app-ojt-view-form-label">Company Name</label>
+                                            <label class="form-label">Company Name</label>
                                             <input type="text" name="company_name" class="form-control" value="<?php echo htmlspecialchars($app_letter['company_name']); ?>" placeholder="Company name">
                                         </div>
                                         <div class="col-12">
-                                            <label class="form-label app-ojt-view-form-label">Company Address</label>
+                                            <label class="form-label">Company Address</label>
                                             <textarea name="company_address" class="form-control" rows="2" placeholder="Company address"><?php echo htmlspecialchars($app_letter['company_address']); ?></textarea>
                                         </div>
                                     </div>
 
-                                    <div class="mt-3 d-flex gap-2 document-form-actions app-ojt-view-document-form-actions">
+                                    <div class="mt-3 d-flex gap-2 document-form-actions">
                                         <button type="submit" class="btn btn-primary">Save Application Data</button>
                                         <a href="document_application.php?id=<?php echo intval($selected_student_id); ?>" class="btn btn-success">Open Application Letter</a>
                                     </div>
@@ -1543,7 +2054,7 @@ include 'includes/header.php';
                         </div>
                     </div>
                     <div class="tab-pane fade document-pane" id="moaTab" role="tabpanel">
-                        <div class="card app-ojt-view-surface-card card-body document-card app-ojt-view-document-card">
+                        <div class="card card-body document-card">
                             <?php if ($flash_message !== ''): ?>
                                 <div class="alert alert-<?php echo htmlspecialchars($flash_type); ?> mb-3"><?php echo htmlspecialchars($flash_message); ?></div>
                             <?php endif; ?>
@@ -1554,34 +2065,34 @@ include 'includes/header.php';
                                     <h5 class="fw-bold mb-1">MOA Autofill</h5>
                                     <p class="text-muted mb-0">Saved data here will be used by <code>document_moa.php</code> when this student is selected.</p>
                                 </div>
-                                <form method="post" action="ojt-view.php?id=<?php echo intval($selected_student_id); ?>" class="document-form app-ojt-view-document-form">
+                                <form method="post" action="ojt-view.php?id=<?php echo intval($selected_student_id); ?>" class="document-form">
                                     <input type="hidden" name="save_moa" value="1">
                                     <input type="hidden" name="user_id" value="<?php echo intval($selected_student_id); ?>">
                                     <input type="hidden" name="active_tab" value="moaTab">
 
                                     <div class="row g-3">
                                         <div class="col-md-6">
-                                            <label class="form-label app-ojt-view-form-label">Company Name</label>
+                                            <label class="form-label">Company Name</label>
                                             <input type="text" name="company_name" class="form-control" value="<?php echo htmlspecialchars($moa_data['company_name']); ?>">
                                         </div>
                                         <div class="col-md-6">
-                                            <label class="form-label app-ojt-view-form-label">Company Address</label>
+                                            <label class="form-label">Company Address</label>
                                             <input type="text" name="company_address" class="form-control" value="<?php echo htmlspecialchars($moa_data['company_address']); ?>">
                                         </div>
                                         <div class="col-md-4">
-                                            <label class="form-label app-ojt-view-form-label">Partner Representative</label>
+                                            <label class="form-label">Partner Representative</label>
                                             <input type="text" name="partner_representative" class="form-control" value="<?php echo htmlspecialchars($moa_data['partner_representative']); ?>">
                                         </div>
                                         <div class="col-md-4">
-                                            <label class="form-label app-ojt-view-form-label">Partner Representative Position</label>
+                                            <label class="form-label">Partner Representative Position</label>
                                             <input type="text" name="position" class="form-control" value="<?php echo htmlspecialchars($moa_data['position']); ?>">
                                         </div>
                                         <div class="col-md-4">
-                                            <label class="form-label app-ojt-view-form-label">Coordinator / School Rep</label>
+                                            <label class="form-label">Coordinator / School Rep</label>
                                             <input type="text" name="coordinator" class="form-control" value="<?php echo htmlspecialchars($moa_data['coordinator']); ?>">
                                         </div>
                                         <div class="col-md-4">
-                                            <label class="form-label app-ojt-view-form-label">Coordinator / School Rep Position</label>
+                                            <label class="form-label">Coordinator / School Rep Position</label>
                                             <input type="text" name="school_position" class="form-control" value="<?php echo htmlspecialchars($moa_data['school_position']); ?>">
                                         </div>
 
@@ -1589,64 +2100,64 @@ include 'includes/header.php';
 
                                         
                                         <div class="col-md-4">
-                                            <label class="form-label app-ojt-view-form-label">MOA Date</label>
+                                            <label class="form-label">MOA Date</label>
                                             <input type="date" name="moa_date" class="form-control" value="<?php echo htmlspecialchars($moa_data['moa_date']); ?>">
                                         </div>
                                         <div class="col-md-4">
-                                            <label class="form-label app-ojt-view-form-label">MOA Address / Signing Place</label>
+                                            <label class="form-label">MOA Address / Signing Place</label>
                                             <input type="text" name="moa_address" class="form-control" value="<?php echo htmlspecialchars($moa_data['moa_address']); ?>">
                                         </div>
                                         <div class="col-md-4">
-                                            <label class="form-label app-ojt-view-form-label">School Administrator</label>
+                                            <label class="form-label">School Administrator</label>
                                             <input type="text" name="school_administrator" class="form-control" value="<?php echo htmlspecialchars($moa_data['school_administrator']); ?>">
                                         </div>
                                         <div class="col-md-4">
-                                            <label class="form-label app-ojt-view-form-label">School Administrator Position</label>
+                                            <label class="form-label">School Administrator Position</label>
                                             <input type="text" name="school_admin_position" class="form-control" value="<?php echo htmlspecialchars($moa_data['school_admin_position']); ?>">
                                         </div>
                                         <div class="col-md-4">
-                                            <label class="form-label app-ojt-view-form-label">Witness</label>
+                                            <label class="form-label">Witness</label>
                                             <input type="text" name="witness" class="form-control" value="<?php echo htmlspecialchars($moa_data['witness']); ?>">
                                         </div>
                                         <div class="col-md-4">
-                                            <label class="form-label app-ojt-view-form-label">Notary Address/City</label>
+                                            <label class="form-label">Notary Address/City</label>
                                             <input type="text" name="notary_address" class="form-control" value="<?php echo htmlspecialchars($moa_data['notary_address']); ?>">
                                         </div>
                                         <div class="col-md-4">
-                                            <label class="form-label app-ojt-view-form-label">Acknowledgement Date</label>
+                                            <label class="form-label">Acknowledgement Date</label>
                                             <input type="date" name="acknowledgement_date" class="form-control" value="<?php echo htmlspecialchars($moa_data['acknowledgement_date']); ?>">
                                         </div>
                                         <div class="col-md-6">
-                                            <label class="form-label app-ojt-view-form-label">Acknowledgement Address</label>
+                                            <label class="form-label">Acknowledgement Address</label>
                                             <input type="text" name="acknowledgement_address" class="form-control" value="<?php echo htmlspecialchars($moa_data['acknowledgement_address']); ?>">
                                         </div>
                                         <div class="col-md-6">
-                                            <label class="form-label app-ojt-view-form-label">Company Receipt / Ref.</label>
+                                            <label class="form-label">Company Receipt / Ref.</label>
                                             <input type="text" name="company_receipt" class="form-control" value="<?php echo htmlspecialchars($moa_data['company_receipt']); ?>">
                                         </div>
                                         <div class="col-md-3">
-                                            <label class="form-label app-ojt-view-form-label">Doc No.</label>
+                                            <label class="form-label">Doc No.</label>
                                             <input type="text" name="doc_no" class="form-control" value="<?php echo htmlspecialchars($moa_data['doc_no']); ?>">
                                         </div>
                                         <div class="col-md-3">
-                                            <label class="form-label app-ojt-view-form-label">Page No.</label>
+                                            <label class="form-label">Page No.</label>
                                             <input type="text" name="page_no" class="form-control" value="<?php echo htmlspecialchars($moa_data['page_no']); ?>">
                                         </div>
                                         <div class="col-md-3">
-                                            <label class="form-label app-ojt-view-form-label">Book No.</label>
+                                            <label class="form-label">Book No.</label>
                                             <input type="text" name="book_no" class="form-control" value="<?php echo htmlspecialchars($moa_data['book_no']); ?>">
                                         </div>
                                         <div class="col-md-3">
-                                            <label class="form-label app-ojt-view-form-label">Series of</label>
+                                            <label class="form-label">Series of</label>
                                             <input type="text" name="series_no" class="form-control" value="<?php echo htmlspecialchars($moa_data['series_no']); ?>">
                                         </div>
                                         <div class="col-md-6">
-                                            <label class="form-label app-ojt-view-form-label">Total Hours (Clause #10)</label>
+                                            <label class="form-label">Total Hours (Clause #10)</label>
                                             <input type="number" name="total_hours" class="form-control" min="1" step="1" value="<?php echo htmlspecialchars($moa_data['total_hours']); ?>">
                                         </div>
                                     </div>
 
-                                    <div class="mt-3 d-flex gap-2 document-form-actions app-ojt-view-document-form-actions">
+                                    <div class="mt-3 d-flex gap-2 document-form-actions">
                                         <button type="submit" class="btn btn-primary">Save MOA Data</button>
                                         <a href="document_moa.php?id=<?php echo intval($selected_student_id); ?>" class="btn btn-success">Open MOA</a>
                                     </div>
@@ -1655,7 +2166,7 @@ include 'includes/header.php';
                         </div>
                     </div>
                     <div class="tab-pane fade document-pane" id="endorsementTab" role="tabpanel">
-                        <div class="card app-ojt-view-surface-card card-body document-card app-ojt-view-document-card">
+                        <div class="card card-body document-card">
                             <?php if ($flash_message !== ''): ?>
                                 <div class="alert alert-<?php echo htmlspecialchars($flash_type); ?> mb-3"><?php echo htmlspecialchars($flash_message); ?></div>
                             <?php endif; ?>
@@ -1666,18 +2177,18 @@ include 'includes/header.php';
                                     <h5 class="fw-bold mb-1">Endorsement Letter</h5>
                                     <p class="text-muted mb-0">Prepare and save endorsement details before opening the printable document.</p>
                                 </div>
-                                <form method="post" action="ojt-view.php?id=<?php echo intval($selected_student_id); ?>" class="document-form app-ojt-view-document-form">
+                                <form method="post" action="ojt-view.php?id=<?php echo intval($selected_student_id); ?>" class="document-form">
                                     <input type="hidden" name="save_endorsement_letter" value="1">
                                     <input type="hidden" name="user_id" value="<?php echo intval($selected_student_id); ?>">
                                     <input type="hidden" name="active_tab" value="endorsementTab">
 
                                     <div class="row g-3">
                                         <div class="col-12">
-                                            <label class="form-label app-ojt-view-form-label">Recipient Name</label>
+                                            <label class="form-label">Recipient Name</label>
                                             <input type="text" name="recipient_name" class="form-control" value="<?php echo htmlspecialchars($endorsement_data['recipient_name']); ?>" placeholder="e.g. Mr. Mark G. Sison">
                                         </div>
                                         <div class="col-12">
-                                            <label class="form-label app-ojt-view-form-label d-block mb-2">Recipient Title</label>
+                                            <label class="form-label d-block mb-2">Recipient Title</label>
                                             <?php $rt = strtolower((string)($endorsement_data['recipient_title'] ?? 'auto')); ?>
                                             <div class="form-check form-check-inline">
                                                 <input class="form-check-input" type="radio" name="recipient_title" id="rt_auto" value="auto" <?php echo ($rt !== 'mr' && $rt !== 'ms' && $rt !== 'none') ? 'checked' : ''; ?>>
@@ -1697,23 +2208,23 @@ include 'includes/header.php';
                                             </div>
                                         </div>
                                         <div class="col-12">
-                                            <label class="form-label app-ojt-view-form-label">Recipient Position</label>
+                                            <label class="form-label">Recipient Position</label>
                                             <input type="text" name="recipient_position" class="form-control" value="<?php echo htmlspecialchars($endorsement_data['recipient_position']); ?>" placeholder="e.g. Supervisor/Manager">
                                         </div>
                                         <div class="col-12">
-                                            <label class="form-label app-ojt-view-form-label">Company Name</label>
+                                            <label class="form-label">Company Name</label>
                                             <input type="text" name="company_name" class="form-control" value="<?php echo htmlspecialchars($endorsement_data['company_name']); ?>" placeholder="Company name">
                                         </div>
                                         <div class="col-12">
-                                            <label class="form-label app-ojt-view-form-label">Company Address</label>
+                                            <label class="form-label">Company Address</label>
                                             <textarea name="company_address" class="form-control" rows="2" placeholder="Company address"><?php echo htmlspecialchars($endorsement_data['company_address']); ?></textarea>
                                         </div>
                                         <div class="col-12">
-                                            <label class="form-label app-ojt-view-form-label">Students to Endorse (one per line)</label>
+                                            <label class="form-label">Students to Endorse (one per line)</label>
                                             <textarea name="students_to_endorse" class="form-control" rows="3"><?php echo htmlspecialchars($endorsement_data['students_to_endorse']); ?></textarea>
                                         </div>
                                     </div>
-                                    <div class="mt-3 d-flex gap-2 document-form-actions app-ojt-view-document-form-actions">
+                                    <div class="mt-3 d-flex gap-2 document-form-actions">
                                         <button type="submit" class="btn btn-primary">Save Endorsement Data</button>
                                         <a href="document_endorsement.php?id=<?php echo intval($selected_student_id); ?>&greeting_pref=<?php echo urlencode((string)($endorsement_data['greeting_preference'] ?? 'either')); ?>&recipient_title=<?php echo urlencode((string)($endorsement_data['recipient_title'] ?? 'none')); ?>" class="btn btn-success">Open Endorsement Letter</a>
                                     </div>
@@ -1722,7 +2233,7 @@ include 'includes/header.php';
                         </div>
                     </div>
                     <div class="tab-pane fade document-pane" id="commentTab" role="tabpanel">
-                        <div class="card app-ojt-view-surface-card card-body document-card app-ojt-view-document-card">
+                        <div class="card card-body document-card">
                             <?php if ($flash_message !== ''): ?>
                                 <div class="alert alert-<?php echo htmlspecialchars($flash_type); ?> mb-3"><?php echo htmlspecialchars($flash_message); ?></div>
                             <?php endif; ?>
@@ -1733,110 +2244,110 @@ include 'includes/header.php';
                                     <h5 class="fw-bold mb-1">Dau MOA</h5>
                                     <p class="text-muted mb-0">Fill, save, and review the Barangay DAU MOA details before final printing.</p>
                                 </div>
-                                <form method="post" action="ojt-view.php?id=<?php echo intval($selected_student_id); ?>" class="document-form app-ojt-view-document-form">
+                                <form method="post" action="ojt-view.php?id=<?php echo intval($selected_student_id); ?>" class="document-form">
                                     <input type="hidden" name="save_dau_moa" value="1">
                                     <input type="hidden" name="user_id" value="<?php echo intval($selected_student_id); ?>">
                                     <input type="hidden" name="active_tab" value="commentTab">
 
                                     <div class="row g-3">
                                         <div class="col-md-6">
-                                            <label class="form-label app-ojt-view-form-label">Barangay Name</label>
+                                            <label class="form-label">Barangay Name</label>
                                             <input type="text" name="company_name" class="form-control" value="<?php echo htmlspecialchars($dau_moa_data['company_name']); ?>" placeholder="Barangay name">
                                         </div>
                                         <div class="col-md-6">
-                                            <label class="form-label app-ojt-view-form-label">Barangay Address</label>
+                                            <label class="form-label">Barangay Address</label>
                                             <input type="text" name="company_address" class="form-control" value="<?php echo htmlspecialchars($dau_moa_data['company_address']); ?>" placeholder="Barangay address">
                                         </div>
                                         <div class="col-md-6">
-                                            <label class="form-label app-ojt-view-form-label">Barangay Representative</label>
+                                            <label class="form-label">Barangay Representative</label>
                                             <input type="text" name="partner_representative" class="form-control" value="<?php echo htmlspecialchars($dau_moa_data['partner_representative']); ?>" placeholder="Barangay representative">
                                         </div>
                                         <div class="col-md-6">
-                                            <label class="form-label app-ojt-view-form-label">Barangay Representative Position</label>
+                                            <label class="form-label">Barangay Representative Position</label>
                                             <input type="text" name="position" class="form-control" value="<?php echo htmlspecialchars($dau_moa_data['position']); ?>" placeholder="Position">
                                         </div>
                                         <div class="col-md-6">
-                                            <label class="form-label app-ojt-view-form-label">Barangay Receipt / Ref.</label>
+                                            <label class="form-label">Barangay Receipt / Ref.</label>
                                             <input type="text" name="company_receipt" class="form-control" value="<?php echo htmlspecialchars($dau_moa_data['company_receipt']); ?>">
                                         </div>
                                         <div class="col-md-6">
-                                            <label class="form-label app-ojt-view-form-label">Total Hours (Clause #10)</label>
+                                            <label class="form-label">Total Hours (Clause #10)</label>
                                             <input type="number" name="total_hours" class="form-control" value="<?php echo htmlspecialchars($dau_moa_data['total_hours']); ?>">
                                         </div>
                                         <div class="col-md-6">
-                                            <label class="form-label app-ojt-view-form-label">School Representative</label>
+                                            <label class="form-label">School Representative</label>
                                             <input type="text" name="school_representative" class="form-control" value="<?php echo htmlspecialchars($dau_moa_data['school_representative']); ?>" placeholder="e.g. Mr. Jomar G. Sangil">
                                         </div>
                                         <div class="col-md-6">
-                                            <label class="form-label app-ojt-view-form-label">School Representative Position</label>
+                                            <label class="form-label">School Representative Position</label>
                                             <input type="text" name="school_position" class="form-control" value="<?php echo htmlspecialchars($dau_moa_data['school_position']); ?>">
                                         </div>
                                         <div class="col-md-6">
-                                            <label class="form-label app-ojt-view-form-label">Signing Place</label>
+                                            <label class="form-label">Signing Place</label>
                                             <input type="text" name="signed_at" class="form-control" value="<?php echo htmlspecialchars($dau_moa_data['signed_at']); ?>">
                                         </div>
                                         <div class="col-md-2">
-                                            <label class="form-label app-ojt-view-form-label">Sign Day</label>
+                                            <label class="form-label">Sign Day</label>
                                             <input type="text" name="signed_day" class="form-control" value="<?php echo htmlspecialchars($dau_moa_data['signed_day']); ?>">
                                         </div>
                                         <div class="col-md-2">
-                                            <label class="form-label app-ojt-view-form-label">Sign Month</label>
+                                            <label class="form-label">Sign Month</label>
                                             <input type="text" name="signed_month" class="form-control" value="<?php echo htmlspecialchars($dau_moa_data['signed_month']); ?>">
                                         </div>
                                         <div class="col-md-2">
-                                            <label class="form-label app-ojt-view-form-label">Sign Year</label>
+                                            <label class="form-label">Sign Year</label>
                                             <input type="text" name="signed_year" class="form-control" value="<?php echo htmlspecialchars($dau_moa_data['signed_year']); ?>">
                                         </div>
                                         <div class="col-md-6">
-                                            <label class="form-label app-ojt-view-form-label">Witness (Barangay)</label>
+                                            <label class="form-label">Witness (Barangay)</label>
                                             <input type="text" name="witness_partner" class="form-control" value="<?php echo htmlspecialchars($dau_moa_data['witness_partner']); ?>">
                                         </div>
                                         <div class="col-md-6">
-                                            <label class="form-label app-ojt-view-form-label">School Administrator</label>
+                                            <label class="form-label">School Administrator</label>
                                             <input type="text" name="school_administrator" class="form-control" value="<?php echo htmlspecialchars($dau_moa_data['school_administrator']); ?>">
                                         </div>
                                         <div class="col-md-6">
-                                            <label class="form-label app-ojt-view-form-label">School Admin Position</label>
+                                            <label class="form-label">School Admin Position</label>
                                             <input type="text" name="school_admin_position" class="form-control" value="<?php echo htmlspecialchars($dau_moa_data['school_admin_position']); ?>">
                                         </div>
                                         <div class="col-md-6">
-                                            <label class="form-label app-ojt-view-form-label">Notary City</label>
+                                            <label class="form-label">Notary City</label>
                                             <input type="text" name="notary_city" class="form-control" value="<?php echo htmlspecialchars($dau_moa_data['notary_city']); ?>">
                                         </div>
                                         <div class="col-md-2">
-                                            <label class="form-label app-ojt-view-form-label">Ack Day</label>
+                                            <label class="form-label">Ack Day</label>
                                             <input type="text" name="notary_day" class="form-control" value="<?php echo htmlspecialchars($dau_moa_data['notary_day']); ?>">
                                         </div>
                                         <div class="col-md-2">
-                                            <label class="form-label app-ojt-view-form-label">Ack Month</label>
+                                            <label class="form-label">Ack Month</label>
                                             <input type="text" name="notary_month" class="form-control" value="<?php echo htmlspecialchars($dau_moa_data['notary_month']); ?>">
                                         </div>
                                         <div class="col-md-2">
-                                            <label class="form-label app-ojt-view-form-label">Ack Year</label>
+                                            <label class="form-label">Ack Year</label>
                                             <input type="text" name="notary_year" class="form-control" value="<?php echo htmlspecialchars($dau_moa_data['notary_year']); ?>">
                                         </div>
                                         <div class="col-md-6">
-                                            <label class="form-label app-ojt-view-form-label">Ack Place</label>
+                                            <label class="form-label">Ack Place</label>
                                             <input type="text" name="notary_place" class="form-control" value="<?php echo htmlspecialchars($dau_moa_data['notary_place']); ?>">
                                         </div>
                                         <div class="col-md-3">
-                                            <label class="form-label app-ojt-view-form-label">Doc No.</label>
+                                            <label class="form-label">Doc No.</label>
                                             <input type="text" name="doc_no" class="form-control" value="<?php echo htmlspecialchars($dau_moa_data['doc_no']); ?>">
                                         </div>
                                         <div class="col-md-3">
-                                            <label class="form-label app-ojt-view-form-label">Page No.</label>
+                                            <label class="form-label">Page No.</label>
                                             <input type="text" name="page_no" class="form-control" value="<?php echo htmlspecialchars($dau_moa_data['page_no']); ?>">
                                         </div>
                                         <div class="col-md-3">
-                                            <label class="form-label app-ojt-view-form-label">Book No.</label>
+                                            <label class="form-label">Book No.</label>
                                             <input type="text" name="book_no" class="form-control" value="<?php echo htmlspecialchars($dau_moa_data['book_no']); ?>">
                                         </div>
                                         <div class="col-md-3">
-                                            <label class="form-label app-ojt-view-form-label">Series</label>
+                                            <label class="form-label">Series</label>
                                             <input type="text" name="series_no" class="form-control" value="<?php echo htmlspecialchars($dau_moa_data['series_no']); ?>">
                                         </div>
                                     </div>
-                                    <div class="mt-3 d-flex gap-2 document-form-actions app-ojt-view-document-form-actions">
+                                    <div class="mt-3 d-flex gap-2 document-form-actions">
                                         <button type="submit" class="btn btn-primary">Save Dau MOA Data</button>
                                         <a href="document_dau_moa.php?id=<?php echo intval($selected_student_id); ?>" class="btn btn-success">Open Dau MOA</a>
                                     </div>
@@ -1848,12 +2359,179 @@ include 'includes/header.php';
             </div>
             <!-- [ Main Content ] end -->
         </div>
-    <div id="ojt-view-runtime-config"
-         data-active-tab="<?php echo htmlspecialchars((string)$active_tab, ENT_QUOTES, 'UTF-8'); ?>"
-         hidden></div>
-    <!-- OJT view runtime moved to assets/js/ojt-view-runtime.js -->
+        <!-- [ Footer ] start -->
+        <footer class="footer">
+            <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
+                <span>Copyright Â©</span>
+                <script>
+                    document.write(new Date().getFullYear());
+                </script>
+            </p>
+            <p class="footer-meta fs-12 mb-0"><span>By: <a href="javascript:void(0);">ACT 2A</a></span> <span>Distributed by: <a href="javascript:void(0);">Group 5</a></span></p>
+            <div class="d-flex align-items-center gap-4">
+                <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Help</a>
+                <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Terms</a>
+                <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Privacy</a>
+            </div>
+        </footer>
+        <!-- [ Footer ] end -->
+    </main>
+    <!--! ================================================================ !-->
+    <!--! [End] Main Content !-->
+    <!--! ================================================================ !-->
+    <!--! ================================================================ !-->
+    <!--! Footer Script !-->
+    <!--! ================================================================ !-->
+    <!--! BEGIN: Vendors JS !-->
+    <script src="<?php echo htmlspecialchars($asset_base); ?>/vendors/js/vendors.min.js"></script>
+    <!-- vendors.min.js {always must need to be top} -->
+    <script src="<?php echo htmlspecialchars($asset_base); ?>/vendors/js/select2.min.js"></script>
+    <script src="<?php echo htmlspecialchars($asset_base); ?>/vendors/js/select2-active.min.js"></script>
+    <!--! END: Vendors JS !-->
+    <!--! BEGIN: Apps Init  !-->
+    <script src="<?php echo htmlspecialchars($asset_base); ?>/js/common-init.min.js"></script>
+    <script src="<?php echo htmlspecialchars($asset_base); ?>/js/theme-customizer-init.min.js"></script>
+    <script src="<?php echo htmlspecialchars($asset_base); ?>/js/leads-view-init.min.js"></script>
+    <!--! END: Apps Init !-->
+    <script>
+        (function () {
+            var preferredTabId = <?php echo json_encode($active_tab); ?>;
+            if (window.location.hash && document.querySelector('button[data-bs-target="' + window.location.hash + '"]')) {
+                preferredTabId = window.location.hash.replace('#', '');
+            }
+            var targetBtn = document.querySelector('button[data-bs-target="#' + preferredTabId + '"]');
+            if (targetBtn && window.bootstrap && bootstrap.Tab) {
+                var tab = new bootstrap.Tab(targetBtn);
+                tab.show();
+            }
+            document.querySelectorAll('button[data-bs-toggle="tab"]').forEach(function (btn) {
+                btn.addEventListener('shown.bs.tab', function (e) {
+                    var selector = e.target.getAttribute('data-bs-target');
+                    if (selector) {
+                        history.replaceState(null, '', selector);
+                    }
+                });
+            });
 
-<?php include 'includes/footer.php'; ?>
+            var printBtn = document.getElementById('printSelectedDocsBtn');
+            var printAllBtn = document.getElementById('printAllDocsBtn');
+            var toggleAllBtn = document.getElementById('toggleAllPrintDocs');
+            var hint = document.getElementById('printDocsHint');
+            var printFrame = null;
+            var printOptions = Array.prototype.slice.call(document.querySelectorAll('.print-doc-option'));
+
+            function syncPrintOptionState() {
+                printOptions.forEach(function (option) {
+                    var state = option.querySelector('.print-doc-state');
+                    if (!state) return;
+                    state.textContent = option.classList.contains('is-checked') ? 'Selected' : 'Select';
+                });
+            }
+            syncPrintOptionState();
+            printOptions.forEach(function (option) {
+                option.addEventListener('click', function () {
+                    option.classList.toggle('is-checked');
+                    syncPrintOptionState();
+                });
+            });
+
+            function getPrintFrame() {
+                if (printFrame) return printFrame;
+                printFrame = document.createElement('iframe');
+                printFrame.id = 'batchPrintFrame';
+                printFrame.style.position = 'fixed';
+                printFrame.style.width = '0';
+                printFrame.style.height = '0';
+                printFrame.style.border = '0';
+                printFrame.style.opacity = '0';
+                printFrame.style.pointerEvents = 'none';
+                document.body.appendChild(printFrame);
+                return printFrame;
+            }
+
+            function runBatchPrint(checkedNodes) {
+                if (!checkedNodes.length) {
+                    if (hint) hint.textContent = 'Select at least one document to print.';
+                    return;
+                }
+
+                var queue = checkedNodes.map(function (cb) {
+                    return cb.getAttribute('data-doc-url') || '';
+                }).filter(function (u) { return !!u; });
+
+                if (!queue.length) {
+                    if (hint) hint.textContent = 'No printable document URL found.';
+                    return;
+                }
+
+                if (hint) hint.textContent = 'Preparing ' + queue.length + ' document(s) for printing...';
+                var frame = getPrintFrame();
+                var index = 0;
+
+                var printNext = function () {
+                    if (index >= queue.length) {
+                        if (hint) hint.textContent = 'Done. Printed ' + queue.length + ' document(s).';
+                        return;
+                    }
+
+                    var url = queue[index];
+                    if (hint) hint.textContent = 'Printing ' + (index + 1) + ' of ' + queue.length + '...';
+                    frame.onload = function () {
+                        setTimeout(function () {
+                            try {
+                                frame.contentWindow.focus();
+                                frame.contentWindow.print();
+                            } catch (e) {
+                                // Ignore and continue with next document.
+                            }
+                            index += 1;
+                            setTimeout(printNext, 500);
+                        }, 450);
+                    };
+                    frame.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'batch_print=1';
+                };
+
+                printNext();
+            }
+
+            if (printBtn) {
+                printBtn.addEventListener('click', function () {
+                    var selected = Array.prototype.slice.call(document.querySelectorAll('.print-doc-option.is-checked'));
+                    runBatchPrint(selected);
+                });
+            }
+
+            if (toggleAllBtn) {
+                toggleAllBtn.addEventListener('click', function () {
+                    if (!printOptions.length) return;
+                    var shouldSelectAll = printOptions.some(function (option) { return !option.classList.contains('is-checked'); });
+                    printOptions.forEach(function (option) {
+                        option.classList.toggle('is-checked', shouldSelectAll);
+                    });
+                    toggleAllBtn.textContent = shouldSelectAll ? 'Clear All' : 'Select All';
+                    syncPrintOptionState();
+                });
+            }
+
+            if (printAllBtn) {
+                printAllBtn.addEventListener('click', function () {
+                    if (!printOptions.length) {
+                        if (hint) hint.textContent = 'No documents available to print.';
+                        return;
+                    }
+                    printOptions.forEach(function (option) {
+                        option.classList.add('is-checked');
+                    });
+                    if (toggleAllBtn) toggleAllBtn.textContent = 'Clear All';
+                    syncPrintOptionState();
+                    runBatchPrint(printOptions);
+                });
+            }
+        })();
+    </script>
+</body>
+
+</html>
 
 
 

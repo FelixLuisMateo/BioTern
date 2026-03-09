@@ -1,11 +1,12 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/ops_helpers.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 require_roles_page(['admin', 'coordinator', 'supervisor']);
 
-$conn = new mysqli('localhost', 'root', '', 'biotern_db');
+$conn = new mysqli(defined('DB_HOST') ? DB_HOST : 'localhost', defined('DB_USER') ? DB_USER : 'root', defined('DB_PASS') ? DB_PASS : '', defined('DB_NAME') ? DB_NAME : 'biotern_db');
 if ($conn->connect_error) {
     die("DB connection failed");
 }
@@ -45,9 +46,15 @@ include 'includes/header.php';
     <div class="container py-4">
         <h3 class="mb-3">Attendance Operations Report</h3>
         <div class="row mb-4">
-            <div class="col-md-4"><div class="card"><div class="card-body"><strong>Pending Corrections:</strong> <?php echo $pendingCorrections; ?></div></div></div>
-            <div class="col-md-4"><div class="card"><div class="card-body"><strong>Pending Queue Events:</strong> <?php echo $pendingQueue; ?></div></div></div>
-            <div class="col-md-4"><div class="card"><div class="card-body"><strong>Failed Queue Events:</strong> <?php echo $failedQueue; ?></div></div></div>
+            <div class="col-md-4"><div class="card"><div class="card-body"><strong>Pending Corrections:</strong> <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $pendingCorrections; ?></div></div></div>
+            <div class="col-md-4"><div class="card"><div class="card-body"><strong>Pending Queue Events:</strong> <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $pendingQueue; ?></div></div></div>
+            <div class="col-md-4"><div class="card"><div class="card-body"><strong>Failed Queue Events:</strong> <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $failedQueue; ?></div></div></div>
         </div>
 
         <div class="card">
@@ -65,23 +72,46 @@ include 'includes/header.php';
                         </tr>
                     </thead>
                     <tbody>
-                        <?php if (empty($rows)): ?>
+                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if (empty($rows)): ?>
                             <tr><td colspan="6" class="text-center">No data. Run `db_updates_operations.sql` if needed.</td></tr>
-                        <?php else: ?>
-                            <?php foreach ($rows as $row): ?>
+                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+else: ?>
+                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($rows as $row): ?>
                             <tr>
-                                <td><?php echo htmlspecialchars($row['attendance_date']); ?></td>
-                                <td><?php echo (int)$row['total_records']; ?></td>
-                                <td><?php echo (int)$row['approved_records']; ?></td>
-                                <td><?php echo (int)$row['pending_records']; ?></td>
-                                <td><?php echo (int)$row['rejected_records']; ?></td>
-                                <td><?php echo (int)$row['zero_hour_records']; ?></td>
+                                <td><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($row['attendance_date']); ?></td>
+                                <td><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$row['total_records']; ?></td>
+                                <td><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$row['approved_records']; ?></td>
+                                <td><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$row['pending_records']; ?></td>
+                                <td><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$row['rejected_records']; ?></td>
+                                <td><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$row['zero_hour_records']; ?></td>
                             </tr>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
+                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
+                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
+
 

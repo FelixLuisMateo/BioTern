@@ -1,10 +1,11 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 // Documents page - UI to prepare Memorandum of Agreement (MOA)
 
 $host = 'localhost';
 $db_user = 'root';
 $db_password = '';
-$db_name = 'biotern_db';
+$db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
 
 try {
     $conn = new mysqli($host, $db_user, $db_password, $db_name);
@@ -26,7 +27,7 @@ if (isset($_GET['action'])) {
         $out = [];
         if ($res) {
             while ($r = $res->fetch_assoc()) {
-                $text = trim($r['first_name'] . ' ' . ($r['middle_name'] ? $r['middle_name'] . ' ' : '') . $r['last_name']) . ' — ' . $r['student_id'];
+                $text = trim($r['first_name'] . ' ' . ($r['middle_name'] ? $r['middle_name'] . ' ' : '') . $r['last_name']) . ' â€” ' . $r['student_id'];
                 $out[] = ['id' => $r['id'], 'text' => $text];
             }
         }
@@ -328,16 +329,16 @@ include __DIR__ . '/../includes/header.php';
                             <ol>
                                 <li>The <b>Clark College of Science and Technology</b> shall be responsible for briefing the Learners as part of the CCST orientation and induction program;</li>
                                 <li>The <b>Clark College of Science and Technology</b> shall provide the learner undergoing the OJT/Internship with the basic orientation on work values, behavior, and discipline to ensure smooth cooperation with the <strong>PARTNER LOCAL GOVERNMENT UNIT</strong>.</li>
-                                <li>The <b>Clark College of Science and Technology</b> shall issue and official endorsement vouching for the well-being of the Learner which shall be used by the <strong>PARTNER LOCAL GOVERNMENT UNIT</strong>. for the processing the learner’s application for OJT/Internship;</li>
+                                <li>The <b>Clark College of Science and Technology</b> shall issue and official endorsement vouching for the well-being of the Learner which shall be used by the <strong>PARTNER LOCAL GOVERNMENT UNIT</strong>. for the processing the learnerâ€™s application for OJT/Internship;</li>
                                 <li>The <b>Clark College of Science and Technology</b> shall voluntarily withdraw a Learner who of the PARTNER LOCAL GOVERNMENT UNIT can impose necessary HEI sanctions to the said learner;</li>
-                                <li>The <b>Clark College of Science and Technology</b> through its Industry Coordinator shall make onsite sit/follow ups to the <strong>PARTNER LOCAL GOVERNMENT UNIT</strong> during the training period and evaluate the Learner’s progress based on the training plan and discuss training problems;</li>
+                                <li>The <b>Clark College of Science and Technology</b> through its Industry Coordinator shall make onsite sit/follow ups to the <strong>PARTNER LOCAL GOVERNMENT UNIT</strong> during the training period and evaluate the Learnerâ€™s progress based on the training plan and discuss training problems;</li>
                                 <li>The <b>Clark College of Science and Technology</b> has the discretion to pull out the Learner if there is an apparent risk and/or exploitation on the rights of the Learner;</li>
                                 <li>The <b>Clark College of Science and Technology</b> shall ensure that the Learner shall ensure that the Learner has an on-and off the campus insurance coverage within the duration of the training as part of their training fee.</li>
                                 <li>The <b>Clark College of Science and Technology</b> shall ensure Learner shall be personally responsible for any and all liabilities arising from negligence in the performance of his/her duties and functions while under OJT/Internship;</li>
                                 <li>There is no employer-employee relationship between the <strong>PARTNER LOCAL GOVERNMENT UNIT</strong> and the Learner;</li>
                                 <li>The duration of the program shall be equivalent to <span id="pv_total_hours">250</span> working hours unless otherwise agreed upon by the <strong>PARTNER LOCAL GOVERNMENT UNIT</strong> and the Clark College of Science and Technology;</li>
                                 <li>Any violation of the foregoing covenants will warrant the cancellation of the Memorandum of Agreement by the <strong>PARTNER LOCAL GOVERNMENT UNIT</strong> within thirty (30) days upon notice to the Clark College of Science and Technology.</li>
-                                <li>The <strong>PARTNER LOCAL GOVERNMENT UNIT</strong> may grant allowance to Learner in accordance with the PARTNER ENTERPISE’S existing rules and regulations;</li>
+                                <li>The <strong>PARTNER LOCAL GOVERNMENT UNIT</strong> may grant allowance to Learner in accordance with the PARTNER ENTERPISEâ€™S existing rules and regulations;</li>
                                 <li>The <strong>PARTNER LOCAL GOVERNMENT UNIT</strong> is not allowed to employ Learner within the OJT/Internship period in order for the Learner to graduate from the program he/she is enrolled in.</li>
                             </ol>
 
@@ -394,7 +395,9 @@ include __DIR__ . '/../includes/header.php';
         window.addEventListener('load', function() {
         (function(){
             const MOA_TEMPLATE_STORAGE_KEY = 'biotern_dau_moa_template_html_v1';
-            const PREFILL_STUDENT_ID = <?php echo intval($prefill_student_id); ?>;
+            const PREFILL_STUDENT_ID = <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo intval($prefill_student_id); ?>;
             const select = $('#student_select');
             const partnerName = document.getElementById('moa_partner_name');
             const partnerRep = document.getElementById('moa_partner_rep');
@@ -516,7 +519,7 @@ include __DIR__ . '/../includes/header.php';
                 overlay.addEventListener('input', function(){ openAndSync(); });
                 overlay.addEventListener('keydown', function(e){ if (e.key && (e.key.length === 1 || e.key === 'Backspace')) openAndSync(); });
 
-                $(document).on('select2:select select2:closing', '#student_select', function(e){ setTimeout(function(){ var txt = $('#student_select').find('option:selected').text() || ''; overlay.value = txt.replace(/\s+—\s+.*$/,''); }, 0); });
+                $(document).on('select2:select select2:closing', '#student_select', function(e){ setTimeout(function(){ var txt = $('#student_select').find('option:selected').text() || ''; overlay.value = txt.replace(/\s+â€”\s+.*$/,''); }, 0); });
                 container.addEventListener('click', function(){ overlay.focus(); });
             })();
 
@@ -602,7 +605,7 @@ include __DIR__ . '/../includes/header.php';
                         // select2 may not be present in this page layout; guard usage
                         if (select && select.length) {
                             const fullname = [data.first_name, data.middle_name, data.last_name].filter(Boolean).join(' ');
-                            const label = (fullname || 'Student') + ' — ' + (data.student_id || id);
+                            const label = (fullname || 'Student') + ' â€” ' + (data.student_id || id);
                             const option = new Option(label, String(id), true, true);
                             select.append(option).trigger('change');
                         }
@@ -704,7 +707,11 @@ include __DIR__ . '/../includes/header.php';
         })();
         });
     </script>
-    <?php include __DIR__ . '/../includes/footer.php'; ?>
+    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+include __DIR__ . '/../includes/footer.php'; ?>
+
+
 
 
 

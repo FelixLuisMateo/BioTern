@@ -1,10 +1,11 @@
-<?php
-$host = 'localhost';
-$db_user = 'root';
-$db_password = '';
-$db_name = 'biotern_db';
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
+$host = defined('DB_HOST') ? DB_HOST : 'localhost';
+$db_user = defined('DB_USER') ? DB_USER : 'root';
+$db_password = defined('DB_PASS') ? DB_PASS : ''; 
+$db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
 
-$message = '';
+$message = defined('DB_PASS') ? DB_PASS : ''; 
 $message_type = 'info';
 
 try {
@@ -70,7 +71,22 @@ if ($list_result) {
 $page_title = 'Create Department';
 include 'includes/header.php';
 ?>
-<link rel="stylesheet" type="text/css" href="assets/css/management-create-shared-page.css">
+<style>
+    .create-form-actions {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .create-form-actions .btn {
+        width: auto !important;
+        min-width: 140px;
+        display: inline-flex;
+        justify-content: center;
+        align-items: center;
+    }
+</style>
 <div class="page-header">
     <div class="page-header-left d-flex align-items-center">
         <div class="page-header-title">
@@ -113,7 +129,7 @@ include 'includes/header.php';
                             <label class="form-label">Contact Email</label>
                             <input type="email" name="contact_email" class="form-control" placeholder="it@biotern.com">
                         </div>
-                        <div class="create-form-actions app-form-actions">
+                        <div class="create-form-actions">
                             <button type="submit" class="btn btn-primary">Save Department</button>
                             <a href="departments.php" class="btn btn-outline-secondary">Cancel</a>
                         </div>
@@ -163,6 +179,7 @@ include 'includes/header.php';
     </div>
 </div>
 <?php
+require_once dirname(__DIR__) . '/config/db.php';
 include 'includes/footer.php';
 $conn->close();
 ?>

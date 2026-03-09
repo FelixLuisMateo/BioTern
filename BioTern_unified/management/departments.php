@@ -1,9 +1,9 @@
-<?php
-include 'filter.php';
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 $host = '127.0.0.1';
 $db_user = 'root';
 $db_password = '';
-$db_name = 'biotern_db';
+$db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
 
 try {
     $conn = new mysqli($host, $db_user, $db_password, $db_name);
@@ -25,55 +25,6 @@ if ($columnResult) {
 $hasColumn = function ($columnName) use ($deptColumns) {
     return in_array(strtolower($columnName), $deptColumns, true);
 };
-
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-$current_role = strtolower(trim((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? '')));
-$flash_message = (string)($_SESSION['departments_flash_message'] ?? '');
-$flash_type = (string)($_SESSION['departments_flash_type'] ?? 'success');
-unset($_SESSION['departments_flash_message'], $_SESSION['departments_flash_type']);
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete_department') {
-    $department_id = (int)($_POST['department_id'] ?? 0);
-
-    if (!in_array($current_role, ['admin'], true)) {
-        $_SESSION['departments_flash_message'] = 'Only admin can delete departments.';
-        $_SESSION['departments_flash_type'] = 'danger';
-        header('Location: departments.php');
-        exit;
-    }
-
-    if ($department_id <= 0) {
-        $_SESSION['departments_flash_message'] = 'Invalid department id.';
-        $_SESSION['departments_flash_type'] = 'danger';
-        header('Location: departments.php');
-        exit;
-    }
-
-    $deleted = false;
-    if ($hasColumn('deleted_at')) {
-        $stmt_del = $conn->prepare('UPDATE departments SET deleted_at = NOW() WHERE id = ? LIMIT 1');
-        if ($stmt_del) {
-            $stmt_del->bind_param('i', $department_id);
-            $deleted = $stmt_del->execute() && $stmt_del->affected_rows > 0;
-            $stmt_del->close();
-        }
-    } else {
-        $stmt_del = $conn->prepare('DELETE FROM departments WHERE id = ? LIMIT 1');
-        if ($stmt_del) {
-            if ($stmt_del->bind_param('i', $department_id)) {
-                $deleted = $stmt_del->execute() && $stmt_del->affected_rows > 0;
-            }
-            $stmt_del->close();
-        }
-    }
-
-    $_SESSION['departments_flash_message'] = $deleted ? 'Department deleted successfully.' : 'Unable to delete department (it may be in use).';
-    $_SESSION['departments_flash_type'] = $deleted ? 'success' : 'danger';
-    header('Location: departments.php');
-    exit;
-}
 
 $selectFields = ['id', 'name', 'code'];
 if ($hasColumn('department_head')) {
@@ -122,13 +73,12 @@ $page_title = 'Departments';
 </div>
 
 <div class="main-content">
-    <?php if ($flash_message !== ''): ?>
-        <div class="alert alert-<?php echo htmlspecialchars($flash_type); ?> mb-3"><?php echo htmlspecialchars($flash_message); ?></div>
-    <?php endif; ?>
     <div class="card stretch stretch-full">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="card-title mb-0">All Departments</h5>
-            <span class="badge bg-primary text-white px-3 py-1 fw-semibold"><?php echo count($departments); ?> total</span>
+            <span class="badge bg-primary text-white px-3 py-1" style="font-weight:600;"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo count($departments); ?> total</span>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
@@ -138,57 +88,114 @@ $page_title = 'Departments';
                             <th>ID</th>
                             <th>Code</th>
                             <th>Name</th>
-                            <?php if ($hasColumn('department_head')): ?><th>Department Head</th><?php endif; ?>
-                            <?php if ($hasColumn('contact_email')): ?><th>Contact Email</th><?php endif; ?>
-                            <?php if ($hasColumn('is_active')): ?><th>Status</th><?php endif; ?>
-                            <?php if ($hasColumn('created_at')): ?><th>Created</th><?php endif; ?>
+                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($hasColumn('department_head')): ?><th>Department Head</th><?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
+                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($hasColumn('contact_email')): ?><th>Contact Email</th><?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
+                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($hasColumn('is_active')): ?><th>Status</th><?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
+                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($hasColumn('created_at')): ?><th>Created</th><?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                    <?php if (!empty($departments)): ?>
-                        <?php foreach ($departments as $dept): ?>
+                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if (!empty($departments)): ?>
+                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($departments as $dept): ?>
                             <tr>
-                                <td><?php echo (int)$dept['id']; ?></td>
-                                <td><?php echo htmlspecialchars((string)($dept['code'] ?? '')); ?></td>
-                                <td><?php echo htmlspecialchars((string)($dept['name'] ?? '')); ?></td>
-                                <?php if ($hasColumn('department_head')): ?>
-                                    <td><?php echo htmlspecialchars((string)($dept['department_head'] ?? '-')); ?></td>
-                                <?php endif; ?>
-                                <?php if ($hasColumn('contact_email')): ?>
-                                    <td><?php echo htmlspecialchars((string)($dept['contact_email'] ?? '-')); ?></td>
-                                <?php endif; ?>
-                                <?php if ($hasColumn('is_active')): ?>
+                                <td><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$dept['id']; ?></td>
+                                <td><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars((string)($dept['code'] ?? '')); ?></td>
+                                <td><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars((string)($dept['name'] ?? '')); ?></td>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($hasColumn('department_head')): ?>
+                                    <td><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars((string)($dept['department_head'] ?? '-')); ?></td>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($hasColumn('contact_email')): ?>
+                                    <td><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars((string)($dept['contact_email'] ?? '-')); ?></td>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($hasColumn('is_active')): ?>
                                     <td>
-                                        <?php if ((string)($dept['is_active'] ?? '0') === '1'): ?>
+                                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ((string)($dept['is_active'] ?? '0') === '1'): ?>
                                             <span class="badge bg-success">Active</span>
-                                        <?php else: ?>
+                                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+else: ?>
                                             <span class="badge bg-secondary">Inactive</span>
-                                        <?php endif; ?>
+                                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
                                     </td>
-                                <?php endif; ?>
-                                <?php if ($hasColumn('created_at')): ?>
-                                    <td><?php echo htmlspecialchars((string)($dept['created_at'] ?? '-')); ?></td>
-                                <?php endif; ?>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($hasColumn('created_at')): ?>
+                                    <td><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars((string)($dept['created_at'] ?? '-')); ?></td>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
                                 <td>
-                                    <a href="departments-edit.php?id=<?php echo (int)$dept['id']; ?>" class="btn btn-sm btn-outline-primary">
+                                    <a href="departments-edit.php?id=<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$dept['id']; ?>" class="btn btn-sm btn-outline-primary">
                                         Edit
                                     </a>
-                                    <?php if ($current_role === 'admin'): ?>
-                                        <form method="post" class="d-inline" onsubmit="return confirm('Delete this department?');">
-                                            <input type="hidden" name="action" value="delete_department">
-                                            <input type="hidden" name="department_id" value="<?php echo (int)$dept['id']; ?>">
-                                            <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
-                                        </form>
-                                    <?php endif; ?>
                                 </td>
                             </tr>
-                        <?php endforeach; ?>
-                    <?php else: ?>
+                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
+                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+else: ?>
                         <tr>
-                            <td colspan="<?php echo 4 + ($hasColumn('department_head') ? 1 : 0) + ($hasColumn('contact_email') ? 1 : 0) + ($hasColumn('is_active') ? 1 : 0) + ($hasColumn('created_at') ? 1 : 0); ?>" class="text-center py-4 text-muted">No departments found.</td>
+                            <td colspan="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo 4 + ($hasColumn('department_head') ? 1 : 0) + ($hasColumn('contact_email') ? 1 : 0) + ($hasColumn('is_active') ? 1 : 0) + ($hasColumn('created_at') ? 1 : 0); ?>" class="text-center py-4 text-muted">No departments found.</td>
                         </tr>
-                    <?php endif; ?>
+                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
                     </tbody>
                 </table>
             </div>
@@ -196,4 +203,7 @@ $page_title = 'Departments';
     </div>
 </div>
 <?php
+require_once dirname(__DIR__) . '/config/db.php';
 include 'includes/footer.php';
+
+

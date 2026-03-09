@@ -1,10 +1,11 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 $host = '127.0.0.1';
-$db_user = 'root';
-$db_password = '';
-$db_name = 'biotern_db';
+$db_user = defined('DB_USER') ? DB_USER : 'root';
+$db_password = defined('DB_PASS') ? DB_PASS : ''; 
+$db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
 
-$message = '';
+$message = defined('DB_PASS') ? DB_PASS : ''; 
 $message_type = 'info';
 
 try {
@@ -124,7 +125,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $createdCount = 0;
             $skippedCount = 0;
-            $errorText = '';
+            $errorText = defined('DB_PASS') ? DB_PASS : ''; 
 
             foreach ($codesToCreate as $code) {
                 $exists = false;
@@ -198,7 +199,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $page_title = 'Create Section';
 include 'includes/header.php';
 ?>
-<link rel="stylesheet" type="text/css" href="assets/css/management-create-shared-page.css">
+<style>
+    .create-form-actions {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .create-form-actions .btn {
+        width: auto !important;
+        min-width: 140px;
+        display: inline-flex;
+        justify-content: center;
+        align-items: center;
+    }
+</style>
 <div class="page-header">
     <div class="page-header-left d-flex align-items-center">
         <div class="page-header-title">
@@ -260,7 +276,7 @@ include 'includes/header.php';
                 <?php if ($hasSectionDepartment): ?>
                     <input type="hidden" name="department_id" value="<?php echo (int)$defaultDepartmentId; ?>">
                 <?php endif; ?>
-                <div class="mt-3 create-form-actions app-form-actions">
+                <div class="mt-3 create-form-actions">
                     <button type="submit" class="btn btn-primary">Create Section</button>
                     <a href="sections.php" class="btn btn-outline-secondary">Cancel</a>
                 </div>
@@ -268,8 +284,47 @@ include 'includes/header.php';
         </div>
     </div>
 </div>
-<script src="assets/js/management-sections-create-runtime.js"></script>
+<script>
+    (function () {
+        const courseSelect = document.getElementById('courseSelect');
+        const rangeStartInput = document.getElementById('rangeStartInput');
+        const rangeEndInput = document.getElementById('rangeEndInput');
+        if (!courseSelect || !rangeStartInput || !rangeEndInput) return;
+
+        // Accept range like 2A, 2B ... 2Z (any number + letter).
+        rangeStartInput.setAttribute('pattern', '[0-9]+[A-Z]');
+        rangeEndInput.setAttribute('pattern', '[0-9]+[A-Z]');
+        rangeStartInput.setAttribute('title', 'Use format like 2A');
+        rangeEndInput.setAttribute('title', 'Use format like 2D');
+
+        function applyCourseDefaults() {
+            const selected = courseSelect.options[courseSelect.selectedIndex];
+            const courseCode = selected ? (selected.getAttribute('data-course-code') || '').toUpperCase() : '';
+            const yearThreeCourses = ['HTM', 'HMT', 'BSOA', 'BSE'];
+            const baseYear = yearThreeCourses.includes(courseCode) ? '3' : '2';
+
+            if (rangeStartInput.value.trim() === '') {
+                rangeStartInput.value = baseYear + 'A';
+            }
+            if (rangeEndInput.value.trim() === '') {
+                rangeEndInput.value = baseYear + 'Z';
+            }
+        }
+
+        courseSelect.addEventListener('change', applyCourseDefaults);
+
+        rangeStartInput.addEventListener('input', function () {
+            this.value = this.value.toUpperCase();
+        });
+        rangeEndInput.addEventListener('input', function () {
+            this.value = this.value.toUpperCase();
+        });
+
+        applyCourseDefaults();
+    })();
+</script>
 <?php
+require_once dirname(__DIR__) . '/config/db.php';
 include 'includes/footer.php';
 $conn->close();
 ?>

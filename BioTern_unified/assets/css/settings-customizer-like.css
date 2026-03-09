@@ -59,11 +59,3 @@ html.app-skin-dark .settings-theme-customizer .content-area-body .card-body > .m
 .settings-theme-customizer .content-area-body .card-body .select2-container--default.select2-container--focus .select2-selection {
     border-color: var(--bs-primary);
 }
-
-.settings-theme-customizer .theme-progress-thin {
-    height: 5px;
-}
-
-.settings-theme-customizer .theme-options-label-offset {
-    top: -12px;
-}

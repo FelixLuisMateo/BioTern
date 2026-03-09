@@ -1,4 +1,5 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 // Shared header include.  Sets up HTML <head> and page header/navigation.
 // Pages can set a $page_title variable before including this file.
 if (session_status() === PHP_SESSION_NONE) {
@@ -8,12 +9,12 @@ if (session_status() === PHP_SESSION_NONE) {
 // Enforce authenticated session for all pages using the shared app header.
 $header_user_id_session = (int)($_SESSION['user_id'] ?? 0);
 if ($header_user_id_session <= 0) {
-    header('Location: auth-login-cover.php');
+    header('Location: /BioTern/BioTern_organized/auth-login-cover.php');
     exit;
 }
 
 // Refresh session identity from DB so page access stays connected to current account data.
-$header_db = @new mysqli('127.0.0.1', 'root', '', 'biotern_db');
+$header_db = @new mysqli(defined('DB_HOST') ? DB_HOST : '127.0.0.1', defined('DB_USER') ? DB_USER : 'root', defined('DB_PASS') ? DB_PASS : '', defined('DB_NAME') ? DB_NAME : 'biotern_db');
 if (!$header_db->connect_errno) {
     $stmt = $header_db->prepare("SELECT id, name, username, email, role, is_active, profile_picture FROM users WHERE id = ? LIMIT 1");
     if ($stmt) {
@@ -29,7 +30,7 @@ if (!$header_db->connect_errno) {
                 setcookie(session_name(), '', time() - 42000, $params['path'], $params['domain'], $params['secure'], $params['httponly']);
             }
             session_destroy();
-            header('Location: auth-login-cover.php');
+            header('Location: /BioTern/BioTern_organized/auth-login-cover.php');
             exit;
         }
 
@@ -51,17 +52,8 @@ if (!isset($base_href)) {
     $base_href = '';
 }
 
-$asset_prefix = '';
-$script_name = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
-if ($base_href !== '') {
-    $asset_prefix = $base_href;
-} elseif (strpos($script_name, '/management/') !== false) {
-    $asset_prefix = '../';
-}
-
-$biotern_theme_api_endpoint = $asset_prefix . 'api/theme-customizer.php';
+$biotern_theme_api_endpoint = $base_href . 'api/theme-customizer.php';
 require_once __DIR__ . '/theme-preferences.php';
-require_once dirname(__DIR__) . '/lib/notifications.php';
 
 $default_theme_prefs = [
     'skin' => 'light',
@@ -100,7 +92,6 @@ if (($biotern_theme_preferences['header'] ?? 'light') === 'dark') {
     $html_classes[] = 'app-header-dark';
 }
 $html_class_attr = implode(' ', $html_classes);
-$page_body_class = isset($page_body_class) && is_string($page_body_class) ? trim($page_body_class) : '';
 
 $header_user_name = trim((string)($_SESSION['name'] ?? $_SESSION['username'] ?? 'BioTern User'));
 if ($header_user_name === '') {
@@ -125,37 +116,93 @@ if ($session_avatar !== '') {
 $header_notifications = [];
 $header_notifications_unread = 0;
 if ($header_user_id_session > 0) {
-    $hdr_db = @new mysqli('127.0.0.1', 'root', '', 'biotern_db');
+    $hdr_db = @new mysqli(defined('DB_HOST') ? DB_HOST : '127.0.0.1', defined('DB_USER') ? DB_USER : 'root', defined('DB_PASS') ? DB_PASS : '', defined('DB_NAME') ? DB_NAME : 'biotern_db');
     if (!$hdr_db->connect_errno) {
-        biotern_notifications_ensure_table($hdr_db);
-
-        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['biotern_notification_action'])) {
-            $action = trim((string)$_POST['biotern_notification_action']);
-            if ($action === 'mark_one') {
-                $notification_id = (int)($_POST['notification_id'] ?? 0);
-                if ($notification_id > 0) {
-                    biotern_notifications_mark_read($hdr_db, $header_user_id_session, $notification_id);
-                }
-            } elseif ($action === 'mark_all') {
-                biotern_notifications_mark_all_read($hdr_db, $header_user_id_session);
-            }
-
-            $redirect_url = $_SERVER['REQUEST_URI'] ?? '';
-            if ($redirect_url !== '') {
-                header('Location: ' . $redirect_url);
-                $hdr_db->close();
-                exit;
+        $has_title = false;
+        $has_message = false;
+        $has_type = false;
+        $has_data = false;
+        $col_res = $hdr_db->query("SHOW COLUMNS FROM notifications");
+        if ($col_res instanceof mysqli_result) {
+            while ($col = $col_res->fetch_assoc()) {
+                $field = strtolower((string)($col['Field'] ?? ''));
+                if ($field === 'title') $has_title = true;
+                if ($field === 'message') $has_message = true;
+                if ($field === 'type') $has_type = true;
+                if ($field === 'data') $has_data = true;
             }
         }
 
-        $header_notifications_unread = biotern_notifications_count_unread($hdr_db, $header_user_id_session);
-        $header_notifications = biotern_notifications_fetch($hdr_db, $header_user_id_session, 6);
+        $count_stmt = $hdr_db->prepare("SELECT COUNT(*) AS unread_count FROM notifications WHERE user_id = ? AND (is_read = 0 OR is_read IS NULL)");
+        if ($count_stmt) {
+            $count_stmt->bind_param('i', $header_user_id_session);
+            $count_stmt->execute();
+            $row = $count_stmt->get_result()->fetch_assoc();
+            $count_stmt->close();
+            $header_notifications_unread = (int)($row['unread_count'] ?? 0);
+        }
+
+        if ($has_title && $has_message) {
+            $list_stmt = $hdr_db->prepare(
+                "SELECT id, title, message, is_read, created_at
+                 FROM notifications
+                 WHERE user_id = ?
+                 ORDER BY created_at DESC, id DESC
+                 LIMIT 6"
+            );
+            if ($list_stmt) {
+                $list_stmt->bind_param('i', $header_user_id_session);
+                $list_stmt->execute();
+                $res = $list_stmt->get_result();
+                while ($n = $res->fetch_assoc()) {
+                    $header_notifications[] = [
+                        'title' => (string)($n['title'] ?? 'Notification'),
+                        'message' => (string)($n['message'] ?? ''),
+                        'is_read' => (int)($n['is_read'] ?? 0),
+                        'created_at' => (string)($n['created_at'] ?? ''),
+                    ];
+                }
+                $list_stmt->close();
+            }
+        } elseif ($has_type && $has_data) {
+            $list_stmt = $hdr_db->prepare(
+                "SELECT id, type, data, is_read, created_at
+                 FROM notifications
+                 WHERE user_id = ?
+                 ORDER BY created_at DESC, id DESC
+                 LIMIT 6"
+            );
+            if ($list_stmt) {
+                $list_stmt->bind_param('i', $header_user_id_session);
+                $list_stmt->execute();
+                $res = $list_stmt->get_result();
+                while ($n = $res->fetch_assoc()) {
+                    $raw_data = (string)($n['data'] ?? '');
+                    $title = ucfirst((string)($n['type'] ?? 'notification'));
+                    $message = $raw_data;
+                    $json = json_decode($raw_data, true);
+                    if (is_array($json)) {
+                        $title = (string)($json['title'] ?? $title);
+                        $message = (string)($json['message'] ?? $message);
+                    }
+                    $header_notifications[] = [
+                        'title' => $title,
+                        'message' => $message,
+                        'is_read' => (int)($n['is_read'] ?? 0),
+                        'created_at' => (string)($n['created_at'] ?? ''),
+                    ];
+                }
+                $list_stmt->close();
+            }
+        }
         $hdr_db->close();
     }
 }
 ?>
 <!DOCTYPE html>
-<html lang="zxx"<?php echo $html_class_attr !== '' ? ' class="' . htmlspecialchars($html_class_attr, ENT_QUOTES, 'UTF-8') . '"' : ''; ?>>
+<html lang="zxx"<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $html_class_attr !== '' ? ' class="' . htmlspecialchars($html_class_attr, ENT_QUOTES, 'UTF-8') . '"' : ''; ?>>
 
 <head>
     <meta charset="utf-8">
@@ -164,17 +211,35 @@ if ($header_user_id_session > 0) {
     <meta name="description" content="">
     <meta name="keyword" content="">
     <meta name="author" content="ACT 2A Group 5">
-    <?php if ($base_href !== ''): ?>
-        <base href="<?php echo htmlspecialchars($base_href, ENT_QUOTES, 'UTF-8'); ?>">
-    <?php endif; ?>
+    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($base_href !== ''): ?>
+        <base href="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($base_href, ENT_QUOTES, 'UTF-8'); ?>">
+    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
     <!--! The above 6 meta tags *must* come first in the head; any other head content must come *after* these tags !-->
     <!--! BEGIN: Apps Title-->
-    <title><?php echo htmlspecialchars($page_title, ENT_QUOTES, 'UTF-8'); ?></title>
+    <title><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($page_title, ENT_QUOTES, 'UTF-8'); ?></title>
     <!--! END:  Apps Title-->
     <!--! BEGIN: Favicon-->
-    <link rel="shortcut icon" type="image/x-icon" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/favicon.ico">
+    <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
     <!--! END: Favicon-->
-    <!-- paceOptions are configured in assets/js/theme-preload-init.min.js -->
+    <script>
+        window.paceOptions = {
+            startOnPageLoad: false,
+            restartOnPushState: false,
+            restartOnRequestAfter: false,
+            ajax: false,
+            document: false,
+            eventLag: false,
+            elements: false
+        };
+    </script>
     <script src="assets/js/theme-preload-init.min.js"></script>
     <!--! BEGIN: Bootstrap CSS-->
     <link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css">
@@ -185,27 +250,201 @@ if ($header_user_id_session > 0) {
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2.min.css">
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2-theme.min.css">
     <!--! END: Vendors CSS-->
-    <!-- Theme runtime config moved to body data attributes -->
+    <script>
+        window.__bioternThemePrefs = <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo json_encode($biotern_theme_preferences, JSON_UNESCAPED_SLASHES); ?>;
+        window.__bioternThemeApi = <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo json_encode($biotern_theme_api_endpoint, JSON_UNESCAPED_SLASHES); ?>;
+    </script>
     <!--! BEGIN: Early Skin Script -->
-    <!-- moved to assets/js/theme-preload-init.min.js, assets/js/global-ui-helpers.js, and assets/js/theme-preferences-runtime.js -->
+    <script>
+        // Apply saved skin + sidebar state as early as possible to avoid initial layout flash.
+        (function(){
+            var serverPrefs = window.__bioternThemePrefs || {};
+            var allowedFonts = [
+                'app-font-family-inter',
+                'app-font-family-lato',
+                'app-font-family-rubik',
+                'app-font-family-cinzel',
+                'app-font-family-nunito',
+                'app-font-family-roboto',
+                'app-font-family-ubuntu',
+                'app-font-family-poppins',
+                'app-font-family-raleway',
+                'app-font-family-system-ui',
+                'app-font-family-noto-sans',
+                'app-font-family-fira-sans',
+                'app-font-family-work-sans',
+                'app-font-family-open-sans',
+                'app-font-family-maven-pro',
+                'app-font-family-quicksand',
+                'app-font-family-montserrat',
+                'app-font-family-josefin-sans',
+                'app-font-family-ibm-plex-sans',
+                'app-font-family-montserrat-alt',
+                'app-font-family-roboto-slab',
+                'app-font-family-source-sans-pro'
+            ];
+
+            function clearFontClasses() {
+                try {
+                    var cls = document.documentElement.className || '';
+                    var cleaned = cls.replace(/\bapp-font-family-[^\s]+\b/g, '').replace(/\s{2,}/g, ' ').trim();
+                    document.documentElement.className = cleaned;
+                } catch (e) {
+                }
+            }
+
+            function applyFont(fontClass) {
+                clearFontClasses();
+                if (fontClass && allowedFonts.indexOf(fontClass) !== -1) {
+                    document.documentElement.classList.add(fontClass);
+                }
+            }
+
+            function getSavedFont() {
+                if (typeof serverPrefs.font === 'string' && serverPrefs.font !== '') {
+                    return serverPrefs.font;
+                }
+
+                try {
+                    var legacyFont = localStorage.getItem('font-family');
+                    return legacyFont !== null ? legacyFont : 'default';
+                } catch (e) {
+                    return 'default';
+                }
+            }
+
+            applyFont(getSavedFont());
+
+            function applyNavigationMode(mode) {
+                document.documentElement.classList.remove('app-navigation-dark');
+                if (mode === 'dark') {
+                    document.documentElement.classList.add('app-navigation-dark');
+                }
+            }
+
+            function applyHeaderMode(mode) {
+                document.documentElement.classList.remove('app-header-dark');
+                if (mode === 'dark') {
+                    document.documentElement.classList.add('app-header-dark');
+                }
+            }
+
+            function getSavedNavigationMode() {
+                if (serverPrefs.navigation === 'dark' || serverPrefs.navigation === 'light') {
+                    return serverPrefs.navigation;
+                }
+                try {
+                    var nav = localStorage.getItem('app-navigation');
+                    if (nav === 'app-navigation-dark') return 'dark';
+                } catch (e) {
+                }
+                return 'light';
+            }
+
+            function getSavedHeaderMode() {
+                if (serverPrefs.header === 'dark' || serverPrefs.header === 'light') {
+                    return serverPrefs.header;
+                }
+                try {
+                    var hdr = localStorage.getItem('app-header');
+                    if (hdr === 'app-header-dark') return 'dark';
+                } catch (e) {
+                }
+                return 'light';
+            }
+
+            applyNavigationMode(getSavedNavigationMode());
+            applyHeaderMode(getSavedHeaderMode());
+
+            function getSavedSkin() {
+                try {
+                    // Respect the primary key even when intentionally set to empty (light mode).
+                    var primary = localStorage.getItem('app-skin');
+                    if (primary !== null) return primary;
+                    var alt = localStorage.getItem('app_skin');
+                    if (alt !== null) return alt;
+                    var theme = localStorage.getItem('theme');
+                    if (theme !== null) return theme;
+                    var legacy = localStorage.getItem('app-skin-dark');
+                    return legacy !== null ? legacy : '';
+                } catch (e) {
+                    // fall through to server-side preference
+                }
+                if (serverPrefs.skin === 'dark') return 'app-skin-dark';
+                if (serverPrefs.skin === 'light') return '';
+                return '';
+            }
+
+            var skin = getSavedSkin();
+            if (typeof skin === 'string' && skin.indexOf('dark') !== -1) {
+                document.documentElement.classList.add('app-skin-dark');
+            } else {
+                document.documentElement.classList.remove('app-skin-dark');
+            }
+
+            try {
+                var menuState = localStorage.getItem('nexel-classic-dashboard-menu-mini-theme');
+                if (!menuState) {
+                    if (serverPrefs.menu === 'mini') {
+                        menuState = 'menu-mini-theme';
+                    } else if (serverPrefs.menu === 'expanded') {
+                        menuState = 'menu-expend-theme';
+                    }
+                }
+                var width = window.innerWidth || document.documentElement.clientWidth || 0;
+
+                if (menuState === 'menu-mini-theme') {
+                    document.documentElement.classList.add('minimenu');
+                } else if (menuState === 'menu-expend-theme') {
+                    document.documentElement.classList.remove('minimenu');
+                } else {
+                    if (width >= 1024 && width <= 1600) {
+                        document.documentElement.classList.add('minimenu');
+                    } else if (width > 1600) {
+                        document.documentElement.classList.remove('minimenu');
+                    }
+                }
+            } catch (e) {
+                // ignore localStorage errors
+            }
+        })();
+    </script>
     <!--! END: Early Skin Script -->
     <!--! BEGIN: Custom CSS-->
     <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css" />
-    <link rel="stylesheet" type="text/css" href="assets/css/core.css" />
-    <?php if (isset($page_styles) && is_array($page_styles)): ?>
-        <?php foreach ($page_styles as $stylesheet): ?>
-            <?php if (is_string($stylesheet) && trim($stylesheet) !== ''): ?>
-                <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($stylesheet, ENT_QUOTES, 'UTF-8'); ?>" />
-            <?php endif; ?>
-        <?php endforeach; ?>
-    <?php endif; ?>
+    <link rel="stylesheet" type="text/css" href="assets/css/layout-shared-overrides.css" />
+    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if (isset($page_styles) && is_array($page_styles)): ?>
+        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($page_styles as $stylesheet): ?>
+            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if (is_string($stylesheet) && trim($stylesheet) !== ''): ?>
+                <link rel="stylesheet" type="text/css" href="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($stylesheet, ENT_QUOTES, 'UTF-8'); ?>" />
+            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
+        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
+    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
     <!--! END: Custom CSS-->
 </head>
 
-<body<?php echo $page_body_class !== '' ? ' class="' . htmlspecialchars($page_body_class, ENT_QUOTES, 'UTF-8') . '"' : ''; ?>
-    data-theme-prefs="<?php echo htmlspecialchars(json_encode($biotern_theme_preferences, JSON_UNESCAPED_SLASHES), ENT_QUOTES, 'UTF-8'); ?>"
-    data-theme-api="<?php echo htmlspecialchars((string)$biotern_theme_api_endpoint, ENT_QUOTES, 'UTF-8'); ?>">
-    <?php include_once __DIR__ . '/navigation.php'; ?>
+<body>
+    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+include_once __DIR__ . '/navigation.php'; ?>
     <!--! ================================================================ !-->
     <!--! [Start] Header !-->
     <!--! ================================================================ !-->
@@ -223,7 +462,7 @@ if ($header_user_id_session > 0) {
                     <a href="javascript:void(0);" id="menu-mini-button">
                         <i class="feather-align-left"></i>
                     </a>
-                    <a href="javascript:void(0);" id="menu-expend-button">
+                    <a href="javascript:void(0);" id="menu-expend-button" class="hidden-inline-toggle">
                         <i class="feather-arrow-right"></i>
                     </a>
                 </div>
@@ -250,7 +489,7 @@ if ($header_user_id_session > 0) {
                     </div>
                     <div class="nxl-h-item d-none d-sm-flex">
                         <div class="full-screen-switcher">
-                            <a href="javascript:void(0);" class="nxl-head-link me-0" onclick="$('body').fullScreenHelper('toggle');">
+                            <a href="javascript:void(0);" class="nxl-head-link me-0">
                                 <i class="feather-maximize maximize"></i>
                                 <i class="feather-minimize minimize"></i>
                             </a>
@@ -260,69 +499,92 @@ if ($header_user_id_session > 0) {
                         <a href="javascript:void(0);" class="nxl-head-link me-0 dark-button">
                             <i class="feather-moon"></i>
                         </a>
-                        <a href="javascript:void(0);" class="nxl-head-link me-0 light-button">
+                        <a href="javascript:void(0);" class="nxl-head-link me-0 light-button hidden-inline-toggle">
                             <i class="feather-sun"></i>
                         </a>
                     </div>
                     <div class="dropdown nxl-h-item click-only-dropdown">
                         <a class="nxl-head-link me-3" data-bs-toggle="dropdown" href="#" role="button" data-bs-auto-close="outside">
                             <i class="feather-bell"></i>
-                            <?php if ($header_notifications_unread > 0): ?>
-                                <span class="badge bg-danger nxl-h-badge"><?php echo (int)$header_notifications_unread; ?></span>
-                            <?php endif; ?>
+                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($header_notifications_unread > 0): ?>
+                                <span class="badge bg-danger nxl-h-badge"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$header_notifications_unread; ?></span>
+                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
                         </a>
                         <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-notifications-menu">
                             <div class="d-flex justify-content-between align-items-center notifications-head px-3 py-2 border-bottom">
                                 <span class="fw-semibold">Notifications</span>
-                                <div class="d-flex align-items-center gap-2">
-                                    <span class="badge bg-soft-primary text-primary"><?php echo (int)$header_notifications_unread; ?> unread</span>
-                                    <?php if ($header_notifications_unread > 0): ?>
-                                        <form method="post" class="m-0">
-                                            <input type="hidden" name="biotern_notification_action" value="mark_all">
-                                            <button type="submit" class="btn btn-sm btn-light">Mark all read</button>
-                                        </form>
-                                    <?php endif; ?>
-                                </div>
+                                <span class="badge bg-soft-primary text-primary"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$header_notifications_unread; ?> unread</span>
                             </div>
-                            <?php if (!empty($header_notifications)): ?>
-                                <?php foreach ($header_notifications as $n): ?>
+                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if (!empty($header_notifications)): ?>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($header_notifications as $n): ?>
                                     <div class="notifications-item">
                                         <img src="assets/images/avatar/1.png" alt="" class="rounded me-3 border">
                                         <div class="notifications-desc">
-                                            <a href="<?php echo htmlspecialchars($n['action_url'] !== '' ? $n['action_url'] : 'javascript:void(0);', ENT_QUOTES, 'UTF-8'); ?>" class="font-body text-truncate-2-line"><?php echo htmlspecialchars($n['title'], ENT_QUOTES, 'UTF-8'); ?></a>
-                                            <div class="fs-12 text-muted text-truncate-2-line"><?php echo htmlspecialchars($n['message'], ENT_QUOTES, 'UTF-8'); ?></div>
-                                            <div class="notifications-date text-muted border-bottom border-bottom-dashed"><?php echo htmlspecialchars($n['created_at'] !== '' ? date('M d, Y h:i A', strtotime($n['created_at'])) : 'Just now', ENT_QUOTES, 'UTF-8'); ?></div>
-                                            <?php if ((int)($n['is_read'] ?? 0) === 0): ?>
-                                                <form method="post" class="mt-1">
-                                                    <input type="hidden" name="biotern_notification_action" value="mark_one">
-                                                    <input type="hidden" name="notification_id" value="<?php echo (int)($n['id'] ?? 0); ?>">
-                                                    <button type="submit" class="btn btn-xs btn-light">Mark as read</button>
-                                                </form>
-                                            <?php endif; ?>
+                                            <a href="javascript:void(0);" class="font-body text-truncate-2-line"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($n['title'], ENT_QUOTES, 'UTF-8'); ?></a>
+                                            <div class="fs-12 text-muted text-truncate-2-line"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($n['message'], ENT_QUOTES, 'UTF-8'); ?></div>
+                                            <div class="notifications-date text-muted border-bottom border-bottom-dashed"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($n['created_at'] !== '' ? date('M d, Y h:i A', strtotime($n['created_at'])) : 'Just now', ENT_QUOTES, 'UTF-8'); ?></div>
                                         </div>
                                     </div>
-                                <?php endforeach; ?>
-                            <?php else: ?>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
+                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+else: ?>
                                 <div class="px-3 py-3 text-muted fs-12">No notifications yet.</div>
-                            <?php endif; ?>
+                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
                         </div>
                     </div>
                     <div class="dropdown nxl-h-item click-only-dropdown">
                         <a href="javascript:void(0);" data-bs-toggle="dropdown" role="button" data-bs-auto-close="outside">
-                            <img src="<?php echo htmlspecialchars($header_avatar, ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar me-0">
+                            <img src="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($header_avatar, ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar me-0">
                         </a>
                         <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-user-dropdown">
                             <div class="dropdown-header">
                                 <div class="d-flex align-items-center">
-                                    <img src="<?php echo htmlspecialchars($header_avatar, ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar">
+                                    <img src="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($header_avatar, ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar">
                                     <div>
                                         <h6 class="text-dark mb-0">
-                                            <?php echo htmlspecialchars($header_user_name, ENT_QUOTES, 'UTF-8'); ?>
-                                            <?php if ($header_user_role !== ''): ?>
-                                                <span class="badge bg-soft-success text-success ms-1"><?php echo htmlspecialchars(ucfirst($header_user_role), ENT_QUOTES, 'UTF-8'); ?></span>
-                                            <?php endif; ?>
+                                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($header_user_name, ENT_QUOTES, 'UTF-8'); ?>
+                                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($header_user_role !== ''): ?>
+                                                <span class="badge bg-soft-success text-success ms-1"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars(ucfirst($header_user_role), ENT_QUOTES, 'UTF-8'); ?></span>
+                                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
                                         </h6>
-                                        <span class="fs-12 fw-medium text-muted"><?php echo htmlspecialchars($header_user_email, ENT_QUOTES, 'UTF-8'); ?></span>
+                                        <span class="fs-12 fw-medium text-muted"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($header_user_email, ENT_QUOTES, 'UTF-8'); ?></span>
                                     </div>
                                 </div>
                             </div>
@@ -370,3 +632,4 @@ if ($header_user_id_session > 0) {
     <!--! ================================================================ !-->
     <main class="nxl-container">
         <div class="nxl-content">
+

@@ -1,4 +1,5 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -16,18 +17,8 @@ if (isset($_GET['logout']) && (string)$_GET['logout'] === '1') {
 $dbHost = '127.0.0.1';
 $dbUser = 'root';
 $dbPass = '';
-$dbName = 'biotern_db';
+$dbName = defined('DB_NAME') ? DB_NAME : 'biotern_db';
 $login_error = '';
-$script_name = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
-$route_prefix = (strpos($script_name, '/auth/') !== false) ? '../' : '';
-
-// Keep login page inaccessible to already authenticated users on direct access.
-if ((int)($_SESSION['user_id'] ?? 0) > 0) {
-    header('Location: ' . $route_prefix . 'homepage.php');
-    exit;
-}
-
-$asset_prefix = (strpos($script_name, '/auth/') !== false) ? '../' : '';
 $next = isset($_GET['next']) ? basename((string)$_GET['next']) : '';
 if ($next !== '' && !preg_match('/^[A-Za-z0-9_-]+\.php$/', $next)) {
     $next = '';
@@ -71,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['profile_picture'] = (string)($user['profile_picture'] ?? '');
                     $_SESSION['logged_in'] = true;
 
-                    header('Location: ' . $route_prefix . ($next !== '' ? $next : 'homepage.php'));
+                    header('Location: ' . ($next !== '' ? $next : 'homepage.php'));
                     exit;
                 }
             } else {
@@ -89,18 +80,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta http-equiv="x-ua-compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>BioTern || Login Cover</title>
-    <link rel="shortcut icon" type="image/x-icon" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/favicon.ico">
-    <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/js/theme-preload-init.min.js"></script>
-    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/bootstrap.min.css">
-    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/vendors/css/vendors.min.css">
-    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/theme.min.css">
+    <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
+    <script src="assets/js/theme-preload-init.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/vendors/css/vendors.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css">
 </head>
 <body>
     <main class="auth-cover-wrapper">
         <div class="auth-cover-content-inner">
             <div class="auth-cover-content-wrapper">
                 <div class="auth-img">
-                    <img src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/auth/auth-cover-login-bg.png" alt="" class="img-fluid">
+                    <img src="assets/images/auth/auth-cover-login-bg.png" alt="" class="img-fluid">
                 </div>
             </div>
         </div>
@@ -108,19 +99,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="auth-cover-card-wrapper">
                 <div class="auth-cover-card p-sm-5">
                     <div class="wd-50 mb-5">
-                        <img src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/logo-abbr.png" alt="" class="img-fluid">
+                        <img src="assets/images/logo-abbr.png" alt="" class="img-fluid">
                     </div>
                     <h2 class="fs-25 fw-bolder mb-4">Login</h2>
                     <h4 class="fs-15 fw-bold mb-2">Log in to your Clark College of Science and Technology internship account.</h4>
 
-                    <?php if ($login_error !== ''): ?>
-                        <div class="alert alert-danger" role="alert"><?php echo htmlspecialchars($login_error); ?></div>
-                    <?php endif; ?>
+                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($login_error !== ''): ?>
+                        <div class="alert alert-danger" role="alert"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($login_error); ?></div>
+                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
 
                     <form action="auth-login-cover.php" method="post" class="w-100 mt-4 pt-2">
-                        <input type="hidden" name="next" value="<?php echo htmlspecialchars($next, ENT_QUOTES, 'UTF-8'); ?>">
+                        <input type="hidden" name="next" value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($next, ENT_QUOTES, 'UTF-8'); ?>">
                         <div class="mb-4">
-                            <input type="text" name="identifier" id="identifier" class="form-control" placeholder="Email or Username" value="<?php echo isset($_POST['identifier']) ? htmlspecialchars((string)$_POST['identifier']) : ''; ?>" required aria-required="true" aria-label="Email or Username" autofocus>
+                            <input type="text" name="identifier" id="identifier" class="form-control" placeholder="Email or Username" value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo isset($_POST['identifier']) ? htmlspecialchars((string)$_POST['identifier']) : ''; ?>" required aria-required="true" aria-label="Email or Username" autofocus>
                         </div>
                         <div class="mb-3 input-group">
                             <input type="password" name="password" id="passwordInput" class="form-control" placeholder="Password" required aria-required="true" aria-label="Password">
@@ -148,9 +149,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </main>
 
-    <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/vendors/js/vendors.min.js"></script>
-    <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/js/common-init.min.js"></script>
-    <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/js/theme-customizer-init.min.js"></script>
+    <script src="assets/vendors/js/vendors.min.js"></script>
+    <script src="assets/js/common-init.min.js"></script>
+    <script src="assets/js/theme-customizer-init.min.js"></script>
     <script>
         // Minimal show/hide password toggle (kept per request)
         document.addEventListener('DOMContentLoaded', function () {
@@ -182,4 +183,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </script>
 </body>
 </html>
+
+
 

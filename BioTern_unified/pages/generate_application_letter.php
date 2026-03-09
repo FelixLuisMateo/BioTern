@@ -1,9 +1,10 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 // Generate printable Application Letter for a student
-$host = 'localhost';
-$db_user = 'root';
-$db_password = '';
-$db_name = 'biotern_db';
+$host = defined('DB_HOST') ? DB_HOST : 'localhost';
+$db_user = defined('DB_USER') ? DB_USER : 'root';
+$db_password = defined('DB_PASS') ? DB_PASS : ''; 
+$db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
 
 try {
     $conn = new mysqli($host, $db_user, $db_password, $db_name);
@@ -46,6 +47,9 @@ $ap_hours = isset($_GET['ap_hours']) ? trim($_GET['ap_hours']) : '250';
 $print_date = isset($_GET['date']) ? trim($_GET['date']) : $today;
 $use_saved_template = isset($_GET['use_saved_template']) && $_GET['use_saved_template'] === '1';
 
+// do NOT default recipient name to student; leave blank unless provided
+
+// download flags: start output buffering when a download is requested
 $do_download_pdf = isset($_GET['download_pdf']);
 $do_download_html = isset($_GET['download_html']);
 if ($do_download_pdf || $do_download_html) ob_start();
@@ -58,31 +62,38 @@ if ($do_download_pdf || $do_download_html) ob_start();
     <title>BioTern || Application Letter - <?php echo htmlspecialchars(trim(($student['first_name'] ?? '') . ' ' . ($student['last_name'] ?? '')) ?: 'Preview'); ?></title>
     <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
     <style>
-        @page { size: Letter portrait; margin: 0.5in; }
-        html,body{ height:100%; margin:0; padding:0; }
-        body{ font-family: 'Times New Roman', Times, serif; color:#111; background:#eceff3; font-size:13pt; }
-        .container{
-            width:100%;
-            max-width:7.5in;
-            margin:18px auto;
-            padding:0.4in;
-            box-sizing:border-box;
-            position:relative;
-            background:#fff;
-            box-shadow:0 8px 28px rgba(0, 0, 0, 0.14);
-        }
-        .header{
-            position: relative;
-            min-height: 60px;
-            text-align:center;
-            border-bottom:2px solid #1c5ab1;
-            padding: 0 0 0.04in 0;
-            margin-bottom:10px;
-        }
-        .crest{ position:absolute; top:0.24in; left:0.12in; width:0.82in; height:0.80in; object-fit:contain; }
+                /* Use US Letter for printing and set sensible margins */
+                    @page { size: Letter portrait; margin: 0.5in; }
+                    html,body{ height:100%; margin:0; padding:0; }
+                    /* document body uses Times New Roman per spec */
+                    body{ font-family: 'Times New Roman', Times, serif; color:#111; background:#eceff3; font-size:13pt; }
+          /* fit printable area: printable width = A4 width - page margins (210mm - 20mm = 190mm)
+                            container total (max-width + left/right padding) should not exceed printable width */
+                    .container{
+                        width:100%;
+                        max-width:7.5in;
+                        margin:18px auto;
+                        padding:0.4in;
+                        box-sizing:border-box;
+                        position:relative;
+                        background:#fff;
+                        box-shadow:0 8px 28px rgba(0, 0, 0, 0.14);
+                    }
+                    .header{
+                        position: relative;
+                        min-height: 60px;
+                        text-align:center;
+                        border-bottom:2px solid #1c5ab1;
+                        padding: 0 0 0.04in 0;
+                        margin-bottom:10px;
+                    }
+                    /* logo size requested: 0.77in x 0.76in */
+                    .crest{ position:absolute; top:0.24in; left:0.12in; width:0.82in; height:0.80in; object-fit:contain; }
+        /* Header styles as specified: Calibri (Body), blue colors and sizes */
         .header h2 { font-family: 'Times New Roman', Times, serif; color: #1b4f9c; font-size:14pt; margin:4px 0 2px 0; }
         .header .meta { font-family: 'Times New Roman', Times, serif; color:#1b4f9c; font-size:10pt; font-weight:700; }
         .header .tel { font-family: 'Times New Roman', Times, serif; color:#1b4f9c; font-size:12pt; font-weight:700; }
+        /* Main content font sizes: heading 12pt Times New Roman, body 11pt Times New Roman */
         h3{ font-family: 'Times New Roman', Times, serif; font-size:11pt; color:#000; margin:6px 0; text-align:center; }
         #application_doc_content h3{
             text-align:center !important;
@@ -105,15 +116,20 @@ if ($do_download_pdf || $do_download_html) ob_start();
         .filled-val-wide{ min-width:240px; }
         .filled-val-name{ min-width:170px; }
         @media print {
+            /* reduce spacing on print to better fit one page */
             .header{ padding-bottom:6px; margin-bottom:6px }
             .content{ margin-top:16px; font-size:15px }
             .signature{ margin-top:18px }
             body { background: #fff; }
             .no-print { display: none !important; }
+            /* keep printable padding consistent with page margins */
             .container { margin: 0; padding: 10mm; background:#fff; box-shadow:none; }
+            /* avoid page breaks inside main sections */
             .container, .content, .signature { page-break-inside: avoid; }
             .crest { display: block !important; }
+            /* ensure images print with correct colors */
             img { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            /* Reduce bottom spacing that might create an extra page */
             p { orphans: 3; widows: 3; }
         }
         .field-block{ margin:6px 0; }
@@ -145,6 +161,7 @@ if ($do_download_pdf || $do_download_html) ob_start();
 </head>
 <body>
 <div class="container">
+    <!-- crest at top-left (auth-cover-login-bg.png if available) -->
     <img class="crest" src="../assets/images/auth/auth-cover-login-bg.png" alt="crest" onerror="this.style.display='none'">
     <div class="header">
         <h2>CLARK COLLEGE OF SCIENCE AND TECHNOLOGY</h2>
@@ -237,7 +254,9 @@ if ($do_download_pdf || $do_download_html) ob_start();
             setText('ap_student_contact', <?php echo json_encode($phone); ?>);
         }
 
+        // Apply once for default template content.
         applyRuntimeValues();
+        // Expose for later call after saved-template injection.
         window.__applyApplicationRuntimeValues = applyRuntimeValues;
     })();
 
@@ -296,9 +315,11 @@ if ($do_download_pdf || $do_download_html) ob_start();
         window.__forceApplicationUnderlines = forceApplicationUnderlines;
     })();
 
+    // button actions
     (function(){
         ensurePrintableHoursSpan(<?php echo json_encode($ap_hours); ?>);
 
+        // print button: open print dialog â€” note: browser headers/footers are controlled by print dialog settings
         var printButton = document.getElementById('btn_print');
         if (printButton) {
             printButton.addEventListener('click', function(e){
@@ -368,6 +389,8 @@ if ($do_download_pdf || $do_download_html) ob_start();
 </html>
 
 <?php
+require_once dirname(__DIR__) . '/config/db.php';
+// If a download was requested, capture the generated output and return it as an attachment.
 if (isset($do_download_html) && $do_download_html) {
     $html = ob_get_clean();
     header('Content-Type: application/octet-stream');
@@ -379,7 +402,9 @@ if (isset($do_download_html) && $do_download_html) {
 
 if (isset($do_download_pdf) && $do_download_pdf) {
     $html = ob_get_clean();
+    // If Dompdf is available, render PDF; otherwise fallback to HTML attachment
     if (class_exists('Dompdf\\Dompdf')) {
+        // instantiate Dompdf (fully-qualified namespace)
         $dompdf = new \Dompdf\Dompdf();
         $dompdf->loadHtml($html);
         $dompdf->setPaper('letter', 'portrait');
@@ -390,6 +415,7 @@ if (isset($do_download_pdf) && $do_download_pdf) {
         $conn->close();
         exit;
     } else {
+        // fallback: return HTML file and inform user via filename
         header('Content-Type: application/octet-stream');
         header('Content-Disposition: attachment; filename="application_letter_' . $student_id . '.html"');
         echo $html;
@@ -398,5 +424,7 @@ if (isset($do_download_pdf) && $do_download_pdf) {
     }
 }
 
+// normal page close
 $conn->close();
 ?>
+

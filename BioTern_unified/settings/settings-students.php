@@ -1,4 +1,5 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 $page_title = 'StudentsSettings';
 $page_styles = ['assets/css/settings-customizer-like.css'];
 include 'includes/header.php';
@@ -217,7 +218,10 @@ include 'includes/header.php';
                     <!-- [ Footer ] start -->
                     <footer class="footer">
                         <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
-                            <span>Copyright &copy; <span class="app-current-year"><?php echo date('Y'); ?></span></span>
+                            <span>Copyright ï¿½</span>
+                            <script>
+                                document.write(new Date().getFullYear());
+                            </script>
                         </p>
                         <div class="d-flex align-items-center gap-4">
                             <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Help</a>
@@ -229,4 +233,8 @@ include 'includes/header.php';
                 </div>
                 <!-- [ Content Area ] end -->
             </div>
-            <?php include 'includes/footer.php'; ?>
+            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+include 'includes/footer.php'; ?>
+
+

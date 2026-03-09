@@ -1,9 +1,10 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 // Database Connection
-$host = 'localhost';
-$db_user = 'root';
-$db_password = '';
-$db_name = 'biotern_db';
+$host = defined('DB_HOST') ? DB_HOST : 'localhost';
+$db_user = defined('DB_USER') ? DB_USER : 'root';
+$db_password = defined('DB_PASS') ? DB_PASS : ''; 
+$db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
 
 try {
     $conn = new mysqli($host, $db_user, $db_password, $db_name);
@@ -78,23 +79,37 @@ function getStatusBadgeClass($status) {
             return 'secondary';
     }
 }
-
-$script_name = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
-$asset_prefix = (strpos($script_name, '/pages/') !== false) ? '../' : '';
-$page_title = 'BioTern || Print Attendance';
-$base_href = $asset_prefix;
-$page_styles = [
-    'assets/css/print-attendance-page.css',
-];
-$page_scripts = [
-    'assets/js/print-attendance-runtime.js',
-];
-
-include 'includes/header.php';
 ?>
 
-<div class="main-content">
-    <button id="btn_print_attendance" type="button" class="btn btn-primary no-print print-trigger">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Print Attendance - BioTern</title>
+    <link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css">
+    <style>
+        @media print {
+            body { margin: 0; padding: 10px; }
+            .no-print { display: none !important; }
+            .card { page-break-inside: avoid; }
+        }
+        body { font-family: Arial, sans-serif; }
+        .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 15px; }
+        .info-section { margin: 20px 0; }
+        .info-row { display: flex; margin: 10px 0; }
+        .info-label { font-weight: bold; width: 200px; }
+        .attendance-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .attendance-table th, .attendance-table td { border: 1px solid #ddd; padding: 10px; text-align: center; }
+        .attendance-table th { background-color: #f8f9fa; }
+        .status-approved { color: green; font-weight: bold; }
+        .status-rejected { color: red; font-weight: bold; }
+        .status-pending { color: orange; font-weight: bold; }
+        .footer { margin-top: 40px; text-align: center; font-size: 0.9rem; color: #666; }
+    </style>
+</head>
+<body>
+    <button onclick="window.print()" class="btn btn-primary no-print" style="margin-bottom: 20px;">
         <i class="feather-printer"></i> Print
     </button>
     
@@ -159,7 +174,7 @@ include 'includes/header.php';
             </tbody>
         </table>
         
-        <div class="info-section info-section-spaced">
+        <div class="info-section" style="margin-top: 30px;">
             <h5>Hours Summary</h5>
             <div class="info-row">
                 <span class="info-label">Morning Hours:</span>
@@ -173,7 +188,7 @@ include 'includes/header.php';
                 <span class="info-label">Afternoon Hours:</span>
                 <span><?php echo calculateHours($attendance['afternoon_time_in'], $attendance['afternoon_time_out']); ?> hours</span>
             </div>
-            <div class="info-row info-row-total">
+            <div class="info-row" style="margin-top: 10px; font-weight: bold;">
                 <span class="info-label">Total Hours:</span>
                 <span>
                     <?php 
@@ -221,6 +236,15 @@ include 'includes/header.php';
             <p>The attendance record you're trying to print could not be found.</p>
         </div>
     <?php endif; ?>
-</div>
+    
+    <script>
+        // Auto-trigger print dialog when page loads
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                window.print();
+            }, 500);
+        });
+    </script>
+</body>
+</html>
 
-<?php include 'includes/footer.php'; ?>

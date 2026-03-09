@@ -1,16 +1,9 @@
-<?php
-include 'filter.php';
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-$current_user_id = (int)($_SESSION['user_id'] ?? 0);
-$current_role = strtolower(trim((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? '')));
-
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 $host = '127.0.0.1';
 $db_user = 'root';
 $db_password = '';
-$db_name = 'biotern_db';
+$db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
 
 try {
     $conn = new mysqli($host, $db_user, $db_password, $db_name);
@@ -33,52 +26,6 @@ $hasColumn = function ($columnName) use ($courseColumns) {
     return in_array(strtolower($columnName), $courseColumns, true);
 };
 
-$flash_message = (string)($_SESSION['courses_flash_message'] ?? '');
-$flash_type = (string)($_SESSION['courses_flash_type'] ?? 'success');
-unset($_SESSION['courses_flash_message'], $_SESSION['courses_flash_type']);
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete_course') {
-    $course_id = (int)($_POST['course_id'] ?? 0);
-
-    if (!in_array($current_role, ['admin'], true)) {
-        $_SESSION['courses_flash_message'] = 'Only admin can delete courses.';
-        $_SESSION['courses_flash_type'] = 'danger';
-        header('Location: courses.php');
-        exit;
-    }
-
-    if ($course_id <= 0) {
-        $_SESSION['courses_flash_message'] = 'Invalid course id.';
-        $_SESSION['courses_flash_type'] = 'danger';
-        header('Location: courses.php');
-        exit;
-    }
-
-    $deleted = false;
-    if ($hasColumn('deleted_at')) {
-        $stmt_del = $conn->prepare('UPDATE courses SET deleted_at = NOW() WHERE id = ? LIMIT 1');
-        if ($stmt_del) {
-            $stmt_del->bind_param('i', $course_id);
-            $deleted = $stmt_del->execute() && $stmt_del->affected_rows > 0;
-            $stmt_del->close();
-        }
-    } else {
-        $stmt_del = $conn->prepare('DELETE FROM courses WHERE id = ? LIMIT 1');
-        if ($stmt_del) {
-            $deleted = false;
-            if ($stmt_del->bind_param('i', $course_id)) {
-                $deleted = $stmt_del->execute() && $stmt_del->affected_rows > 0;
-            }
-            $stmt_del->close();
-        }
-    }
-
-    $_SESSION['courses_flash_message'] = $deleted ? 'Course deleted successfully.' : 'Unable to delete course (it may be in use).';
-    $_SESSION['courses_flash_type'] = $deleted ? 'success' : 'danger';
-    header('Location: courses.php');
-    exit;
-}
-
 $selectFields = ['id', 'name', 'code'];
 if ($hasColumn('course_head')) {
     $selectFields[] = 'course_head';
@@ -89,15 +36,6 @@ if ($hasColumn('description')) {
 if ($hasColumn('total_ojt_hours')) {
     $selectFields[] = 'total_ojt_hours';
 }
-if ($hasColumn('internal_hours')) {
-    $selectFields[] = 'internal_hours';
-}
-if ($hasColumn('external_hours')) {
-    $selectFields[] = 'external_hours';
-}
-if ($hasColumn('school_year')) {
-    $selectFields[] = 'school_year';
-}
 if ($hasColumn('is_active')) {
     $selectFields[] = 'is_active';
 }
@@ -105,37 +43,7 @@ if ($hasColumn('created_at')) {
     $selectFields[] = 'created_at';
 }
 
-$where = [];
-if ($hasColumn('deleted_at')) {
-    $where[] = "deleted_at IS NULL";
-}
-
-if ($current_role === 'coordinator' && $current_user_id > 0) {
-    $has_coord_courses = false;
-    $coord_course_tbl_res = $conn->query("SHOW TABLES LIKE 'coordinator_courses'");
-    if ($coord_course_tbl_res && $coord_course_tbl_res->num_rows > 0) {
-        $has_coord_courses = true;
-    }
-
-    if ($has_coord_courses) {
-        $where[] = "id IN (SELECT course_id FROM coordinator_courses WHERE coordinator_user_id = " . $current_user_id . ")";
-    } elseif ($hasColumn('coordinator_id')) {
-        $where[] = "coordinator_id = " . $current_user_id;
-    } else {
-        $coordCols = [];
-        $coordRes = $conn->query("SHOW COLUMNS FROM coordinators");
-        if ($coordRes) {
-            while ($coordCol = $coordRes->fetch_assoc()) {
-                $coordCols[] = strtolower((string)$coordCol['Field']);
-            }
-        }
-        if (in_array('course_id', $coordCols, true) && in_array('user_id', $coordCols, true)) {
-            $where[] = "id IN (SELECT course_id FROM coordinators WHERE user_id = " . $current_user_id . ")";
-        }
-    }
-}
-
-$whereClause = count($where) ? (" WHERE " . implode(' AND ', $where)) : "";
+$whereClause = $hasColumn('deleted_at') ? " WHERE deleted_at IS NULL" : "";
 $orderBy = $hasColumn('created_at') ? "created_at DESC" : "id DESC";
 
 $courses = [];
@@ -152,7 +60,16 @@ $colCount = count($selectFields) + 1; // +1 for Actions column
 $page_title = 'Courses';
 include 'includes/header.php';
 ?>
-<link rel="stylesheet" type="text/css" href="assets/css/management-courses-page.css">
+<style>
+    /* Prevent last-row action button border from getting visually clipped. */
+    .courses-table tbody tr:last-child td {
+        padding-bottom: 14px;
+    }
+
+    .courses-table .action-cell .btn {
+        line-height: 1.2;
+    }
+</style>
 <div class="page-header">
     <div class="page-header-left d-flex align-items-center">
         <div class="page-header-title">
@@ -169,13 +86,12 @@ include 'includes/header.php';
 </div>
 
 <div class="main-content">
-    <?php if ($flash_message !== ''): ?>
-        <div class="alert alert-<?php echo htmlspecialchars($flash_type); ?> mb-3"><?php echo htmlspecialchars($flash_message); ?></div>
-    <?php endif; ?>
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="card-title mb-0">All Courses</h5>
-            <span class="badge bg-primary text-white px-3 py-1 fw-semibold"><?php echo count($courses); ?> total</span>
+            <span class="badge bg-primary text-white px-3 py-1" style="font-weight:600;"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo count($courses); ?> total</span>
         </div>
         <div class="card-body p-0 pb-3">
             <div class="table-responsive">
@@ -185,67 +101,112 @@ include 'includes/header.php';
                             <th>ID</th>
                             <th>Code</th>
                             <th>Name</th>
-                            <?php if ($hasColumn('course_head')): ?><th>Course Head</th><?php endif; ?>
-                            <?php if ($hasColumn('total_ojt_hours')): ?><th>Total OJT Hours</th><?php endif; ?>
-                            <?php if ($hasColumn('internal_hours')): ?><th>Internal Hours</th><?php endif; ?>
-                            <?php if ($hasColumn('external_hours')): ?><th>External Hours</th><?php endif; ?>
-                            <?php if ($hasColumn('school_year')): ?><th>School Year</th><?php endif; ?>
-                            <?php if ($hasColumn('is_active')): ?><th>Status</th><?php endif; ?>
-                            <?php if ($hasColumn('created_at')): ?><th>Created</th><?php endif; ?>
+                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($hasColumn('course_head')): ?><th>Course Head</th><?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
+                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($hasColumn('total_ojt_hours')): ?><th>Total OJT Hours</th><?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
+                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($hasColumn('is_active')): ?><th>Status</th><?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
+                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($hasColumn('created_at')): ?><th>Created</th><?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                    <?php if (!empty($courses)): ?>
-                        <?php foreach ($courses as $course): ?>
+                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if (!empty($courses)): ?>
+                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($courses as $course): ?>
                             <tr>
-                                <td><?php echo (int)$course['id']; ?></td>
-                                <td><?php echo htmlspecialchars((string)($course['code'] ?? '')); ?></td>
-                                <td><?php echo htmlspecialchars((string)($course['name'] ?? '')); ?></td>
-                                <?php if ($hasColumn('course_head')): ?>
-                                    <td><?php echo htmlspecialchars((string)($course['course_head'] ?? '-')); ?></td>
-                                <?php endif; ?>
-                                <?php if ($hasColumn('total_ojt_hours')): ?>
-                                    <td><?php echo htmlspecialchars((string)($course['total_ojt_hours'] ?? '-')); ?></td>
-                                <?php endif; ?>
-                                <?php if ($hasColumn('internal_hours')): ?>
-                                    <td><?php echo (int)($course['internal_hours'] ?? 0); ?></td>
-                                <?php endif; ?>
-                                <?php if ($hasColumn('external_hours')): ?>
-                                    <td><?php echo (int)($course['external_hours'] ?? 0); ?></td>
-                                <?php endif; ?>
-                                <?php if ($hasColumn('school_year')): ?>
-                                    <td><?php echo htmlspecialchars((string)($course['school_year'] ?? '-')); ?></td>
-                                <?php endif; ?>
-                                <?php if ($hasColumn('is_active')): ?>
+                                <td><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$course['id']; ?></td>
+                                <td><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars((string)($course['code'] ?? '')); ?></td>
+                                <td><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars((string)($course['name'] ?? '')); ?></td>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($hasColumn('course_head')): ?>
+                                    <td><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars((string)($course['course_head'] ?? '-')); ?></td>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($hasColumn('total_ojt_hours')): ?>
+                                    <td><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars((string)($course['total_ojt_hours'] ?? '-')); ?></td>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($hasColumn('is_active')): ?>
                                     <td>
-                                        <?php if ((string)($course['is_active'] ?? '0') === '1'): ?>
+                                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ((string)($course['is_active'] ?? '0') === '1'): ?>
                                             <span class="badge bg-success">Active</span>
-                                        <?php else: ?>
+                                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+else: ?>
                                             <span class="badge bg-secondary">Inactive</span>
-                                        <?php endif; ?>
+                                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
                                     </td>
-                                <?php endif; ?>
-                                <?php if ($hasColumn('created_at')): ?>
-                                    <td><?php echo htmlspecialchars((string)($course['created_at'] ?? '-')); ?></td>
-                                <?php endif; ?>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($hasColumn('created_at')): ?>
+                                    <td><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars((string)($course['created_at'] ?? '-')); ?></td>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
                                 <td class="action-cell">
-                                    <a href="courses-edit.php?id=<?php echo (int)$course['id']; ?>" class="btn btn-sm btn-outline-primary">Edit</a>
-                                    <?php if ($current_role === 'admin'): ?>
-                                        <form method="post" class="d-inline" onsubmit="return confirm('Delete this course?');">
-                                            <input type="hidden" name="action" value="delete_course">
-                                            <input type="hidden" name="course_id" value="<?php echo (int)$course['id']; ?>">
-                                            <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
-                                        </form>
-                                    <?php endif; ?>
+                                    <a href="courses-edit.php?id=<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$course['id']; ?>" class="btn btn-sm btn-outline-primary">Edit</a>
                                 </td>
                             </tr>
-                        <?php endforeach; ?>
-                    <?php else: ?>
+                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
+                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+else: ?>
                         <tr>
-                            <td colspan="<?php echo $colCount; ?>" class="text-center py-4 text-muted">No courses found.</td>
+                            <td colspan="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $colCount; ?>" class="text-center py-4 text-muted">No courses found.</td>
                         </tr>
-                    <?php endif; ?>
+                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
                     </tbody>
                 </table>
             </div>
@@ -253,5 +214,7 @@ include 'includes/header.php';
     </div>
 </div>
 <?php
+require_once dirname(__DIR__) . '/config/db.php';
 include 'includes/footer.php';
+
 

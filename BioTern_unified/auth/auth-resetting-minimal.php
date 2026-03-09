@@ -1,4 +1,5 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -6,13 +7,10 @@ if (session_status() === PHP_SESSION_NONE) {
 $dbHost = '127.0.0.1';
 $dbUser = 'root';
 $dbPass = '';
-$dbName = 'biotern_db';
+$dbName = defined('DB_NAME') ? DB_NAME : 'biotern_db';
 
 $reset_error = '';
 $reset_success = '';
-$script_name = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
-$asset_prefix = (strpos($script_name, '/auth/') !== false) ? '../' : '';
-$route_prefix = $asset_prefix;
 
 $contact = isset($_SESSION['password_reset_contact']) ? trim((string)$_SESSION['password_reset_contact']) : '';
 $isVerified = !empty($_SESSION['password_reset_verified']);
@@ -115,11 +113,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="keyword" content="">
     <meta name="author" content="ACT 2A Group 5">
     <title>BioTern || Resetting Minimal</title>
-    <link rel="shortcut icon" type="image/x-icon" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/favicon.ico">
-    <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/js/theme-preload-init.min.js"></script>
-    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/bootstrap.min.css">
-    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/vendors/css/vendors.min.css">
-    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/theme.min.css">
+    <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
+    <script src="assets/js/theme-preload-init.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/vendors/css/vendors.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css">
 </head>
 
 <body>
@@ -128,24 +126,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="minimal-card-wrapper">
                 <div class="card mb-4 mt-5 mx-4 mx-sm-0 position-relative">
                     <div class="wd-50 bg-white p-2 rounded-circle shadow-lg position-absolute translate-middle top-0 start-50">
-                        <img src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/logo-abbr.png" alt="" class="img-fluid">
+                        <img src="assets/images/logo-abbr.png" alt="" class="img-fluid">
                     </div>
                     <div class="card-body p-sm-5">
                         <h2 class="fs-20 fw-bolder mb-4">Reset Password</h2>
                         <h4 class="fs-13 fw-bold mb-2">Set your new password</h4>
                         <p class="fs-12 fw-medium text-muted">Enter your new password below to complete your password reset.</p>
 
-                        <?php if ($reset_error !== ''): ?>
-                            <div class="alert alert-danger" role="alert"><?php echo htmlspecialchars($reset_error); ?></div>
-                        <?php endif; ?>
+                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($reset_error !== ''): ?>
+                            <div class="alert alert-danger" role="alert"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($reset_error); ?></div>
+                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
 
-                        <?php if ($reset_success !== ''): ?>
-                            <div class="alert alert-success" role="alert"><?php echo htmlspecialchars($reset_success); ?></div>
+                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($reset_success !== ''): ?>
+                            <div class="alert alert-success" role="alert"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($reset_success); ?></div>
                             <div class="mt-4">
-                                <a href="<?php echo htmlspecialchars($route_prefix, ENT_QUOTES, 'UTF-8'); ?>auth-login-cover.php" class="btn btn-lg btn-primary w-100">Go to Login</a>
+                                <a href="auth-login-cover.php" class="btn btn-lg btn-primary w-100">Go to Login</a>
                             </div>
-                        <?php else: ?>
-                            <form action="<?php echo htmlspecialchars($route_prefix, ENT_QUOTES, 'UTF-8'); ?>auth-resetting-minimal.php" method="post" class="w-100 mt-4 pt-2">
+                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+else: ?>
+                            <form action="auth-resetting-minimal.php" method="post" class="w-100 mt-4 pt-2">
                                 <div class="mb-4 input-group">
                                     <input type="password" name="new_password" id="newPasswordInput" class="form-control" placeholder="New Password" minlength="8" required>
                                     <button class="btn btn-outline-secondary" type="button" id="toggleNewPassword" aria-label="Show new password"><i></i></button>
@@ -155,14 +165,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <button class="btn btn-outline-secondary" type="button" id="toggleConfirmPassword" aria-label="Show confirm password"><i></i></button>
                                 </div>
                                 <div class="mt-5">
-                                    <button type="submit" class="btn btn-lg btn-primary w-100" <?php echo (!$isVerified || $contact === '') ? 'disabled' : ''; ?>>Save Change</button>
+                                    <button type="submit" class="btn btn-lg btn-primary w-100" <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (!$isVerified || $contact === '') ? 'disabled' : ''; ?>>Save Change</button>
                                 </div>
                             </form>
-                        <?php endif; ?>
+                        <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
 
                         <div class="mt-5 text-muted">
                             <span>Remembered your password?</span>
-                            <a href="<?php echo htmlspecialchars($route_prefix, ENT_QUOTES, 'UTF-8'); ?>auth-login-cover.php" class="fw-bold">Back to Login</a>
+                            <a href="auth-login-cover.php" class="fw-bold">Back to Login</a>
                         </div>
                     </div>
                 </div>
@@ -170,9 +184,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </main>
 
-    <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/vendors/js/vendors.min.js"></script>
-    <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/js/common-init.min.js"></script>
-    <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/js/theme-customizer-init.min.js"></script>
+    <script src="assets/vendors/js/vendors.min.js"></script>
+    <script src="assets/js/common-init.min.js"></script>
+    <script src="assets/js/theme-customizer-init.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const eyeSVG = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>';
@@ -200,4 +214,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </body>
 
 </html>
+
+
 

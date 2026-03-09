@@ -1,9 +1,10 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 // Simple resume generator
-$host = 'localhost';
-$db_user = 'root';
-$db_password = '';
-$db_name = 'biotern_db';
+$host = defined('DB_HOST') ? DB_HOST : 'localhost';
+$db_user = defined('DB_USER') ? DB_USER : 'root';
+$db_password = defined('DB_PASS') ? DB_PASS : ''; 
+$db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
 
 try {
     $conn = new mysqli($host, $db_user, $db_password, $db_name);
@@ -89,7 +90,7 @@ $address = $student['address'] ?? '';
           <?php if ($address): ?><div><strong>Address:</strong> <?php echo nl2br(htmlspecialchars($address)); ?></div><?php endif; ?>
         </div>
         <div class="meta small">
-            <?php echo htmlspecialchars($student['student_id'] ?? ''); ?> &nbsp;•&nbsp; <?php echo htmlspecialchars($student['course_name'] ?? ''); ?>
+            <?php echo htmlspecialchars($student['student_id'] ?? ''); ?> &nbsp;â€¢&nbsp; <?php echo htmlspecialchars($student['course_name'] ?? ''); ?>
         </div>
       </div>
 
@@ -140,3 +141,4 @@ $address = $student['address'] ?? '';
 </div>
 </body>
 </html>
+

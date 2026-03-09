@@ -1,5 +1,5 @@
-<?php
-
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 use App\Http\Controllers\Student\DashboardController;
 use App\Http\Controllers\Student\DTRController;
 use App\Http\Controllers\Student\BiometricRegistrationController;
@@ -23,3 +23,4 @@ Route::get('/hours/summary', [HourTrackingController::class, 'summary'])->name('
 Route::get('/completion/status', [DashboardController::class, 'completionStatus'])
     ->name('student.completion.status');
 Route::resource('certificates', CertificateController::class, ['as' => 'student']);
+

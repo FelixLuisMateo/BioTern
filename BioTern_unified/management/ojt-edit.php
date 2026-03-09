@@ -1,4 +1,5 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -10,10 +11,10 @@ if (file_exists($ops_helpers)) {
     }
 }
 
-$host = 'localhost';
-$db_user = 'root';
-$db_password = '';
-$db_name = 'biotern_db';
+$host = defined('DB_HOST') ? DB_HOST : 'localhost';
+$db_user = defined('DB_USER') ? DB_USER : 'root';
+$db_password = defined('DB_PASS') ? DB_PASS : ''; 
+$db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
 $conn = new mysqli($host, $db_user, $db_password, $db_name);
 if ($conn->connect_error) {
     die('Connection failed: ' . $conn->connect_error);
@@ -36,83 +37,15 @@ function get_columns(mysqli $conn, string $table): array {
     return $cols;
 }
 
-function ojt_edit_column_exists(mysqli $conn, string $table, string $column): bool {
-    $safeTable = $conn->real_escape_string($table);
-    $safeColumn = $conn->real_escape_string($column);
-    $res = $conn->query("SHOW COLUMNS FROM {$safeTable} LIKE '{$safeColumn}'");
-    return ($res && $res->num_rows > 0);
-}
-
-function ojt_policy_required_hours(mysqli $conn, array $student, string $assignment_track, int $fallback_internal = 0, int $fallback_external = 0): int {
-    $track = strtolower(trim($assignment_track));
-    if ($track !== 'external') {
-        $track = 'internal';
-    }
-
-    $course_id = (int)($student['course_id'] ?? 0);
-    $course_internal = 0;
-    $course_external = 0;
-    $course_total = 0;
-
-    if ($course_id > 0 && ojt_edit_table_exists($conn, 'courses')) {
-        $has_internal = ojt_edit_column_exists($conn, 'courses', 'internal_hours');
-        $has_external = ojt_edit_column_exists($conn, 'courses', 'external_hours');
-        $has_total = ojt_edit_column_exists($conn, 'courses', 'total_ojt_hours');
-        if ($has_internal || $has_external || $has_total) {
-            $parts = ['id'];
-            if ($has_internal) $parts[] = 'COALESCE(internal_hours, 0) AS internal_hours';
-            if ($has_external) $parts[] = 'COALESCE(external_hours, 0) AS external_hours';
-            if ($has_total) $parts[] = 'COALESCE(total_ojt_hours, 0) AS total_ojt_hours';
-            $sql = 'SELECT ' . implode(', ', $parts) . ' FROM courses WHERE id = ? LIMIT 1';
-            $stmt = $conn->prepare($sql);
-            if ($stmt) {
-                $stmt->bind_param('i', $course_id);
-                $stmt->execute();
-                $row = $stmt->get_result()->fetch_assoc();
-                $stmt->close();
-                if ($row) {
-                    $course_internal = (int)($row['internal_hours'] ?? 0);
-                    $course_external = (int)($row['external_hours'] ?? 0);
-                    $course_total = (int)($row['total_ojt_hours'] ?? 0);
-                }
-            }
-        }
-    }
-
-    if ($track === 'external') {
-        $required = $course_external;
-        if ($required <= 0) {
-            $required = (int)($fallback_external > 0 ? $fallback_external : (int)($student['external_total_hours'] ?? 0));
-        }
-        if ($required <= 0) {
-            $required = 250;
-        }
-        return max(0, $required);
-    }
-
-    $required = $course_internal;
-    if ($required <= 0) {
-        $required = (int)($fallback_internal > 0 ? $fallback_internal : (int)($student['internal_total_hours'] ?? 0));
-    }
-    if ($required <= 0) {
-        $required = $course_total;
-    }
-    if ($required <= 0) {
-        $required = 600;
-    }
-    return max(0, $required);
-}
-
 if (empty($_SESSION['ojt_edit_csrf'])) {
     $_SESSION['ojt_edit_csrf'] = bin2hex(random_bytes(16));
 }
 $csrf = $_SESSION['ojt_edit_csrf'];
 $current_role = strtolower((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? ''));
-$current_user_id = (int)($_SESSION['user_id'] ?? 0);
 $can_edit_controls = in_array($current_role, ['admin', 'coordinator'], true);
 
 $student_id = isset($_GET['id']) ? intval($_GET['id']) : intval($_POST['student_id'] ?? 0);
-$message = '';
+$message = defined('DB_PASS') ? DB_PASS : ''; 
 $message_type = 'success';
 $change_log = [];
 
@@ -135,19 +68,6 @@ if (ojt_edit_table_exists($conn, 'internships') && $student_id > 0) {
     $stmt->execute();
     $internship = $stmt->get_result()->fetch_assoc();
     $stmt->close();
-}
-
-if ($current_role === 'coordinator' && $internship) {
-    if ((int)($internship['coordinator_id'] ?? 0) !== $current_user_id) {
-        header('Location: ojt.php?denied=1');
-        exit;
-    }
-}
-if ($current_role === 'supervisor' && $internship) {
-    if ((int)($internship['supervisor_id'] ?? 0) !== $current_user_id) {
-        header('Location: ojt.php?denied=1');
-        exit;
-    }
 }
 
 if (ojt_edit_table_exists($conn, 'users')) {
@@ -180,11 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_ojt'])) {
         $internal_remaining = max(0, intval($_POST['internal_total_hours_remaining'] ?? 0));
         $external_total = max(0, intval($_POST['external_total_hours'] ?? 0));
         $external_remaining = max(0, intval($_POST['external_total_hours_remaining'] ?? 0));
-        $posted_assignment_track = strtolower(trim((string)($_POST['assignment_track'] ?? ($student['assignment_track'] ?? 'internal'))));
-        if ($posted_assignment_track !== 'external') {
-            $posted_assignment_track = 'internal';
-        }
-        $i_required = ojt_policy_required_hours($conn, $student, $posted_assignment_track, $internal_total, $external_total);
+        $i_required = max(0, intval($_POST['required_hours'] ?? 0));
         $i_start_chk = trim((string)($_POST['start_date'] ?? ''));
         $i_end_chk = trim((string)($_POST['end_date'] ?? ''));
 
@@ -202,7 +118,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_ojt'])) {
         try {
                 $student_cols = get_columns($conn, 'students');
                 $updates = [];
-                $types = '';
+                $types = defined('DB_PASS') ? DB_PASS : ''; 
                 $values = [];
 
                 $editable_student_fields = [
@@ -252,13 +168,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_ojt'])) {
                 if (ojt_edit_table_exists($conn, 'internships')) {
                     $intern_cols = get_columns($conn, 'internships');
                     $i_status = trim((string)($_POST['internship_status'] ?? 'ongoing'));
-                    $i_required = ojt_policy_required_hours($conn, $student, $posted_assignment_track, $internal_total, $external_total);
+                    $i_required = max(0, intval($_POST['required_hours'] ?? 0));
                     $i_start = trim((string)($_POST['start_date'] ?? ''));
                     $i_end = trim((string)($_POST['end_date'] ?? ''));
                     $selected_supervisor_id = max(0, intval($_POST['supervisor_user_id'] ?? 0));
                     $selected_coordinator_id = max(0, intval($_POST['coordinator_user_id'] ?? 0));
-                    $selected_supervisor_name = '';
-                    $selected_coordinator_name = '';
+                    $selected_supervisor_name = defined('DB_PASS') ? DB_PASS : ''; 
+                    $selected_coordinator_name = defined('DB_PASS') ? DB_PASS : ''; 
                     if ($selected_supervisor_id > 0) {
                         $stmt_u = $conn->prepare("SELECT name FROM users WHERE id = ? LIMIT 1");
                         $stmt_u->bind_param('i', $selected_supervisor_id);
@@ -279,7 +195,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_ojt'])) {
 
                     if ($internship) {
                         $i_updates = [];
-                        $i_types = '';
+                        $i_types = defined('DB_PASS') ? DB_PASS : ''; 
                         $i_vals = [];
 
                         if (in_array('status', $intern_cols, true) && $i_status !== (string)($internship['status'] ?? '')) {
@@ -299,12 +215,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_ojt'])) {
                             $i_types .= 'i';
                             $i_vals[] = $selected_coordinator_id;
                             $change_log[] = 'internships.coordinator_id updated';
-                        }
-                        if (in_array('type', $intern_cols, true) && $posted_assignment_track !== (string)($internship['type'] ?? '')) {
-                            $i_updates[] = 'type = ?';
-                            $i_types .= 's';
-                            $i_vals[] = $posted_assignment_track;
-                            $change_log[] = 'internships.type: ' . (string)($internship['type'] ?? '') . ' -> ' . $posted_assignment_track;
                         }
                         if (in_array('required_hours', $intern_cols, true) && $i_required !== intval($internship['required_hours'] ?? 0)) {
                             $i_updates[] = 'required_hours = ?';
@@ -341,7 +251,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_ojt'])) {
                         if (in_array('status', $intern_cols, true)) { $insert_cols[] = 'status'; $insert_vals[] = $i_status; $insert_types .= 's'; }
                         if (in_array('supervisor_id', $intern_cols, true) && $selected_supervisor_id > 0) { $insert_cols[] = 'supervisor_id'; $insert_vals[] = $selected_supervisor_id; $insert_types .= 'i'; }
                         if (in_array('coordinator_id', $intern_cols, true) && $selected_coordinator_id > 0) { $insert_cols[] = 'coordinator_id'; $insert_vals[] = $selected_coordinator_id; $insert_types .= 'i'; }
-                        if (in_array('type', $intern_cols, true)) { $insert_cols[] = 'type'; $insert_vals[] = $posted_assignment_track; $insert_types .= 's'; }
                         if (in_array('required_hours', $intern_cols, true)) { $insert_cols[] = 'required_hours'; $insert_vals[] = $i_required; $insert_types .= 'i'; }
                         if (in_array('start_date', $intern_cols, true)) { $insert_cols[] = 'start_date'; $insert_vals[] = $i_start; $insert_types .= 's'; }
                         if (in_array('end_date', $intern_cols, true)) { $insert_cols[] = 'end_date'; $insert_vals[] = $i_end; $insert_types .= 's'; }
@@ -480,36 +389,137 @@ if ($student_id > 0 && ojt_edit_table_exists($conn, 'ojt_supervisor_reviews')) {
     }
     $stmt->close();
 }
-
-$policy_required_preview = 0;
-if ($student) {
-    $preview_track = strtolower((string)($student['assignment_track'] ?? ($internship['type'] ?? 'internal')));
-    if ($preview_track !== 'external') {
-        $preview_track = 'internal';
-    }
-    $policy_required_preview = ojt_policy_required_hours(
-        $conn,
-        $student,
-        $preview_track,
-        (int)($student['internal_total_hours'] ?? 0),
-        (int)($student['external_total_hours'] ?? 0)
-    );
-}
-
-$page_title = 'BioTern || OJT Edit';
-$page_styles = [
-    'assets/css/management-ojt-edit-page.css',
-];
-$page_scripts = [
-    'assets/js/theme-customizer-init.min.js',
-];
-
-include 'includes/header.php';
 ?>
-<div class="app-ojt-edit-content">
-        <div class="page-header app-ojt-edit-page-header d-flex justify-content-between align-items-center">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>BioTern || OJT Edit</title>
+    <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
+    <script src="assets/js/theme-preload-init.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/vendors/css/vendors.min.css">
+    <script>try{var s=localStorage.getItem('app-skin')||localStorage.getItem('app_skin')||localStorage.getItem('theme'); if(s&&s.indexOf('dark')!==-1)document.documentElement.classList.add('app-skin-dark');}catch(e){};</script>
+    <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css">
+    <style>
+        body { background: #f5f7fb; }
+        .card { border: 1px solid #e8edf6; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04); }
+        .form-label { font-weight: 600; font-size: 12px; letter-spacing: 0.2px; }
+        .section-subtitle { font-size: 12px; color: #6c7a92; margin-top: -6px; }
+        .app-skin-dark body { background: #0b1220; }
+        .app-skin-dark .card { border-color: #253252; background: #111a2e; box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35); }
+        .app-skin-dark .section-subtitle,
+        .app-skin-dark .text-muted { color: #99abc8 !important; }
+        .app-skin-dark .form-control,
+        .app-skin-dark .form-select { background: #0f172a; border-color: #2a3a57; color: #d8e2f4; }
+        .app-skin-dark .table { color: #d8e2f4; }
+        .app-skin-dark .table-bordered > :not(caption) > * { border-color: #253252; }
+        @media (max-width: 991.98px) {
+            .page-header { display: block !important; }
+            .page-header .d-flex.gap-2 {
+                margin-top: 8px;
+                display: grid !important;
+                grid-template-columns: 1fr 1fr;
+                gap: 8px !important;
+            }
+            .page-header .d-flex.gap-2 .btn { width: 100%; }
+            .edit-actions {
+                display: grid !important;
+                grid-template-columns: 1fr 1fr;
+                gap: 8px !important;
+            }
+            .edit-actions .btn { width: 100%; }
+        }
+        @media (max-width: 767.98px) {
+            .nxl-content { padding-left: 8px; padding-right: 8px; }
+            .card.card-body { border-radius: 14px; padding: 12px; }
+            .page-header .d-flex.gap-2 { grid-template-columns: 1fr; }
+            .edit-actions { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+<?php include_once 'includes/navigation.php'; ?>
+<header class="nxl-header">
+    <div class="header-wrapper">
+        <div class="header-left d-flex align-items-center gap-4">
+            <a href="javascript:void(0);" class="nxl-head-mobile-toggler" id="mobile-collapse">
+                <div class="hamburger hamburger--arrowturn">
+                    <div class="hamburger-box"><div class="hamburger-inner"></div></div>
+                </div>
+            </a>
+            <div class="nxl-navigation-toggle">
+                <a href="javascript:void(0);" id="menu-mini-button"><i class="feather-align-left"></i></a>
+                <a href="javascript:void(0);" id="menu-expend-button" style="display: none"><i class="feather-arrow-right"></i></a>
+            </div>
+        </div>
+        <div class="header-right ms-auto">
+            <div class="d-flex align-items-center">
+                <div class="dropdown nxl-h-item nxl-header-search">
+                    <a href="javascript:void(0);" class="nxl-head-link me-0" data-bs-toggle="dropdown" data-bs-auto-close="outside">
+                        <i class="feather-search"></i>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-search-dropdown">
+                        <div class="input-group search-form">
+                            <span class="input-group-text"><i class="feather-search fs-6 text-muted"></i></span>
+                            <input type="text" class="form-control search-input-field" placeholder="Search....">
+                            <span class="input-group-text"><button type="button" class="btn-close"></button></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="nxl-h-item d-none d-sm-flex">
+                    <div class="full-screen-switcher">
+                        <a href="javascript:void(0);" class="nxl-head-link me-0" onclick="$('body').fullScreenHelper('toggle');">
+                            <i class="feather-maximize maximize"></i>
+                            <i class="feather-minimize minimize"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="nxl-h-item dark-light-theme">
+                    <a href="javascript:void(0);" class="nxl-head-link me-0 dark-button"><i class="feather-moon"></i></a>
+                    <a href="javascript:void(0);" class="nxl-head-link me-0 light-button" style="display: none"><i class="feather-sun"></i></a>
+                </div>
+                <div class="dropdown nxl-h-item">
+                    <a href="javascript:void(0);" class="nxl-head-link me-0" data-bs-toggle="dropdown" role="button" data-bs-auto-close="outside">
+                        <i class="feather-clock"></i>
+                        <span class="badge bg-success nxl-h-badge">2</span>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-timesheets-menu">
+                        <div class="d-flex justify-content-between align-items-center timesheets-head">
+                            <h6 class="fw-bold text-dark mb-0">Timesheets</h6>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center flex-column timesheets-body">
+                            <i class="feather-clock fs-1 mb-4"></i>
+                            <p class="text-muted">No started timers found yet.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="dropdown nxl-h-item">
+                    <a class="nxl-head-link me-3" data-bs-toggle="dropdown" href="#" role="button" data-bs-auto-close="outside">
+                        <i class="feather-bell"></i>
+                        <span class="badge bg-danger nxl-h-badge">3</span>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-notifications-menu">
+                        <div class="d-flex justify-content-between align-items-center notifications-head">
+                            <h6 class="fw-bold text-dark mb-0">Notifications</h6>
+                        </div>
+                    </div>
+                </div>
+                    <div class="dropdown nxl-h-item">
+                        <a href="javascript:void(0);" data-bs-toggle="dropdown" role="button" data-bs-auto-close="outside">
+                            <img src="<?php echo htmlspecialchars((isset($_SESSION['profile_picture']) && trim((string)$_SESSION['profile_picture']) !== '' ? ltrim(str_replace('\\', '/', trim((string)$_SESSION['profile_picture'])), '/') : ('assets/images/avatar/' . (((int)($_SESSION['user_id'] ?? 0) % 5) + 1) . '.png')), ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar me-0" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
+                        </a>
+                    </div>
+            </div>
+        </div>
+    </div>
+</header>
+<main class="nxl-container">
+    <div class="nxl-content">
+        <div class="page-header d-flex justify-content-between align-items-center">
             <h5 class="m-b-10">OJT Edit Control</h5>
-            <div class="d-flex gap-2 app-ojt-edit-page-header-actions">
+            <div class="d-flex gap-2">
                 <a href="ojt.php" class="btn btn-light">Back to OJT List</a>
                 <?php if ($student_id > 0): ?><a href="ojt-view.php?id=<?php echo (int)$student_id; ?>" class="btn btn-primary">Open OJT View</a><?php endif; ?>
             </div>
@@ -520,24 +530,24 @@ include 'includes/header.php';
         <?php endif; ?>
 
         <?php if (!$student): ?>
-            <div class="card app-ojt-edit-surface-card card-body"><div class="alert alert-warning mb-0">Select a valid student from OJT List first.</div></div>
+            <div class="card card-body"><div class="alert alert-warning mb-0">Select a valid student from OJT List first.</div></div>
         <?php else: ?>
-            <div class="card app-ojt-edit-surface-card card-body mb-3 app-ojt-student-context-card">
+            <div class="card card-body mb-3">
                 <h6 class="fw-bold mb-3">Student Context</h6>
                 <div class="row g-3">
-                    <div class="col-md-4"><label class="form-label app-ojt-edit-form-label">Name</label><input class="form-control" value="<?php echo htmlspecialchars(trim(($student['first_name'] ?? '') . ' ' . ($student['last_name'] ?? ''))); ?>" readonly></div>
-                    <div class="col-md-4"><label class="form-label app-ojt-edit-form-label">Student ID</label><input class="form-control" value="<?php echo htmlspecialchars($student['student_id'] ?? ''); ?>" readonly></div>
-                    <div class="col-md-4"><label class="form-label app-ojt-edit-form-label">Current Track</label><input class="form-control" value="<?php echo htmlspecialchars($student['assignment_track'] ?? 'internal'); ?>" readonly></div>
+                    <div class="col-md-4"><label class="form-label">Name</label><input class="form-control" value="<?php echo htmlspecialchars(trim(($student['first_name'] ?? '') . ' ' . ($student['last_name'] ?? ''))); ?>" readonly></div>
+                    <div class="col-md-4"><label class="form-label">Student ID</label><input class="form-control" value="<?php echo htmlspecialchars($student['student_id'] ?? ''); ?>" readonly></div>
+                    <div class="col-md-4"><label class="form-label">Current Track</label><input class="form-control" value="<?php echo htmlspecialchars($student['assignment_track'] ?? 'internal'); ?>" readonly></div>
                 </div>
             </div>
 
-            <form method="post" class="card app-ojt-edit-surface-card card-body mb-3 app-ojt-controls-form" data-confirm-message="Apply these OJT changes? This action is logged.">
+            <form method="post" class="card card-body mb-3" onsubmit="return confirm('Apply these OJT changes? This action is logged.');">
                 <input type="hidden" name="save_ojt" value="1">
                 <input type="hidden" name="student_id" value="<?php echo (int)$student_id; ?>">
                 <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>">
 
                 <h6 class="fw-bold mb-1">Operational Controls</h6>
-                <div class="section-subtitle app-ojt-edit-section-subtitle mb-3">Use this panel for audited internship data maintenance.</div>
+                <div class="section-subtitle mb-3">Use this panel for audited internship data maintenance.</div>
                 <?php if (!$can_edit_controls): ?>
                     <div class="alert alert-info">Your role is <strong><?php echo htmlspecialchars($current_role ?: 'unknown'); ?></strong>. You can add review notes, but control fields are read-only.</div>
                 <?php endif; ?>
@@ -593,8 +603,7 @@ include 'includes/header.php';
                             <option value="dropped" <?php echo $ist === 'dropped' ? 'selected' : ''; ?>>Dropped</option>
                         </select>
                     </div>
-                    <div class="col-md-3"><label class="form-label">Required Hours</label><input type="number" min="0" name="required_hours" class="form-control" value="<?php echo htmlspecialchars((string)($internship['required_hours'] ?? 0)); ?>" readonly><small class="text-muted">Auto-synced from course policy + assignment track.</small></div>
-                    <div class="col-md-3"><label class="form-label">Policy Required Hours (Computed)</label><input type="number" min="0" id="policy_required_preview" class="form-control" value="<?php echo (int)$policy_required_preview; ?>" readonly><small class="text-muted">Used for audit update when you save.</small></div>
+                    <div class="col-md-3"><label class="form-label">Required Hours</label><input type="number" min="0" name="required_hours" class="form-control" value="<?php echo htmlspecialchars((string)($internship['required_hours'] ?? 0)); ?>" <?php echo $can_edit_controls ? '' : 'readonly'; ?>></div>
                     <div class="col-md-3"><label class="form-label">Start Date</label><input type="date" name="start_date" class="form-control" value="<?php echo htmlspecialchars((string)($internship['start_date'] ?? '')); ?>" <?php echo $can_edit_controls ? '' : 'readonly'; ?>></div>
                     <div class="col-md-3"><label class="form-label">End Date</label><input type="date" name="end_date" class="form-control" value="<?php echo htmlspecialchars((string)($internship['end_date'] ?? '')); ?>" <?php echo $can_edit_controls ? '' : 'readonly'; ?>></div>
 
@@ -603,14 +612,14 @@ include 'includes/header.php';
                         <textarea name="change_reason" class="form-control" rows="2" placeholder="Optional: explain why this OJT update is needed for audit/compliance."></textarea>
                     </div>
                 </div>
-                <div class="mt-3 d-flex gap-2 edit-actions app-ojt-edit-actions">
+                <div class="mt-3 d-flex gap-2 edit-actions">
                     <button type="submit" class="btn btn-primary" <?php echo $can_edit_controls ? '' : 'disabled'; ?>>Save Controlled Changes</button>
                     <a href="#previous-changes" class="btn btn-outline-info">Previous Changes</a>
                     <a href="ojt-view.php?id=<?php echo (int)$student_id; ?>" class="btn btn-success">Return to OJT View</a>
                 </div>
             </form>
 
-            <form method="post" class="card app-ojt-edit-surface-card card-body mb-3">
+            <form method="post" class="card card-body mb-3">
                 <input type="hidden" name="save_review_note" value="1">
                 <input type="hidden" name="student_id" value="<?php echo (int)$student_id; ?>">
                 <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>">
@@ -638,7 +647,7 @@ include 'includes/header.php';
                 <?php endif; ?>
             </form>
 
-            <div class="card app-ojt-edit-surface-card card-body" id="previous-changes">
+            <div class="card card-body" id="previous-changes">
                 <h6 class="fw-bold mb-3">Recent OJT Edit Audit</h6>
                 <?php if (!$audit_rows): ?>
                     <div class="text-muted">No audit entries yet.</div>
@@ -651,6 +660,7 @@ include 'includes/header.php';
                             </div>
                             <div><?php echo htmlspecialchars((string)$audit['reason']); ?></div>
                             <?php
+require_once dirname(__DIR__) . '/config/db.php';
                             $lines = preg_split('/\r\n|\r|\n/', (string)($audit['changes_text'] ?? ''));
                             ?>
                             <div class="table-responsive mt-2">
@@ -665,6 +675,7 @@ include 'includes/header.php';
                                     <tbody>
                                         <?php foreach ($lines as $ln): ?>
                                             <?php
+require_once dirname(__DIR__) . '/config/db.php';
                                             $ln = trim($ln);
                                             if ($ln === '') continue;
                                             $field = $ln;
@@ -693,40 +704,12 @@ include 'includes/header.php';
             </div>
         <?php endif; ?>
     </div>
-
-<?php include 'includes/footer.php'; ?>
-<script>
-(function () {
-    var trackField = document.querySelector('select[name="assignment_track"]');
-    var internalField = document.querySelector('input[name="internal_total_hours"]');
-    var externalField = document.querySelector('input[name="external_total_hours"]');
-    var previewField = document.getElementById('policy_required_preview');
-    if (!trackField || !previewField) return;
-
-    function toInt(v) {
-        var parsed = parseInt(v, 10);
-        return Number.isNaN(parsed) ? 0 : parsed;
-    }
-
-    function updatePreview() {
-        var track = ((trackField.value || 'internal').toLowerCase() === 'external') ? 'external' : 'internal';
-        var internalVal = toInt(internalField ? internalField.value : 0);
-        var externalVal = toInt(externalField ? externalField.value : 0);
-        var required = track === 'external' ? externalVal : internalVal;
-        if (required <= 0) {
-            required = track === 'external' ? 250 : 600;
-        }
-        previewField.value = String(required);
-    }
-
-    [trackField, internalField, externalField].forEach(function (el) {
-        if (!el) return;
-        el.addEventListener('change', updatePreview);
-        el.addEventListener('input', updatePreview);
-    });
-    updatePreview();
-})();
-</script>
+</main>
+<script src="assets/vendors/js/vendors.min.js"></script>
+<script src="assets/js/common-init.min.js"></script>
+<script src="assets/js/theme-customizer-init.min.js"></script>
+</body>
+</html>
 <?php $conn->close(); ?>
 
 

@@ -1,9 +1,10 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 // Database Connection
 $host = 'localhost';
 $db_user = 'root';
 $db_password = '';
-$db_name = 'biotern_db';
+$db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
 
 try {
     $conn = new mysqli($host, $db_user, $db_password, $db_name);
@@ -267,7 +268,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
             $afternoon_in_text = $attendance['afternoon_time_in'] ? date('h:i A', strtotime($attendance['afternoon_time_in'])) : '-';
             $afternoon_out_text = $attendance['afternoon_time_out'] ? date('h:i A', strtotime($attendance['afternoon_time_out'])) : '-';
             // actions (keep minimal for AJAX)
-            echo '<td><div class="hstack gap-2 justify-content-end"><a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="tooltip" title="View Details" data-attendance-action="view-details" data-student-id="' . intval($attendance['student_id']) . '"><i class="feather feather-eye"></i></a><div class="dropdown"><a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="dropdown" data-bs-offset="0,21"><i class="feather feather-more-horizontal"></i></a><ul class="dropdown-menu dropdown-menu-end"><li><a class="dropdown-item" href="javascript:void(0)" data-attendance-action="approve-individual" data-attendance-id="' . intval($attendance['id']) . '"><i class="feather feather-check-circle me-3"></i><span>Approve</span></a></li><li><a class="dropdown-item" href="javascript:void(0)" data-attendance-action="reject-individual" data-attendance-id="' . intval($attendance['id']) . '"><i class="feather feather-x-circle me-3"></i><span>Reject</span></a></li><li><a class="dropdown-item" href="javascript:void(0)" data-attendance-action="edit-attendance" data-attendance-id="' . intval($attendance['id']) . '"><i class="feather feather-edit-3 me-3"></i><span>Edit</span></a></li><li><a class="dropdown-item printBTN" href="javascript:void(0)" data-attendance-action="print-attendance" data-attendance-id="' . intval($attendance['id']) . '"><i class="feather feather-printer me-3"></i><span>Print</span></a></li><li><a class="dropdown-item" href="javascript:void(0)" data-attendance-action="send-notification" data-attendance-id="' . intval($attendance['id']) . '"><i class="feather feather-mail me-3"></i><span>Send Notification</span></a></li><li class="dropdown-divider"></li><li><a class="dropdown-item" href="javascript:void(0)" data-attendance-action="delete-individual" data-attendance-id="' . intval($attendance['id']) . '"><i class="feather feather-trash-2 me-3"></i><span>Delete</span></a></li></ul></div></div></td>';
+            echo '<td><div class="hstack gap-2 justify-content-end"><a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="tooltip" title="View Details" onclick="viewDetails(' . intval($attendance['student_id']) . ')"><i class="feather feather-eye"></i></a><div class="dropdown"><a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="dropdown" data-bs-offset="0,21"><i class="feather feather-more-horizontal"></i></a><ul class="dropdown-menu dropdown-menu-end"><li><a class="dropdown-item" href="javascript:void(0)" onclick="approveAttendanceIndividual(' . intval($attendance['id']) . ')"><i class="feather feather-check-circle me-3"></i><span>Approve</span></a></li><li><a class="dropdown-item" href="javascript:void(0)" onclick="rejectAttendanceIndividual(' . intval($attendance['id']) . ')"><i class="feather feather-x-circle me-3"></i><span>Reject</span></a></li><li><a class="dropdown-item" href="javascript:void(0)" onclick="editAttendance(' . intval($attendance['id']) . ')"><i class="feather feather-edit-3 me-3"></i><span>Edit</span></a></li><li><a class="dropdown-item printBTN" href="javascript:void(0)" onclick="printAttendance(' . intval($attendance['id']) . ')"><i class="feather feather-printer me-3"></i><span>Print</span></a></li><li><a class="dropdown-item" href="javascript:void(0)" onclick="sendNotification(' . intval($attendance['id']) . ')"><i class="feather feather-mail me-3"></i><span>Send Notification</span></a></li><li class="dropdown-divider"></li><li><a class="dropdown-item" href="javascript:void(0)" onclick="deleteAttendanceIndividual(' . intval($attendance['id']) . ')"><i class="feather feather-trash-2 me-3"></i><span>Delete</span></a></li></ul></div></div></td>';
             echo '</tr>';
         }
     }
@@ -342,16 +343,429 @@ function getAttendanceStatus($morning_time_in) {
     }
 }
 ?>
-<?php
-$page_title = 'BioTern || Student Attendance';
-$page_body_class = 'page-attendance';
-$page_styles = array('assets/css/pages-attendance-page.css');
-$page_scripts = array(
-    'assets/js/theme-customizer-init.min.js',
-    'assets/js/pages-attendance-runtime.js',
-);
-include 'includes/header.php';
-?>
+
+<!DOCTYPE html>
+<html lang="zxx">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="keyword" content="">
+    <meta name="author" content="ACT 2A Group 5">
+    <!--! The above 6 meta tags *must* come first in the head; any other head content must come *after* these tags !-->
+    <!--! BEGIN: Apps Title-->
+    <title>BioTern || Student Attendance</title>
+    <!--! END:  Apps Title-->
+    <!--! BEGIN: Favicon-->
+    <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
+    <script src="assets/js/theme-preload-init.min.js"></script>
+    <!--! END: Favicon-->
+    <!--! BEGIN: Bootstrap CSS-->
+    <link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css">
+    <!--! END: Bootstrap CSS-->
+    <!--! BEGIN: Vendors CSS-->
+    <link rel="stylesheet" type="text/css" href="assets/vendors/css/vendors.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/vendors/css/dataTables.bs5.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2-theme.min.css">
+    <!--! END: Vendors CSS-->
+    <!--! BEGIN: Custom CSS-->
+    <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css">
+    <!--! END: Custom CSS-->
+    <!--! HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries !-->
+    <!--! WARNING: Respond.js doesn"t work if you view the page via file: !-->
+    <!--[if lt IE 9]>
+			<script src="https:oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+			<script src="https:oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+		<![endif]-->
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        main.nxl-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        div.nxl-content {
+            flex: 1;
+        }
+        footer.footer {
+            margin-top: auto;
+        }
+        
+        /* Bulk toolbar adapts to theme */
+        .bulk-toolbar {
+            background-color: var(--bs-body-bg);
+            border: 1px solid var(--bs-border-color);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        .bulk-toolbar span {
+            color: var(--bs-body-color);
+        }
+        /* dark theme override when app-skin-dark class present */
+        html.app-skin-dark .bulk-toolbar {
+            background-color: #0f172a;
+            border-color: #1b2436;
+        }
+        html.app-skin-dark .bulk-toolbar span {
+            color: #f0f0f0;
+        }
+        /* enlarge toolbar buttons and adjust spacing */
+        .bulk-toolbar .btn {
+            font-size: 0.95rem;
+            padding: 0.45rem 0.75rem;
+            font-weight: 600;
+            border-radius: 0.35rem;
+            min-width: 90px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .bulk-toolbar .btn i {
+            margin-right: 0.25rem;
+        }
+        /* custom colours to match app theme closely */
+        .bulk-toolbar .btn-success {
+            background: #28a745;
+            border-color: #28a745;
+            color: #fff;
+        }
+        .bulk-toolbar .btn-success:hover {
+            background: #218838;
+            border-color: #1e7e34;
+        }
+        .bulk-toolbar .btn-warning {
+            background: #fd7e14;
+            border-color: #fd7e14;
+            color: #fff;
+        }
+        .bulk-toolbar .btn-warning:hover {
+            background: #e8590c;
+            border-color: #d9480f;
+        }
+        .bulk-toolbar .btn-danger {
+            background: #dc3545;
+            border-color: #dc3545;
+            color: #fff;
+        }
+        .bulk-toolbar .btn-danger:hover {
+            background: #c82333;
+            border-color: #bd2130;
+        }
+        .bulk-toolbar .btn-outline-secondary {
+            background: transparent;
+            border-color: var(--bs-border-color);
+            color: var(--bs-body-color);
+        }
+        .bulk-toolbar .btn-outline-secondary:hover {
+            background: var(--bs-border-color);
+            color: var(--bs-body-color);
+        }
+        /* Dark mode select and Select2 styling */
+        select.form-control,
+        select.form-select,
+        .select2-container--default .select2-selection--single,
+        .select2-container--default .select2-selection--multiple {
+            color: #333 !important;
+            background-color: #ffffff !important;
+        }
+        
+        /* Dark mode support for Select2 - using app-skin-dark class */
+        html.app-skin-dark .select2-container--default .select2-selection--single,
+        html.app-skin-dark .select2-container--default .select2-selection--multiple {
+            color: #f0f0f0 !important;
+            background-color: #0f172a !important;
+            border-color: #4a5568 !important;
+        }
+        
+        html.app-skin-dark .select2-container--default.select2-container--focus .select2-selection--single,
+        html.app-skin-dark .select2-container--default.select2-container--focus .select2-selection--multiple {
+            color: #f0f0f0 !important;
+            background-color: #0f172a !important;
+            border-color: #4a5568 !important;
+        }
+        
+        html.app-skin-dark .select2-container--default .select2-selection--single .select2-selection__rendered {
+            color: #ffffff !important;
+        }
+        
+        html.app-skin-dark .select2-container--default .select2-selection__placeholder {
+            color: #ffffff !important;
+        }
+        
+        /* Dark mode dropdown menu */
+        html.app-skin-dark .select2-container--default.select2-container--open .select2-dropdown {
+            background-color: #0f172a !important;
+            border-color: #4a5568 !important;
+        }
+        
+        html.app-skin-dark .select2-results {
+            background-color: #0f172a !important;
+        }
+        
+        html.app-skin-dark .select2-results__option {
+            color: #ffffff !important;
+            background-color: #0f172a !important;
+        }
+        
+        html.app-skin-dark .select2-results__option--highlighted[aria-selected] {
+            background-color: #667eea !important;
+            color: #ffffff !important;
+        }
+        
+        html.app-skin-dark .select2-container--default {
+            background-color: #0f172a !important;
+        }
+        
+        html.app-skin-dark select.form-control,
+        html.app-skin-dark select.form-select {
+            color: #ffffff !important;
+            background-color: #0f172a !important;
+            border-color: #4a5568 !important;
+        }
+        
+        html.app-skin-dark select.form-control option,
+        html.app-skin-dark select.form-select option {
+            color: #ffffff !important;
+            background-color: #2d3748 !important;
+        }
+
+        .filter-form select.form-control {
+            text-align: left;
+            text-align-last: left;
+        }
+
+        .filter-form .select2-container--default .select2-selection--single .select2-selection__rendered {
+            text-align: left;
+            padding-left: 0.75rem;
+            padding-right: 1.75rem;
+        }
+
+        /* Filter border styling to match header filter look */
+        .filter-form input.form-control,
+        .filter-form select.form-control,
+        .filter-form .select2-container--bootstrap-5 .select2-selection,
+        .filter-form .select2-container--default .select2-selection--single {
+            border-color: #4e6283 !important;
+            border-width: 1px !important;
+        }
+
+        .filter-form input.form-control:focus,
+        .filter-form select.form-control:focus,
+        .filter-form .select2-container--bootstrap-5.select2-container--focus .select2-selection,
+        .filter-form .select2-container--default.select2-container--focus .select2-selection--single {
+            border-color: #7f9ecf !important;
+            box-shadow: 0 0 0 0.15rem rgba(127, 158, 207, 0.22) !important;
+        }
+
+        /* Force white text for Select2 Bootstrap-5 themed filter dropdowns */
+        .filter-form .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered,
+        .filter-form .select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__rendered,
+        .filter-form .select2-container--bootstrap-5 .select2-selection__placeholder {
+            color: #ffffff !important;
+            -webkit-text-fill-color: #ffffff !important;
+            opacity: 1 !important;
+        }
+
+        .filter-form .select2-container--bootstrap-5 .select2-dropdown .select2-results__option {
+            color: #ffffff !important;
+        }
+    </style>
+</head>
+
+<body>
+    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+include_once 'includes/navigation.php'; ?>
+    <!--! ================================================================ !-->
+    <!--! [Start] Header !-->
+    <!--! ================================================================ !-->
+    <header class="nxl-header">
+        <div class="header-wrapper">
+            <!--! [Start] Header Left !-->
+            <div class="header-left d-flex align-items-center gap-4">
+                <!--! [Start] nxl-head-mobile-toggler !-->
+                <a href="javascript:void(0);" class="nxl-head-mobile-toggler" id="mobile-collapse">
+                    <div class="hamburger hamburger--arrowturn">
+                        <div class="hamburger-box">
+                            <div class="hamburger-inner"></div>
+                        </div>
+                    </div>
+                </a>
+                <!--! [Start] nxl-head-mobile-toggler !-->
+                <!--! [Start] nxl-navigation-toggle !-->
+                <div class="nxl-navigation-toggle">
+                    <a href="javascript:void(0);" id="menu-mini-button">
+                        <i class="feather-align-left"></i>
+                    </a>
+                    <a href="javascript:void(0);" id="menu-expend-button" style="display: none">
+                        <i class="feather-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+            <!--! [End] Header Left !-->
+            <!--! [Start] Header Right !-->
+            <div class="header-right ms-auto">
+                <div class="d-flex align-items-center">
+                    <div class="dropdown nxl-h-item nxl-header-search">
+                        <a href="javascript:void(0);" class="nxl-head-link me-0" data-bs-toggle="dropdown" data-bs-auto-close="outside">
+                            <i class="feather-search"></i>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-search-dropdown">
+                            <div class="input-group search-form">
+                                <span class="input-group-text">
+                                    <i class="feather-search fs-6 text-muted"></i>
+                                </span>
+                                <input type="text" id="headerSearchInput" name="header_search" class="form-control search-input-field" placeholder="Search....">
+                                <span class="input-group-text">
+                                    <button type="button" class="btn-close"></button>
+                                </span>
+                            </div>
+                            <div class="dropdown-divider mt-0"></div>
+                            <!--! search coding for database !-->
+                        </div>
+                    </div>
+                    <div class="nxl-h-item d-none d-sm-flex">
+                        <div class="full-screen-switcher">
+                            <a href="javascript:void(0);" class="nxl-head-link me-0" onclick="$('body').fullScreenHelper('toggle');">
+                                <i class="feather-maximize maximize"></i>
+                                <i class="feather-minimize minimize"></i>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="nxl-h-item dark-light-theme">
+                        <a href="javascript:void(0);" class="nxl-head-link me-0 dark-button">
+                            <i class="feather-moon"></i>
+                        </a>
+                        <a href="javascript:void(0);" class="nxl-head-link me-0 light-button" style="display: none">
+                            <i class="feather-sun"></i>
+                        </a>
+                    </div>
+                    <div class="dropdown nxl-h-item">
+                        <a class="nxl-head-link me-3" data-bs-toggle="dropdown" href="#" role="button" data-bs-auto-close="outside">
+                            <i class="feather-bell"></i>
+                            <span class="badge bg-danger nxl-h-badge">3</span>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-notifications-menu">
+                            <div class="d-flex justify-content-between align-items-center notifications-head">
+                                <h6 class="fw-bold text-dark mb-0">Notifications</h6>
+                                <a href="javascript:void(0);" class="fs-11 text-success text-end ms-auto" data-bs-toggle="tooltip" title="Make as Read">
+                                    <i class="feather-check"></i>
+                                    <span>Make as Read</span>
+                                </a>
+                            </div>
+                            <div class="notifications-item">
+                                <img src="assets/images/avatar/2.png" alt="" class="rounded me-3 border">
+                                <div class="notifications-desc">
+                                    <a href="javascript:void(0);" class="font-body text-truncate-2-line"> <span class="fw-semibold text-dark">Malanie Hanvey</span> We should talk about that at lunch!<[...]
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div class="notifications-date text-muted border-bottom border-bottom-dashed">2 minutes ago</div>
+                                        <div class="d-flex align-items-center float-end gap-2">
+                                            <a href="javascript:void(0);" class="d-block wd-8 ht-8 rounded-circle bg-gray-300" data-bs-toggle="tooltip" title="Make as Read"></a>
+                                            <a href="javascript:void(0);" class="text-danger" data-bs-toggle="tooltip" title="Remove">
+                                                <i class="feather-x fs-12"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="text-center notifications-footer">
+                                <a href="javascript:void(0);" class="fs-13 fw-semibold text-dark">All Notifications</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="dropdown nxl-h-item">
+                        <a href="javascript:void(0);" data-bs-toggle="dropdown" role="button" data-bs-auto-close="outside">
+                            <img src="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars((isset($_SESSION['profile_picture']) && trim((string)$_SESSION['profile_picture']) !== '' ? ltrim(str_replace('\\', '/', trim((string)$_SESSION['profile_picture'])), '/') : ('assets/images/avatar/' . (((int)($_SESSION['user_id'] ?? 0) % 5) + 1) . '.png')), ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar me-0" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-user-dropdown">
+                            <div class="dropdown-header">
+                                <div class="d-flex align-items-center">
+                                    <img src="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars((isset($_SESSION['profile_picture']) && trim((string)$_SESSION['profile_picture']) !== '' ? ltrim(str_replace('\\', '/', trim((string)$_SESSION['profile_picture'])), '/') : ('assets/images/avatar/' . (((int)($_SESSION['user_id'] ?? 0) % 5) + 1) . '.png')), ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
+                                    <div>
+                                        <h6 class="text-dark mb-0"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars((string)($_SESSION['name'] ?? $_SESSION['username'] ?? 'BioTern User'), ENT_QUOTES, 'UTF-8'); ?></h6>
+                                        <span class="fs-12 fw-medium text-muted"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars((string)($_SESSION['email'] ?? 'admin@biotern.local'), ENT_QUOTES, 'UTF-8'); ?></span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="dropdown">
+                                <a href="javascript:void(0);" class="dropdown-item" data-bs-toggle="dropdown">
+                                    <span class="hstack">
+                                        <i class="wd-10 ht-10 border border-2 border-gray-1 bg-success rounded-circle me-2"></i>
+                                        <span>Active</span>
+                                    </span>
+                                    <i class="feather-chevron-right ms-auto me-0"></i>
+                                </a>
+                                <div class="dropdown-menu">
+                                    <a href="javascript:void(0);" class="dropdown-item">
+                                        <span class="hstack">
+                                            <i class="wd-10 ht-10 border border-2 border-gray-1 bg-warning rounded-circle me-2"></i>
+                                            <span>Always</span>
+                                        </span>
+                                    </a>
+                                    <a href="javascript:void(0);" class="dropdown-item">
+                                        <span class="hstack">
+                                            <i class="wd-10 ht-10 border border-2 border-gray-1 bg-success rounded-circle me-2"></i>
+                                            <span>Active</span>
+                                        </span>
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="dropdown-divider"></div>
+                            <a href="users.php" class="dropdown-item">
+                                <i class="feather-user"></i>
+                                <span>Profile Details</span>
+                            </a>
+                            <a href="analytics.php" class="dropdown-item">
+                                <i class="feather-activity"></i>
+                                <span>Activity Feed</span>
+                            </a>
+                            <a href="analytics.php" class="dropdown-item">
+                                <i class="feather-bell"></i>
+                                <span>Notifications</span>
+                            </a>
+                            <a href="settings-general.php" class="dropdown-item">
+                                <i class="feather-settings"></i>
+                                <span>Account Settings</span>
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <a href="./auth-login-cover.php?logout=1" class="dropdown-item">
+                                <i class="feather-log-out"></i>
+                                <span>Logout</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!--! [End] Header Right !-->
+        </div>
+    </header>
+    <!--! ================================================================ !-->
+    <!--! [End] Header !-->
+    <!--! ================================================================ !-->
+    <!--! ================================================================ !-->
+    <!--! [Start] Main Content !-->
+    <!--! ================================================================ !-->
+    <main class="nxl-container">
+        <div class="nxl-content">
             <!-- [ page-header ] start -->
             <div class="page-header">
                 <div class="page-header-left d-flex align-items-center">
@@ -381,28 +795,28 @@ include 'includes/header.php';
                                     <i class="feather-filter"></i>
                                 </a>
                                 <div class="dropdown-menu dropdown-menu-end">
-                                    <a href="javascript:void(0);" class="dropdown-item attendance-filter app-attendance-filter-link" data-type="period" data-value="today">
+                                    <a href="javascript:void(0);" class="dropdown-item attendance-filter" data-type="period" data-value="today">
                                         <i class="feather-calendar me-3"></i>
                                         <span>Today</span>
                                     </a>
-                                    <a href="javascript:void(0);" class="dropdown-item attendance-filter app-attendance-filter-link" data-type="period" data-value="week">
+                                    <a href="javascript:void(0);" class="dropdown-item attendance-filter" data-type="period" data-value="week">
                                         <i class="feather-calendar me-3"></i>
                                         <span>This Week</span>
                                     </a>
-                                    <a href="javascript:void(0);" class="dropdown-item attendance-filter app-attendance-filter-link" data-type="period" data-value="month">
+                                    <a href="javascript:void(0);" class="dropdown-item attendance-filter" data-type="period" data-value="month">
                                         <i class="feather-calendar me-3"></i>
                                         <span>This Month</span>
                                     </a>
                                     <div class="dropdown-divider"></div>
-                                    <a href="javascript:void(0);" class="dropdown-item attendance-filter app-attendance-filter-link" data-type="status" data-value="approved">
+                                    <a href="javascript:void(0);" class="dropdown-item attendance-filter" data-type="status" data-value="approved">
                                         <i class="feather-check-circle me-3"></i>
                                         <span>Approved</span>
                                     </a>
-                                    <a href="javascript:void(0);" class="dropdown-item attendance-filter app-attendance-filter-link" data-type="status" data-value="pending">
+                                    <a href="javascript:void(0);" class="dropdown-item attendance-filter" data-type="status" data-value="pending">
                                         <i class="feather-clock me-3"></i>
                                         <span>Pending</span>
                                     </a>
-                                    <a href="javascript:void(0);" class="dropdown-item attendance-filter app-attendance-filter-link" data-type="status" data-value="rejected">
+                                    <a href="javascript:void(0);" class="dropdown-item attendance-filter" data-type="status" data-value="rejected">
                                         <i class="feather-x-circle me-3"></i>
                                         <span>Rejected</span>
                                     </a>
@@ -445,54 +859,106 @@ include 'includes/header.php';
             <!-- Filters -->
             <div class="row mb-3 px-3">
                 <div class="col-12">
-                    <form method="GET" class="filter-form app-attendance-filter-form row g-2 align-items-end" id="attendanceFilterForm">
+                    <form method="GET" class="filter-form row g-2 align-items-end" id="attendanceFilterForm">
                         <div class="col-sm-2">
                             <label class="form-label" for="filter-date">Date</label>
-                            <input id="filter-date" type="date" name="date" class="form-control" value="<?php echo htmlspecialchars($_GET['date'] ?? ''); ?>">
+                            <input id="filter-date" type="date" name="date" class="form-control" value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($_GET['date'] ?? ''); ?>">
                         </div>
                         <div class="col-sm-2">
                             <label class="form-label" for="filter-course">Course</label>
                             <select id="filter-course" name="course_id" class="form-control">
                                 <option value="0">-- All Courses --</option>
-                                <?php foreach ($courses as $course): ?>
-                                    <option value="<?php echo $course['id']; ?>" <?php echo $filter_course == $course['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($course['name']); ?></option>
-                                <?php endforeach; ?>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($courses as $course): ?>
+                                    <option value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $course['id']; ?>" <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $filter_course == $course['id'] ? 'selected' : ''; ?>><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($course['name']); ?></option>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
                             </select>
                         </div>
                         <div class="col-sm-2">
                             <label class="form-label" for="filter-department">Department</label>
                             <select id="filter-department" name="department_id" class="form-control">
                                 <option value="0">-- All Departments --</option>
-                                <?php foreach ($departments as $dept): ?>
-                                    <option value="<?php echo $dept['id']; ?>" <?php echo $filter_department == $dept['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($dept['name']); ?></option>
-                                <?php endforeach; ?>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($departments as $dept): ?>
+                                    <option value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $dept['id']; ?>" <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $filter_department == $dept['id'] ? 'selected' : ''; ?>><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($dept['name']); ?></option>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
                             </select>
                         </div>
                         <div class="col-sm-2">
                             <label class="form-label" for="filter-section">Section</label>
                             <select id="filter-section" name="section_id" class="form-control">
                                 <option value="0">-- All Sections --</option>
-                                <?php foreach ($sections as $section): ?>
-                                    <option value="<?php echo (int)$section['id']; ?>" <?php echo $filter_section == $section['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($section['section_label']); ?></option>
-                                <?php endforeach; ?>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($sections as $section): ?>
+                                    <option value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$section['id']; ?>" <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $filter_section == $section['id'] ? 'selected' : ''; ?>><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($section['section_label']); ?></option>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
                             </select>
                         </div>
                         <div class="col-sm-2">
                             <label class="form-label" for="filter-supervisor">Supervisor</label>
                             <select id="filter-supervisor" name="supervisor" class="form-control">
                                 <option value="">-- Any Supervisor --</option>
-                                <?php foreach ($supervisors as $sup): ?>
-                                    <option value="<?php echo htmlspecialchars($sup); ?>" <?php echo $filter_supervisor == $sup ? 'selected' : ''; ?>><?php echo htmlspecialchars($sup); ?></option>
-                                <?php endforeach; ?>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($supervisors as $sup): ?>
+                                    <option value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($sup); ?>" <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $filter_supervisor == $sup ? 'selected' : ''; ?>><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($sup); ?></option>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
                             </select>
                         </div>
                         <div class="col-sm-2">
                             <label class="form-label" for="filter-coordinator">Coordinator</label>
                             <select id="filter-coordinator" name="coordinator" class="form-control">
                                 <option value="">-- Any Coordinator --</option>
-                                <?php foreach ($coordinators as $coor): ?>
-                                    <option value="<?php echo htmlspecialchars($coor); ?>" <?php echo $filter_coordinator == $coor ? 'selected' : ''; ?>><?php echo htmlspecialchars($coor); ?></option>
-                                <?php endforeach; ?>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($coordinators as $coor): ?>
+                                    <option value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($coor); ?>" <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $filter_coordinator == $coor ? 'selected' : ''; ?>><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($coor); ?></option>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
                             </select>
                         </div>
                         <div class="col-sm-2">
@@ -519,12 +985,16 @@ include 'includes/header.php';
                                             </div>
                                             <a href="javascript:void(0);" class="fw-bold d-block">
                                                 <span class="text-truncate-1-line">Total Approved</span>
-                                                <span class="fs-24 fw-bolder d-block"><?php echo $stats['approved_count'] ?? 0; ?></span>
+                                                <span class="fs-24 fw-bolder d-block"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $stats['approved_count'] ?? 0; ?></span>
                                             </a>
                                         </div>
                                         <div class="badge bg-soft-success text-success">
                                             <i class="feather-arrow-up fs-10 me-1"></i>
-                                            <span><?php echo $stats['total_count'] > 0 ? round(($stats['approved_count'] / $stats['total_count']) * 100, 1) : 0; ?>%</span>
+                                            <span><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $stats['total_count'] > 0 ? round(($stats['approved_count'] / $stats['total_count']) * 100, 1) : 0; ?>%</span>
                                         </div>
                                     </div>
                                 </div>
@@ -540,12 +1010,16 @@ include 'includes/header.php';
                                             </div>
                                             <a href="javascript:void(0);" class="fw-bold d-block">
                                                 <span class="text-truncate-1-line">Pending Approval</span>
-                                                <span class="fs-24 fw-bolder d-block"><?php echo $stats['pending_count'] ?? 0; ?></span>
+                                                <span class="fs-24 fw-bolder d-block"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $stats['pending_count'] ?? 0; ?></span>
                                             </a>
                                         </div>
                                         <div class="badge bg-soft-warning text-warning">
                                             <i class="feather-arrow-up fs-10 me-1"></i>
-                                            <span><?php echo $stats['total_count'] > 0 ? round(($stats['pending_count'] / $stats['total_count']) * 100, 1) : 0; ?>%</span>
+                                            <span><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $stats['total_count'] > 0 ? round(($stats['pending_count'] / $stats['total_count']) * 100, 1) : 0; ?>%</span>
                                         </div>
                                     </div>
                                 </div>
@@ -561,12 +1035,16 @@ include 'includes/header.php';
                                             </div>
                                             <a href="javascript:void(0);" class="fw-bold d-block">
                                                 <span class="text-truncate-1-line">Rejected</span>
-                                                <span class="fs-24 fw-bolder d-block"><?php echo $stats['rejected_count'] ?? 0; ?></span>
+                                                <span class="fs-24 fw-bolder d-block"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $stats['rejected_count'] ?? 0; ?></span>
                                             </a>
                                         </div>
                                         <div class="badge bg-soft-danger text-danger">
                                             <i class="feather-arrow-down fs-10 me-1"></i>
-                                            <span><?php echo $stats['total_count'] > 0 ? round(($stats['rejected_count'] / $stats['total_count']) * 100, 1) : 0; ?>%</span>
+                                            <span><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $stats['total_count'] > 0 ? round(($stats['rejected_count'] / $stats['total_count']) * 100, 1) : 0; ?>%</span>
                                         </div>
                                     </div>
                                 </div>
@@ -582,7 +1060,9 @@ include 'includes/header.php';
                                             </div>
                                             <a href="javascript:void(0);" class="fw-bold d-block">
                                                 <span class="text-truncate-1-line">Total Records</span>
-                                                <span class="fs-24 fw-bolder d-block"><?php echo $stats['total_count'] ?? 0; ?></span>
+                                                <span class="fs-24 fw-bolder d-block"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $stats['total_count'] ?? 0; ?></span>
                                             </a>
                                         </div>
                                         <div class="badge bg-soft-info text-info">
@@ -599,35 +1079,35 @@ include 'includes/header.php';
             <!--! end of attendance statistics database !-->
 
             <!-- Bulk Actions Toolbar -->
-            <div class="row mb-2 px-3 attendance-bulk-toolbar-hidden app-attendance-bulk-toolbar-hidden" id="bulkActionsToolbar">
+            <div class="row mb-2 px-3" id="bulkActionsToolbar" style="display: none;">
                 <div class="col-12">
-                    <div class="d-flex align-items-center justify-content-between p-2 rounded bulk-toolbar app-attendance-bulk-toolbar">
-                        <span class="fs-6 attendance-selected-label app-attendance-selected-label">
-                            <i class="feather feather-check me-1 attendance-selected-icon app-attendance-selected-icon"></i>
-                            <strong id="selectedCount" class="attendance-selected-count app-attendance-selected-count">0</strong> record(s) selected
+                    <div class="d-flex align-items-center justify-content-between p-2 rounded bulk-toolbar">
+                        <span class="fs-6" style="font-weight: 600;">
+                            <i class="feather feather-check me-1" style="font-size: 16px;"></i>
+                            <strong id="selectedCount" style="font-size:1.1rem;">0</strong> record(s) selected
                         </span>
                         <div class="d-flex gap-1">
-                            <button type="button" class="btn btn-sm btn-success py-1 px-2" data-attendance-action="bulk-action" data-bulk-action="approve" title="Approve selected">
+                            <button type="button" class="btn btn-sm btn-success py-1 px-2" onclick="performBulkAction('approve')" title="Approve selected">
                                 <i class="feather feather-check fs-8 me-1"></i> Approve
                             </button>
-                            <button type="button" class="btn btn-sm btn-warning py-1 px-2" data-attendance-action="bulk-action" data-bulk-action="reject" title="Reject selected">
+                            <button type="button" class="btn btn-sm btn-warning py-1 px-2" onclick="performBulkAction('reject')" title="Reject selected">
                                 <i class="feather feather-x fs-8 me-1"></i> Reject
                             </button>
-                            <button type="button" class="btn btn-sm btn-danger py-1 px-2" data-attendance-action="bulk-action" data-bulk-action="delete" title="Delete selected">
+                            <button type="button" class="btn btn-sm btn-danger py-1 px-2" onclick="performBulkAction('delete')" title="Delete selected">
                                 <i class="feather feather-trash-2 fs-8 me-1"></i> Delete
                             </button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary py-1 px-2" data-attendance-action="clear-selection">
+                            <button type="button" class="btn btn-sm btn-outline-secondary py-1 px-2" onclick="clearSelection()">
                                 <i class="feather feather-x fs-8 me-1"></i> Clear
                             </button>
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="main-content app-attendance-main-content">
+            <div class="main-content">
                 <div class="row">
                     <div class="col-lg-12">
 
-                        <div class="card stretch stretch-full attendance-table-card app-attendance-table-card">
+                        <div class="card stretch stretch-full attendance-table-card">
                             <div class="card-body p-0">
                                 <div class="table-responsive">
                                     <table class="table table-hover" id="attendanceList">
@@ -656,21 +1136,38 @@ include 'includes/header.php';
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <?php if (!empty($attendances)): ?>
-                                                <?php foreach ($attendances as $index => $attendance): ?>
+                                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if (!empty($attendances)): ?>
+                                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($attendances as $index => $attendance): ?>
                                                     <tr class="single-item">
                                                         <td>
                                                             <div class="item-checkbox ms-1">
                                                                 <div class="custom-control custom-checkbox">
-                                                                    <input type="checkbox" class="custom-control-input checkbox" id="checkBox_<?php echo (int)$attendance['id']; ?>_<?php echo (int)$index; ?>" data-attendance-id="<?php echo (int)$attendance['id']; ?>">
-                                                                    <label class="custom-control-label" for="checkBox_<?php echo (int)$attendance['id']; ?>_<?php echo (int)$index; ?>"></label>
+                                                                    <input type="checkbox" class="custom-control-input checkbox" id="checkBox_<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$attendance['id']; ?>_<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$index; ?>" data-attendance-id="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$attendance['id']; ?>">
+                                                                    <label class="custom-control-label" for="checkBox_<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$attendance['id']; ?>_<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$index; ?>"></label>
                                                                 </div>
                                                             </div>
                                                         </td>
                                                         <td>
-                                                            <a href="students-view.php?id=<?php echo $attendance['student_id']; ?>" class="hstack gap-3">
+                                                            <a href="students-view.php?id=<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $attendance['student_id']; ?>" class="hstack gap-3">
                                                                 <?php
-                                                                $pp = $attendance['profile_picture'] ?? '';
+require_once dirname(__DIR__) . '/config/db.php';
+$pp = $attendance['profile_picture'] ?? '';
                                                                 $pp_url = resolve_attendance_profile_image_url((string)$pp);
                                                                 if ($pp_url !== null) {
                                                                     echo '<div class="avatar-image avatar-md"><img src="' . htmlspecialchars($pp_url) . '" alt="" class="img-fluid"></div>';
@@ -679,26 +1176,47 @@ include 'includes/header.php';
                                                                 }
                                                                 ?>
                                                                 <div>
-                                                                    <span class="text-truncate-1-line fw-bold"><?php echo ($attendance['first_name'] ?? 'N/A') . ' ' . ($attendance['last_name'] ?? 'N/A'); ?></span>
-                                                                    <span class="fs-12 text-muted d-block"><?php echo $attendance['student_number'] ?? 'N/A'; ?></span>
+                                                                    <span class="text-truncate-1-line fw-bold"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo ($attendance['first_name'] ?? 'N/A') . ' ' . ($attendance['last_name'] ?? 'N/A'); ?></span>
+                                                                    <span class="fs-12 text-muted d-block"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $attendance['student_number'] ?? 'N/A'; ?></span>
                                                                 </div>
                                                             </a>
                                                         </td>
-                                                        <td><span class="badge bg-soft-primary text-primary"><?php echo date('Y-m-d', strtotime($attendance['attendance_date'])); ?></span></td>
-                                                        <td><span class="badge bg-soft-success text-success"><?php echo formatTime($attendance['morning_time_in']); ?></span></td>
-                                                        <td><span class="badge bg-soft-success text-success"><?php echo formatTime($attendance['morning_time_out']); ?></span></td>
-                                                        <td><span class="badge bg-soft-info text-info"><?php echo formatTime($attendance['break_time_in']); ?></span></td>
-                                                        <td><span class="badge bg-soft-info text-info"><?php echo formatTime($attendance['break_time_out']); ?></span></td>
-                                                        <td><span class="badge bg-soft-warning text-warning"><?php echo formatTime($attendance['afternoon_time_in']); ?></span></td>
-                                                        <td><span class="badge bg-soft-warning text-warning"><?php echo formatTime($attendance['afternoon_time_out']); ?></span></td>
+                                                        <td><span class="badge bg-soft-primary text-primary"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo date('Y-m-d', strtotime($attendance['attendance_date'])); ?></span></td>
+                                                        <td><span class="badge bg-soft-success text-success"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo formatTime($attendance['morning_time_in']); ?></span></td>
+                                                        <td><span class="badge bg-soft-success text-success"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo formatTime($attendance['morning_time_out']); ?></span></td>
+                                                        <td><span class="badge bg-soft-info text-info"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo formatTime($attendance['break_time_in']); ?></span></td>
+                                                        <td><span class="badge bg-soft-info text-info"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo formatTime($attendance['break_time_out']); ?></span></td>
+                                                        <td><span class="badge bg-soft-warning text-warning"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo formatTime($attendance['afternoon_time_in']); ?></span></td>
+                                                        <td><span class="badge bg-soft-warning text-warning"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo formatTime($attendance['afternoon_time_out']); ?></span></td>
                                                         <td>
                                                             <span class="badge bg-soft-secondary text-secondary">
-                                                                <?php echo calculateTotalHours($attendance['morning_time_in'], $attendance['morning_time_out'], $attendance['afternoon_time_in'], $attendance['afternoon_time_out']); ?>h
+                                                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo calculateTotalHours($attendance['morning_time_in'], $attendance['morning_time_out'], $attendance['afternoon_time_in'], $attendance['afternoon_time_out']); ?>h
                                                             </span>
                                                         </td>
                                                         <td>
                                                             <?php
-                                                                $att_status = getAttendanceStatus($attendance['morning_time_in']);
+require_once dirname(__DIR__) . '/config/db.php';
+$att_status = getAttendanceStatus($attendance['morning_time_in']);
                                                                 if ($att_status === 'present') {
                                                                     echo '<span class="badge bg-soft-success text-success">Present</span>';
                                                                 } elseif ($att_status === 'late') {
@@ -708,10 +1226,14 @@ include 'includes/header.php';
                                                                 }
                                                             ?>
                                                         </td>
-                                                        <td><?php echo getStatusBadge($attendance['status']); ?></td>
+                                                        <td><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo getStatusBadge($attendance['status']); ?></td>
                                                         <td>
                                                             <div class="hstack gap-2 justify-content-end">
-                                                                <a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="tooltip" title="View Details" data-attendance-action="view-details" data-student-id="<?php echo (int)$attendance['student_id']; ?>">
+                                                                <a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="tooltip" title="View Details" onclick="viewDetails(<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo (int)$attendance['student_id']; ?>)">
                                                                     <i class="feather feather-eye"></i>
                                                                 </a>
                                                                 <div class="dropdown">
@@ -720,38 +1242,50 @@ include 'includes/header.php';
                                                                     </a>
                                                                     <ul class="dropdown-menu dropdown-menu-end">
                                                                         <li>
-                                                                            <a class="dropdown-item" href="javascript:void(0)" data-attendance-action="approve-individual" data-attendance-id="<?php echo intval($attendance['id']); ?>">
+                                                                            <a class="dropdown-item" href="javascript:void(0)" onclick="approveAttendanceIndividual(<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo intval($attendance['id']); ?>)">
                                                                                 <i class="feather feather-check-circle me-3"></i>
                                                                                 <span>Approve</span>
                                                                             </a>
                                                                         </li>
                                                                         <li>
-                                                                            <a class="dropdown-item" href="javascript:void(0)" data-attendance-action="reject-individual" data-attendance-id="<?php echo intval($attendance['id']); ?>">
+                                                                            <a class="dropdown-item" href="javascript:void(0)" onclick="rejectAttendanceIndividual(<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo intval($attendance['id']); ?>)">
                                                                                 <i class="feather feather-x-circle me-3"></i>
                                                                                 <span>Reject</span>
                                                                             </a>
                                                                         </li>
                                                                         <li>
-                                                                            <a class="dropdown-item" href="javascript:void(0)" data-attendance-action="edit-attendance" data-attendance-id="<?php echo $attendance['id']; ?>">
+                                                                            <a class="dropdown-item" href="javascript:void(0)" onclick="editAttendance(<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $attendance['id']; ?>)">
                                                                                 <i class="feather feather-edit-3 me-3"></i>
                                                                                 <span>Edit</span>
                                                                             </a>
                                                                         </li>
                                                                         <li>
-                                                                            <a class="dropdown-item printBTN" href="javascript:void(0)" data-attendance-action="print-attendance" data-attendance-id="<?php echo $attendance['id']; ?>">
+                                                                            <a class="dropdown-item printBTN" href="javascript:void(0)" onclick="printAttendance(<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $attendance['id']; ?>)">
                                                                                 <i class="feather feather-printer me-3"></i>
                                                                                 <span>Print</span>
                                                                             </a>
                                                                         </li>
                                                                         <li>
-                                                                            <a class="dropdown-item" href="javascript:void(0)" data-attendance-action="send-notification" data-attendance-id="<?php echo $attendance['id']; ?>">
+                                                                            <a class="dropdown-item" href="javascript:void(0)" onclick="sendNotification(<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $attendance['id']; ?>)">
                                                                                 <i class="feather feather-mail me-3"></i>
                                                                                 <span>Send Notification</span>
                                                                             </a>
                                                                         </li>
                                                                         <li class="dropdown-divider"></li>
                                                                         <li>
-                                                                            <a class="dropdown-item" href="javascript:void(0)" data-attendance-action="delete-individual" data-attendance-id="<?php echo intval($attendance['id']); ?>">
+                                                                            <a class="dropdown-item" href="javascript:void(0)" onclick="deleteAttendanceIndividual(<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo intval($attendance['id']); ?>)">
                                                                                 <i class="feather feather-trash-2 me-3"></i>
                                                                                 <span>Delete</span>
                                                                             </a>
@@ -761,8 +1295,12 @@ include 'includes/header.php';
                                                             </div>
                                                         </td>
                                                     </tr>
-                                                <?php endforeach; ?>
-                                            <?php endif; ?>
+                                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
+                                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
                                         </tbody>
                                     </table>
                                 </div>
@@ -773,7 +1311,606 @@ include 'includes/header.php';
             </div>
             <!-- [ Main Content ] end -->
         </div>
+        <!-- [ Footer ] start -->
+        <footer class="footer">
+            <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
+                <span>Copyright Â©</span>
+                <script>
+                    document.write(new Date().getFullYear());
+                </script>
+            </p>
+            <p class="footer-meta fs-12 mb-0"><span>By: <a href="javascript:void(0);">ACT 2A</a></span> <span>Distributed by: <a href="javascript:void(0);">Group 5</a></span></p>
+            <div class="d-flex align-items-center gap-4">
+                <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Help</a>
+                <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Terms</a>
+                <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Privacy</a>
+            </div>
+        </footer>
+        <!-- [ Footer ] end -->
+    </main>
 
+    <!--! ================================================================ !-->
+    <!--! [End] Main Content !-->
+
+    <!--! ================================================================ !-->
+    <!--! BEGIN: Downloading Toast !-->
+    <!--! ================================================================ !-->
+    <div class="position-fixed" style="right: 5px; bottom: 5px; z-index: 999999">
+        <div id="toast" class="toast bg-black hide" data-bs-delay="3000" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header px-3 bg-transparent d-flex align-items-center justify-content-between border-bottom border-light border-opacity-10">
+                <div class="text-white mb-0 mr-auto">Downloading...</div>
+                <a href="javascript:void(0)" class="ms-2 mb-1 close fw-normal" data-bs-dismiss="toast" aria-label="Close">
+                    <span class="text-white">&times;</span>
+                </a>
+            </div>
+            <div class="toast-body p-3 text-white">
+                <h6 class="fs-13 text-white">Attendance.zip</h6>
+                <span class="text-light fs-11">4.2mb of 5.5mb</span>
+            </div>
+            <div class="toast-footer p-3 pt-0 border-top border-light border-opacity-10">
+                <div class="progress mt-3" style="height: 5px">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated w-75 bg-dark" role="progressbar" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!--! ================================================================ !-->
+    <!--! Footer Script !-->
+    <!--! ================================================================ !-->
+    <!--! BEGIN: Vendors JS !-->
+    <script src="assets/vendors/js/vendors.min.js"></script>
+    <!-- vendors.min.js {always must need to be top} -->
+    <style>
+        /* Keep header menus above content */
+        .page-header .dropdown-menu,
+        .page-header-right .dropdown-menu {
+            z-index: 99999 !important;
+        }
+        .page-header,
+        .page-header-right {
+            overflow: visible !important;
+        }
+
+        /* Attendance actions menu should not be clipped by wrappers */
+        .attendance-table-card,
+        .attendance-table-card .card-body,
+        .attendance-table-card .table-responsive,
+        .attendance-table-card .table,
+        .attendance-table-card .table-hover tbody tr,
+        .attendance-table-card td {
+            overflow: visible !important;
+        }
+
+        .attendance-table-card .dropdown {
+            position: relative !important;
+        }
+
+        .attendance-table-card .dropdown-menu {
+            z-index: 20000 !important;
+        }
+    </style>
+
+    <script src="assets/vendors/js/dataTables.min.js"></script>
+    <script src="assets/vendors/js/dataTables.bs5.min.js"></script>
+    <script src="assets/vendors/js/select2.min.js"></script>
+    <script src="assets/vendors/js/select2-active.min.js"></script>
+    <!--! END: Vendors JS !-->
+    
+    <style>
+        .attendance-table-card .dropdown-menu {
+            margin-top: 5px;
+        }
+
+        /* Move bottom DataTable controls slightly lower for better spacing */
+        .attendanceList_wrapper .row:last-child {
+            margin-top: 2220px;
+            padding-bottom: 6px;
+        }
+    </style>
+    
+    <!--! BEGIN: Apps Init  !-->
+    <script src="assets/js/common-init.min.js"></script>
+    <script src="assets/js/customers-init.min.js"></script>
+    <!--! END: Apps Init !-->
+    <script src="assets/js/theme-customizer-init.min.js"></script>
+
+    <script>
+        function initAttendanceDataTable() {
+            return $('#attendanceList').DataTable({
+                "pageLength": 10,
+                "ordering": true,
+                "searching": true,
+                "bLengthChange": true,
+                "info": true,
+                "paging": true,
+                "autoWidth": false,
+                "order": [[2, "desc"]],
+                "columnDefs": [
+                    { "orderable": false, "targets": [0, 12] }
+                ],
+                "language": {
+                    "emptyTable": "No attendance records found"
+                }
+            });
+        }
+
+        // Initialize DataTable
+        $(document).ready(function() {
+            initAttendanceDataTable();
+
+            // Initialize Select2 for filter selects
+            $('select[name="course_id"], select[name="department_id"], select[name="section_id"]').select2({
+                width: 'resolve',
+                theme: 'bootstrap-5',
+                minimumResultsForSearch: Infinity
+            });
+            $('select[name="supervisor"], select[name="coordinator"]').select2({
+                width: 'resolve',
+                theme: 'bootstrap-5'
+            });
+
+            // Auto-submit attendance filters on change.
+            var isSubmittingFilters = false;
+            function submitAttendanceFilters() {
+                if (isSubmittingFilters) return;
+                var form = document.getElementById('attendanceFilterForm');
+                if (!form) return;
+                isSubmittingFilters = true;
+                form.submit();
+            }
+
+            $('#attendanceFilterForm').on('change', 'input[name="date"], select[name="course_id"], select[name="department_id"], select[name="section_id"], select[name="supervisor"], select[name="coordinator"]', function() {
+                submitAttendanceFilters();
+            });
+
+            $('select[name="course_id"], select[name="department_id"], select[name="section_id"], select[name="supervisor"], select[name="coordinator"]').on('select2:select select2:clear', function() {
+                submitAttendanceFilters();
+            });
+
+            // Header quick-filters (Today / This Week / This Month / status)
+            // Use delegated binding so dynamically shown menu items are caught
+            $(document).on('click', '.attendance-filter', function(e) {
+                e.preventDefault();
+                var type = $(this).data('type');
+                var value = $(this).data('value');
+                var params = new URLSearchParams(window.location.search);
+
+                // Remove pagination or unrelated params
+                params.delete('page');
+
+                if (type === 'period') {
+                    var today = new Date();
+                    var yyyy = today.getFullYear();
+                    var mm = String(today.getMonth() + 1).padStart(2, '0');
+                    var dd = String(today.getDate()).padStart(2, '0');
+                    if (value === 'today') {
+                        params.set('date', yyyy + '-' + mm + '-' + dd);
+                        params.delete('start_date');
+                        params.delete('end_date');
+                        params.delete('status');
+                    } else if (value === 'week') {
+                        // start of week (Monday)
+                        var curr = new Date();
+                        var first = new Date(curr.setDate(curr.getDate() - (curr.getDay() || 7) + 1));
+                        var last = new Date();
+                        var s_yyyy = first.getFullYear();
+                        var s_mm = String(first.getMonth() + 1).padStart(2, '0');
+                        var s_dd = String(first.getDate()).padStart(2, '0');
+                        var e_yyyy = last.getFullYear();
+                        var e_mm = String(last.getMonth() + 1).padStart(2, '0');
+                        var e_dd = String(last.getDate()).padStart(2, '0');
+                        params.set('start_date', s_yyyy + '-' + s_mm + '-' + s_dd);
+                        params.set('end_date', e_yyyy + '-' + e_mm + '-' + e_dd);
+                        params.delete('date');
+                        params.delete('status');
+                    } else if (value === 'month') {
+                        var now = new Date();
+                        var s_yyyy = now.getFullYear();
+                        var s_mm = String(now.getMonth() + 1).padStart(2, '0');
+                        params.set('start_date', s_yyyy + '-' + s_mm + '-01');
+                        // last day of month
+                        var lastDay = new Date(now.getFullYear(), now.getMonth()+1, 0);
+                        var e_yyyy = lastDay.getFullYear();
+                        var e_mm = String(lastDay.getMonth() + 1).padStart(2, '0');
+                        var e_dd = String(lastDay.getDate()).padStart(2, '0');
+                        params.set('end_date', e_yyyy + '-' + e_mm + '-' + e_dd);
+                        params.delete('date');
+                        params.delete('status');
+                    }
+                } else if (type === 'status') {
+                    params.set('status', value);
+                    // clear specific date range so status can apply broadly
+                    params.delete('date');
+                    params.delete('start_date');
+                    params.delete('end_date');
+                }
+
+                // navigate via AJAX: fetch rows and replace table body without full reload
+                var qs = params.toString();
+                var fetchUrl = window.location.pathname + (qs ? ('?' + qs) : '') + (qs ? '&ajax=1' : '?ajax=1');
+                // request rows
+                $.get(fetchUrl, function(html) {
+                    // destroy and reinit DataTable while replacing rows
+                    if ($.fn.DataTable.isDataTable('#attendanceList')) {
+                        $('#attendanceList').DataTable().clear().destroy();
+                    }
+                    $('#attendanceList tbody').html(html);
+                    // re-init DataTable
+                    initAttendanceDataTable();
+                    // re-init tooltips
+                    $('[data-bs-toggle="tooltip"]').each(function() { new bootstrap.Tooltip(this); });
+                    // re-init dropdowns
+                    var dropdownElements = document.querySelectorAll('[data-bs-toggle="dropdown"]');
+                    dropdownElements.forEach(function(element) {
+                        new bootstrap.Dropdown(element);
+                    });
+                }).fail(function() {
+                    // fallback to full reload on error
+                    window.location.href = window.location.pathname + (qs ? ('?' + qs) : '');
+                });
+            });
+
+            // Handle Check All
+            $('#checkAllAttendance').on('change', function() {
+                $('.checkbox').prop('checked', this.checked);
+                updateBulkActionsToolbar();
+            });
+
+            // Handle individual checkbox changes
+            $(document).on('change', '.checkbox', function() {
+                updateBulkActionsToolbar();
+            });
+
+            // Initialize tooltips
+            $('[data-bs-toggle="tooltip"]').each(function() {
+                new bootstrap.Tooltip(this);
+            });
+        });
+
+        // View Details function
+        function viewDetails(studentId) {
+            var sid = parseInt(studentId, 10);
+            if (!sid || sid <= 0) {
+                showToast('Invalid student record', 'danger');
+                return;
+            }
+            window.location.href = 'students-dtr.php?id=' + sid;
+        }
+
+        // Update bulk actions toolbar visibility and count
+        function updateBulkActionsToolbar() {
+            var selectedCount = $('.checkbox:checked').length;
+            $('#selectedCount').text(selectedCount);
+            
+            // Show bulk toolbar only when multiple rows are selected.
+            if (selectedCount > 1) {
+                $('#bulkActionsToolbar').slideDown(200);
+            } else {
+                $('#bulkActionsToolbar').slideUp(200);
+                if (selectedCount === 0) {
+                    $('#checkAllAttendance').prop('checked', false);
+                }
+            }
+        }
+
+        // Clear selection
+        function clearSelection() {
+            $('.checkbox').prop('checked', false);
+            $('#checkAllAttendance').prop('checked', false);
+            updateBulkActionsToolbar();
+        }
+
+        // Helper function to get selected IDs
+        function getSelectedIds() {
+            var ids = [];
+            $('.checkbox:checked').each(function() {
+                var id = parseInt($(this).data('attendance-id'), 10);
+                if (!isNaN(id)) {
+                    ids.push(id);
+                }
+            });
+            return [...new Set(ids)];
+        }
+
+        // Show toast notification
+        function showToast(message, type = 'success') {
+            // Remove existing toasts
+            $('.toast-notification').remove();
+            
+            var toastHtml = '<div class="toast-notification alert alert-' + type + ' alert-dismissible fade show" role="alert" style="position: fixed; top: 20px; right: 20px; z-index: 99999; max-width: 400px;">' +
+                message +
+                '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>' +
+                '</div>';
+            
+            $('body').append(toastHtml);
+            
+            setTimeout(function() {
+                $('.toast-notification').fadeOut(function() {
+                    $(this).remove();
+                });
+            }, 4000);
+        }
+
+        function submitAttendanceAction(action, id, remarks) {
+            var ids = Array.isArray(id) ? id : [id];
+            ids = ids.filter(function(v) { return !!v; });
+            var payload = {
+                action: action,
+                id: ids
+            };
+            if (typeof remarks === 'string') {
+                payload.remarks = remarks;
+            }
+
+            $.ajax({
+                type: 'POST',
+                url: 'process_attendance.php',
+                data: payload,
+                dataType: 'json',
+                success: function(response) {
+                    if (response && response.success) {
+                        showToast(response.message || 'Action completed successfully.', 'success');
+                        refreshAttendanceTable();
+                    } else {
+                        showToast((response && response.message) ? response.message : 'Unable to complete the action.', 'danger');
+                    }
+                },
+                error: function() {
+                    showToast('Error processing request', 'danger');
+                }
+            });
+        }
+
+        function showConfirmModal(options) {
+            var modalEl = document.getElementById('confirmModal');
+            if (!modalEl) return;
+
+            var modalTitle = modalEl.querySelector('.modal-title');
+            var modalBody = modalEl.querySelector('.modal-body .confirm-message');
+            var remarksWrap = modalEl.querySelector('.modal-body .confirm-remarks-wrap');
+            var remarksInput = modalEl.querySelector('#confirmRemarks');
+            var okBtn = modalEl.querySelector('#confirmModalOk');
+
+            modalTitle.textContent = options.title || 'Confirm';
+            modalBody.textContent = options.message || '';
+            if (options.showRemarks) {
+                remarksWrap.style.display = 'block';
+                remarksInput.value = options.defaultRemarks || '';
+            } else {
+                remarksWrap.style.display = 'none';
+                remarksInput.value = '';
+            }
+
+            okBtn.replaceWith(okBtn.cloneNode(true));
+            okBtn = modalEl.querySelector('#confirmModalOk');
+
+            okBtn.addEventListener('click', function() {
+                var remarks = (remarksInput.value || '').trim();
+
+                var instance = bootstrap.Modal.getInstance(modalEl);
+                if (instance) instance.hide();
+
+                if (typeof options.onConfirm === 'function') {
+                    options.onConfirm(remarks);
+                }
+            });
+
+            var modal = new bootstrap.Modal(modalEl, { backdrop: 'static' });
+            modal.show();
+        }
+
+        // Refresh table after action
+        function refreshAttendanceTable() {
+            var currentUrl = window.location.href;
+            $.get(currentUrl, function(html) {
+                if ($.fn.DataTable.isDataTable('#attendanceList')) {
+                    $('#attendanceList').DataTable().destroy();
+                }
+                var newTbody = $(html).find('#attendanceList tbody').html();
+                $('#attendanceList tbody').html(newTbody);
+                initAttendanceDataTable();
+                // Reinitialize tooltips
+                $('[data-bs-toggle="tooltip"]').each(function() {
+                    new bootstrap.Tooltip(this);
+                });
+                // Reinitialize dropdowns - Bootstrap 5
+                var dropdownElements = document.querySelectorAll('[data-bs-toggle="dropdown"]');
+                dropdownElements.forEach(function(element) {
+                    new bootstrap.Dropdown(element);
+                });
+                $('#checkAllAttendance').prop('checked', false);
+                updateBulkActionsToolbar();
+            });
+        }
+
+        // Individual record approval
+        function approveAttendanceIndividual(id) {
+            if (!id || id === 0) {
+                showToast('Invalid attendance record', 'danger');
+                return;
+            }
+            showConfirmModal({
+                title: 'Approve Attendance',
+                message: 'Are you sure you want to approve this attendance record?',
+                showRemarks: false,
+                onConfirm: function() {
+                    submitAttendanceAction('approve', [id]);
+                }
+            });
+        }
+
+        // Bulk approval (from checkboxes)
+        function approveAttendance() {
+            var ids = getSelectedIds();
+            if (ids.length === 0) {
+                showToast('Please select at least one attendance record to approve', 'warning');
+                return;
+            }
+            showConfirmModal({
+                title: 'Approve Attendance',
+                message: ids.length === 1 ? 'Are you sure you want to approve this attendance?' : ('Are you sure you want to approve ' + ids.length + ' attendance record(s)?'),
+                showRemarks: false,
+                onConfirm: function() {
+                    submitAttendanceAction('approve', ids);
+                }
+            });
+        }
+
+        // Individual record rejection
+        function rejectAttendanceIndividual(id) {
+            if (!id || id === 0) {
+                showToast('Invalid attendance record', 'danger');
+                return;
+            }
+            showConfirmModal({
+                title: 'Reject Attendance',
+                message: 'Provide a reason for rejection (required):',
+                showRemarks: true,
+                onConfirm: function(remarks) {
+                    if (!remarks) {
+                        setTimeout(function() {
+                            showConfirmModal({
+                                title: 'Reject Attendance',
+                                message: 'Rejection reason is required.',
+                                showRemarks: true,
+                                onConfirm: function(r) {
+                                    if (!r) return;
+                                    rejectAttendanceIndividual(id);
+                                }
+                            });
+                        }, 250);
+                        return;
+                    }
+                    submitAttendanceAction('reject', [id], remarks);
+                }
+            });
+        }
+
+        // Bulk rejection (from checkboxes)
+        function rejectAttendance() {
+            var ids = getSelectedIds();
+            if (ids.length === 0) {
+                showToast('Please select at least one attendance record to reject', 'warning');
+                return;
+            }
+            showConfirmModal({
+                title: 'Reject Attendance',
+                message: 'Provide a reason for rejection (required):',
+                showRemarks: true,
+                onConfirm: function(remarks) {
+                    if (!remarks) {
+                        setTimeout(function() {
+                            showConfirmModal({
+                                title: 'Reject Attendance',
+                                message: 'Rejection reason is required.',
+                                showRemarks: true,
+                                onConfirm: function(r) {
+                                    if (!r) return;
+                                    rejectAttendance();
+                                }
+                            });
+                        }, 250);
+                        return;
+                    }
+                    submitAttendanceAction('reject', ids, remarks);
+                }
+            });
+        }
+
+        // Edit attendance function (redirects to edit page)
+        function editAttendance(id) {
+            window.location.href = 'edit_attendance.php?id=' + id;
+        }
+
+        // Print attendance function
+        function printAttendance(id) {
+            window.open('print_attendance.php?id=' + id, 'Print', 'height=600,width=800');
+        }
+
+        // Send notification function
+        function sendNotification(id) {
+            alert('Sending notification for Attendance ID: ' + id);
+            // Implement your notification logic here
+        }
+
+        // Individual record deletion
+        function deleteAttendanceIndividual(id) {
+            if (!id || id === 0) {
+                showToast('Invalid attendance record', 'danger');
+                return;
+            }
+            showConfirmModal({
+                title: 'Delete Attendance',
+                message: 'Are you sure you want to delete this attendance record? This action cannot be undone.',
+                showRemarks: false,
+                onConfirm: function() {
+                    submitAttendanceAction('delete', [id]);
+                }
+            });
+        }
+
+        // Bulk deletion (from checkboxes)
+        function deleteAttendance() {
+            var ids = getSelectedIds();
+            if (ids.length === 0) {
+                showToast('Please select at least one attendance record to delete', 'warning');
+                return;
+            }
+            showConfirmModal({
+                title: 'Delete Attendance',
+                message: ids.length === 1 ? 'Are you sure you want to delete this attendance record? This action cannot be undone.' : ('Are you sure you want to delete ' + ids.length + ' attendance record(s)? This action cannot be undone.'),
+                showRemarks: false,
+                onConfirm: function() {
+                    submitAttendanceAction('delete', ids);
+                }
+            });
+        }
+
+        // Bulk action handler
+        function performBulkAction(action) {
+            var ids = getSelectedIds();
+            
+            if (ids.length === 0) {
+                showToast('Please select at least one attendance record', 'warning');
+                return;
+            }
+
+            if (action === 'approve') {
+                approveAttendance();
+            } else if (action === 'reject') {
+                rejectAttendance();
+            } else if (action === 'delete') {
+                deleteAttendance();
+            }
+        }
+
+        // Edit status inline via AJAX
+        function changeStatus(id, newStatus) {
+            if (confirm('Change status to ' + newStatus + '?')) {
+                $.ajax({
+                    type: 'POST',
+                    url: 'process_attendance.php',
+                    data: {
+                        action: 'edit_status',
+                        id: [id],
+                        status: newStatus
+                    },
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.success) {
+                            showToast(response.message, 'success');
+                            refreshAttendanceTable();
+                        } else {
+                            showToast(response.message, 'danger');
+                        }
+                    },
+                    error: function() {
+                        showToast('Error processing request', 'danger');
+                    }
+                });
+            }
+        }
+    </script>
     <div class="modal fade" id="viewAttendanceModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content">
@@ -815,7 +1952,7 @@ include 'includes/header.php';
                 </div>
                 <div class="modal-body">
                     <p class="confirm-message"></p>
-                    <div class="confirm-remarks-wrap app-remarks-hidden">
+                    <div class="confirm-remarks-wrap" style="display:none; margin-top:10px;">
                         <label for="confirmRemarks" class="form-label">Remarks</label>
                         <textarea id="confirmRemarks" class="form-control" rows="3" placeholder="Enter remarks here..."></textarea>
                     </div>
@@ -827,7 +1964,41 @@ include 'includes/header.php';
             </div>
         </div>
     </div>
-    <!-- Dark/light toggle runtime moved to assets/js/theme-preferences-runtime.js -->
-<?php include 'includes/footer.php'; ?>
+    <script>
+        (function () {
+            document.addEventListener('DOMContentLoaded', function () {
+                var darkBtn = document.querySelector('.dark-button');
+                var lightBtn = document.querySelector('.light-button');
+
+                function setDark(isDark) {
+                    if (isDark) {
+                        document.documentElement.classList.add('app-skin-dark');
+                        try { localStorage.setItem('app-skin', 'app-skin-dark'); } catch (e) {}
+                        if (darkBtn) darkBtn.style.display = 'none';
+                        if (lightBtn) lightBtn.style.display = '';
+                    } else {
+                        document.documentElement.classList.remove('app-skin-dark');
+                        try { localStorage.setItem('app-skin', ''); } catch (e) {}
+                        if (darkBtn) darkBtn.style.display = '';
+                        if (lightBtn) lightBtn.style.display = 'none';
+                    }
+                }
+
+                var skin = '';
+                try {
+                    skin = localStorage.getItem('app-skin') || localStorage.getItem('app_skin') || localStorage.getItem('theme') || localStorage.getItem('app-skin-dark') || '';
+                } catch (e) {}
+                setDark((typeof skin === 'string' && skin.indexOf('dark') !== -1) || document.documentElement.classList.contains('app-skin-dark'));
+
+                if (darkBtn) darkBtn.addEventListener('click', function (e) { e.preventDefault(); setDark(true); });
+                if (lightBtn) lightBtn.addEventListener('click', function (e) { e.preventDefault(); setDark(false); });
+            });
+        })();
+    </script>
+</body>
+
+</html>
+
+
 
 

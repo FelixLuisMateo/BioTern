@@ -1,4 +1,5 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -8,14 +9,11 @@ require_once dirname(__DIR__) . '/vendor/autoload.php';
 $dbHost = '127.0.0.1';
 $dbUser = 'root';
 $dbPass = '';
-$dbName = 'biotern_db';
+$dbName = defined('DB_NAME') ? DB_NAME : 'biotern_db';
 
 $reset_message = '';
 $reset_error = '';
 $identifier_value = '';
-$script_name = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
-$asset_prefix = (strpos($script_name, '/auth/') !== false) ? '../' : '';
-$route_prefix = $asset_prefix;
 
 function logOtpMailError(string $reason): string
 {
@@ -221,11 +219,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['identifier'])) {
     <meta name="keyword" content="">
     <meta name="author" content="ACT 2A Group 5">
     <title>BioTern || Reset Cover</title>
-    <link rel="shortcut icon" type="image/x-icon" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/favicon.ico">
-    <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/js/theme-preload-init.min.js"></script>
-    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/bootstrap.min.css">
-    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/vendors/css/vendors.min.css">
-    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/theme.min.css">
+    <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
+    <script src="assets/js/theme-preload-init.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/vendors/css/vendors.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css">
 </head>
 
 <body>
@@ -233,7 +231,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['identifier'])) {
         <div class="auth-cover-content-inner">
             <div class="auth-cover-content-wrapper">
                 <div class="auth-img">
-                    <img src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/auth/auth-cover-reset-bg.svg" alt="" class="img-fluid">
+                    <img src="assets/images/auth/auth-cover-reset-bg.svg" alt="" class="img-fluid">
                 </div>
             </div>
         </div>
@@ -241,23 +239,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['identifier'])) {
             <div class="auth-cover-card-wrapper">
                 <div class="auth-cover-card p-sm-5">
                     <div class="wd-50 mb-5">
-                        <img src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/logo-abbr.png" alt="" class="img-fluid">
+                        <img src="assets/images/logo-abbr.png" alt="" class="img-fluid">
                     </div>
                     <h2 class="fs-20 fw-bolder mb-4">Reset</h2>
                     <h4 class="fs-13 fw-bold mb-2">Reset your password</h4>
                     <p class="fs-12 fw-medium text-muted">Enter your email or username and we'll send a verification code to your registered email.</p>
 
-                    <?php if ($reset_error !== '') : ?>
-                        <div class="alert alert-danger" role="alert"><?php echo htmlspecialchars($reset_error, ENT_QUOTES, 'UTF-8'); ?></div>
-                    <?php endif; ?>
+                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($reset_error !== '') : ?>
+                        <div class="alert alert-danger" role="alert"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($reset_error, ENT_QUOTES, 'UTF-8'); ?></div>
+                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
 
-                    <?php if ($reset_message !== '') : ?>
-                        <div class="alert alert-success" role="alert"><?php echo htmlspecialchars($reset_message, ENT_QUOTES, 'UTF-8'); ?></div>
-                    <?php endif; ?>
+                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+if ($reset_message !== '') : ?>
+                        <div class="alert alert-success" role="alert"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($reset_message, ENT_QUOTES, 'UTF-8'); ?></div>
+                    <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endif; ?>
 
-                    <form method="post" action="<?php echo htmlspecialchars($route_prefix, ENT_QUOTES, 'UTF-8'); ?>auth-reset-cover.php" class="w-100 mt-4 pt-2">
+                    <form method="post" action="auth-reset-cover.php" class="w-100 mt-4 pt-2">
                         <div class="mb-4">
-                            <input name="identifier" class="form-control" placeholder="Email or Username" value="<?php echo htmlspecialchars($identifier_value, ENT_QUOTES, 'UTF-8'); ?>" required>
+                            <input name="identifier" class="form-control" placeholder="Email or Username" value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($identifier_value, ENT_QUOTES, 'UTF-8'); ?>" required>
                         </div>
                         <div class="mt-5">
                             <button type="submit" class="btn btn-lg btn-primary w-100">Reset Now</button>
@@ -265,17 +277,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['identifier'])) {
                     </form>
                     <div class="mt-5 text-muted">
                         <span>Remembered your password?</span>
-                        <a href="<?php echo htmlspecialchars($route_prefix, ENT_QUOTES, 'UTF-8'); ?>auth-login-cover.php" class="fw-bold">Back to Login</a>
+                        <a href="auth-login-cover.php" class="fw-bold">Back to Login</a>
                     </div>
                 </div>
             </div>
         </div>
     </main>
 
-    <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/vendors/js/vendors.min.js"></script>
-    <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/js/common-init.min.js"></script>
-    <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/js/theme-customizer-init.min.js"></script>
+    <script src="assets/vendors/js/vendors.min.js"></script>
+    <script src="assets/js/common-init.min.js"></script>
+    <script src="assets/js/theme-customizer-init.min.js"></script>
 </body>
 
 </html>
+
+
 

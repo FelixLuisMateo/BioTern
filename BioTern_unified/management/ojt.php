@@ -1,4 +1,5 @@
-<?php
+﻿<?php
+require_once dirname(__DIR__) . '/config/db.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -13,7 +14,7 @@ if (file_exists($ops_helpers)) {
 $host = 'localhost';
 $db_user = 'root';
 $db_password = '';
-$db_name = 'biotern_db';
+$db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
 
 $conn = new mysqli($host, $db_user, $db_password, $db_name);
 if ($conn->connect_error) {
@@ -32,13 +33,6 @@ if ($current_profile_rel !== '' && file_exists(dirname(__DIR__) . '/' . $current
 function ojt_table_exists(mysqli $conn, string $table): bool {
     $safe = $conn->real_escape_string($table);
     $res = $conn->query("SHOW TABLES LIKE '{$safe}'");
-    return ($res && $res->num_rows > 0);
-}
-
-function ojt_column_exists(mysqli $conn, string $table, string $column): bool {
-    $safeTable = $conn->real_escape_string($table);
-    $safeColumn = $conn->real_escape_string($column);
-    $res = $conn->query("SHOW COLUMNS FROM {$safeTable} LIKE '{$safeColumn}'");
     return ($res && $res->num_rows > 0);
 }
 
@@ -144,26 +138,10 @@ $conn->query("CREATE TABLE IF NOT EXISTS document_workflow (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
 
 $search = trim((string)($_GET['search'] ?? ''));
-$school_year_filter_id = (int)($_GET['school_year_id'] ?? 0);
 $course_filter = trim((string)($_GET['course'] ?? ''));
 $section_filter = trim((string)($_GET['section'] ?? ''));
 $status_filter = trim((string)($_GET['stage'] ?? ''));
 $risk_filter = trim((string)($_GET['risk'] ?? 'all'));
-
-$school_years = [];
-$school_year_filter_value = '';
-$sy_tbl = $conn->query("SHOW TABLES LIKE 'school_years'");
-if ($sy_tbl && $sy_tbl->num_rows > 0) {
-    $sy_res = $conn->query("SELECT id, year FROM school_years ORDER BY year DESC");
-    if ($sy_res) {
-        while ($sy = $sy_res->fetch_assoc()) {
-            $school_years[] = $sy;
-            if ($school_year_filter_id > 0 && (int)$sy['id'] === $school_year_filter_id) {
-                $school_year_filter_value = (string)$sy['year'];
-            }
-        }
-    }
-}
 
 $courses = [];
 $cres = $conn->query('SELECT id, name FROM courses ORDER BY name');
@@ -181,15 +159,6 @@ if ($sres) {
     }
 }
 
-$where = [];
-if (strtolower(trim((string)($current_user_role ?? ''))) === 'coordinator') {
-    // Restrict to OJT assigned to this coordinator
-    $where[] = "i.coordinator_id = " . intval($current_user_id);
-}
-$course_internal_expr = ojt_column_exists($conn, 'courses', 'internal_hours') ? 'COALESCE(c.internal_hours, 0)' : '0';
-$course_external_expr = ojt_column_exists($conn, 'courses', 'external_hours') ? 'COALESCE(c.external_hours, 0)' : '0';
-$course_total_expr = ojt_column_exists($conn, 'courses', 'total_ojt_hours') ? 'COALESCE(c.total_ojt_hours, 0)' : '0';
-
 $sql = "
 SELECT
     s.id,
@@ -204,18 +173,10 @@ SELECT
     c.name AS course_name,
     COALESCE(NULLIF(sec.code, ''), NULLIF(sec.name, ''), '-') AS section_name,
     i.status AS internship_status,
-    i.type AS internship_type,
     i.required_hours,
     i.rendered_hours,
-    i.school_year,
     i.start_date,
     i.end_date,
-    s.assignment_track,
-    COALESCE(s.internal_total_hours, 0) AS student_internal_total_hours,
-    COALESCE(s.external_total_hours, 0) AS student_external_total_hours,
-    {$course_internal_expr} AS course_internal_hours,
-    {$course_external_expr} AS course_external_hours,
-    {$course_total_expr} AS course_total_ojt_hours,
     COALESCE(u_supervisor.name, s.supervisor_name) AS supervisor_name,
     COALESCE(u_coordinator.name, s.coordinator_name) AS coordinator_name,
     COALESCE(app.has_application, 0) AS has_application,
@@ -259,13 +220,8 @@ LEFT JOIN (
     FROM attendances
     GROUP BY student_id
 ) att ON att.student_id = s.id
+ORDER BY s.first_name, s.last_name
 ";
-
-if (count($where) > 0) {
-    $sql .= " WHERE " . implode(' AND ', $where);
-}
-
-$sql .= " ORDER BY s.first_name, s.last_name";
 
 $res = $conn->query($sql);
 $rows = [];
@@ -273,43 +229,11 @@ $today = date('Y-m-d');
 
 if ($res) {
     while ($row = $res->fetch_assoc()) {
-        $assignment_track = strtolower(trim((string)($row['assignment_track'] ?? '')));
-        if ($assignment_track === '') {
-            $assignment_track = strtolower(trim((string)($row['internship_type'] ?? 'internal')));
-        }
-        $required = 0.0;
-        if ($assignment_track === 'external') {
-            $required = (float)($row['course_external_hours'] ?? 0);
-            if ($required <= 0) {
-                $required = (float)($row['student_external_total_hours'] ?? 0);
-            }
-            if ($required <= 0) {
-                $required = (float)($row['required_hours'] ?? 0);
-            }
-            if ($required <= 0) {
-                $required = 250.0;
-            }
-        } else {
-            $required = (float)($row['course_internal_hours'] ?? 0);
-            if ($required <= 0) {
-                $required = (float)($row['student_internal_total_hours'] ?? 0);
-            }
-            if ($required <= 0) {
-                $required = (float)($row['required_hours'] ?? 0);
-            }
-            if ($required <= 0) {
-                $required = (float)($row['course_total_ojt_hours'] ?? 0);
-            }
-            if ($required <= 0) {
-                $required = 600.0;
-            }
-        }
+        $required = (float)($row['required_hours'] ?? 0);
         $rendered = (float)($row['rendered_hours'] ?? 0);
         if ($rendered <= 0) {
             $rendered = (float)($row['attendance_total_hours'] ?? 0);
         }
-        $row['effective_required_hours'] = $required;
-        $row['effective_rendered_hours'] = $rendered;
         $row['progress_pct'] = safe_pct($rendered, $required);
         $row['stage'] = pipeline_stage($row);
 
@@ -344,9 +268,6 @@ if ($res) {
             continue;
         }
         if ($course_filter !== '' && strcasecmp((string)($row['course_name'] ?? ''), $course_filter) !== 0) {
-            continue;
-        }
-        if ($school_year_filter_value !== '' && strcasecmp(trim((string)($row['school_year'] ?? '')), $school_year_filter_value) !== 0) {
             continue;
         }
         if ($section_filter !== '' && strcasecmp((string)($row['section_name'] ?? ''), $section_filter) !== 0) {
@@ -429,8 +350,8 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
     $out = fopen('php://output', 'w');
     fputcsv($out, ['Student ID', 'Name', 'Course', 'Stage', 'Risk Score', 'Risk Flags', 'Required Hours', 'Rendered Hours', 'Last Attendance']);
     foreach ($rows as $r) {
-        $required = (float)($r['effective_required_hours'] ?? ($r['required_hours'] ?? 0));
-        $rendered = (float)($r['effective_rendered_hours'] ?? ($r['rendered_hours'] ?? 0));
+        $required = (float)($r['required_hours'] ?? 0);
+        $rendered = (float)($r['rendered_hours'] ?? 0);
         if ($rendered <= 0) $rendered = (float)($r['attendance_total_hours'] ?? 0);
         fputcsv($out, [
             $r['student_id'] ?? '',
@@ -463,20 +384,217 @@ $page_title = 'BioTern || OJT Dashboard';
 $page_styles = array();
 include 'includes/header.php';
 ?>
-<link rel="stylesheet" type="text/css" href="assets/css/management-ojt-page.css">
-<section class="ojt-print-sheet app-ojt-print-sheet">
-    <img class="crest app-ojt-print-crest" src="assets/images/auth/auth-cover-login-bg.png" alt="crest" data-hide-onerror="1">
-    <div class="header app-ojt-print-header">
+<style>
+        body { background: #f5f7fb; }
+        .kpi-value { font-size: 1.5rem; font-weight: 700; }
+        .chip { border: 1px solid #dbe3f0; border-radius: 999px; padding: 3px 10px; font-size: 12px; display: inline-block; margin: 2px 4px 2px 0; }
+        .chip.ok { border-color: #198754; color: #198754; }
+        .chip.miss { border-color: #dc3545; color: #dc3545; }
+        .risk-pill { background: #fff4e5; color: #996000; border: 1px solid #ffe3b3; border-radius: 999px; padding: 2px 8px; font-size: 11px; display: inline-block; margin: 2px 4px 2px 0; }
+        .doc-progress-wrap,
+        .risk-wrap {
+            display: flex;
+            flex-wrap: wrap;
+            align-content: flex-start;
+            max-height: 50px;
+            overflow: hidden;
+        }
+        .filter-card { border: 1px solid #e9eef7; box-shadow: 0 8px 22px rgba(15, 23, 42, 0.05); }
+        .table td, .table th { vertical-align: middle; }
+        .student-link { color: inherit; text-decoration: none; }
+        .student-link:hover { color: inherit; text-decoration: none; opacity: 0.95; }
+        .card { border: 1px solid #e8edf6; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04); }
+        .page-subtitle { font-size: 12px; color: #6c7a92; margin-top: -2px; }
+        #ojtListTable thead th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; color: #6c7a92; }
+        #ojtListTable { min-width: 980px; }
+        .app-skin-dark body { background: #0b1220; }
+        .app-skin-dark .card,
+        .app-skin-dark .filter-card {
+            border-color: #253252;
+            background: #111a2e;
+            box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+        }
+        .app-skin-dark .page-subtitle,
+        .app-skin-dark #ojtListTable thead th {
+            color: #99abc8;
+        }
+        .app-skin-dark .chip { border-color: #314c72; color: #d4e2f9; }
+        .app-skin-dark .risk-pill { background: #3f2e12; border-color: #7d5c1d; color: #ffd793; }
+        @media (max-width: 991.98px) {
+            .page-header { display: block; }
+            .page-header-left { margin-bottom: 10px; }
+            .page-header-right { width: 100%; display: grid !important; grid-template-columns: 1fr 1fr; gap: 8px !important; }
+            .page-header-right .btn, .page-header-right form .btn { width: 100%; }
+            .filter-card .row > [class*="col-"] { margin-bottom: 4px; }
+            .nxl-content { padding-left: 10px; padding-right: 10px; }
+        }
+        @media (max-width: 575.98px) {
+            .page-header-right { grid-template-columns: 1fr; }
+            .kpi-value { font-size: 1.25rem; }
+            .chip, .risk-pill { font-size: 10px; padding: 2px 8px; }
+            .student-link img { width: 36px !important; height: 36px !important; }
+            .table td, .table th { padding: 0.5rem 0.45rem; font-size: 12px; }
+            .header-right .nxl-h-item { display: none; }
+            .header-right .dark-light-theme { display: block !important; }
+        }
+        @media (max-width: 767.98px) {
+            .nxl-content { padding-left: 8px; padding-right: 8px; }
+            .card { border-radius: 14px; }
+            #ojtListTable { min-width: 100%; }
+            #ojtListTable thead { display: none; }
+            #ojtListTable,
+            #ojtListTable tbody,
+            #ojtListTable tr,
+            #ojtListTable td {
+                display: block;
+                width: 100%;
+            }
+            #ojtListTable tbody tr {
+                margin: 10px;
+                border: 1px solid #e3ebf9;
+                border-radius: 14px;
+                background: #fff;
+                box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+                padding: 10px;
+            }
+            .app-skin-dark #ojtListTable tbody tr {
+                background: #111a2e;
+                border-color: #253252;
+            }
+            #ojtListTable td {
+                border: 0;
+                padding: 0 0 8px 0;
+            }
+            #ojtListTable td::before {
+                content: attr(data-label);
+                display: block;
+                font-size: 11px;
+                text-transform: uppercase;
+                letter-spacing: .05em;
+                color: #6c7a92;
+                margin-bottom: 4px;
+                font-weight: 700;
+            }
+            .app-skin-dark #ojtListTable td::before { color: #99abc8; }
+            #ojtListTable td:last-child { padding-bottom: 0; }
+            #ojtListTable td[colspan] {
+                text-align: center;
+                padding: 14px 8px;
+            }
+            #ojtListTable td[colspan]::before { display: none; }
+            #ojtListTable td:last-child .d-flex {
+                display: grid !important;
+                grid-template-columns: 1fr 1fr 1fr;
+                gap: 6px !important;
+            }
+            #ojtListTable td:last-child .btn { width: 100%; }
+        }
+
+        .ojt-print-sheet { display: none; }
+        @media print {
+            body * { visibility: hidden !important; }
+            .ojt-print-sheet, .ojt-print-sheet * { visibility: visible !important; }
+            .ojt-print-sheet {
+                display: block !important;
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                max-width: 7.45in;
+                background: #fff;
+                color: #111;
+                font-family: Arial, Helvetica, sans-serif;
+                font-size: 12px;
+                margin: 0 auto;
+                padding: 12px 14px;
+            }
+            .ojt-print-sheet .header {
+                position: relative;
+                min-height: 0.9in;
+                text-align: center;
+                border-bottom: 1px solid #8ab0e6;
+                padding: 0.08in 0 0.06in 0;
+                margin-bottom: 14px;
+            }
+            .ojt-print-sheet .crest {
+                position: absolute;
+                top: 0.22in;
+                left: 0.22in;
+                width: 0.77in;
+                height: 0.76in;
+                object-fit: contain;
+            }
+            .ojt-print-sheet .header h2 {
+                font-family: Calibri, Arial, sans-serif;
+                color: #1b4f9c;
+                font-size: 14pt;
+                margin: 6px 0 2px 0;
+                font-weight: 700;
+                text-transform: uppercase;
+            }
+            .ojt-print-sheet .header .meta {
+                font-family: Calibri, Arial, sans-serif;
+                color: #1b4f9c;
+                font-size: 10pt;
+            }
+            .ojt-print-sheet .header .tel {
+                font-family: Calibri, Arial, sans-serif;
+                color: #1b4f9c;
+                font-size: 12pt;
+            }
+            .ojt-print-sheet .print-title {
+                text-align: center;
+                font-size: 24px;
+                letter-spacing: 1px;
+                font-weight: 700;
+                margin: 18px 0 16px;
+            }
+            .ojt-print-sheet .print-meta {
+                margin-bottom: 14px;
+                font-size: 13px;
+            }
+            .ojt-print-sheet .print-meta strong {
+                min-width: 76px;
+                display: inline-block;
+            }
+            .ojt-print-sheet table {
+                width: 100%;
+                min-width: 100%;
+                border-collapse: collapse;
+                font-size: 12.5px;
+                table-layout: auto;
+            }
+            .ojt-print-sheet th, .ojt-print-sheet td {
+                border: 1px solid #d9d9d9;
+                padding: 9px 8px;
+                text-align: left;
+            }
+            .ojt-print-sheet th {
+                text-transform: uppercase;
+                font-weight: 700;
+                background: #f8f8f8;
+            }
+            .ojt-print-sheet td.col-index,
+            .ojt-print-sheet th.col-index {
+                width: 46px;
+                text-align: center;
+            }
+        }
+    </style>
+<section class="ojt-print-sheet">
+    <img class="crest" src="assets/images/auth/auth-cover-login-bg.png" alt="crest" onerror="this.style.display='none'">
+    <div class="header">
         <h2>CLARK COLLEGE OF SCIENCE AND TECHNOLOGY</h2>
-        <div class="meta app-ojt-print-meta">SNS Bldg. Aurea St., Samsonville Subd., Dau, Mabalacat, Pampanga &middot;</div>
-        <div class="tel app-ojt-print-tel">Telefax No.: (045) 624-0215</div>
+        <div class="meta">SNS Bldg. Aurea St., Samsonville Subd., Dau, Mabalacat, Pampanga &middot;</div>
+        <div class="tel">Telefax No.: (045) 624-0215</div>
     </div>
-    <div class="print-title app-ojt-print-title">OJT STUDENT LIST</div>
-    <div class="print-meta app-ojt-print-meta-row"><strong>SECTION:</strong> <?php echo htmlspecialchars($print_section_label); ?></div>
+    <div class="print-title">OJT STUDENT LIST</div>
+    <div class="print-meta"><strong>SECTION:</strong> <?php
+echo htmlspecialchars($print_section_label); ?></div>
     <table>
         <thead>
             <tr>
-                <th class="col-index app-ojt-print-col-index">#</th>
+                <th class="col-index">#</th>
                 <th>Student No.</th>
                 <th>Student Name</th>
                 <th>Course</th>
@@ -487,47 +605,60 @@ include 'includes/header.php';
             </tr>
         </thead>
         <tbody>
-            <?php if (!empty($print_ojt_rows)): ?>
-                <?php foreach ($print_ojt_rows as $i => $r): ?>
+            <?php
+if (!empty($print_ojt_rows)): ?>
+                <?php
+foreach ($print_ojt_rows as $i => $r): ?>
                     <tr>
-                        <td class="col-index app-ojt-print-col-index"><?php echo (int)$i + 1; ?></td>
-                        <td><?php echo htmlspecialchars((string)($r['student_id'] ?? '')); ?></td>
+                        <td class="col-index"><?php
+echo (int)$i + 1; ?></td>
+                        <td><?php
+echo htmlspecialchars((string)($r['student_id'] ?? '')); ?></td>
                         <?php
-                        $student_last = normalize_person_name((string)($r['last_name'] ?? ''));
+$student_last = normalize_person_name((string)($r['last_name'] ?? ''));
                         $student_first = normalize_person_name((string)($r['first_name'] ?? ''));
                         $student_name_lf = trim($student_last . ($student_last !== '' && $student_first !== '' ? ', ' : '') . $student_first);
                         ?>
-                        <td><?php echo htmlspecialchars($student_name_lf); ?></td>
-                        <td><?php echo htmlspecialchars((string)($r['course_name'] ?? '')); ?></td>
-                        <td><?php echo htmlspecialchars((string)($r['section_name'] ?? '')); ?></td>
-                        <td><?php echo htmlspecialchars(to_last_name_first((string)($r['supervisor_name'] ?? ''))); ?></td>
-                        <td><?php echo htmlspecialchars(to_last_name_first((string)($r['coordinator_name'] ?? ''))); ?></td>
+                        <td><?php
+echo htmlspecialchars($student_name_lf); ?></td>
+                        <td><?php
+echo htmlspecialchars((string)($r['course_name'] ?? '')); ?></td>
+                        <td><?php
+echo htmlspecialchars((string)($r['section_name'] ?? '')); ?></td>
+                        <td><?php
+echo htmlspecialchars(to_last_name_first((string)($r['supervisor_name'] ?? ''))); ?></td>
+                        <td><?php
+echo htmlspecialchars(to_last_name_first((string)($r['coordinator_name'] ?? ''))); ?></td>
                         <td></td>
                     </tr>
-                <?php endforeach; ?>
-            <?php else: ?>
+                <?php
+endforeach; ?>
+            <?php
+else: ?>
                 <tr>
-                    <td class="col-index app-ojt-print-col-index">1</td>
+                    <td class="col-index">1</td>
                     <td colspan="7">No OJT students found for current filter.</td>
                 </tr>
-            <?php endif; ?>
+            <?php
+endif; ?>
         </tbody>
     </table>
 </section>
 
-        <div class="page-header app-ojt-page-header">
-            <div class="page-header-left app-ojt-page-header-left d-flex align-items-center">
+        <div class="page-header">
+            <div class="page-header-left d-flex align-items-center">
                 <div class="page-header-title">
                     <h5 class="m-b-10">Biometric Internship Monitoring Dashboard</h5>
-                    <div class="page-subtitle app-ojt-page-subtitle">Clark College of Science and Technology</div>
+                    <div class="page-subtitle">Clark College of Science and Technology</div>
                 </div>
             </div>
-            <div class="page-header-right app-ojt-page-header-right ms-auto d-flex gap-2">
+            <div class="page-header-right ms-auto d-flex gap-2">
                 <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#kpiPanel" aria-expanded="false" aria-controls="kpiPanel">
                     <i class="feather-bar-chart-2 me-1"></i>Metrics Summary
                 </button>
                 <a href="ojt-workflow-board.php" class="btn btn-outline-primary"><i class="feather-kanban me-1"></i>Workflow Board</a>
-                <a href="ojt.php?<?php echo http_build_query(array_merge($_GET, ['export' => 'csv'])); ?>" class="btn btn-light"><i class="feather-download me-1"></i>Export CSV Report</a>
+                <a href="ojt.php?<?php
+echo http_build_query(array_merge($_GET, ['export' => 'csv'])); ?>" class="btn btn-light"><i class="feather-download me-1"></i>Export CSV Report</a>
                 <button type="button" class="btn btn-light" id="ojtPrintBtn"><i class="feather-printer me-1"></i>Print List</button>
                 <form method="post" class="d-inline">
                     <button type="submit" name="queue_reminders" value="1" class="btn btn-warning"><i class="feather-bell me-1"></i>Queue Risk Reminders</button>
@@ -535,73 +666,94 @@ include 'includes/header.php';
                 <a href="ojt-create.php" class="btn btn-primary"><i class="feather-plus me-1"></i>New OJT Assignment</a>
             </div>
         </div>
-        <?php if (isset($_GET['queued'])): ?>
+        <?php
+if (isset($_GET['queued'])): ?>
             <div class="alert alert-success py-2">Reminders queued successfully for flagged students.</div>
-        <?php endif; ?>
+        <?php
+endif; ?>
 
         <div class="collapse mb-3" id="kpiPanel">
             <div class="row g-2 mb-2">
-                <div class="col-md-3"><div class="card app-ojt-dashboard-card card-body p-2"><div class="text-muted">Total Interns</div><div class="kpi-value app-ojt-kpi-value"><?php echo $total; ?></div></div></div>
-                <div class="col-md-3"><div class="card app-ojt-dashboard-card card-body p-2"><div class="text-muted">Ongoing Internships</div><div class="kpi-value app-ojt-kpi-value"><?php echo $ongoing; ?></div></div></div>
-                <div class="col-md-3"><div class="card app-ojt-dashboard-card card-body p-2"><div class="text-muted">Completed Internships</div><div class="kpi-value app-ojt-kpi-value"><?php echo $completed; ?></div></div></div>
-                <div class="col-md-3"><div class="card app-ojt-dashboard-card card-body p-2"><div class="text-muted">At-Risk Interns</div><div class="kpi-value app-ojt-kpi-value"><?php echo $at_risk; ?></div><small class="text-muted">Average Progress: <?php echo $avg_progress; ?>%</small></div></div>
+                <div class="col-md-3"><div class="card card-body p-2"><div class="text-muted">Total Interns</div><div class="kpi-value"><?php
+echo $total; ?></div></div></div>
+                <div class="col-md-3"><div class="card card-body p-2"><div class="text-muted">Ongoing Internships</div><div class="kpi-value"><?php
+echo $ongoing; ?></div></div></div>
+                <div class="col-md-3"><div class="card card-body p-2"><div class="text-muted">Completed Internships</div><div class="kpi-value"><?php
+echo $completed; ?></div></div></div>
+                <div class="col-md-3"><div class="card card-body p-2"><div class="text-muted">At-Risk Interns</div><div class="kpi-value"><?php
+echo $at_risk; ?></div><small class="text-muted">Average Progress: <?php
+echo $avg_progress; ?>%</small></div></div>
             </div>
             <div class="row g-2">
-                <div class="col-md-3"><div class="card app-ojt-dashboard-card card-body p-2"><div class="text-muted">7-Day Active Interns</div><div class="kpi-value app-ojt-kpi-value"><?php echo $trend_active_7d; ?></div></div></div>
-                <div class="col-md-3"><div class="card app-ojt-dashboard-card card-body p-2"><div class="text-muted">7-Day At-Risk Snapshot</div><div class="kpi-value app-ojt-kpi-value"><?php echo $trend_at_risk_7d; ?></div></div></div>
-                <div class="col-md-3"><div class="card app-ojt-dashboard-card card-body p-2"><div class="text-muted">7-Day Pending Approvals</div><div class="kpi-value app-ojt-kpi-value"><?php echo $trend_pending_7d; ?></div></div></div>
-                <div class="col-md-3"><div class="card app-ojt-dashboard-card card-body p-2"><div class="text-muted">Avg Approval Turnaround</div><div class="kpi-value app-ojt-kpi-value"><?php echo number_format($trend_avg_approval_hours, 2); ?>h</div></div></div>
+                <div class="col-md-3"><div class="card card-body p-2"><div class="text-muted">7-Day Active Interns</div><div class="kpi-value"><?php
+echo $trend_active_7d; ?></div></div></div>
+                <div class="col-md-3"><div class="card card-body p-2"><div class="text-muted">7-Day At-Risk Snapshot</div><div class="kpi-value"><?php
+echo $trend_at_risk_7d; ?></div></div></div>
+                <div class="col-md-3"><div class="card card-body p-2"><div class="text-muted">7-Day Pending Approvals</div><div class="kpi-value"><?php
+echo $trend_pending_7d; ?></div></div></div>
+                <div class="col-md-3"><div class="card card-body p-2"><div class="text-muted">Avg Approval Turnaround</div><div class="kpi-value"><?php
+echo number_format($trend_avg_approval_hours, 2); ?>h</div></div></div>
             </div>
         </div>
 
-        <div class="card app-ojt-dashboard-card card-body filter-card app-ojt-filter-card mb-3">
-            <form method="get" class="row g-2 align-items-end app-ojt-filter-form" id="ojtFilterForm">
+        <div class="card card-body filter-card mb-3">
+            <form method="get" class="row g-2 align-items-end" id="ojtFilterForm">
                 <div class="col-md-3">
                     <label class="form-label">Search Student</label>
-                    <input type="text" name="search" id="ojtFilterSearch" class="form-control" value="<?php echo htmlspecialchars($search); ?>" placeholder="Name / Student ID / Course">
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label">School Year</label>
-                    <select name="school_year_id" class="form-select">
-                        <option value="">All</option>
-                        <?php foreach ($school_years as $sy): ?>
-                            <option value="<?php echo (int)$sy['id']; ?>" <?php echo ($school_year_filter_id === (int)$sy['id']) ? 'selected' : ''; ?>><?php echo htmlspecialchars((string)$sy['year']); ?></option>
-                        <?php endforeach; ?>
-                    </select>
+                    <input type="text" name="search" id="ojtFilterSearch" class="form-control" value="<?php
+echo htmlspecialchars($search); ?>" placeholder="Name / Student ID / Course">
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">Course</label>
                     <select name="course" id="ojtFilterCourse" class="form-select">
                         <option value="">All</option>
-                        <?php foreach ($courses as $course): ?>
-                            <option value="<?php echo htmlspecialchars($course['name']); ?>" <?php echo ($course_filter === $course['name']) ? 'selected' : ''; ?>><?php echo htmlspecialchars($course['name']); ?></option>
-                        <?php endforeach; ?>
+                        <?php
+foreach ($courses as $course): ?>
+                            <option value="<?php
+echo htmlspecialchars($course['name']); ?>" <?php
+echo ($course_filter === $course['name']) ? 'selected' : ''; ?>><?php
+echo htmlspecialchars($course['name']); ?></option>
+                        <?php
+endforeach; ?>
                     </select>
                 </div>
-                <div class="col-md-1">
+                <div class="col-md-2">
                     <label class="form-label">Section</label>
                     <select name="section" id="ojtFilterSection" class="form-select">
                         <option value="">All</option>
-                        <?php foreach ($sections as $section): ?>
-                            <option value="<?php echo htmlspecialchars($section['section_label']); ?>" <?php echo ($section_filter === $section['section_label']) ? 'selected' : ''; ?>><?php echo htmlspecialchars($section['section_label']); ?></option>
-                        <?php endforeach; ?>
+                        <?php
+foreach ($sections as $section): ?>
+                            <option value="<?php
+echo htmlspecialchars($section['section_label']); ?>" <?php
+echo ($section_filter === $section['section_label']) ? 'selected' : ''; ?>><?php
+echo htmlspecialchars($section['section_label']); ?></option>
+                        <?php
+endforeach; ?>
                     </select>
                 </div>
-                <div class="col-md-1">
+                <div class="col-md-2">
                     <label class="form-label">Stage</label>
                     <select name="stage" id="ojtFilterStage" class="form-select">
                         <option value="">All</option>
-                        <?php foreach (['Applied','Endorsed','Accepted','Ongoing','Completed'] as $st): ?>
-                            <option value="<?php echo $st; ?>" <?php echo ($status_filter === $st) ? 'selected' : ''; ?>><?php echo $st; ?></option>
-                        <?php endforeach; ?>
+                        <?php
+foreach (['Applied','Endorsed','Accepted','Ongoing','Completed'] as $st): ?>
+                            <option value="<?php
+echo $st; ?>" <?php
+echo ($status_filter === $st) ? 'selected' : ''; ?>><?php
+echo $st; ?></option>
+                        <?php
+endforeach; ?>
                     </select>
                 </div>
-                <div class="col-md-1">
+                <div class="col-md-2">
                     <label class="form-label">Risk</label>
                     <select name="risk" id="ojtFilterRisk" class="form-select">
-                        <option value="all" <?php echo ($risk_filter === 'all') ? 'selected' : ''; ?>>All</option>
-                        <option value="at_risk" <?php echo ($risk_filter === 'at_risk') ? 'selected' : ''; ?>>At Risk</option>
-                        <option value="clean" <?php echo ($risk_filter === 'clean') ? 'selected' : ''; ?>>Clean</option>
+                        <option value="all" <?php
+echo ($risk_filter === 'all') ? 'selected' : ''; ?>>All</option>
+                        <option value="at_risk" <?php
+echo ($risk_filter === 'at_risk') ? 'selected' : ''; ?>>At Risk</option>
+                        <option value="clean" <?php
+echo ($risk_filter === 'clean') ? 'selected' : ''; ?>>Clean</option>
                     </select>
                 </div>
                 <div class="col-md-1 d-flex gap-2">
@@ -610,10 +762,10 @@ include 'includes/header.php';
             </form>
         </div>
 
-        <div class="card app-ojt-dashboard-card stretch stretch-full">
+        <div class="card stretch stretch-full">
             <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table table-hover mb-0 app-ojt-list-table" id="ojtListTable">
+                    <table class="table table-hover mb-0" id="ojtListTable">
                         <thead>
                         <tr>
                             <th>Student</th>
@@ -627,64 +779,101 @@ include 'includes/header.php';
                         </tr>
                         </thead>
                         <tbody>
-                        <?php if (!$rows): ?>
+                        <?php
+if (!$rows): ?>
                             <tr><td colspan="8" class="text-center py-4 text-muted">No records found.</td></tr>
-                        <?php endif; ?>
-                        <?php foreach ($rows as $index => $r): ?>
+                        <?php
+endif; ?>
+                        <?php
+foreach ($rows as $index => $r): ?>
                             <?php
-                            $profile = trim((string)($r['profile_picture'] ?? ''));
+$profile = trim((string)($r['profile_picture'] ?? ''));
                             $img = 'assets/images/avatar/' . (($index % 5) + 1) . '.png';
                             $profile_url = resolve_profile_image_url($profile);
                             if ($profile_url !== null) {
                                 $img = $profile_url;
                             }
-                            $required = (float)($r['effective_required_hours'] ?? ($r['required_hours'] ?? 0));
-                            $rendered = (float)($r['effective_rendered_hours'] ?? ($r['rendered_hours'] ?? 0));
+                            $required = (float)($r['required_hours'] ?? 0);
+                            $rendered = (float)($r['rendered_hours'] ?? 0);
                             if ($rendered <= 0) $rendered = (float)($r['attendance_total_hours'] ?? 0);
                             ?>
                             <tr>
                                 <td data-label="Student">
-                                    <a class="student-link app-ojt-student-link d-flex align-items-center gap-2" href="ojt-view.php?id=<?php echo (int)$r['id']; ?>">
-                                        <img src="<?php echo htmlspecialchars($img); ?>" class="app-avatar-42" alt="profile">
+                                    <a class="student-link d-flex align-items-center gap-2" href="ojt-view.php?id=<?php
+echo (int)$r['id']; ?>">
+                                        <img src="<?php
+echo htmlspecialchars($img); ?>" style="width:42px;height:42px;border-radius:50%;object-fit:cover;" alt="profile">
                                         <div>
-                                            <div class="fw-semibold"><?php echo htmlspecialchars(trim(($r['first_name'] ?? '') . ' ' . ($r['last_name'] ?? ''))); ?></div>
-                                            <div class="text-muted fs-12"><?php echo htmlspecialchars($r['student_id'] ?? ''); ?> | <?php echo htmlspecialchars($r['course_name'] ?? '-'); ?></div>
+                                            <div class="fw-semibold"><?php
+echo htmlspecialchars(trim(($r['first_name'] ?? '') . ' ' . ($r['last_name'] ?? ''))); ?></div>
+                                            <div class="text-muted fs-12"><?php
+echo htmlspecialchars($r['student_id'] ?? ''); ?> | <?php
+echo htmlspecialchars($r['course_name'] ?? '-'); ?></div>
                                         </div>
                                     </a>
                                 </td>
-                                <td data-label="Section"><?php echo htmlspecialchars($r['section_name'] ?? '-'); ?></td>
+                                <td data-label="Section"><?php
+echo htmlspecialchars($r['section_name'] ?? '-'); ?></td>
                                 <td data-label="Pipeline">
-                                    <span class="badge <?php echo stage_badge_class($r['stage']); ?>"><?php echo htmlspecialchars($r['stage']); ?></span>
-                                    <div class="text-muted fs-12 mt-1">Last biometric: <?php echo htmlspecialchars($r['last_attendance_date'] ?: 'none'); ?></div>
+                                    <span class="badge <?php
+echo stage_badge_class($r['stage']); ?>"><?php
+echo htmlspecialchars($r['stage']); ?></span>
+                                    <div class="text-muted fs-12 mt-1">Last biometric: <?php
+echo htmlspecialchars($r['last_attendance_date'] ?: 'none'); ?></div>
                                 </td>
                                 <td data-label="Document Progress">
-                                    <span class="chip app-ojt-chip <?php echo !empty($r['has_application']) ? 'ok app-ojt-chip-ok' : 'miss app-ojt-chip-miss'; ?>">Application (<?php echo htmlspecialchars($r['wf_application'] ?: 'draft'); ?>)</span>
-                                    <span class="chip app-ojt-chip <?php echo !empty($r['has_endorsement']) ? 'ok app-ojt-chip-ok' : 'miss app-ojt-chip-miss'; ?>">Endorsement (<?php echo htmlspecialchars($r['wf_endorsement'] ?: 'draft'); ?>)</span>
-                                    <span class="chip app-ojt-chip <?php echo !empty($r['has_moa']) ? 'ok app-ojt-chip-ok' : 'miss app-ojt-chip-miss'; ?>">MOA (<?php echo htmlspecialchars($r['wf_moa'] ?: 'draft'); ?>)</span>
-                                    <span class="chip app-ojt-chip <?php echo !empty($r['has_dau_moa']) ? 'ok app-ojt-chip-ok' : 'miss app-ojt-chip-miss'; ?>">DAU MOA (<?php echo htmlspecialchars($r['wf_dau_moa'] ?: 'draft'); ?>)</span>
+                                    <div class="doc-progress-wrap">
+                                    <span class="chip <?php
+echo !empty($r['has_application']) ? 'ok' : 'miss'; ?>">Application (<?php
+echo htmlspecialchars($r['wf_application'] ?: 'draft'); ?>)</span>
+                                    <span class="chip <?php
+echo !empty($r['has_endorsement']) ? 'ok' : 'miss'; ?>">Endorsement (<?php
+echo htmlspecialchars($r['wf_endorsement'] ?: 'draft'); ?>)</span>
+                                    <span class="chip <?php
+echo !empty($r['has_moa']) ? 'ok' : 'miss'; ?>">MOA (<?php
+echo htmlspecialchars($r['wf_moa'] ?: 'draft'); ?>)</span>
+                                    <span class="chip <?php
+echo !empty($r['has_dau_moa']) ? 'ok' : 'miss'; ?>">DAU MOA (<?php
+echo htmlspecialchars($r['wf_dau_moa'] ?: 'draft'); ?>)</span>
+                                    </div>
                                 </td>
                                 <td data-label="Hours">
-                                    <div class="fw-semibold"><?php echo number_format($rendered, 1); ?> / <?php echo number_format($required, 1); ?></div>
-                                    <div class="progress app-progress-6"><div class="progress-bar" style="width:<?php echo (float)$r['progress_pct']; ?>%"></div></div>
-                                    <div class="text-muted fs-12"><?php echo (float)$r['progress_pct']; ?>%</div>
+                                    <div class="fw-semibold"><?php
+echo number_format($rendered, 1); ?> / <?php
+echo number_format($required, 1); ?></div>
+                                    <div class="progress" style="height:6px;"><div class="progress-bar" style="width:<?php
+echo (float)$r['progress_pct']; ?>%"></div></div>
+                                    <div class="text-muted fs-12"><?php
+echo (float)$r['progress_pct']; ?>%</div>
                                 </td>
                                 <td data-label="Risk">
-                                    <?php if (empty($r['risk_flags'])): ?>
+                                    <?php
+if (empty($r['risk_flags'])): ?>
                                         <span class="text-success fs-12">No critical flags</span>
-                                    <?php else: ?>
-                                        <?php foreach ($r['risk_flags'] as $rf): ?><span class="risk-pill app-ojt-risk-pill"><?php echo htmlspecialchars($rf); ?></span><?php endforeach; ?>
-                                    <?php endif; ?>
+                                    <?php
+else: ?>
+                                        <div class="risk-wrap"><?php
+foreach ($r['risk_flags'] as $rf): ?><span class="risk-pill"><?php
+echo htmlspecialchars($rf); ?></span><?php
+endforeach; ?></div>
+                                    <?php
+endif; ?>
                                 </td>
-                                <td data-label="Risk Score"><span class="badge bg-soft-danger text-danger"><?php echo intval($r['risk_score'] ?? 0); ?></span></td>
+                                <td data-label="Risk Score"><span class="badge bg-soft-danger text-danger"><?php
+echo intval($r['risk_score'] ?? 0); ?></span></td>
                                 <td data-label="Actions">
-                                    <div class="d-flex gap-2 app-ojt-row-actions">
-                                        <a class="btn btn-sm btn-light" href="ojt-view.php?id=<?php echo (int)$r['id']; ?>">View</a>
-                                        <a class="btn btn-sm btn-outline-primary" href="ojt-edit.php?id=<?php echo (int)$r['id']; ?>">Edit</a>
-                                        <a class="btn btn-sm btn-outline-success" href="students-dtr.php?id=<?php echo (int)$r['id']; ?>">DTR</a>
+                                    <div class="d-flex gap-2">
+                                        <a class="btn btn-sm btn-light" href="ojt-view.php?id=<?php
+echo (int)$r['id']; ?>">View</a>
+                                        <a class="btn btn-sm btn-outline-primary" href="ojt-edit.php?id=<?php
+echo (int)$r['id']; ?>">Edit</a>
+                                        <a class="btn btn-sm btn-outline-success" href="students-dtr.php?id=<?php
+echo (int)$r['id']; ?>">DTR</a>
                                     </div>
                                 </td>
                             </tr>
-                        <?php endforeach; ?>
+                        <?php
+endforeach; ?>
                         </tbody>
                     </table>
                 </div>
@@ -694,12 +883,41 @@ include 'includes/header.php';
 </main>
 <script src="assets/vendors/js/vendors.min.js"></script>
 <script src="assets/js/common-init.min.js"></script>
-<script src="assets/js/global-ui-helpers.js"></script>
-<script src="assets/js/ojt-dashboard-runtime.js"></script>
 <script src="assets/js/theme-customizer-init.min.js"></script>
-<!-- OJT dashboard runtime moved to assets/js/ojt-dashboard-runtime.js -->
+<script>
+    (function () {
+        var filterForm = document.getElementById('ojtFilterForm');
+        var searchInput = document.getElementById('ojtFilterSearch');
+        var submitTimer;
+        function submitFilters() {
+            if (filterForm) filterForm.submit();
+        }
+        function debounceSubmit() {
+            clearTimeout(submitTimer);
+            submitTimer = setTimeout(submitFilters, 350);
+        }
+        ['ojtFilterCourse', 'ojtFilterSection', 'ojtFilterStage', 'ojtFilterRisk'].forEach(function (id) {
+            var el = document.getElementById(id);
+            if (el) el.addEventListener('change', submitFilters);
+        });
+        if (searchInput) searchInput.addEventListener('input', debounceSubmit);
+
+        var printBtn = document.getElementById('ojtPrintBtn');
+        if (printBtn) {
+            printBtn.addEventListener('click', function (e) {
+                e.preventDefault();
+                window.print();
+            });
+        }
+    })();
+
+</script>
 </body>
 </html>
-<?php $conn->close(); ?>
+<?php
+$conn->close(); ?>
+
+
+
 
 
