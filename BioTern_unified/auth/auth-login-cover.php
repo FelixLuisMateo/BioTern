@@ -18,15 +18,43 @@ $dbHost = '127.0.0.1';
 $dbUser = 'root';
 $dbPass = '';
 $dbName = defined('DB_NAME') ? DB_NAME : 'biotern_db';
+$script_name = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
+$asset_prefix = (strpos($script_name, '/auth/') !== false) ? '../' : '';
+$route_prefix = $asset_prefix;
 $login_error = '';
 $next = isset($_GET['next']) ? basename((string)$_GET['next']) : '';
 if ($next !== '' && !preg_match('/^[A-Za-z0-9_-]+\.php$/', $next)) {
     $next = '';
 }
 
+function log_login_attempt($mysqli, $userId, $identifier, $role, $status, $reason, $ip, $userAgent)
+{
+    if (!$mysqli) {
+        return;
+    }
+
+    $stmt = $mysqli->prepare("INSERT INTO login_logs (user_id, identifier, role, status, reason, ip_address, user_agent, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())");
+    if (!$stmt) {
+        return;
+    }
+
+    $uid = $userId > 0 ? (int)$userId : null;
+    $identifier = (string)$identifier;
+    $role = (string)$role;
+    $status = (string)$status;
+    $reason = (string)$reason;
+    $ip = (string)$ip;
+    $userAgent = (string)$userAgent;
+    $stmt->bind_param('issssss', $uid, $identifier, $role, $status, $reason, $ip, $userAgent);
+    $stmt->execute();
+    $stmt->close();
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $identifier = isset($_POST['identifier']) ? trim((string)$_POST['identifier']) : '';
     $password = isset($_POST['password']) ? (string)$_POST['password'] : '';
+    $client_ip = isset($_SERVER['REMOTE_ADDR']) ? (string)$_SERVER['REMOTE_ADDR'] : '';
+    $client_user_agent = isset($_SERVER['HTTP_USER_AGENT']) ? substr((string)$_SERVER['HTTP_USER_AGENT'], 0, 255) : '';
     $posted_next = isset($_POST['next']) ? basename((string)$_POST['next']) : '';
     if ($posted_next !== '' && preg_match('/^[A-Za-z0-9_-]+\.php$/', $posted_next)) {
         $next = $posted_next;
@@ -39,7 +67,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($mysqli->connect_errno) {
             $login_error = 'Database connection failed.';
         } else {
-            $stmt = $mysqli->prepare("SELECT id, name, username, email, password, role, is_active, profile_picture FROM users WHERE (username = ? OR email = ?) LIMIT 1");
+            $mysqli->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS application_status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'approved'");
+            $mysqli->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS application_submitted_at DATETIME NULL");
+            $mysqli->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS approved_by INT NULL");
+            $mysqli->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS approved_at DATETIME NULL");
+            $mysqli->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS rejected_at DATETIME NULL");
+            $mysqli->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS approval_notes VARCHAR(255) NULL");
+
+            $mysqli->query("CREATE TABLE IF NOT EXISTS login_logs (
+                id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NULL,
+                identifier VARCHAR(191) NULL,
+                role VARCHAR(50) NULL,
+                status VARCHAR(20) NOT NULL,
+                reason VARCHAR(100) NULL,
+                ip_address VARCHAR(45) NULL,
+                user_agent VARCHAR(255) NULL,
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_login_logs_user_id (user_id),
+                INDEX idx_login_logs_status_created (status, created_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+            $stmt = $mysqli->prepare("SELECT id, name, username, email, password, role, is_active, profile_picture, COALESCE(application_status, 'approved') AS application_status FROM users WHERE (username = ? OR email = ?) LIMIT 1");
 
             if ($stmt) {
                 $stmt->bind_param('ss', $identifier, $identifier);
@@ -49,10 +98,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 if (!$user) {
                     $login_error = 'Invalid username/email or password.';
+                    log_login_attempt($mysqli, 0, $identifier, '', 'failed', 'invalid_credentials', $client_ip, $client_user_agent);
                 } elseif ((int)($user['is_active'] ?? 0) !== 1) {
                     $login_error = 'Your account is inactive.';
+                    log_login_attempt($mysqli, (int)$user['id'], $identifier, (string)($user['role'] ?? ''), 'failed', 'inactive_account', $client_ip, $client_user_agent);
                 } elseif (!password_verify($password, (string)$user['password'])) {
                     $login_error = 'Invalid username/email or password.';
+                    log_login_attempt($mysqli, (int)$user['id'], $identifier, (string)($user['role'] ?? ''), 'failed', 'invalid_credentials', $client_ip, $client_user_agent);
+                } elseif (strtolower((string)($user['application_status'] ?? 'approved')) === 'pending') {
+                    $login_error = 'Your registration is pending approval.';
+                    log_login_attempt($mysqli, (int)$user['id'], $identifier, (string)($user['role'] ?? ''), 'failed', 'pending_approval', $client_ip, $client_user_agent);
+                } elseif (strtolower((string)($user['application_status'] ?? 'approved')) === 'rejected') {
+                    $login_error = 'Your registration was rejected. Please contact an administrator.';
+                    log_login_attempt($mysqli, (int)$user['id'], $identifier, (string)($user['role'] ?? ''), 'failed', 'rejected_application', $client_ip, $client_user_agent);
                 } else {
                     $_SESSION['user_id'] = (int)$user['id'];
                     $_SESSION['name'] = (string)$user['name'];
@@ -62,7 +120,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['profile_picture'] = (string)($user['profile_picture'] ?? '');
                     $_SESSION['logged_in'] = true;
 
-                    header('Location: ' . ($next !== '' ? $next : 'homepage.php'));
+                    log_login_attempt($mysqli, (int)$user['id'], $identifier, (string)($user['role'] ?? ''), 'success', 'login_success', $client_ip, $client_user_agent);
+
+                    $target = $next !== '' ? ($route_prefix . $next) : ($route_prefix . 'homepage.php');
+                    header('Location: ' . $target);
                     exit;
                 }
             } else {
@@ -80,18 +141,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta http-equiv="x-ua-compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>BioTern || Login Cover</title>
-    <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
-    <script src="assets/js/theme-preload-init.min.js"></script>
-    <link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css">
-    <link rel="stylesheet" type="text/css" href="assets/vendors/css/vendors.min.css">
-    <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css">
+    <link rel="shortcut icon" type="image/x-icon" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/favicon.ico">
+    <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/js/theme-preload-init.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/vendors/css/vendors.min.css">
+    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/theme.min.css">
 </head>
 <body>
     <main class="auth-cover-wrapper">
         <div class="auth-cover-content-inner">
             <div class="auth-cover-content-wrapper">
                 <div class="auth-img">
-                    <img src="assets/images/auth/auth-cover-login-bg.png" alt="" class="img-fluid">
+                    <img src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/auth/auth-cover-login-bg.png" alt="" class="img-fluid">
                 </div>
             </div>
         </div>
@@ -99,7 +160,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="auth-cover-card-wrapper">
                 <div class="auth-cover-card p-sm-5">
                     <div class="wd-50 mb-5">
-                        <img src="assets/images/logo-abbr.png" alt="" class="img-fluid">
+                        <img src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/logo-abbr.png" alt="" class="img-fluid">
                     </div>
                     <h2 class="fs-25 fw-bolder mb-4">Login</h2>
                     <h4 class="fs-15 fw-bold mb-2">Log in to your Clark College of Science and Technology internship account.</h4>
@@ -149,9 +210,9 @@ echo isset($_POST['identifier']) ? htmlspecialchars((string)$_POST['identifier']
         </div>
     </main>
 
-    <script src="assets/vendors/js/vendors.min.js"></script>
-    <script src="assets/js/common-init.min.js"></script>
-    <script src="assets/js/theme-customizer-init.min.js"></script>
+    <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/vendors/js/vendors.min.js"></script>
+    <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/js/common-init.min.js"></script>
+    <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/js/theme-customizer-init.min.js"></script>
     <script>
         // Minimal show/hide password toggle (kept per request)
         document.addEventListener('DOMContentLoaded', function () {

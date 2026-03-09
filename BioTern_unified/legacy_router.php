@@ -10,6 +10,7 @@ $map = [
   'students-edit.php' => 'management/students-edit.php',
   'students-view.php' => 'management/students-view.php',
   'students-dtr.php' => 'management/students-dtr.php',
+  'applications-review.php' => 'management/applications-review.php',
   'courses.php' => 'management/courses.php',
   'courses-create.php' => 'management/courses-create.php',
   'courses-edit.php' => 'management/courses-edit.php',
@@ -34,6 +35,8 @@ $map = [
   'attendance.php' => 'pages/attendance.php',
   'analytics.php' => 'pages/analytics.php',
   'homepage.php' => 'pages/homepage.php',
+  'student-profile.php' => 'pages/student-profile.php',
+  'student-dtr.php' => 'pages/student-dtr.php',
   'attendance-corrections.php' => 'pages/attendance-corrections.php',
   'edit_application.php' => 'pages/edit_application.php',
   'edit_attendance.php' => 'pages/edit_attendance.php',
@@ -60,6 +63,7 @@ $map = [
   'reports-project.php' => 'reports/reports-project.php',
   'reports-timesheets.php' => 'reports/reports-timesheets.php',
   'reports-attendance-operations.php' => 'reports/reports-attendance-operations.php',
+  'reports-login-logs.php' => 'reports/reports-login-logs.php',
 
   'settings-general.php' => 'settings/settings-general.php',
   'settings-seo.php' => 'settings/settings-seo.php',
@@ -200,10 +204,11 @@ if ($is_logged_in) {
 
   $internship_files = [
     'students.php', 'students-create.php', 'students-edit.php', 'students-view.php', 'students-dtr.php',
+    'applications-review.php',
     'attendance.php', 'attendance-corrections.php', 'edit_attendance.php', 'print_attendance.php',
     'demo-biometric.php',
     'ojt.php', 'ojt-create.php', 'ojt-edit.php', 'ojt-view.php', 'ojt-workflow-board.php',
-    'reports-sales.php', 'reports-ojt.php', 'reports-project.php', 'reports-timesheets.php', 'reports-attendance-operations.php',
+    'reports-sales.php', 'reports-ojt.php', 'reports-project.php', 'reports-timesheets.php', 'reports-attendance-operations.php', 'reports-login-logs.php',
   ];
   $academic_files = [
     'courses.php', 'courses-create.php', 'courses-edit.php',
@@ -235,6 +240,31 @@ if ($is_logged_in) {
   }
   if (in_array($file, $system_files, true) && $current_role !== 'admin') {
     $deny = true;
+  }
+
+  if ($current_role === 'student') {
+    $student_allowed_files = [
+      'homepage.php',
+      'student-profile.php',
+      'student-dtr.php',
+      'document_application.php',
+      'document_endorsement.php',
+      'document_moa.php',
+      'document_dau_moa.php',
+      'auth-login-cover.php',
+    ];
+    $student_readonly_documents = [
+      'document_application.php',
+      'document_endorsement.php',
+      'document_moa.php',
+      'document_dau_moa.php',
+    ];
+    if (!in_array($file, $student_allowed_files, true)) {
+      $deny = true;
+    }
+    if (in_array($file, $student_readonly_documents, true) && strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET')) !== 'GET') {
+      $deny = true;
+    }
   }
 
   if ($deny) {

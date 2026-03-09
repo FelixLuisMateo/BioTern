@@ -93,10 +93,6 @@ function tableHasColumn($mysqli, $tableName, $columnName) {
         return false;
     }
 
-<<<<<<< HEAD
-    // Avoid placeholders in SHOW statements; MariaDB may reject that syntax.
-=======
->>>>>>> fcc44e66f14b7cec6a1148dc66ac13f5b7f30778
     $sql = "
         SELECT 1
         FROM information_schema.COLUMNS
@@ -116,6 +112,13 @@ function tableHasColumn($mysqli, $tableName, $columnName) {
     $stmt->close();
     return $has;
 }
+
+$mysqli->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS application_status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'approved'");
+$mysqli->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS application_submitted_at DATETIME NULL");
+$mysqli->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS approved_by INT NULL");
+$mysqli->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS approved_at DATETIME NULL");
+$mysqli->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS rejected_at DATETIME NULL");
+$mysqli->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS approval_notes VARCHAR(255) NULL");
 
 function ensureSectionId($mysqli, $sectionValue, $courseId, $departmentId) {
     $sectionRaw = trim((string)$sectionValue);
@@ -174,7 +177,13 @@ function createUser($mysqli, $username, $email, $password, $role) {
     if ($res && $res->num_rows > 0) {
         $pwdHash = password_hash($password, PASSWORD_DEFAULT);
         $hasIsActive = tableHasColumn($mysqli, 'users', 'is_active');
-        if ($hasIsActive) {
+        $hasAppStatus = tableHasColumn($mysqli, 'users', 'application_status');
+        $hasSubmittedAt = tableHasColumn($mysqli, 'users', 'application_submitted_at');
+        if ($hasIsActive && $hasAppStatus && $hasSubmittedAt) {
+            $stmt = $mysqli->prepare("INSERT INTO users (name, username, email, password, role, is_active, application_status, application_submitted_at, created_at) VALUES (?, ?, ?, ?, ?, 1, 'approved', NOW(), NOW())");
+        } elseif ($hasIsActive && $hasAppStatus) {
+            $stmt = $mysqli->prepare("INSERT INTO users (name, username, email, password, role, is_active, application_status, created_at) VALUES (?, ?, ?, ?, ?, 1, 'approved', NOW())");
+        } elseif ($hasIsActive) {
             $stmt = $mysqli->prepare("INSERT INTO users (name, username, email, password, role, is_active, created_at) VALUES (?, ?, ?, ?, ?, 1, NOW())");
         } else {
             $stmt = $mysqli->prepare("INSERT INTO users (name, username, email, password, role, created_at) VALUES (?, ?, ?, ?, ?, NOW())");
@@ -198,6 +207,9 @@ function createUser($mysqli, $username, $email, $password, $role) {
 }
 
 if ($role === 'student') {
+    $default_internal_hours = 140;
+    $default_external_hours = 250;
+
     // Keep student hour/assignment fields available even on older databases.
     $mysqli->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS department_id VARCHAR(255) NULL");
     $mysqli->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS internal_total_hours_remaining INT(11) DEFAULT NULL");
@@ -232,6 +244,12 @@ if ($role === 'student') {
     $gender = getPost('gender');
     $supervisor_id = getPost('supervisor_id') ? (int)getPost('supervisor_id') : null;
     $coordinator_id = getPost('coordinator_id') ? (int)getPost('coordinator_id') : null;
+    if ($supervisor_id !== null && $supervisor_id <= 0) {
+        $supervisor_id = null;
+    }
+    if ($coordinator_id !== null && $coordinator_id <= 0) {
+        $coordinator_id = null;
+    }
     $internal_total_hours = getPost('internal_total_hours');
     if ($internal_total_hours === null || $internal_total_hours === '') {
         // Backward compatibility for older forms still posting total_hours.
@@ -247,7 +265,8 @@ if ($role === 'student') {
     $course_id = (int)$course_id;
     $department_id = null;
     if ($department_id_raw !== null && $department_id_raw !== '' && ctype_digit((string)$department_id_raw)) {
-        $department_id = (int)$department_id_raw;
+        $parsed_department_id = (int)$department_id_raw;
+        $department_id = $parsed_department_id > 0 ? $parsed_department_id : null;
     } else {
         $department_id = resolveDepartmentIdByCode($mysqli, $department_code);
     }
@@ -255,8 +274,12 @@ if ($role === 'student') {
     if ($section_id <= 0 && !empty($department_id)) {
         $section_id = ensureSectionId($mysqli, $section, $course_id, (int)$department_id);
     }
-    $internal_total_hours = $internal_total_hours ? (int)$internal_total_hours : 0;
-    $external_total_hours = $external_total_hours ? (int)$external_total_hours : 0;
+    $internal_total_hours = ($internal_total_hours === null || $internal_total_hours === '')
+        ? $default_internal_hours
+        : (int)$internal_total_hours;
+    $external_total_hours = ($external_total_hours === null || $external_total_hours === '')
+        ? $default_external_hours
+        : (int)$external_total_hours;
     if ($internal_total_hours < 0) $internal_total_hours = 0;
     if ($external_total_hours < 0) $external_total_hours = 0;
     $finished_internal_yes = in_array($finished_internal, ['yes', '1', 'true'], true);
@@ -267,8 +290,12 @@ if ($role === 'student') {
     $supervisor_name = null;
 
     // Strict server-side integrity checks for tampered submissions.
-    if ($course_id <= 0 || empty($department_id) || $section_id <= 0 || empty($coordinator_id) || empty($supervisor_id)) {
-        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Invalid academic assignment selection. Please choose course, department, section, coordinator, and supervisor.'));
+    if ($course_id <= 0) {
+        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Invalid academic assignment selection. Please choose course.'));
+        exit;
+    }
+    if (!empty($department_id) && $section_id <= 0) {
+        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Invalid academic assignment selection. Please choose section for the selected department.'));
         exit;
     }
 
@@ -286,89 +313,169 @@ if ($role === 'student') {
         exit;
     }
 
-    $department_id_int = (int)$department_id;
-    $dept_check = $mysqli->prepare("SELECT id FROM departments WHERE id = ? AND deleted_at IS NULL LIMIT 1");
-    if (!$dept_check) {
-        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Unable to validate selected department.'));
-        exit;
-    }
-    $dept_check->bind_param('i', $department_id_int);
-    $dept_check->execute();
-    $dept_ok = $dept_check->get_result()->fetch_assoc();
-    $dept_check->close();
-    if (!$dept_ok) {
-        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Selected department is invalid.'));
-        exit;
-    }
-
-    $section_check = $mysqli->prepare("
-        SELECT id
-        FROM sections
-        WHERE id = ?
-          AND course_id = ?
-          AND department_id = ?
-          AND is_active = 1
-          AND deleted_at IS NULL
-        LIMIT 1
-    ");
-    if (!$section_check) {
-        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Unable to validate selected section.'));
-        exit;
-    }
-    $section_check->bind_param('iii', $section_id, $course_id, $department_id_int);
-    $section_check->execute();
-    $section_ok = $section_check->get_result()->fetch_assoc();
-    $section_check->close();
-    if (!$section_ok) {
-        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Selected section does not belong to the selected course and department.'));
-        exit;
+    $department_id_int = !empty($department_id) ? (int)$department_id : 0;
+    if ($department_id_int > 0) {
+        $dept_check = $mysqli->prepare("SELECT id FROM departments WHERE id = ? AND deleted_at IS NULL LIMIT 1");
+        if (!$dept_check) {
+            header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Unable to validate selected department.'));
+            exit;
+        }
+        $dept_check->bind_param('i', $department_id_int);
+        $dept_check->execute();
+        $dept_ok = $dept_check->get_result()->fetch_assoc();
+        $dept_check->close();
+        if (!$dept_ok) {
+            header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Selected department is invalid.'));
+            exit;
+        }
     }
 
-    $coord_check = $mysqli->prepare("
-        SELECT CONCAT(first_name, ' ', last_name) AS full_name
-        FROM coordinators
-        WHERE id = ?
-          AND department_id = ?
-          AND is_active = 1
-          AND deleted_at IS NULL
-        LIMIT 1
-    ");
-    if (!$coord_check) {
-        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Unable to validate selected coordinator.'));
-        exit;
+    if ($section_id > 0) {
+        if ($department_id_int > 0) {
+            $section_check = $mysqli->prepare("
+                SELECT id
+                FROM sections
+                WHERE id = ?
+                  AND course_id = ?
+                  AND department_id = ?
+                  AND is_active = 1
+                  AND deleted_at IS NULL
+                LIMIT 1
+            ");
+            if (!$section_check) {
+                header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Unable to validate selected section.'));
+                exit;
+            }
+            $section_check->bind_param('iii', $section_id, $course_id, $department_id_int);
+            $section_check->execute();
+            $section_ok = $section_check->get_result()->fetch_assoc();
+            $section_check->close();
+            if (!$section_ok) {
+                header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Selected section does not belong to the selected course and department.'));
+                exit;
+            }
+        } else {
+            $section_check = $mysqli->prepare("
+                SELECT id, department_id
+                FROM sections
+                WHERE id = ?
+                  AND course_id = ?
+                  AND is_active = 1
+                  AND deleted_at IS NULL
+                LIMIT 1
+            ");
+            if (!$section_check) {
+                header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Unable to validate selected section.'));
+                exit;
+            }
+            $section_check->bind_param('ii', $section_id, $course_id);
+            $section_check->execute();
+            $section_row = $section_check->get_result()->fetch_assoc();
+            $section_check->close();
+            if (!$section_row) {
+                header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Selected section does not belong to the selected course.'));
+                exit;
+            }
+            if (!empty($section_row['department_id'])) {
+                $department_id_int = (int)$section_row['department_id'];
+                $department_id = $department_id_int;
+            }
+        }
     }
-    $coord_check->bind_param('ii', $coordinator_id, $department_id_int);
-    $coord_check->execute();
-    $coord_row = $coord_check->get_result()->fetch_assoc();
-    $coord_check->close();
-    if (!$coord_row) {
-        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Selected coordinator is not valid for the chosen department.'));
-        exit;
-    }
-    $coordinator_name = isset($coord_row['full_name']) ? (string)$coord_row['full_name'] : null;
 
-    $sup_check = $mysqli->prepare("
-        SELECT CONCAT(first_name, ' ', last_name) AS full_name
-        FROM supervisors
-        WHERE id = ?
-          AND department_id = ?
-          AND is_active = 1
-          AND deleted_at IS NULL
-        LIMIT 1
-    ");
-    if (!$sup_check) {
-        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Unable to validate selected supervisor.'));
-        exit;
+    if (!empty($coordinator_id) && $department_id_int > 0) {
+        $coord_check = $mysqli->prepare(" 
+            SELECT CONCAT(first_name, ' ', last_name) AS full_name
+            FROM coordinators
+            WHERE id = ?
+              AND department_id = ?
+              AND is_active = 1
+              AND deleted_at IS NULL
+            LIMIT 1
+        ");
+        if (!$coord_check) {
+            header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Unable to validate selected coordinator.'));
+            exit;
+        }
+        $coord_check->bind_param('ii', $coordinator_id, $department_id_int);
+        $coord_check->execute();
+        $coord_row = $coord_check->get_result()->fetch_assoc();
+        $coord_check->close();
+        if (!$coord_row) {
+            header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Selected coordinator is not valid for the chosen department.'));
+            exit;
+        }
+        $coordinator_name = isset($coord_row['full_name']) ? (string)$coord_row['full_name'] : null;
+    } elseif (!empty($coordinator_id)) {
+        $coord_check = $mysqli->prepare(" 
+            SELECT CONCAT(first_name, ' ', last_name) AS full_name
+            FROM coordinators
+            WHERE id = ?
+              AND is_active = 1
+              AND deleted_at IS NULL
+            LIMIT 1
+        ");
+        if (!$coord_check) {
+            header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Unable to validate selected coordinator.'));
+            exit;
+        }
+        $coord_check->bind_param('i', $coordinator_id);
+        $coord_check->execute();
+        $coord_row = $coord_check->get_result()->fetch_assoc();
+        $coord_check->close();
+        if (!$coord_row) {
+            header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Selected coordinator is invalid.'));
+            exit;
+        }
+        $coordinator_name = isset($coord_row['full_name']) ? (string)$coord_row['full_name'] : null;
     }
-    $sup_check->bind_param('ii', $supervisor_id, $department_id_int);
-    $sup_check->execute();
-    $sup_row = $sup_check->get_result()->fetch_assoc();
-    $sup_check->close();
-    if (!$sup_row) {
-        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Selected supervisor is not valid for the chosen department.'));
-        exit;
+
+    if (!empty($supervisor_id) && $department_id_int > 0) {
+        $sup_check = $mysqli->prepare(" 
+            SELECT CONCAT(first_name, ' ', last_name) AS full_name
+            FROM supervisors
+            WHERE id = ?
+              AND department_id = ?
+              AND is_active = 1
+              AND deleted_at IS NULL
+            LIMIT 1
+        ");
+        if (!$sup_check) {
+            header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Unable to validate selected supervisor.'));
+            exit;
+        }
+        $sup_check->bind_param('ii', $supervisor_id, $department_id_int);
+        $sup_check->execute();
+        $sup_row = $sup_check->get_result()->fetch_assoc();
+        $sup_check->close();
+        if (!$sup_row) {
+            header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Selected supervisor is not valid for the chosen department.'));
+            exit;
+        }
+        $supervisor_name = isset($sup_row['full_name']) ? (string)$sup_row['full_name'] : null;
+    } elseif (!empty($supervisor_id)) {
+        $sup_check = $mysqli->prepare(" 
+            SELECT CONCAT(first_name, ' ', last_name) AS full_name
+            FROM supervisors
+            WHERE id = ?
+              AND is_active = 1
+              AND deleted_at IS NULL
+            LIMIT 1
+        ");
+        if (!$sup_check) {
+            header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Unable to validate selected supervisor.'));
+            exit;
+        }
+        $sup_check->bind_param('i', $supervisor_id);
+        $sup_check->execute();
+        $sup_row = $sup_check->get_result()->fetch_assoc();
+        $sup_check->close();
+        if (!$sup_row) {
+            header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Selected supervisor is invalid.'));
+            exit;
+        }
+        $supervisor_name = isset($sup_row['full_name']) ? (string)$sup_row['full_name'] : null;
     }
-    $supervisor_name = isset($sup_row['full_name']) ? (string)$sup_row['full_name'] : null;
 
     // Ensure username is not empty
     if (!$username) {
@@ -379,7 +486,15 @@ if ($role === 'student') {
     $pwdHash = password_hash($password ?: bin2hex(random_bytes(4)), PASSWORD_DEFAULT);
 
     // Create a users record first (required for FK constraint)
-    $stmt_user = $mysqli->prepare("INSERT INTO users (name, username, email, password, role, is_active, created_at) VALUES (?, ?, ?, ?, 'student', 1, NOW())");
+    $hasStudentAppStatus = tableHasColumn($mysqli, 'users', 'application_status');
+    $hasStudentSubmittedAt = tableHasColumn($mysqli, 'users', 'application_submitted_at');
+    if ($hasStudentAppStatus && $hasStudentSubmittedAt) {
+        $stmt_user = $mysqli->prepare("INSERT INTO users (name, username, email, password, role, is_active, application_status, application_submitted_at, created_at) VALUES (?, ?, ?, ?, 'student', 1, 'pending', NOW(), NOW())");
+    } elseif ($hasStudentAppStatus) {
+        $stmt_user = $mysqli->prepare("INSERT INTO users (name, username, email, password, role, is_active, application_status, created_at) VALUES (?, ?, ?, ?, 'student', 1, 'pending', NOW())");
+    } else {
+        $stmt_user = $mysqli->prepare("INSERT INTO users (name, username, email, password, role, is_active, created_at) VALUES (?, ?, ?, ?, 'student', 1, NOW())");
+    }
     $user_id = null;
     if ($stmt_user) {
         $full_name = $first_name . ' ' . $last_name;
@@ -411,7 +526,7 @@ if ($role === 'student') {
 
     // Now insert into students table using the user_id
     // Note: If emergency_contact_phone column doesn't exist, store phone in emergency_contact or add the column
-    $stmt = $mysqli->prepare("INSERT INTO students (user_id, course_id, student_id, first_name, last_name, middle_name, username, password, email, department_id, section_id, address, phone, date_of_birth, gender, supervisor_id, supervisor_name, coordinator_id, coordinator_name, internal_total_hours, internal_total_hours_remaining, external_total_hours, external_total_hours_remaining, assignment_track, emergency_contact, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())");
+    $stmt = $mysqli->prepare("INSERT INTO students (user_id, course_id, student_id, first_name, last_name, middle_name, username, password, email, department_id, section_id, address, phone, date_of_birth, gender, supervisor_id, supervisor_name, coordinator_id, coordinator_name, internal_total_hours, internal_total_hours_remaining, external_total_hours, external_total_hours_remaining, assignment_track, emergency_contact, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULLIF(?, 0), ?, ?, ?, ?, NULLIF(?, 0), ?, NULLIF(?, 0), ?, ?, ?, ?, ?, ?, ?, NOW())");
     
     if (!$stmt) {
         header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Database statement error: ' . $mysqli->error));
@@ -430,6 +545,10 @@ if ($role === 'student') {
     // coordinator_name(s), internal_total_hours(i), internal_total_hours_remaining(i),
     // external_total_hours(i), external_total_hours_remaining(i), assignment_track(s), emergency_contact(s)
     $department_id_for_student = $department_id !== null ? (string)$department_id : null;
+    $section_id_for_insert = !empty($section_id) ? (int)$section_id : 0;
+    $supervisor_id_for_insert = !empty($supervisor_id) ? (int)$supervisor_id : 0;
+    $coordinator_id_for_insert = !empty($coordinator_id) ? (int)$coordinator_id : 0;
+
     $stmt->bind_param(
         'iissssssssissssisisiiiiss',
         $user_id,
@@ -442,14 +561,14 @@ if ($role === 'student') {
         $pwdHash,
         $final_email,
         $department_id_for_student,
-        $section_id,
+        $section_id_for_insert,
         $address,
         $phone,
         $date_of_birth,
         $gender,
-        $supervisor_id,
+        $supervisor_id_for_insert,
         $supervisor_name,
-        $coordinator_id,
+        $coordinator_id_for_insert,
         $coordinator_name,
         $internal_total_hours,
         $internal_total_hours_remaining,
@@ -538,7 +657,7 @@ if ($role === 'student') {
         }
     }
 
-    header('Location: auth-register-creative.php?registered=student');
+    header('Location: auth-register-creative.php?registered=pending&msg=' . urlencode('Application submitted. Please wait for approval from admin/coordinator/supervisor.'));
     exit;
 }
 

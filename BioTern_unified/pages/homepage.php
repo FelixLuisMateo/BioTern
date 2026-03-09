@@ -292,6 +292,8 @@ $attendance_approval_rate = $dashboard_stats['attendance_approval_rate'];
 $attendance_pending_rate = $dashboard_stats['attendance_pending_rate'];
 $active_student_rate = $dashboard_stats['active_student_rate'];
 $biometric_registered = $dashboard_stats['biometric_registered'];
+$dashboard_role = strtolower(trim((string)($_SESSION['role'] ?? '')));
+$dashboard_can_review_applications = in_array($dashboard_role, ['admin', 'coordinator', 'supervisor'], true);
 
 $page_title = 'BioTern || Dashboard';
 $page_styles = array('assets/css/homepage-dashboard.css');
@@ -323,6 +325,11 @@ echo date('M d, Y'); ?>
                         <a href="students.php" class="btn btn-sm btn-light-brand">
                             <i class="feather-users me-1"></i> Manage Students
                         </a>
+                        <?php if ($dashboard_can_review_applications): ?>
+                        <a href="applications-review.php" class="btn btn-sm btn-light-brand">
+                            <i class="feather-user-check me-1"></i> Review Applications
+                        </a>
+                        <?php endif; ?>
                         <a href="attendance.php" class="btn btn-sm btn-primary">
                             <i class="feather-check-square me-1"></i> Review Attendance
                         </a>

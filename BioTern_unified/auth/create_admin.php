@@ -7,6 +7,8 @@ $dbHost = '127.0.0.1';
 $dbUser = 'root';
 $dbPass = '';
 $dbName = defined('DB_NAME') ? DB_NAME : 'biotern_db';
+$script_name = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
+$asset_prefix = (strpos($script_name, '/auth/') !== false) ? '../' : '';
 
 function esc($s) { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 
@@ -132,7 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>Create Admin - BioTern</title>
-    <link rel="stylesheet" href="assets/css/bootstrap.min.css">
+    <link rel="stylesheet" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/bootstrap.min.css">
     <style>body{padding:24px;background:#f7f9fb} .card{max-width:640px;margin:24px auto}</style>
 </head>
 <body>

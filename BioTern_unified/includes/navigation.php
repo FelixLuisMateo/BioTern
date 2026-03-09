@@ -124,6 +124,7 @@ if ($nav_can_internship): ?>
                     </a>
                     <ul class="nxl-submenu">
                         <li class="nxl-item"><a class="nxl-link" href="students.php">Students List</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="applications-review.php">Applications Review</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="attendance.php">Attendance DTR</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="demo-biometric.php">Demo Biometric</a></li>
                     </ul>
@@ -160,11 +161,40 @@ if ($nav_can_internship): ?>
                         <li class="nxl-item"><a class="nxl-link" href="reports-ojt.php">OJT Report</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="reports-project.php">Project Report</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="reports-timesheets.php">Timesheets Report</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="reports-login-logs.php">Login Logs</a></li>
                     </ul>
                 </li>
                 <?php
 require_once dirname(__DIR__) . '/config/db.php';
 endif; ?>
+
+                <?php if ($nav_is_student): ?>
+                <li class="nxl-item nxl-caption">
+                    <span>Student</span>
+                </li>
+                <li class="nxl-item nxl-hasmenu">
+                    <a href="javascript:void(0);" class="nxl-link">
+                        <span class="nxl-micon"><i class="feather-user"></i></span>
+                        <span class="nxl-mtext">My Account</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                    </a>
+                    <ul class="nxl-submenu">
+                        <li class="nxl-item"><a class="nxl-link" href="student-profile.php">My Profile</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="student-dtr.php">My DTR</a></li>
+                    </ul>
+                </li>
+                <li class="nxl-item nxl-hasmenu">
+                    <a href="javascript:void(0);" class="nxl-link">
+                        <span class="nxl-micon"><i class="feather-file-text"></i></span>
+                        <span class="nxl-mtext">My Documents</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                    </a>
+                    <ul class="nxl-submenu">
+                        <li class="nxl-item"><a class="nxl-link" href="document_application.php">Application</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="document_endorsement.php">Endorsement</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="document_moa.php">MOA</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="document_dau_moa.php">Dau MOA</a></li>
+                    </ul>
+                </li>
+                <?php endif; ?>
 
                 <?php
 require_once dirname(__DIR__) . '/config/db.php';

@@ -12,6 +12,9 @@ $sectionOptions = [];
 $coordinatorOptions = [];
 $supervisorOptions = [];
 $courseDepartmentMap = [];
+$script_name = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
+$asset_prefix = (strpos($script_name, '/auth/') !== false) ? '../' : '';
+$route_prefix = $asset_prefix;
 $dbHost = '127.0.0.1';
 $dbUser = 'root';
 $dbPass = '';
@@ -377,20 +380,20 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
     <title>BioTern || Register Minimal</title>
     <!--! END:  Apps Title-->
     <!--! BEGIN: Favicon-->
-    <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
-    <script src="assets/js/theme-preload-init.min.js"></script>
+    <link rel="shortcut icon" type="image/x-icon" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/favicon.ico">
+    <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/js/theme-preload-init.min.js"></script>
     <!--! END: Favicon-->
     <!--! BEGIN: Bootstrap CSS-->
-    <link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/bootstrap.min.css">
     <!--! END: Bootstrap CSS-->
     <!--! BEGIN: Vendors CSS-->
-    <link rel="stylesheet" type="text/css" href="assets/vendors/css/vendors.min.css">
-    <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2.min.css">
-    <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2-theme.min.css">
+    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/vendors/css/vendors.min.css">
+    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/vendors/css/select2.min.css">
+    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/vendors/css/select2-theme.min.css">
     <!--! END: Vendors CSS-->
     <!--! BEGIN: Custom CSS-->
-    <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css">
-    <script src="assets/js/skin-init.js"></script>
+    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/theme.min.css">
+    <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/js/skin-init.js"></script>
     <!--! END: Custom CSS-->
     <style>
         /* Ensure select text and option text are visible (black) */
@@ -496,12 +499,12 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
             <div class="minimal-card-wrapper">
                 <div class="card mb-4 mt-5 mx-2 mx-sm-0 position-relative" style="width: 130%; max-width: 1500px; margin: 40px auto;">
                     <div class="wd-50 bg-white p-2 rounded-circle shadow-lg position-absolute translate-middle top-0 start-50">
-                        <img src="assets/images/logo-abbr.png" alt="" class="img-fluid">
+                        <img src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/logo-abbr.png" alt="" class="img-fluid">
                     </div>
                     <div class="card-body p-sm-5" style="padding: 50px !important; min-height: auto;">
                         <h2 class="fs-20 fw-bolder mb-4">Register</h2>
                         <div class="mb-3">
-                            <a href="homepage.php" class="btn btn-sm btn-outline-primary">&#8592; Back to Admin Dashboard</a>
+                            <a href="<?php echo htmlspecialchars($route_prefix, ENT_QUOTES, 'UTF-8'); ?>homepage.php" class="btn btn-sm btn-outline-primary">&#8592; Back to Admin Dashboard</a>
                         </div>
                         <h4 class="fs-13 fw-bold mb-2">Manage your Internship account in one place.</h4>
                         <p class="fs-12 fw-medium text-muted">Let's get you all setup, so you can verify your personal account and begin setting up your profile.</p>
@@ -514,6 +517,8 @@ if (isset($_GET['registered'])) {
                                 echo '<div class="alert alert-warning" role="alert">' . ($msg ?: 'An account with that email or username already exists.') . '</div>';
                             } elseif ($reg === 'error') {
                                 echo '<div class="alert alert-danger" role="alert">' . ($msg ?: 'An error occurred while registering.') . '</div>';
+                            } elseif ($reg === 'pending') {
+                                echo '<div class="alert alert-info" role="alert">' . ($msg ?: 'Application submitted. Please wait for approval.') . '</div>';
                             } elseif (in_array($reg, ['student','coordinator','supervisor','admin'])) {
                                 echo '<div class="alert alert-success" role="alert">Registration successful. You may now login.</div>';
                             }
@@ -555,7 +560,7 @@ if (isset($_GET['registered'])) {
                         </div>
 
                         <!-- STUDENT REGISTRATION FORM -->
-                        <form id="studentForm" class="w-100 mt-4 pt-2 hide-form" action="register_submit.php" method="post">
+                        <form id="studentForm" class="w-100 mt-4 pt-2 hide-form" action="" method="post">
                             <input type="hidden" name="role" value="student">
                             <div class="form-section">
                                 <h3 class="fs-18 fw-bold mb-3">Student Registration</h3>
@@ -627,6 +632,7 @@ endforeach; ?>
                                         <label class="form-label fs-12" for="studentDepartmentSelect">Department</label>
                                         <select name="department_id" id="studentDepartmentSelect" class="form-control" required>
                                             <option value="" selected>Select Department</option>
+                                            <option value="0">I still don't know yet (To be assigned)</option>
                                             <?php
 require_once dirname(__DIR__) . '/config/db.php';
 foreach ($departmentOptions as $department): ?>
@@ -664,6 +670,7 @@ endforeach; ?>
                                         <label class="form-label fs-12" for="studentCoordinatorSelect">Coordinator</label>
                                         <select name="coordinator_id" id="studentCoordinatorSelect" class="form-control" required>
                                             <option value="" disabled selected>Select Coordinator</option>
+                                            <option value="0">I still don't know yet (To be assigned)</option>
                                             <?php
 require_once dirname(__DIR__) . '/config/db.php';
 foreach ($coordinatorOptions as $coordinator): ?>
@@ -701,6 +708,7 @@ endforeach; ?>
                                         <label class="form-label fs-12" for="studentSupervisorSelect">Supervisor</label>
                                         <select name="supervisor_id" id="studentSupervisorSelect" class="form-control" required>
                                             <option value="" disabled selected>Select Supervisor</option>
+                                            <option value="0">I still don't know yet (To be assigned)</option>
                                             <?php
 require_once dirname(__DIR__) . '/config/db.php';
 foreach ($supervisorOptions as $supervisor): ?>
@@ -736,22 +744,27 @@ endforeach; ?>
                                     </div>
                                 </div>
                                 <div class="row g-3">
+                                    <div class="col-12 mb-2">
+                                        <small class="text-muted">Tip: If you are not sure yet, select "I still don't know yet (To be assigned)" and the approver can edit and assign it later.</small>
+                                    </div>
+                                </div>
+                                <div class="row g-3">
                                     <div class="col-6 mb-2">
                                         <label class="form-label fs-12" for="studentInternalTotalHours">Internal Total Hours</label>
-                                        <input type="number" id="studentInternalTotalHours" name="internal_total_hours" class="form-control" placeholder="Internal Total Hours" min="0">
+                                        <input type="number" id="studentInternalTotalHours" name="internal_total_hours" class="form-control" placeholder="Internal Total Hours" min="0" value="140" readonly>
                                     </div>
+                                    <div class="col-6 mb-2">
+                                        <label class="form-label fs-12" for="externalTotalHoursInput">External Total Hours</label>
+                                        <input type="number" name="external_total_hours" id="externalTotalHoursInput" class="form-control" placeholder="External Total Hours" min="0" value="250" readonly>
+                                    </div>
+                                </div>
+                                <div class="row g-3">
                                     <div class="col-6 mb-2">
                                         <label class="form-label fs-12" for="finishedInternalSelect">Finished Internal?</label>
                                         <select name="finished_internal" id="finishedInternalSelect" class="form-control">
                                             <option value="no" selected>No</option>
                                             <option value="yes">Yes</option>
                                         </select>
-                                    </div>
-                                </div>
-                                <div class="row g-3">
-                                    <div class="col-6 mb-2">
-                                        <label class="form-label fs-12" for="externalTotalHoursInput">External Total Hours</label>
-                                        <input type="number" name="external_total_hours" id="externalTotalHoursInput" class="form-control" placeholder="External Total Hours" min="0" value="0">
                                     </div>
                                 </div>
                             </div>
@@ -832,7 +845,7 @@ endforeach; ?>
                         </form>
 
                         <!-- COORDINATOR REGISTRATION FORM -->
-                        <form id="coordinatorForm" class="w-100 mt-4 pt-2 hide-form" action="register_submit.php" method="post">
+                        <form id="coordinatorForm" class="w-100 mt-4 pt-2 hide-form" action="" method="post">
                             <input type="hidden" name="role" value="coordinator">
                             <div class="form-section">
                                 <h3 class="fs-18 fw-bold mb-3">Coordinator Registration</h3>
@@ -932,7 +945,7 @@ endforeach; ?>
                         </form>
 
                         <!-- SUPERVISOR REGISTRATION FORM -->
-                        <form id="supervisorForm" class="w-100 mt-4 pt-2 hide-form" action="register_submit.php" method="post">
+                        <form id="supervisorForm" class="w-100 mt-4 pt-2 hide-form" action="" method="post">
                             <input type="hidden" name="role" value="supervisor">
                             <div class="form-section">
                                 <h3 class="fs-18 fw-bold mb-3">Supervisor Registration</h3>
@@ -1038,7 +1051,7 @@ endforeach; ?>
                         </form>
 
                         <!-- ADMIN REGISTRATION FORM -->
-                        <form id="adminForm" class="w-100 mt-4 pt-2 hide-form" action="register_submit.php" method="post">
+                        <form id="adminForm" class="w-100 mt-4 pt-2 hide-form" action="" method="post">
                             <input type="hidden" name="role" value="admin">
                             <div class="form-section">
                                 <h3 class="fs-18 fw-bold mb-3">Admin Registration</h3>
@@ -1147,11 +1160,11 @@ endforeach; ?>
 
                         <div id="loginLink" class="mt-5 text-muted show-form">
                             <span>Already have an account?</span>
-                            <a href="auth-login-cover.php" class="fw-bold">Login</a>
+                            <a href="<?php echo htmlspecialchars($route_prefix, ENT_QUOTES, 'UTF-8'); ?>auth-login-cover.php" class="fw-bold">Login</a>
                         </div>
                         <div id="loginLinkHidden" class="mt-5 text-muted hide-form">
                             <span>Already have an account?</span>
-                            <a href="auth-login-cover.php" class="fw-bold">Login</a>
+                            <a href="<?php echo htmlspecialchars($route_prefix, ENT_QUOTES, 'UTF-8'); ?>auth-login-cover.php" class="fw-bold">Login</a>
                         </div>
                     </div>
                 </div>
@@ -1165,15 +1178,15 @@ endforeach; ?>
     <!--! Footer Script !-->
     <!--! ================================================================ !-->
     <!--! BEGIN: Vendors JS !-->
-    <script src="assets/vendors/js/vendors.min.js"></script>
-    <script src="assets/vendors/js/select2.min.js"></script>
+    <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/vendors/js/vendors.min.js"></script>
+    <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/vendors/js/select2.min.js"></script>
     <!-- vendors.min.js {always must need to be top} -->
-    <script src="assets/vendors/js/lslstrength.min.js"></script>
+    <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/vendors/js/lslstrength.min.js"></script>
     <!--! END: Vendors JS !-->
     <!--! BEGIN: Apps Init  !-->
-    <script src="assets/js/common-init.min.js"></script>
+    <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/js/common-init.min.js"></script>
     <!--! END: Apps Init !-->
-    <script src="assets/js/theme-customizer-init.min.js"></script>
+    <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/js/theme-customizer-init.min.js"></script>
 
     <script>
         let currentRole = null;
@@ -1301,15 +1314,14 @@ endforeach; ?>
             if (!finishedSelect || !externalInput || !internalInput) return;
 
             function syncExternalField() {
-                const finished = (finishedSelect.value || '').toLowerCase() === 'yes';
-                externalInput.disabled = !finished;
-                internalInput.disabled = finished;
-                if (finished) {
-                    internalInput.value = '0';
+                if ((internalInput.value || '').trim() === '') {
+                    internalInput.value = '140';
                 }
-                if (!finished) {
-                    externalInput.value = '0';
+                if ((externalInput.value || '').trim() === '') {
+                    externalInput.value = '250';
                 }
+                internalInput.disabled = false;
+                externalInput.disabled = false;
             }
 
             finishedSelect.addEventListener('change', syncExternalField);
@@ -1355,6 +1367,11 @@ echo json_encode($sectionOptions, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHE
 
             Array.prototype.slice.call(deptSelect.options).forEach(function(opt, index) {
                 if (index === 0) return; // placeholder
+                if (String(opt.value) === '0') {
+                    opt.hidden = false;
+                    opt.disabled = false;
+                    return;
+                }
                 const show = allowed.includes(String(opt.value));
                 opt.hidden = !show;
                 opt.disabled = !show;
@@ -1374,6 +1391,10 @@ echo json_encode($sectionOptions, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHE
             const courseSelect = document.getElementById('studentCourseSelect');
             if (!sectionSelect) return;
             setSelectPlaceholder(sectionSelect, 'Select Section');
+            const unknownOption = document.createElement('option');
+            unknownOption.value = '0';
+            unknownOption.textContent = "I still don't know yet (To be assigned)";
+            sectionSelect.appendChild(unknownOption);
 
             const cId = String(courseId || '');
             const dId = String(departmentId || '');
@@ -1381,7 +1402,7 @@ echo json_encode($sectionOptions, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHE
 
             sectionRecords.forEach(function(rec) {
                 if (String(rec.course_id) !== cId) return;
-                if (dId !== '' && String(rec.department_id) !== dId) return;
+                if (dId !== '' && dId !== '0' && String(rec.department_id) !== dId) return;
 
                 const code = (rec.code || '').trim();
                 const name = (rec.name || '').trim();
@@ -1419,6 +1440,11 @@ echo json_encode($sectionOptions, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHE
 
             Array.prototype.slice.call(select.options).forEach(function(opt, index) {
                 if (index === 0) return; // placeholder
+                if (String(opt.value) === '0') {
+                    opt.hidden = false;
+                    opt.disabled = false;
+                    return;
+                }
 
                 const deptId = String(opt.getAttribute('data-department-id') || '');
                 let show = true;
