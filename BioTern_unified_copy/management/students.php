@@ -38,6 +38,69 @@ try {
     die("Database Error: " . $e->getMessage());
 }
 
+$studentColumns = [];
+$studentColRes = $conn->query("SHOW COLUMNS FROM students");
+if ($studentColRes) {
+    while ($col = $studentColRes->fetch_assoc()) {
+        $studentColumns[] = strtolower((string)($col['Field'] ?? ''));
+    }
+}
+$has_student_deleted_at = in_array('deleted_at', $studentColumns, true);
+$has_student_status_col = in_array('status', $studentColumns, true);
+
+if (isset($_GET['student_action']) && isset($_GET['id']) && !$is_student_user) {
+    $student_action = trim((string)$_GET['student_action']);
+    $target_student_id = (int)$_GET['id'];
+
+    $can_manage_student_actions = in_array($current_role, ['admin', 'coordinator', 'supervisor'], true);
+    $can_delete_students = in_array($current_role, ['admin', 'coordinator'], true);
+
+    if ($target_student_id > 0 && $can_manage_student_actions) {
+        $ok = false;
+        if ($student_action === 'archive' && $has_student_status_col) {
+            $stmt_archive = $conn->prepare("UPDATE students SET status = 0, updated_at = NOW() WHERE id = ? LIMIT 1");
+            if ($stmt_archive) {
+                $stmt_archive->bind_param('i', $target_student_id);
+                $ok = $stmt_archive->execute() && $stmt_archive->affected_rows >= 0;
+                $stmt_archive->close();
+            }
+            $_SESSION['students_flash_message'] = $ok ? 'Student archived.' : 'Unable to archive student.';
+            $_SESSION['students_flash_type'] = $ok ? 'success' : 'danger';
+        } elseif ($student_action === 'delete' && $can_delete_students) {
+            if ($has_student_deleted_at) {
+                $stmt_del = $conn->prepare("UPDATE students SET deleted_at = NOW(), updated_at = NOW() WHERE id = ? LIMIT 1");
+                if ($stmt_del) {
+                    $stmt_del->bind_param('i', $target_student_id);
+                    $ok = $stmt_del->execute() && $stmt_del->affected_rows > 0;
+                    $stmt_del->close();
+                }
+            } else {
+                $stmt_del = $conn->prepare("DELETE FROM students WHERE id = ? LIMIT 1");
+                if ($stmt_del) {
+                    $stmt_del->bind_param('i', $target_student_id);
+                    $ok = $stmt_del->execute() && $stmt_del->affected_rows > 0;
+                    $stmt_del->close();
+                }
+            }
+            $_SESSION['students_flash_message'] = $ok ? 'Student deleted.' : 'Unable to delete student (record may be linked).';
+            $_SESSION['students_flash_type'] = $ok ? 'success' : 'danger';
+        }
+    }
+
+    $redirect_qs = $_SERVER['QUERY_STRING'] ?? '';
+    if ($redirect_qs !== '') {
+        parse_str($redirect_qs, $redirect_arr);
+        unset($redirect_arr['student_action'], $redirect_arr['id']);
+        $redirect_qs = http_build_query($redirect_arr);
+    }
+    header('Location: students.php' . ($redirect_qs !== '' ? ('?' . $redirect_qs) : ''));
+    exit;
+}
+
+$flash_message = (string)($_SESSION['students_flash_message'] ?? '');
+$flash_type = (string)($_SESSION['students_flash_type'] ?? 'success');
+unset($_SESSION['students_flash_message'], $_SESSION['students_flash_type']);
+
 // Fetch Students Statistics
 $stats_query = "
     SELECT 
@@ -46,6 +109,7 @@ $stats_query = "
         SUM(CASE WHEN status = 0 THEN 1 ELSE 0 END) as inactive_students,
         SUM(CASE WHEN biometric_registered = 1 THEN 1 ELSE 0 END) as biometric_registered
     FROM students
+" . ($has_student_deleted_at ? " WHERE deleted_at IS NULL" : "") . "
 ";
 $stats_result = $conn->query($stats_query);
 $stats = $stats_result->fetch_assoc();
@@ -207,6 +271,7 @@ if ($filter_status >= 0) {
 $students_query = "
     SELECT 
         s.id,
+        s.user_id,
         s.student_id,
         s.first_name,
         s.middle_name,
@@ -251,7 +316,7 @@ $students_query = "
     LEFT JOIN internships i ON s.id = i.student_id AND i.status = 'ongoing'
     LEFT JOIN supervisors sup ON i.supervisor_id = sup.id
     LEFT JOIN coordinators coor ON i.coordinator_id = coor.id
-    " . (count($where) > 0 ? "WHERE " . implode(' AND ', $where) : "") . "
+    " . ((count($where) > 0 || $has_student_deleted_at) ? "WHERE " . implode(' AND ', array_merge($has_student_deleted_at ? ["s.deleted_at IS NULL"] : [], $where)) : "") . "
     ORDER BY s.first_name ASC
     LIMIT 100
 ";
@@ -648,6 +713,9 @@ include 'includes/header.php';
 
             <!-- Main Content -->
             <div class="main-content app-students-main-content">
+                <?php if ($flash_message !== ''): ?>
+                    <div class="alert alert-<?php echo htmlspecialchars($flash_type); ?> mx-3 mb-3"><?php echo htmlspecialchars($flash_message); ?></div>
+                <?php endif; ?>
                 <div class="row">
                     <div class="col-lg-12">
                         <div class="card stretch stretch-full app-students-table-card">
@@ -706,10 +774,10 @@ include 'includes/header.php';
                                                             </a>
                                                         </td>
                                                         <td><a href="students-view.php?id=<?php echo $student['id']; ?>"><?php echo htmlspecialchars($student['student_id']); ?></a></td>
-                                                        <td><a href="javascript:void(0);"><?php echo htmlspecialchars($student['course_name'] ?? 'N/A'); ?></a></td>
-                                                        <td><a href="javascript:void(0);"><?php echo htmlspecialchars($student['section_name'] ?? '-'); ?></a></td>
-                                                        <td><a href="javascript:void(0);"><?php echo htmlspecialchars($student['supervisor_name'] ?? '-'); ?></a></td>
-                                                        <td><a href="javascript:void(0);"><?php echo htmlspecialchars($student['coordinator_name'] ?? '-'); ?></a></td>
+                                                        <td><span><?php echo htmlspecialchars($student['course_name'] ?? 'N/A'); ?></span></td>
+                                                        <td><span><?php echo htmlspecialchars($student['section_name'] ?? '-'); ?></span></td>
+                                                        <td><span><?php echo htmlspecialchars($student['supervisor_name'] ?? '-'); ?></span></td>
+                                                        <td><span><?php echo htmlspecialchars($student['coordinator_name'] ?? '-'); ?></span></td>
                                                         <td><?php echo formatDate($student['created_at']); ?></td>
                                                         <td><?php echo getStatusBadge($student['live_clock_status']); ?></td>
                                                         <td>
@@ -724,39 +792,39 @@ include 'includes/header.php';
                                                                         </a>
                                                                         <ul class="dropdown-menu">
                                                                             <li>
-                                                                                <a class="dropdown-item" href="javascript:void(0)">
+                                                                                <a class="dropdown-item" href="students-edit.php?id=<?php echo (int)$student['id']; ?>">
                                                                                     <i class="feather feather-edit-3 me-3"></i>
                                                                                     <span>Edit</span>
                                                                                 </a>
                                                                             </li>
                                                                             <li>
-                                                                                <a class="dropdown-item printBTN" href="javascript:void(0)">
+                                                                                <a class="dropdown-item" href="students-dtr.php?id=<?php echo (int)$student['id']; ?>">
                                                                                     <i class="feather feather-printer me-3"></i>
                                                                                     <span>Print</span>
                                                                                 </a>
                                                                             </li>
                                                                             <li>
-                                                                                <a class="dropdown-item" href="javascript:void(0)">
+                                                                                <a class="dropdown-item" href="messages.php?receiver_id=<?php echo (int)($student['user_id'] ?? 0); ?>">
                                                                                     <i class="feather feather-clock me-3"></i>
                                                                                     <span>Remind</span>
                                                                                 </a>
                                                                             </li>
                                                                             <li class="dropdown-divider"></li>
                                                                             <li>
-                                                                                <a class="dropdown-item" href="javascript:void(0)">
+                                                                                <a class="dropdown-item" href="students.php?student_action=archive&id=<?php echo (int)$student['id']; ?>" onclick="return confirm('Archive this student?');">
                                                                                     <i class="feather feather-archive me-3"></i>
                                                                                     <span>Archive</span>
                                                                                 </a>
                                                                             </li>
                                                                             <li>
-                                                                                <a class="dropdown-item" href="javascript:void(0)">
+                                                                                <a class="dropdown-item" href="students-view.php?id=<?php echo (int)$student['id']; ?>#activityTab">
                                                                                     <i class="feather feather-alert-octagon me-3"></i>
                                                                                     <span>Report Spam</span>
                                                                                 </a>
                                                                             </li>
                                                                             <li class="dropdown-divider"></li>
                                                                             <li>
-                                                                                <a class="dropdown-item" href="javascript:void(0)">
+                                                                                <a class="dropdown-item" href="students.php?student_action=delete&id=<?php echo (int)$student['id']; ?>" onclick="return confirm('Delete this student?');">
                                                                                     <i class="feather feather-trash-2 me-3"></i>
                                                                                     <span>Delete</span>
                                                                                 </a>
