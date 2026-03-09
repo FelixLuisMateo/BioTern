@@ -882,6 +882,12 @@ echo $student['id']; ?>" class="w-50 btn btn-primary">
                                     </a>
                                 </div>
                                 <div class="d-grid gap-2 text-center pt-2">
+                                    <a href="ojt-view.php?id=<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $student['id']; ?>" class="btn btn-info">
+                                        <i class="feather-file me-2"></i>
+                                        <span>OJT Document View</span>
+                                    </a>
                                     <a href="generate_resume.php?id=<?php
 require_once dirname(__DIR__) . '/config/db.php';
 echo $student['id']; ?>" class="btn btn-success" target="_blank">
