@@ -387,18 +387,21 @@ include 'includes/header.php';
 <style>
         body { background: #f5f7fb; }
         .kpi-value { font-size: 1.5rem; font-weight: 700; }
-        .chip { border: 1px solid #dbe3f0; border-radius: 999px; padding: 3px 10px; font-size: 12px; display: inline-block; margin: 2px 4px 2px 0; }
+        .chip { border: 1px solid #dbe3f0; border-radius: 999px; padding: 3px 10px; font-size: 12px; display: inline-block; margin: 0; line-height: 1.2; }
         .chip.ok { border-color: #198754; color: #198754; }
         .chip.miss { border-color: #dc3545; color: #dc3545; }
-        .risk-pill { background: #fff4e5; color: #996000; border: 1px solid #ffe3b3; border-radius: 999px; padding: 2px 8px; font-size: 11px; display: inline-block; margin: 2px 4px 2px 0; }
+        .risk-pill { background: #fff4e5; color: #996000; border: 1px solid #ffe3b3; border-radius: 999px; padding: 2px 8px; font-size: 11px; display: inline-block; margin: 0; line-height: 1.2; }
         .doc-progress-wrap,
         .risk-wrap {
             display: flex;
             flex-wrap: wrap;
             align-content: flex-start;
-            max-height: 50px;
-            overflow: hidden;
+            gap: 4px;
+            max-height: none;
+            overflow: visible;
         }
+        #ojtListTable th:nth-child(4), #ojtListTable td:nth-child(4) { min-width: 210px; }
+        #ojtListTable th:nth-child(6), #ojtListTable td:nth-child(6) { min-width: 220px; }
         .filter-card { border: 1px solid #e9eef7; box-shadow: 0 8px 22px rgba(15, 23, 42, 0.05); }
         .table td, .table th { vertical-align: middle; }
         .student-link { color: inherit; text-decoration: none; }
