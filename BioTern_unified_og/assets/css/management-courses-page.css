@@ -1,0 +1,14 @@
+/*
+ * Class: module.management.courses.list
+ * Used by:
+ * - management/courses.php
+ */
+
+/* Prevent last-row action button border from getting visually clipped. */
+    .courses-table tbody tr:last-child td {
+        padding-bottom: 14px;
+    }
+
+    .courses-table .action-cell .btn {
+        line-height: 1.2;
+    }

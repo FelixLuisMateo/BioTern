@@ -4,7 +4,7 @@
 
   function initStudentsFilters() {
     if (window.jQuery) {
-      ["#filter-course", "#filter-department", "#filter-section"].forEach(function (selector) {
+      ["#filter-school-year", "#filter-course", "#filter-department", "#filter-section", "#filter-status"].forEach(function (selector) {
         if ($(selector).length) {
           $(selector).select2({
             width: "100%",
@@ -33,11 +33,13 @@
 
     [
       "filter-date",
+      "filter-school-year",
       "filter-course",
       "filter-department",
       "filter-section",
       "filter-supervisor",
       "filter-coordinator",
+      "filter-status",
     ].forEach(function (id) {
       var el = document.getElementById(id);
       if (el) el.addEventListener("change", submitFilters);
@@ -45,11 +47,13 @@
 
     if (window.jQuery) {
       [
+        "#filter-school-year",
         "#filter-course",
         "#filter-department",
         "#filter-section",
         "#filter-supervisor",
         "#filter-coordinator",
+        "#filter-status",
       ].forEach(function (selector) {
         if ($(selector).length) {
           $(selector).on("select2:select select2:clear", submitFilters);

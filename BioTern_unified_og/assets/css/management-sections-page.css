@@ -1,0 +1,78 @@
+/*
+ * Class: module.management.sections.list
+ * Used by:
+ * - management/sections.php
+ */
+
+.filter-form .form-label {
+        margin-bottom: 0.35rem;
+    }
+
+    .filter-form .form-control,
+    .filter-form .form-select {
+        min-height: 42px;
+        border-radius: 8px;
+    }
+
+    .filter-form .select2-container .select2-selection--single {
+        min-height: 42px;
+        display: flex;
+        align-items: center;
+    }
+
+    .filter-form .select2-container--default .select2-selection--single .select2-selection__rendered {
+        line-height: 40px;
+        padding-left: 0.15rem;
+        padding-right: 1.75rem;
+        text-align: left;
+    }
+
+    .filter-form .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 40px;
+    }
+
+    html.app-skin-dark .filter-form .form-control,
+    html.app-skin-dark .filter-form .form-select,
+    html.app-skin-dark .filter-form .select2-container--default .select2-selection--single {
+        color: #f0f0f0 !important;
+        background-color: #0f172a !important;
+        border-color: #4a5568 !important;
+    }
+
+    html.app-skin-dark .filter-form .form-control::placeholder {
+        color: #93a4bf !important;
+        opacity: 1;
+    }
+
+    html.app-skin-dark .filter-form .select2-container--default .select2-selection--single .select2-selection__rendered {
+        color: #f0f0f0 !important;
+    }
+
+    html.app-skin-dark #filter-q {
+        color: #ffffff !important;
+        -webkit-text-fill-color: #ffffff !important;
+    }
+
+    html.app-skin-dark #filter-q::placeholder {
+        color: #ffffff !important;
+        opacity: 0.95;
+    }
+
+    html.app-skin-dark .filter-form .select2-container--default .select2-selection--single .select2-selection__arrow b {
+        border-top-color: #f0f0f0 !important;
+    }
+
+    html.app-skin-dark .filter-form .select2-container--default.select2-container--open .select2-dropdown {
+        background-color: #0f172a !important;
+        border-color: #4a5568 !important;
+    }
+
+    html.app-skin-dark .select2-results__option {
+        color: #f0f0f0 !important;
+        background-color: #0f172a !important;
+    }
+
+    html.app-skin-dark .select2-results__option--highlighted[aria-selected] {
+        background-color: #334155 !important;
+        color: #ffffff !important;
+    }

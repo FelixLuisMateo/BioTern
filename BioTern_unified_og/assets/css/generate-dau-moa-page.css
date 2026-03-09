@@ -1,0 +1,61 @@
+/*
+ Class: module.pages.generate-dau-moa
+ Used by: pages/generate_dau_moa.php
+*/
+
+@page {
+    size: A4 portrait;
+    margin: 0.20in 0.81in 0.20in 0.81in;
+}
+
+.container,
+.app-moa-container {
+    padding: 0.20in 0.81in 0.20in 0.81in;
+}
+
+.center-gap-8,
+.app-moa-center-gap-8 {
+    text-align: center;
+    margin-top: 8px;
+    margin-bottom: 8px;
+}
+
+.center-gap-6,
+.app-moa-center-gap-6 {
+    text-align: center;
+    margin-top: 6px;
+    margin-bottom: 6px;
+}
+
+.row-top-neg-12,
+.app-moa-row-top-neg-12 {
+    margin-top: -12px;
+}
+
+.mt-16,
+.app-moa-mt-16 {
+    margin-top: 16px;
+}
+
+.mt-neg-18,
+.app-moa-mt-neg-18 {
+    margin-top: -18px;
+}
+
+.mt-0,
+.app-moa-mt-0 {
+    margin-top: 0;
+}
+
+.mb-neg-12,
+.app-moa-mb-neg-12 {
+    margin-bottom: -12px;
+}
+
+.nowrap,
+.app-moa-nowrap {
+    white-space: nowrap;
+}
+
+@media print {
+}

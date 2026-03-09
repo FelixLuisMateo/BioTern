@@ -37,6 +37,13 @@ function resolve_profile_image_url(string $profilePath): ?string {
     return $clean . ($mtime ? ('?v=' . $mtime) : '');
 }
 
+function students_view_column_exists(mysqli $conn, string $table, string $column): bool {
+    $safeTable = $conn->real_escape_string($table);
+    $safeColumn = $conn->real_escape_string($column);
+    $res = $conn->query("SHOW COLUMNS FROM {$safeTable} LIKE '{$safeColumn}'");
+    return ($res && $res->num_rows > 0);
+}
+
 // Get student ID from URL parameter
 $student_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 
@@ -46,6 +53,10 @@ if ($student_id == 0) {
 }
 
 // Fetch Student Details
+$course_internal_expr = students_view_column_exists($conn, 'courses', 'internal_hours') ? 'COALESCE(c.internal_hours, 0)' : '0';
+$course_external_expr = students_view_column_exists($conn, 'courses', 'external_hours') ? 'COALESCE(c.external_hours, 0)' : '0';
+$course_total_expr = students_view_column_exists($conn, 'courses', 'total_ojt_hours') ? 'COALESCE(c.total_ojt_hours, 0)' : '0';
+
 $student_query = "
     SELECT 
         s.id,
@@ -74,10 +85,17 @@ $student_query = "
         s.assignment_track,
         s.supervisor_name,
         s.coordinator_name,
+        s.supervisor_id AS student_supervisor_id,
+        s.coordinator_id AS student_coordinator_id,
         c.name as course_name,
         c.id as course_id,
+        {$course_internal_expr} AS course_internal_hours,
+        {$course_external_expr} AS course_external_hours,
+        {$course_total_expr} AS course_total_ojt_hours,
         d.name as department_name,
         sec.name as section_name,
+        sv_map.user_id AS student_supervisor_user_id,
+        co_map.user_id AS student_coordinator_user_id,
         i.id as internship_id,
         i.supervisor_id,
         i.coordinator_id,
@@ -89,6 +107,8 @@ $student_query = "
     LEFT JOIN courses c ON s.course_id = c.id
     LEFT JOIN departments d ON d.id = s.department_id
     LEFT JOIN sections sec ON sec.id = s.section_id
+    LEFT JOIN supervisors sv_map ON sv_map.id = s.supervisor_id
+    LEFT JOIN coordinators co_map ON co_map.id = s.coordinator_id
     LEFT JOIN internships i ON s.id = i.student_id AND i.status = 'ongoing'
     WHERE s.id = ?
     LIMIT 1
@@ -105,6 +125,88 @@ if ($result->num_rows == 0) {
 }
 
 $student = $result->fetch_assoc();
+
+$can_view_student = false;
+if ($current_user_role === 'admin') {
+    $can_view_student = true;
+} elseif ($current_user_role === 'student') {
+    $can_view_student = ((int)($student['user_id'] ?? 0) === $current_user_id);
+} elseif ($current_user_role === 'supervisor') {
+    $can_view_student = (
+        (int)($student['supervisor_id'] ?? 0) === $current_user_id ||
+        (int)($student['student_supervisor_user_id'] ?? 0) === $current_user_id
+    );
+} elseif ($current_user_role === 'coordinator') {
+    $assigned = (
+        (int)($student['coordinator_id'] ?? 0) === $current_user_id ||
+        (int)($student['student_coordinator_user_id'] ?? 0) === $current_user_id
+    );
+
+    $course_scoped = false;
+    $tbl = $conn->query("SHOW TABLES LIKE 'coordinator_courses'");
+    if ($tbl && $tbl->num_rows > 0) {
+        $course_id_for_scope = (int)($student['course_id'] ?? 0);
+        if ($course_id_for_scope > 0) {
+            $stmt_scope = $conn->prepare("SELECT id FROM coordinator_courses WHERE coordinator_user_id = ? AND course_id = ? LIMIT 1");
+            if ($stmt_scope) {
+                $stmt_scope->bind_param('ii', $current_user_id, $course_id_for_scope);
+                $stmt_scope->execute();
+                $course_scoped = (bool)$stmt_scope->get_result()->fetch_assoc();
+                $stmt_scope->close();
+            }
+        }
+    }
+    $can_view_student = ($assigned || $course_scoped);
+}
+
+if (!$can_view_student) {
+    header('Location: students.php?denied=1');
+    exit;
+}
+
+$message_recipients = [];
+$push_recipient = function (int $user_id, string $label) use (&$message_recipients): void {
+    if ($user_id <= 0 || trim($label) === '') {
+        return;
+    }
+    if (!isset($message_recipients[$user_id])) {
+        $message_recipients[$user_id] = $label;
+    }
+};
+
+$student_user_id = (int)($student['user_id'] ?? 0);
+$supervisor_user_id = (int)($student['supervisor_id'] ?? 0);
+if ($supervisor_user_id <= 0) {
+    $supervisor_user_id = (int)($student['student_supervisor_user_id'] ?? 0);
+}
+$coordinator_user_id = (int)($student['coordinator_id'] ?? 0);
+if ($coordinator_user_id <= 0) {
+    $coordinator_user_id = (int)($student['student_coordinator_user_id'] ?? 0);
+}
+
+if ($current_user_role === 'student') {
+    $push_recipient($coordinator_user_id, 'Coordinator');
+    $push_recipient($supervisor_user_id, 'Supervisor');
+} elseif ($current_user_role === 'coordinator') {
+    $push_recipient($student_user_id, 'Student: ' . trim(($student['first_name'] ?? '') . ' ' . ($student['last_name'] ?? '')));
+    $push_recipient($supervisor_user_id, 'Supervisor');
+} elseif ($current_user_role === 'supervisor') {
+    $push_recipient($student_user_id, 'Student: ' . trim(($student['first_name'] ?? '') . ' ' . ($student['last_name'] ?? '')));
+    $push_recipient($coordinator_user_id, 'Coordinator');
+} else {
+    $push_recipient($student_user_id, 'Student: ' . trim(($student['first_name'] ?? '') . ' ' . ($student['last_name'] ?? '')));
+    $push_recipient($coordinator_user_id, 'Coordinator');
+    $push_recipient($supervisor_user_id, 'Supervisor');
+}
+
+unset($message_recipients[$current_user_id]);
+$selected_receiver_id = isset($_GET['receiver_id']) ? (int)$_GET['receiver_id'] : 0;
+if ($selected_receiver_id <= 0 && !empty($message_recipients)) {
+    $selected_receiver_id = (int)array_key_first($message_recipients);
+}
+if ($selected_receiver_id > 0) {
+    $_GET['receiver_id'] = $selected_receiver_id;
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['eval_unlock_action'])) {
     if (!$can_manage_eval_unlock) {
@@ -228,11 +330,20 @@ if ($is_clocked_in && !empty($open_clock_in_time)) {
 
 $live_rendered_hours = $hours_rendered + ($open_session_seconds / 3600);
 
-$internal_total_hours = isset($student['internal_total_hours']) ? intval($student['internal_total_hours']) : 600;
+$internal_total_hours = isset($student['internal_total_hours']) ? intval($student['internal_total_hours']) : 0;
+if ($internal_total_hours <= 0) {
+    $internal_total_hours = (int)($student['course_internal_hours'] ?? 0);
+}
+if ($internal_total_hours <= 0) {
+    $internal_total_hours = (int)($student['course_total_ojt_hours'] ?? 0);
+}
 if ($internal_total_hours < 0) {
     $internal_total_hours = 0;
 }
 $external_total_hours = isset($student['external_total_hours']) ? intval($student['external_total_hours']) : 0;
+if ($external_total_hours <= 0) {
+    $external_total_hours = (int)($student['course_external_hours'] ?? 0);
+}
 if ($external_total_hours < 0) {
     $external_total_hours = 0;
 }
@@ -330,6 +441,77 @@ function formatDate($date) {
     }
     return 'N/A';
 }
+
+function document_exists_for_user(mysqli $conn, string $table, array $userIds): bool {
+    if (empty($userIds)) {
+        return false;
+    }
+    $safeTable = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
+    if ($safeTable === '') {
+        return false;
+    }
+    static $documentTableCache = [];
+    if (!array_key_exists($safeTable, $documentTableCache)) {
+        $tableExists = false;
+        $hasUserIdColumn = false;
+
+        $tableStmt = $conn->prepare("SELECT 1 FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ? LIMIT 1");
+        if ($tableStmt) {
+            $tableStmt->bind_param('s', $safeTable);
+            $tableStmt->execute();
+            $tableExists = (bool)$tableStmt->get_result()->fetch_row();
+            $tableStmt->close();
+        }
+
+        if ($tableExists) {
+            $columnName = 'user_id';
+            $columnStmt = $conn->prepare("SELECT 1 FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = ? AND column_name = ? LIMIT 1");
+            if ($columnStmt) {
+                $columnStmt->bind_param('ss', $safeTable, $columnName);
+                $columnStmt->execute();
+                $hasUserIdColumn = (bool)$columnStmt->get_result()->fetch_row();
+                $columnStmt->close();
+            }
+        }
+
+        $documentTableCache[$safeTable] = $tableExists && $hasUserIdColumn;
+    }
+
+    if (!$documentTableCache[$safeTable]) {
+        return false;
+    }
+
+    $placeholders = implode(',', array_fill(0, count($userIds), '?'));
+    $types = str_repeat('i', count($userIds));
+    $sql = "SELECT id FROM {$safeTable} WHERE user_id IN ({$placeholders}) LIMIT 1";
+    $stmtDoc = $conn->prepare($sql);
+    if (!$stmtDoc) {
+        return false;
+    }
+    $bind = [$types];
+    foreach ($userIds as $i => $uid) {
+        $bind[] = &$userIds[$i];
+    }
+    call_user_func_array([$stmtDoc, 'bind_param'], $bind);
+    $stmtDoc->execute();
+    $exists = (bool)$stmtDoc->get_result()->fetch_assoc();
+    $stmtDoc->close();
+    return $exists;
+}
+
+$doc_lookup_ids = array_values(array_unique(array_filter([
+    (int)($student['id'] ?? 0),
+    (int)($student['user_id'] ?? 0)
+], function ($v) { return $v > 0; })));
+
+$doc_status = [
+    'application' => document_exists_for_user($conn, 'application_letter', $doc_lookup_ids),
+    'endorsement' => document_exists_for_user($conn, 'endorsement_letter', $doc_lookup_ids),
+    'moa' => document_exists_for_user($conn, 'moa', $doc_lookup_ids),
+    'dau_moa' => document_exists_for_user($conn, 'dau_moa', $doc_lookup_ids),
+    'waiver' => document_exists_for_user($conn, 'waiver', $doc_lookup_ids),
+    'resume' => document_exists_for_user($conn, 'resume', $doc_lookup_ids),
+];
 
 function formatDateTime($date) {
     if ($date) {
@@ -821,6 +1003,62 @@ include 'includes/header.php';
             </div>
         </div>
 
+    <div class="document-generation">
+        <h3>Generate Documents</h3>
+        <div class="mb-2 d-flex flex-wrap gap-2">
+            <span class="badge <?php echo !empty($doc_status['application']) ? 'bg-soft-success text-success' : 'bg-soft-danger text-danger'; ?>">Application <?php echo !empty($doc_status['application']) ? 'Ready' : 'Missing'; ?></span>
+            <span class="badge <?php echo !empty($doc_status['endorsement']) ? 'bg-soft-success text-success' : 'bg-soft-danger text-danger'; ?>">Endorsement <?php echo !empty($doc_status['endorsement']) ? 'Ready' : 'Missing'; ?></span>
+            <span class="badge <?php echo !empty($doc_status['moa']) ? 'bg-soft-success text-success' : 'bg-soft-danger text-danger'; ?>">MOA <?php echo !empty($doc_status['moa']) ? 'Ready' : 'Missing'; ?></span>
+            <span class="badge <?php echo !empty($doc_status['dau_moa']) ? 'bg-soft-success text-success' : 'bg-soft-danger text-danger'; ?>">DAU MOA <?php echo !empty($doc_status['dau_moa']) ? 'Ready' : 'Missing'; ?></span>
+            <span class="badge <?php echo !empty($doc_status['waiver']) ? 'bg-soft-success text-success' : 'bg-soft-danger text-danger'; ?>">Waiver <?php echo !empty($doc_status['waiver']) ? 'Ready' : 'Missing'; ?></span>
+            <span class="badge <?php echo !empty($doc_status['resume']) ? 'bg-soft-success text-success' : 'bg-soft-danger text-danger'; ?>">Resume <?php echo !empty($doc_status['resume']) ? 'Ready' : 'Missing'; ?></span>
+        </div>
+        <a href="../documents/generate_document.php?student_id=<?php echo (int)$student['id']; ?>&doc_type=application" target="_blank" class="btn btn-sm btn-light">Application Letter</a>
+        <a href="../documents/generate_document.php?student_id=<?php echo (int)$student['id']; ?>&doc_type=endorsement" target="_blank" class="btn btn-sm btn-light">Endorsement Letter</a>
+        <a href="../documents/generate_document.php?student_id=<?php echo (int)$student['id']; ?>&doc_type=moa" target="_blank" class="btn btn-sm btn-light">MOA</a>
+        <a href="../documents/generate_document.php?student_id=<?php echo (int)$student['id']; ?>&doc_type=dtr" target="_blank" class="btn btn-sm btn-light">DTR</a>
+        <a href="../documents/generate_document.php?student_id=<?php echo (int)$student['id']; ?>&doc_type=waiver" target="_blank" class="btn btn-sm btn-light">Waiver</a>
+        <a href="../documents/generate_document.php?student_id=<?php echo (int)$student['id']; ?>&doc_type=resume" target="_blank" class="btn btn-sm btn-light">Resume</a>
+    </div>
+
+    <?php if (!empty($message_recipients)): ?>
+        <div class="messaging-box mb-3">
+            <h3 class="mb-2">Messaging</h3>
+            <form method="get" class="row g-2 align-items-end">
+                <input type="hidden" name="id" value="<?php echo (int)$student['id']; ?>">
+                <div class="col-12 col-md-5">
+                    <label class="form-label">Send message to</label>
+                    <select class="form-select" name="receiver_id">
+                        <?php foreach ($message_recipients as $recipient_id => $recipient_label): ?>
+                            <option value="<?php echo (int)$recipient_id; ?>" <?php echo ($selected_receiver_id === (int)$recipient_id) ? 'selected' : ''; ?>><?php echo htmlspecialchars($recipient_label); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="col-12 col-md-3">
+                    <button type="submit" class="btn btn-primary">Open Conversation</button>
+                </div>
+            </form>
+        </div>
+        <?php include 'messages.php'; ?>
+    <?php endif; ?>
+
+    <div class="evaluation-access">
+        <h3>Completion & Evaluation</h3>
+        <?php
+        $student_id = (int)$student['id'];
+        $hours_rendered = $hours_rendered ?? 0;
+        $required_hours = ($assignment_track === 'external') ? $external_total_hours : $internal_total_hours;
+        if ($required_hours <= 0) {
+            $required_hours = ($assignment_track === 'external') ? 250 : 600;
+        }
+        if ($hours_rendered >= $required_hours) {
+            echo '<a href="evaluate.php?student_id=' . $student_id . '" class="btn btn-success">Evaluate Internship</a>';
+            echo '<a href="certificate.php?student_id=' . $student_id . '" class="btn btn-primary">Generate Certificate</a>';
+        } else {
+            echo '<p>Locked: rendered hours (' . number_format((float)$hours_rendered, 1) . ') are below required hours (' . number_format((float)$required_hours, 1) . ').</p>';
+        }
+        ?>
+    </div>
     <div id="students-view-runtime-config"
          data-internal-total-hours="<?php echo (int)$internal_total_hours; ?>"
          data-student-id="<?php echo (int)$student['id']; ?>"

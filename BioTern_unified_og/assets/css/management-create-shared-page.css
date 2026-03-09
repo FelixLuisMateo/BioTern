@@ -1,0 +1,40 @@
+/*
+ * Class: module.management.create.shared
+ * Used by:
+ * - management/coordinators-create.php
+ * - management/supervisors-create.php
+ * - management/courses-create.php
+ * - management/departments-create.php
+ * - management/sections-create.php
+ */
+
+/* Shared action row for create forms */
+.app-form-actions,
+.create-form-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.app-form-actions .btn,
+.create-form-actions .btn {
+    width: auto !important;
+    min-width: 140px;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Dark mode file input controls (applies only when present) */
+html.app-skin-dark input[type="file"].form-control {
+    color: #ffffff !important;
+    background-color: #0f172a !important;
+    border-color: #4a5568 !important;
+}
+
+html.app-skin-dark input[type="file"].form-control::file-selector-button {
+    color: #ffffff !important;
+    background: #1e293b !important;
+    border: 1px solid #4a5568 !important;
+}

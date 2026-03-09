@@ -93,11 +93,80 @@
     });
   }
 
+  function initPolicyHoursPreview() {
+    var previewInput = document.getElementById("policy_required_hours_preview");
+    var courseField = document.getElementById("course_id");
+    var trackField = document.getElementById("assignment_track");
+    var internalTotalField = document.getElementById("internal_total_hours");
+    var externalTotalField = document.getElementById("external_total_hours");
+    var policyMapField = document.getElementById("course_policy_map_json");
+
+    if (!previewInput || !courseField || !trackField || !policyMapField) {
+      return;
+    }
+
+    var coursePolicyMap = {};
+    try {
+      coursePolicyMap = JSON.parse(policyMapField.value || "{}");
+    } catch (error) {
+      coursePolicyMap = {};
+    }
+
+    function toInt(value) {
+      var parsed = parseInt(value, 10);
+      return Number.isNaN(parsed) ? 0 : parsed;
+    }
+
+    function computeRequiredHours() {
+      var courseId = String(toInt(courseField.value));
+      var track = (trackField.value || "internal").toLowerCase() === "external" ? "external" : "internal";
+      var coursePolicy = coursePolicyMap[courseId] || { internal: 0, external: 0, total: 0 };
+
+      var internalFallback = toInt(internalTotalField ? internalTotalField.value : 0);
+      var externalFallback = toInt(externalTotalField ? externalTotalField.value : 0);
+
+      var required = 0;
+      if (track === "external") {
+        required = toInt(coursePolicy.external);
+        if (required <= 0) {
+          required = externalFallback;
+        }
+        if (required <= 0) {
+          required = 250;
+        }
+      } else {
+        required = toInt(coursePolicy.internal);
+        if (required <= 0) {
+          required = internalFallback;
+        }
+        if (required <= 0) {
+          required = toInt(coursePolicy.total);
+        }
+        if (required <= 0) {
+          required = 600;
+        }
+      }
+
+      previewInput.value = String(required);
+    }
+
+    [courseField, trackField, internalTotalField, externalTotalField].forEach(function (field) {
+      if (!field) {
+        return;
+      }
+      field.addEventListener("change", computeRequiredHours);
+      field.addEventListener("input", computeRequiredHours);
+    });
+
+    computeRequiredHours();
+  }
+
   function initStudentsEditRuntime() {
     initSelect2Fields();
     initDateField();
     initFormValidation();
     initAutoHideAlerts();
+    initPolicyHoursPreview();
   }
 
   if (document.readyState === "loading") {

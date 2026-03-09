@@ -12,6 +12,18 @@ if ($conn->connect_error) {
     die('Connection failed: ' . $conn->connect_error);
 }
 
+$conn->query("CREATE TABLE IF NOT EXISTS coordinator_courses (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    coordinator_user_id INT NOT NULL,
+    coordinator_id INT NULL,
+    course_id INT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_coordinator_course (coordinator_user_id, course_id),
+    KEY idx_coordinator_id (coordinator_id),
+    KEY idx_course_id (course_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
+
 function h($value): string
 {
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
@@ -38,6 +50,17 @@ if ($dept_res) {
     }
 }
 
+$courses = [];
+$courses_res = $conn->query("SELECT id, name FROM courses WHERE deleted_at IS NULL ORDER BY name ASC");
+if (!$courses_res) {
+    $courses_res = $conn->query("SELECT id, name FROM courses ORDER BY name ASC");
+}
+if ($courses_res) {
+    while ($row = $courses_res->fetch_assoc()) {
+        $courses[] = $row;
+    }
+}
+
 $stmt = $conn->prepare('SELECT * FROM coordinators WHERE id = ? AND deleted_at IS NULL LIMIT 1');
 $coordinator = null;
 if ($stmt) {
@@ -48,6 +71,19 @@ if ($stmt) {
 }
 if (!$coordinator) {
     die('Coordinator not found.');
+}
+
+$selected_course_ids = [];
+$map_stmt = $conn->prepare('SELECT course_id FROM coordinator_courses WHERE coordinator_user_id = ?');
+if ($map_stmt) {
+    $current_user_id = (int)$coordinator['user_id'];
+    $map_stmt->bind_param('i', $current_user_id);
+    $map_stmt->execute();
+    $result = $map_stmt->get_result();
+    while ($result && $row = $result->fetch_assoc()) {
+        $selected_course_ids[] = (int)$row['course_id'];
+    }
+    $map_stmt->close();
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -74,6 +110,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $bio = trim((string)($_POST['bio'] ?? ''));
     $profile_picture = trim((string)($_POST['profile_picture'] ?? ''));
     $is_active = isset($_POST['is_active']) ? 1 : 0;
+    $posted_course_ids = isset($_POST['course_ids']) && is_array($_POST['course_ids'])
+        ? array_values(array_unique(array_filter(array_map('intval', $_POST['course_ids']), fn($v) => $v > 0)))
+        : [];
 
     if ($user_id <= 0 || $first_name === '' || $last_name === '' || $email === '') {
         $message = 'Please complete required fields.';
@@ -83,6 +122,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($up) {
             $up->bind_param('isssssisssii', $user_id, $first_name, $last_name, $middle_name, $email, $phone, $department_id, $office_location, $bio, $profile_picture, $is_active, $id);
             if ($up->execute()) {
+                $old_user_id = (int)$coordinator['user_id'];
+                $delete_map_stmt = $conn->prepare('DELETE FROM coordinator_courses WHERE coordinator_user_id = ?');
+                if ($delete_map_stmt) {
+                    $delete_map_stmt->bind_param('i', $old_user_id);
+                    $delete_map_stmt->execute();
+                    $delete_map_stmt->close();
+                }
+
+                if (!empty($posted_course_ids)) {
+                    $insert_map_stmt = $conn->prepare('INSERT INTO coordinator_courses (coordinator_user_id, coordinator_id, course_id, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW()) ON DUPLICATE KEY UPDATE coordinator_id = VALUES(coordinator_id), updated_at = NOW()');
+                    if ($insert_map_stmt) {
+                        foreach ($posted_course_ids as $course_id) {
+                            $insert_map_stmt->bind_param('iii', $user_id, $id, $course_id);
+                            $insert_map_stmt->execute();
+                        }
+                        $insert_map_stmt->close();
+                    }
+                }
+
                 header('Location: coordinators.php');
                 exit;
             }
@@ -138,6 +196,21 @@ include 'includes/header.php';
                 </div>
                 <div class="col-md-4"><label class="form-label">Office Location</label><input type="text" name="office_location" class="form-control" value="<?php echo h($coordinator['office_location']); ?>"></div>
                 <div class="col-md-4"><label class="form-label">Profile Picture (path)</label><input type="text" name="profile_picture" class="form-control" value="<?php echo h($coordinator['profile_picture']); ?>"></div>
+                <div class="col-12">
+                    <label class="form-label">Handled Courses</label>
+                    <div class="row g-2">
+                        <?php foreach ($courses as $c): ?>
+                            <?php $checked = in_array((int)$c['id'], $selected_course_ids, true); ?>
+                            <div class="col-md-4 col-sm-6">
+                                <label class="form-check-label d-flex align-items-center gap-2">
+                                    <input class="form-check-input" type="checkbox" name="course_ids[]" value="<?php echo (int)$c['id']; ?>" <?php echo $checked ? 'checked' : ''; ?>>
+                                    <span><?php echo h($c['name']); ?></span>
+                                </label>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                    <small class="text-muted">Select one or more courses this coordinator can handle.</small>
+                </div>
                 <div class="col-12"><label class="form-label">Bio</label><textarea name="bio" rows="2" class="form-control"><?php echo h($coordinator['bio']); ?></textarea></div>
                 <div class="col-12 form-check ms-1"><input class="form-check-input" type="checkbox" name="is_active" id="is_active_edit" <?php echo ((int)$coordinator['is_active'] === 1) ? 'checked' : ''; ?>><label class="form-check-label" for="is_active_edit">Active</label></div>
                 <div class="col-12 d-flex gap-2">

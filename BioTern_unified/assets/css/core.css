@@ -246,6 +246,103 @@ html.app-skin-dark .filter-form .select2-container--default .select2-selection--
 }
 
 /* ------------------------------------------------------------------------- */
+/* 5) Mobile/responsive enhancements (non-breaking)                          */
+/* ------------------------------------------------------------------------- */
+
+.filter-bar .form-label {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.document-generation,
+.evaluation-access,
+.messaging-box {
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.document-generation a,
+.evaluation-access a {
+  display: inline-block;
+  margin-right: 8px;
+  margin-bottom: 8px;
+}
+
+.messaging-box textarea {
+  width: 100%;
+  min-height: 96px;
+  resize: vertical;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  padding: 10px;
+}
+
+.messages-list {
+  list-style: none;
+  padding-left: 0;
+  margin-top: 12px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.messages-list li {
+  padding: 8px 10px;
+  border: 1px solid #edf0f5;
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
+
+@media (max-width: 991.98px) {
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 10px;
+  }
+
+  .page-header-right {
+    width: 100%;
+  }
+
+  .page-header-right .btn {
+    width: 100%;
+  }
+
+  .nxl-header .dropdown-menu.nxl-h-dropdown {
+    width: min(92vw, 380px);
+  }
+
+  .table-responsive {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .main-content {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .card .card-header,
+  .card .card-body {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  .btn,
+  .btn-sm {
+    min-height: 38px;
+  }
+
+  .breadcrumb {
+    flex-wrap: wrap;
+    row-gap: 4px;
+  }
+}
+
+/* ------------------------------------------------------------------------- */
 /* 2) Page-scoped sections (populate as inline styles are extracted)          */
 /* ------------------------------------------------------------------------- */
 
