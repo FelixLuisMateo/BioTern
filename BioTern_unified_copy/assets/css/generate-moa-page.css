@@ -1,0 +1,107 @@
+/*
+ Class: module.pages.generate-moa
+ Used by: pages/generate_moa.php
+*/
+
+@page { size: A4 portrait; margin: 0.30in 0.81in 0.20in 0.81in; }
+
+.container,
+.app-moa-container {
+    padding: 0.35in 1in 1in 1in;
+}
+
+.text-center,
+.app-moa-text-center {
+    text-align: center;
+}
+
+.center-neg-20,
+.app-moa-center-neg-20 {
+    text-align: center;
+    margin-top: -20px;
+    margin-bottom: 5px;
+}
+
+.center-top-10-bottom-neg-10,
+.app-moa-center-top-10-bottom-neg-10 {
+    text-align: center;
+    margin-top: 10px;
+    margin-bottom: -10px;
+}
+
+.row-top-neg-12,
+.app-moa-row-top-neg-12 {
+    margin-top: -12px;
+}
+
+.mt-16,
+.app-moa-mt-16 {
+    margin-top: 16px;
+}
+
+.mt-neg-18,
+.app-moa-mt-neg-18 {
+    margin-top: -18px;
+}
+
+.mt-neg-5,
+.app-moa-mt-neg-5 {
+    margin-top: -5px;
+}
+
+.mt-0,
+.app-moa-mt-0 {
+    margin-top: 0;
+}
+
+.mb-neg-4,
+.app-moa-mb-neg-4 {
+    margin-bottom: -4px;
+}
+
+@media print {
+    /* Fallback compensation for browsers/printers that keep custom margins at
+       Top/Bottom: 0, Left/Right: 0.5. This adds the missing space visually so
+       output matches target margins (Top/Bottom 0.20, Left/Right 0.81). */
+    .container,
+    .app-moa-container {
+        padding-top: 0.30in !important;
+        padding-left: 0.31in !important;
+        padding-right: 0.31in !important;
+        padding-bottom: 0.20in !important;
+        -webkit-box-decoration-break: clone;
+        box-decoration-break: clone;
+    }
+
+    .second-page-start,
+    .app-moa-second-page-start {
+        break-before: page;
+        page-break-before: always;
+    }
+
+    #moa_doc_content li,
+    #app_moa_doc_content li {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    #moa_doc_content li *,
+    #app_moa_doc_content li * {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    #moa_doc_content p,
+    #moa_doc_content li,
+    #app_moa_doc_content p,
+    #app_moa_doc_content li {
+        orphans: 3;
+        widows: 3;
+    }
+
+    #moa_doc_content .and-line,
+    #app_moa_doc_content .app-moa-and-line {
+        margin-top: -0.15in !important;
+    }
+
+}

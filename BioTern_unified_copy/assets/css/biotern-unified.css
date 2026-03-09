@@ -1,0 +1,233 @@
+/* BioTern unified stylesheet */
+/* Keep this file organized by scope to avoid regressions during migration. */
+
+/* ------------------------------------------------------------------------- */
+/* 1) Global layout shared across includes/header/footer/navigation            */
+/* ------------------------------------------------------------------------- */
+
+.biotern-avatar-40 {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.biotern-logo-lg {
+  width: 210px;
+  height: auto;
+  object-fit: contain;
+}
+
+.biotern-hidden-inline-toggle {
+  display: none;
+}
+
+.biotern-toast-fixed {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 99999;
+  max-width: 400px;
+}
+
+.biotern-progress-thin {
+  height: 5px;
+}
+
+.biotern-floating-corner {
+  position: fixed;
+  right: 5px;
+  bottom: 5px;
+  z-index: 999999;
+}
+
+/* Footer layout stickiness */
+.nxl-container {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 80px);
+}
+
+.nxl-container .nxl-content {
+  flex: 1 0 auto;
+}
+
+.nxl-container .footer {
+  margin-top: auto;
+}
+
+/* Avatar consistency in header/dropdown */
+.nxl-header .user-avtar,
+.nxl-user-dropdown .user-avtar {
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+  min-height: 40px !important;
+  border-radius: 50% !important;
+  object-fit: cover !important;
+  object-position: center !important;
+}
+
+html.app-skin-dark input.form-control,
+html.app-skin-dark textarea.form-control,
+html.app-skin-dark .form-control[type="text"],
+html.app-skin-dark .form-control[type="email"],
+html.app-skin-dark .form-control[type="password"],
+html.app-skin-dark .form-control[type="number"],
+html.app-skin-dark .form-control[type="date"],
+html.app-skin-dark .form-control[type="time"],
+html.app-skin-dark .form-control[type="search"],
+html.app-skin-dark .form-control[type="tel"],
+html.app-skin-dark .form-control[type="url"] {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  background-color: #0f172a !important;
+  border-color: #4a5568 !important;
+}
+
+html.app-skin-dark input.form-control::placeholder,
+html.app-skin-dark textarea.form-control::placeholder {
+  color: #d1dcf0 !important;
+  opacity: 1 !important;
+}
+
+html.app-skin-dark input.form-control:-webkit-autofill,
+html.app-skin-dark input.form-control:-webkit-autofill:hover,
+html.app-skin-dark input.form-control:-webkit-autofill:focus,
+html.app-skin-dark textarea.form-control:-webkit-autofill,
+html.app-skin-dark textarea.form-control:-webkit-autofill:hover,
+html.app-skin-dark textarea.form-control:-webkit-autofill:focus {
+  -webkit-text-fill-color: #ffffff !important;
+  caret-color: #ffffff !important;
+  box-shadow: 0 0 0 1000px #0f172a inset !important;
+  -webkit-box-shadow: 0 0 0 1000px #0f172a inset !important;
+  border-color: #4a5568 !important;
+  transition: background-color 9999s ease-out 0s;
+}
+
+html.app-skin-dark input.form-control:autofill,
+html.app-skin-dark textarea.form-control:autofill {
+  color: #ffffff !important;
+  background-color: #0f172a !important;
+}
+
+html.app-skin-dark select.form-control,
+html.app-skin-dark select.form-select,
+html.app-skin-dark select.form-control option,
+html.app-skin-dark select.form-select option {
+  color: #ffffff !important;
+  background-color: #0f172a !important;
+  border-color: #4a5568 !important;
+}
+
+html.app-skin-dark .select2-container--default .select2-selection--single,
+html.app-skin-dark .select2-container--default .select2-selection--multiple {
+  color: #ffffff !important;
+  background-color: #0f172a !important;
+  border-color: #4a5568 !important;
+}
+
+html.app-skin-dark .select2-container--default .select2-selection--single .select2-selection__rendered,
+html.app-skin-dark .select2-container--default .select2-selection--multiple .select2-selection__rendered,
+html.app-skin-dark .select2-container--default .select2-selection__placeholder {
+  color: #ffffff !important;
+}
+
+html.app-skin-dark .select2-container--default.select2-container--open .select2-dropdown,
+html.app-skin-dark .select2-container--default .select2-results__option {
+  color: #ffffff !important;
+  background-color: #0f172a !important;
+  border-color: #4a5568 !important;
+}
+
+html.app-skin-dark .select2-container--default .select2-results__option--highlighted[aria-selected] {
+  color: #ffffff !important;
+  background-color: #334155 !important;
+}
+
+html.app-skin-dark .filter-form input.form-control,
+html.app-skin-dark .filter-form select.form-control,
+html.app-skin-dark .filter-form select.form-select,
+html.app-skin-dark .filter-form .select2-container--default .select2-selection--single,
+html.app-skin-dark .filter-form .select2-container--default .select2-selection--multiple {
+  color: #ffffff !important;
+}
+
+html.app-skin-dark .filter-form input.form-control::placeholder {
+  color: #d1dcf0 !important;
+  opacity: 1;
+}
+
+html.app-skin-dark .filter-form .select2-container--default .select2-selection--single .select2-selection__rendered,
+html.app-skin-dark .filter-form .select2-container--default .select2-selection--multiple .select2-selection__rendered {
+  color: #ffffff !important;
+}
+
+/* Force click-only behavior for selected header dropdowns (no hover-open). */
+.click-only-dropdown > .dropdown-menu {
+  display: none !important;
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.click-only-dropdown > .dropdown-menu.show {
+  display: block !important;
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ------------------------------------------------------------------------- */
+/* 2) Page-scoped sections (populate as inline styles are extracted)          */
+/* ------------------------------------------------------------------------- */
+
+/* pages/analytics.php */
+.page-analytics .analytics-hero .card-body {
+  background: linear-gradient(
+    95deg,
+    rgba(var(--bs-primary-rgb), 0.95),
+    rgba(31, 90, 166, 0.84)
+  );
+}
+
+.page-analytics .analytics-chart-panel {
+  border: 1px dashed rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  padding: 10px;
+}
+
+.page-analytics .biotern-chart-240 {
+  height: 240px;
+}
+
+.page-analytics .biotern-chart-260 {
+  height: 260px;
+}
+
+/* pages/attendance.php */
+.page-attendance .biotern-bulk-toolbar {
+  display: none;
+}
+
+.page-attendance .biotern-remarks-hidden {
+  display: none;
+  margin-top: 10px;
+}
+
+/* ------------------------------------------------------------------------- */
+/* 3) Print/document pages                                                     */
+/* ------------------------------------------------------------------------- */
+
+.print-doc .biotern-center-title {
+  text-align: center;
+}
+
+/* ------------------------------------------------------------------------- */
+/* 4) Temporary migration helpers                                              */
+/* ------------------------------------------------------------------------- */
+
+/*
+  During migration, add only reusable utility classes here.
+  Remove one-off helpers once pages are fully normalized.
+*/
