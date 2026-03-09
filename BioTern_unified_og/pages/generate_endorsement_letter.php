@@ -96,7 +96,7 @@ function infer_title_from_name(string $name): string
 if ($recipient_title === 'auto') {
     $recipient_title = infer_title_from_name($recipient);
 }
-$recipient_base = preg_replace('/^(mr\\.?|ms\\.?|mrs\\.?|sir|maam|ma\\\'am|madam)\s+/i', '', $recipient);
+$recipient_base = preg_replace('/^(mr\\.?|ms\\.?|mrs\\.?|sir|maam|ma\\\'am|madam)\\s+/i', '', $recipient);
 if (!is_string($recipient_base) || $recipient_base === '') {
     $recipient_base = $recipient;
 }

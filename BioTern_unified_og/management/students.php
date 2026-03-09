@@ -38,69 +38,6 @@ try {
     die("Database Error: " . $e->getMessage());
 }
 
-$studentColumns = [];
-$studentColRes = $conn->query("SHOW COLUMNS FROM students");
-if ($studentColRes) {
-    while ($col = $studentColRes->fetch_assoc()) {
-        $studentColumns[] = strtolower((string)($col['Field'] ?? ''));
-    }
-}
-$has_student_deleted_at = in_array('deleted_at', $studentColumns, true);
-$has_student_status_col = in_array('status', $studentColumns, true);
-
-if (isset($_GET['student_action']) && isset($_GET['id']) && !$is_student_user) {
-    $student_action = trim((string)$_GET['student_action']);
-    $target_student_id = (int)$_GET['id'];
-
-    $can_manage_student_actions = in_array($current_role, ['admin', 'coordinator', 'supervisor'], true);
-    $can_delete_students = in_array($current_role, ['admin', 'coordinator'], true);
-
-    if ($target_student_id > 0 && $can_manage_student_actions) {
-        $ok = false;
-        if ($student_action === 'archive' && $has_student_status_col) {
-            $stmt_archive = $conn->prepare("UPDATE students SET status = 0, updated_at = NOW() WHERE id = ? LIMIT 1");
-            if ($stmt_archive) {
-                $stmt_archive->bind_param('i', $target_student_id);
-                $ok = $stmt_archive->execute() && $stmt_archive->affected_rows >= 0;
-                $stmt_archive->close();
-            }
-            $_SESSION['students_flash_message'] = $ok ? 'Student archived.' : 'Unable to archive student.';
-            $_SESSION['students_flash_type'] = $ok ? 'success' : 'danger';
-        } elseif ($student_action === 'delete' && $can_delete_students) {
-            if ($has_student_deleted_at) {
-                $stmt_del = $conn->prepare("UPDATE students SET deleted_at = NOW(), updated_at = NOW() WHERE id = ? LIMIT 1");
-                if ($stmt_del) {
-                    $stmt_del->bind_param('i', $target_student_id);
-                    $ok = $stmt_del->execute() && $stmt_del->affected_rows > 0;
-                    $stmt_del->close();
-                }
-            } else {
-                $stmt_del = $conn->prepare("DELETE FROM students WHERE id = ? LIMIT 1");
-                if ($stmt_del) {
-                    $stmt_del->bind_param('i', $target_student_id);
-                    $ok = $stmt_del->execute() && $stmt_del->affected_rows > 0;
-                    $stmt_del->close();
-                }
-            }
-            $_SESSION['students_flash_message'] = $ok ? 'Student deleted.' : 'Unable to delete student (record may be linked).';
-            $_SESSION['students_flash_type'] = $ok ? 'success' : 'danger';
-        }
-    }
-
-    $redirect_qs = $_SERVER['QUERY_STRING'] ?? '';
-    if ($redirect_qs !== '') {
-        parse_str($redirect_qs, $redirect_arr);
-        unset($redirect_arr['student_action'], $redirect_arr['id']);
-        $redirect_qs = http_build_query($redirect_arr);
-    }
-    header('Location: students.php' . ($redirect_qs !== '' ? ('?' . $redirect_qs) : ''));
-    exit;
-}
-
-$flash_message = (string)($_SESSION['students_flash_message'] ?? '');
-$flash_type = (string)($_SESSION['students_flash_type'] ?? 'success');
-unset($_SESSION['students_flash_message'], $_SESSION['students_flash_type']);
-
 // Fetch Students Statistics
 $stats_query = "
     SELECT 
@@ -109,14 +46,12 @@ $stats_query = "
         SUM(CASE WHEN status = 0 THEN 1 ELSE 0 END) as inactive_students,
         SUM(CASE WHEN biometric_registered = 1 THEN 1 ELSE 0 END) as biometric_registered
     FROM students
-" . ($has_student_deleted_at ? " WHERE deleted_at IS NULL" : "") . "
 ";
 $stats_result = $conn->query($stats_query);
 $stats = $stats_result->fetch_assoc();
 
 // Prepare filter inputs
 $filter_date = isset($_GET['date']) ? trim((string)$_GET['date']) : '';
-$filter_school_year = isset($_GET['school_year_id']) ? intval($_GET['school_year_id']) : 0;
 $filter_course = isset($_GET['course_id']) ? intval($_GET['course_id']) : 0;
 $filter_department = isset($_GET['department_id']) ? intval($_GET['department_id']) : 0;
 $filter_section = isset($_GET['section_id']) ? intval($_GET['section_id']) : 0;
@@ -149,15 +84,6 @@ $courses_query .= " ORDER BY name ASC";
 $courses_res = $conn->query($courses_query);
 if ($courses_res && $courses_res->num_rows) {
     while ($r = $courses_res->fetch_assoc()) $courses[] = $r;
-}
-
-$school_years = [];
-$school_year_table_res = $conn->query("SHOW TABLES LIKE 'school_years'");
-if ($school_year_table_res && $school_year_table_res->num_rows > 0) {
-    $school_year_res = $conn->query("SELECT id, year FROM school_years ORDER BY year DESC");
-    if ($school_year_res && $school_year_res->num_rows) {
-        while ($r = $school_year_res->fetch_assoc()) $school_years[] = $r;
-    }
 }
 
 $departments = [];
@@ -196,10 +122,6 @@ if ($coor_res && $coor_res->num_rows) {
 
 // Build WHERE clauses depending on provided filters
 $where = [];
-if ($current_role === 'coordinator') {
-    // Restrict to students assigned to this coordinator
-    $where[] = "(i.coordinator_id = " . intval($current_user_id) . ")";
-}
 if ($filter_date !== '') {
     // Filter students that have attendance logs on the selected date.
     $safe_date = $conn->real_escape_string($filter_date);
@@ -207,17 +129,6 @@ if ($filter_date !== '') {
         SELECT 1 FROM attendances a_date
         WHERE a_date.student_id = s.id
           AND a_date.attendance_date = '{$safe_date}'
-    )";
-}
-if ($filter_school_year > 0) {
-    $where[] = "EXISTS (
-        SELECT 1
-        FROM internships i_sy
-        INNER JOIN school_years sy
-            ON CONVERT(sy.year USING utf8mb4) COLLATE utf8mb4_unicode_ci
-             = CONVERT(i_sy.school_year USING utf8mb4) COLLATE utf8mb4_unicode_ci
-        WHERE i_sy.student_id = s.id
-          AND sy.id = " . intval($filter_school_year) . "
     )";
 }
 if ($filter_course > 0) {
@@ -271,7 +182,6 @@ if ($filter_status >= 0) {
 $students_query = "
     SELECT 
         s.id,
-        s.user_id,
         s.student_id,
         s.first_name,
         s.middle_name,
@@ -316,7 +226,7 @@ $students_query = "
     LEFT JOIN internships i ON s.id = i.student_id AND i.status = 'ongoing'
     LEFT JOIN supervisors sup ON i.supervisor_id = sup.id
     LEFT JOIN coordinators coor ON i.coordinator_id = coor.id
-    " . ((count($where) > 0 || $has_student_deleted_at) ? "WHERE " . implode(' AND ', array_merge($has_student_deleted_at ? ["s.deleted_at IS NULL"] : [], $where)) : "") . "
+    " . (count($where) > 0 ? "WHERE " . implode(' AND ', $where) : "") . "
     ORDER BY s.first_name ASC
     LIMIT 100
 ";
@@ -390,17 +300,6 @@ usort($print_students, function ($a, $b) {
     }
     return strcmp($a_last, $b_last);
 });
-
-$has_active_filters = (
-    $filter_date !== '' ||
-    $filter_school_year > 0 ||
-    $filter_course > 0 ||
-    $filter_department > 0 ||
-    $filter_section > 0 ||
-    $filter_supervisor !== '' ||
-    $filter_coordinator !== '' ||
-    $filter_status >= 0
-);
 
 ?>
 <?php
@@ -479,16 +378,25 @@ include 'includes/header.php';
                             <a href="javascript:void(0);" class="btn btn-icon btn-light-brand" data-bs-toggle="collapse" data-bs-target="#collapseOne">
                                 <i class="feather-bar-chart"></i>
                             </a>
-                            <button
-                                type="button"
-                                class="btn btn-icon btn-light-brand <?php echo $has_active_filters ? 'active' : ''; ?>"
-                                data-bs-toggle="collapse"
-                                data-bs-target="#studentsFiltersCollapse"
-                                aria-expanded="<?php echo $has_active_filters ? 'true' : 'false'; ?>"
-                                aria-controls="studentsFiltersCollapse"
-                            >
+                            <div class="dropdown">
+                                <a class="btn btn-icon btn-light-brand" data-bs-toggle="dropdown" data-bs-offset="0, 10" data-bs-auto-close="outside">
                                     <i class="feather-filter"></i>
-                            </button>
+                                </a>
+                                <div class="dropdown-menu dropdown-menu-end">
+                                    <a href="javascript:void(0);" class="dropdown-item">
+                                        <i class="feather-eye me-3"></i>
+                                        <span>All</span>
+                                    </a>
+                                    <a href="javascript:void(0);" class="dropdown-item">
+                                        <i class="feather-user-check me-3"></i>
+                                        <span>Active</span>
+                                    </a>
+                                    <a href="javascript:void(0);" class="dropdown-item">
+                                        <i class="feather-user-minus me-3"></i>
+                                        <span>Inactive</span>
+                                    </a>
+                                </div>
+                            </div>
                             <div class="dropdown">
                                 <a class="btn btn-icon btn-light-brand" data-bs-toggle="dropdown" data-bs-offset="0, 10" data-bs-auto-close="outside">
                                     <i class="feather-paperclip"></i>
@@ -540,98 +448,65 @@ include 'includes/header.php';
             </div>
 
             <!-- Filters -->
-            <div id="studentsFiltersCollapse" class="collapse <?php echo $has_active_filters ? 'show' : ''; ?> mb-3">
-                <div class="card app-students-filter-card border-0 mx-3">
-                    <div class="card-body p-3 p-lg-4">
-                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
-                            <div>
-                                <h6 class="mb-1">Filter Students</h6>
-                                <p class="text-muted mb-0">Narrow the list only when you need it.</p>
-                            </div>
-                            <?php if ($has_active_filters): ?>
-                                <span class="badge bg-primary-subtle text-primary-emphasis app-students-filter-badge">Filters active</span>
-                            <?php endif; ?>
+            <div class="row mb-3 px-3">
+                <div class="col-12">
+                    <form method="GET" class="filter-form app-students-filter-form row g-2 align-items-end" id="studentsFilterForm">
+                        <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
+                            <label class="form-label" for="filter-date">Date</label>
+                            <input id="filter-date" type="date" name="date" class="form-control" value="<?php echo htmlspecialchars($_GET['date'] ?? ''); ?>">
                         </div>
-                        <form method="GET" class="filter-form app-students-filter-form row g-3 align-items-end" id="studentsFilterForm">
-                            <div class="col-xl-3 col-lg-4 col-md-6">
-                                <label class="form-label" for="filter-date">Date</label>
-                                <input id="filter-date" type="date" name="date" class="form-control" value="<?php echo htmlspecialchars($_GET['date'] ?? ''); ?>">
+                        <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
+                            <label class="form-label" for="filter-course">Course</label>
+                            <select id="filter-course" name="course_id" class="form-control">
+                                <option value="0">-- All Courses --</option>
+                                <?php foreach ($courses as $course): ?>
+                                    <option value="<?php echo $course['id']; ?>" <?php echo $filter_course == $course['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($course['name']); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
+                            <label class="form-label" for="filter-department">Department</label>
+                            <select id="filter-department" name="department_id" class="form-control">
+                                <option value="0">-- All Departments --</option>
+                                <?php foreach ($departments as $dept): ?>
+                                    <option value="<?php echo $dept['id']; ?>" <?php echo $filter_department == $dept['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($dept['name']); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
+                            <label class="form-label" for="filter-section">Section</label>
+                            <select id="filter-section" name="section_id" class="form-control">
+                                <option value="0">-- All Sections --</option>
+                                <?php foreach ($sections as $section): ?>
+                                    <option value="<?php echo (int)$section['id']; ?>" <?php echo $filter_section == $section['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($section['section_label']); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
+                            <label class="form-label" for="filter-supervisor">Supervisor</label>
+                            <select id="filter-supervisor" name="supervisor" class="form-control">
+                                <option value="">-- Any Supervisor --</option>
+                                <?php foreach ($supervisors as $sup): ?>
+                                    <option value="<?php echo htmlspecialchars($sup); ?>" <?php echo $filter_supervisor == $sup ? 'selected' : ''; ?>><?php echo htmlspecialchars($sup); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
+                            <label class="form-label" for="filter-coordinator">Coordinator</label>
+                            <select id="filter-coordinator" name="coordinator" class="form-control">
+                                <option value="">-- Any Coordinator --</option>
+                                <?php foreach ($coordinators as $coor): ?>
+                                    <option value="<?php echo htmlspecialchars($coor); ?>" <?php echo $filter_coordinator == $coor ? 'selected' : ''; ?>><?php echo htmlspecialchars($coor); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
+                            <label class="form-label d-block invisible">Actions</label>
+                            <div class="d-flex align-items-end gap-1">
+                                <a href="students.php" class="btn btn-outline-secondary btn-sm px-3 py-1">Reset</a>
                             </div>
-                            <div class="col-xl-3 col-lg-4 col-md-6">
-                                <label class="form-label" for="filter-school-year">School Year</label>
-                                <select id="filter-school-year" name="school_year_id" class="form-control">
-                                    <option value="0">-- All School Years --</option>
-                                    <?php foreach ($school_years as $school_year): ?>
-                                        <option value="<?php echo (int)$school_year['id']; ?>" <?php echo $filter_school_year == $school_year['id'] ? 'selected' : ''; ?>>
-                                            <?php echo htmlspecialchars((string)$school_year['year']); ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                            <div class="col-xl-3 col-lg-4 col-md-6">
-                                <label class="form-label" for="filter-course">Course</label>
-                                <select id="filter-course" name="course_id" class="form-control">
-                                    <option value="0">-- All Courses --</option>
-                                    <?php foreach ($courses as $course): ?>
-                                        <option value="<?php echo $course['id']; ?>" <?php echo $filter_course == $course['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($course['name']); ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                            <div class="col-xl-3 col-lg-4 col-md-6">
-                                <label class="form-label" for="filter-department">Department</label>
-                                <select id="filter-department" name="department_id" class="form-control">
-                                    <option value="0">-- All Departments --</option>
-                                    <?php foreach ($departments as $dept): ?>
-                                        <option value="<?php echo $dept['id']; ?>" <?php echo $filter_department == $dept['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($dept['name']); ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                            <div class="col-xl-3 col-lg-4 col-md-6">
-                                <label class="form-label" for="filter-section">Section</label>
-                                <select id="filter-section" name="section_id" class="form-control">
-                                    <option value="0">-- All Sections --</option>
-                                    <?php foreach ($sections as $section): ?>
-                                        <option value="<?php echo (int)$section['id']; ?>" <?php echo $filter_section == $section['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($section['section_label']); ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                            <div class="col-xl-3 col-lg-4 col-md-6">
-                                <label class="form-label" for="filter-supervisor">Supervisor</label>
-                                <select id="filter-supervisor" name="supervisor" class="form-control">
-                                    <option value="">-- Any Supervisor --</option>
-                                    <?php foreach ($supervisors as $sup): ?>
-                                        <option value="<?php echo htmlspecialchars($sup); ?>" <?php echo $filter_supervisor == $sup ? 'selected' : ''; ?>><?php echo htmlspecialchars($sup); ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                            <div class="col-xl-3 col-lg-4 col-md-6">
-                                <label class="form-label" for="filter-coordinator">Coordinator</label>
-                                <select id="filter-coordinator" name="coordinator" class="form-control">
-                                    <option value="">-- Any Coordinator --</option>
-                                    <?php foreach ($coordinators as $coor): ?>
-                                        <option value="<?php echo htmlspecialchars($coor); ?>" <?php echo $filter_coordinator == $coor ? 'selected' : ''; ?>><?php echo htmlspecialchars($coor); ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                            <div class="col-xl-3 col-lg-4 col-md-6">
-                                <label class="form-label" for="filter-status">Status</label>
-                                <select id="filter-status" name="status" class="form-control">
-                                    <option value="-1" <?php echo $filter_status === -1 ? 'selected' : ''; ?>>-- All Statuses --</option>
-                                    <option value="1" <?php echo $filter_status === 1 ? 'selected' : ''; ?>>Active</option>
-                                    <option value="0" <?php echo $filter_status === 0 ? 'selected' : ''; ?>>Inactive</option>
-                                </select>
-                            </div>
-                            <div class="col-12">
-                                <div class="filter-actions">
-                                    <button type="submit" class="btn btn-primary">
-                                        <i class="feather-search me-2"></i>
-                                        <span>Apply Filters</span>
-                                    </button>
-                                    <a href="students.php" class="btn btn-outline-secondary">Reset</a>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
+                        </div>
+                    </form>
                 </div>
             </div>
 
@@ -713,9 +588,6 @@ include 'includes/header.php';
 
             <!-- Main Content -->
             <div class="main-content app-students-main-content">
-                <?php if ($flash_message !== ''): ?>
-                    <div class="alert alert-<?php echo htmlspecialchars($flash_type); ?> mx-3 mb-3"><?php echo htmlspecialchars($flash_message); ?></div>
-                <?php endif; ?>
                 <div class="row">
                     <div class="col-lg-12">
                         <div class="card stretch stretch-full app-students-table-card">
@@ -774,10 +646,10 @@ include 'includes/header.php';
                                                             </a>
                                                         </td>
                                                         <td><a href="students-view.php?id=<?php echo $student['id']; ?>"><?php echo htmlspecialchars($student['student_id']); ?></a></td>
-                                                        <td><span><?php echo htmlspecialchars($student['course_name'] ?? 'N/A'); ?></span></td>
-                                                        <td><span><?php echo htmlspecialchars($student['section_name'] ?? '-'); ?></span></td>
-                                                        <td><span><?php echo htmlspecialchars($student['supervisor_name'] ?? '-'); ?></span></td>
-                                                        <td><span><?php echo htmlspecialchars($student['coordinator_name'] ?? '-'); ?></span></td>
+                                                        <td><a href="javascript:void(0);"><?php echo htmlspecialchars($student['course_name'] ?? 'N/A'); ?></a></td>
+                                                        <td><a href="javascript:void(0);"><?php echo htmlspecialchars($student['section_name'] ?? '-'); ?></a></td>
+                                                        <td><a href="javascript:void(0);"><?php echo htmlspecialchars($student['supervisor_name'] ?? '-'); ?></a></td>
+                                                        <td><a href="javascript:void(0);"><?php echo htmlspecialchars($student['coordinator_name'] ?? '-'); ?></a></td>
                                                         <td><?php echo formatDate($student['created_at']); ?></td>
                                                         <td><?php echo getStatusBadge($student['live_clock_status']); ?></td>
                                                         <td>
@@ -792,39 +664,39 @@ include 'includes/header.php';
                                                                         </a>
                                                                         <ul class="dropdown-menu">
                                                                             <li>
-                                                                                <a class="dropdown-item" href="students-edit.php?id=<?php echo (int)$student['id']; ?>">
+                                                                                <a class="dropdown-item" href="javascript:void(0)">
                                                                                     <i class="feather feather-edit-3 me-3"></i>
                                                                                     <span>Edit</span>
                                                                                 </a>
                                                                             </li>
                                                                             <li>
-                                                                                <a class="dropdown-item" href="students-dtr.php?id=<?php echo (int)$student['id']; ?>">
+                                                                                <a class="dropdown-item printBTN" href="javascript:void(0)">
                                                                                     <i class="feather feather-printer me-3"></i>
                                                                                     <span>Print</span>
                                                                                 </a>
                                                                             </li>
                                                                             <li>
-                                                                                <a class="dropdown-item" href="messages.php?receiver_id=<?php echo (int)($student['user_id'] ?? 0); ?>">
+                                                                                <a class="dropdown-item" href="javascript:void(0)">
                                                                                     <i class="feather feather-clock me-3"></i>
                                                                                     <span>Remind</span>
                                                                                 </a>
                                                                             </li>
                                                                             <li class="dropdown-divider"></li>
                                                                             <li>
-                                                                                <a class="dropdown-item" href="students.php?student_action=archive&id=<?php echo (int)$student['id']; ?>" onclick="return confirm('Archive this student?');">
+                                                                                <a class="dropdown-item" href="javascript:void(0)">
                                                                                     <i class="feather feather-archive me-3"></i>
                                                                                     <span>Archive</span>
                                                                                 </a>
                                                                             </li>
                                                                             <li>
-                                                                                <a class="dropdown-item" href="students-view.php?id=<?php echo (int)$student['id']; ?>#activityTab">
+                                                                                <a class="dropdown-item" href="javascript:void(0)">
                                                                                     <i class="feather feather-alert-octagon me-3"></i>
                                                                                     <span>Report Spam</span>
                                                                                 </a>
                                                                             </li>
                                                                             <li class="dropdown-divider"></li>
                                                                             <li>
-                                                                                <a class="dropdown-item" href="students.php?student_action=delete&id=<?php echo (int)$student['id']; ?>" onclick="return confirm('Delete this student?');">
+                                                                                <a class="dropdown-item" href="javascript:void(0)">
                                                                                     <i class="feather feather-trash-2 me-3"></i>
                                                                                     <span>Delete</span>
                                                                                 </a>

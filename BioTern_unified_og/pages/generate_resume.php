@@ -29,97 +29,63 @@ $profile = $student['profile_picture'] ?? '';
 $phone = $student['phone'] ?? '';
 $email = $student['email'] ?? '';
 $address = $student['address'] ?? '';
+
+$script_name = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
+$asset_prefix = (strpos($script_name, '/pages/') !== false) ? '../' : '';
+$page_title = 'BioTern || Resume - ' . $full_name;
+$base_href = $asset_prefix;
+$page_styles = [
+    'assets/css/generate-resume-page.css',
+];
+$page_scripts = [
+    'assets/js/generate-resume-runtime.js',
+];
+
+include __DIR__ . '/../includes/header.php';
 ?>
-<!doctype html>
-<html>
-<head>
-<meta charset="utf-8">
-<title>BioTern || Resume - <?php echo htmlspecialchars($full_name); ?></title>
-<link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
-<style>
-    :root{ --muted:#666; --border:#e6e6e6; --text:#222; --accent:#007bff; }
-    html,body{ height:100%; margin:0; font-family: Arial, Helvetica, sans-serif; color:var(--text); background:#f7f7f7; }
-    .container { padding: 30px; }
-    .resume { max-width: 900px; margin: 0 auto; background: #fff; border: 1px solid var(--border); padding: 28px; box-shadow: 0 6px 20px rgba(0,0,0,0.04); }
-    .header { display:flex; gap:20px; align-items:flex-start; justify-content:space-between; }
-    .left { flex:1; min-width: 0; }
-    .right { width: 150px; flex-shrink: 0; display:flex; align-items:flex-start; justify-content:flex-end; }
-    .photo { width:150px; height:150px; border-radius:8px; overflow:hidden; background:#f2f2f2; display:flex; align-items:center; justify-content:center; }
-    .photo img{ width:100%; height:100%; object-fit:cover; display:block; }
-    h1 { margin:0; font-size:28px; line-height:1.05; }
-    .contact { margin-top:10px; color:var(--muted); font-size:14px; }
-    .contact div { margin-bottom:6px; }
-    .meta { color:var(--muted); margin-top:8px; font-size:13px; }
-    .section { margin-top:22px; }
-    .section h3 { margin:0 0 10px 0; font-size:16px; border-bottom:1px solid #eee; padding-bottom:6px; }
-    .two-col { display:flex; gap:24px; margin-top:12px; }
-    .col { flex:1; }
-    .small { font-size:13px; color:var(--muted); }
-    .print-btn {
-      position:fixed;
-      right:20px;
-      bottom:20px;
-      min-width:132px;
-      min-height:44px;
-      font-size:16px;
-      font-weight:600;
-      padding:10px 18px;
-      border-radius:12px;
-      box-shadow:0 8px 18px rgba(15, 23, 42, 0.12);
-    }
-    @media (max-width: 700px) {
-        .header { flex-direction: column-reverse; align-items: stretch; }
-        .right { width: 100%; justify-content: center; margin-bottom: 16px; }
-        .photo { width:120px; height:120px; margin: 0 auto; }
-        h1 { font-size:22px; text-align:center; }
-        .left .contact { text-align:center; }
-    }
-    @media print { .print-btn { display:none } }
-</style>
-</head>
-<body>
-<div class="container">
-  <div class="resume">
-    <div class="header">
-      <div class="left">
+<div class="main-content">
+<div class="container app-resume-container">
+    <div class="resume app-resume-sheet">
+        <div class="header app-resume-header">
+            <div class="left app-resume-left">
         <h1><?php echo htmlspecialchars($full_name); ?></h1>
-        <div class="contact">
+                <div class="contact app-resume-contact">
           <?php if ($phone): ?><div><strong>Phone:</strong> <?php echo htmlspecialchars($phone); ?></div><?php endif; ?>
           <?php if ($email): ?><div><strong>Email:</strong> <?php echo htmlspecialchars($email); ?></div><?php endif; ?>
           <?php if ($address): ?><div><strong>Address:</strong> <?php echo nl2br(htmlspecialchars($address)); ?></div><?php endif; ?>
         </div>
-        <div class="meta small">
+                <div class="meta app-resume-meta small app-resume-small">
             <?php echo htmlspecialchars($student['student_id'] ?? ''); ?> &nbsp;•&nbsp; <?php echo htmlspecialchars($student['course_name'] ?? ''); ?>
         </div>
       </div>
 
-      <div class="right">
-        <div class="photo" aria-hidden="true">
+            <div class="right app-resume-right">
+                <div class="photo app-resume-photo" aria-hidden="true">
             <?php if (!empty($profile) && file_exists(__DIR__ . '/' . $profile)): ?>
                 <img src="<?php echo htmlspecialchars($profile); ?>" alt="Profile">
             <?php else: ?>
-                <div style="padding:8px; text-align:center; color:#999; font-size:14px;">No Photo</div>
+                                <div class="photo-placeholder app-resume-photo-placeholder">No Photo</div>
             <?php endif; ?>
         </div>
       </div>
     </div>
-    <div class="two-col">
-        <div class="col">
-            <div class="section">
+        <div class="two-col app-resume-two-col">
+                <div class="col app-resume-col">
+                        <div class="section app-resume-section">
                 <h3>Academic:</h3>
                 <p><strong>Course:</strong> <?php echo htmlspecialchars($student['course_name'] ?? '-'); ?></p>
                 <p><strong>Total Hours:</strong> <?php echo htmlspecialchars($student['internal_total_hours'] ?? '-'); ?></p>
             </div>
 
-            <div class="section">
+                        <div class="section app-resume-section">
                 <h3>Internship</h3>
                 <p><strong>Supervisor:</strong> <?php echo htmlspecialchars($student['supervisor_name'] ?? '-'); ?></p>
                 <p><strong>Coordinator:</strong> <?php echo htmlspecialchars($student['coordinator_name'] ?? '-'); ?></p>
             </div>
         </div>
 
-        <div class="col">
-            <div class="section">
+                <div class="col app-resume-col">
+                        <div class="section app-resume-section">
                 <h3>Personal:</h3>
                 <p><strong>Birthday:</strong> <?php echo htmlspecialchars($student['date_of_birth'] ?? '-'); ?></p>
                 <p><strong>Gender:</strong> <?php echo htmlspecialchars($student['gender'] ?? '-'); ?></p>
@@ -130,13 +96,14 @@ $address = $student['address'] ?? '';
         </div>
     </div>
 
-    <div class="section">
+    <div class="section app-resume-section">
         <h3>Summary / Remarks</h3>
-        <p class="small">Generated resume for <?php echo htmlspecialchars($full_name); ?>.</p>
+        <p class="small app-resume-small">Generated resume for <?php echo htmlspecialchars($full_name); ?>.</p>
     </div>
   </div>
 
-  <button class="btn btn-primary print-btn" onclick="window.print()">Print</button>
+    <button class="btn btn-primary print-btn app-resume-print-btn" id="btn_print_resume" type="button">Print</button>
 </div>
-</body>
-</html>
+</div>
+
+<?php include __DIR__ . '/../includes/footer.php'; ?>

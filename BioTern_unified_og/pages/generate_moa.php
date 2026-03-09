@@ -124,11 +124,15 @@ $use_saved_template = q('use_saved_template', '0') === '1';
             body { background: #fff; }
             #moa_doc_content,
             #moa_doc_content * { color:#000 !important; }
+            /* Fallback compensation for browsers/printers that keep custom margins at
+               Top/Bottom: 0, Left/Right: 0.5. This adds the missing space visually so
+               output matches target margins (Top/Bottom 0.20, Left/Right 0.81). */
             .container {
                 padding-top: 0.30in !important;
                 padding-left: 0.31in !important;
                 padding-right: 0.31in !important;
                 padding-bottom: 0.20in !important;
+                /* Apply padding on every page fragment, not just the first page. */
                 -webkit-box-decoration-break: clone;
                 box-decoration-break: clone;
             }
@@ -240,6 +244,7 @@ $use_saved_template = q('use_saved_template', '0') === '1';
             var withStyle = doc.querySelectorAll('[style]');
             withStyle.forEach(function(el){
                 var s = el.getAttribute('style') || '';
+                // Remove inline color declarations that make text appear gray.
                 s = s.replace(/(^|;)\s*color\s*:[^;]+;?/gi, '$1');
                 s = s.replace(/(^|;)\s*text-decoration-color\s*:[^;]+;?/gi, '$1');
                 s = s.replace(/;;+/g, ';').trim();
@@ -275,6 +280,7 @@ $use_saved_template = q('use_saved_template', '0') === '1';
         var btn = document.getElementById('btn_close_moa');
         if (!btn) return;
         btn.addEventListener('click', function(){
+            // Browsers may block window.close() unless opened by script.
             try { window.close(); } catch (err) {}
             setTimeout(function(){
                 if (window.closed) return;

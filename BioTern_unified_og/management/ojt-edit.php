@@ -36,79 +36,11 @@ function get_columns(mysqli $conn, string $table): array {
     return $cols;
 }
 
-function ojt_edit_column_exists(mysqli $conn, string $table, string $column): bool {
-    $safeTable = $conn->real_escape_string($table);
-    $safeColumn = $conn->real_escape_string($column);
-    $res = $conn->query("SHOW COLUMNS FROM {$safeTable} LIKE '{$safeColumn}'");
-    return ($res && $res->num_rows > 0);
-}
-
-function ojt_policy_required_hours(mysqli $conn, array $student, string $assignment_track, int $fallback_internal = 0, int $fallback_external = 0): int {
-    $track = strtolower(trim($assignment_track));
-    if ($track !== 'external') {
-        $track = 'internal';
-    }
-
-    $course_id = (int)($student['course_id'] ?? 0);
-    $course_internal = 0;
-    $course_external = 0;
-    $course_total = 0;
-
-    if ($course_id > 0 && ojt_edit_table_exists($conn, 'courses')) {
-        $has_internal = ojt_edit_column_exists($conn, 'courses', 'internal_hours');
-        $has_external = ojt_edit_column_exists($conn, 'courses', 'external_hours');
-        $has_total = ojt_edit_column_exists($conn, 'courses', 'total_ojt_hours');
-        if ($has_internal || $has_external || $has_total) {
-            $parts = ['id'];
-            if ($has_internal) $parts[] = 'COALESCE(internal_hours, 0) AS internal_hours';
-            if ($has_external) $parts[] = 'COALESCE(external_hours, 0) AS external_hours';
-            if ($has_total) $parts[] = 'COALESCE(total_ojt_hours, 0) AS total_ojt_hours';
-            $sql = 'SELECT ' . implode(', ', $parts) . ' FROM courses WHERE id = ? LIMIT 1';
-            $stmt = $conn->prepare($sql);
-            if ($stmt) {
-                $stmt->bind_param('i', $course_id);
-                $stmt->execute();
-                $row = $stmt->get_result()->fetch_assoc();
-                $stmt->close();
-                if ($row) {
-                    $course_internal = (int)($row['internal_hours'] ?? 0);
-                    $course_external = (int)($row['external_hours'] ?? 0);
-                    $course_total = (int)($row['total_ojt_hours'] ?? 0);
-                }
-            }
-        }
-    }
-
-    if ($track === 'external') {
-        $required = $course_external;
-        if ($required <= 0) {
-            $required = (int)($fallback_external > 0 ? $fallback_external : (int)($student['external_total_hours'] ?? 0));
-        }
-        if ($required <= 0) {
-            $required = 250;
-        }
-        return max(0, $required);
-    }
-
-    $required = $course_internal;
-    if ($required <= 0) {
-        $required = (int)($fallback_internal > 0 ? $fallback_internal : (int)($student['internal_total_hours'] ?? 0));
-    }
-    if ($required <= 0) {
-        $required = $course_total;
-    }
-    if ($required <= 0) {
-        $required = 600;
-    }
-    return max(0, $required);
-}
-
 if (empty($_SESSION['ojt_edit_csrf'])) {
     $_SESSION['ojt_edit_csrf'] = bin2hex(random_bytes(16));
 }
 $csrf = $_SESSION['ojt_edit_csrf'];
 $current_role = strtolower((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? ''));
-$current_user_id = (int)($_SESSION['user_id'] ?? 0);
 $can_edit_controls = in_array($current_role, ['admin', 'coordinator'], true);
 
 $student_id = isset($_GET['id']) ? intval($_GET['id']) : intval($_POST['student_id'] ?? 0);
@@ -135,19 +67,6 @@ if (ojt_edit_table_exists($conn, 'internships') && $student_id > 0) {
     $stmt->execute();
     $internship = $stmt->get_result()->fetch_assoc();
     $stmt->close();
-}
-
-if ($current_role === 'coordinator' && $internship) {
-    if ((int)($internship['coordinator_id'] ?? 0) !== $current_user_id) {
-        header('Location: ojt.php?denied=1');
-        exit;
-    }
-}
-if ($current_role === 'supervisor' && $internship) {
-    if ((int)($internship['supervisor_id'] ?? 0) !== $current_user_id) {
-        header('Location: ojt.php?denied=1');
-        exit;
-    }
 }
 
 if (ojt_edit_table_exists($conn, 'users')) {
@@ -180,11 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_ojt'])) {
         $internal_remaining = max(0, intval($_POST['internal_total_hours_remaining'] ?? 0));
         $external_total = max(0, intval($_POST['external_total_hours'] ?? 0));
         $external_remaining = max(0, intval($_POST['external_total_hours_remaining'] ?? 0));
-        $posted_assignment_track = strtolower(trim((string)($_POST['assignment_track'] ?? ($student['assignment_track'] ?? 'internal'))));
-        if ($posted_assignment_track !== 'external') {
-            $posted_assignment_track = 'internal';
-        }
-        $i_required = ojt_policy_required_hours($conn, $student, $posted_assignment_track, $internal_total, $external_total);
+        $i_required = max(0, intval($_POST['required_hours'] ?? 0));
         $i_start_chk = trim((string)($_POST['start_date'] ?? ''));
         $i_end_chk = trim((string)($_POST['end_date'] ?? ''));
 
@@ -252,7 +167,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_ojt'])) {
                 if (ojt_edit_table_exists($conn, 'internships')) {
                     $intern_cols = get_columns($conn, 'internships');
                     $i_status = trim((string)($_POST['internship_status'] ?? 'ongoing'));
-                    $i_required = ojt_policy_required_hours($conn, $student, $posted_assignment_track, $internal_total, $external_total);
+                    $i_required = max(0, intval($_POST['required_hours'] ?? 0));
                     $i_start = trim((string)($_POST['start_date'] ?? ''));
                     $i_end = trim((string)($_POST['end_date'] ?? ''));
                     $selected_supervisor_id = max(0, intval($_POST['supervisor_user_id'] ?? 0));
@@ -300,12 +215,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_ojt'])) {
                             $i_vals[] = $selected_coordinator_id;
                             $change_log[] = 'internships.coordinator_id updated';
                         }
-                        if (in_array('type', $intern_cols, true) && $posted_assignment_track !== (string)($internship['type'] ?? '')) {
-                            $i_updates[] = 'type = ?';
-                            $i_types .= 's';
-                            $i_vals[] = $posted_assignment_track;
-                            $change_log[] = 'internships.type: ' . (string)($internship['type'] ?? '') . ' -> ' . $posted_assignment_track;
-                        }
                         if (in_array('required_hours', $intern_cols, true) && $i_required !== intval($internship['required_hours'] ?? 0)) {
                             $i_updates[] = 'required_hours = ?';
                             $i_types .= 'i';
@@ -341,7 +250,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_ojt'])) {
                         if (in_array('status', $intern_cols, true)) { $insert_cols[] = 'status'; $insert_vals[] = $i_status; $insert_types .= 's'; }
                         if (in_array('supervisor_id', $intern_cols, true) && $selected_supervisor_id > 0) { $insert_cols[] = 'supervisor_id'; $insert_vals[] = $selected_supervisor_id; $insert_types .= 'i'; }
                         if (in_array('coordinator_id', $intern_cols, true) && $selected_coordinator_id > 0) { $insert_cols[] = 'coordinator_id'; $insert_vals[] = $selected_coordinator_id; $insert_types .= 'i'; }
-                        if (in_array('type', $intern_cols, true)) { $insert_cols[] = 'type'; $insert_vals[] = $posted_assignment_track; $insert_types .= 's'; }
                         if (in_array('required_hours', $intern_cols, true)) { $insert_cols[] = 'required_hours'; $insert_vals[] = $i_required; $insert_types .= 'i'; }
                         if (in_array('start_date', $intern_cols, true)) { $insert_cols[] = 'start_date'; $insert_vals[] = $i_start; $insert_types .= 's'; }
                         if (in_array('end_date', $intern_cols, true)) { $insert_cols[] = 'end_date'; $insert_vals[] = $i_end; $insert_types .= 's'; }
@@ -481,21 +389,6 @@ if ($student_id > 0 && ojt_edit_table_exists($conn, 'ojt_supervisor_reviews')) {
     $stmt->close();
 }
 
-$policy_required_preview = 0;
-if ($student) {
-    $preview_track = strtolower((string)($student['assignment_track'] ?? ($internship['type'] ?? 'internal')));
-    if ($preview_track !== 'external') {
-        $preview_track = 'internal';
-    }
-    $policy_required_preview = ojt_policy_required_hours(
-        $conn,
-        $student,
-        $preview_track,
-        (int)($student['internal_total_hours'] ?? 0),
-        (int)($student['external_total_hours'] ?? 0)
-    );
-}
-
 $page_title = 'BioTern || OJT Edit';
 $page_styles = [
     'assets/css/management-ojt-edit-page.css',
@@ -593,8 +486,7 @@ include 'includes/header.php';
                             <option value="dropped" <?php echo $ist === 'dropped' ? 'selected' : ''; ?>>Dropped</option>
                         </select>
                     </div>
-                    <div class="col-md-3"><label class="form-label">Required Hours</label><input type="number" min="0" name="required_hours" class="form-control" value="<?php echo htmlspecialchars((string)($internship['required_hours'] ?? 0)); ?>" readonly><small class="text-muted">Auto-synced from course policy + assignment track.</small></div>
-                    <div class="col-md-3"><label class="form-label">Policy Required Hours (Computed)</label><input type="number" min="0" id="policy_required_preview" class="form-control" value="<?php echo (int)$policy_required_preview; ?>" readonly><small class="text-muted">Used for audit update when you save.</small></div>
+                    <div class="col-md-3"><label class="form-label">Required Hours</label><input type="number" min="0" name="required_hours" class="form-control" value="<?php echo htmlspecialchars((string)($internship['required_hours'] ?? 0)); ?>" <?php echo $can_edit_controls ? '' : 'readonly'; ?>></div>
                     <div class="col-md-3"><label class="form-label">Start Date</label><input type="date" name="start_date" class="form-control" value="<?php echo htmlspecialchars((string)($internship['start_date'] ?? '')); ?>" <?php echo $can_edit_controls ? '' : 'readonly'; ?>></div>
                     <div class="col-md-3"><label class="form-label">End Date</label><input type="date" name="end_date" class="form-control" value="<?php echo htmlspecialchars((string)($internship['end_date'] ?? '')); ?>" <?php echo $can_edit_controls ? '' : 'readonly'; ?>></div>
 
@@ -695,38 +587,6 @@ include 'includes/header.php';
     </div>
 
 <?php include 'includes/footer.php'; ?>
-<script>
-(function () {
-    var trackField = document.querySelector('select[name="assignment_track"]');
-    var internalField = document.querySelector('input[name="internal_total_hours"]');
-    var externalField = document.querySelector('input[name="external_total_hours"]');
-    var previewField = document.getElementById('policy_required_preview');
-    if (!trackField || !previewField) return;
-
-    function toInt(v) {
-        var parsed = parseInt(v, 10);
-        return Number.isNaN(parsed) ? 0 : parsed;
-    }
-
-    function updatePreview() {
-        var track = ((trackField.value || 'internal').toLowerCase() === 'external') ? 'external' : 'internal';
-        var internalVal = toInt(internalField ? internalField.value : 0);
-        var externalVal = toInt(externalField ? externalField.value : 0);
-        var required = track === 'external' ? externalVal : internalVal;
-        if (required <= 0) {
-            required = track === 'external' ? 250 : 600;
-        }
-        previewField.value = String(required);
-    }
-
-    [trackField, internalField, externalField].forEach(function (el) {
-        if (!el) return;
-        el.addEventListener('change', updatePreview);
-        el.addEventListener('input', updatePreview);
-    });
-    updatePreview();
-})();
-</script>
 <?php $conn->close(); ?>
 
 

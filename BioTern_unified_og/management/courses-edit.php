@@ -16,10 +16,6 @@ try {
 	die("Database Error: " . $e->getMessage());
 }
 
-$conn->query("ALTER TABLE courses ADD COLUMN IF NOT EXISTS internal_hours INT(11) NOT NULL DEFAULT 0");
-$conn->query("ALTER TABLE courses ADD COLUMN IF NOT EXISTS external_hours INT(11) NOT NULL DEFAULT 0");
-$conn->query("ALTER TABLE courses ADD COLUMN IF NOT EXISTS school_year VARCHAR(50) NULL");
-
 $courseColumns = [];
 $columnResult = $conn->query("SHOW COLUMNS FROM courses");
 if ($columnResult) {
@@ -41,7 +37,7 @@ if ($id <= 0) {
 }
 
 $course = null;
-$stmt = $conn->prepare("SELECT id, name, code" . ($hasCourseHead ? ", course_head" : "") . ($hasColumn('internal_hours') ? ", internal_hours" : "") . ($hasColumn('external_hours') ? ", external_hours" : "") . ($hasColumn('school_year') ? ", school_year" : "") . " FROM courses WHERE id = ? LIMIT 1");
+$stmt = $conn->prepare("SELECT id, name, code" . ($hasCourseHead ? ", course_head" : "") . " FROM courses WHERE id = ? LIMIT 1");
 if ($stmt) {
 	$stmt->bind_param('i', $id);
 	$stmt->execute();
@@ -57,9 +53,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	$name = trim((string)($_POST['name'] ?? ''));
 	$code = strtoupper(trim((string)($_POST['code'] ?? '')));
 	$course_head = trim((string)($_POST['course_head'] ?? ''));
-	$internal_hours = max(0, (int)($_POST['internal_hours'] ?? 0));
-	$external_hours = max(0, (int)($_POST['external_hours'] ?? 0));
-	$school_year = trim((string)($_POST['school_year'] ?? ''));
 
 	if ($name === '' || $code === '') {
 		$message = 'Course name and code are required.';
@@ -81,16 +74,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 				$message_type = 'warning';
 			} else {
 				if ($hasCourseHead) {
-					$updateQuery = "UPDATE courses SET name = ?, code = ?, course_head = ?, internal_hours = ?, external_hours = ?, school_year = ?, updated_at = NOW() WHERE id = ? LIMIT 1";
+					$updateQuery = "UPDATE courses SET name = ?, code = ?, course_head = ?, updated_at = NOW() WHERE id = ? LIMIT 1";
 					$updateStmt = $conn->prepare($updateQuery);
 					if ($updateStmt) {
-						$updateStmt->bind_param("sssiisi", $name, $code, $course_head, $internal_hours, $external_hours, $school_year, $id);
+						$updateStmt->bind_param("sssi", $name, $code, $course_head, $id);
 					}
 				} else {
-					$updateQuery = "UPDATE courses SET name = ?, code = ?, internal_hours = ?, external_hours = ?, school_year = ?, updated_at = NOW() WHERE id = ? LIMIT 1";
+					$updateQuery = "UPDATE courses SET name = ?, code = ?, updated_at = NOW() WHERE id = ? LIMIT 1";
 					$updateStmt = $conn->prepare($updateQuery);
 					if ($updateStmt) {
-						$updateStmt->bind_param("ssiisi", $name, $code, $internal_hours, $external_hours, $school_year, $id);
+						$updateStmt->bind_param("ssi", $name, $code, $id);
 					}
 				}
 
@@ -103,9 +96,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 					$course['name'] = $name;
 					$course['code'] = $code;
 					if ($hasCourseHead) $course['course_head'] = $course_head;
-					$course['internal_hours'] = $internal_hours;
-					$course['external_hours'] = $external_hours;
-					$course['school_year'] = $school_year;
 				} else {
 					$message = 'Failed to update course: ' . $updateStmt->error;
 					$message_type = 'danger';
@@ -125,15 +115,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $selectFields = ['id', 'name', 'code'];
 if ($hasColumn('course_head')) {
 	$selectFields[] = 'course_head';
-}
-if ($hasColumn('internal_hours')) {
-	$selectFields[] = 'internal_hours';
-}
-if ($hasColumn('external_hours')) {
-	$selectFields[] = 'external_hours';
-}
-if ($hasColumn('school_year')) {
-	$selectFields[] = 'school_year';
 }
 if ($hasColumn('created_at')) {
 	$selectFields[] = 'created_at';
@@ -199,18 +180,6 @@ include 'includes/header.php';
 								<input type="text" name="course_head" class="form-control" value="<?php echo htmlspecialchars((string)($course['course_head'] ?? '')); ?>" required>
 							</div>
 						<?php endif; ?>
-						<div class="mb-3">
-							<label class="form-label">Internal Hours</label>
-							<input type="number" min="0" name="internal_hours" class="form-control" value="<?php echo (int)($course['internal_hours'] ?? 0); ?>">
-						</div>
-						<div class="mb-3">
-							<label class="form-label">External Hours</label>
-							<input type="number" min="0" name="external_hours" class="form-control" value="<?php echo (int)($course['external_hours'] ?? 0); ?>">
-						</div>
-						<div class="mb-3">
-							<label class="form-label">School Year</label>
-							<input type="text" name="school_year" class="form-control" value="<?php echo htmlspecialchars((string)($course['school_year'] ?? '')); ?>" placeholder="2026-2027">
-						</div>
 						<button type="submit" class="btn btn-primary">Save Course</button>
 					</form>
 				</div>
@@ -231,9 +200,6 @@ include 'includes/header.php';
 									<th>Code</th>
 									<th>Name</th>
 									<?php if ($hasCourseHead): ?><th>Course Head</th><?php endif; ?>
-									<?php if ($hasColumn('internal_hours')): ?><th>Internal</th><?php endif; ?>
-									<?php if ($hasColumn('external_hours')): ?><th>External</th><?php endif; ?>
-									<?php if ($hasColumn('school_year')): ?><th>School Year</th><?php endif; ?>
 									<?php if ($hasColumn('created_at')): ?><th>Created</th><?php endif; ?>
 									<th></th>
 								</tr>
@@ -247,15 +213,6 @@ include 'includes/header.php';
 										<td><?php echo htmlspecialchars((string)($c['name'] ?? '')); ?></td>
 										<?php if ($hasCourseHead): ?>
 											<td><?php echo htmlspecialchars((string)($c['course_head'] ?? '-')); ?></td>
-										<?php endif; ?>
-										<?php if ($hasColumn('internal_hours')): ?>
-											<td><?php echo (int)($c['internal_hours'] ?? 0); ?></td>
-										<?php endif; ?>
-										<?php if ($hasColumn('external_hours')): ?>
-											<td><?php echo (int)($c['external_hours'] ?? 0); ?></td>
-										<?php endif; ?>
-										<?php if ($hasColumn('school_year')): ?>
-											<td><?php echo htmlspecialchars((string)($c['school_year'] ?? '-')); ?></td>
 										<?php endif; ?>
 										<?php if ($hasColumn('created_at')): ?>
 											<td><?php echo htmlspecialchars((string)($c['created_at'] ?? '-')); ?></td>

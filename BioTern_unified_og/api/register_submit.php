@@ -92,7 +92,10 @@ function tableHasColumn($mysqli, $tableName, $columnName) {
         return false;
     }
 
+<<<<<<< HEAD
     // Avoid placeholders in SHOW statements; MariaDB may reject that syntax.
+=======
+>>>>>>> fcc44e66f14b7cec6a1148dc66ac13f5b7f30778
     $sql = "
         SELECT 1
         FROM information_schema.COLUMNS

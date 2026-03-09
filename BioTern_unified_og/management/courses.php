@@ -1,12 +1,4 @@
 <?php
-include 'filter.php';
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-$current_user_id = (int)($_SESSION['user_id'] ?? 0);
-$current_role = strtolower(trim((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? '')));
-
 $host = '127.0.0.1';
 $db_user = 'root';
 $db_password = '';
@@ -33,52 +25,6 @@ $hasColumn = function ($columnName) use ($courseColumns) {
     return in_array(strtolower($columnName), $courseColumns, true);
 };
 
-$flash_message = (string)($_SESSION['courses_flash_message'] ?? '');
-$flash_type = (string)($_SESSION['courses_flash_type'] ?? 'success');
-unset($_SESSION['courses_flash_message'], $_SESSION['courses_flash_type']);
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete_course') {
-    $course_id = (int)($_POST['course_id'] ?? 0);
-
-    if (!in_array($current_role, ['admin'], true)) {
-        $_SESSION['courses_flash_message'] = 'Only admin can delete courses.';
-        $_SESSION['courses_flash_type'] = 'danger';
-        header('Location: courses.php');
-        exit;
-    }
-
-    if ($course_id <= 0) {
-        $_SESSION['courses_flash_message'] = 'Invalid course id.';
-        $_SESSION['courses_flash_type'] = 'danger';
-        header('Location: courses.php');
-        exit;
-    }
-
-    $deleted = false;
-    if ($hasColumn('deleted_at')) {
-        $stmt_del = $conn->prepare('UPDATE courses SET deleted_at = NOW() WHERE id = ? LIMIT 1');
-        if ($stmt_del) {
-            $stmt_del->bind_param('i', $course_id);
-            $deleted = $stmt_del->execute() && $stmt_del->affected_rows > 0;
-            $stmt_del->close();
-        }
-    } else {
-        $stmt_del = $conn->prepare('DELETE FROM courses WHERE id = ? LIMIT 1');
-        if ($stmt_del) {
-            $deleted = false;
-            if ($stmt_del->bind_param('i', $course_id)) {
-                $deleted = $stmt_del->execute() && $stmt_del->affected_rows > 0;
-            }
-            $stmt_del->close();
-        }
-    }
-
-    $_SESSION['courses_flash_message'] = $deleted ? 'Course deleted successfully.' : 'Unable to delete course (it may be in use).';
-    $_SESSION['courses_flash_type'] = $deleted ? 'success' : 'danger';
-    header('Location: courses.php');
-    exit;
-}
-
 $selectFields = ['id', 'name', 'code'];
 if ($hasColumn('course_head')) {
     $selectFields[] = 'course_head';
@@ -89,15 +35,6 @@ if ($hasColumn('description')) {
 if ($hasColumn('total_ojt_hours')) {
     $selectFields[] = 'total_ojt_hours';
 }
-if ($hasColumn('internal_hours')) {
-    $selectFields[] = 'internal_hours';
-}
-if ($hasColumn('external_hours')) {
-    $selectFields[] = 'external_hours';
-}
-if ($hasColumn('school_year')) {
-    $selectFields[] = 'school_year';
-}
 if ($hasColumn('is_active')) {
     $selectFields[] = 'is_active';
 }
@@ -105,37 +42,7 @@ if ($hasColumn('created_at')) {
     $selectFields[] = 'created_at';
 }
 
-$where = [];
-if ($hasColumn('deleted_at')) {
-    $where[] = "deleted_at IS NULL";
-}
-
-if ($current_role === 'coordinator' && $current_user_id > 0) {
-    $has_coord_courses = false;
-    $coord_course_tbl_res = $conn->query("SHOW TABLES LIKE 'coordinator_courses'");
-    if ($coord_course_tbl_res && $coord_course_tbl_res->num_rows > 0) {
-        $has_coord_courses = true;
-    }
-
-    if ($has_coord_courses) {
-        $where[] = "id IN (SELECT course_id FROM coordinator_courses WHERE coordinator_user_id = " . $current_user_id . ")";
-    } elseif ($hasColumn('coordinator_id')) {
-        $where[] = "coordinator_id = " . $current_user_id;
-    } else {
-        $coordCols = [];
-        $coordRes = $conn->query("SHOW COLUMNS FROM coordinators");
-        if ($coordRes) {
-            while ($coordCol = $coordRes->fetch_assoc()) {
-                $coordCols[] = strtolower((string)$coordCol['Field']);
-            }
-        }
-        if (in_array('course_id', $coordCols, true) && in_array('user_id', $coordCols, true)) {
-            $where[] = "id IN (SELECT course_id FROM coordinators WHERE user_id = " . $current_user_id . ")";
-        }
-    }
-}
-
-$whereClause = count($where) ? (" WHERE " . implode(' AND ', $where)) : "";
+$whereClause = $hasColumn('deleted_at') ? " WHERE deleted_at IS NULL" : "";
 $orderBy = $hasColumn('created_at') ? "created_at DESC" : "id DESC";
 
 $courses = [];
@@ -169,9 +76,6 @@ include 'includes/header.php';
 </div>
 
 <div class="main-content">
-    <?php if ($flash_message !== ''): ?>
-        <div class="alert alert-<?php echo htmlspecialchars($flash_type); ?> mb-3"><?php echo htmlspecialchars($flash_message); ?></div>
-    <?php endif; ?>
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="card-title mb-0">All Courses</h5>
@@ -187,9 +91,6 @@ include 'includes/header.php';
                             <th>Name</th>
                             <?php if ($hasColumn('course_head')): ?><th>Course Head</th><?php endif; ?>
                             <?php if ($hasColumn('total_ojt_hours')): ?><th>Total OJT Hours</th><?php endif; ?>
-                            <?php if ($hasColumn('internal_hours')): ?><th>Internal Hours</th><?php endif; ?>
-                            <?php if ($hasColumn('external_hours')): ?><th>External Hours</th><?php endif; ?>
-                            <?php if ($hasColumn('school_year')): ?><th>School Year</th><?php endif; ?>
                             <?php if ($hasColumn('is_active')): ?><th>Status</th><?php endif; ?>
                             <?php if ($hasColumn('created_at')): ?><th>Created</th><?php endif; ?>
                             <th>Actions</th>
@@ -208,15 +109,6 @@ include 'includes/header.php';
                                 <?php if ($hasColumn('total_ojt_hours')): ?>
                                     <td><?php echo htmlspecialchars((string)($course['total_ojt_hours'] ?? '-')); ?></td>
                                 <?php endif; ?>
-                                <?php if ($hasColumn('internal_hours')): ?>
-                                    <td><?php echo (int)($course['internal_hours'] ?? 0); ?></td>
-                                <?php endif; ?>
-                                <?php if ($hasColumn('external_hours')): ?>
-                                    <td><?php echo (int)($course['external_hours'] ?? 0); ?></td>
-                                <?php endif; ?>
-                                <?php if ($hasColumn('school_year')): ?>
-                                    <td><?php echo htmlspecialchars((string)($course['school_year'] ?? '-')); ?></td>
-                                <?php endif; ?>
                                 <?php if ($hasColumn('is_active')): ?>
                                     <td>
                                         <?php if ((string)($course['is_active'] ?? '0') === '1'): ?>
@@ -231,13 +123,6 @@ include 'includes/header.php';
                                 <?php endif; ?>
                                 <td class="action-cell">
                                     <a href="courses-edit.php?id=<?php echo (int)$course['id']; ?>" class="btn btn-sm btn-outline-primary">Edit</a>
-                                    <?php if ($current_role === 'admin'): ?>
-                                        <form method="post" class="d-inline" onsubmit="return confirm('Delete this course?');">
-                                            <input type="hidden" name="action" value="delete_course">
-                                            <input type="hidden" name="course_id" value="<?php echo (int)$course['id']; ?>">
-                                            <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
-                                        </form>
-                                    <?php endif; ?>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

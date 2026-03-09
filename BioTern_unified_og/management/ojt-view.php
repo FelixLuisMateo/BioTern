@@ -165,14 +165,6 @@ function ojt_table_exists(mysqli $conn, string $table): bool
     return ($res && $res->num_rows > 0);
 }
 
-function ojt_column_exists(mysqli $conn, string $table, string $column): bool
-{
-    $safeTable = $conn->real_escape_string($table);
-    $safeColumn = $conn->real_escape_string($column);
-    $res = $conn->query("SHOW COLUMNS FROM {$safeTable} LIKE '{$safeColumn}'");
-    return ($res && $res->num_rows > 0);
-}
-
 function ojt_stage_badge(string $stage): string
 {
     $map = [
@@ -683,14 +675,7 @@ try {
         $candidate_sql = implode(' OR ', array_unique($candidate_wheres));
         // Priority order is critical:
         // 1) exact students.id match, 2) user_id match, 3) student_id string match.
-        $course_internal_expr = ojt_column_exists($conn, 'courses', 'internal_hours') ? 'COALESCE(c.internal_hours, 0)' : '0';
-        $course_external_expr = ojt_column_exists($conn, 'courses', 'external_hours') ? 'COALESCE(c.external_hours, 0)' : '0';
-        $course_total_expr = ojt_column_exists($conn, 'courses', 'total_ojt_hours') ? 'COALESCE(c.total_ojt_hours, 0)' : '0';
-
         $student_sql = "SELECT s.*, c.name AS course_name,
-            {$course_internal_expr} AS course_internal_hours,
-            {$course_external_expr} AS course_external_hours,
-            {$course_total_expr} AS course_total_ojt_hours,
                 COALESCE(NULLIF(u_student.profile_picture, ''), NULLIF(s.profile_picture, '')) AS user_profile_picture
             FROM students s
             LEFT JOIN users u_student ON s.user_id = u_student.id
@@ -840,37 +825,7 @@ try {
         }
 
         $intern_status = strtolower((string)($internship_data['status'] ?? ''));
-        $assignment_track = strtolower(trim((string)($student['assignment_track'] ?? '')));
-        if ($assignment_track === '') {
-            $assignment_track = strtolower(trim((string)($internship_data['type'] ?? 'internal')));
-        }
-        $required_hours = 0.0;
-        if ($assignment_track === 'external') {
-            $required_hours = (float)($student['course_external_hours'] ?? 0);
-            if ($required_hours <= 0) {
-                $required_hours = (float)($student['external_total_hours'] ?? 0);
-            }
-            if ($required_hours <= 0) {
-                $required_hours = (float)($internship_data['required_hours'] ?? 0);
-            }
-            if ($required_hours <= 0) {
-                $required_hours = 250.0;
-            }
-        } else {
-            $required_hours = (float)($student['course_internal_hours'] ?? 0);
-            if ($required_hours <= 0) {
-                $required_hours = (float)($student['internal_total_hours'] ?? 0);
-            }
-            if ($required_hours <= 0) {
-                $required_hours = (float)($internship_data['required_hours'] ?? 0);
-            }
-            if ($required_hours <= 0) {
-                $required_hours = (float)($student['course_total_ojt_hours'] ?? 0);
-            }
-            if ($required_hours <= 0) {
-                $required_hours = 600.0;
-            }
-        }
+        $required_hours = (float)($internship_data['required_hours'] ?? 0);
         $rendered_hours = (float)($internship_data['rendered_hours'] ?? 0);
         if ($rendered_hours <= 0) {
             $rendered_hours = (float)$attendance_summary['total_hours'];
@@ -1264,7 +1219,7 @@ include 'includes/header.php';
                                     <div class="col-md-3">
                                         <div class="p-3 border rounded">
                                             <div class="text-muted fs-12">Required Hours</div>
-                                            <div class="fs-5 fw-semibold"><?php echo number_format((float)$required_hours, 1); ?></div>
+                                            <div class="fs-5 fw-semibold"><?php echo htmlspecialchars((string)($internship_data['required_hours'] ?? 0)); ?></div>
                                         </div>
                                     </div>
                                     <div class="col-md-3">

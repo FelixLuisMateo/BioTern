@@ -12,18 +12,6 @@ if ($conn->connect_error) {
     die('Connection failed: ' . $conn->connect_error);
 }
 
-$conn->query("CREATE TABLE IF NOT EXISTS coordinator_courses (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    coordinator_user_id INT NOT NULL,
-    coordinator_id INT NULL,
-    course_id INT NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    UNIQUE KEY uq_coordinator_course (coordinator_user_id, course_id),
-    KEY idx_coordinator_id (coordinator_id),
-    KEY idx_course_id (course_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
-
 function h($value): string
 {
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
@@ -45,17 +33,6 @@ if ($dept_res) {
     }
 }
 
-$courses = [];
-$courses_res = $conn->query("SELECT id, name FROM courses WHERE deleted_at IS NULL ORDER BY name ASC");
-if (!$courses_res) {
-    $courses_res = $conn->query("SELECT id, name FROM courses ORDER BY name ASC");
-}
-if ($courses_res) {
-    while ($row = $courses_res->fetch_assoc()) {
-        $courses[] = $row;
-    }
-}
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $user_id = (int)($_POST['user_id'] ?? 0);
     $first_name = trim((string)($_POST['first_name'] ?? ''));
@@ -69,9 +46,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $bio = trim((string)($_POST['bio'] ?? ''));
     $profile_picture = '';
     $is_active = isset($_POST['is_active']) ? 1 : 0;
-    $selected_course_ids = isset($_POST['course_ids']) && is_array($_POST['course_ids'])
-        ? array_values(array_unique(array_filter(array_map('intval', $_POST['course_ids']), fn($v) => $v > 0)))
-        : [];
 
     if ($user_id <= 0 || $first_name === '' || $last_name === '' || $email === '') {
         $message = 'Please complete required fields.';
@@ -124,17 +98,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($stmt) {
             $stmt->bind_param('isssssisssi', $user_id, $first_name, $last_name, $middle_name, $email, $phone, $department_id, $office_location, $bio, $profile_picture, $is_active);
             if ($stmt->execute()) {
-                $new_coordinator_id = (int)$conn->insert_id;
-                if (!empty($selected_course_ids)) {
-                    $map_stmt = $conn->prepare('INSERT INTO coordinator_courses (coordinator_user_id, coordinator_id, course_id, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW()) ON DUPLICATE KEY UPDATE coordinator_id = VALUES(coordinator_id), updated_at = NOW()');
-                    if ($map_stmt) {
-                        foreach ($selected_course_ids as $course_id) {
-                            $map_stmt->bind_param('iii', $user_id, $new_coordinator_id, $course_id);
-                            $map_stmt->execute();
-                        }
-                        $map_stmt->close();
-                    }
-                }
                 header('Location: coordinators.php');
                 exit;
             }
@@ -192,20 +155,6 @@ include 'includes/header.php';
                 </div>
                 <div class="col-md-4"><label class="form-label">Office Location</label><input type="text" name="office_location" class="form-control"></div>
                 <div class="col-md-4"><label class="form-label">Profile Picture</label><input type="file" name="profile_picture" class="form-control" accept="image/*"></div>
-                <div class="col-12">
-                    <label class="form-label">Handled Courses</label>
-                    <div class="row g-2">
-                        <?php foreach ($courses as $c): ?>
-                            <div class="col-md-4 col-sm-6">
-                                <label class="form-check-label d-flex align-items-center gap-2">
-                                    <input class="form-check-input" type="checkbox" name="course_ids[]" value="<?php echo (int)$c['id']; ?>">
-                                    <span><?php echo h($c['name']); ?></span>
-                                </label>
-                            </div>
-                        <?php endforeach; ?>
-                    </div>
-                    <small class="text-muted">Select one or more courses this coordinator can handle.</small>
-                </div>
                 <div class="col-12"><label class="form-label">Bio</label><textarea name="bio" rows="2" class="form-control"></textarea></div>
                 <div class="col-12 form-check ms-1"><input class="form-check-input" type="checkbox" name="is_active" id="is_active_create" checked><label class="form-check-label" for="is_active_create">Active</label></div>
                 <div class="col-12 create-form-actions app-form-actions">
