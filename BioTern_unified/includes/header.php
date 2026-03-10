@@ -51,27 +51,48 @@ if (!isset($page_title) || trim($page_title) === '') {
 if (!isset($base_href)) {
     $base_href = '';
 }
-// Derive a safe web root for assets when $base_href is not explicitly set.
-$favicon_root = $base_href;
-if ($favicon_root === '') {
-    $script_name = (string)($_SERVER['SCRIPT_NAME'] ?? '');
-    $script_name = str_replace('\\', '/', $script_name);
-    $unified_pos = stripos($script_name, '/BioTern_unified/');
-    if ($unified_pos !== false) {
-        $favicon_root = substr($script_name, 0, $unified_pos) . '/BioTern_unified/';
-    } else {
-        $dir = rtrim(str_replace('\\', '/', dirname($script_name)), '/');
-        $favicon_root = ($dir === '' || $dir === '.') ? '/' : ($dir . '/');
+// Resolve base URL once so every relative head asset (including favicon) stays valid.
+if ($base_href === '') {
+    $resolved_base_href = '';
+
+    $doc_root_real = realpath((string)($_SERVER['DOCUMENT_ROOT'] ?? ''));
+    $project_root_real = realpath(dirname(__DIR__));
+    if (is_string($doc_root_real) && $doc_root_real !== '' && is_string($project_root_real) && $project_root_real !== '') {
+        $doc_root_norm = str_replace('\\', '/', rtrim($doc_root_real, '/\\'));
+        $project_root_norm = str_replace('\\', '/', rtrim($project_root_real, '/\\'));
+        if (stripos($project_root_norm, $doc_root_norm) === 0) {
+            $relative_root = trim(substr($project_root_norm, strlen($doc_root_norm)), '/');
+            $resolved_base_href = '/' . ($relative_root !== '' ? ($relative_root . '/') : '');
+        }
     }
+
+    if ($resolved_base_href === '') {
+        $script_name = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
+        $project_segment = '/' . basename(dirname(__DIR__)) . '/';
+        $project_pos = stripos($script_name, $project_segment);
+        if ($project_pos !== false) {
+            $resolved_base_href = substr($script_name, 0, $project_pos) . $project_segment;
+        } else {
+            $resolved_base_href = '/';
+        }
+    }
+
+    $base_href = $resolved_base_href;
 }
+
+$favicon_root = $base_href;
 $favicon_ico_path = dirname(__DIR__) . '/assets/images/favicon.ico';
 $favicon_png_path = dirname(__DIR__) . '/assets/images/favicon-rounded.png';
+$favicon_logo_path = dirname(__DIR__) . '/assets/images/logo-abbr.png';
 $favicon_ico_mtime = @filemtime($favicon_ico_path);
 $favicon_png_mtime = @filemtime($favicon_png_path);
+$favicon_logo_mtime = @filemtime($favicon_logo_path);
 $favicon_ico_version = ($favicon_ico_mtime !== false) ? (string)$favicon_ico_mtime : '20260310';
 $favicon_png_version = ($favicon_png_mtime !== false) ? (string)$favicon_png_mtime : '20260310';
+$favicon_logo_version = ($favicon_logo_mtime !== false) ? (string)$favicon_logo_mtime : '20260310';
 $favicon_ico_href = $favicon_root . 'assets/images/favicon.ico?v=' . rawurlencode($favicon_ico_version);
 $favicon_png_href = $favicon_root . 'assets/images/favicon-rounded.png?v=' . rawurlencode($favicon_png_version);
+$favicon_logo_href = $favicon_root . 'assets/images/logo-abbr.png?v=' . rawurlencode($favicon_logo_version);
 
 $biotern_theme_api_endpoint = $base_href . 'api/theme-customizer.php';
 require_once __DIR__ . '/theme-preferences.php';
@@ -251,9 +272,15 @@ require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars($page_title, ENT_QUOTES, 'UTF-8'); ?></title>
     <!--! END:  Apps Title-->
     <!--! BEGIN: Favicon-->
+    <link rel="icon" type="image/png" sizes="192x192" href="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($favicon_logo_href, ENT_QUOTES, 'UTF-8'); ?>">
     <link rel="icon" type="image/png" sizes="64x64" href="<?php
 require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars($favicon_png_href, ENT_QUOTES, 'UTF-8'); ?>">
+    <link rel="apple-touch-icon" href="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($favicon_logo_href, ENT_QUOTES, 'UTF-8'); ?>">
     <link rel="icon" type="image/x-icon" href="<?php
 require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars($favicon_ico_href, ENT_QUOTES, 'UTF-8'); ?>">
