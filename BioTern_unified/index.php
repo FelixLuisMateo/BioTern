@@ -360,7 +360,7 @@ $favicon_png_href = $favicon_root . 'assets/images/favicon-rounded.png?v=' . raw
                             <i class="feather-sun"></i>
                         </a>
                     </div>
-                    <a href="auth/auth-register-creative.php" class="btn btn-sm btn-light-brand">Apply</a>
+                    <a href="auth/auth-register-creative.php?role=student" class="btn btn-sm btn-light-brand">Apply</a>
                     <a href="<?php echo htmlspecialchars($landing_signin_href, ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-sm btn-primary"><?php echo htmlspecialchars($landing_signin_label, ENT_QUOTES, 'UTF-8'); ?></a>
                 </div>
             </div>

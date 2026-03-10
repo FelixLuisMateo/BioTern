@@ -144,7 +144,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($decision === 'approve') {
             $conn->begin_transaction();
             try {
-                $stmt = $conn->prepare("UPDATE users SET application_status = 'approved', approved_by = ?, approved_at = NOW(), rejected_at = NULL, approval_notes = ?, disciplinary_remark = ? WHERE id = ? LIMIT 1");
+                $stmt = $conn->prepare("UPDATE users SET application_status = 'approved', is_active = 1, approved_by = ?, approved_at = NOW(), rejected_at = NULL, approval_notes = ?, disciplinary_remark = ? WHERE id = ? LIMIT 1");
                 if (!$stmt) {
                     throw new Exception('Unable to update application status.');
                 }
@@ -166,6 +166,101 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 $studentStmt->close();
 
+                // Create internship record on approval (if not already created).
+                $studentRow = null;
+                $studentLookup = $conn->prepare("SELECT id, course_id, department_id, coordinator_id, supervisor_id, assignment_track, internal_total_hours, external_total_hours FROM students WHERE user_id = ? LIMIT 1");
+                if ($studentLookup) {
+                    $studentLookup->bind_param('i', $userId);
+                    $studentLookup->execute();
+                    $studentRow = $studentLookup->get_result()->fetch_assoc();
+                    $studentLookup->close();
+                }
+
+                if ($studentRow && !empty($studentRow['id'])) {
+                    $studentId = (int)$studentRow['id'];
+                    $courseId = (int)($studentRow['course_id'] ?? 0);
+                    $departmentId = (int)($studentRow['department_id'] ?? 0);
+                    $coordinatorId = (int)($studentRow['coordinator_id'] ?? 0);
+                    $supervisorId = (int)($studentRow['supervisor_id'] ?? 0);
+                    $assignmentTrack = strtolower((string)($studentRow['assignment_track'] ?? 'internal'));
+                    $internalHours = (int)($studentRow['internal_total_hours'] ?? 0);
+                    $externalHours = (int)($studentRow['external_total_hours'] ?? 0);
+
+                    if ($studentId > 0 && $courseId > 0 && $departmentId > 0 && $coordinatorId > 0 && $supervisorId > 0) {
+                        $existsIntern = $conn->prepare("SELECT id FROM internships WHERE student_id = ? LIMIT 1");
+                        $hasIntern = false;
+                        if ($existsIntern) {
+                            $existsIntern->bind_param('i', $studentId);
+                            $existsIntern->execute();
+                            $resIntern = $existsIntern->get_result();
+                            $hasIntern = ($resIntern && $resIntern->num_rows > 0);
+                            $existsIntern->close();
+                        }
+
+                        if (!$hasIntern) {
+                            $internCoordinatorUserId = 0;
+                            $internSupervisorUserId = 0;
+
+                            $mapCoord = $conn->prepare("SELECT user_id FROM coordinators WHERE id = ? LIMIT 1");
+                            if ($mapCoord) {
+                                $mapCoord->bind_param('i', $coordinatorId);
+                                $mapCoord->execute();
+                                $coordRow = $mapCoord->get_result()->fetch_assoc();
+                                $mapCoord->close();
+                                if ($coordRow && !empty($coordRow['user_id'])) {
+                                    $internCoordinatorUserId = (int)$coordRow['user_id'];
+                                }
+                            }
+
+                            $mapSup = $conn->prepare("SELECT user_id FROM supervisors WHERE id = ? LIMIT 1");
+                            if ($mapSup) {
+                                $mapSup->bind_param('i', $supervisorId);
+                                $mapSup->execute();
+                                $supRow = $mapSup->get_result()->fetch_assoc();
+                                $mapSup->close();
+                                if ($supRow && !empty($supRow['user_id'])) {
+                                    $internSupervisorUserId = (int)$supRow['user_id'];
+                                }
+                            }
+
+                            if ($internCoordinatorUserId > 0 && $internSupervisorUserId > 0) {
+                                $today = date('Y-m-d');
+                                $year = (int)date('Y');
+                                $schoolYear = $year . '-' . ($year + 1);
+                                $type = $assignmentTrack === 'external' ? 'external' : 'internal';
+                                $requiredHours = $type === 'external' ? max(0, $externalHours) : max(0, $internalHours);
+                                $renderedHours = 0;
+                                $completionPct = 0;
+
+                                $insertIntern = $conn->prepare("
+                                    INSERT INTO internships
+                                    (student_id, course_id, department_id, coordinator_id, supervisor_id, type, start_date, status, school_year, required_hours, rendered_hours, completion_percentage, created_at, updated_at)
+                                    VALUES
+                                    (?, ?, ?, ?, ?, ?, ?, 'ongoing', ?, ?, ?, ?, NOW(), NOW())
+                                ");
+                                if ($insertIntern) {
+                                    $insertIntern->bind_param(
+                                        'iiiiisssiid',
+                                        $studentId,
+                                        $courseId,
+                                        $departmentId,
+                                        $internCoordinatorUserId,
+                                        $internSupervisorUserId,
+                                        $type,
+                                        $today,
+                                        $schoolYear,
+                                        $requiredHours,
+                                        $renderedHours,
+                                        $completionPct
+                                    );
+                                    $insertIntern->execute();
+                                    $insertIntern->close();
+                                }
+                            }
+                        }
+                    }
+                }
+
                 $conn->commit();
                 $flashType = 'success';
                 $flashMessage = 'Application approved and student hours updated.';
@@ -177,7 +272,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             $conn->begin_transaction();
             try {
-                $stmt = $conn->prepare("UPDATE users SET application_status = 'rejected', approved_by = ?, approved_at = NULL, rejected_at = NOW(), approval_notes = ?, disciplinary_remark = ? WHERE id = ? LIMIT 1");
+                $stmt = $conn->prepare("UPDATE users SET application_status = 'rejected', is_active = 0, approved_by = ?, approved_at = NULL, rejected_at = NOW(), approval_notes = ?, disciplinary_remark = ? WHERE id = ? LIMIT 1");
                 if (!$stmt) {
                     throw new Exception('Unable to reject application.');
                 }

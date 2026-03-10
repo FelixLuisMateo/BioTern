@@ -2,6 +2,12 @@
 require_once dirname(__DIR__) . '/config/db.php';
 // Handle submissions immediately to avoid rendering/query side effects before redirects.
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $requestedRole = strtolower(trim((string)($_POST['role'] ?? '')));
+    if ($requestedRole !== 'student') {
+        $msg = rawurlencode('Staff accounts are created by an admin. Please contact your administrator.');
+        header('Location: auth-register-creative.php?registered=error&msg=' . $msg);
+        exit;
+    }
     require_once dirname(__DIR__) . '/api/register_submit.php';
     exit;
 }
@@ -372,8 +378,14 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
 
     .roles-grid {
         display: grid;
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: 1fr;
         gap: 12px;
+        width: 100%;
+        justify-items: center;
+    }
+
+    .role-card {
+        max-width: 260px;
         width: 100%;
     }
 
@@ -441,7 +453,7 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
     <meta name="author" content="theme_ocean">
     <!--! The above 6 meta tags *must* come first in the head; any other head content must come *after* these tags !-->
     <!--! BEGIN: Apps Title-->
-    <title>BioTern || Register Minimal</title>
+    <title>BioTern || Apply</title>
     <!--! END:  Apps Title-->
     <!--! BEGIN: Favicon-->
     <link rel="shortcut icon" type="image/x-icon" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/favicon.ico?v=20260310">
@@ -566,9 +578,9 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
                         <img src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/logo-abbr.png" alt="" class="img-fluid">
                     </div>
                     <div class="card-body p-sm-5" style="padding: 50px !important; min-height: auto;">
-                        <h2 class="fs-20 fw-bolder mb-4">Register</h2>
+                        <h2 class="fs-20 fw-bolder mb-4">Apply</h2>
                         <div class="mb-3">
-                            <a href="<?php echo htmlspecialchars($route_prefix, ENT_QUOTES, 'UTF-8'); ?>homepage.php" class="btn btn-sm btn-outline-primary">&#8592; Back to Admin Dashboard</a>
+                            <a href="<?php echo htmlspecialchars($route_prefix, ENT_QUOTES, 'UTF-8'); ?>index.php" class="btn btn-sm btn-outline-primary">&#8592; Back to Home</a>
                         </div>
                         <h4 class="fs-13 fw-bold mb-2">Manage your Internship account in one place.</h4>
                         <p class="fs-12 fw-medium text-muted">Let's get you all setup, so you can verify your personal account and begin setting up your profile.</p>
@@ -592,7 +604,7 @@ if (isset($_GET['registered'])) {
                         <!-- ROLE SELECTION SCREEN -->
                         <div id="roleSelectionScreen" class="show-form">
                             <div class="mt-5">
-                                <h5 class="fs-14 fw-bold mb-4">Select role:</h5>
+                                <!-- Single-role apply: heading removed -->
                                 <div class="roles-wrapper">
                                     <!-- Outer box that visually contains the 2x2 grid -->
                                     <div class="roles-container">
@@ -600,26 +612,12 @@ if (isset($_GET['registered'])) {
                                             <div class="role-card" data-role="student" onclick="selectRole('student')" tabindex="0">
                                                 <div class="role-icon">&#128104;&#8205;&#127891;</div>
                                                 <h5>Student</h5>
-                                                <p>Student: Register for internship</p>
-                                            </div>
-                                            <div class="role-card" data-role="coordinator" onclick="selectRole('coordinator')" tabindex="0">
-                                                <div class="role-icon">&#128084;</div>
-                                                <h5>Coordinator</h5>
-                                                <p>Coordinator: Manage student placements</p>
-                                            </div>
-                                            <div class="role-card" data-role="supervisor" onclick="selectRole('supervisor')" tabindex="0">
-                                                <div class="role-icon">&#128104;&#8205;&#128188;</div>
-                                                <h5>Supervisor</h5>
-                                                <p>Supervisor: Oversee workplace activities</p>
-                                            </div>
-                                            <div class="role-card" data-role="admin" onclick="selectRole('admin')" tabindex="0">
-                                                <div class="role-icon">&#9881;&#65039;</div>
-                                                <h5>Admin</h5>
-                                                <p>Admin: System administrator</p>
+                                                <p>Student: Apply for internship</p>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
+                                <p class="text-muted mt-3 mb-0 fs-12">Student applications only. Staff accounts are created by the school administrator.</p>
                             </div>
                         </div>
 
@@ -627,7 +625,7 @@ if (isset($_GET['registered'])) {
                         <form id="studentForm" class="w-100 mt-4 pt-2 hide-form" action="" method="post">
                             <input type="hidden" name="role" value="student">
                             <div class="form-section">
-                                <h3 class="fs-18 fw-bold mb-3">Student Registration</h3>
+                                <h3 class="fs-18 fw-bold mb-3">Student Application</h3>
                                 <button type="button" class="btn btn-sm btn-outline-secondary mb-4" onclick="backToRoles()">&#8592; Back to Role Selection</button>
                             </div>
                             <div class="form-stepper" data-form="studentForm">
@@ -926,7 +924,7 @@ endforeach; ?>
                             </div>
                             <div class="step-actions">
                                 <button type="button" class="btn btn-outline-secondary" data-step-action="prev">Back</button>
-                                <button type="submit" class="btn btn-primary">Create Account</button>
+                                <button type="submit" class="btn btn-primary">Apply</button>
                             </div>
                             </div>
                         </form>
@@ -1527,6 +1525,11 @@ endforeach; ?>
             initFormStepper('coordinatorForm');
             initFormStepper('supervisorForm');
             initFormStepper('adminForm');
+
+            const requestedRole = new URLSearchParams(window.location.search).get('role');
+            if (requestedRole && requestedRole.toLowerCase() === 'student') {
+                selectRole('student');
+            }
 
         });
 

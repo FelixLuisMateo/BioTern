@@ -489,11 +489,11 @@ if ($role === 'student') {
     $hasStudentAppStatus = tableHasColumn($mysqli, 'users', 'application_status');
     $hasStudentSubmittedAt = tableHasColumn($mysqli, 'users', 'application_submitted_at');
     if ($hasStudentAppStatus && $hasStudentSubmittedAt) {
-        $stmt_user = $mysqli->prepare("INSERT INTO users (name, username, email, password, role, is_active, application_status, application_submitted_at, created_at) VALUES (?, ?, ?, ?, 'student', 1, 'pending', NOW(), NOW())");
+        $stmt_user = $mysqli->prepare("INSERT INTO users (name, username, email, password, role, is_active, application_status, application_submitted_at, created_at) VALUES (?, ?, ?, ?, 'student', 0, 'pending', NOW(), NOW())");
     } elseif ($hasStudentAppStatus) {
-        $stmt_user = $mysqli->prepare("INSERT INTO users (name, username, email, password, role, is_active, application_status, created_at) VALUES (?, ?, ?, ?, 'student', 1, 'pending', NOW())");
+        $stmt_user = $mysqli->prepare("INSERT INTO users (name, username, email, password, role, is_active, application_status, created_at) VALUES (?, ?, ?, ?, 'student', 0, 'pending', NOW())");
     } else {
-        $stmt_user = $mysqli->prepare("INSERT INTO users (name, username, email, password, role, is_active, created_at) VALUES (?, ?, ?, ?, 'student', 1, NOW())");
+        $stmt_user = $mysqli->prepare("INSERT INTO users (name, username, email, password, role, is_active, created_at) VALUES (?, ?, ?, ?, 'student', 0, NOW())");
     }
     $user_id = null;
     if ($stmt_user) {
@@ -594,68 +594,7 @@ if ($role === 'student') {
     $new_student_id = (int)$mysqli->insert_id;
     $stmt->close();
 
-    // Best-effort internship row creation so coordinator/supervisor/department linkage is complete.
-    if ($new_student_id > 0 && $course_id > 0 && !empty($department_id) && !empty($coordinator_id) && !empty($supervisor_id)) {
-        $intern_coordinator_user_id = null;
-        $intern_supervisor_user_id = null;
-
-        $map_coord = $mysqli->prepare("SELECT user_id FROM coordinators WHERE id = ? LIMIT 1");
-        if ($map_coord) {
-            $map_coord->bind_param('i', $coordinator_id);
-            $map_coord->execute();
-            $coord_row = $map_coord->get_result()->fetch_assoc();
-            $map_coord->close();
-            if ($coord_row && !empty($coord_row['user_id'])) {
-                $intern_coordinator_user_id = (int)$coord_row['user_id'];
-            }
-        }
-
-        $map_sup = $mysqli->prepare("SELECT user_id FROM supervisors WHERE id = ? LIMIT 1");
-        if ($map_sup) {
-            $map_sup->bind_param('i', $supervisor_id);
-            $map_sup->execute();
-            $sup_row = $map_sup->get_result()->fetch_assoc();
-            $map_sup->close();
-            if ($sup_row && !empty($sup_row['user_id'])) {
-                $intern_supervisor_user_id = (int)$sup_row['user_id'];
-            }
-        }
-
-        if ($intern_coordinator_user_id !== null && $intern_supervisor_user_id !== null) {
-            $today = date('Y-m-d');
-            $year = (int)date('Y');
-            $school_year = $year . '-' . ($year + 1);
-            $type = $assignment_track === 'external' ? 'external' : 'internal';
-            $required_hours = $type === 'external' ? max(0, $external_total_hours) : max(0, $internal_total_hours);
-            $rendered_hours = 0;
-            $completion_pct = 0;
-
-            $insert_intern = $mysqli->prepare("
-                INSERT INTO internships
-                (student_id, course_id, department_id, coordinator_id, supervisor_id, type, start_date, status, school_year, required_hours, rendered_hours, completion_percentage, created_at, updated_at)
-                VALUES
-                (?, ?, ?, ?, ?, ?, ?, 'ongoing', ?, ?, ?, ?, NOW(), NOW())
-            ");
-            if ($insert_intern) {
-                $insert_intern->bind_param(
-                    'iiiiisssiid',
-                    $new_student_id,
-                    $course_id,
-                    $department_id,
-                    $intern_coordinator_user_id,
-                    $intern_supervisor_user_id,
-                    $type,
-                    $today,
-                    $school_year,
-                    $required_hours,
-                    $rendered_hours,
-                    $completion_pct
-                );
-                $insert_intern->execute();
-                $insert_intern->close();
-            }
-        }
-    }
+    // Internship record is created only after the application is approved.
 
     header('Location: auth-register-creative.php?registered=pending&msg=' . urlencode('Application submitted. Please wait for approval from admin/coordinator/supervisor.'));
     exit;
