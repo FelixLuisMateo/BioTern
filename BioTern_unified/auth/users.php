@@ -211,6 +211,8 @@ $where = [];
 $types = defined('DB_PASS') ? DB_PASS : ''; 
 $params = [];
 
+$where[] = "(role <> 'student' OR COALESCE(application_status, 'approved') = 'approved')";
+
 if ($search !== '') {
     $where[] = '(name LIKE ? OR username LIKE ? OR email LIKE ?)';
     $types .= 'sss';
@@ -269,6 +271,7 @@ $stats_query = "
         SUM(CASE WHEN is_active = 0 THEN 1 ELSE 0 END) AS inactive,
         SUM(CASE WHEN role = 'admin' THEN 1 ELSE 0 END) AS admins
     FROM users
+    WHERE (role <> 'student' OR COALESCE(application_status, 'approved') = 'approved')
 ";
 $stats_res = $conn->query($stats_query);
 if ($stats_res) {

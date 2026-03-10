@@ -220,6 +220,7 @@ LEFT JOIN (
     FROM attendances
     GROUP BY student_id
 ) att ON att.student_id = s.id
+WHERE COALESCE(u_student.application_status, 'approved') = 'approved'
 ORDER BY s.first_name, s.last_name
 ";
 
@@ -386,6 +387,49 @@ include 'includes/header.php';
 ?>
 <style>
         body { background: #f5f7fb; }
+        .nxl-content { padding-top: 12px; }
+        .nxl-content > .page-header,
+        .nxl-content > .alert,
+        .nxl-content > .collapse,
+        .nxl-content > .filter-card,
+        .nxl-content > .stretch.stretch-full {
+            margin-bottom: 14px !important;
+        }
+        .page-header {
+            margin-bottom: 12px;
+            padding: 14px 16px;
+            border: 1px solid #e4ebf7;
+            border-radius: 14px;
+            background: #ffffff;
+            box-shadow: 0 6px 18px rgba(15, 23, 42, 0.04);
+        }
+        .page-header-right {
+            row-gap: 6px;
+            column-gap: 6px !important;
+            flex-wrap: wrap;
+        }
+        .page-header-right .btn,
+        .page-header-right form .btn {
+            min-height: 34px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: .02em;
+            padding: 0.34rem 0.72rem;
+            line-height: 1.1;
+        }
+        .page-header-right .btn.btn-light,
+        .page-header-right .btn.btn-outline-secondary,
+        .page-header-right .btn.btn-outline-primary {
+            border-color: #d5e0f2;
+            background: #fdfefe;
+        }
+        .page-header-right .btn.btn-light:hover,
+        .page-header-right .btn.btn-outline-secondary:hover,
+        .page-header-right .btn.btn-outline-primary:hover {
+            background: #f4f8ff;
+            border-color: #bdd1ee;
+        }
         .kpi-value { font-size: 1.5rem; font-weight: 700; }
         .chip { border: 1px solid #dbe3f0; border-radius: 999px; padding: 3px 10px; font-size: 12px; display: inline-block; margin: 0; line-height: 1.2; }
         .chip.ok { border-color: #198754; color: #198754; }
@@ -402,17 +446,52 @@ include 'includes/header.php';
         }
         #ojtListTable th:nth-child(4), #ojtListTable td:nth-child(4) { min-width: 210px; }
         #ojtListTable th:nth-child(6), #ojtListTable td:nth-child(6) { min-width: 220px; }
-        .filter-card { border: 1px solid #e9eef7; box-shadow: 0 8px 22px rgba(15, 23, 42, 0.05); }
+        .filter-card {
+            border: 1px solid #dfe8f5;
+            border-radius: 14px;
+            background: #fcfdff;
+            box-shadow: 0 8px 22px rgba(15, 23, 42, 0.05);
+            margin-bottom: 14px !important;
+        }
+        .filter-card form.row {
+            row-gap: 10px;
+        }
+        .filter-card .form-control,
+        .filter-card .form-select {
+            background: #ffffff;
+            border-color: #d8e2f2;
+        }
+        .filter-card .form-control:focus,
+        .filter-card .form-select:focus {
+            border-color: #8cb3ea;
+            box-shadow: 0 0 0 0.14rem rgba(58, 120, 220, 0.16);
+        }
         .table td, .table th { vertical-align: middle; }
         .student-link { color: inherit; text-decoration: none; }
         .student-link:hover { color: inherit; text-decoration: none; opacity: 0.95; }
-        .card { border: 1px solid #e8edf6; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04); }
+        .card {
+            border: 1px solid #e8edf6;
+            border-radius: 14px;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+        }
+        .card.stretch.stretch-full {
+            border-color: #dfe8f5;
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+            overflow: hidden;
+        }
         .page-subtitle { font-size: 12px; color: #6c7a92; margin-top: -2px; }
         #ojtListTable thead th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; color: #6c7a92; }
         #ojtListTable { min-width: 980px; }
+        #ojtListTable thead th { background: #f8fbff; }
+        #ojtListTable tbody tr:hover { background: #fbfdff; }
         .app-skin-dark body { background: #0b1220; }
         .app-skin-dark .card,
         .app-skin-dark .filter-card {
+            border-color: #253252;
+            background: #111a2e;
+            box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+        }
+        .app-skin-dark .page-header {
             border-color: #253252;
             background: #111a2e;
             box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
