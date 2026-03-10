@@ -11,6 +11,21 @@
     object-position: center !important;
 }
 
+/* Keep app header fixed flush to top across pages. */
+html,
+body {
+    margin: 0;
+    padding: 0;
+}
+
+.nxl-header {
+    top: 0 !important;
+}
+
+.nxl-header .header-wrapper {
+    margin-top: 0 !important;
+}
+
 html.app-skin-dark input.form-control,
 html.app-skin-dark textarea.form-control,
 html.app-skin-dark .form-control[type="text"],
@@ -150,6 +165,25 @@ html.app-skin-dark .select2-container--default .select2-results__option--highlig
     display: none;
 }
 
+/* Keep header mini/expand toggles in sync with sidebar state on desktop. */
+@media (min-width: 1025px) {
+    html.minimenu #menu-mini-button {
+        display: none !important;
+    }
+
+    html.minimenu #menu-expend-button {
+        display: inline-flex !important;
+    }
+
+    html:not(.minimenu) #menu-mini-button {
+        display: inline-flex !important;
+    }
+
+    html:not(.minimenu) #menu-expend-button {
+        display: none !important;
+    }
+}
+
 .toast-fixed {
     right: 5px;
     bottom: 5px;
@@ -158,4 +192,92 @@ html.app-skin-dark .select2-container--default .select2-results__option--highlig
 
 .toast-progress-thin {
     height: 5px;
+}
+
+.nxl-navigation .m-header .logo.logo-lg,
+.logo-lg-contained {
+    width: 210px;
+    height: auto;
+    object-fit: contain;
+}
+
+.nxl-navigation .m-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.nxl-navigation .m-header .b-brand {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.nxl-navigation .m-header .logo.logo-lg,
+.nxl-navigation .m-header .logo.logo-sm {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+@media (min-width: 1025px) {
+    html.minimenu .nxl-navigation .navbar-content .nxl-caption {
+        display: block !important;
+        padding: 10px 8px 6px;
+        text-align: center;
+    }
+
+    html.minimenu .nxl-navigation .navbar-content .nxl-caption:before {
+        content: none !important;
+        display: none !important;
+    }
+
+    html.minimenu .nxl-navigation .navbar-content .nxl-caption span,
+    html.minimenu .nxl-navigation .navbar-content .nxl-caption label {
+        display: block !important;
+    }
+
+    html.minimenu .nxl-navigation:hover .navbar-content .nxl-caption span {
+        display: block !important;
+    }
+
+    html.minimenu .nxl-navigation:hover .m-header {
+        padding-left: 20px;
+        padding-right: 20px;
+        justify-content: center;
+    }
+
+    html.minimenu .nxl-navigation:hover .m-header .logo.logo-lg {
+        display: block !important;
+        width: 210px !important;
+        height: auto !important;
+    }
+
+    html.minimenu .nxl-navigation:hover .m-header .logo.logo-sm {
+        display: none !important;
+    }
+
+    html.minimenu .nxl-navigation {
+        overflow: visible;
+    }
+
+    html.minimenu .nxl-navigation:hover {
+        width: 280px !important;
+        z-index: 1027;
+    }
+
+    html.minimenu .nxl-navigation:hover .navbar-wrapper {
+        position: relative !important;
+        width: 280px;
+        height: 100vh;
+    }
+
+    html.minimenu .nxl-navigation:hover .navbar-content {
+        position: relative !important;
+        width: 280px !important;
+        height: calc(100vh - 80px);
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        overscroll-behavior: contain;
+    }
 }

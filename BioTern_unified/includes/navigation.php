@@ -24,76 +24,12 @@ $nav_dir = preg_replace('#/(management|pages|auth)$#i', '', $nav_dir);
 $nav_asset_base = ($nav_dir === '' ? '' : $nav_dir) . '/assets';
 $nav_asset_fallback = '/BioTern/BioTern_unified/assets';
 ?>
-<style>
-    @media (min-width: 1025px) {
-        html.minimenu .nxl-navigation .navbar-content .nxl-caption {
-            display: block !important;
-            padding: 10px 8px 6px;
-            text-align: center;
-        }
-
-        html.minimenu .nxl-navigation .navbar-content .nxl-caption:before {
-            content: none !important;
-            display: none !important;
-        }
-
-        html.minimenu .nxl-navigation .navbar-content .nxl-caption span,
-        html.minimenu .nxl-navigation .navbar-content .nxl-caption label {
-            display: block !important;
-        }
-
-        html.minimenu .nxl-navigation:hover .navbar-content .nxl-caption span {
-            display: block !important;
-        }
-
-        html.minimenu .nxl-navigation:hover .m-header {
-            padding-left: 20px;
-            padding-right: 20px;
-            justify-content: flex-start;
-        }
-
-        html.minimenu .nxl-navigation:hover .m-header .logo.logo-lg {
-            display: block !important;
-            width: 210px !important;
-            height: auto !important;
-        }
-
-        html.minimenu .nxl-navigation:hover .m-header .logo.logo-sm {
-            display: none !important;
-        }
-
-        html.minimenu .nxl-navigation {
-            overflow: visible;
-        }
-
-        html.minimenu .nxl-navigation:hover {
-            width: 280px !important;
-            z-index: 1027;
-        }
-
-        html.minimenu .nxl-navigation:hover .navbar-wrapper {
-            position: relative !important;
-            width: 280px;
-            height: 100vh;
-        }
-
-        html.minimenu .nxl-navigation:hover .navbar-content {
-            position: relative !important;
-            width: 280px !important;
-            height: calc(100vh - 80px);
-            overflow-x: hidden !important;
-            overflow-y: auto !important;
-            overscroll-behavior: contain;
-        }
-    }
-
-</style>
 <nav class="nxl-navigation">
     <div class="navbar-wrapper">
         <div class="m-header">
             <a href="/BioTern/BioTern_unified/homepage.php" class="b-brand">
-                    <img src="<?php echo htmlspecialchars($nav_asset_base); ?>/images/logo-full.png" alt="BioTern" class="logo logo-lg" style="width:210px;height:auto;object-fit:contain;" onerror="this.onerror=null;this.src='<?php echo htmlspecialchars($nav_asset_fallback); ?>/images/logo-full.png';" />
-                    <img src="<?php echo htmlspecialchars($nav_asset_base); ?>/images/logo-abbr.png" alt="" class="logo logo-sm" onerror="this.onerror=null;this.src='<?php echo htmlspecialchars($nav_asset_fallback); ?>/images/logo-abbr.png';" />
+                    <img src="<?php echo htmlspecialchars($nav_asset_base); ?>/images/logo-full.png" alt="BioTern" class="logo logo-lg logo-lg-contained nav-fallback-img" data-fallback-src="<?php echo htmlspecialchars($nav_asset_fallback); ?>/images/logo-full.png" />
+                    <img src="<?php echo htmlspecialchars($nav_asset_base); ?>/images/logo-abbr.png" alt="" class="logo logo-sm nav-fallback-img" data-fallback-src="<?php echo htmlspecialchars($nav_asset_fallback); ?>/images/logo-abbr.png" />
             </a>
         </div>
         <div class="navbar-content">
@@ -310,102 +246,5 @@ endif; ?>
         </div>
     </div>
 </nav>
-<script>
-    (function () {
-        var KEY_SCROLL = 'biotern.sidebar.scrollTop';
-
-        function getPathname(href) {
-            try {
-                return new URL(href, window.location.origin).pathname.toLowerCase();
-            } catch (e) {
-                return '';
-            }
-        }
-
-        function getRouteKeyFromUrl(urlObj) {
-            var qp = (urlObj.searchParams.get('file') || '').toLowerCase();
-            if (qp && qp.endsWith('.php')) return qp;
-            var path = (urlObj.pathname || '').toLowerCase();
-            var parts = path.split('/');
-            var last = parts[parts.length - 1] || '';
-            if (last.endsWith('.php')) return last;
-            return '';
-        }
-
-        function getCurrentRouteKey() {
-            try {
-                return getRouteKeyFromUrl(new URL(window.location.href));
-            } catch (e) {
-                return '';
-            }
-        }
-
-        function getLinkRouteKey(href) {
-            try {
-                return getRouteKeyFromUrl(new URL(href, window.location.origin));
-            } catch (e) {
-                return '';
-            }
-        }
-
-        function getNav() {
-            return document.querySelector('.nxl-navigation .nxl-navbar');
-        }
-
-        function getScrollContainer() {
-            return document.querySelector('.nxl-navigation .navbar-content');
-        }
-
-        function persistState() {
-            var nav = getNav();
-            if (!nav) return;
-            try {
-                var sc = getScrollContainer();
-                if (sc) localStorage.setItem(KEY_SCROLL, String(sc.scrollTop || 0));
-            } catch (e) {}
-        }
-
-        function restoreState() {
-            var nav = getNav();
-            if (!nav) return;
-
-            var currentRoute = getCurrentRouteKey();
-            nav.querySelectorAll('.nxl-item.active').forEach(function (item) {
-                item.classList.remove('active');
-            });
-            nav.querySelectorAll('.nxl-item.nxl-hasmenu.nxl-trigger').forEach(function (item) {
-                item.classList.remove('nxl-trigger');
-            });
-
-            nav.querySelectorAll('.nxl-item .nxl-link[href]').forEach(function (a) {
-                var linkKey = getLinkRouteKey(a.getAttribute('href') || '');
-                if (linkKey && currentRoute && linkKey === currentRoute) {
-                    var item = a.closest('.nxl-item');
-                    if (item) item.classList.add('active');
-                    var parentMenu = a.closest('.nxl-item.nxl-hasmenu');
-                    if (parentMenu) parentMenu.classList.add('active', 'nxl-trigger');
-                }
-            });
-
-            try {
-                var sc = getScrollContainer();
-                var savedTop = parseInt(localStorage.getItem(KEY_SCROLL) || '0', 10);
-                if (sc && !isNaN(savedTop) && savedTop > 0) {
-                    requestAnimationFrame(function () {
-                        sc.scrollTop = savedTop;
-                    });
-                }
-            } catch (e) {}
-        }
-
-        restoreState();
-
-        document.querySelectorAll('.nxl-navigation .nxl-item.nxl-hasmenu > .nxl-link').forEach(function (trigger) {
-            trigger.addEventListener('click', function () {
-                setTimeout(persistState, 0);
-            });
-        }
-
-    })();
-</script>
+<script src="assets/js/navigation-state.js"></script>
 

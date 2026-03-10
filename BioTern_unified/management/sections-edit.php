@@ -97,12 +97,27 @@ if (!$section) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $name = trim((string)($_POST['name'] ?? ''));
+    $name = strtoupper(trim((string)($_POST['name'] ?? '')));
     $code = strtoupper(trim((string)($_POST['code'] ?? '')));
     $course_id = (int)($_POST['course_id'] ?? 0);
     $department_id = (int)($_POST['department_id'] ?? 0);
     $status_text = strtolower(trim((string)($_POST['status'] ?? 'active')));
     $status_flag = ($status_text === 'inactive') ? 0 : 1;
+
+    if (strpos($code, '-') !== false) {
+        $parts = explode('-', $code, 2);
+        $codePart = strtoupper(trim((string)($parts[0] ?? '')));
+        $namePart = strtoupper(trim((string)($parts[1] ?? '')));
+        if ($codePart !== '') {
+            $code = $codePart;
+        }
+        if ($name === '' || $name === strtoupper(trim((string)($_POST['code'] ?? '')))) {
+            $name = $namePart;
+        }
+    }
+    if ($code !== '' && strpos($name, $code . '-') === 0) {
+        $name = trim(substr($name, strlen($code) + 1));
+    }
 
     if ($name === '' || $code === '' || $course_id <= 0) {
         $message = 'Section name, code, and course are required.';
@@ -111,7 +126,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $message = 'Department is required.';
         $message_type = 'danger';
     } else {
-        $dupSql = "SELECT id FROM sections WHERE code = ? AND id <> ?";
+        $dupSql = "SELECT id FROM sections WHERE code = ? AND name = ? AND id <> ?";
         if ($hasSectionDeletedAt) {
             $dupSql .= " AND deleted_at IS NULL";
         }
@@ -119,14 +134,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $dupStmt = $conn->prepare($dupSql);
         $exists = false;
         if ($dupStmt) {
-            $dupStmt->bind_param('si', $code, $id);
+            $dupStmt->bind_param('ssi', $code, $name, $id);
             $dupStmt->execute();
             $exists = (bool)$dupStmt->get_result()->fetch_assoc();
             $dupStmt->close();
         }
 
         if ($exists) {
-            $message = 'Section code already exists.';
+            $message = 'Section code + name already exists.';
             $message_type = 'warning';
         } else {
             $set = [

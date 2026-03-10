@@ -92,6 +92,8 @@ if (($biotern_theme_preferences['header'] ?? 'light') === 'dark') {
     $html_classes[] = 'app-header-dark';
 }
 $html_class_attr = implode(' ', $html_classes);
+$theme_prefs_json = htmlspecialchars((string)json_encode($biotern_theme_preferences, JSON_UNESCAPED_SLASHES), ENT_QUOTES, 'UTF-8');
+$theme_api_json = htmlspecialchars((string)json_encode($biotern_theme_api_endpoint, JSON_UNESCAPED_SLASHES), ENT_QUOTES, 'UTF-8');
 
 $header_user_name = trim((string)($_SESSION['name'] ?? $_SESSION['username'] ?? 'BioTern User'));
 if ($header_user_name === '') {
@@ -200,9 +202,10 @@ if ($header_user_id_session > 0) {
 }
 ?>
 <!DOCTYPE html>
-<html lang="zxx"<?php
+<html lang="zxx" <?php
 require_once dirname(__DIR__) . '/config/db.php';
-echo $html_class_attr !== '' ? ' class="' . htmlspecialchars($html_class_attr, ENT_QUOTES, 'UTF-8') . '"' : ''; ?>>
+echo $html_class_attr !== '' ? 'class="' . htmlspecialchars($html_class_attr, ENT_QUOTES, 'UTF-8') . '" ' : '';
+?>data-biotern-theme-prefs="<?php echo $theme_prefs_json; ?>" data-biotern-theme-api="<?php echo $theme_api_json; ?>">
 
 <head>
     <meta charset="utf-8">
@@ -229,17 +232,7 @@ echo htmlspecialchars($page_title, ENT_QUOTES, 'UTF-8'); ?></title>
     <!--! BEGIN: Favicon-->
     <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
     <!--! END: Favicon-->
-    <script>
-        window.paceOptions = {
-            startOnPageLoad: false,
-            restartOnPushState: false,
-            restartOnRequestAfter: false,
-            ajax: false,
-            document: false,
-            eventLag: false,
-            elements: false
-        };
-    </script>
+    <script src="assets/js/pace-options.js"></script>
     <script src="assets/js/theme-preload-init.min.js"></script>
     <!--! BEGIN: Bootstrap CSS-->
     <link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css">
@@ -250,169 +243,8 @@ echo htmlspecialchars($page_title, ENT_QUOTES, 'UTF-8'); ?></title>
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2.min.css">
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2-theme.min.css">
     <!--! END: Vendors CSS-->
-    <script>
-        window.__bioternThemePrefs = <?php
-require_once dirname(__DIR__) . '/config/db.php';
-echo json_encode($biotern_theme_preferences, JSON_UNESCAPED_SLASHES); ?>;
-        window.__bioternThemeApi = <?php
-require_once dirname(__DIR__) . '/config/db.php';
-echo json_encode($biotern_theme_api_endpoint, JSON_UNESCAPED_SLASHES); ?>;
-    </script>
     <!--! BEGIN: Early Skin Script -->
-    <script>
-        // Apply saved skin + sidebar state as early as possible to avoid initial layout flash.
-        (function(){
-            var serverPrefs = window.__bioternThemePrefs || {};
-            var allowedFonts = [
-                'app-font-family-inter',
-                'app-font-family-lato',
-                'app-font-family-rubik',
-                'app-font-family-cinzel',
-                'app-font-family-nunito',
-                'app-font-family-roboto',
-                'app-font-family-ubuntu',
-                'app-font-family-poppins',
-                'app-font-family-raleway',
-                'app-font-family-system-ui',
-                'app-font-family-noto-sans',
-                'app-font-family-fira-sans',
-                'app-font-family-work-sans',
-                'app-font-family-open-sans',
-                'app-font-family-maven-pro',
-                'app-font-family-quicksand',
-                'app-font-family-montserrat',
-                'app-font-family-josefin-sans',
-                'app-font-family-ibm-plex-sans',
-                'app-font-family-montserrat-alt',
-                'app-font-family-roboto-slab',
-                'app-font-family-source-sans-pro'
-            ];
-
-            function clearFontClasses() {
-                try {
-                    var cls = document.documentElement.className || '';
-                    var cleaned = cls.replace(/\bapp-font-family-[^\s]+\b/g, '').replace(/\s{2,}/g, ' ').trim();
-                    document.documentElement.className = cleaned;
-                } catch (e) {
-                }
-            }
-
-            function applyFont(fontClass) {
-                clearFontClasses();
-                if (fontClass && allowedFonts.indexOf(fontClass) !== -1) {
-                    document.documentElement.classList.add(fontClass);
-                }
-            }
-
-            function getSavedFont() {
-                if (typeof serverPrefs.font === 'string' && serverPrefs.font !== '') {
-                    return serverPrefs.font;
-                }
-
-                try {
-                    var legacyFont = localStorage.getItem('font-family');
-                    return legacyFont !== null ? legacyFont : 'default';
-                } catch (e) {
-                    return 'default';
-                }
-            }
-
-            applyFont(getSavedFont());
-
-            function applyNavigationMode(mode) {
-                document.documentElement.classList.remove('app-navigation-dark');
-                if (mode === 'dark') {
-                    document.documentElement.classList.add('app-navigation-dark');
-                }
-            }
-
-            function applyHeaderMode(mode) {
-                document.documentElement.classList.remove('app-header-dark');
-                if (mode === 'dark') {
-                    document.documentElement.classList.add('app-header-dark');
-                }
-            }
-
-            function getSavedNavigationMode() {
-                if (serverPrefs.navigation === 'dark' || serverPrefs.navigation === 'light') {
-                    return serverPrefs.navigation;
-                }
-                try {
-                    var nav = localStorage.getItem('app-navigation');
-                    if (nav === 'app-navigation-dark') return 'dark';
-                } catch (e) {
-                }
-                return 'light';
-            }
-
-            function getSavedHeaderMode() {
-                if (serverPrefs.header === 'dark' || serverPrefs.header === 'light') {
-                    return serverPrefs.header;
-                }
-                try {
-                    var hdr = localStorage.getItem('app-header');
-                    if (hdr === 'app-header-dark') return 'dark';
-                } catch (e) {
-                }
-                return 'light';
-            }
-
-            applyNavigationMode(getSavedNavigationMode());
-            applyHeaderMode(getSavedHeaderMode());
-
-            function getSavedSkin() {
-                try {
-                    // Respect the primary key even when intentionally set to empty (light mode).
-                    var primary = localStorage.getItem('app-skin');
-                    if (primary !== null) return primary;
-                    var alt = localStorage.getItem('app_skin');
-                    if (alt !== null) return alt;
-                    var theme = localStorage.getItem('theme');
-                    if (theme !== null) return theme;
-                    var legacy = localStorage.getItem('app-skin-dark');
-                    return legacy !== null ? legacy : '';
-                } catch (e) {
-                    // fall through to server-side preference
-                }
-                if (serverPrefs.skin === 'dark') return 'app-skin-dark';
-                if (serverPrefs.skin === 'light') return '';
-                return '';
-            }
-
-            var skin = getSavedSkin();
-            if (typeof skin === 'string' && skin.indexOf('dark') !== -1) {
-                document.documentElement.classList.add('app-skin-dark');
-            } else {
-                document.documentElement.classList.remove('app-skin-dark');
-            }
-
-            try {
-                var menuState = localStorage.getItem('nexel-classic-dashboard-menu-mini-theme');
-                if (!menuState) {
-                    if (serverPrefs.menu === 'mini') {
-                        menuState = 'menu-mini-theme';
-                    } else if (serverPrefs.menu === 'expanded') {
-                        menuState = 'menu-expend-theme';
-                    }
-                }
-                var width = window.innerWidth || document.documentElement.clientWidth || 0;
-
-                if (menuState === 'menu-mini-theme') {
-                    document.documentElement.classList.add('minimenu');
-                } else if (menuState === 'menu-expend-theme') {
-                    document.documentElement.classList.remove('minimenu');
-                } else {
-                    if (width >= 1024 && width <= 1600) {
-                        document.documentElement.classList.add('minimenu');
-                    } else if (width > 1600) {
-                        document.documentElement.classList.remove('minimenu');
-                    }
-                }
-            } catch (e) {
-                // ignore localStorage errors
-            }
-        })();
-    </script>
+    <script src="assets/js/header-early-skin.js"></script>
     <!--! END: Early Skin Script -->
     <!--! BEGIN: Custom CSS-->
     <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css" />

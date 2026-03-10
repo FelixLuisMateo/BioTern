@@ -43,6 +43,23 @@
         return document.querySelector(".nxl-navigation .navbar-content");
     }
 
+    function initFallbackImages() {
+        document.querySelectorAll(".nxl-navigation img[data-fallback-src]").forEach(function (img) {
+            var fallbackSrc = img.getAttribute("data-fallback-src") || "";
+            if (!fallbackSrc) return;
+
+            img.addEventListener("error", function () {
+                if (img.src !== fallbackSrc) {
+                    img.src = fallbackSrc;
+                }
+            });
+
+            if (img.complete && img.naturalWidth === 0 && img.src !== fallbackSrc) {
+                img.src = fallbackSrc;
+            }
+        });
+    }
+
     function persistState() {
         var nav = getNav();
         if (!nav) return;
@@ -90,6 +107,7 @@
     }
 
     restoreState();
+    initFallbackImages();
 
     document.querySelectorAll(".nxl-navigation .nxl-item.nxl-hasmenu > .nxl-link").forEach(function (trigger) {
         trigger.addEventListener("click", function () {
