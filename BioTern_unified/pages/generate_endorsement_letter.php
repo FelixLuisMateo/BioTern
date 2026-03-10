@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 require_once dirname(__DIR__) . '/config/db.php';
 $host = defined('DB_HOST') ? DB_HOST : 'localhost';
 $db_user = defined('DB_USER') ? DB_USER : 'root';
@@ -126,7 +126,7 @@ if ($recipient !== '') {
 <head>
     <meta charset="utf-8">
     <title>BioTern || Endorsement Letter</title>
-    <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
+    <link rel="shortcut icon" type="image/x-icon" href="/BioTern/BioTern_unified/assets/images/favicon.ico?v=20260310">
     <style>
         @page { size: Letter portrait; margin: 0.5in; }
         body { font-family: "Times New Roman", Times, serif; color:#111; font-size:12pt; margin:0; background:#eceff3; }
@@ -249,4 +249,5 @@ if ($recipient !== '') {
 </body>
 </html>
 <?php $conn->close(); ?>
+
 

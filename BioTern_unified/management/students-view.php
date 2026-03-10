@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 require_once dirname(__DIR__) . '/config/db.php';
 // Database Connection
 $host = 'localhost';
@@ -411,7 +411,7 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
     <title>BioTern || Student Profile - <?php
 require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars($student['first_name'] . ' ' . $student['last_name']); ?></title>
-    <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
+    <link rel="shortcut icon" type="image/x-icon" href="/BioTern/BioTern_unified/assets/images/favicon.ico?v=20260310">
     <script src="assets/js/theme-preload-init.min.js"></script>
     <link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/vendors.min.css">
@@ -1286,7 +1286,7 @@ echo $is_evaluation_unlocked ? 'Waiting for supervisor submission' : 'Waiting fo
         <!-- Footer -->
         <footer class="footer">
             <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
-                <span>Copyright ï¿½</span>
+                <span>Copyright �</span>
                 <script>
                     document.write(new Date().getFullYear());
                 </script>
@@ -1501,6 +1501,7 @@ echo $open_clock_in_time ? json_encode($open_clock_in_time) : 'null'; ?>;
 require_once dirname(__DIR__) . '/config/db.php';
 $conn->close();
 ?>
+
 
 
 

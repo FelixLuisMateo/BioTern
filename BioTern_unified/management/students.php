@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 require_once dirname(__DIR__) . '/config/db.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -315,7 +315,7 @@ usort($print_students, function ($a, $b) {
     <meta name="keyword" content="">
     <meta name="author" content="ACT 2A Group 5">
     <title>BioTern || Students</title>
-    <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
+    <link rel="shortcut icon" type="image/x-icon" href="/BioTern/BioTern_unified/assets/images/favicon.ico?v=20260310">
     <script src="assets/js/theme-preload-init.min.js"></script>
     <link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/vendors.min.css">
@@ -1318,7 +1318,7 @@ endif; ?>
         <!-- [ Footer ] start -->
         <footer class="footer">
             <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
-                <span>Copyright Â©</span>
+                <span>Copyright ©</span>
                 <script>
                     document.write(new Date().getFullYear());
                 </script>
@@ -1397,6 +1397,7 @@ endif; ?>
     </script>
 </body>
 </html>
+
 
 
 

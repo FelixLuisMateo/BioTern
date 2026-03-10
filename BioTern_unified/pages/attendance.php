@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 require_once dirname(__DIR__) . '/config/db.php';
 // Database Connection
 $host = 'localhost';
@@ -359,7 +359,7 @@ function getAttendanceStatus($morning_time_in) {
     <title>BioTern || Student Attendance</title>
     <!--! END:  Apps Title-->
     <!--! BEGIN: Favicon-->
-    <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
+    <link rel="shortcut icon" type="image/x-icon" href="/BioTern/BioTern_unified/assets/images/favicon.ico?v=20260310">
     <script src="assets/js/theme-preload-init.min.js"></script>
     <!--! END: Favicon-->
     <!--! BEGIN: Bootstrap CSS-->
@@ -373,6 +373,7 @@ function getAttendanceStatus($morning_time_in) {
     <!--! END: Vendors CSS-->
     <!--! BEGIN: Custom CSS-->
     <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/css/layout-shared-overrides.css">
     <!--! END: Custom CSS-->
     <!--! HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries !-->
     <!--! WARNING: Respond.js doesn"t work if you view the page via file: !-->
@@ -568,16 +569,28 @@ function getAttendanceStatus($morning_time_in) {
             box-shadow: 0 0 0 0.15rem rgba(127, 158, 207, 0.22) !important;
         }
 
-        /* Force white text for Select2 Bootstrap-5 themed filter dropdowns */
+        /* Light mode: keep Select2 text readable on white backgrounds */
         .filter-form .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered,
         .filter-form .select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__rendered,
         .filter-form .select2-container--bootstrap-5 .select2-selection__placeholder {
-            color: #ffffff !important;
-            -webkit-text-fill-color: #ffffff !important;
+            color: #283c50 !important;
+            -webkit-text-fill-color: #283c50 !important;
             opacity: 1 !important;
         }
 
         .filter-form .select2-container--bootstrap-5 .select2-dropdown .select2-results__option {
+            color: #283c50 !important;
+        }
+
+        /* Dark mode: use white text for Select2 Bootstrap-5 theme */
+        html.app-skin-dark .filter-form .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered,
+        html.app-skin-dark .filter-form .select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__rendered,
+        html.app-skin-dark .filter-form .select2-container--bootstrap-5 .select2-selection__placeholder {
+            color: #ffffff !important;
+            -webkit-text-fill-color: #ffffff !important;
+        }
+
+        html.app-skin-dark .filter-form .select2-container--bootstrap-5 .select2-dropdown .select2-results__option {
             color: #ffffff !important;
         }
     </style>
@@ -586,7 +599,7 @@ function getAttendanceStatus($morning_time_in) {
 <body>
     <?php
 require_once dirname(__DIR__) . '/config/db.php';
-include_once 'includes/navigation.php'; ?>
+include_once dirname(__DIR__) . '/includes/navigation.php'; ?>
     <!--! ================================================================ !-->
     <!--! [Start] Header !-->
     <!--! ================================================================ !-->
@@ -1314,7 +1327,7 @@ endif; ?>
         <!-- [ Footer ] start -->
         <footer class="footer">
             <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
-                <span>Copyright Â©</span>
+                <span>Copyright ©</span>
                 <script>
                     document.write(new Date().getFullYear());
                 </script>
@@ -1998,6 +2011,7 @@ endif; ?>
 </body>
 
 </html>
+
 
 
 

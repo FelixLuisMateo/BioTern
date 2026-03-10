@@ -51,6 +51,10 @@ if (!isset($page_title) || trim($page_title) === '') {
 if (!isset($base_href)) {
     $base_href = '';
 }
+$favicon_href = ($base_href !== '' ? $base_href : '/BioTern/BioTern_unified/') . 'assets/images/favicon.ico';
+$favicon_file_mtime = @filemtime(dirname(__DIR__) . '/assets/images/favicon.ico');
+$favicon_version = ($favicon_file_mtime !== false) ? (string)$favicon_file_mtime : '20260310';
+$favicon_href .= '?v=' . rawurlencode($favicon_version);
 
 $biotern_theme_api_endpoint = $base_href . 'api/theme-customizer.php';
 require_once __DIR__ . '/theme-preferences.php';
@@ -230,7 +234,12 @@ require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars($page_title, ENT_QUOTES, 'UTF-8'); ?></title>
     <!--! END:  Apps Title-->
     <!--! BEGIN: Favicon-->
-    <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
+    <link rel="icon" type="image/x-icon" href="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($favicon_href, ENT_QUOTES, 'UTF-8'); ?>">
+    <link rel="shortcut icon" type="image/x-icon" href="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($favicon_href, ENT_QUOTES, 'UTF-8'); ?>">
     <!--! END: Favicon-->
     <script src="assets/js/pace-options.js"></script>
     <script src="assets/js/theme-preload-init.min.js"></script>

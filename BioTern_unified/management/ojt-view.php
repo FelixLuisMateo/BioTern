@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 require_once dirname(__DIR__) . '/config/db.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -1133,7 +1133,7 @@ $session_profile_picture_url = $session_profile_picture !== '' ? $session_profil
     <!--! END:  Apps Title-->
     <!--! BEGIN: Favicon-->
     <!--! BEGIN: Favicon-->
-    <link rel="shortcut icon" type="image/x-icon" href="<?php echo htmlspecialchars($asset_base); ?>/images/favicon.ico">
+    <link rel="shortcut icon" type="image/x-icon" href="<?php echo htmlspecialchars($asset_base); ?>/images/favicon.ico?v=20260310">
     <script src="<?php echo htmlspecialchars($asset_base); ?>/js/theme-preload-init.min.js"></script>
     <!--! END: Favicon-->
     <!--! BEGIN: Bootstrap CSS-->
@@ -2362,7 +2362,7 @@ require_once dirname(__DIR__) . '/config/db.php';
         <!-- [ Footer ] start -->
         <footer class="footer">
             <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
-                <span>Copyright Â©</span>
+                <span>Copyright ©</span>
                 <script>
                     document.write(new Date().getFullYear());
                 </script>
@@ -2532,6 +2532,7 @@ require_once dirname(__DIR__) . '/config/db.php';
 </body>
 
 </html>
+
 
 
 

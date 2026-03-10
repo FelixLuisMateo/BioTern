@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 require_once dirname(__DIR__) . '/config/db.php';
 $force_blank = isset($_GET['blank']) && $_GET['blank'] === '1';
 ?>
@@ -8,7 +8,7 @@ $force_blank = isset($_GET['blank']) && $_GET['blank'] === '1';
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>BioTern || Edit Application Template</title>
-    <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
+    <link rel="shortcut icon" type="image/x-icon" href="/BioTern/BioTern_unified/assets/images/favicon.ico?v=20260310">
     <script>
         (function () {
             var dark = false;
@@ -460,6 +460,7 @@ echo $force_blank ? 'true' : 'false'; ?>;
     </script>
 </body>
 </html>
+
 
 
 

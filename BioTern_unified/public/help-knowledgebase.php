@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 require_once dirname(__DIR__) . '/config/db.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -36,7 +36,7 @@ if ($session_avatar !== '') {
     <title>BioTern || KnowledgeBase</title>
     <!--! END:  Apps Title-->
     <!--! BEGIN: Favicon-->
-    <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
+    <link rel="shortcut icon" type="image/x-icon" href="/BioTern/BioTern_unified/assets/images/favicon.ico?v=20260310">
     <script src="assets/js/theme-preload-init.min.js"></script>
     <!--! END: Favicon-->
     <!--! BEGIN: Bootstrap CSS-->
@@ -49,6 +49,7 @@ if ($session_avatar !== '') {
     <!--! END: Vendors CSS-->
     <!--! BEGIN: Custom CSS-->
     <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/css/layout-shared-overrides.css">
     <!--! END: Custom CSS-->
     <style>
         .nxl-header .user-avtar,
@@ -1057,7 +1058,7 @@ echo htmlspecialchars($header_user_email, ENT_QUOTES, 'UTF-8'); ?></span>
 		&lt;title>Help Center&lt;/title>
 		&lt;!--! END:  Apps Title-->
 		&lt;!--! BEGIN: Favicon-->
-		&lt;link type="image/x-icon" rel="shortcut icon" href=".assets/images/favicon.ico">
+		&lt;link type="image/x-icon" rel="shortcut icon" href=".assets/images/favicon.ico?v=20260310">
 		&lt;!--! END: Favicon-->
 		&lt;!--! BEGIN: Bootstrap CSS-->
 		&lt;link type="text/css" rel="stylesheet" href=".assets/css/bootstrap.min.css">
@@ -1079,7 +1080,7 @@ echo htmlspecialchars($header_user_email, ENT_QUOTES, 'UTF-8'); ?></span>
 					</code>
 						</pre>
                 </div>
-                <h4 class="fs-13">ðŸ‘‹ Threds</h4>
+                <h4 class="fs-13">👋 Threds</h4>
                 <p class="text-muted mb-4">Lorem ipsum dolor sit amet consectetur adipisicing elit. Atque officiis minus omnis veniam cupiditate molestiae itaque hic quibusdam fuga modi quam cumque recusandae harum nulla vero, tempore possimus aliquid animi!</p>
                 <div class="mb-5">
                     <pre><code class="language-js">
@@ -1092,7 +1093,7 @@ const code = `var data = 1;`;
 const html = Prism.highlight(code, Prism.languages.javascript, 'javascript');
 						</code></pre>
                 </div>
-                <h4 class="fs-13">ðŸ“Œ Inbox</h4>
+                <h4 class="fs-13">📌 Inbox</h4>
                 <p class="text-muted mb-4">Lorem ipsum dolor sit amet consectetur adipisicing elit. Atque officiis minus omnis veniam cupiditate molestiae itaque hic quibusdam fuga modi quam cumque recusandae harum nulla vero, tempore possimus aliquid animi!</p>
                 <div class="mb-5">
                     <pre><code class="language-js">
@@ -1105,7 +1106,7 @@ const code = `var data = 1;`;
 const html = Prism.highlight(code, Prism.languages.javascript, 'javascript');
 						</code></pre>
                 </div>
-                <h4 class="fs-13">ðŸ‘™ Bundles</h4>
+                <h4 class="fs-13">👙 Bundles</h4>
                 <p class="text-muted mb-4">Lorem ipsum dolor sit amet consectetur adipisicing elit. Atque officiis minus omnis veniam cupiditate molestiae itaque hic quibusdam fuga modi quam cumque recusandae harum nulla vero, tempore possimus aliquid animi!</p>
                 <div class="mb-5">
                     <pre><code class="language-js">
@@ -1131,7 +1132,7 @@ const code = `var data = 1;`;
 const html = Prism.highlight(code, Prism.languages.javascript, 'javascript');
 						</code></pre>
                 </div>
-                <h4 class="fs-13">ðŸŽ‚ Groups</h4>
+                <h4 class="fs-13">🎂 Groups</h4>
                 <p class="text-muted mb-4">Lorem ipsum dolor sit amet consectetur adipisicing elit. Atque officiis minus omnis veniam cupiditate molestiae itaque hic quibusdam fuga modi quam cumque recusandae harum nulla vero, tempore possimus aliquid animi!</p>
                 <div class="mb-5">
                     <pre><code class="language-js">
@@ -1144,7 +1145,7 @@ const code = `var data = 1;`;
 const html = Prism.highlight(code, Prism.languages.javascript, 'javascript');
 						</code></pre>
                 </div>
-                <h4 class="fs-13">ðŸ˜³ Channel</h4>
+                <h4 class="fs-13">😳 Channel</h4>
                 <p class="text-muted mb-4">Lorem ipsum dolor sit amet consectetur adipisicing elit. Atque officiis minus omnis veniam cupiditate molestiae itaque hic quibusdam fuga modi quam cumque recusandae harum nulla vero, tempore possimus aliquid animi!</p>
                 <div class="mb-5">
                     <pre><code class="language-js">
@@ -1157,7 +1158,7 @@ const code = `var data = 1;`;
 const html = Prism.highlight(code, Prism.languages.javascript, 'javascript');
 						</code></pre>
                 </div>
-                <h4 class="fs-13">ðŸŽ‰ Favorite</h4>
+                <h4 class="fs-13">🎉 Favorite</h4>
                 <p class="text-muted mb-4">Lorem ipsum dolor sit amet consectetur adipisicing elit. Atque officiis minus omnis veniam cupiditate molestiae itaque hic quibusdam fuga modi quam cumque recusandae harum nulla vero, tempore possimus aliquid animi!</p>
                 <div>
                     <pre><code class="language-js">
@@ -1313,6 +1314,7 @@ const html = Prism.highlight(code, Prism.languages.javascript, 'javascript');
 </body>
 
 </html>
+
 
 
 

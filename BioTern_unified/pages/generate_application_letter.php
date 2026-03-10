@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 require_once dirname(__DIR__) . '/config/db.php';
 // Generate printable Application Letter for a student
 $host = defined('DB_HOST') ? DB_HOST : 'localhost';
@@ -60,7 +60,7 @@ if ($do_download_pdf || $do_download_html) ob_start();
 <head>
     <meta charset="utf-8">
     <title>BioTern || Application Letter - <?php echo htmlspecialchars(trim(($student['first_name'] ?? '') . ' ' . ($student['last_name'] ?? '')) ?: 'Preview'); ?></title>
-    <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
+    <link rel="shortcut icon" type="image/x-icon" href="/BioTern/BioTern_unified/assets/images/favicon.ico?v=20260310">
     <style>
                 /* Use US Letter for printing and set sensible margins */
                     @page { size: Letter portrait; margin: 0.5in; }
@@ -319,7 +319,7 @@ if ($do_download_pdf || $do_download_html) ob_start();
     (function(){
         ensurePrintableHoursSpan(<?php echo json_encode($ap_hours); ?>);
 
-        // print button: open print dialog â€” note: browser headers/footers are controlled by print dialog settings
+        // print button: open print dialog — note: browser headers/footers are controlled by print dialog settings
         var printButton = document.getElementById('btn_print');
         if (printButton) {
             printButton.addEventListener('click', function(e){
@@ -427,4 +427,5 @@ if (isset($do_download_pdf) && $do_download_pdf) {
 // normal page close
 $conn->close();
 ?>
+
 
