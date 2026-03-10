@@ -571,10 +571,10 @@ if (isset($_GET['registered'])) {
                                 <h5 class="fs-14 fw-bold mb-3">Personal Information</h5>
                                 <div class="row g-3">
                                     <div class="col-6 mb-2">
-                                        <input type="text" name="student_id" class="form-control" placeholder="School ID Number" autocomplete="off" required>
+                                        <input type="text" name="student_id" class="form-control" placeholder="School ID Number" autocomplete="off">
                                     </div>
                                     <div class="col-6 mb-2">
-                                        <input type="text" name="first_name" style="padding: 12px 16px;" class="form-control" placeholder="First name" autocomplete="given-name" required>
+                                        <input type="text" name="first_name" style="padding: 12px 16px;" class="form-control" placeholder="First name" autocomplete="given-name">
                                     </div>
                                 </div>
                                 <div class="row g-3">
@@ -582,15 +582,15 @@ if (isset($_GET['registered'])) {
                                         <input type="text" name="middle_name" class="form-control" placeholder="Middle name" autocomplete="additional-name">
                                     </div>
                                     <div class="col-6 mb-2">
-                                        <input type="text" name="last_name" class="form-control" placeholder="Last name" autocomplete="family-name" required>
+                                        <input type="text" name="last_name" class="form-control" placeholder="Last name" autocomplete="family-name">
                                     </div>
                                 </div>
                                 <div class="row g-3">
                                     <div class="col-6 mb-2">
-                                        <input type="text" name="address" class="form-control" placeholder="Full Home Address" autocomplete="street-address" required>
+                                        <input type="text" name="address" class="form-control" placeholder="Full Home Address" autocomplete="street-address">
                                     </div>
                                     <div class="col-6 mb-2">
-                                        <input type="email" name="email" class="form-control" placeholder="Email Address" autocomplete="email" required>
+                                        <input type="email" name="email" class="form-control" placeholder="Email Address" autocomplete="email">
                                     </div>
                                 </div>
                             </div>
@@ -601,7 +601,7 @@ if (isset($_GET['registered'])) {
                                 <div class="row g-3">
                                     <div class="col-4 mb-2">
                                         <label class="form-label fs-12" for="studentCourseSelect">Course</label>
-                                        <select name="course_id" id="studentCourseSelect" class="form-control dynamic-course-select" data-section-target="studentSectionSelect" required>
+                                        <select name="course_id" id="studentCourseSelect" class="form-control dynamic-course-select" data-section-target="studentSectionSelect">
                                             <option value="" disabled selected>Select Course</option>
                                             <?php
 require_once dirname(__DIR__) . '/config/db.php';
@@ -660,8 +660,7 @@ endforeach; ?>
                                     </div>
                                     <div class="col-4 mb-2">
                                         <label class="form-label fs-12" for="studentSectionSelect">Section</label>
-                                        <select name="section" id="studentSectionSelect" class="form-control" required>
-                                            <option value="" disabled selected>Select Section</option>
+                                        <select name="section" id="studentSectionSelect" class="form-control">
                                         </select>
                                     </div>
                                 </div>
@@ -783,7 +782,6 @@ endforeach; ?>
                                             <option value="" disabled selected>Select Gender</option>
                                             <option value="male">Male</option>
                                             <option value="female">Female</option>
-                                            <option value="other">Other</option>
                                         </select>
                                     </div>
                                 </div>
@@ -808,22 +806,22 @@ endforeach; ?>
                                 <h5 class="fs-14 fw-bold mb-3">Account Information</h5>
                                 <div class="row g-3">
                                     <div class="col-6 mb-2">
-                                        <input type="text" name="username" class="form-control" placeholder="Username" autocomplete="username" required>
+                                        <input type="text" name="username" class="form-control" placeholder="Username" autocomplete="username">
                                     </div>
                                     <div class="col-6 mb-2">
-                                        <input type="email" name="account_email" class="form-control" placeholder="Account Email Address" autocomplete="email" required>
+                                        <input type="email" name="account_email" class="form-control" placeholder="Account Email Address" autocomplete="email">
                                     </div>
                                 </div>
                                 <div class="row g-3">
                                     <div class="col-6 mb-2">
                                         <div class="input-group field">
-                                            <input type="password" name="password" class="form-control password" id="studentPassword" placeholder="Password" autocomplete="new-password" required>
+                                            <input type="password" name="password" class="form-control password" id="studentPassword" placeholder="Password" autocomplete="new-password">
                                             <div class="input-group-text border-start bg-gray-2 c-pointer show-pass-toggle" data-target="studentPassword" data-bs-toggle="tooltip" title="Show/Hide Password"><i></i></div>
                                         </div>
                                     </div>
                                     <div class="col-6 mb-2">
                                         <div class="input-group field">
-                                            <input type="password" name="confirm_password" class="form-control" id="studentConfirmPassword" placeholder="Confirm password" autocomplete="new-password" required>
+                                            <input type="password" name="confirm_password" class="form-control" id="studentConfirmPassword" placeholder="Confirm password" autocomplete="new-password">
                                             <div class="input-group-text border-start bg-gray-2 c-pointer show-pass-toggle" data-target="studentConfirmPassword" data-bs-toggle="tooltip" title="Show/Hide Password"><i></i></div>
                                         </div>
                                     </div>
@@ -831,11 +829,11 @@ endforeach; ?>
                             </div>
                             <div class="mt-4">
                                 <div class="custom-control custom-checkbox mb-2">
-                                    <input type="checkbox" class="custom-control-input" id="receiveMial" required>
+                                    <input type="checkbox" class="custom-control-input" id="receiveMial">
                                     <label class="custom-control-label c-pointer text-muted" for="receiveMial" style="font-weight: 400 !important">Yes, I want to receive BioTern community emails</label>
                                 </div>
                                 <div class="custom-control custom-checkbox">
-                                    <input type="checkbox" class="custom-control-input" id="termsCondition" required>
+                                    <input type="checkbox" class="custom-control-input" id="termsCondition">
                                     <label class="custom-control-label c-pointer text-muted" for="termsCondition" style="font-weight: 400 !important">I agree to all the <a href="">Terms &amp; Conditions.</a></label>
                                 </div>
                             </div>
@@ -1363,7 +1361,8 @@ echo json_encode($sectionOptions, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHE
         function filterDepartmentOptions(courseId) {
             const deptSelect = document.getElementById('studentDepartmentSelect');
             if (!deptSelect) return [];
-            const allowed = getCourseAllowedDepartmentIds(courseId);
+            const selectedBefore = deptSelect.value;
+            const allDepartmentIds = [];
 
             Array.prototype.slice.call(deptSelect.options).forEach(function(opt, index) {
                 if (index === 0) return; // placeholder
@@ -1372,41 +1371,46 @@ echo json_encode($sectionOptions, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHE
                     opt.disabled = false;
                     return;
                 }
-                const show = allowed.includes(String(opt.value));
-                opt.hidden = !show;
-                opt.disabled = !show;
+                opt.hidden = false;
+                opt.disabled = false;
+                allDepartmentIds.push(String(opt.value));
             });
 
-            if (allowed.length === 1) {
-                deptSelect.value = allowed[0];
-            } else {
-                deptSelect.value = '';
+            if (selectedBefore !== '' && Array.prototype.some.call(deptSelect.options, function(opt) { return String(opt.value) === String(selectedBefore); })) {
+                deptSelect.value = selectedBefore;
             }
 
-            return allowed;
+            return allDepartmentIds;
         }
 
         function filterSectionOptions(courseId, departmentId) {
             const sectionSelect = document.getElementById('studentSectionSelect');
-            const courseSelect = document.getElementById('studentCourseSelect');
             if (!sectionSelect) return;
-            setSelectPlaceholder(sectionSelect, 'Select Section');
-            const unknownOption = document.createElement('option');
-            unknownOption.value = '0';
-            unknownOption.textContent = "I still don't know yet (To be assigned)";
-            sectionSelect.appendChild(unknownOption);
+            sectionSelect.innerHTML = '';
+            const placeholderOption = document.createElement('option');
+            placeholderOption.value = '';
+            placeholderOption.textContent = 'Select Section';
+            placeholderOption.selected = true;
+            sectionSelect.appendChild(placeholderOption);
 
             const cId = String(courseId || '');
             const dId = String(departmentId || '');
             let inserted = 0;
 
             sectionRecords.forEach(function(rec) {
-                if (String(rec.course_id) !== cId) return;
-                if (dId !== '' && dId !== '0' && String(rec.department_id) !== dId) return;
+                const matchesCourse = (cId === '') || (String(rec.course_id) === cId);
+                const matchesDept = (dId === '' || dId === '0') || (String(rec.department_id) === dId);
+                if (!matchesCourse || !matchesDept) return;
 
                 const code = (rec.code || '').trim();
                 const name = (rec.name || '').trim();
-                const label = code && name ? (code + ' - ' + name) : (code || name || ('Section #' + rec.id));
+                const formattedCode = code.replace(/\s*-\s*/g, ' - ');
+                const formattedName = name.replace(/\s*-\s*/g, ' - ');
+                const label = code && name
+                    ? (code.toLowerCase() === name.toLowerCase()
+                        ? formattedCode
+                        : (formattedCode + ' - ' + formattedName))
+                    : (formattedCode || formattedName || ('Section #' + rec.id));
 
                 const option = document.createElement('option');
                 option.value = code || String(rec.id);
@@ -1415,19 +1419,12 @@ echo json_encode($sectionOptions, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHE
                 inserted++;
             });
 
-            // Fallback for databases without sections rows yet.
-            if (inserted === 0 && courseSelect) {
-                const selectedOption = courseSelect.options[courseSelect.selectedIndex];
-                const courseCode = selectedOption ? (selectedOption.getAttribute('data-course-code') || '').trim() : '';
-                if (courseCode) {
-                    ['A', 'B', 'C', 'D', 'E', 'F'].forEach(function(suffix) {
-                        const code = courseCode + '-2' + suffix;
-                        const option = document.createElement('option');
-                        option.value = code;
-                        option.textContent = code;
-                        sectionSelect.appendChild(option);
-                    });
-                }
+            if (inserted === 0) {
+                const emptyOption = document.createElement('option');
+                emptyOption.value = '';
+                emptyOption.disabled = true;
+                emptyOption.textContent = 'No sections found in database';
+                sectionSelect.appendChild(emptyOption);
             }
         }
 
