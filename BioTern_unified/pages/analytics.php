@@ -403,6 +403,7 @@ try {
     <!--! END: Vendors CSS-->
     <!--! BEGIN: Custom CSS-->
     <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/css/layout-shared-overrides.css">
     <link rel="stylesheet" type="text/css" href="assets/css/homepage-dashboard.css">
     <style>
         .analytics-hero .card-body {

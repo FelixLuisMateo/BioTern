@@ -323,6 +323,7 @@ usort($print_students, function ($a, $b) {
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2.min.css">
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2-theme.min.css">
     <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/css/layout-shared-overrides.css">
     <style>
         html, body {
             height: 100%;
@@ -720,7 +721,7 @@ endif; ?>
 
     <?php
 require_once dirname(__DIR__) . '/config/db.php';
-include_once 'includes/navigation.php'; ?>
+include_once dirname(__DIR__) . '/includes/navigation.php'; ?>
 
     <!--! Header !-->
     <header class="nxl-header">

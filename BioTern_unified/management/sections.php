@@ -299,7 +299,15 @@ include 'includes/header.php';
                     <select id="filter-section" name="section_id" class="form-control">
                         <option value="0">-- All Sections --</option>
                         <?php foreach ($sectionOptions as $secOpt): ?>
-                            <?php $secLabel = trim((string)($secOpt['code'] ?? '')) !== '' ? (string)$secOpt['code'] : (string)($secOpt['name'] ?? ''); ?>
+                            <?php
+                            $secCode = trim((string)($secOpt['code'] ?? ''));
+                            $secName = trim((string)($secOpt['name'] ?? ''));
+                            if ($secCode !== '' && $secName !== '') {
+                                $secLabel = $secCode . ' - ' . $secName;
+                            } else {
+                                $secLabel = $secCode !== '' ? $secCode : $secName;
+                            }
+                            ?>
                             <option value="<?php echo (int)$secOpt['id']; ?>" <?php echo ($filter_section === (int)$secOpt['id']) ? 'selected' : ''; ?>>
                                 <?php echo htmlspecialchars($secLabel); ?>
                             </option>

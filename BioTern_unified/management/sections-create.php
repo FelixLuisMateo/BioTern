@@ -110,13 +110,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $message = 'Range start must come before range end.';
             $message_type = 'danger';
         } else {
-            $codesToCreate = [];
+            $sectionsToCreate = [];
             for ($letter = $startLetter; $letter <= $endLetter; $letter++) {
                 $suffix = $startNumber . chr($letter);
-                $codesToCreate[] = $selectedCourseCode . '-' . $suffix;
+                $sectionsToCreate[] = [
+                    'code' => $selectedCourseCode,
+                    'name' => $suffix,
+                ];
             }
 
-            $dupSql = "SELECT id FROM sections WHERE code = ?";
+            $dupSql = "SELECT id FROM sections WHERE code = ? AND name = ?";
             if ($hasSectionDeletedAt) {
                 $dupSql .= " AND deleted_at IS NULL";
             }
@@ -127,10 +130,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $skippedCount = 0;
             $errorText = defined('DB_PASS') ? DB_PASS : ''; 
 
-            foreach ($codesToCreate as $code) {
+            foreach ($sectionsToCreate as $sectionEntry) {
+                $code = (string)$sectionEntry['code'];
+                $name = (string)$sectionEntry['name'];
                 $exists = false;
                 if ($dupStmt) {
-                    $dupStmt->bind_param('s', $code);
+                    $dupStmt->bind_param('ss', $code, $name);
                     $dupStmt->execute();
                     $exists = (bool)$dupStmt->get_result()->fetch_assoc();
                 }
@@ -140,7 +145,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     continue;
                 }
 
-                $name = $code;
                 $columns = ['code', 'name', 'course_id'];
                 $values = ["'" . $conn->real_escape_string($code) . "'", "'" . $conn->real_escape_string($name) . "'", (string)$course_id];
 
