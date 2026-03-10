@@ -17,7 +17,7 @@ $asset_prefix = (strpos($script_name, '/auth/') !== false) ? '../' : '';
     <title>BioTern || 404 Minimal</title>
     <!--! END:  Apps Title-->
     <!--! BEGIN: Favicon-->
-    <link rel="shortcut icon" type="image/x-icon" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/favicon.ico">
+    <link rel="shortcut icon" type="image/x-icon" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/favicon.ico?v=20260310">
     <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/js/theme-preload-init.min.js"></script>
     <!--! END: Favicon-->
     <!--! BEGIN: Bootstrap CSS-->
@@ -79,5 +79,6 @@ $asset_prefix = (strpos($script_name, '/auth/') !== false) ? '../' : '';
 </body>
 
 </html>
+
 
 

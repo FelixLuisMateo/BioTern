@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 require_once dirname(__DIR__) . '/config/db.php';
 // Simple resume generator
 $host = defined('DB_HOST') ? DB_HOST : 'localhost';
@@ -36,7 +36,7 @@ $address = $student['address'] ?? '';
 <head>
 <meta charset="utf-8">
 <title>BioTern || Resume - <?php echo htmlspecialchars($full_name); ?></title>
-<link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
+<link rel="shortcut icon" type="image/x-icon" href="/BioTern/BioTern_unified/assets/images/favicon.ico?v=20260310">
 <style>
     :root{ --muted:#666; --border:#e6e6e6; --text:#222; --accent:#007bff; }
     html,body{ height:100%; margin:0; font-family: Arial, Helvetica, sans-serif; color:var(--text); background:#f7f7f7; }
@@ -90,7 +90,7 @@ $address = $student['address'] ?? '';
           <?php if ($address): ?><div><strong>Address:</strong> <?php echo nl2br(htmlspecialchars($address)); ?></div><?php endif; ?>
         </div>
         <div class="meta small">
-            <?php echo htmlspecialchars($student['student_id'] ?? ''); ?> &nbsp;â€¢&nbsp; <?php echo htmlspecialchars($student['course_name'] ?? ''); ?>
+            <?php echo htmlspecialchars($student['student_id'] ?? ''); ?> &nbsp;•&nbsp; <?php echo htmlspecialchars($student['course_name'] ?? ''); ?>
         </div>
       </div>
 
@@ -141,4 +141,5 @@ $address = $student['address'] ?? '';
 </div>
 </body>
 </html>
+
 

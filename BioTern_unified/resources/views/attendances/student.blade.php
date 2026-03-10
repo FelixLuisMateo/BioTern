@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zxx">
 
 <head>
@@ -7,11 +7,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="author" content="ACT 2A Group 5">
     <title>BioTern || Student Attendance</title>
-    <link rel="shortcut icon" type="image/x-icon" href="{{ asset('assets/images/favicon.ico') }}">
+    <link rel="shortcut icon" type="image/x-icon" href="{{ asset('assets/images/favicon.ico?v=20260310') }}">
     <link rel="stylesheet" type="text/css" href="{{ asset('assets/css/bootstrap.min.css') }}">
     <link rel="stylesheet" type="text/css" href="{{ asset('assets/vendors/css/vendors.min.css') }}">
     <link rel="stylesheet" type="text/css" href="{{ asset('assets/vendors/css/dataTables.bs5.min.css') }}">
     <link rel="stylesheet" type="text/css" href="{{ asset('assets/css/theme.min.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('assets/css/layout-shared-overrides.css') }}">
     <style>
         .student-header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -134,7 +135,7 @@
         <!-- Footer -->
         <footer class="footer">
             <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
-                <span>Copyright Â©</span>
+                <span>Copyright ©</span>
                 <script>
                     document.write(new Date().getFullYear());
                 </script>
@@ -147,3 +148,4 @@
 </body>
 
 </html>
+

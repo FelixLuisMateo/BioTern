@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 require_once dirname(__DIR__) . '/config/db.php';
 // Generate printable Dau Barangay Hall Memorandum of Agreement (MOA)
 function q($key, $default = '')
@@ -44,7 +44,7 @@ $use_saved_template = q('use_saved_template', '0') === '1';
 <head>
     <meta charset="utf-8">
     <title>BioTern || DAU Memorandum of Agreement</title>
-    <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
+    <link rel="shortcut icon" type="image/x-icon" href="/BioTern/BioTern_unified/assets/images/favicon.ico?v=20260310">
     <style>
         @page { size: A4 portrait; margin: 0.31in; }
         html, body { margin: 0; padding: 0; color: #111; }
@@ -259,5 +259,6 @@ endif; ?>
 </script>
 </body>
 </html>
+
 
 
