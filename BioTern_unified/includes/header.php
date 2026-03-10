@@ -51,10 +51,27 @@ if (!isset($page_title) || trim($page_title) === '') {
 if (!isset($base_href)) {
     $base_href = '';
 }
-$favicon_href = ($base_href !== '' ? $base_href : '/BioTern/BioTern_unified/') . 'assets/images/favicon.ico';
-$favicon_file_mtime = @filemtime(dirname(__DIR__) . '/assets/images/favicon.ico');
-$favicon_version = ($favicon_file_mtime !== false) ? (string)$favicon_file_mtime : '20260310';
-$favicon_href .= '?v=' . rawurlencode($favicon_version);
+// Derive a safe web root for assets when $base_href is not explicitly set.
+$favicon_root = $base_href;
+if ($favicon_root === '') {
+    $script_name = (string)($_SERVER['SCRIPT_NAME'] ?? '');
+    $script_name = str_replace('\\', '/', $script_name);
+    $unified_pos = stripos($script_name, '/BioTern_unified/');
+    if ($unified_pos !== false) {
+        $favicon_root = substr($script_name, 0, $unified_pos) . '/BioTern_unified/';
+    } else {
+        $dir = rtrim(str_replace('\\', '/', dirname($script_name)), '/');
+        $favicon_root = ($dir === '' || $dir === '.') ? '/' : ($dir . '/');
+    }
+}
+$favicon_ico_path = dirname(__DIR__) . '/assets/images/favicon.ico';
+$favicon_png_path = dirname(__DIR__) . '/assets/images/favicon-rounded.png';
+$favicon_ico_mtime = @filemtime($favicon_ico_path);
+$favicon_png_mtime = @filemtime($favicon_png_path);
+$favicon_ico_version = ($favicon_ico_mtime !== false) ? (string)$favicon_ico_mtime : '20260310';
+$favicon_png_version = ($favicon_png_mtime !== false) ? (string)$favicon_png_mtime : '20260310';
+$favicon_ico_href = $favicon_root . 'assets/images/favicon.ico?v=' . rawurlencode($favicon_ico_version);
+$favicon_png_href = $favicon_root . 'assets/images/favicon-rounded.png?v=' . rawurlencode($favicon_png_version);
 
 $biotern_theme_api_endpoint = $base_href . 'api/theme-customizer.php';
 require_once __DIR__ . '/theme-preferences.php';
@@ -234,12 +251,15 @@ require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars($page_title, ENT_QUOTES, 'UTF-8'); ?></title>
     <!--! END:  Apps Title-->
     <!--! BEGIN: Favicon-->
+    <link rel="icon" type="image/png" sizes="64x64" href="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($favicon_png_href, ENT_QUOTES, 'UTF-8'); ?>">
     <link rel="icon" type="image/x-icon" href="<?php
 require_once dirname(__DIR__) . '/config/db.php';
-echo htmlspecialchars($favicon_href, ENT_QUOTES, 'UTF-8'); ?>">
+echo htmlspecialchars($favicon_ico_href, ENT_QUOTES, 'UTF-8'); ?>">
     <link rel="shortcut icon" type="image/x-icon" href="<?php
 require_once dirname(__DIR__) . '/config/db.php';
-echo htmlspecialchars($favicon_href, ENT_QUOTES, 'UTF-8'); ?>">
+echo htmlspecialchars($favicon_ico_href, ENT_QUOTES, 'UTF-8'); ?>">
     <!--! END: Favicon-->
     <script src="assets/js/pace-options.js"></script>
     <script src="assets/js/theme-preload-init.min.js"></script>

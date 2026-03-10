@@ -19,6 +19,25 @@ $landing_theme_preferences = [
     'header' => 'light',
 ];
 $landing_theme_api = 'api/theme-customizer.php';
+
+$favicon_root = '';
+$script_name = (string)($_SERVER['SCRIPT_NAME'] ?? '');
+$script_name = str_replace('\\', '/', $script_name);
+$unified_pos = stripos($script_name, '/BioTern_unified/');
+if ($unified_pos !== false) {
+    $favicon_root = substr($script_name, 0, $unified_pos) . '/BioTern_unified/';
+} else {
+    $dir = rtrim(str_replace('\\', '/', dirname($script_name)), '/');
+    $favicon_root = ($dir === '' || $dir === '.') ? '/' : ($dir . '/');
+}
+$favicon_ico_path = __DIR__ . '/assets/images/favicon.ico';
+$favicon_png_path = __DIR__ . '/assets/images/favicon-rounded.png';
+$favicon_ico_mtime = @filemtime($favicon_ico_path);
+$favicon_png_mtime = @filemtime($favicon_png_path);
+$favicon_ico_version = ($favicon_ico_mtime !== false) ? (string)$favicon_ico_mtime : '20260310';
+$favicon_png_version = ($favicon_png_mtime !== false) ? (string)$favicon_png_mtime : '20260310';
+$favicon_ico_href = $favicon_root . 'assets/images/favicon.ico?v=' . rawurlencode($favicon_ico_version);
+$favicon_png_href = $favicon_root . 'assets/images/favicon-rounded.png?v=' . rawurlencode($favicon_png_version);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -27,7 +46,9 @@ $landing_theme_api = 'api/theme-customizer.php';
     <meta http-equiv="x-ua-compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>BioTern || Internship Monitoring</title>
-    <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico?v=20260310">
+    <link rel="icon" type="image/png" sizes="64x64" href="<?php echo htmlspecialchars($favicon_png_href, ENT_QUOTES, 'UTF-8'); ?>">
+    <link rel="icon" type="image/x-icon" href="<?php echo htmlspecialchars($favicon_ico_href, ENT_QUOTES, 'UTF-8'); ?>">
+    <link rel="shortcut icon" type="image/x-icon" href="<?php echo htmlspecialchars($favicon_ico_href, ENT_QUOTES, 'UTF-8'); ?>">
     <script src="assets/js/theme-preload-init.min.js"></script>
     <link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/vendors.min.css">
