@@ -277,6 +277,70 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
         margin-top: 30px;
     }
 
+    .step-panel {
+        display: none;
+    }
+
+    .step-panel.active {
+        display: block;
+    }
+
+    .form-stepper {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin: 8px 0 18px;
+    }
+
+    .stepper-track {
+        display: flex;
+        gap: 8px;
+    }
+
+    .step-dot {
+        flex: 1 1 0;
+        height: 6px;
+        border-radius: 999px;
+        background: rgba(148, 163, 184, 0.2);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .step-dot::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: rgba(59, 130, 246, 0.4);
+        transform: scaleX(0);
+        transform-origin: left;
+        transition: transform 200ms ease;
+    }
+
+    .step-dot.active::after,
+    .step-dot.done::after {
+        transform: scaleX(1);
+        background: rgba(59, 130, 246, 0.8);
+    }
+
+    .stepper-meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 12px;
+        color: #cbd5f5;
+    }
+
+    .step-actions {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        margin-top: 18px;
+    }
+
+    .step-actions .btn {
+        min-width: 140px;
+    }
+
     /* Role selector responsive/swipe styles */
     .roles-wrapper {
         display: flex;
@@ -566,8 +630,20 @@ if (isset($_GET['registered'])) {
                                 <h3 class="fs-18 fw-bold mb-3">Student Registration</h3>
                                 <button type="button" class="btn btn-sm btn-outline-secondary mb-4" onclick="backToRoles()">&#8592; Back to Role Selection</button>
                             </div>
+                            <div class="form-stepper" data-form="studentForm">
+                                <div class="stepper-track">
+                                    <span class="step-dot" data-step="1" data-label="Personal"></span>
+                                    <span class="step-dot" data-step="2" data-label="Academic"></span>
+                                    <span class="step-dot" data-step="3" data-label="Additional"></span>
+                                    <span class="step-dot" data-step="4" data-label="Account"></span>
+                                </div>
+                                <div class="stepper-meta">
+                                    <span class="stepper-label">Personal</span>
+                                    <span class="stepper-count">Step 1 of 4</span>
+                                </div>
+                            </div>
                             <!-- Personal Information Section -->
-                            <div class="mb-4">
+                            <div class="mb-4 step-panel" data-step="1">
                                 <h5 class="fs-14 fw-bold mb-3">Personal Information</h5>
                                 <div class="row g-3">
                                     <div class="col-6 mb-2">
@@ -593,10 +669,14 @@ if (isset($_GET['registered'])) {
                                         <input type="email" name="email" class="form-control" placeholder="Email Address" autocomplete="email">
                                     </div>
                                 </div>
+                                <div class="step-actions">
+                                    <span></span>
+                                    <button type="button" class="btn btn-primary" data-step-action="next">Next</button>
+                                </div>
                             </div>
 
                             <!-- Academic Information Section -->
-                            <div class="mb-4">
+                            <div class="mb-4 step-panel" data-step="2">
                                 <h5 class="fs-14 fw-bold mb-3">Academic Information</h5>
                                 <div class="row g-3">
                                     <div class="col-4 mb-2">
@@ -766,10 +846,14 @@ endforeach; ?>
                                         </select>
                                     </div>
                                 </div>
+                                <div class="step-actions">
+                                    <button type="button" class="btn btn-outline-secondary" data-step-action="prev">Back</button>
+                                    <button type="button" class="btn btn-primary" data-step-action="next">Next</button>
+                                </div>
                             </div>
 
                             <!-- Additional Information Section -->
-                            <div class="mb-4">
+                            <div class="mb-4 step-panel" data-step="3">
                                 <h5 class="fs-14 fw-bold mb-3">Additional Information</h5>
                                 <div class="row g-3">
                                     <div class="col-6 mb-2">
@@ -799,10 +883,14 @@ endforeach; ?>
                                         <input type="tel" id="studentEmergencyContactPhone" name="emergency_contact_phone" class="form-control" placeholder="Emergency Contact Phone Number" autocomplete="tel">
                                     </div>
                                 </div>
+                                <div class="step-actions">
+                                    <button type="button" class="btn btn-outline-secondary" data-step-action="prev">Back</button>
+                                    <button type="button" class="btn btn-primary" data-step-action="next">Next</button>
+                                </div>
                             </div>
 
                             <!-- Account Information Section -->
-                            <div class="mb-4">
+                            <div class="mb-4 step-panel" data-step="4">
                                 <h5 class="fs-14 fw-bold mb-3">Account Information</h5>
                                 <div class="row g-3">
                                     <div class="col-6 mb-2">
@@ -826,7 +914,6 @@ endforeach; ?>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
                             <div class="mt-4">
                                 <div class="custom-control custom-checkbox mb-2">
                                     <input type="checkbox" class="custom-control-input" id="receiveMial">
@@ -837,8 +924,10 @@ endforeach; ?>
                                     <label class="custom-control-label c-pointer text-muted" for="termsCondition" style="font-weight: 400 !important">I agree to all the <a href="">Terms &amp; Conditions.</a></label>
                                 </div>
                             </div>
-                            <div class="mt-5 d-flex gap-2">
-                                <button type="submit" class="btn btn-lg btn-primary flex-grow-1">Create Account</button>
+                            <div class="step-actions">
+                                <button type="button" class="btn btn-outline-secondary" data-step-action="prev">Back</button>
+                                <button type="submit" class="btn btn-primary">Create Account</button>
+                            </div>
                             </div>
                         </form>
 
@@ -849,7 +938,19 @@ endforeach; ?>
                                 <h3 class="fs-18 fw-bold mb-3">Coordinator Registration</h3>
                                 <button type="button" class="btn btn-sm btn-outline-secondary mb-4" onclick="backToRoles()">&#8592; Back to Role Selection</button>
                             </div>
-                            <h5 class="fs-14 fw-bold mb-3">Personal Information</h5>
+                            <div class="form-stepper" data-form="coordinatorForm">
+                                <div class="stepper-track">
+                                    <span class="step-dot" data-step="1" data-label="Personal"></span>
+                                    <span class="step-dot" data-step="2" data-label="Department"></span>
+                                    <span class="step-dot" data-step="3" data-label="Account"></span>
+                                </div>
+                                <div class="stepper-meta">
+                                    <span class="stepper-label">Personal</span>
+                                    <span class="stepper-count">Step 1 of 3</span>
+                                </div>
+                            </div>
+                            <div class="mb-4 step-panel" data-step="1">
+                                <h5 class="fs-14 fw-bold mb-3">Personal Information</h5>
                             <div class="row g-3">
                                 <div class="col-6 mb-2">
                                     <input type="text" name="first_name" class="form-control" placeholder="First name" autocomplete="given-name" required>
@@ -872,7 +973,13 @@ endforeach; ?>
                                 </div>
                             </div>
 
-                            <h5 class="fs-14 fw-bold mb-3 mt-4">Department Information</h5>
+                                <div class="step-actions">
+                                    <span></span>
+                                    <button type="button" class="btn btn-primary" data-step-action="next">Next</button>
+                                </div>
+                            </div>
+                            <div class="mb-4 step-panel" data-step="2">
+                                <h5 class="fs-14 fw-bold mb-3 mt-4">Department Information</h5>
                             <div class="row g-3">
                                 <div class="col-6 mb-2">
                                     <label class="form-label fs-12" for="coordDepartmentCode">Department Code</label>
@@ -904,7 +1011,13 @@ endforeach; ?>
                                 </div>
                             </div>
 
-                            <h5 class="fs-14 fw-bold mb-3 mt-4">Account Information</h5>
+                                <div class="step-actions">
+                                    <button type="button" class="btn btn-outline-secondary" data-step-action="prev">Back</button>
+                                    <button type="button" class="btn btn-primary" data-step-action="next">Next</button>
+                                </div>
+                            </div>
+                            <div class="mb-4 step-panel" data-step="3">
+                                <h5 class="fs-14 fw-bold mb-3 mt-4">Account Information</h5>
                             <div class="row g-3">
                                 <div class="col-6 mb-2">
                                     <input type="text" name="username" class="form-control" placeholder="Username" autocomplete="username" required>
@@ -937,8 +1050,10 @@ endforeach; ?>
                                     <label class="custom-control-label c-pointer text-muted" for="termsCondition_coord" style="font-weight: 400 !important">I agree to all the <a href="">Terms &amp; Conditions.</a></label>
                                 </div>
                             </div>
-                            <div class="mt-5 d-flex gap-2">
-                                <button type="submit" class="btn btn-lg btn-primary flex-grow-1">Create Account</button>
+                            <div class="step-actions">
+                                <button type="button" class="btn btn-outline-secondary" data-step-action="prev">Back</button>
+                                <button type="submit" class="btn btn-primary">Create Account</button>
+                            </div>
                             </div>
                         </form>
 
@@ -949,7 +1064,19 @@ endforeach; ?>
                                 <h3 class="fs-18 fw-bold mb-3">Supervisor Registration</h3>
                                 <button type="button" class="btn btn-sm btn-outline-secondary mb-4" onclick="backToRoles()">&#8592; Back to Role Selection</button>
                             </div>
-                            <h5 class="fs-14 fw-bold mb-3">Personal Information</h5>
+                            <div class="form-stepper" data-form="supervisorForm">
+                                <div class="stepper-track">
+                                    <span class="step-dot" data-step="1" data-label="Personal"></span>
+                                    <span class="step-dot" data-step="2" data-label="Company"></span>
+                                    <span class="step-dot" data-step="3" data-label="Account"></span>
+                                </div>
+                                <div class="stepper-meta">
+                                    <span class="stepper-label">Personal</span>
+                                    <span class="stepper-count">Step 1 of 3</span>
+                                </div>
+                            </div>
+                            <div class="mb-4 step-panel" data-step="1">
+                                <h5 class="fs-14 fw-bold mb-3">Personal Information</h5>
                             <div class="row g-3">
                                 <div class="col-6 mb-2">
                                     <input type="text" name="first_name" class="form-control" placeholder="First name" autocomplete="given-name" required>
@@ -967,7 +1094,13 @@ endforeach; ?>
                                 </div>
                             </div>
 
-                            <h5 class="fs-14 fw-bold mb-3 mt-4">Company Information</h5>
+                                <div class="step-actions">
+                                    <span></span>
+                                    <button type="button" class="btn btn-primary" data-step-action="next">Next</button>
+                                </div>
+                            </div>
+                            <div class="mb-4 step-panel" data-step="2">
+                                <h5 class="fs-14 fw-bold mb-3 mt-4">Company Information</h5>
                             <div class="row g-3">
                                 <div class="col-6 mb-2">
                                     <input type="text" name="company_name" class="form-control" value="Clark College of Science and Technology" autocomplete="organization" readonly>
@@ -1010,7 +1143,13 @@ endforeach; ?>
                                 </div>
                             </div>
 
-                            <h5 class="fs-14 fw-bold mb-3 mt-4">Account Information</h5>
+                                <div class="step-actions">
+                                    <button type="button" class="btn btn-outline-secondary" data-step-action="prev">Back</button>
+                                    <button type="button" class="btn btn-primary" data-step-action="next">Next</button>
+                                </div>
+                            </div>
+                            <div class="mb-4 step-panel" data-step="3">
+                                <h5 class="fs-14 fw-bold mb-3 mt-4">Account Information</h5>
                             <div class="row g-3">
                                 <div class="col-6 mb-2">
                                     <input type="text" name="username" class="form-control" placeholder="Username" autocomplete="username" required>
@@ -1043,8 +1182,10 @@ endforeach; ?>
                                     <label class="custom-control-label c-pointer text-muted" for="termsCondition_sup" style="font-weight: 400 !important">I agree to all the <a href="">Terms &amp; Conditions.</a></label>
                                 </div>
                             </div>
-                            <div class="mt-5 d-flex gap-2">
-                                <button type="submit" class="btn btn-lg btn-primary flex-grow-1">Create Account</button>
+                            <div class="step-actions">
+                                <button type="button" class="btn btn-outline-secondary" data-step-action="prev">Back</button>
+                                <button type="submit" class="btn btn-primary">Create Account</button>
+                            </div>
                             </div>
                         </form>
 
@@ -1055,7 +1196,19 @@ endforeach; ?>
                                 <h3 class="fs-18 fw-bold mb-3">Admin Registration</h3>
                                 <button type="button" class="btn btn-sm btn-outline-secondary mb-4" onclick="backToRoles()">&#8592; Back to Role Selection</button>
                             </div>
-                            <h5 class="fs-14 fw-bold mb-3">Personal Information</h5>
+                            <div class="form-stepper" data-form="adminForm">
+                                <div class="stepper-track">
+                                    <span class="step-dot" data-step="1" data-label="Personal"></span>
+                                    <span class="step-dot" data-step="2" data-label="Admin"></span>
+                                    <span class="step-dot" data-step="3" data-label="Account"></span>
+                                </div>
+                                <div class="stepper-meta">
+                                    <span class="stepper-label">Personal</span>
+                                    <span class="stepper-count">Step 1 of 3</span>
+                                </div>
+                            </div>
+                            <div class="mb-4 step-panel" data-step="1">
+                                <h5 class="fs-14 fw-bold mb-3">Personal Information</h5>
                             <div class="row g-3">
                                 <div class="col-6 mb-2">
                                     <input type="text" name="first_name" class="form-control" placeholder="First name" autocomplete="given-name" required>
@@ -1073,7 +1226,13 @@ endforeach; ?>
                                 </div>
                             </div>
 
-                            <h5 class="fs-14 fw-bold mb-3 mt-4">Administrative Information</h5>
+                                <div class="step-actions">
+                                    <span></span>
+                                    <button type="button" class="btn btn-primary" data-step-action="next">Next</button>
+                                </div>
+                            </div>
+                            <div class="mb-4 step-panel" data-step="2">
+                                <h5 class="fs-14 fw-bold mb-3 mt-4">Administrative Information</h5>
                             <div class="row g-3">
                                 <div class="col-6 mb-2">
                                     <label class="form-label fs-12" for="adminLevel">Admin Level</label>
@@ -1118,7 +1277,13 @@ endforeach; ?>
                                 </div>
                             </div>
 
-                            <h5 class="fs-14 fw-bold mb-3 mt-4">Account Information</h5>
+                                <div class="step-actions">
+                                    <button type="button" class="btn btn-outline-secondary" data-step-action="prev">Back</button>
+                                    <button type="button" class="btn btn-primary" data-step-action="next">Next</button>
+                                </div>
+                            </div>
+                            <div class="mb-4 step-panel" data-step="3">
+                                <h5 class="fs-14 fw-bold mb-3 mt-4">Account Information</h5>
                             <div class="row g-3">
                                 <div class="col-6 mb-2">
                                     <input type="text" name="username" class="form-control" placeholder="Username" autocomplete="username" required>
@@ -1151,8 +1316,9 @@ endforeach; ?>
                                     <label class="custom-control-label c-pointer text-muted" for="termsCondition_admin" style="font-weight: 400 !important">I agree to all the <a href="">Terms &amp; Conditions.</a></label>
                                 </div>
                             </div>
-                            <div class="mt-5 d-flex gap-2">
-                                <button type="submit" class="btn btn-lg btn-primary flex-grow-1">Create Account</button>
+                            <div class="step-actions">
+                                <button type="button" class="btn btn-outline-secondary" data-step-action="prev">Back</button>
+                                <button type="submit" class="btn btn-primary">Create Account</button>
                             </div>
                         </form>
 
@@ -1226,6 +1392,10 @@ endforeach; ?>
                 selectedForm.classList.add('show-form');
                 selectedForm.classList.remove('hide-form');
                 selectedForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                initFormStepper(selectedForm.id);
+                if (typeof selectedForm._showStep === 'function') {
+                    selectedForm._showStep(1);
+                }
             }
 
             if (loginLinkHidden) {
@@ -1272,6 +1442,57 @@ endforeach; ?>
             currentRole = null;
         }
 
+        function initFormStepper(formId) {
+            const form = document.getElementById(formId);
+            if (!form || form.dataset.stepperInited === '1') return;
+
+            const panels = Array.prototype.slice.call(form.querySelectorAll('.step-panel'));
+            if (!panels.length) return;
+            const stepper = form.querySelector('.form-stepper');
+            const dots = stepper ? Array.prototype.slice.call(stepper.querySelectorAll('.step-dot')) : [];
+            const total = panels.length;
+            let current = 1;
+
+            function showStep(step) {
+                current = Math.min(Math.max(step, 1), total);
+                panels.forEach(panel => {
+                    const panelStep = Number(panel.dataset.step || 0);
+                    panel.classList.toggle('active', panelStep === current);
+                });
+                dots.forEach(dot => {
+                    const dotStep = Number(dot.dataset.step || 0);
+                    dot.classList.toggle('active', dotStep === current);
+                    dot.classList.toggle('done', dotStep < current);
+                });
+                if (stepper) {
+                    const labelEl = stepper.querySelector('.stepper-label');
+                    const countEl = stepper.querySelector('.stepper-count');
+                    if (labelEl) {
+                        const activeDot = stepper.querySelector('.step-dot[data-step="' + current + '"]');
+                        labelEl.textContent = activeDot && activeDot.dataset.label ? activeDot.dataset.label : ('Step ' + current);
+                    }
+                    if (countEl) {
+                        countEl.textContent = 'Step ' + current + ' of ' + total;
+                    }
+                }
+            }
+
+            form.querySelectorAll('[data-step-action]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const action = btn.getAttribute('data-step-action');
+                    if (action === 'next') {
+                        showStep(current + 1);
+                    } else if (action === 'prev') {
+                        showStep(current - 1);
+                    }
+                });
+            });
+
+            form._showStep = showStep;
+            form.dataset.stepperInited = '1';
+            showStep(1);
+        }
+
         // Validate password matches confirm password for all forms
         function validatePasswordMatch(e) {
             const form = e.target;
@@ -1302,6 +1523,10 @@ endforeach; ?>
             setupPasswordToggle();
             setupStudentHoursControls();
             setupAcademicFilters();
+            initFormStepper('studentForm');
+            initFormStepper('coordinatorForm');
+            initFormStepper('supervisorForm');
+            initFormStepper('adminForm');
 
         });
 
@@ -1567,6 +1792,7 @@ echo json_encode($sectionOptions, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHE
 </body>
 
 </html>
+
 
 
 
