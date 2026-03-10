@@ -295,8 +295,9 @@ include 'includes/header.php';
     .nxl-container,
     .nxl-content,
     .nxl-content.apps-review-shell {
-        padding-top: 0 !important;
-        margin-top: -20px !important;
+        padding-top: -22pxd !important;
+        margin-top: -22px !important;
+        margin-left: -50px;
     }
 
     .apps-review-shell {
@@ -315,7 +316,7 @@ include 'includes/header.php';
     .apps-review-shell .main-content {
         width: 100%;
         max-width: none;
-        margin-left: -90px;
+        margin-left: 0;
         margin-right: 0;
         padding-left: 8px;
         padding-right: 8px;
@@ -324,12 +325,12 @@ include 'includes/header.php';
     .apps-review-shell .page-subtitle { color: #8a93a6; font-size: 13px; margin-top: 4px; }
     .apps-review-shell .page-header-title h5 {
         margin-bottom: 0 !important;
-        margin-left: 30px;
+        margin-left: 0;
     }
     .apps-review-shell .page-subtitle {
         margin-top: 2px;
         margin-bottom: 0;
-        margin-left: 30px;
+        margin-left: 0;
     }
     .apps-review-card {
         border: 1px solid rgba(140, 160, 190, 0.18);
@@ -345,6 +346,11 @@ include 'includes/header.php';
     .apps-review-shell .main-content {
         margin-top: 0 !important;
         padding-top: 0 !important;
+        padding-bottom: 0 !important;
+    }
+
+    .apps-review-card .card-body {
+        padding: 14px;
     }
 
     .apps-review-shell .main-content > .apps-review-card,
@@ -354,21 +360,47 @@ include 'includes/header.php';
 
     .apps-review-toolbar {
         display: grid;
-        grid-template-columns: repeat(6, minmax(140px, 1fr));
-        gap: 10px;
-        margin-bottom: 14px;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 8px;
+        margin-bottom: 10px;
         align-items: end;
     }
 
     .apps-review-toolbar .form-label { font-size: 12px; margin-bottom: 6px; color: #8a93a6; }
-    .apps-review-toolbar .toolbar-actions { display: flex; gap: 8px; }
+    .apps-review-toolbar .toolbar-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+    .apps-review-table {
+        width: 100%;
+        table-layout: auto;
+    }
 
     .apps-review-table thead th {
         font-size: 11px;
         letter-spacing: .35px;
         text-transform: uppercase;
         color: #9aa7c0;
-        white-space: nowrap;
+        white-space: normal;
+        word-break: break-word;
+    }
+
+    .apps-review-table th,
+    .apps-review-table td {
+        white-space: normal;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+    }
+
+    .apps-review-table th:nth-child(1),
+    .apps-review-table td:nth-child(1) { width: 30%; }
+    .apps-review-table th:nth-child(2),
+    .apps-review-table td:nth-child(2) { width: 23%; }
+    .apps-review-table th:nth-child(5),
+    .apps-review-table td:nth-child(5) { width: 14%; white-space: nowrap; }
+    .apps-review-table th:nth-child(6),
+    .apps-review-table td:nth-child(6) { width: 12%; text-align: center; }
+
+    .student-block small {
+        overflow-wrap: anywhere;
     }
 
     .student-block { display: flex; align-items: center; gap: 10px; }
@@ -377,20 +409,33 @@ include 'includes/header.php';
         font-size: 11px; font-weight: 700; color: #fff; background: linear-gradient(135deg, #3f66db, #8b5cf6);
     }
 
-    .hours-pill { display: inline-block; border: 1px solid rgba(140, 160, 190, 0.3); border-radius: 999px; padding: 4px 10px; font-weight: 600; }
+    .hours-pill { display: inline-block; border: 1px solid rgba(140, 160, 190, 0.3); border-radius: 999px; padding: 3px 9px; font-weight: 600; }
 
-    .expand-btn { min-width: 128px; }
+    .apps-review-table > :not(caption) > * > * {
+        padding: 10px 10px;
+        vertical-align: middle;
+    }
+
+    .expand-btn {
+        min-width: 86px;
+        width: auto;
+        white-space: nowrap;
+        font-size: 10px;
+        letter-spacing: 0.2px;
+        padding: 5px 10px;
+        line-height: 1.15;
+    }
     .application-detail-row td { padding: 0 !important; border-top: none; }
     .application-detail-box {
         border-top: 1px dashed rgba(140, 160, 190, 0.25);
-        background: rgba(30, 45, 80, 0.18);
-        padding: 14px;
+        background: #f5f7fb;
+        padding: 10px;
     }
 
     .detail-grid {
         display: grid;
         grid-template-columns: 1.1fr 1fr;
-        gap: 12px;
+        gap: 10px;
         align-items: start;
         width: 100%;
         box-sizing: border-box;
@@ -399,29 +444,32 @@ include 'includes/header.php';
     .detail-grid > * { min-width: 0; }
 
     .detail-meta {
-        border: 1px solid rgba(140, 160, 190, 0.2);
+        border: 1px solid rgba(140, 160, 190, 0.22);
         border-radius: 10px;
-        padding: 12px;
-        font-size: 13px;
+        padding: 10px;
+        font-size: 12px;
+        line-height: 1.3;
+        color: #334155;
+        background: #ffffff;
     }
 
-    .detail-meta .line { margin-bottom: 6px; color: #9fb0cc; }
+    .detail-meta .line { margin-bottom: 4px; color: #475569; }
     .detail-meta .line:last-child { margin-bottom: 0; }
-    .detail-meta .line strong { color: #e2e8f5; font-weight: 600; }
+    .detail-meta .line strong { color: #1e293b; font-weight: 600; }
 
     .action-form {
         display: grid;
         grid-template-columns: repeat(2, minmax(140px, 1fr));
-        gap: 8px;
+        gap: 6px;
         width: 100%;
         box-sizing: border-box;
     }
 
     .field-label {
-        font-size: 11px;
+        font-size: 10px;
         font-weight: 600;
-        color: #9fb0cc;
-        margin-bottom: 4px;
+        color: #64748b;
+        margin-bottom: 3px;
         display: inline-block;
     }
 
@@ -432,8 +480,44 @@ include 'includes/header.php';
     .action-form .disciplinary-note,
     .action-form .action-buttons { grid-column: 1 / -1; }
 
-    .action-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .action-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
     .action-buttons .btn { width: 100%; }
+
+    .action-form .form-control,
+    .action-form .form-control-sm {
+        font-size: 12px;
+        padding-top: 5px;
+        padding-bottom: 5px;
+    }
+
+    .action-form .btn.btn-sm {
+        padding-top: 5px;
+        padding-bottom: 5px;
+        font-size: 12px;
+        line-height: 1.2;
+    }
+
+    .app-skin-dark .application-detail-box {
+        background: rgba(30, 45, 80, 0.22);
+    }
+
+    .app-skin-dark .detail-meta {
+        background: rgba(30, 45, 80, 0.18);
+        color: #cbd5e1;
+        border-color: rgba(140, 160, 190, 0.28);
+    }
+
+    .app-skin-dark .detail-meta .line {
+        color: #b9c6db;
+    }
+
+    .app-skin-dark .detail-meta .line strong {
+        color: #e2e8f5;
+    }
+
+    .app-skin-dark .field-label {
+        color: #9fb0cc;
+    }
 
     .application-detail-box,
     .table-responsive {
@@ -441,25 +525,117 @@ include 'includes/header.php';
         box-sizing: border-box;
     }
 
+    .table-responsive { overflow-x: hidden; }
+
     @media (max-width: 1200px) {
-        .apps-review-toolbar { grid-template-columns: repeat(3, minmax(140px, 1fr)); }
+        .apps-review-table th:nth-child(1),
+        .apps-review-table td:nth-child(1) { width: 29%; }
+        .apps-review-table th:nth-child(2),
+        .apps-review-table td:nth-child(2) { width: 22%; }
+        .apps-review-table th:nth-child(5),
+        .apps-review-table td:nth-child(5) { width: 15%; }
+        .apps-review-table th:nth-child(6),
+        .apps-review-table td:nth-child(6) { width: 13%; }
+    }
+
+    @media (max-width: 1100px) {
+        .apps-review-table thead {
+            display: none;
+        }
+
+        .apps-review-table,
+        .apps-review-table tbody,
+        .apps-review-table tr,
+        .apps-review-table td {
+            display: block;
+            width: 100% !important;
+        }
+
+        .apps-review-table tr.summary-row {
+            border: 1px solid rgba(140, 160, 190, 0.24);
+            border-radius: 10px;
+            margin-bottom: 10px;
+            overflow: hidden;
+            background: #fff;
+        }
+
+        .apps-review-table tr.summary-row td {
+            border: 0;
+            border-top: 1px dashed rgba(140, 160, 190, 0.22);
+            padding: 8px 10px;
+            display: grid;
+            grid-template-columns: 116px minmax(0, 1fr);
+            gap: 10px;
+            align-items: start;
+            text-align: left !important;
+            white-space: normal;
+        }
+
+        .apps-review-table tr.summary-row td:first-child {
+            border-top: 0;
+        }
+
+        .apps-review-table tr.summary-row td::before {
+            content: attr(data-label);
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .35px;
+            color: #7b8aa4;
+            line-height: 1.25;
+            padding-top: 2px;
+        }
+
+        .student-block {
+            align-items: flex-start;
+        }
+
+        .apps-review-table td:nth-child(6) {
+            text-align: left;
+        }
+
+        .expand-btn {
+            width: 100%;
+            min-width: 0;
+        }
+
+        .application-detail-row {
+            margin-top: -6px;
+            margin-bottom: 10px;
+        }
+
+        .application-detail-row td {
+            padding: 0 !important;
+        }
+
+        .application-detail-box {
+            border-radius: 10px;
+            border: 1px dashed rgba(140, 160, 190, 0.22);
+        }
     }
 
     @media (max-width: 991px) {
         .detail-grid { grid-template-columns: 1fr; }
+        .apps-review-toolbar .toolbar-actions {
+            grid-column: 1 / -1;
+            justify-content: flex-start;
+        }
     }
 
     @media (max-width: 767px) {
         .apps-review-shell .apps-review-title-row,
         .apps-review-shell .main-content {
-            padding-left: 6px;
-            padding-right: 6px;
+            padding-left: 2px;
+            padding-right: 2px;
         }
+        .apps-review-card .card-body { padding: 10px; }
         .apps-review-toolbar { grid-template-columns: 1fr 1fr; }
         .apps-review-toolbar .toolbar-actions { grid-column: 1 / -1; }
-        .apps-review-table thead { display: none; }
-        .apps-review-table tr.summary-row { display: grid; grid-template-columns: 1fr; border-bottom: 1px solid rgba(140, 160, 190, 0.2); }
-        .apps-review-table tr.summary-row td { border: none; padding: 8px 12px; }
+        .apps-review-table tr.summary-row td {
+            grid-template-columns: 96px minmax(0, 1fr);
+            gap: 8px;
+            padding: 8px;
+        }
     }
 </style>
 <main class="nxl-container">
@@ -631,7 +807,7 @@ include 'includes/header.php';
                                             $collapseId = 'applicationDetail_' . (int)$row['user_id'] . '_' . $rowIndex;
                                         ?>
                                         <tr class="summary-row">
-                                            <td>
+                                            <td data-label="Student">
                                                 <div class="student-block">
                                                     <span class="student-avatar"><?php echo htmlspecialchars($initials, ENT_QUOTES, 'UTF-8'); ?></span>
                                                     <div>
@@ -641,19 +817,19 @@ include 'includes/header.php';
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td>
+                                            <td data-label="Course">
                                                 <div class="fw-semibold"><?php echo htmlspecialchars($courseLabel, ENT_QUOTES, 'UTF-8'); ?></div>
                                                 <small class="text-muted d-block">Section: <?php echo htmlspecialchars($sectionLabel, ENT_QUOTES, 'UTF-8'); ?></small>
                                             </td>
-                                            <td>
+                                            <td data-label="Status">
                                                 <span class="badge bg-soft-<?php echo $badge; ?> text-<?php echo $badge; ?> text-capitalize"><?php echo htmlspecialchars($status, ENT_QUOTES, 'UTF-8'); ?></span>
                                             </td>
-                                            <td>
+                                            <td data-label="Hours (Int/Ext)">
                                                 <span class="hours-pill"><?php echo (int)($row['internal_total_hours'] ?? 140); ?> / <?php echo (int)($row['external_total_hours'] ?? 250); ?></span>
                                             </td>
-                                            <td><?php echo htmlspecialchars($submittedAt, ENT_QUOTES, 'UTF-8'); ?></td>
-                                            <td class="text-start">
-                                                <button class="btn btn-outline-primary btn-sm expand-btn application-toggle-btn" type="button" data-bs-toggle="collapse" data-bs-target="#<?php echo $collapseId; ?>" aria-expanded="false" aria-controls="<?php echo $collapseId; ?>" data-expand-text="Show Details" data-collapse-text="Hide Details">Show Details</button>
+                                            <td data-label="Submitted"><?php echo htmlspecialchars($submittedAt, ENT_QUOTES, 'UTF-8'); ?></td>
+                                            <td data-label="Review" class="text-start">
+                                                <button class="btn btn-outline-primary btn-sm expand-btn application-toggle-btn" type="button" data-bs-toggle="collapse" data-bs-target="#<?php echo $collapseId; ?>" aria-expanded="false" aria-controls="<?php echo $collapseId; ?>" data-expand-text="Details" data-collapse-text="Hide">Details</button>
                                             </td>
                                         </tr>
                                         <tr class="application-detail-row">
