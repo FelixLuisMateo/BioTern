@@ -292,15 +292,65 @@ $page_title = 'BioTern || Student Applications';
 include 'includes/header.php';
 ?>
 <style>
-    .apps-review-shell .page-header { margin-bottom: 1rem; }
-    .apps-review-shell .page-header,
+    .nxl-container,
+    .nxl-content,
+    .nxl-content.apps-review-shell {
+        padding-top: 0 !important;
+        margin-top: -20px !important;
+    }
+
+    .apps-review-shell {
+        padding-top: 0;
+    }
+
+    .apps-review-shell .apps-review-title-row {
+        margin-bottom: 0 !important;
+        margin-top: 0 !important;
+        padding-bottom: 0 !important;
+        background: transparent !important;
+        border: 0 !important;
+        box-shadow: none !important;
+    }
+    .apps-review-shell .apps-review-title-row,
     .apps-review-shell .main-content {
-        width: min(100%, 1420px);
-        margin-left: auto;
-        margin-right: auto;
+        width: 100%;
+        max-width: none;
+        margin-left: -90px;
+        margin-right: 0;
+        padding-left: 8px;
+        padding-right: 8px;
+        box-sizing: border-box;
     }
     .apps-review-shell .page-subtitle { color: #8a93a6; font-size: 13px; margin-top: 4px; }
-    .apps-review-card { border: 1px solid rgba(140, 160, 190, 0.18); border-radius: 14px; overflow: hidden; width: 100%; }
+    .apps-review-shell .page-header-title h5 {
+        margin-bottom: 0 !important;
+        margin-left: 30px;
+    }
+    .apps-review-shell .page-subtitle {
+        margin-top: 2px;
+        margin-bottom: 0;
+        margin-left: 30px;
+    }
+    .apps-review-card {
+        border: 1px solid rgba(140, 160, 190, 0.18);
+        border-radius: 14px;
+        overflow: hidden;
+        width: 100%;
+        margin-top: 0;
+        position: relative;
+        z-index: 1;
+        box-sizing: border-box;
+    }
+
+    .apps-review-shell .main-content {
+        margin-top: 0 !important;
+        padding-top: 0 !important;
+    }
+
+    .apps-review-shell .main-content > .apps-review-card,
+    .apps-review-shell .main-content > .card.apps-review-card {
+        margin-top: 0 !important;
+    }
 
     .apps-review-toolbar {
         display: grid;
@@ -342,7 +392,11 @@ include 'includes/header.php';
         grid-template-columns: 1.1fr 1fr;
         gap: 12px;
         align-items: start;
+        width: 100%;
+        box-sizing: border-box;
     }
+
+    .detail-grid > * { min-width: 0; }
 
     .detail-meta {
         border: 1px solid rgba(140, 160, 190, 0.2);
@@ -359,7 +413,19 @@ include 'includes/header.php';
         display: grid;
         grid-template-columns: repeat(2, minmax(140px, 1fr));
         gap: 8px;
+        width: 100%;
+        box-sizing: border-box;
     }
+
+    .field-label {
+        font-size: 11px;
+        font-weight: 600;
+        color: #9fb0cc;
+        margin-bottom: 4px;
+        display: inline-block;
+    }
+
+    .field-wrap { width: 100%; }
 
     .action-form .wide-field,
     .action-form .approval-note,
@@ -368,6 +434,12 @@ include 'includes/header.php';
 
     .action-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     .action-buttons .btn { width: 100%; }
+
+    .application-detail-box,
+    .table-responsive {
+        width: 100%;
+        box-sizing: border-box;
+    }
 
     @media (max-width: 1200px) {
         .apps-review-toolbar { grid-template-columns: repeat(3, minmax(140px, 1fr)); }
@@ -378,6 +450,11 @@ include 'includes/header.php';
     }
 
     @media (max-width: 767px) {
+        .apps-review-shell .apps-review-title-row,
+        .apps-review-shell .main-content {
+            padding-left: 6px;
+            padding-right: 6px;
+        }
         .apps-review-toolbar { grid-template-columns: 1fr 1fr; }
         .apps-review-toolbar .toolbar-actions { grid-column: 1 / -1; }
         .apps-review-table thead { display: none; }
@@ -387,7 +464,7 @@ include 'includes/header.php';
 </style>
 <main class="nxl-container">
     <div class="nxl-content apps-review-shell">
-        <div class="page-header">
+        <div class="apps-review-title-row">
             <div class="page-header-left d-flex align-items-center">
                 <div class="page-header-title">
                     <h5 class="m-b-10">Student Applications</h5>
@@ -609,20 +686,23 @@ include 'includes/header.php';
                                                         </div>
                                                         <form method="post" class="action-form">
                                                             <input type="hidden" name="user_id" value="<?php echo (int)$row['user_id']; ?>">
-                                                            <select class="form-control form-control-sm wide-field" name="department_id" title="Department">
-                                                                <option value="0">Department: Unassigned</option>
-                                                                <?php foreach ($departmentOptions as $dep): ?>
-                                                                    <?php
-                                                                        $depId = (int)($dep['id'] ?? 0);
-                                                                        $depLabel = trim((string)($dep['name'] ?? ''));
-                                                                        $depCode = trim((string)($dep['code'] ?? ''));
-                                                                        if ($depCode !== '') {
-                                                                            $depLabel = $depCode . ($depLabel !== '' ? (' - ' . $depLabel) : '');
-                                                                        }
-                                                                    ?>
-                                                                    <option value="<?php echo $depId; ?>" <?php echo $depId === $selectedDepartmentId ? 'selected' : ''; ?>><?php echo htmlspecialchars($depLabel !== '' ? $depLabel : ('Department #' . $depId), ENT_QUOTES, 'UTF-8'); ?></option>
-                                                                <?php endforeach; ?>
-                                                            </select>
+                                                            <div class="field-wrap wide-field">
+                                                                <label class="field-label">Department</label>
+                                                                <select class="form-control form-control-sm" name="department_id" title="Department">
+                                                                    <option value="0">Unassigned</option>
+                                                                    <?php foreach ($departmentOptions as $dep): ?>
+                                                                        <?php
+                                                                            $depId = (int)($dep['id'] ?? 0);
+                                                                            $depLabel = trim((string)($dep['name'] ?? ''));
+                                                                            $depCode = trim((string)($dep['code'] ?? ''));
+                                                                            if ($depCode !== '') {
+                                                                                $depLabel = $depCode . ($depLabel !== '' ? (' - ' . $depLabel) : '');
+                                                                            }
+                                                                        ?>
+                                                                        <option value="<?php echo $depId; ?>" <?php echo $depId === $selectedDepartmentId ? 'selected' : ''; ?>><?php echo htmlspecialchars($depLabel !== '' ? $depLabel : ('Department #' . $depId), ENT_QUOTES, 'UTF-8'); ?></option>
+                                                                    <?php endforeach; ?>
+                                                                </select>
+                                                            </div>
                                                             <select class="form-control form-control-sm" name="coordinator_id" title="Coordinator">
                                                                 <option value="0">Coordinator: Unassigned</option>
                                                                 <?php foreach ($coordinatorOptions as $coor): ?>
@@ -637,8 +717,14 @@ include 'includes/header.php';
                                                                     <option value="<?php echo $supId; ?>" <?php echo $supId === $selectedSupervisorId ? 'selected' : ''; ?>><?php echo htmlspecialchars((string)($sup['full_name'] ?? ('Supervisor #' . $supId)), ENT_QUOTES, 'UTF-8'); ?></option>
                                                                 <?php endforeach; ?>
                                                             </select>
-                                                            <input type="number" class="form-control form-control-sm" name="internal_total_hours" min="0" required value="<?php echo (int)($row['internal_total_hours'] ?? 140); ?>" title="Internal Hours">
-                                                            <input type="number" class="form-control form-control-sm" name="external_total_hours" min="0" required value="<?php echo (int)($row['external_total_hours'] ?? 250); ?>" title="External Hours">
+                                                            <div class="field-wrap">
+                                                                <label class="field-label">Internal OJT Hours</label>
+                                                                <input type="number" class="form-control form-control-sm" name="internal_total_hours" min="0" required value="<?php echo (int)($row['internal_total_hours'] ?? 140); ?>" title="Internal OJT Hours">
+                                                            </div>
+                                                            <div class="field-wrap">
+                                                                <label class="field-label">External OJT Hours</label>
+                                                                <input type="number" class="form-control form-control-sm" name="external_total_hours" min="0" required value="<?php echo (int)($row['external_total_hours'] ?? 250); ?>" title="External OJT Hours">
+                                                            </div>
                                                             <input type="text" class="form-control form-control-sm approval-note" name="approval_notes" placeholder="Add note (optional)">
                                                             <input type="text" class="form-control form-control-sm disciplinary-note" name="disciplinary_remark" placeholder="Disciplinary remark (if misconduct)">
                                                             <div class="action-buttons">

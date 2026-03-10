@@ -46,7 +46,9 @@ $stats_query = "
         SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) as active_students,
         SUM(CASE WHEN status = 0 THEN 1 ELSE 0 END) as inactive_students,
         SUM(CASE WHEN biometric_registered = 1 THEN 1 ELSE 0 END) as biometric_registered
-    FROM students
+    FROM students s
+    LEFT JOIN users u ON u.id = s.user_id
+    WHERE COALESCE(u.application_status, 'approved') = 'approved'
 ";
 $stats_result = $conn->query($stats_query);
 $stats = $stats_result->fetch_assoc();
@@ -123,6 +125,7 @@ if ($coor_res && $coor_res->num_rows) {
 
 // Build WHERE clauses depending on provided filters
 $where = [];
+$where[] = "COALESCE(u_student.application_status, 'approved') = 'approved'";
 if ($filter_date !== '') {
     // Filter students that have attendance logs on the selected date.
     $safe_date = $conn->real_escape_string($filter_date);
