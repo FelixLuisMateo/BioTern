@@ -9,6 +9,7 @@ if (!function_exists('biotern_theme_defaults')) {
             'font' => 'default',
             'navigation' => 'light',
             'header' => 'light',
+            'scheme' => 'blue',
         ];
     }
 }
@@ -44,6 +45,16 @@ if (!function_exists('biotern_theme_allowed_fonts')) {
     }
 }
 
+if (!function_exists('biotern_theme_allowed_schemes')) {
+    function biotern_theme_allowed_schemes(): array
+    {
+        return [
+            'blue',
+            'gray',
+        ];
+    }
+}
+
 if (!function_exists('biotern_theme_sanitize')) {
     function biotern_theme_sanitize(array $preferences): array
     {
@@ -54,6 +65,7 @@ if (!function_exists('biotern_theme_sanitize')) {
         $font = isset($preferences['font']) ? strtolower(trim((string) $preferences['font'])) : $defaults['font'];
         $navigation = isset($preferences['navigation']) ? strtolower(trim((string) $preferences['navigation'])) : $defaults['navigation'];
         $header = isset($preferences['header']) ? strtolower(trim((string) $preferences['header'])) : $defaults['header'];
+        $scheme = isset($preferences['scheme']) ? strtolower(trim((string) $preferences['scheme'])) : $defaults['scheme'];
 
         if (!in_array($skin, ['light', 'dark'], true)) {
             $skin = $defaults['skin'];
@@ -75,12 +87,17 @@ if (!function_exists('biotern_theme_sanitize')) {
             $header = $defaults['header'];
         }
 
+        if (!in_array($scheme, biotern_theme_allowed_schemes(), true)) {
+            $scheme = $defaults['scheme'];
+        }
+
         return [
             'skin' => $skin,
             'menu' => $menu,
             'font' => $font,
             'navigation' => $navigation,
             'header' => $header,
+            'scheme' => $scheme,
         ];
     }
 }

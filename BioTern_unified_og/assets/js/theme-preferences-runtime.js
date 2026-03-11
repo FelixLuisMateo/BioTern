@@ -36,6 +36,10 @@
       return value === "mini" || value === "expanded" ? value : "auto";
     }
 
+    function normalizeScheme(value) {
+      return value === "gray" ? "gray" : "blue";
+    }
+
     var runtimePrefs = {
       skin: serverPrefs.skin === "dark" ? "dark" : "light",
       menu: normalizeMenuPreference(serverPrefs.menu),
@@ -45,6 +49,10 @@
           : "default",
       navigation: serverPrefs.navigation === "dark" ? "dark" : "light",
       header: serverPrefs.header === "dark" ? "dark" : "light",
+      scheme:
+        typeof serverPrefs.scheme === "string"
+          ? normalizeScheme(serverPrefs.scheme)
+          : "blue",
     };
 
     var darkBtn =
@@ -59,6 +67,7 @@
     var pageSkinDark = document.getElementById("theme-page-skin-dark");
     var pageMenu = document.getElementById("theme-page-menu");
     var pageFont = document.getElementById("theme-page-font");
+    var pageScheme = document.getElementById("theme-page-scheme");
     var pageNavigation = document.getElementById("theme-page-navigation");
     var pageHeader = document.getElementById("theme-page-header");
     var pageSave = document.getElementById("theme-page-save");
@@ -205,6 +214,17 @@
       return "light";
     }
 
+    function getSavedScheme() {
+      try {
+        var stored = localStorage.getItem("app-theme-scheme");
+        if (stored) return normalizeScheme(stored);
+      } catch (e) {}
+
+      if (runtimePrefs.scheme) return normalizeScheme(runtimePrefs.scheme);
+      if (serverPrefs.scheme) return normalizeScheme(serverPrefs.scheme);
+      return "blue";
+    }
+
     function getSavedHeaderMode() {
       try {
         var hdr = localStorage.getItem("app-header");
@@ -278,6 +298,19 @@
       return next;
     }
 
+    function applyScheme(scheme) {
+      var next = normalizeScheme(scheme);
+      runtimePrefs.scheme = next;
+      document.documentElement.classList.remove("app-theme-gray");
+      if (next === "gray") {
+        document.documentElement.classList.add("app-theme-gray");
+      }
+      try {
+        localStorage.setItem("app-theme-scheme", next);
+      } catch (e) {}
+      return next;
+    }
+
     function saveThemePreferences(payload) {
       if (!window.fetch) return Promise.resolve({ ok: false });
       var endpoint = window.__bioternThemeApi || "api/theme-customizer.php";
@@ -315,6 +348,9 @@
           }
           if (data.preferences.header === "dark" || data.preferences.header === "light") {
             runtimePrefs.header = data.preferences.header;
+          }
+          if (typeof data.preferences.scheme === "string") {
+            runtimePrefs.scheme = normalizeScheme(data.preferences.scheme);
           }
           return { ok: true };
         })
@@ -404,6 +440,12 @@
         : "light";
     }
 
+    function currentSchemeValue() {
+      return document.documentElement.classList.contains("app-theme-gray")
+        ? "gray"
+        : "blue";
+    }
+
     function setDark(isDark, persist) {
       if (isDark) {
         runtimePrefs.skin = "dark";
@@ -421,6 +463,7 @@
             skin: "dark",
             menu: getSavedMenuMode(),
             font: currentFontValue(),
+            scheme: currentSchemeValue(),
             navigation: currentNavigationValue(),
             header: currentHeaderValue(),
           });
@@ -441,6 +484,7 @@
             skin: "light",
             menu: getSavedMenuMode(),
             font: currentFontValue(),
+            scheme: currentSchemeValue(),
             navigation: currentNavigationValue(),
             header: currentHeaderValue(),
           });
@@ -453,6 +497,7 @@
       var skin = currentSkinValue();
       var menu = getSavedMenuMode();
       var font = currentFontValue();
+      var scheme = currentSchemeValue();
       var navigation = currentNavigationValue();
       var header = currentHeaderValue();
       var navLightRadio = document.getElementById("theme-page-navigation-light");
@@ -464,6 +509,7 @@
       if (pageSkinLight) pageSkinLight.checked = skin !== "dark";
       if (pageMenu) pageMenu.value = menu;
       if (pageFont) pageFont.value = font;
+      if (pageScheme) pageScheme.value = scheme;
       if (pageNavigation) pageNavigation.value = navigation;
       if (pageHeader) pageHeader.value = header;
       if (navDarkRadio) navDarkRadio.checked = navigation === "dark";
@@ -481,6 +527,7 @@
     applyFont(getSavedFont());
     applyNavigationMode(getSavedNavigationMode());
     applyHeaderMode(getSavedHeaderMode());
+    applyScheme(getSavedScheme());
     setDark(isDark, false);
     applyMenuMode(getSavedMenuMode());
     syncMenuToggleButtons();
@@ -512,6 +559,7 @@
         var skin = resolveSelectedSkin(pageSkinLight, pageSkinDark);
         var menu = normalizeMenuPreference(pageMenu ? pageMenu.value : getSavedMenuMode());
         var font = pageFont ? pageFont.value : currentFontValue();
+        var scheme = pageScheme ? pageScheme.value : currentSchemeValue();
         var navigation = pageNavigation
           ? pageNavigation.value
           : currentNavigationValue();
@@ -520,12 +568,14 @@
         setDark(skin === "dark", false);
         applyMenuMode(menu);
         font = applyFont(font);
+        scheme = applyScheme(scheme);
         navigation = applyNavigationMode(navigation);
         header = applyHeaderMode(header);
         saveThemePreferences({
           skin: skin,
           menu: menu,
           font: font,
+          scheme: scheme,
           navigation: navigation,
           header: header,
         }).then(function (result) {
@@ -539,24 +589,35 @@
       });
     }
 
+    if (pageScheme) {
+      pageScheme.addEventListener("change", function () {
+        var scheme = pageScheme.value || "blue";
+        applyScheme(scheme);
+        syncCustomizerInputs();
+      });
+    }
+
     if (pageReset) {
       pageReset.addEventListener("click", function () {
         runtimePrefs = {
           skin: "light",
           menu: "auto",
           font: "default",
+          scheme: "blue",
           navigation: "light",
           header: "light",
         };
         setDark(false, false);
         applyMenuMode("auto");
         applyFont("default");
+        applyScheme("blue");
         applyNavigationMode("light");
         applyHeaderMode("light");
         saveThemePreferences({
           skin: "light",
           menu: "auto",
           font: "default",
+          scheme: "blue",
           navigation: "light",
           header: "light",
         }).then(function (result) {

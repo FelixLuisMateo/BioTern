@@ -43,6 +43,7 @@ $merged = array_merge($existing, array_intersect_key($payload, [
     'font' => true,
     'navigation' => true,
     'header' => true,
+    'scheme' => true,
 ]));
 $saved = biotern_save_theme_preferences($merged);
 

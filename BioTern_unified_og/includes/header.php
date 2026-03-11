@@ -60,6 +60,7 @@ $default_theme_prefs = [
     'font' => 'default',
     'navigation' => 'light',
     'header' => 'light',
+    'scheme' => 'blue',
 ];
 
 if (function_exists('biotern_theme_preferences')) {
@@ -89,6 +90,10 @@ if (($biotern_theme_preferences['navigation'] ?? 'light') === 'dark') {
 }
 if (($biotern_theme_preferences['header'] ?? 'light') === 'dark') {
     $html_classes[] = 'app-header-dark';
+}
+$theme_scheme = strtolower(trim((string)($biotern_theme_preferences['scheme'] ?? 'blue')));
+if ($theme_scheme === 'gray') {
+    $html_classes[] = 'app-theme-gray';
 }
 $html_class_attr = implode(' ', $html_classes);
 $page_body_class = isset($page_body_class) && is_string($page_body_class) ? trim($page_body_class) : '';

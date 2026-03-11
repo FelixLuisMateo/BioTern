@@ -79,6 +79,21 @@ include 'includes/header.php';
                     <div class="option-row">
                         <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
                             <div>
+                                <label class="form-label mb-1" for="theme-page-scheme">Color Scheme</label>
+                                <div class="fs-12 text-muted">Swap the primary accent across the UI.</div>
+                            </div>
+                            <div class="theme-select-wrap">
+                                <select id="theme-page-scheme" class="form-select">
+                                    <option value="blue">Blue (Default)</option>
+                                    <option value="gray">Gray</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="option-row">
+                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                            <div>
                                 <label class="form-label mb-1" for="theme-page-menu">Sidebar Mode</label>
                                 <div class="fs-12 text-muted">Auto follows screen width behavior.</div>
                             </div>
