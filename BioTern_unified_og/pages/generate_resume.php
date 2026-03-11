@@ -34,8 +34,11 @@ $script_name = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
 $asset_prefix = (strpos($script_name, '/pages/') !== false) ? '../' : '';
 $page_title = 'BioTern || Resume - ' . $full_name;
 $base_href = $asset_prefix;
+$page_body_class = 'app-generate-page';
 $page_styles = [
+    'assets/css/generate-shell-clean.css',
     'assets/css/generate-resume-page.css',
+    'assets/css/template-color-lock.css',
 ];
 $page_scripts = [
     'assets/js/generate-resume-runtime.js',

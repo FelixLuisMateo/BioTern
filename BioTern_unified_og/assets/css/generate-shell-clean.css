@@ -1,0 +1,46 @@
+/* Clean shell for generate pages that use shared header/footer includes. */
+
+body.app-generate-page .nxl-navigation,
+body.app-generate-page .nxl-header,
+body.app-generate-page .footer {
+    display: none !important;
+}
+
+body.app-generate-page .nxl-container,
+body.app-generate-page .nxl-content,
+body.app-generate-page .main-content {
+    margin: 0 !important;
+    padding: 0 !important;
+    min-height: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+}
+
+body.app-generate-page .nxl-container {
+    inset-inline-start: 0 !important;
+}
+
+/* Keep generated template surfaces in document color mode. */
+body.app-generate-page .container,
+body.app-generate-page .container *,
+body.app-generate-page .app-resume-sheet,
+body.app-generate-page .app-resume-sheet * {
+    color: #000 !important;
+}
+
+@media print {
+    body.app-generate-page .nxl-navigation,
+    body.app-generate-page .nxl-header,
+    body.app-generate-page .footer {
+        display: none !important;
+    }
+
+    body.app-generate-page .nxl-container,
+    body.app-generate-page .nxl-content,
+    body.app-generate-page .main-content {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: auto !important;
+        max-width: none !important;
+    }
+}

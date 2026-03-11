@@ -76,103 +76,11 @@ if (isset($_GET['action'])) {
 
 $page_title = 'DAU MOA';
 $base_href = '../';
+$page_styles = ['assets/css/documents-page.css'];
+$page_scripts = ['assets/js/documents-page-runtime.js'];
 include __DIR__ . '/../includes/header.php';
 ?>
-<style>
-        html, body { height: 100%; margin: 0; padding: 0; }
-        .moa-main.nxl-container { display:flex; flex-direction:column; }
-        .moa-content.nxl-content { flex:1; padding-bottom:24px; }
-        .doc-preview { background:#fff; border:1px solid #eee; padding:24px; max-width:800px; margin-top:18px; margin-bottom:32px; position:relative; z-index:1; box-shadow:0 6px 20px rgba(0,0,0,0.04); }
-        .doc-preview .text-center { padding-top:40px; }
-        .select2-container--open { z-index: 9999999 !important; }
-        .select2-dropdown { z-index: 9999999 !important; }
-        .select2-container .select2-search__field { padding: 4px !important; margin: 0 !important; height: auto !important; border: 0 !important; box-shadow: none !important; background: transparent !important; }
-        .select2-container .select2-selection__rendered, .select2-container .select2-selection__placeholder { visibility: hidden !important; }
-        .select2-overlay-input { position: absolute; inset: 0 40px 0 8px; width: calc(100% - 48px); height: calc(100% - 8px); border: none; background: transparent; padding: 6px 8px; box-sizing: border-box; z-index: 99999999; font: inherit; color: inherit; }
-        .select2-overlay-input:focus { outline: none; }
-        /* Keep placeholders visibly dimmer than user-entered values */
-        .form-control::placeholder { color: #7a8699; opacity: 1; }
-        html.app-skin-dark .form-control::placeholder { color: #9fb0c6 !important; opacity: 1; }
-        html.app-skin-dark input.form-control::-webkit-input-placeholder,
-        html.app-skin-dark textarea.form-control::-webkit-input-placeholder,
-        html.app-skin-dark input.form-control::-moz-placeholder,
-        html.app-skin-dark textarea.form-control::-moz-placeholder,
-        html.app-skin-dark input.form-control:-ms-input-placeholder,
-        html.app-skin-dark textarea.form-control:-ms-input-placeholder,
-        html.app-skin-dark input.form-control::placeholder,
-        html.app-skin-dark textarea.form-control::placeholder { color: #9fb0c6 !important; opacity: 1 !important; -webkit-text-fill-color: #9fb0c6 !important; }
-        html.app-skin-dark .form-control,
-        body.app-skin-dark .form-control,
-        .app-skin-dark .form-control { color: #dbe5f1 !important; -webkit-text-fill-color: #dbe5f1 !important; }
-        html.app-skin-dark .form-control:placeholder-shown,
-        body.app-skin-dark .form-control:placeholder-shown,
-        .app-skin-dark .form-control:placeholder-shown { color: #9fb0c6 !important; -webkit-text-fill-color: #9fb0c6 !important; }
-        /* Dark mode: make Select2 input readable */
-        html.app-skin-dark .select2-container--default .select2-selection--single {
-            background: #0f172a !important;
-            border-color: #1b2436 !important;
-            color: #dbe5f1 !important;
-        }
-        html.app-skin-dark .select2-overlay-input {
-            color: #dbe5f1 !important;
-        }
-        html.app-skin-dark .select2-overlay-input::placeholder {
-            color: #9fb0c6 !important;
-        }
-        html.app-skin-dark .select2-container--default.select2-container--open .select2-dropdown {
-            background: #0f172a !important;
-            border-color: #1b2436 !important;
-        }
-        html.app-skin-dark .select2-results__option {
-            background: #0f172a !important;
-            color: #dbe5f1 !important;
-        }
-        html.app-skin-dark .select2-results__option--highlighted[aria-selected] {
-            background: #1f2b44 !important;
-            color: #ffffff !important;
-        }
-
-        /* Dark mode: preview panel compatibility */
-        html.app-skin-dark .doc-preview {
-            background: #0f172a !important;
-            border-color: #1b2436 !important;
-            box-shadow: 0 6px 20px rgba(0,0,0,0.25);
-        }
-        html.app-skin-dark .doc-preview h5,
-        html.app-skin-dark .doc-preview h6,
-        html.app-skin-dark .doc-preview p,
-        html.app-skin-dark .doc-preview div,
-        html.app-skin-dark .doc-preview span,
-        html.app-skin-dark .doc-preview li,
-        html.app-skin-dark .doc-preview strong,
-        html.app-skin-dark .doc-preview b {
-            color: #dbe5f1 !important;
-        }
-        html.app-skin-dark .doc-preview .text-muted {
-            color: #9fb0c6 !important;
-        }
-        .moa-main.nxl-container { padding-top: 90px; }
-        .footer { position: static !important; }
-        .nxl-container { min-height: auto !important; }
-        .nxl-container .nxl-content { padding-bottom: 0 !important; }
-        .footer { margin-bottom: 0 !important; }
-        .file-edit-active #moa_content {
-            outline: 2px dashed #3b82f6;
-            outline-offset: 6px;
-            background: rgba(59, 130, 246, 0.04);
-        }
-        #moa_content[contenteditable="true"] {
-            cursor: text;
-            user-select: text;
-            -webkit-user-select: text;
-        }
-        @media (max-width: 1024px) {
-            .nxl-container { position: relative; z-index: 1; }
-            .doc-preview { z-index: 1 !important; }
-            .select2-container--open,
-            .select2-dropdown { z-index: 900 !important; }
-        }
-    </style>
+<div class="moa-page doc-page-root" data-page="dau_moa" data-prefill-student-id="<?php echo intval($prefill_student_id); ?>">
         <div class="container moa-content">
             <div class="row mt-3">
                 <div class="col-12">
@@ -181,8 +89,8 @@ include __DIR__ . '/../includes/header.php';
                 </div>
             </div>
 
-            <div class="row">
-                <div class="col-lg-6">
+            <div class="row doc-workspace-row">
+                <div class="col-lg-6 doc-form-pane">
                     <div class="card p-3">
 
                         <div class="mt-3">
@@ -313,10 +221,11 @@ include __DIR__ . '/../includes/header.php';
                     </div>
                 </div>
 
-                <div class="col-lg-6">
+                <div class="col-lg-6 doc-template-pane">
                     <div class="doc-preview" id="moa_preview">
-                        <div id="moa_content">
-                            <h5 style="text-align:center;">Memorandum of Agreement</h5>
+                        <div id="moa_content" class="a4-pages-stack">
+                            <div class="a4-page">
+                            <h5 class="text-center-inline">Memorandum of Agreement</h5>
                             <p>Date: <span id="moa_date">__________</span></p>
                             <p>This Memorandum of Agreement made and executed between: <strong>CLARK COLLEGE OF SCIENCE AND TECHNOLOGY</strong>a Higher Education Institution, duly organized and existing under Philippine Laws with office/business address at <strong>AUREA ST. SAMSONVILLE, DAU MABALACAT CITY PAMPANGA</strong> represented herein by <strong>MR. JOMAR G. SANGIL (IT, DEPARTMENT HEAD)</strong>, here in after referred to as the Higher Education Institution.<strong></p>
                             And<br>
@@ -341,48 +250,52 @@ include __DIR__ . '/../includes/header.php';
                                 <li>The <strong>PARTNER LOCAL GOVERNMENT UNIT</strong> is not allowed to employ Learner within the OJT/Internship period in order for the Learner to graduate from the program he/she is enrolled in.</li>
                             </ol>
 
-                            <p style="margin-top:12px;">
+                            </div>
+
+                            <div class="a4-page">
+                            <p class="mt-12">
                                 This Memorandum of Agreement shall become effective upon signature of both parties and implementation will begin immediately and shall continue to be valid hereafter until written notice is given by either party thirty (30) days prior to the date of intended termination.
                             </p>
                             <p>
                                 In witness whereof the parties have signed this Memorandum of Agreement at <span id="pv_signed_at">__________________</span> this <span id="pv_signed_day">_____</span> day of <span id="pv_signed_month">__________________</span>, <span id="pv_signed_year">20__</span>.
                             </p>
 
-                            <div style="display:flex; justify-content:space-between; gap:12px; margin-top:24px;">
-                                <div style="flex:1;">
+                            <div class="flex-between-gap12 mt-24">
+                                <div class="flex-1">
                                     <p>For the PARTNER LOCAL GOVERNMENT UNIT</p>
-                                    <p style="margin-top:40px;"><strong id="pv_partner_rep"></strong></p>
+                                    <p class="mt-40"><strong id="pv_partner_rep"></strong></p>
                                     <p id="pv_partner_position"></p>
                                 </div>
-                                <div style="flex:1; text-align:right;">
-                                    <p style="margin-right: 60px;"><strong>For the school</strong></p>
-                                    <p style="margin-top:40px; text-align:right;"><strong id="pv_school_rep"></strong></p>
-                                    <p style="margin-top:-18px; text-align:right;" id="pv_school_position"></p>
+                                <div class="flex-1 text-right">
+                                    <p class="mr-60"><strong>For the school</strong></p>
+                                    <p class="mt-40 text-right"><strong id="pv_school_rep"></strong></p>
+                                    <p class="mt-neg18 text-right" id="pv_school_position"></p>
                                 </div>
                             </div>
 
-                            <p style="margin-top:24px;"><strong>SIGNED IN THE PRESENCE OF:</strong></p>
+                            <p class="mt-24"><strong>SIGNED IN THE PRESENCE OF:</strong></p>
 
-                            <div style="display:flex; justify-content:space-between; gap:12px; margin-top:16px;">
-                                <div style="flex:1;">
-                                    <p style="margin-top:40px;"><span id="pv_presence_partner_rep"></span></p>
-                                    <p style="white-space:nowrap;">Representative of the Partner LOCAL GOVERNMENT UNIT</p>
+                            <div class="flex-between-gap12 mt-16">
+                                <div class="flex-1">
+                                    <p class="mt-40"><span id="pv_presence_partner_rep"></span></p>
+                                    <p class="nowrap">Representative of the Partner LOCAL GOVERNMENT UNIT</p>
                                 </div>
-                                <div style="flex:1; text-align:right;">
-                                    <p style="margin-top:40px; text-align:right;"><span id="pv_presence_school_admin"></span></p>
-                                    <p style="margin-top:-18px; text-align:right;" id="pv_presence_school_admin_position"></p>
+                                <div class="flex-1 text-right">
+                                    <p class="mt-40 text-right"><span id="pv_presence_school_admin"></span></p>
+                                    <p class="mt-neg18 text-right" id="pv_presence_school_admin_position"></p>
                                 </div>
                             </div>
 
-                            <p style="margin-top:24px;"><strong>ACKNOWLEDGEMENT</strong></p>
+                            <p class="mt-24"><strong>ACKNOWLEDGEMENT</strong></p>
                             <p>
                                 Before me, a Notary Public in the city <span id="pv_notary_city">__________________</span>, personally appeared <strong><u><span id="pv_notary_appeared_1">__________________</span></u></strong> known to me to be the same persons who executed the foregoing instrument and they acknowledged to me that the same is their free will and voluntary deed and that of the LOCAL GOVERNMENT UNITs herein represented. Witness my hand and seal on this <span id="pv_notary_day">_____</span> day of <span id="pv_notary_month">__________________</span> <span id="pv_notary_year">20___</span> in <span id="pv_notary_place">__________________</span>.
                             </p>
 
-                            <p style="margin-top:16px;">Doc No. <span id="pv_doc_no">______</span>:</p>
+                            <p class="mt-16">Doc No. <span id="pv_doc_no">______</span>:</p>
                             <p>Page No. <span id="pv_page_no">_____</span>:</p>
                             <p>Book No. <span id="pv_book_no">_____</span>:</p>
                             <p>Series of <span id="pv_series_no">_____</span>:</p>
+                            </div>
 
                         </div>
                     </div>
@@ -390,321 +303,8 @@ include __DIR__ . '/../includes/header.php';
             </div>
         </div>
 
-    <script>
-        window.addEventListener('load', function() {
-        (function(){
-            const MOA_TEMPLATE_STORAGE_KEY = 'biotern_dau_moa_template_html_v1';
-            const PREFILL_STUDENT_ID = <?php echo intval($prefill_student_id); ?>;
-            const select = $('#student_select');
-            const partnerName = document.getElementById('moa_partner_name');
-            const partnerRep = document.getElementById('moa_partner_rep');
-            const partnerPosition = document.getElementById('moa_partner_position');
-            const partnerAddress = document.getElementById('moa_partner_address');
-            const companyReceipt = document.getElementById('moa_company_receipt');
-            const totalHours = document.getElementById('moa_total_hours');
-            const schoolRep = document.getElementById('moa_school_rep');
-            const schoolPosition = document.getElementById('moa_school_position');
-            const signedAt = document.getElementById('moa_signed_at');
-            const signedDay = document.getElementById('moa_signed_day');
-            const signedMonth = document.getElementById('moa_signed_month');
-            const signedYear = document.getElementById('moa_signed_year');
-            const presencePartnerRep = document.getElementById('moa_presence_partner_rep');
-            const presenceSchoolAdmin = document.getElementById('moa_presence_school_admin');
-            const presenceSchoolAdminPosition = document.getElementById('moa_presence_school_admin_position');
-            const notaryCity = document.getElementById('moa_notary_city');
-            const notaryAppeared1 = document.getElementById('moa_notary_appeared_1');
-            const notaryAppeared2 = document.getElementById('moa_notary_appeared_2');
-            const notaryDay = document.getElementById('moa_notary_day');
-            const notaryMonth = document.getElementById('moa_notary_month');
-            const notaryYear = document.getElementById('moa_notary_year');
-            const notaryPlace = document.getElementById('moa_notary_place');
-            const docNo = document.getElementById('moa_doc_no');
-            const pageNo = document.getElementById('moa_page_no');
-            const bookNo = document.getElementById('moa_book_no');
-            const seriesNo = document.getElementById('moa_series_no');
-            const btnFill = document.getElementById('btn_file_edit_moa');
-            const btnGenerate = document.getElementById('btn_generate_moa');
-            const moaContent = document.getElementById('moa_content');
-            let isFileEditMode = false;
-            let hasLoadedSavedTemplate = false;
-
-            function withOrdinalSuffix(dayValue){
-                const raw = (dayValue || '').toString().trim();
-                if (!raw) return raw;
-                if (!/^\d+$/.test(raw)) return raw;
-                const n = parseInt(raw, 10);
-                if (isNaN(n)) return raw;
-                const mod100 = n % 100;
-                let suffix = 'th';
-                if (mod100 < 11 || mod100 > 13) {
-                    const mod10 = n % 10;
-                    if (mod10 === 1) suffix = 'st';
-                    else if (mod10 === 2) suffix = 'nd';
-                    else if (mod10 === 3) suffix = 'rd';
-                }
-                return String(n) + suffix;
-            }
-
-            function saveMoaTemplateHtml() {
-                if (!moaContent) return;
-                try { localStorage.setItem(MOA_TEMPLATE_STORAGE_KEY, moaContent.innerHTML); } catch (err) {}
-            }
-
-            function loadMoaTemplateHtml() {
-                if (!moaContent) return false;
-                try {
-                    const saved = localStorage.getItem(MOA_TEMPLATE_STORAGE_KEY);
-                    if (!saved) return false;
-                    moaContent.innerHTML = saved;
-                    hasLoadedSavedTemplate = true;
-                    return true;
-                } catch (err) {
-                    return false;
-                }
-            }
-
-            function openMoaEditor(e) {
-                if (e && typeof e.preventDefault === 'function') e.preventDefault();
-                window.open('pages/edit_dau_moa.php', '_blank');
-                return false;
-            }
-            document.addEventListener('click', function(e){
-                const editBtn = e.target.closest('#btn_file_edit_moa');
-                if (!editBtn) return;
-                openMoaEditor(e);
-            });
-
-            select.select2({
-                placeholder: '',
-                ajax: {
-                    url: 'documents/document_dau_moa.php',
-                    dataType: 'json',
-                    delay: 250,
-                    data: function(params){ return { action: 'search_students', q: params.term }; },
-                    processResults: function(data){ return { results: data.results }; }
-                },
-                minimumInputLength: 1,
-                width: 'resolve',
-                dropdownParent: $(document.body),
-                dropdownCssClass: 'select2-dropdown'
-            });
-
-            // overlay input for select2 (same UX as application)
-            (function createOverlayInput(){
-                var sel = document.getElementById('student_select');
-                var container = sel && sel.nextElementSibling;
-                if (!container) return;
-                container.style.position = container.style.position || 'relative';
-
-                var overlay = document.createElement('input');
-                overlay.type = 'text';
-                overlay.className = 'select2-overlay-input';
-                overlay.placeholder = sel.getAttribute('data-placeholder') || 'Search by name or student id';
-                overlay.autocomplete = 'off';
-                container.appendChild(overlay);
-
-                function openAndSync(){
-                    try { select.select2('open'); } catch(e){}
-                    setTimeout(function(){
-                        var fld = document.querySelector('.select2-container--open .select2-search__field');
-                        if (!fld) return;
-                        fld.value = overlay.value || '';
-                        fld.dispatchEvent(new Event('input', { bubbles: true }));
-                    }, 0);
-                }
-
-                overlay.addEventListener('input', function(){ openAndSync(); });
-                overlay.addEventListener('keydown', function(e){ if (e.key && (e.key.length === 1 || e.key === 'Backspace')) openAndSync(); });
-
-                $(document).on('select2:select select2:closing', '#student_select', function(e){ setTimeout(function(){ var txt = $('#student_select').find('option:selected').text() || ''; overlay.value = txt.replace(/\s+—\s+.*$/,''); }, 0); });
-                container.addEventListener('click', function(){ overlay.focus(); });
-            })();
-
-            // fetch and fill student (optional) into preview
-            $('#student_select').on('select2:select', function(e){
-                const id = select.val();
-                if (!id) return;
-                fetch('documents/document_dau_moa.php?action=get_student&id=' + encodeURIComponent(id))
-                    .then(r => r.json())
-                    .then(data => {
-                        if (!data) return;
-                        const fullname = [data.first_name, data.middle_name, data.last_name].filter(Boolean).join(' ');
-                        // place student name in preview if desired (not required for MOA header)
-                        loadMoaData(id);
-                    });
-            });
-
-            function loadMoaData(id){
-                if (!id) return;
-                fetch('documents/document_dau_moa.php?action=get_moa&id=' + encodeURIComponent(id))
-                    .then(r => r.json())
-                    .then(data => {
-                        if (!data || typeof data !== 'object') return;
-                        partnerName.value = (data.company_name || '').toString();
-                        partnerAddress.value = (data.company_address || '').toString();
-                        partnerRep.value = (data.partner_representative || '').toString();
-                        partnerPosition.value = (data.position || '').toString();
-                        schoolRep.value = (data.school_representative || data.coordinator || '').toString();
-                        schoolPosition.value = (data.school_posistion || data.school_position || '').toString();
-                        signedAt.value = (data.signed_at || data.moa_address || '').toString();
-                        // Witness from MOA data should populate both witness textbox and acknowledgement appeared field.
-                        presencePartnerRep.value = (data.witness_partner || data.witness || '').toString();
-                        presenceSchoolAdmin.value = (data.school_administrator || '').toString();
-                        presenceSchoolAdminPosition.value = (data.school_admin_position || '').toString();
-                        notaryCity.value = (data.notary_city || data.notary_address || '').toString();
-                        notaryPlace.value = (data.notary_place || data.acknowledgement_address || '').toString();
-                        companyReceipt.value = (data.company_receipt || '').toString();
-                        totalHours.value = (data.total_hours || '').toString();
-
-                        if (data.signed_day || data.signed_month || data.signed_year) {
-                            signedDay.value = (data.signed_day || '').toString();
-                            signedMonth.value = (data.signed_month || '').toString();
-                            signedYear.value = (data.signed_year || '').toString();
-                        }
-                        if (data.moa_date) {
-                            const d = new Date(data.moa_date);
-                            if (!isNaN(d.getTime())) {
-                                signedDay.value = String(d.getDate()).padStart(2, '0');
-                                signedMonth.value = d.toLocaleString('en-US', { month: 'long' });
-                                signedYear.value = String(d.getFullYear());
-                            }
-                        }
-                        if (data.notary_day || data.notary_month || data.notary_year) {
-                            notaryDay.value = (data.notary_day || '').toString();
-                            notaryMonth.value = (data.notary_month || '').toString();
-                            notaryYear.value = (data.notary_year || '').toString();
-                        }
-                        if (data.acknowledgement_date) {
-                            const ad = new Date(data.acknowledgement_date);
-                            if (!isNaN(ad.getTime())) {
-                                notaryDay.value = String(ad.getDate()).padStart(2, '0');
-                                notaryMonth.value = ad.toLocaleString('en-US', { month: 'long' });
-                                notaryYear.value = String(ad.getFullYear());
-                            }
-                        }
-                        // Witness should appear in ACKNOWLEDGEMENT (personally appeared...)
-                        if (notaryAppeared1) {
-                            notaryAppeared1.value = (data.witness_partner || data.witness || '').toString();
-                        }
-
-                        updatePreview();
-                        updateGenerateLink();
-                    })
-                    .catch(() => {});
-            }
-
-            function prefillByStudentId(id){
-                if (!id) return;
-                fetch('documents/document_dau_moa.php?action=get_student&id=' + encodeURIComponent(id))
-                    .then(r => r.json())
-                    .then(data => {
-                        if (!data || !data.id) return;
-                        // select2 may not be present in this page layout; guard usage
-                        if (select && select.length) {
-                            const fullname = [data.first_name, data.middle_name, data.last_name].filter(Boolean).join(' ');
-                            const label = (fullname || 'Student') + ' — ' + (data.student_id || id);
-                            const option = new Option(label, String(id), true, true);
-                            select.append(option).trigger('change');
-                        }
-                        loadMoaData(id);
-                    })
-                    .catch(() => {});
-            }
-
-            function updatePreview(){
-                if (isFileEditMode) return;
-                document.getElementById('pv_partner_company_name').textContent = partnerName.value || '__________________________';
-                document.getElementById('pv_partner_name').textContent = partnerRep.value || '__________________________';
-                document.getElementById('pv_partner_address').textContent = partnerAddress.value || '__________________________';
-                document.getElementById('pv_company_receipt').textContent = companyReceipt.value || '__________________________';
-                document.getElementById('pv_total_hours').textContent = (totalHours && totalHours.value) ? totalHours.value : '250';
-                document.getElementById('pv_partner_rep').textContent = partnerRep.value || '__________________________';
-                document.getElementById('pv_partner_position').textContent = partnerPosition.value || 'Barangay Dau PYAP President';
-                document.getElementById('pv_school_rep').textContent = schoolRep.value || '__________________';
-                document.getElementById('pv_signed_at').textContent = signedAt.value || '__________________';
-                document.getElementById('pv_signed_day').textContent = withOrdinalSuffix(signedDay.value) || '_____';
-                document.getElementById('pv_signed_month').textContent = signedMonth.value || '__________________';
-                document.getElementById('pv_signed_year').textContent = signedYear.value || '20__';
-                document.getElementById('pv_presence_partner_rep').textContent = presencePartnerRep.value || '______________________________';
-                document.getElementById('pv_presence_school_admin').textContent = presenceSchoolAdmin.value || '______________________';
-                document.getElementById('pv_presence_school_admin_position').textContent = presenceSchoolAdminPosition.value || '______________________';
-                document.getElementById('pv_school_position').textContent = schoolPosition.value || '__________________';
-                document.getElementById('pv_notary_city').textContent = notaryCity.value || '__________________';
-                const appeared1Value = (notaryAppeared1 && notaryAppeared1.value) || (presencePartnerRep && presencePartnerRep.value) || '';
-                const pvNotaryAppeared1 = document.getElementById('pv_notary_appeared_1');
-                if (pvNotaryAppeared1) pvNotaryAppeared1.textContent = appeared1Value || '__________________';
-                const pvNotaryAppeared2 = document.getElementById('pv_notary_appeared_2');
-                if (pvNotaryAppeared2) pvNotaryAppeared2.textContent = (notaryAppeared2 && notaryAppeared2.value) || '__________________';
-                document.getElementById('pv_notary_day').textContent = withOrdinalSuffix(notaryDay.value) || '_____';
-                document.getElementById('pv_notary_month').textContent = notaryMonth.value || '__________________';
-                document.getElementById('pv_notary_year').textContent = notaryYear.value || '20___';
-                document.getElementById('pv_notary_place').textContent = notaryPlace.value || '__________________';
-                document.getElementById('pv_doc_no').textContent = docNo.value || '______';
-                document.getElementById('pv_page_no').textContent = pageNo.value || '_____';
-                document.getElementById('pv_book_no').textContent = bookNo.value || '_____';
-                document.getElementById('pv_series_no').textContent = seriesNo.value || '_____';
-                document.getElementById('moa_date').textContent = new Date().toLocaleDateString();
-            }
-
-            function updateGenerateLink(){
-                const params = new URLSearchParams();
-                if (partnerName.value) params.set('partner_name', partnerName.value);
-                if (partnerRep.value) params.set('partner_rep', partnerRep.value);
-                if (partnerPosition.value) params.set('partner_position', partnerPosition.value);
-                if (partnerAddress.value) params.set('partner_address', partnerAddress.value);
-                if (companyReceipt.value) params.set('company_receipt', companyReceipt.value);
-                if (totalHours && totalHours.value) params.set('total_hours', totalHours.value);
-                if (schoolRep.value) params.set('school_rep', schoolRep.value);
-                if (schoolPosition && schoolPosition.value) params.set('school_position', schoolPosition.value);
-                if (signedAt.value) params.set('signed_at', signedAt.value);
-                if (signedDay.value) params.set('signed_day', withOrdinalSuffix(signedDay.value));
-                if (signedMonth.value) params.set('signed_month', signedMonth.value);
-                if (signedYear.value) params.set('signed_year', signedYear.value);
-                if (presencePartnerRep.value) params.set('presence_partner_rep', presencePartnerRep.value);
-                if (presenceSchoolAdmin.value) params.set('presence_school_admin', presenceSchoolAdmin.value);
-                if (presenceSchoolAdminPosition && presenceSchoolAdminPosition.value) params.set('presence_school_admin_position', presenceSchoolAdminPosition.value);
-                if (notaryCity.value) params.set('notary_city', notaryCity.value);
-                if (notaryAppeared1 && notaryAppeared1.value) params.set('notary_appeared_1', notaryAppeared1.value);
-                else if (presencePartnerRep && presencePartnerRep.value) params.set('notary_appeared_1', presencePartnerRep.value);
-                if (notaryAppeared2 && notaryAppeared2.value) params.set('notary_appeared_2', notaryAppeared2.value);
-                if (notaryDay.value) params.set('notary_day', withOrdinalSuffix(notaryDay.value));
-                if (notaryMonth.value) params.set('notary_month', notaryMonth.value);
-                if (notaryYear.value) params.set('notary_year', notaryYear.value);
-                if (notaryPlace.value) params.set('notary_place', notaryPlace.value);
-                if (docNo.value) params.set('doc_no', docNo.value);
-                if (pageNo.value) params.set('page_no', pageNo.value);
-                if (bookNo.value) params.set('book_no', bookNo.value);
-                if (seriesNo.value) params.set('series_no', seriesNo.value);
-                params.set('date', new Date().toLocaleDateString());
-                const url = 'pages/generate_dau_moa.php?' + params.toString();
-                btnGenerate.dataset.url = url;
-                return url;
-            }
-
-            [
-                partnerName, partnerRep, partnerPosition, partnerAddress, companyReceipt, totalHours, schoolRep, schoolPosition,
-                signedAt, signedDay, signedMonth, signedYear,
-                presencePartnerRep, presenceSchoolAdmin, presenceSchoolAdminPosition,
-                notaryCity, notaryAppeared1, notaryAppeared2,
-                notaryDay, notaryMonth, notaryYear, notaryPlace,
-                docNo, pageNo, bookNo, seriesNo
-            ].forEach(function(el){ if (!el) return; el.addEventListener('input', function(){ updatePreview(); updateGenerateLink(); }); });
-
-            btnGenerate.addEventListener('click', function(){
-                const url = updateGenerateLink();
-                if (!url) return;
-                window.location.href = url;
-            });
-
-            // initialize (always render live autofill preview)
-            updatePreview();
-            updateGenerateLink();
-            if (PREFILL_STUDENT_ID > 0) prefillByStudentId(PREFILL_STUDENT_ID);
-
-        })();
-        });
-    </script>
-    <?php include __DIR__ . '/../includes/footer.php'; ?>
+</div>
+<?php include __DIR__ . '/../includes/footer.php'; ?>
 
 
 

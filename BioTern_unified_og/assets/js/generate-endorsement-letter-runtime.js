@@ -42,7 +42,10 @@
     }
   }
 
-  if (document.body && document.body.dataset.useSavedTemplate === "1") {
+  var pageRoot = document.querySelector(".main-content[data-use-saved-template]") || document.body;
+  var useSavedTemplate = !!(pageRoot && pageRoot.dataset && pageRoot.dataset.useSavedTemplate === "1");
+
+  if (useSavedTemplate) {
     try {
       if (docs) {
         docs.loadSavedTemplateHtml("biotern_endorsement_template_html_v1", "endorsement_doc_content", {

@@ -14,8 +14,8 @@
     }, true);
   }
 
-  var body = document.body;
-  var cfg = body ? body.dataset : {};
+  var pageRoot = document.querySelector(".main-content[data-print-date]") || document.body;
+  var cfg = pageRoot && pageRoot.dataset ? pageRoot.dataset : {};
 
   function ensurePrintableHoursSpan(value) {
     var doc = document.getElementById("application_doc_content");

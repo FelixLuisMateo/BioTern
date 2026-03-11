@@ -569,10 +569,12 @@ include 'includes/header.php';
                                     <div class="text-muted fs-12 mt-1">Last biometric: <?php echo htmlspecialchars($r['last_attendance_date'] ?: 'none'); ?></div>
                                 </td>
                                 <td data-label="Document Progress">
-                                    <span class="chip app-ojt-chip <?php echo !empty($r['has_application']) ? 'ok app-ojt-chip-ok' : 'miss app-ojt-chip-miss'; ?>">Application (<?php echo htmlspecialchars($r['wf_application'] ?: 'draft'); ?>)</span>
-                                    <span class="chip app-ojt-chip <?php echo !empty($r['has_endorsement']) ? 'ok app-ojt-chip-ok' : 'miss app-ojt-chip-miss'; ?>">Endorsement (<?php echo htmlspecialchars($r['wf_endorsement'] ?: 'draft'); ?>)</span>
-                                    <span class="chip app-ojt-chip <?php echo !empty($r['has_moa']) ? 'ok app-ojt-chip-ok' : 'miss app-ojt-chip-miss'; ?>">MOA (<?php echo htmlspecialchars($r['wf_moa'] ?: 'draft'); ?>)</span>
-                                    <span class="chip app-ojt-chip <?php echo !empty($r['has_dau_moa']) ? 'ok app-ojt-chip-ok' : 'miss app-ojt-chip-miss'; ?>">DAU MOA (<?php echo htmlspecialchars($r['wf_dau_moa'] ?: 'draft'); ?>)</span>
+                                    <div class="app-ojt-chip-stack">
+                                        <span class="chip app-ojt-chip <?php echo !empty($r['has_application']) ? 'ok app-ojt-chip-ok' : 'miss app-ojt-chip-miss'; ?>">Application (<?php echo htmlspecialchars($r['wf_application'] ?: 'draft'); ?>)</span>
+                                        <span class="chip app-ojt-chip <?php echo !empty($r['has_endorsement']) ? 'ok app-ojt-chip-ok' : 'miss app-ojt-chip-miss'; ?>">Endorsement (<?php echo htmlspecialchars($r['wf_endorsement'] ?: 'draft'); ?>)</span>
+                                        <span class="chip app-ojt-chip <?php echo !empty($r['has_moa']) ? 'ok app-ojt-chip-ok' : 'miss app-ojt-chip-miss'; ?>">MOA (<?php echo htmlspecialchars($r['wf_moa'] ?: 'draft'); ?>)</span>
+                                        <span class="chip app-ojt-chip <?php echo !empty($r['has_dau_moa']) ? 'ok app-ojt-chip-ok' : 'miss app-ojt-chip-miss'; ?>">DAU MOA (<?php echo htmlspecialchars($r['wf_dau_moa'] ?: 'draft'); ?>)</span>
+                                    </div>
                                 </td>
                                 <td data-label="Hours">
                                     <div class="fw-semibold"><?php echo number_format($rendered, 1); ?> / <?php echo number_format($required, 1); ?></div>
@@ -583,7 +585,9 @@ include 'includes/header.php';
                                     <?php if (empty($r['risk_flags'])): ?>
                                         <span class="text-success fs-12">No critical flags</span>
                                     <?php else: ?>
-                                        <?php foreach ($r['risk_flags'] as $rf): ?><span class="risk-pill app-ojt-risk-pill"><?php echo htmlspecialchars($rf); ?></span><?php endforeach; ?>
+                                        <div class="app-ojt-risk-stack">
+                                            <?php foreach ($r['risk_flags'] as $rf): ?><span class="risk-pill app-ojt-risk-pill"><?php echo htmlspecialchars($rf); ?></span><?php endforeach; ?>
+                                        </div>
                                     <?php endif; ?>
                                 </td>
                                 <td data-label="Risk Score"><span class="badge bg-soft-danger text-danger"><?php echo intval($r['risk_score'] ?? 0); ?></span></td>

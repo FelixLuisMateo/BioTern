@@ -47,8 +47,14 @@
       header: serverPrefs.header === "dark" ? "dark" : "light",
     };
 
-    var darkBtn = document.querySelector(".dark-button");
-    var lightBtn = document.querySelector(".light-button");
+    var darkBtn =
+      document.querySelector(".nxl-header .dark-light-theme .dark-button") ||
+      document.querySelector(".nxl-header .dark-button") ||
+      document.querySelector("a.dark-button,button.dark-button");
+    var lightBtn =
+      document.querySelector(".nxl-header .dark-light-theme .light-button") ||
+      document.querySelector(".nxl-header .light-button") ||
+      document.querySelector("a.light-button,button.light-button");
     var pageSkinLight = document.getElementById("theme-page-skin-light");
     var pageSkinDark = document.getElementById("theme-page-skin-dark");
     var pageMenu = document.getElementById("theme-page-menu");
@@ -123,6 +129,19 @@
       if (serverPrefs.skin === "dark") return "app-skin-dark";
       if (serverPrefs.skin === "light") return "";
       return "";
+    }
+
+    function hasExplicitLocalSkinPreference() {
+      try {
+        return (
+          localStorage.getItem("app-skin") !== null ||
+          localStorage.getItem("app_skin") !== null ||
+          localStorage.getItem("theme") !== null ||
+          localStorage.getItem("app-skin-dark") !== null
+        );
+      } catch (e) {
+        return false;
+      }
     }
 
     function getSavedMenuMode() {
@@ -454,9 +473,11 @@
     }
 
     var s = getSavedSkin();
-    var isDark =
-      (typeof s === "string" && s.indexOf("dark") !== -1) ||
-      document.documentElement.classList.contains("app-skin-dark");
+    var hasLocalSkinPreference = hasExplicitLocalSkinPreference();
+    var isDark = typeof s === "string" && s.indexOf("dark") !== -1;
+    if (!hasLocalSkinPreference && document.documentElement.classList.contains("app-skin-dark")) {
+      isDark = true;
+    }
     applyFont(getSavedFont());
     applyNavigationMode(getSavedNavigationMode());
     applyHeaderMode(getSavedHeaderMode());
