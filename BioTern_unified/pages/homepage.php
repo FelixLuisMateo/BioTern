@@ -235,12 +235,37 @@ try {
     $recent_activities = dashboard_fetch_all(
         $conn,
         "SELECT
-            CONCAT('Student Created: ', s.first_name, ' ', s.last_name) AS activity,
-            s.created_at AS activity_date,
-            'student_created' AS activity_type,
-            s.id AS entity_id
-         FROM students s
-         WHERE s.deleted_at IS NULL
+            CONCAT('Student Application Submitted: ', COALESCE(s.first_name, ''), ' ', COALESCE(s.last_name, '')) AS activity,
+            u.application_submitted_at AS activity_date,
+            'application_submitted' AS activity_type,
+            u.id AS entity_id
+         FROM users u
+         LEFT JOIN students s ON s.user_id = u.id
+         WHERE u.role = 'student'
+           AND COALESCE(u.application_status, 'approved') = 'pending'
+           AND u.application_submitted_at IS NOT NULL
+         UNION ALL
+         SELECT
+            CONCAT('Student Application Approved: ', COALESCE(s.first_name, ''), ' ', COALESCE(s.last_name, '')) AS activity,
+            u.approved_at AS activity_date,
+            'application_approved' AS activity_type,
+            u.id AS entity_id
+         FROM users u
+         LEFT JOIN students s ON s.user_id = u.id
+         WHERE u.role = 'student'
+           AND COALESCE(u.application_status, 'approved') = 'approved'
+           AND u.approved_at IS NOT NULL
+         UNION ALL
+         SELECT
+            CONCAT('Student Application Rejected: ', COALESCE(s.first_name, ''), ' ', COALESCE(s.last_name, '')) AS activity,
+            u.rejected_at AS activity_date,
+            'application_rejected' AS activity_type,
+            u.id AS entity_id
+         FROM users u
+         LEFT JOIN students s ON s.user_id = u.id
+         WHERE u.role = 'student'
+           AND COALESCE(u.application_status, 'approved') = 'rejected'
+           AND u.rejected_at IS NOT NULL
          UNION ALL
          SELECT
             CONCAT('Attendance Recorded for ', s.first_name, ' ', s.last_name) AS activity,
@@ -580,17 +605,56 @@ if (count($recent_activities) > 0): ?>
                                         <?php
 require_once dirname(__DIR__) . '/config/db.php';
 foreach ($recent_activities as $activity): ?>
+                                        <?php
+                                            $activityType = (string)($activity['activity_type'] ?? '');
+                                            $activityMeta = [
+                                                'application_submitted' => [
+                                                    'bg' => '#e3f2fd',
+                                                    'icon' => 'file-text',
+                                                    'badge' => 'bg-soft-primary text-primary',
+                                                    'label' => 'Application submitted'
+                                                ],
+                                                'application_approved' => [
+                                                    'bg' => '#e8f5e9',
+                                                    'icon' => 'check-circle',
+                                                    'badge' => 'bg-soft-success text-success',
+                                                    'label' => 'Application approved'
+                                                ],
+                                                'application_rejected' => [
+                                                    'bg' => '#fdecea',
+                                                    'icon' => 'x-circle',
+                                                    'badge' => 'bg-soft-danger text-danger',
+                                                    'label' => 'Application rejected'
+                                                ],
+                                                'attendance_recorded' => [
+                                                    'bg' => '#f3e5f5',
+                                                    'icon' => 'clock',
+                                                    'badge' => 'bg-soft-warning text-warning',
+                                                    'label' => 'Attendance recorded'
+                                                ],
+                                                'biometric_registered' => [
+                                                    'bg' => '#e8f5e9',
+                                                    'icon' => 'check-circle',
+                                                    'badge' => 'bg-soft-success text-success',
+                                                    'label' => 'Biometric registered'
+                                                ],
+                                            ];
+                                            $meta = $activityMeta[$activityType] ?? [
+                                                'bg' => '#e3f2fd',
+                                                'icon' => 'info',
+                                                'badge' => 'bg-soft-info text-info',
+                                                'label' => ucfirst(str_replace('_', ' ', $activityType))
+                                            ];
+                                        ?>
                                         <div class="d-flex align-items-center gap-3 p-3 border-bottom">
                                             <div class="avatar-text avatar-sm rounded-circle" 
                                                 style="background-color: <?php
 require_once dirname(__DIR__) . '/config/db.php';
-echo ($activity['activity_type'] === 'student_created') ? '#e3f2fd' : 
-                                                         (($activity['activity_type'] === 'attendance_recorded') ? '#f3e5f5' : '#e8f5e9');
+echo $meta['bg'];
                                                 ?>">
                                                 <i class="feather-<?php
 require_once dirname(__DIR__) . '/config/db.php';
-echo ($activity['activity_type'] === 'student_created') ? 'user-plus' : 
-                                                         (($activity['activity_type'] === 'attendance_recorded') ? 'clock' : 'check-circle');
+echo $meta['icon'];
                                                 ?>" style="font-size: 14px;"></i>
                                             </div>
                                             <div class="flex-grow-1">
@@ -617,12 +681,11 @@ endif; ?>
                                             </div>
                                             <span class="badge <?php
 require_once dirname(__DIR__) . '/config/db.php';
-echo ($activity['activity_type'] === 'student_created') ? 'bg-soft-info text-info' : 
-                                                     (($activity['activity_type'] === 'attendance_recorded') ? 'bg-soft-warning text-warning' : 'bg-soft-success text-success');
+echo $meta['badge'];
                                             ?> fs-10">
                                                 <?php
 require_once dirname(__DIR__) . '/config/db.php';
-echo str_replace('_', ' ', ucfirst($activity['activity_type'])); ?>
+echo $meta['label']; ?>
                                             </span>
                                         </div>
                                         <?php
