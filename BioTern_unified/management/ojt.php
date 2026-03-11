@@ -407,6 +407,7 @@ include 'includes/header.php';
             row-gap: 6px;
             column-gap: 6px !important;
             flex-wrap: wrap;
+            align-items: center;
         }
         .page-header-right .btn,
         .page-header-right form .btn {
@@ -417,6 +418,9 @@ include 'includes/header.php';
             letter-spacing: .02em;
             padding: 0.34rem 0.72rem;
             line-height: 1.1;
+        }
+        .page-header-right form {
+            margin: 0;
         }
         .page-header-right .btn.btn-light,
         .page-header-right .btn.btn-outline-secondary,
@@ -446,6 +450,13 @@ include 'includes/header.php';
         }
         #ojtListTable th:nth-child(4), #ojtListTable td:nth-child(4) { min-width: 210px; }
         #ojtListTable th:nth-child(6), #ojtListTable td:nth-child(6) { min-width: 220px; }
+        #ojtListTable td[data-label="Actions"] .d-flex {
+            width: 100%;
+        }
+        #ojtListTable td[data-label="Actions"] .btn {
+            flex: 1 1 0;
+            min-width: 0;
+        }
         .filter-card {
             border: 1px solid #dfe8f5;
             border-radius: 14px;
@@ -499,6 +510,32 @@ include 'includes/header.php';
         .app-skin-dark .page-subtitle,
         .app-skin-dark #ojtListTable thead th {
             color: #99abc8;
+        }
+        .app-skin-dark #ojtListTable thead th {
+            background: #0f1a2e;
+            border-color: #26324f;
+        }
+        .app-skin-dark .page-header-right .btn.btn-light,
+        .app-skin-dark .page-header-right .btn.btn-outline-secondary,
+        .app-skin-dark .page-header-right .btn.btn-outline-primary {
+            background: #0f1a2e;
+            border-color: #2b3b5e;
+            color: #d7e3f7;
+        }
+        .app-skin-dark .page-header-right .btn.btn-light:hover,
+        .app-skin-dark .page-header-right .btn.btn-outline-secondary:hover,
+        .app-skin-dark .page-header-right .btn.btn-outline-primary:hover {
+            background: #12213a;
+            border-color: #38507a;
+        }
+        .app-skin-dark .filter-card .form-control,
+        .app-skin-dark .filter-card .form-select {
+            background: #0f1a2e;
+            border-color: #2b3b5e;
+            color: #d7e3f7;
+        }
+        .app-skin-dark .filter-card .form-control::placeholder {
+            color: #9fb2d1;
         }
         .app-skin-dark .chip { border-color: #314c72; color: #d4e2f9; }
         .app-skin-dark .risk-pill { background: #3f2e12; border-color: #7d5c1d; color: #ffd793; }
