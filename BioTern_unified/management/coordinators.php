@@ -54,6 +54,21 @@ if ($res) {
 $page_title = 'Coordinators';
 include 'includes/header.php';
 ?>
+<style>
+    .coordinator-actions {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+    .coordinator-actions form {
+        margin: 0;
+    }
+    .coordinator-actions .btn {
+        min-width: 70px;
+    }
+</style>
 <div class="page-header">
     <div class="page-header-left d-flex align-items-center">
         <div class="page-header-title">
@@ -92,7 +107,7 @@ include 'includes/header.php';
                             <th>Department</th>
                             <th>Office</th>
                             <th>Status</th>
-                            <th>Actions</th>
+                            <th class="text-center">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -115,8 +130,8 @@ include 'includes/header.php';
                                         <span class="badge bg-secondary">Inactive</span>
                                     <?php endif; ?>
                                 </td>
-                                <td>
-                                    <div class="d-flex gap-2">
+                                <td class="text-center">
+                                    <div class="coordinator-actions">
                                         <a href="coordinators-edit.php?id=<?php echo (int)$r['id']; ?>" class="btn btn-sm btn-outline-primary">Edit</a>
                                         <form method="post" onsubmit="return confirm('Delete this coordinator?');">
                                             <input type="hidden" name="action" value="delete">

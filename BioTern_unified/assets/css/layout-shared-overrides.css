@@ -26,6 +26,24 @@ body {
     margin-top: 0 !important;
 }
 
+/* Ensure header toggles remain clickable above overlays */
+.nxl-header {
+    z-index: 1050;
+}
+
+.nxl-header .header-left,
+.nxl-header .nxl-navigation-toggle,
+#menu-mini-button,
+#menu-expend-button {
+    pointer-events: auto;
+}
+
+@media (min-width: 1025px) {
+    .nxl-header .nxl-md-overlay {
+        pointer-events: none;
+    }
+}
+
 html.app-skin-dark input.form-control,
 html.app-skin-dark textarea.form-control,
 html.app-skin-dark .form-control[type="text"],
