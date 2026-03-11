@@ -234,12 +234,37 @@ try {
     $recent_activities = dashboard_fetch_all(
         $conn,
         "SELECT
-            CONCAT('Student Created: ', s.first_name, ' ', s.last_name) AS activity,
-            s.created_at AS activity_date,
-            'student_created' AS activity_type,
-            s.id AS entity_id
-         FROM students s
-         WHERE s.deleted_at IS NULL
+            CONCAT('Student Application Submitted: ', COALESCE(s.first_name, ''), ' ', COALESCE(s.last_name, '')) AS activity,
+            u.application_submitted_at AS activity_date,
+            'application_submitted' AS activity_type,
+            u.id AS entity_id
+         FROM users u
+         LEFT JOIN students s ON s.user_id = u.id
+         WHERE u.role = 'student'
+           AND COALESCE(u.application_status, 'approved') = 'pending'
+           AND u.application_submitted_at IS NOT NULL
+         UNION ALL
+         SELECT
+            CONCAT('Student Application Approved: ', COALESCE(s.first_name, ''), ' ', COALESCE(s.last_name, '')) AS activity,
+            u.approved_at AS activity_date,
+            'application_approved' AS activity_type,
+            u.id AS entity_id
+         FROM users u
+         LEFT JOIN students s ON s.user_id = u.id
+         WHERE u.role = 'student'
+           AND COALESCE(u.application_status, 'approved') = 'approved'
+           AND u.approved_at IS NOT NULL
+         UNION ALL
+         SELECT
+            CONCAT('Student Application Rejected: ', COALESCE(s.first_name, ''), ' ', COALESCE(s.last_name, '')) AS activity,
+            u.rejected_at AS activity_date,
+            'application_rejected' AS activity_type,
+            u.id AS entity_id
+         FROM users u
+         LEFT JOIN students s ON s.user_id = u.id
+         WHERE u.role = 'student'
+           AND COALESCE(u.application_status, 'approved') = 'rejected'
+           AND u.rejected_at IS NOT NULL
          UNION ALL
          SELECT
             CONCAT('Attendance Recorded for ', s.first_name, ' ', s.last_name) AS activity,
@@ -291,9 +316,22 @@ $attendance_approval_rate = $dashboard_stats['attendance_approval_rate'];
 $attendance_pending_rate = $dashboard_stats['attendance_pending_rate'];
 $active_student_rate = $dashboard_stats['active_student_rate'];
 $biometric_registered = $dashboard_stats['biometric_registered'];
+$dashboard_role = strtolower(trim((string)($_SESSION['role'] ?? '')));
+$dashboard_can_review_applications = in_array($dashboard_role, ['admin', 'coordinator', 'supervisor'], true);
 
 $page_title = 'BioTern || Dashboard';
 $page_styles = array('assets/css/homepage-dashboard.css');
+$page_vendor_scripts = array(
+    'assets/vendors/js/daterangepicker.min.js',
+    'assets/vendors/js/apexcharts.min.js',
+    'assets/vendors/js/circle-progress.min.js',
+);
+$page_scripts = array(
+    'assets/js/dashboard-init.min.js',
+    'assets/js/homepage-movable.js',
+    'assets/js/homepage-dashboard-runtime.js',
+    'assets/js/theme-customizer-init.min.js',
+);
 include 'includes/header.php';
 ?>
             <div class="page-header">
@@ -320,6 +358,11 @@ include 'includes/header.php';
                         <a href="students.php" class="btn btn-sm btn-light-brand">
                             <i class="feather-users me-1"></i> Manage Students
                         </a>
+                        <?php if ($dashboard_can_review_applications): ?>
+                        <a href="applications-review.php" class="btn btn-sm btn-light-brand">
+                            <i class="feather-user-check me-1"></i> Review Applications
+                        </a>
+                        <?php endif; ?>
                         <a href="attendance.php" class="btn btn-sm btn-primary">
                             <i class="feather-check-square me-1"></i> Review Attendance
                         </a>
@@ -425,7 +468,7 @@ include 'includes/header.php';
                                         <span class="fs-12 fw-semibold text-dark"><?php echo $attendance_completed; ?>/<?php echo $attendance_total; ?></span>
                                     </div>
                                     <div class="progress ht-5">
-                                        <div class="progress-bar bg-success" role="progressbar" style="width: <?php echo $attendance_approval_rate; ?>%"></div>
+                                        <div class="progress-bar bg-success" role="progressbar" data-progress-width="<?php echo $attendance_approval_rate; ?>"></div>
                                     </div>
                                 </div>
                                 <div class="mb-4">
@@ -434,7 +477,7 @@ include 'includes/header.php';
                                         <span class="fs-12 fw-semibold text-dark"><?php echo $biometric_registered; ?>/<?php echo $student_count; ?></span>
                                     </div>
                                     <div class="progress ht-5">
-                                        <div class="progress-bar bg-primary" role="progressbar" style="width: <?php echo ($student_count > 0) ? round(($biometric_registered / $student_count) * 100) : 0; ?>%"></div>
+                                        <div class="progress-bar bg-primary" role="progressbar" data-progress-width="<?php echo ($student_count > 0) ? round(($biometric_registered / $student_count) * 100) : 0; ?>"></div>
                                     </div>
                                 </div>
                                 <div>
@@ -443,7 +486,7 @@ include 'includes/header.php';
                                         <span class="fs-12 fw-semibold text-dark"><?php echo $completed_internships; ?>/<?php echo $internship_count; ?></span>
                                     </div>
                                     <div class="progress ht-5">
-                                        <div class="progress-bar bg-info" role="progressbar" style="width: <?php echo ($internship_count > 0) ? round(($completed_internships / $internship_count) * 100) : 0; ?>%"></div>
+                                        <div class="progress-bar bg-info" role="progressbar" data-progress-width="<?php echo ($internship_count > 0) ? round(($completed_internships / $internship_count) * 100) : 0; ?>"></div>
                                     </div>
                                 </div>
                             </div>
@@ -521,20 +564,57 @@ include 'includes/header.php';
                             <div class="card-body custom-card-action p-0">
                                 <div class="app-scroll-y-400">
                                     <?php if (count($recent_activities) > 0): ?>
+                                        <?php
+                                        $activityMeta = [
+                                            'application_submitted' => [
+                                                'class' => 'activity-icon--application-submitted',
+                                                'icon' => 'file-text',
+                                                'badge' => 'bg-soft-primary text-primary',
+                                                'label' => 'Application submitted',
+                                            ],
+                                            'application_approved' => [
+                                                'class' => 'activity-icon--application-approved',
+                                                'icon' => 'check-circle',
+                                                'badge' => 'bg-soft-success text-success',
+                                                'label' => 'Application approved',
+                                            ],
+                                            'application_rejected' => [
+                                                'class' => 'activity-icon--application-rejected',
+                                                'icon' => 'x-circle',
+                                                'badge' => 'bg-soft-danger text-danger',
+                                                'label' => 'Application rejected',
+                                            ],
+                                            'attendance_recorded' => [
+                                                'class' => 'activity-icon--attendance-recorded',
+                                                'icon' => 'clock',
+                                                'badge' => 'bg-soft-warning text-warning',
+                                                'label' => 'Attendance recorded',
+                                            ],
+                                            'biometric_registered' => [
+                                                'class' => 'activity-icon--biometric-registered',
+                                                'icon' => 'check-circle',
+                                                'badge' => 'bg-soft-success text-success',
+                                                'label' => 'Biometric registered',
+                                            ],
+                                        ];
+                                        ?>
                                         <?php foreach ($recent_activities as $activity): ?>
+                                        <?php
+                                        $activityType = (string)($activity['activity_type'] ?? '');
+                                        $meta = $activityMeta[$activityType] ?? [
+                                            'class' => 'activity-icon--default',
+                                            'icon' => 'info',
+                                            'badge' => 'bg-soft-info text-info',
+                                            'label' => ucfirst(str_replace('_', ' ', $activityType)),
+                                        ];
+                                        ?>
                                         <div class="d-flex align-items-center gap-3 p-3 border-bottom">
-                                            <div class="avatar-text avatar-sm rounded-circle <?php 
-                                                echo ($activity['activity_type'] === 'student_created') ? 'app-activity-bg-student' : 
-                                                     (($activity['activity_type'] === 'attendance_recorded') ? 'app-activity-bg-attendance' : 'app-activity-bg-default');
-                                            ?>">
-                                                <i class="feather-<?php 
-                                                    echo ($activity['activity_type'] === 'student_created') ? 'user-plus' : 
-                                                         (($activity['activity_type'] === 'attendance_recorded') ? 'clock' : 'check-circle');
-                                                ?> app-icon-14"></i>
+                                            <div class="avatar-text avatar-sm rounded-circle activity-icon <?php echo $meta['class']; ?>">
+                                                <i class="feather-<?php echo $meta['icon']; ?> app-icon-14"></i>
                                             </div>
                                             <div class="flex-grow-1">
                                                 <a href="javascript:void(0);" class="fw-semibold text-dark d-block">
-                                                    <?php echo htmlspecialchars($activity['activity']); ?>
+                                                    <?php echo htmlspecialchars($activity['activity'] ?? ''); ?>
                                                 </a>
                                                 <span class="fs-12 text-muted">
                                                     <?php if ($activity['activity_date']): ?>
@@ -544,11 +624,8 @@ include 'includes/header.php';
                                                     <?php endif; ?>
                                                 </span>
                                             </div>
-                                            <span class="badge <?php 
-                                                echo ($activity['activity_type'] === 'student_created') ? 'bg-soft-info text-info' : 
-                                                     (($activity['activity_type'] === 'attendance_recorded') ? 'bg-soft-warning text-warning' : 'bg-soft-success text-success');
-                                            ?> fs-10">
-                                                <?php echo str_replace('_', ' ', ucfirst($activity['activity_type'])); ?>
+                                            <span class="badge <?php echo $meta['badge']; ?> fs-10">
+                                                <?php echo $meta['label']; ?>
                                             </span>
                                         </div>
                                         <?php endforeach; ?>
@@ -822,7 +899,7 @@ include 'includes/header.php';
                                     </div>
                                 </div>
                                 <div class="progress mb-3 ht-5">
-                                    <div class="progress-bar bg-success" role="progressbar" style="width: <?php echo ($student_count > 0) ? round(($biometric_registered / $student_count) * 100) : 0; ?>%"></div>
+                                    <div class="progress-bar bg-success" role="progressbar" data-progress-width="<?php echo ($student_count > 0) ? round(($biometric_registered / $student_count) * 100) : 0; ?>"></div>
                                 </div>
                                 <p class="text-muted text-center fs-12 mb-0">Overall Biometric Registration Progress</p>
                             </div>
@@ -920,55 +997,11 @@ include 'includes/header.php';
                     <!-- Duplicate Recent Activities removed (now shown in the top section) -->
                 </div>
             </div>
+            <div id="homepage-runtime-config"
+                data-ojt-pending="<?php echo isset($ojt_status_counts['pending']) ? intval($ojt_status_counts['pending']) : 0; ?>"
+                data-ojt-ongoing="<?php echo isset($ojt_status_counts['ongoing']) ? intval($ojt_status_counts['ongoing']) : 0; ?>"
+                data-ojt-completed="<?php echo isset($ojt_status_counts['completed']) ? intval($ojt_status_counts['completed']) : 0; ?>"
+                data-ojt-cancelled="<?php echo isset($ojt_status_counts['cancelled']) ? intval($ojt_status_counts['cancelled']) : 0; ?>"
+                hidden></div>
             <!-- [ Main Content ] end -->
-        </div>
-        <!-- [ Footer ] start -->
-        <footer class="footer">
-            <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
-                <span>Copyright &copy;</span>
-                <span><?php echo date('Y'); ?></span>
-            </p>
-            <p><span>By: <a target="_blank" href="" target="_blank">ACT 2A</a></span> <span>Distributed by: <a target="_blank" href="" target="_blank">Group 5</a></span></p>
-            <div class="d-flex align-items-center gap-4">
-                <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Help</a>
-                <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Terms</a>
-                <a href="javascript:void(0);" class="fs-11 fw-semibold text-uppercase">Privacy</a>
-            </div>
-        </footer>
-        <!-- [ Footer ] end -->
-    </main>
-    <!--! ================================================================ !-->
-    <!--! [End] Main Content !-->
-    <!--! ================================================================ !-->
-    <!--! ================================================================ !-->
-    <!--! Footer Script !-->
-    <!--! ================================================================ !-->
-    <!--! BEGIN: Vendors JS !-->
-    <script src="assets/vendors/js/vendors.min.js"></script>
-    <!-- vendors.min.js {always must need to be top} -->
-    <script src="assets/vendors/js/daterangepicker.min.js"></script>
-    <script src="assets/vendors/js/apexcharts.min.js"></script>
-    <script src="assets/vendors/js/circle-progress.min.js"></script>
-    <!--! END: Vendors JS !-->
-    <!--! BEGIN: Apps Init  !-->
-    <script src="assets/js/common-init.min.js"></script>
-    <script src="assets/js/global-ui-helpers.js"></script>
-    <script src="assets/js/theme-preferences-runtime.js"></script>
-    <script src="assets/js/dashboard-init.min.js"></script>
-    <script src="assets/js/homepage-movable.js"></script>
-    <script src="assets/js/homepage-dashboard-runtime.js"></script>
-    <!--! END: Apps Init !-->
-    <div id="homepage-runtime-config"
-         data-ojt-pending="<?php echo isset($ojt_status_counts['pending']) ? intval($ojt_status_counts['pending']) : 0; ?>"
-         data-ojt-ongoing="<?php echo isset($ojt_status_counts['ongoing']) ? intval($ojt_status_counts['ongoing']) : 0; ?>"
-         data-ojt-completed="<?php echo isset($ojt_status_counts['completed']) ? intval($ojt_status_counts['completed']) : 0; ?>"
-         data-ojt-cancelled="<?php echo isset($ojt_status_counts['cancelled']) ? intval($ojt_status_counts['cancelled']) : 0; ?>"
-         hidden></div>
-    <!--! BEGIN: Theme Customizer  !-->
-    <script src="assets/js/theme-customizer-init.min.js"></script>
-    <!--! END: Theme Customizer !-->
-    <!-- Homepage runtime moved to assets/js/homepage-dashboard-runtime.js -->
-</body>
-
-</html>
-
+<?php include 'includes/footer.php'; ?>

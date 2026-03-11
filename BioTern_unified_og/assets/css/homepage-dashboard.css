@@ -196,3 +196,42 @@
 .layout-edit-active #reset-dashboard-layout {
     display: inline-flex;
 }
+
+.app-scroll-y-400 {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.activity-icon {
+    color: #1d4ed8;
+}
+
+.activity-icon--application-submitted {
+    background-color: #e3f2fd;
+    color: #1d4ed8;
+}
+
+.activity-icon--application-approved {
+    background-color: #e8f5e9;
+    color: #1b5e20;
+}
+
+.activity-icon--application-rejected {
+    background-color: #fdecea;
+    color: #b71c1c;
+}
+
+.activity-icon--attendance-recorded {
+    background-color: #f3e5f5;
+    color: #6a1b9a;
+}
+
+.activity-icon--biometric-registered {
+    background-color: #e8f5e9;
+    color: #1b5e20;
+}
+
+.activity-icon--default {
+    background-color: #e3f2fd;
+    color: #1d4ed8;
+}

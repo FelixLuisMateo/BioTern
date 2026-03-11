@@ -79,9 +79,23 @@
     }
   }
 
+  function applyProgressWidths() {
+    document.querySelectorAll("[data-progress-width]").forEach(function (bar) {
+      var raw = bar.getAttribute("data-progress-width");
+      var value = Number(raw);
+      if (!isFinite(value)) {
+        value = 0;
+      }
+      value = Math.max(0, Math.min(100, value));
+      bar.style.width = value + "%";
+      bar.setAttribute("aria-valuenow", String(value));
+    });
+  }
+
   function initHomepageRuntime() {
     initOjtOverviewChart();
     initSidebarMiniMenuCollapse();
+    applyProgressWidths();
   }
 
   if (document.readyState === "loading") {
