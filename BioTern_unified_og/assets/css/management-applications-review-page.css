@@ -1,0 +1,455 @@
+.apps-review-shell {
+    padding-top: 0;
+    margin: 0;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.apps-review-shell .main-content {
+    width: 100%;
+    max-width: none;
+    margin-left: 0;
+    margin-right: 0;
+    padding-left: 0;
+    padding-right: 0;
+    box-sizing: border-box;
+}
+
+.apps-review-card {
+    border: 1px solid rgba(140, 160, 190, 0.18);
+    border-radius: 14px;
+    overflow: hidden;
+    width: 100%;
+    margin-top: 0;
+    position: relative;
+    z-index: 1;
+    box-sizing: border-box;
+}
+
+.apps-review-shell .main-content {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+}
+
+.apps-review-card .card-body {
+    padding: 14px;
+}
+
+.apps-review-shell .main-content > .apps-review-card,
+.apps-review-shell .main-content > .card.apps-review-card {
+    margin-top: 0 !important;
+}
+
+.apps-review-toolbar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 8px;
+    margin-bottom: 10px;
+    align-items: end;
+}
+
+.apps-review-toolbar .form-label {
+    font-size: 12px;
+    margin-bottom: 6px;
+    color: #8a93a6;
+}
+
+
+.apps-review-table {
+    width: 100%;
+    table-layout: auto;
+}
+
+.apps-review-table thead th {
+    font-size: 11px;
+    letter-spacing: 0.35px;
+    text-transform: uppercase;
+    color: #9aa7c0;
+    white-space: normal;
+    word-break: break-word;
+}
+
+.apps-review-table th,
+.apps-review-table td {
+    white-space: normal;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
+.apps-review-table th:nth-child(1),
+.apps-review-table td:nth-child(1) {
+    width: 30%;
+}
+
+.apps-review-table th:nth-child(2),
+.apps-review-table td:nth-child(2) {
+    width: 23%;
+}
+
+.apps-review-table th:nth-child(5),
+.apps-review-table td:nth-child(5) {
+    width: 14%;
+    white-space: nowrap;
+}
+
+.apps-review-table th:nth-child(6),
+.apps-review-table td:nth-child(6) {
+    width: 12%;
+    text-align: center;
+}
+
+.apps-review-col-review {
+    width: 120px;
+}
+
+.student-block {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.student-block small {
+    overflow-wrap: anywhere;
+}
+
+.student-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: #fff;
+    background: linear-gradient(135deg, #3f66db, #8b5cf6);
+}
+
+.hours-pill {
+    display: inline-block;
+    border: 1px solid rgba(140, 160, 190, 0.3);
+    border-radius: 999px;
+    padding: 3px 9px;
+    font-weight: 600;
+}
+
+.apps-review-table > :not(caption) > * > * {
+    padding: 10px 10px;
+    vertical-align: middle;
+}
+
+.expand-btn {
+    min-width: 86px;
+    width: auto;
+    white-space: nowrap;
+    font-size: 10px;
+    letter-spacing: 0.2px;
+    padding: 5px 10px;
+    line-height: 1.15;
+}
+
+.application-detail-row td {
+    padding: 0 !important;
+    border-top: none;
+}
+
+.application-detail-box {
+    border-top: 1px dashed rgba(140, 160, 190, 0.25);
+    background: #f5f7fb;
+    padding: 10px;
+}
+
+.detail-grid {
+    display: grid;
+    grid-template-columns: 1.1fr 1fr;
+    gap: 10px;
+    align-items: start;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.detail-grid > * {
+    min-width: 0;
+}
+
+.detail-meta {
+    border: 1px solid rgba(140, 160, 190, 0.22);
+    border-radius: 10px;
+    padding: 10px;
+    font-size: 12px;
+    line-height: 1.3;
+    color: #334155;
+    background: #ffffff;
+}
+
+.detail-meta .line {
+    margin-bottom: 4px;
+    color: #475569;
+}
+
+.detail-meta .line:last-child {
+    margin-bottom: 0;
+}
+
+.detail-meta .line strong {
+    color: #1e293b;
+    font-weight: 600;
+}
+
+.action-form {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(140px, 1fr));
+    gap: 6px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.field-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: #64748b;
+    margin-bottom: 3px;
+    display: inline-block;
+}
+
+.field-wrap {
+    width: 100%;
+}
+
+.action-form .wide-field,
+.action-form .approval-note,
+.action-form .disciplinary-note,
+.action-form .action-buttons {
+    grid-column: 1 / -1;
+}
+
+.action-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+}
+
+.action-buttons .btn {
+    width: 100%;
+}
+
+.action-form .form-control,
+.action-form .form-control-sm {
+    font-size: 12px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+}
+
+.action-form .btn.btn-sm {
+    padding-top: 5px;
+    padding-bottom: 5px;
+    font-size: 12px;
+    line-height: 1.2;
+}
+
+.app-skin-dark .application-detail-box {
+    background: rgba(30, 45, 80, 0.22);
+}
+
+.app-skin-dark .detail-meta {
+    background: rgba(30, 45, 80, 0.18);
+    color: #cbd5e1;
+    border-color: rgba(140, 160, 190, 0.28);
+}
+
+.app-skin-dark .detail-meta .line {
+    color: #b9c6db;
+}
+
+.app-skin-dark .detail-meta .line strong {
+    color: #e2e8f5;
+}
+
+.app-skin-dark .field-label {
+    color: #9fb0cc;
+}
+
+.application-detail-box,
+.apps-review-shell .table-responsive {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.apps-review-shell .table-responsive {
+    overflow-x: hidden;
+}
+
+.apps-review-table td[data-label="Status"],
+.apps-review-table th:nth-child(3),
+.apps-review-table td[data-label="Hours (Int/Ext)"],
+.apps-review-table th:nth-child(4),
+.apps-review-table td[data-label="Submitted"],
+.apps-review-table th:nth-child(5) {
+    text-align: center;
+}
+
+.apps-review-table td[data-label="Review"],
+.apps-review-table th:nth-child(6) {
+    text-align: center !important;
+}
+
+.apps-review-table .expand-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 96px;
+}
+
+.apps-review-table td[data-label="Review"] .expand-btn {
+    display: inline-flex;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.alert-auto-dismiss {
+    transition: opacity 0.35s ease;
+}
+
+.alert-auto-dismiss.is-hiding {
+    opacity: 0;
+}
+
+@media (max-width: 1200px) {
+    .apps-review-table th:nth-child(1),
+    .apps-review-table td:nth-child(1) {
+        width: 29%;
+    }
+
+    .apps-review-table th:nth-child(2),
+    .apps-review-table td:nth-child(2) {
+        width: 22%;
+    }
+
+    .apps-review-table th:nth-child(5),
+    .apps-review-table td:nth-child(5) {
+        width: 15%;
+    }
+
+    .apps-review-table th:nth-child(6),
+    .apps-review-table td:nth-child(6) {
+        width: 13%;
+    }
+}
+
+@media (max-width: 1100px) {
+    .apps-review-table thead {
+        display: none;
+    }
+
+    .apps-review-table,
+    .apps-review-table tbody,
+    .apps-review-table tr,
+    .apps-review-table td {
+        display: block;
+        width: 100% !important;
+    }
+
+    .apps-review-table tr.summary-row {
+        border: 1px solid rgba(140, 160, 190, 0.24);
+        border-radius: 10px;
+        margin-bottom: 10px;
+        overflow: hidden;
+        background: #fff;
+    }
+
+    .apps-review-table tr.summary-row td {
+        border: 0;
+        border-top: 1px dashed rgba(140, 160, 190, 0.22);
+        padding: 8px 10px;
+        display: grid;
+        grid-template-columns: 116px minmax(0, 1fr);
+        gap: 10px;
+        align-items: start;
+        text-align: left !important;
+        white-space: normal;
+    }
+
+    .apps-review-table tr.summary-row td:first-child {
+        border-top: 0;
+    }
+
+    .apps-review-table tr.summary-row td::before {
+        content: attr(data-label);
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.35px;
+        color: #7b8aa4;
+        line-height: 1.25;
+        padding-top: 2px;
+    }
+
+    .student-block {
+        align-items: flex-start;
+    }
+
+    .apps-review-table td:nth-child(6) {
+        text-align: left;
+    }
+
+    .apps-review-table td[data-label="Review"] {
+        text-align: center !important;
+    }
+
+    .expand-btn {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .application-detail-row {
+        margin-top: -6px;
+        margin-bottom: 10px;
+    }
+
+    .application-detail-row td {
+        padding: 0 !important;
+    }
+
+    .application-detail-box {
+        border-radius: 10px;
+        border: 1px dashed rgba(140, 160, 190, 0.22);
+    }
+}
+
+@media (max-width: 991px) {
+    .detail-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .apps-review-toolbar .toolbar-actions {
+        grid-column: 1 / -1;
+        justify-content: flex-start;
+    }
+}
+
+@media (max-width: 767px) {
+    .apps-review-shell .apps-review-title-row,
+    .apps-review-shell .main-content {
+        padding-left: 2px;
+        padding-right: 2px;
+    }
+
+    .apps-review-card .card-body {
+        padding: 10px;
+    }
+
+    .apps-review-toolbar {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .apps-review-toolbar .toolbar-actions {
+        grid-column: 1 / -1;
+    }
+
+    .apps-review-table tr.summary-row td {
+        grid-template-columns: 96px minmax(0, 1fr);
+        gap: 8px;
+        padding: 8px;
+    }
+}

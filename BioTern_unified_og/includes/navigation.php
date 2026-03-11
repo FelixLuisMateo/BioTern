@@ -50,6 +50,7 @@ $nav_can_reports = ($nav_is_admin || $nav_is_coordinator || $nav_is_supervisor);
                     </a>
                     <ul class="nxl-submenu">
                         <li class="nxl-item"><a class="nxl-link" href="students.php">Students List</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="applications-review.php">Applications Review</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="attendance.php">Attendance DTR</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="demo-biometric.php">Demo Biometric</a></li>
                     </ul>

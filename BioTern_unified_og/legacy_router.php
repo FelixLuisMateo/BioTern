@@ -5,6 +5,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 $map = [
   'students.php' => 'management/students.php',
+  'applications-review.php' => 'management/applications-review.php',
   'students-create.php' => 'management/students-create.php',
   'students-edit.php' => 'management/students-edit.php',
   'students-view.php' => 'management/students-view.php',
@@ -199,6 +200,7 @@ if ($is_logged_in) {
 
   $internship_files = [
     'students.php', 'students-create.php', 'students-edit.php', 'students-view.php', 'students-dtr.php',
+    'applications-review.php',
     'attendance.php', 'attendance-corrections.php', 'edit_attendance.php', 'print_attendance.php',
     'demo-biometric.php',
     'ojt.php', 'ojt-create.php', 'ojt-edit.php', 'ojt-view.php', 'ojt-workflow-board.php',
