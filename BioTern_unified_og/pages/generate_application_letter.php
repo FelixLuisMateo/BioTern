@@ -57,8 +57,11 @@ $script_name = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
 $asset_prefix = (strpos($script_name, '/pages/') !== false) ? '../' : '';
 $page_title = 'BioTern || Application Letter - ' . (trim(($student['first_name'] ?? '') . ' ' . ($student['last_name'] ?? '')) ?: 'Preview');
 $base_href = $asset_prefix;
+$page_body_class = 'app-generate-page';
 $page_styles = [
+    'assets/css/generate-shell-clean.css',
     'assets/css/generate-application-letter-page.css',
+    'assets/css/template-color-lock.css',
 ];
 $page_scripts = [
     'assets/js/generate-application-letter-runtime.js',
@@ -67,7 +70,17 @@ $page_scripts = [
 include __DIR__ . '/../includes/header.php';
 
 ?>
-<div class="main-content">
+<div class="main-content"
+    data-print-date="<?php echo htmlspecialchars((string)$print_date, ENT_QUOTES, 'UTF-8'); ?>"
+    data-ap-name="<?php echo htmlspecialchars((string)$ap_name, ENT_QUOTES, 'UTF-8'); ?>"
+    data-ap-position="<?php echo htmlspecialchars((string)$ap_position, ENT_QUOTES, 'UTF-8'); ?>"
+    data-ap-company="<?php echo htmlspecialchars((string)$ap_company, ENT_QUOTES, 'UTF-8'); ?>"
+    data-ap-company-address="<?php echo htmlspecialchars((string)$ap_company_address, ENT_QUOTES, 'UTF-8'); ?>"
+    data-ap-hours="<?php echo htmlspecialchars((string)$ap_hours, ENT_QUOTES, 'UTF-8'); ?>"
+    data-full-name="<?php echo htmlspecialchars((string)$full_name, ENT_QUOTES, 'UTF-8'); ?>"
+    data-student-address="<?php echo htmlspecialchars((string)$address, ENT_QUOTES, 'UTF-8'); ?>"
+    data-student-phone="<?php echo htmlspecialchars((string)$phone, ENT_QUOTES, 'UTF-8'); ?>"
+    data-use-saved-template="<?php echo $use_saved_template ? '1' : '0'; ?>">
 <div class="container app-application-letter-container">
     <!-- crest at top-left (auth-cover-login-bg.png if available) -->
     <img class="crest app-application-letter-crest" src="assets/images/auth/auth-cover-login-bg.png" alt="crest" data-hide-onerror="1">
@@ -115,26 +128,6 @@ include __DIR__ . '/../includes/header.php';
     </div>
 
 </div>
-<script>
-    (function () {
-        var cfg = <?php echo json_encode([
-            'printDate' => (string)$print_date,
-            'apName' => (string)$ap_name,
-            'apPosition' => (string)$ap_position,
-            'apCompany' => (string)$ap_company,
-            'apCompanyAddress' => (string)$ap_company_address,
-            'apHours' => (string)$ap_hours,
-            'fullName' => (string)$full_name,
-            'studentAddress' => (string)$address,
-            'studentPhone' => (string)$phone,
-            'useSavedTemplate' => $use_saved_template ? '1' : '0',
-        ], JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
-        if (!document.body || !cfg) return;
-        Object.keys(cfg).forEach(function (key) {
-            document.body.dataset[key] = String(cfg[key] == null ? '' : cfg[key]);
-        });
-    })();
-</script>
 </div>
 
 <?php include __DIR__ . '/../includes/footer.php'; ?>

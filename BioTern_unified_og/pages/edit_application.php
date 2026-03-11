@@ -7,6 +7,7 @@ $base_href = $asset_prefix;
 $page_body_class = 'app-editor-page';
 $page_styles = [
     'assets/css/edit-application-template-page.css',
+    'assets/css/template-color-lock.css',
 ];
 $page_scripts = [
     'assets/js/edit-application-template-runtime.js',

@@ -172,8 +172,9 @@
 
   function initMoaDocument(options) {
     var cfg = options || {};
+    var pageRoot = document.querySelector(".main-content[data-use-saved-template]") || document.body;
     var useSavedTemplate =
-      document.body && document.body.dataset ? document.body.dataset.useSavedTemplate === "1" : false;
+      pageRoot && pageRoot.dataset ? pageRoot.dataset.useSavedTemplate === "1" : false;
     var doc = document.getElementById(cfg.contentId || "moa_doc_content");
 
     function stripLegacyColorStyles(container) {

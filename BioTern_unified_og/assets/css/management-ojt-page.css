@@ -31,6 +31,66 @@ body { background: #f5f7fb; }
     .app-ojt-list-table thead th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; color: #6c7a92; }
     #ojtListTable,
     .app-ojt-list-table { min-width: 980px; }
+    .app-ojt-list-table {
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+    .app-ojt-list-table thead th {
+        border-bottom: 1px solid #dde6f4;
+    }
+    .app-ojt-list-table tbody td {
+        border-bottom: 1px solid #e8eef8;
+    }
+    .app-ojt-list-table thead th + th,
+    .app-ojt-list-table tbody td + td {
+        border-left: 1px solid #edf2fb;
+    }
+    /* Improve row stacking and prevent overlapping chips/actions */
+    .app-ojt-list-table td, .app-ojt-list-table th {
+        padding: 0.85rem 0.75rem;
+        white-space: normal;
+        vertical-align: middle;
+    }
+    .app-ojt-list-table th:nth-child(4), .app-ojt-list-table td:nth-child(4) { min-width: 240px; }
+    .app-ojt-list-table th:nth-child(5), .app-ojt-list-table td:nth-child(5) { min-width: 150px; }
+    .app-ojt-list-table th:nth-child(6), .app-ojt-list-table td:nth-child(6) { min-width: 220px; }
+    .app-ojt-list-table th:nth-child(8), .app-ojt-list-table td:nth-child(8) { min-width: 170px; }
+    .app-ojt-chip-stack,
+    .app-ojt-risk-stack {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        align-items: flex-start;
+    }
+    .app-ojt-list-table .app-ojt-chip,
+    .app-ojt-list-table .app-ojt-risk-pill {
+        display: inline-block;
+        white-space: normal;
+        max-width: 100%;
+        word-break: break-word;
+    }
+    .app-ojt-list-table td[data-label="Document Progress"] .app-ojt-chip {
+        margin: 0;
+    }
+    .app-ojt-list-table .app-ojt-risk-pill {
+        margin: 0;
+    }
+    .app-ojt-row-actions {
+        display: flex !important;
+        flex-wrap: nowrap;
+        gap: 6px !important;
+        min-width: 0;
+    }
+    .app-ojt-row-actions .btn {
+        flex: 1 1 auto;
+        min-width: 0;
+        white-space: nowrap;
+        padding-left: 0.4rem;
+        padding-right: 0.4rem;
+    }
+    .app-ojt-list-table tbody tr {
+        height: auto;
+    }
         .app-skin-dark body { background: #0b1220; }
         .app-skin-dark .card,
         .app-skin-dark .filter-card,
@@ -45,6 +105,16 @@ body { background: #f5f7fb; }
             color: #99abc8;
         }
         .app-skin-dark .app-ojt-list-table thead th { color: #99abc8; }
+        .app-skin-dark .app-ojt-list-table thead th {
+            border-bottom-color: #2c3d61;
+        }
+        .app-skin-dark .app-ojt-list-table tbody td {
+            border-bottom-color: #223250;
+        }
+        .app-skin-dark .app-ojt-list-table thead th + th,
+        .app-skin-dark .app-ojt-list-table tbody td + td {
+            border-left-color: #1c2a44;
+        }
         .app-skin-dark .chip,
         .app-skin-dark .app-ojt-chip { border-color: #314c72; color: #d4e2f9; }
         .app-skin-dark .risk-pill,
