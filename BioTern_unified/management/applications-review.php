@@ -115,6 +115,15 @@ function formatDisplayDateTime($rawValue)
     return date('M d, Y h:i A', $timestamp);
 }
 
+function getCurrentSchoolYearLabel($timestamp = null)
+{
+    $ts = $timestamp !== null ? (int)$timestamp : time();
+    $year = (int)date('Y', $ts);
+    $month = (int)date('n', $ts);
+    $startYear = $month >= 7 ? $year : ($year - 1);
+    return sprintf('%d-%d', $startYear, $startYear + 1);
+}
+
 $flashType = '';
 $flashMessage = '';
 if (isset($_SESSION['flash_message'])) {
@@ -230,8 +239,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                             if ($internCoordinatorUserId > 0 && $internSupervisorUserId > 0) {
                                 $today = date('Y-m-d');
-                                $year = (int)date('Y');
-                                $schoolYear = $year . '-' . ($year + 1);
+                                $schoolYear = getCurrentSchoolYearLabel();
                                 $type = $assignmentTrack === 'external' ? 'external' : 'internal';
                                 $requiredHours = $type === 'external' ? max(0, $externalHours) : max(0, $internalHours);
                                 $renderedHours = 0;
@@ -444,6 +452,26 @@ include 'includes/header.php';
         margin-bottom: 0;
         margin-left: 0;
     }
+    .apps-review-shell .apps-review-title-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+    }
+    .filter-toggle-btn {
+        border-radius: 10px;
+        border: 1px solid rgba(57, 78, 138, 0.24);
+        background: #f6f9ff;
+        color: #1f2a44;
+        min-height: 38px;
+        font-weight: 600;
+    }
+    .filter-toggle-btn:hover,
+    .filter-toggle-btn:focus {
+        background: #eef3ff;
+        color: #1f2a44;
+        border-color: rgba(57, 78, 138, 0.34);
+    }
     .apps-review-card {
         border: 1px solid rgba(140, 160, 190, 0.18);
         border-radius: 14px;
@@ -470,16 +498,78 @@ include 'includes/header.php';
         margin-top: 0 !important;
     }
 
+    .filter-panel {
+        border: 1px solid rgba(140, 160, 190, 0.2);
+        border-radius: 12px;
+        background: #f8faff;
+        padding: 10px;
+        margin-bottom: 10px;
+    }
+
+    .filter-panel-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 8px;
+        flex-wrap: wrap;
+    }
+
+    .filter-panel-head-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .filter-panel-label {
+        font-size: 13px;
+        font-weight: 700;
+        color: #1f2a44;
+        margin: 0;
+        line-height: 1.2;
+    }
+
+    .filter-panel-sub {
+        margin: 2px 0 0;
+        font-size: 11px;
+        color: #6a768f;
+    }
+
     .apps-review-toolbar {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
         gap: 8px;
-        margin-bottom: 10px;
+        margin-bottom: 0;
         align-items: end;
     }
 
     .apps-review-toolbar .form-label { font-size: 12px; margin-bottom: 6px; color: #8a93a6; }
-    .apps-review-toolbar .toolbar-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+    .app-skin-dark .filter-panel {
+        background: rgba(30, 45, 80, 0.16);
+        border-color: rgba(140, 160, 190, 0.28);
+    }
+
+    .app-skin-dark .filter-panel-label {
+        color: #dbe6f7;
+    }
+
+    .app-skin-dark .filter-panel-sub {
+        color: #9fb0cc;
+    }
+
+    .app-skin-dark .filter-toggle-btn {
+        background: rgba(30, 45, 80, 0.35);
+        border-color: rgba(160, 185, 235, 0.34);
+        color: #dbe6f7;
+    }
+
+    .app-skin-dark .filter-toggle-btn:hover,
+    .app-skin-dark .filter-toggle-btn:focus {
+        background: rgba(43, 63, 108, 0.5);
+        border-color: rgba(182, 205, 246, 0.45);
+        color: #eef4ff;
+    }
 
     .apps-review-table {
         width: 100%;
@@ -767,9 +857,15 @@ include 'includes/header.php';
 
     @media (max-width: 991px) {
         .detail-grid { grid-template-columns: 1fr; }
-        .apps-review-toolbar .toolbar-actions {
-            grid-column: 1 / -1;
-            justify-content: flex-start;
+        .filter-panel-head {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .filter-panel-head-actions {
+            width: 100%;
+        }
+        .filter-panel-head-actions .btn {
+            width: 100%;
         }
     }
 
@@ -779,9 +875,12 @@ include 'includes/header.php';
             padding-left: 2px;
             padding-right: 2px;
         }
+        .apps-review-shell .apps-review-title-row {
+            flex-direction: column;
+            align-items: flex-start;
+        }
         .apps-review-card .card-body { padding: 10px; }
-        .apps-review-toolbar { grid-template-columns: 1fr 1fr; }
-        .apps-review-toolbar .toolbar-actions { grid-column: 1 / -1; }
+        .apps-review-toolbar { grid-template-columns: 1fr; }
         .apps-review-table tr.summary-row td {
             grid-template-columns: 96px minmax(0, 1fr);
             gap: 8px;
@@ -798,6 +897,10 @@ include 'includes/header.php';
                     <p class="page-subtitle mb-0">Review, approve, and manage internship applications in one clean view.</p>
                 </div>
             </div>
+            <button type="button" class="btn filter-toggle-btn" data-bs-toggle="collapse" data-bs-target="#applicationsFilterCollapse" aria-expanded="false" aria-controls="applicationsFilterCollapse">
+                <i class="feather-filter me-2"></i>
+                <span>Filters</span>
+            </button>
         </div>
 
         <div class="main-content">
@@ -809,10 +912,21 @@ include 'includes/header.php';
 
             <div class="card apps-review-card">
                 <div class="card-body">
-                    <form method="get" class="apps-review-toolbar">
+                    <div class="collapse" id="applicationsFilterCollapse">
+                    <div class="filter-panel">
+                    <div class="filter-panel-head">
+                        <div>
+                            <p class="filter-panel-label">Application Filters</p>
+                            <p class="filter-panel-sub">Narrow the list by status, course, section, coordinator, and supervisor.</p>
+                        </div>
+                        <div class="filter-panel-head-actions">
+                            <a href="applications-review.php" class="btn btn-outline-secondary btn-sm">Reset</a>
+                        </div>
+                    </div>
+                    <form method="get" class="apps-review-toolbar" id="applicationsFilterForm">
                         <div>
                             <label class="form-label">Status</label>
-                            <select class="form-control" name="status">
+                            <select class="form-control" name="status" id="filter-status">
                                 <option value="pending" <?php echo $statusFilter === 'pending' ? 'selected' : ''; ?>>Pending</option>
                                 <option value="approved" <?php echo $statusFilter === 'approved' ? 'selected' : ''; ?>>Approved</option>
                                 <option value="rejected" <?php echo $statusFilter === 'rejected' ? 'selected' : ''; ?>>Rejected</option>
@@ -821,7 +935,7 @@ include 'includes/header.php';
                         </div>
                         <div>
                             <label class="form-label">Course</label>
-                            <select class="form-control" name="course_id">
+                            <select class="form-control" name="course_id" id="filter-course">
                                 <option value="0">All Courses</option>
                                 <?php foreach ($courseOptions as $course): ?>
                                     <?php
@@ -836,7 +950,7 @@ include 'includes/header.php';
                         </div>
                         <div>
                             <label class="form-label">Section</label>
-                            <select class="form-control" name="section_id">
+                            <select class="form-control" name="section_id" id="filter-section">
                                 <option value="0">All Sections</option>
                                 <?php foreach ($sectionOptions as $sec): ?>
                                     <?php
@@ -851,7 +965,7 @@ include 'includes/header.php';
                         </div>
                         <div>
                             <label class="form-label">Coordinator</label>
-                            <select class="form-control" name="coordinator_id">
+                            <select class="form-control" name="coordinator_id" id="filter-coordinator">
                                 <option value="0">All Coordinators</option>
                                 <?php foreach ($coordinatorOptions as $coor): ?>
                                     <?php $coorId = (int)($coor['id'] ?? 0); ?>
@@ -861,7 +975,7 @@ include 'includes/header.php';
                         </div>
                         <div>
                             <label class="form-label">Supervisor</label>
-                            <select class="form-control" name="supervisor_id">
+                            <select class="form-control" name="supervisor_id" id="filter-supervisor">
                                 <option value="0">All Supervisors</option>
                                 <?php foreach ($supervisorOptions as $sup): ?>
                                     <?php $supId = (int)($sup['id'] ?? 0); ?>
@@ -869,11 +983,9 @@ include 'includes/header.php';
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        <div class="toolbar-actions">
-                            <button type="submit" class="btn btn-primary btn-sm">Apply</button>
-                            <a href="applications-review.php" class="btn btn-outline-secondary btn-sm">Reset</a>
-                        </div>
                     </form>
+                    </div>
+                    </div>
 
                     <div class="table-responsive">
                         <table class="table table-bordered table-hover align-middle apps-review-table">
@@ -1108,6 +1220,47 @@ document.addEventListener('DOMContentLoaded', function () {
             button.setAttribute('aria-expanded', 'false');
         });
     });
+
+    var applicationsFilterForm = document.getElementById('applicationsFilterForm');
+    function submitApplicationsFilters() {
+        if (applicationsFilterForm) applicationsFilterForm.submit();
+    }
+
+    ['filter-status', 'filter-course', 'filter-section', 'filter-coordinator', 'filter-supervisor'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.addEventListener('change', submitApplicationsFilters);
+    });
+
+    if (window.jQuery && $.fn.select2) {
+        var $applicationsFilterForm = $('#applicationsFilterForm');
+        ['#filter-status', '#filter-course', '#filter-section'].forEach(function (selector) {
+            if ($(selector).length) {
+                $(selector).select2({
+                    width: '100%',
+                    allowClear: false,
+                    dropdownAutoWidth: false,
+                    minimumResultsForSearch: Infinity,
+                    dropdownParent: $applicationsFilterForm
+                });
+            }
+        });
+        ['#filter-coordinator', '#filter-supervisor'].forEach(function (selector) {
+            if ($(selector).length) {
+                $(selector).select2({
+                    width: '100%',
+                    allowClear: false,
+                    dropdownAutoWidth: false,
+                    dropdownParent: $applicationsFilterForm
+                });
+            }
+        });
+
+        ['#filter-status', '#filter-course', '#filter-section', '#filter-coordinator', '#filter-supervisor'].forEach(function (selector) {
+            if ($(selector).length) {
+                $(selector).on('select2:select select2:clear', submitApplicationsFilters);
+            }
+        });
+    }
 });
 </script>
 <?php include 'includes/footer.php'; ?>

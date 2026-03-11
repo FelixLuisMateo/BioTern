@@ -58,14 +58,26 @@ $filter_date = isset($_GET['date']) ? trim((string)$_GET['date']) : '';
 $filter_course = isset($_GET['course_id']) ? intval($_GET['course_id']) : 0;
 $filter_department = isset($_GET['department_id']) ? intval($_GET['department_id']) : 0;
 $filter_section = isset($_GET['section_id']) ? intval($_GET['section_id']) : 0;
+$filter_school_year = isset($_GET['school_year']) ? trim((string)$_GET['school_year']) : '';
 $filter_supervisor = isset($_GET['supervisor']) ? trim($_GET['supervisor']) : '';
 $filter_coordinator = isset($_GET['coordinator']) ? trim($_GET['coordinator']) : '';
 $filter_status = isset($_GET['status']) ? intval($_GET['status']) : -1;
 
+$school_year_options = [];
+$school_year_start = 2005;
+$current_calendar_month = (int)date('n');
+$current_calendar_year = (int)date('Y');
+$current_school_year_start = $current_calendar_month >= 7 ? $current_calendar_year : ($current_calendar_year - 1);
+$latest_school_year_start = max(2025, $current_school_year_start);
+for ($year = $latest_school_year_start; $year >= $school_year_start; $year--) {
+    $school_year_options[] = sprintf('%d-%d', $year, $year + 1);
+}
+
+$db_esc = $conn->real_escape_string($db_name);
+
 // Fetch dropdown lists
 $courses = [];
 // Determine which column exists for active flag on courses to avoid schema mismatch errors
-$db_esc = $conn->real_escape_string($db_name);
 $has_is_active = false;
 $has_status_col = false;
 $col_check = $conn->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '" . $db_esc . "' AND TABLE_NAME = 'courses' AND COLUMN_NAME IN ('is_active','status')");
@@ -143,6 +155,10 @@ if ($filter_department > 0) {
 }
 if ($filter_section > 0) {
     $where[] = "s.section_id = " . intval($filter_section);
+}
+if ($filter_school_year !== '' && preg_match('/^\d{4}-\d{4}$/', $filter_school_year) && in_array($filter_school_year, $school_year_options, true)) {
+    $esc_school_year = $conn->real_escape_string($filter_school_year);
+    $where[] = "s.school_year = '{$esc_school_year}'";
 }
 if (!empty($filter_supervisor)) {
     $esc_sup = $conn->real_escape_string($filter_supervisor);
@@ -401,8 +417,33 @@ usort($print_students, function ($a, $b) {
         }
 
         /* Filter row alignment */
+        .filter-form {
+            display: grid !important;
+            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+            gap: 0.65rem;
+            align-items: end;
+        }
+
+        .filter-form > [class*="col-"] {
+            width: 100%;
+            max-width: 100%;
+            padding-right: 0;
+            padding-left: 0;
+        }
+
         .filter-form .form-label {
             margin-bottom: 0.35rem;
+            font-size: 0.74rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: #334155;
+        }
+
+        .filter-form .form-control,
+        .filter-form .form-select,
+        .filter-form .select2-container .select2-selection--single {
+            min-height: 42px;
         }
 
         /* Calendar input design */
@@ -476,6 +517,126 @@ usort($print_students, function ($a, $b) {
             justify-content: center;
         }
 
+        .filter-panel {
+            border: 1px solid #dfe7f3;
+            border-radius: 14px;
+            padding: 1rem 1rem 0.4rem;
+            background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+        }
+
+        .filter-panel-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.6rem;
+            border-bottom: 1px solid #e5edf7;
+        }
+
+        .filter-panel-head-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-shrink: 0;
+        }
+
+        .filter-panel-label {
+            font-size: 0.78rem;
+            font-weight: 800;
+            letter-spacing: 0.09em;
+            text-transform: uppercase;
+            color: #1e3a8a;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            margin-bottom: 0;
+        }
+
+        .filter-panel-sub {
+            font-size: 0.78rem;
+            color: #64748b;
+            margin: 0;
+        }
+
+        .filter-toggle-btn {
+            border-color: #d5deed;
+            color: #1e293b;
+            background: #f8fbff;
+        }
+
+        .filter-toggle-btn:hover,
+        .filter-toggle-btn:focus {
+            background-color: #eef4ff;
+            color: #0f172a;
+            border-color: #b8c7e2;
+        }
+
+        html.app-skin-dark .filter-panel {
+            border-color: #243246;
+            background: linear-gradient(180deg, #0f172a 0%, #111d33 100%);
+            box-shadow: 0 10px 24px rgba(2, 8, 23, 0.5);
+        }
+
+        html.app-skin-dark .filter-panel-head {
+            border-bottom-color: #243246;
+        }
+
+        html.app-skin-dark .filter-panel-label {
+            color: #dbeafe;
+        }
+
+        html.app-skin-dark .filter-panel-sub {
+            color: #94a3b8;
+        }
+
+        html.app-skin-dark .filter-toggle-btn {
+            background-color: #0f172a;
+            color: #e2e8f0;
+            border-color: #334155;
+        }
+
+        html.app-skin-dark .filter-toggle-btn:hover,
+        html.app-skin-dark .filter-toggle-btn:focus {
+            background-color: #1e293b;
+            color: #f8fafc;
+            border-color: #475569;
+        }
+
+        html.app-skin-dark .filter-form .form-label {
+            color: #cbd5e1;
+        }
+
+        @media (max-width: 767.98px) {
+            .filter-panel {
+                padding: 0.85rem 0.75rem 0.25rem;
+            }
+
+            .filter-form {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            }
+
+            .filter-panel-head {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .filter-panel-head-actions {
+                width: 100%;
+            }
+
+            .filter-panel-head-actions .btn {
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 575.98px) {
+            .filter-form {
+                grid-template-columns: 1fr;
+            }
+        }
+
         /* Match ALL filter dropboxes with date picker color */
         html.app-skin-dark .filter-form select.form-control,
         html.app-skin-dark .filter-form select.form-select,
@@ -494,6 +655,37 @@ usort($print_students, function ($a, $b) {
             background-color: #2d3748 !important;
             color: #f0f0f0 !important;
             border-color: #4a5568 !important;
+        }
+
+        /* Keep all filter dropdown layers behind sticky page walls while scrolling */
+        .nxl-header {
+            z-index: 3000 !important;
+        }
+
+        .page-header {
+            z-index: 2900 !important;
+        }
+
+        .filter-form,
+        .filter-form .select2-container,
+        .filter-form .select2-container--open,
+        .filter-form .select2-container--open .select2-dropdown {
+            z-index: 900 !important;
+        }
+
+        .filter-form .select2-container--open .select2-dropdown--above {
+            top: calc(100% - 1px) !important;
+            bottom: auto !important;
+            border-top-left-radius: 0.5rem;
+            border-top-right-radius: 0.5rem;
+        }
+
+        .filter-form .select2-container--open.select2-container--above .select2-selection--single,
+        .filter-form .select2-container--open.select2-container--above .select2-selection--multiple {
+            border-top-left-radius: 0.5rem !important;
+            border-top-right-radius: 0.5rem !important;
+            border-bottom-left-radius: 0.5rem !important;
+            border-bottom-right-radius: 0.5rem !important;
         }
 
         /* Keep filter/select controls below sidebar when mobile nav is open */
@@ -876,31 +1068,18 @@ echo htmlspecialchars($current_user_email, ENT_QUOTES, 'UTF-8'); ?></span>
                             </a>
                         </div>
                         <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
-                            <a href="javascript:void(0);" class="btn btn-icon btn-light-brand" data-bs-toggle="collapse" data-bs-target="#collapseOne">
-                                <i class="feather-bar-chart"></i>
-                            </a>
+                            <button type="button" class="btn btn-light-brand" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="false" aria-controls="collapseOne">
+                                <i class="feather-bar-chart me-2"></i>
+                                <span>Statistics</span>
+                            </button>
+                            <button type="button" class="btn filter-toggle-btn" data-bs-toggle="collapse" data-bs-target="#studentsFilterCollapse" aria-expanded="false" aria-controls="studentsFilterCollapse">
+                                <i class="feather-filter me-2"></i>
+                                <span>Filters</span>
+                            </button>
                             <div class="dropdown">
-                                <a class="btn btn-icon btn-light-brand" data-bs-toggle="dropdown" data-bs-offset="0, 10" data-bs-auto-close="outside">
-                                    <i class="feather-filter"></i>
-                                </a>
-                                <div class="dropdown-menu dropdown-menu-end">
-                                    <a href="javascript:void(0);" class="dropdown-item">
-                                        <i class="feather-eye me-3"></i>
-                                        <span>All</span>
-                                    </a>
-                                    <a href="javascript:void(0);" class="dropdown-item">
-                                        <i class="feather-user-check me-3"></i>
-                                        <span>Active</span>
-                                    </a>
-                                    <a href="javascript:void(0);" class="dropdown-item">
-                                        <i class="feather-user-minus me-3"></i>
-                                        <span>Inactive</span>
-                                    </a>
-                                </div>
-                            </div>
-                            <div class="dropdown">
-                                <a class="btn btn-icon btn-light-brand" data-bs-toggle="dropdown" data-bs-offset="0, 10" data-bs-auto-close="outside">
-                                    <i class="feather-paperclip"></i>
+                                <a class="btn btn-light-brand" data-bs-toggle="dropdown" data-bs-offset="0, 10" data-bs-auto-close="outside" role="button" aria-label="Export options">
+                                    <i class="feather-paperclip me-2"></i>
+                                    <span>Export</span>
                                 </a>
                                 <div class="dropdown-menu dropdown-menu-end">
                                     <a href="javascript:void(0);" class="dropdown-item">
@@ -949,9 +1128,42 @@ echo htmlspecialchars($current_user_email, ENT_QUOTES, 'UTF-8'); ?></span>
             </div>
 
             <!-- Filters -->
-            <div class="row mb-3 px-3">
-                <div class="col-12">
-                    <form method="GET" class="filter-form row g-2 align-items-end" id="studentsFilterForm">
+            <div class="collapse" id="studentsFilterCollapse">
+                <div class="row mb-3 px-3">
+                    <div class="col-12">
+                        <div class="filter-panel">
+                            <div class="filter-panel-head">
+                                <div>
+                                    <div class="filter-panel-label">
+                                        <i class="feather-sliders"></i>
+                                        <span>Filter Students</span>
+                                    </div>
+                                    <p class="filter-panel-sub">Narrow down results by school year, date, course, section, supervisor, and coordinator.</p>
+                                </div>
+                                <div class="filter-panel-head-actions">
+                                    <a href="students.php" class="btn btn-outline-secondary btn-sm px-3">Reset</a>
+                                </div>
+                            </div>
+                            <form method="GET" class="filter-form row g-2 align-items-end" id="studentsFilterForm">
+                        <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
+                            <label class="form-label" for="filter-school-year">School Year</label>
+                            <select id="filter-school-year" name="school_year" class="form-control">
+                                <option value="">-- All School Years --</option>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($school_year_options as $school_year): ?>
+                                    <option value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($school_year, ENT_QUOTES, 'UTF-8'); ?>" <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $filter_school_year === $school_year ? 'selected' : ''; ?>><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($school_year, ENT_QUOTES, 'UTF-8'); ?></option>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
+                            </select>
+                        </div>
                         <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
                             <label class="form-label" for="filter-date">Date</label>
                             <input id="filter-date" type="date" name="date" class="form-control" value="<?php
@@ -1053,13 +1265,9 @@ require_once dirname(__DIR__) . '/config/db.php';
 endforeach; ?>
                             </select>
                         </div>
-                        <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
-                            <label class="form-label d-block invisible">Actions</label>
-                            <div class="d-flex gap-1" style="align-items: flex-end;">
-                                <a href="students.php" class="btn btn-outline-secondary btn-sm px-3 py-1" style="font-size: 0.85rem;">Reset</a>
-                            </div>
+                            </form>
                         </div>
-                    </form>
+                    </div>
                 </div>
             </div>
 
@@ -1352,13 +1560,15 @@ endif; ?>
         document.addEventListener('DOMContentLoaded', function () {
             // Do not reinitialize DataTable here; `customers-init.min.js` handles it.
             if (window.jQuery) {
-                ['#filter-course', '#filter-department', '#filter-section'].forEach(function (selector) {
+                var $filterForm = $('#studentsFilterForm');
+                ['#filter-course', '#filter-department', '#filter-section', '#filter-school-year'].forEach(function (selector) {
                     if ($(selector).length) {
                         $(selector).select2({
                             width: '100%',
                             allowClear: false,
                             dropdownAutoWidth: false,
-                            minimumResultsForSearch: Infinity
+                            minimumResultsForSearch: Infinity,
+                            dropdownParent: $filterForm
                         });
                     }
                 });
@@ -1368,7 +1578,25 @@ endif; ?>
                         $(selector).select2({
                             width: '100%',
                             allowClear: false,
-                            dropdownAutoWidth: false
+                            dropdownAutoWidth: false,
+                            dropdownParent: $filterForm
+                        });
+                    }
+                });
+
+                ['#filter-course', '#filter-department', '#filter-section', '#filter-school-year', '#filter-supervisor', '#filter-coordinator'].forEach(function (selector) {
+                    if ($(selector).length) {
+                        $(selector).on('select2:open', function () {
+                            var select2Instance = $(this).data('select2');
+                            if (!select2Instance || !select2Instance.$container) return;
+                            select2Instance.$container
+                                .removeClass('select2-container--above')
+                                .addClass('select2-container--below');
+                            if (select2Instance.$dropdown) {
+                                select2Instance.$dropdown
+                                    .removeClass('select2-dropdown--above')
+                                    .addClass('select2-dropdown--below');
+                            }
                         });
                     }
                 });
@@ -1378,12 +1606,12 @@ endif; ?>
             function submitFilters() {
                 if (filterForm) filterForm.submit();
             }
-            ['filter-date', 'filter-course', 'filter-department', 'filter-section', 'filter-supervisor', 'filter-coordinator'].forEach(function (id) {
+            ['filter-date', 'filter-course', 'filter-department', 'filter-section', 'filter-school-year', 'filter-supervisor', 'filter-coordinator'].forEach(function (id) {
                 var el = document.getElementById(id);
                 if (el) el.addEventListener('change', submitFilters);
             });
             if (window.jQuery) {
-                ['#filter-course', '#filter-department', '#filter-section', '#filter-supervisor', '#filter-coordinator'].forEach(function (selector) {
+                ['#filter-course', '#filter-department', '#filter-section', '#filter-school-year', '#filter-supervisor', '#filter-coordinator'].forEach(function (selector) {
                     if ($(selector).length) {
                         $(selector).on('select2:select select2:clear', submitFilters);
                     }

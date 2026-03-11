@@ -457,23 +457,79 @@ include 'includes/header.php';
             flex: 1 1 0;
             min-width: 0;
         }
-        .filter-card {
+        .filter-panel {
             border: 1px solid #dfe8f5;
             border-radius: 14px;
-            background: #fcfdff;
+            padding: 1rem 1rem 0.4rem;
+            background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
             box-shadow: 0 8px 22px rgba(15, 23, 42, 0.05);
             margin-bottom: 14px !important;
         }
-        .filter-card form.row {
+        .filter-panel-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.6rem;
+            border-bottom: 1px solid #e5edf7;
+        }
+        .filter-panel-head-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-shrink: 0;
+        }
+        .filter-panel-label {
+            font-size: 0.78rem;
+            font-weight: 800;
+            letter-spacing: 0.09em;
+            text-transform: uppercase;
+            color: #1e3a8a;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            margin-bottom: 0;
+        }
+        .filter-panel-sub {
+            font-size: 0.78rem;
+            color: #64748b;
+            margin: 0;
+        }
+        .filter-toggle-btn {
+            border-color: #d5deed;
+            color: #1e293b;
+            background: #f8fbff;
+        }
+        .filter-toggle-btn:hover,
+        .filter-toggle-btn:focus {
+            background-color: #eef4ff;
+            color: #0f172a;
+            border-color: #b8c7e2;
+        }
+        .filter-form {
+            display: grid !important;
+            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+            gap: 0.65rem;
+            align-items: end;
+        }
+        .filter-form > [class*="col-"] {
+            width: 100%;
+            max-width: 100%;
+            padding-right: 0;
+            padding-left: 0;
+        }
+        .filter-panel .filter-form {
             row-gap: 10px;
         }
-        .filter-card .form-control,
-        .filter-card .form-select {
+        .filter-panel .form-control,
+        .filter-panel .form-select {
             background: #ffffff;
             border-color: #d8e2f2;
+            min-height: 42px;
         }
-        .filter-card .form-control:focus,
-        .filter-card .form-select:focus {
+        .filter-panel .form-control:focus,
+        .filter-panel .form-select:focus {
             border-color: #8cb3ea;
             box-shadow: 0 0 0 0.14rem rgba(58, 120, 220, 0.16);
         }
@@ -497,7 +553,7 @@ include 'includes/header.php';
         #ojtListTable tbody tr:hover { background: #fbfdff; }
         .app-skin-dark body { background: #0b1220; }
         .app-skin-dark .card,
-        .app-skin-dark .filter-card {
+        .app-skin-dark .filter-panel {
             border-color: #253252;
             background: #111a2e;
             box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
@@ -528,14 +584,45 @@ include 'includes/header.php';
             background: #12213a;
             border-color: #38507a;
         }
-        .app-skin-dark .filter-card .form-control,
-        .app-skin-dark .filter-card .form-select {
+        .app-skin-dark .filter-panel .form-control,
+        .app-skin-dark .filter-panel .form-select {
             background: #0f1a2e;
             border-color: #2b3b5e;
             color: #d7e3f7;
         }
-        .app-skin-dark .filter-card .form-control::placeholder {
+        .filter-form .select2-container .select2-selection--single {
+            min-height: 42px;
+            display: flex;
+            align-items: center;
+        }
+        .filter-form .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 40px;
+            text-align: left;
+            padding-left: 0.15rem;
+            padding-right: 1.75rem;
+        }
+        .filter-form .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 40px;
+        }
+        .app-skin-dark .filter-panel .form-control::placeholder {
             color: #9fb2d1;
+        }
+        .app-skin-dark .filter-panel-label {
+            color: #dbeafe;
+        }
+        .app-skin-dark .filter-panel-sub {
+            color: #94a3b8;
+        }
+        .app-skin-dark .filter-toggle-btn {
+            background-color: #0f172a;
+            color: #e2e8f0;
+            border-color: #334155;
+        }
+        .app-skin-dark .filter-toggle-btn:hover,
+        .app-skin-dark .filter-toggle-btn:focus {
+            background-color: #1e293b;
+            color: #f8fafc;
+            border-color: #475569;
         }
         .app-skin-dark .chip { border-color: #314c72; color: #d4e2f9; }
         .app-skin-dark .risk-pill { background: #3f2e12; border-color: #7d5c1d; color: #ffd793; }
@@ -544,7 +631,7 @@ include 'includes/header.php';
             .page-header-left { margin-bottom: 10px; }
             .page-header-right { width: 100%; display: grid !important; grid-template-columns: 1fr 1fr; gap: 8px !important; }
             .page-header-right .btn, .page-header-right form .btn { width: 100%; }
-            .filter-card .row > [class*="col-"] { margin-bottom: 4px; }
+            .filter-form { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
             .nxl-content { padding-left: 10px; padding-right: 10px; }
         }
         @media (max-width: 575.98px) {
@@ -555,6 +642,7 @@ include 'includes/header.php';
             .table td, .table th { padding: 0.5rem 0.45rem; font-size: 12px; }
             .header-right .nxl-h-item { display: none; }
             .header-right .dark-light-theme { display: block !important; }
+            .filter-form { grid-template-columns: 1fr; }
         }
         @media (max-width: 767.98px) {
             .nxl-content { padding-left: 8px; padding-right: 8px; }
@@ -775,6 +863,9 @@ endif; ?>
                 <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#kpiPanel" aria-expanded="false" aria-controls="kpiPanel">
                     <i class="feather-bar-chart-2 me-1"></i>Metrics Summary
                 </button>
+                <button class="btn filter-toggle-btn" type="button" data-bs-toggle="collapse" data-bs-target="#ojtFilterCollapse" aria-expanded="false" aria-controls="ojtFilterCollapse">
+                    <i class="feather-filter me-1"></i>Filters
+                </button>
                 <a href="ojt-workflow-board.php" class="btn btn-outline-primary"><i class="feather-kanban me-1"></i>Workflow Board</a>
                 <a href="ojt.php?<?php
 echo http_build_query(array_merge($_GET, ['export' => 'csv'])); ?>" class="btn btn-light"><i class="feather-download me-1"></i>Export CSV Report</a>
@@ -815,8 +906,23 @@ echo number_format($trend_avg_approval_hours, 2); ?>h</div></div></div>
             </div>
         </div>
 
-        <div class="card card-body filter-card mb-3">
-            <form method="get" class="row g-2 align-items-end" id="ojtFilterForm">
+        <div class="collapse" id="ojtFilterCollapse">
+            <div class="row mb-3 px-3">
+                <div class="col-12">
+                    <div class="filter-panel">
+                        <div class="filter-panel-head">
+                            <div>
+                                <div class="filter-panel-label">
+                                    <i class="feather-sliders"></i>
+                                    <span>Filter OJT</span>
+                                </div>
+                                <p class="filter-panel-sub">Narrow down results by student, course, section, stage, and risk level.</p>
+                            </div>
+                            <div class="filter-panel-head-actions">
+                                <a href="ojt.php" class="btn btn-outline-secondary btn-sm px-3">Reset</a>
+                            </div>
+                        </div>
+                        <form method="get" class="filter-form row g-2 align-items-end" id="ojtFilterForm">
                 <div class="col-md-3">
                     <label class="form-label">Search Student</label>
                     <input type="text" name="search" id="ojtFilterSearch" class="form-control" value="<?php
@@ -875,10 +981,10 @@ echo ($risk_filter === 'at_risk') ? 'selected' : ''; ?>>At Risk</option>
 echo ($risk_filter === 'clean') ? 'selected' : ''; ?>>Clean</option>
                     </select>
                 </div>
-                <div class="col-md-1 d-flex gap-2">
-                    <a href="ojt.php" class="btn btn-light w-100">Reset</a>
+                        </form>
+                    </div>
                 </div>
-            </form>
+            </div>
         </div>
 
         <div class="card stretch stretch-full">
@@ -1020,6 +1126,36 @@ endforeach; ?>
             if (el) el.addEventListener('change', submitFilters);
         });
         if (searchInput) searchInput.addEventListener('input', debounceSubmit);
+
+        if (window.jQuery && $.fn.select2) {
+            var $filterForm = $('#ojtFilterForm');
+            ['#ojtFilterCourse', '#ojtFilterSection', '#ojtFilterStage'].forEach(function (selector) {
+                if ($(selector).length) {
+                    $(selector).select2({
+                        width: '100%',
+                        allowClear: false,
+                        dropdownAutoWidth: false,
+                        minimumResultsForSearch: Infinity,
+                        dropdownParent: $filterForm
+                    });
+                }
+            });
+            ['#ojtFilterRisk'].forEach(function (selector) {
+                if ($(selector).length) {
+                    $(selector).select2({
+                        width: '100%',
+                        allowClear: false,
+                        dropdownAutoWidth: false,
+                        dropdownParent: $filterForm
+                    });
+                }
+            });
+            ['#ojtFilterCourse', '#ojtFilterSection', '#ojtFilterStage', '#ojtFilterRisk'].forEach(function (selector) {
+                if ($(selector).length) {
+                    $(selector).on('select2:select select2:clear', submitFilters);
+                }
+            });
+        }
 
         var printBtn = document.getElementById('ojtPrintBtn');
         if (printBtn) {
