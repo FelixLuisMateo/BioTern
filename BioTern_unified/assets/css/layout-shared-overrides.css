@@ -146,6 +146,19 @@ html.app-skin-dark .select2-container--default .select2-results__option--highlig
     pointer-events: auto;
 }
 
+/* Ensure header user dropdown anchors under the avatar */
+.nxl-header .dropdown.nxl-h-item {
+    position: relative;
+}
+
+.nxl-header .dropdown-menu.nxl-user-dropdown {
+    top: 100% !important;
+    right: 0 !important;
+    left: auto !important;
+    margin-top: 10px !important;
+    transform: none !important;
+}
+
 /* Keep footer pinned at the bottom on short pages. */
 .nxl-container {
     display: flex;

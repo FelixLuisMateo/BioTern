@@ -622,7 +622,7 @@ if (isset($_GET['registered'])) {
                         </div>
 
                         <!-- STUDENT REGISTRATION FORM -->
-                        <form id="studentForm" class="w-100 mt-4 pt-2 hide-form" action="" method="post">
+                        <form id="studentForm" class="w-100 mt-4 pt-2 hide-form" action="" method="post" autocomplete="off">
                             <input type="hidden" name="role" value="student">
                             <div class="form-section">
                                 <h3 class="fs-18 fw-bold mb-3">Student Application</h3>
@@ -1531,6 +1531,18 @@ endforeach; ?>
                 selectRole('student');
             }
 
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('registered')) {
+                const studentForm = document.getElementById('studentForm');
+                if (studentForm) {
+                    studentForm.reset();
+                    setupAcademicFilters();
+                    if (typeof studentForm._showStep === 'function') {
+                        studentForm._showStep(1);
+                    }
+                }
+            }
+
         });
 
         function setupStudentHoursControls() {
@@ -1590,6 +1602,8 @@ echo json_encode($sectionOptions, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHE
             const deptSelect = document.getElementById('studentDepartmentSelect');
             if (!deptSelect) return [];
             const selectedBefore = deptSelect.value;
+            const allowedDepartmentIds = getCourseAllowedDepartmentIds(courseId);
+            const allowedSet = new Set(allowedDepartmentIds.map(function(id) { return String(id); }));
             const allDepartmentIds = [];
 
             Array.prototype.slice.call(deptSelect.options).forEach(function(opt, index) {
@@ -1599,13 +1613,21 @@ echo json_encode($sectionOptions, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHE
                     opt.disabled = false;
                     return;
                 }
-                opt.hidden = false;
-                opt.disabled = false;
-                allDepartmentIds.push(String(opt.value));
+                const deptId = String(opt.value);
+                const show = allowedSet.size === 0 ? true : allowedSet.has(deptId);
+                opt.hidden = !show;
+                opt.disabled = !show;
+                if (show) {
+                    allDepartmentIds.push(deptId);
+                }
             });
 
-            if (selectedBefore !== '' && Array.prototype.some.call(deptSelect.options, function(opt) { return String(opt.value) === String(selectedBefore); })) {
+            if (selectedBefore !== '' && allDepartmentIds.indexOf(String(selectedBefore)) !== -1) {
                 deptSelect.value = selectedBefore;
+            } else if (allDepartmentIds.length === 1) {
+                deptSelect.value = allDepartmentIds[0];
+            } else {
+                deptSelect.value = '';
             }
 
             return allDepartmentIds;
@@ -1708,8 +1730,11 @@ echo json_encode($sectionOptions, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHE
                 filterRoleOptionsByDept('studentSupervisorSelect', allowedDeptIds, selectedDeptId, isAct);
             }
 
-            courseSelect.addEventListener('change', applyFilters);
-            deptSelect.addEventListener('change', applyFilters);
+            if (courseSelect.dataset.academicBound !== '1') {
+                courseSelect.addEventListener('change', applyFilters);
+                deptSelect.addEventListener('change', applyFilters);
+                courseSelect.dataset.academicBound = '1';
+            }
             applyFilters();
         }
 

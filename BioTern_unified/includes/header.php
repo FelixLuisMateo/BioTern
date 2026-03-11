@@ -444,7 +444,7 @@ endif; ?>
                         </div>
                     </div>
                     <div class="dropdown nxl-h-item click-only-dropdown">
-                        <a href="javascript:void(0);" data-bs-toggle="dropdown" role="button" data-bs-auto-close="outside">
+                        <a href="javascript:void(0);" data-bs-toggle="dropdown" data-bs-display="static" data-bs-offset="0,10" role="button" data-bs-auto-close="outside">
                             <img src="<?php
 require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars($header_avatar, ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar me-0">

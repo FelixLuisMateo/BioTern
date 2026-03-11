@@ -117,6 +117,11 @@ function formatDisplayDateTime($rawValue)
 
 $flashType = '';
 $flashMessage = '';
+if (isset($_SESSION['flash_message'])) {
+    $flashMessage = (string)$_SESSION['flash_message'];
+    $flashType = isset($_SESSION['flash_type']) ? (string)$_SESSION['flash_type'] : 'info';
+    unset($_SESSION['flash_message'], $_SESSION['flash_type']);
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $userId = isset($_POST['user_id']) ? (int)$_POST['user_id'] : 0;
@@ -309,6 +314,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $flashType = 'danger';
             $flashMessage = 'Unable to process this application.';
         }
+    }
+
+    if ($flashMessage !== '') {
+        $_SESSION['flash_type'] = $flashType;
+        $_SESSION['flash_message'] = $flashMessage;
+        $redirect = 'applications-review.php';
+        $qs = isset($_SERVER['QUERY_STRING']) ? (string)$_SERVER['QUERY_STRING'] : '';
+        if ($qs !== '') {
+            $redirect .= '?' . $qs;
+        }
+        header('Location: ' . $redirect);
+        exit;
     }
 }
 
@@ -620,7 +637,42 @@ include 'includes/header.php';
         box-sizing: border-box;
     }
 
-    .table-responsive { overflow-x: hidden; }
+.table-responsive { overflow-x: hidden; }
+
+.apps-review-table td[data-label="Status"],
+.apps-review-table th:nth-child(3),
+.apps-review-table td[data-label="Hours (Int/Ext)"],
+.apps-review-table th:nth-child(4),
+.apps-review-table td[data-label="Submitted"],
+.apps-review-table th:nth-child(5) {
+    text-align: center;
+}
+
+.apps-review-table td[data-label="Review"],
+.apps-review-table th:nth-child(6) {
+    text-align: center !important;
+}
+
+.apps-review-table .expand-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 96px;
+}
+
+.apps-review-table td[data-label="Review"] .expand-btn {
+    display: inline-flex;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.alert-auto-dismiss {
+    transition: opacity 0.35s ease;
+}
+
+.alert-auto-dismiss.is-hiding {
+    opacity: 0;
+}
 
     @media (max-width: 1200px) {
         .apps-review-table th:nth-child(1),
@@ -689,6 +741,10 @@ include 'includes/header.php';
             text-align: left;
         }
 
+        .apps-review-table td[data-label="Review"] {
+            text-align: center !important;
+        }
+
         .expand-btn {
             width: 100%;
             min-width: 0;
@@ -746,7 +802,7 @@ include 'includes/header.php';
 
         <div class="main-content">
             <?php if ($flashMessage !== ''): ?>
-                <div class="alert alert-<?php echo htmlspecialchars($flashType, ENT_QUOTES, 'UTF-8'); ?>" role="alert">
+                <div class="alert alert-<?php echo htmlspecialchars($flashType, ENT_QUOTES, 'UTF-8'); ?> alert-auto-dismiss" role="alert">
                     <?php echo htmlspecialchars($flashMessage, ENT_QUOTES, 'UTF-8'); ?>
                 </div>
             <?php endif; ?>
@@ -923,7 +979,7 @@ include 'includes/header.php';
                                                 <span class="hours-pill"><?php echo (int)($row['internal_total_hours'] ?? 140); ?> / <?php echo (int)($row['external_total_hours'] ?? 250); ?></span>
                                             </td>
                                             <td data-label="Submitted"><?php echo htmlspecialchars($submittedAt, ENT_QUOTES, 'UTF-8'); ?></td>
-                                            <td data-label="Review" class="text-start">
+                                            <td data-label="Review" class="text-center">
                                                 <button class="btn btn-outline-primary btn-sm expand-btn application-toggle-btn" type="button" data-bs-toggle="collapse" data-bs-target="#<?php echo $collapseId; ?>" aria-expanded="false" aria-controls="<?php echo $collapseId; ?>" data-expand-text="Details" data-collapse-text="Hide">Details</button>
                                             </td>
                                         </tr>
@@ -1022,6 +1078,16 @@ include 'includes/header.php';
     </div>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    setTimeout(function () {
+        var alertEl = document.querySelector('.alert-auto-dismiss');
+        if (alertEl) {
+            alertEl.classList.add('is-hiding');
+            setTimeout(function () {
+                alertEl.remove();
+            }, 400);
+        }
+    }, 3500);
+
     document.querySelectorAll('.application-toggle-btn').forEach(function (button) {
         const targetSelector = button.getAttribute('data-bs-target');
         if (!targetSelector) return;
