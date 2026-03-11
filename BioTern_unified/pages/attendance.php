@@ -33,9 +33,20 @@ $end_date = isset($_GET['end_date']) && $_GET['end_date'] !== '' ? $_GET['end_da
 $filter_course = isset($_GET['course_id']) ? intval($_GET['course_id']) : 0;
 $filter_department = isset($_GET['department_id']) ? intval($_GET['department_id']) : 0;
 $filter_section = isset($_GET['section_id']) ? intval($_GET['section_id']) : 0;
+$filter_school_year = isset($_GET['school_year']) ? trim((string)$_GET['school_year']) : '';
 $filter_supervisor = isset($_GET['supervisor']) ? trim($_GET['supervisor']) : '';
 $filter_coordinator = isset($_GET['coordinator']) ? trim($_GET['coordinator']) : '';
 $filter_status = isset($_GET['status']) ? trim($_GET['status']) : '';
+
+$school_year_options = [];
+$school_year_start = 2005;
+$current_calendar_month = (int)date('n');
+$current_calendar_year = (int)date('Y');
+$current_school_year_start = $current_calendar_month >= 7 ? $current_calendar_year : ($current_calendar_year - 1);
+$latest_school_year_start = max(2025, $current_school_year_start);
+for ($year = $latest_school_year_start; $year >= $school_year_start; $year--) {
+    $school_year_options[] = sprintf('%d-%d', $year, $year + 1);
+}
 
 // default to today when no date filters provided
 if (empty($filter_date) && empty($start_date) && empty($end_date) && empty($filter_status)) {
@@ -126,6 +137,10 @@ if ($filter_department > 0) {
 }
 if ($filter_section > 0) {
     $where[] = "s.section_id = " . intval($filter_section);
+}
+if ($filter_school_year !== '' && preg_match('/^\d{4}-\d{4}$/', $filter_school_year) && in_array($filter_school_year, $school_year_options, true)) {
+    $esc_school_year = $conn->real_escape_string($filter_school_year);
+    $where[] = "s.school_year = '{$esc_school_year}'";
 }
 if (!empty($filter_supervisor)) {
     $esc_sup = $conn->real_escape_string($filter_supervisor);
@@ -541,6 +556,82 @@ function getAttendanceStatus($morning_time_in) {
             background-color: #2d3748 !important;
         }
 
+        .filter-form {
+            display: grid !important;
+            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+            gap: 0.65rem;
+            align-items: end;
+        }
+
+        .filter-form > [class*="col-"] {
+            width: 100%;
+            max-width: 100%;
+            padding-right: 0;
+            padding-left: 0;
+        }
+
+        .filter-form .form-control,
+        .filter-form .form-select,
+        .filter-form .select2-container .select2-selection--single {
+            min-height: 42px;
+        }
+
+        .filter-panel {
+            border: 1px solid #dfe7f3;
+            border-radius: 14px;
+            padding: 1rem 1rem 0.4rem;
+            background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+        }
+
+        .filter-panel-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.6rem;
+            border-bottom: 1px solid #e5edf7;
+        }
+
+        .filter-panel-head-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-shrink: 0;
+        }
+
+        .filter-panel-label {
+            font-size: 0.78rem;
+            font-weight: 800;
+            letter-spacing: 0.09em;
+            text-transform: uppercase;
+            color: #1e3a8a;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            margin-bottom: 0;
+        }
+
+        .filter-panel-sub {
+            font-size: 0.78rem;
+            color: #64748b;
+            margin: 0;
+        }
+
+        .filter-toggle-btn {
+            border-color: #d5deed;
+            color: #1e293b;
+            background: #f8fbff;
+        }
+
+        .filter-toggle-btn:hover,
+        .filter-toggle-btn:focus {
+            background-color: #eef4ff;
+            color: #0f172a;
+            border-color: #b8c7e2;
+        }
+
         .filter-form select.form-control {
             text-align: left;
             text-align-last: left;
@@ -592,6 +683,66 @@ function getAttendanceStatus($morning_time_in) {
 
         html.app-skin-dark .filter-form .select2-container--bootstrap-5 .select2-dropdown .select2-results__option {
             color: #ffffff !important;
+        }
+
+        html.app-skin-dark .filter-panel {
+            border-color: #243246;
+            background: linear-gradient(180deg, #0f172a 0%, #111d33 100%);
+            box-shadow: 0 10px 24px rgba(2, 8, 23, 0.5);
+        }
+
+        html.app-skin-dark .filter-panel-head {
+            border-bottom-color: #243246;
+        }
+
+        html.app-skin-dark .filter-panel-label {
+            color: #dbeafe;
+        }
+
+        html.app-skin-dark .filter-panel-sub {
+            color: #94a3b8;
+        }
+
+        html.app-skin-dark .filter-toggle-btn {
+            background-color: #0f172a;
+            color: #e2e8f0;
+            border-color: #334155;
+        }
+
+        html.app-skin-dark .filter-toggle-btn:hover,
+        html.app-skin-dark .filter-toggle-btn:focus {
+            background-color: #1e293b;
+            color: #f8fafc;
+            border-color: #475569;
+        }
+
+        @media (max-width: 767.98px) {
+            .filter-form {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            }
+
+            .filter-panel {
+                padding: 0.85rem 0.75rem 0.25rem;
+            }
+
+            .filter-panel-head {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .filter-panel-head-actions {
+                width: 100%;
+            }
+
+            .filter-panel-head-actions .btn {
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 575.98px) {
+            .filter-form {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -803,6 +954,10 @@ echo htmlspecialchars((string)($_SESSION['email'] ?? 'admin@biotern.local'), ENT
                             <a href="javascript:void(0);" class="btn btn-icon btn-light-brand" data-bs-toggle="collapse" data-bs-target="#collapseAttendanceStats">
                                 <i class="feather-bar-chart"></i>
                             </a>
+                            <button type="button" class="btn filter-toggle-btn" data-bs-toggle="collapse" data-bs-target="#attendanceFilterCollapse" aria-expanded="false" aria-controls="attendanceFilterCollapse">
+                                <i class="feather-filter me-2"></i>
+                                <span>Filters</span>
+                            </button>
                             <div class="dropdown">
                                 <a class="btn btn-icon btn-light-brand" data-bs-toggle="dropdown" data-bs-offset="0, 10" data-bs-auto-close="outside">
                                     <i class="feather-filter"></i>
@@ -870,9 +1025,42 @@ echo htmlspecialchars((string)($_SESSION['email'] ?? 'admin@biotern.local'), ENT
             </div>
 
             <!-- Filters -->
-            <div class="row mb-3 px-3">
-                <div class="col-12">
-                    <form method="GET" class="filter-form row g-2 align-items-end" id="attendanceFilterForm">
+            <div class="collapse" id="attendanceFilterCollapse">
+                <div class="row mb-3 px-3">
+                    <div class="col-12">
+                        <div class="filter-panel">
+                            <div class="filter-panel-head">
+                                <div>
+                                    <div class="filter-panel-label">
+                                        <i class="feather-sliders"></i>
+                                        <span>Filter Attendance</span>
+                                    </div>
+                                    <p class="filter-panel-sub">Narrow down results by school year, date, course, section, supervisor, and coordinator.</p>
+                                </div>
+                                <div class="filter-panel-head-actions">
+                                    <a href="attendance.php" class="btn btn-outline-secondary btn-sm px-3">Reset</a>
+                                </div>
+                            </div>
+                            <form method="GET" class="filter-form row g-2 align-items-end" id="attendanceFilterForm">
+                        <div class="col-sm-2">
+                            <label class="form-label" for="filter-school-year">School Year</label>
+                            <select id="filter-school-year" name="school_year" class="form-control">
+                                <option value="">-- All School Years --</option>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+foreach ($school_year_options as $school_year): ?>
+                                    <option value="<?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($school_year, ENT_QUOTES, 'UTF-8'); ?>" <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo $filter_school_year === $school_year ? 'selected' : ''; ?>><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($school_year, ENT_QUOTES, 'UTF-8'); ?></option>
+                                <?php
+require_once dirname(__DIR__) . '/config/db.php';
+endforeach; ?>
+                            </select>
+                        </div>
                         <div class="col-sm-2">
                             <label class="form-label" for="filter-date">Date</label>
                             <input id="filter-date" type="date" name="date" class="form-control" value="<?php
@@ -974,13 +1162,9 @@ require_once dirname(__DIR__) . '/config/db.php';
 endforeach; ?>
                             </select>
                         </div>
-                        <div class="col-sm-2">
-                            <label class="form-label d-block invisible">Actions</label>
-                            <div class="d-flex gap-1" style="align-items: flex-end;">
-                                <a href="attendance.php" class="btn btn-outline-secondary btn-sm px-3 py-1" style="font-size: 0.85rem;">Reset</a>
-                            </div>
+                            </form>
                         </div>
-                    </form>
+                    </div>
                 </div>
             </div>
 
@@ -1451,15 +1635,27 @@ endif; ?>
         $(document).ready(function() {
             initAttendanceDataTable();
 
-            // Initialize Select2 for filter selects
-            $('select[name="course_id"], select[name="department_id"], select[name="section_id"]').select2({
-                width: 'resolve',
-                theme: 'bootstrap-5',
-                minimumResultsForSearch: Infinity
+            var $attendanceFilterForm = $('#attendanceFilterForm');
+            ['#filter-course', '#filter-department', '#filter-section', '#filter-school-year'].forEach(function (selector) {
+                if ($(selector).length) {
+                    $(selector).select2({
+                        width: '100%',
+                        allowClear: false,
+                        dropdownAutoWidth: false,
+                        minimumResultsForSearch: Infinity,
+                        dropdownParent: $attendanceFilterForm
+                    });
+                }
             });
-            $('select[name="supervisor"], select[name="coordinator"]').select2({
-                width: 'resolve',
-                theme: 'bootstrap-5'
+            ['#filter-supervisor', '#filter-coordinator'].forEach(function (selector) {
+                if ($(selector).length) {
+                    $(selector).select2({
+                        width: '100%',
+                        allowClear: false,
+                        dropdownAutoWidth: false,
+                        dropdownParent: $attendanceFilterForm
+                    });
+                }
             });
 
             // Auto-submit attendance filters on change.
@@ -1472,11 +1668,11 @@ endif; ?>
                 form.submit();
             }
 
-            $('#attendanceFilterForm').on('change', 'input[name="date"], select[name="course_id"], select[name="department_id"], select[name="section_id"], select[name="supervisor"], select[name="coordinator"]', function() {
+            $('#attendanceFilterForm').on('change', 'input[name="date"], select[name="school_year"], select[name="course_id"], select[name="department_id"], select[name="section_id"], select[name="supervisor"], select[name="coordinator"]', function() {
                 submitAttendanceFilters();
             });
 
-            $('select[name="course_id"], select[name="department_id"], select[name="section_id"], select[name="supervisor"], select[name="coordinator"]').on('select2:select select2:clear', function() {
+            $('#filter-course, #filter-department, #filter-section, #filter-school-year, #filter-supervisor, #filter-coordinator').on('select2:select select2:clear', function() {
                 submitAttendanceFilters();
             });
 
