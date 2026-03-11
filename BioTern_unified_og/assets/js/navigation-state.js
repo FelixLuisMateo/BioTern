@@ -57,14 +57,19 @@
         var nav = getNav();
         if (!nav) return;
 
+        var isMiniMenu = document.documentElement.classList.contains("minimenu");
         var currentRoute = getCurrentRouteKey();
 
         nav.querySelectorAll(".nxl-item.active").forEach(function (item) {
             item.classList.remove("active");
         });
 
-        nav.querySelectorAll(".nxl-item.nxl-hasmenu.nxl-trigger").forEach(function (item) {
-            item.classList.remove("nxl-trigger");
+        nav.querySelectorAll(".nxl-item.nxl-hasmenu.nxl-trigger, .nxl-item.nxl-hasmenu.open").forEach(function (item) {
+            item.classList.remove("nxl-trigger", "open");
+        });
+
+        nav.querySelectorAll(".nxl-submenu").forEach(function (submenu) {
+            submenu.style.display = "none";
         });
 
         nav.querySelectorAll(".nxl-item .nxl-link[href]").forEach(function (a) {
@@ -74,7 +79,14 @@
                 if (item) item.classList.add("active");
 
                 var parentMenu = a.closest(".nxl-item.nxl-hasmenu");
-                if (parentMenu) parentMenu.classList.add("active", "nxl-trigger");
+                if (parentMenu) {
+                    parentMenu.classList.add("active");
+                    if (!isMiniMenu) {
+                        parentMenu.classList.add("nxl-trigger");
+                        var submenu = parentMenu.querySelector(":scope > .nxl-submenu");
+                        if (submenu) submenu.style.display = "block";
+                    }
+                }
             }
         });
 

@@ -183,6 +183,25 @@ html.app-skin-dark .filter-form .select2-container--default .select2-selection--
 }
 
 /* Navigation include rules migrated from includes/navigation.php */
+html.theme-preload .nxl-navigation .nxl-submenu {
+  display: none !important;
+}
+
+html.theme-preload .nxl-navigation .nxl-item.nxl-hasmenu.open > .nxl-submenu,
+html.theme-preload .nxl-navigation .nxl-item.nxl-hasmenu.nxl-trigger > .nxl-submenu {
+  display: block !important;
+}
+
+/* Keep submenus collapsed by default; JS will open on click. */
+.nxl-navigation .nxl-submenu {
+  display: none;
+}
+
+.nxl-navigation .nxl-item.nxl-hasmenu.open > .nxl-submenu,
+.nxl-navigation .nxl-item.nxl-hasmenu.nxl-trigger > .nxl-submenu {
+  display: block;
+}
+
 @media (min-width: 1025px) {
   html.minimenu .nxl-navigation .navbar-content .nxl-caption {
     display: block !important;
