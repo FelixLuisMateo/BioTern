@@ -54,6 +54,21 @@ if ($res) {
 $page_title = 'Supervisors';
 include 'includes/header.php';
 ?>
+<style>
+    .supervisor-actions {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+    .supervisor-actions form {
+        margin: 0;
+    }
+    .supervisor-actions .btn {
+        min-width: 70px;
+    }
+</style>
 <div class="page-header">
     <div class="page-header-left d-flex align-items-center">
         <div class="page-header-title">
@@ -102,7 +117,7 @@ echo count($rows); ?> total</span>
                             <th>Department</th>
                             <th>Specialization</th>
                             <th>Status</th>
-                            <th>Actions</th>
+                            <th class="text-center">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -151,8 +166,8 @@ else: ?>
 require_once dirname(__DIR__) . '/config/db.php';
 endif; ?>
                                 </td>
-                                <td>
-                                    <div class="d-flex gap-2">
+                                <td class="text-center">
+                                    <div class="supervisor-actions">
                                         <a href="supervisors-edit.php?id=<?php
 require_once dirname(__DIR__) . '/config/db.php';
 echo (int)$r['id']; ?>" class="btn btn-sm btn-outline-primary">Edit</a>

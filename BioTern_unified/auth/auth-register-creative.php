@@ -919,7 +919,7 @@ endforeach; ?>
                                 </div>
                                 <div class="custom-control custom-checkbox">
                                     <input type="checkbox" class="custom-control-input" id="termsCondition">
-                                    <label class="custom-control-label c-pointer text-muted" for="termsCondition" style="font-weight: 400 !important">I agree to all the <a href="">Terms &amp; Conditions.</a></label>
+                                    <label class="custom-control-label c-pointer text-muted" for="termsCondition" style="font-weight: 400 !important">I agree to all the <a href="#" data-bs-toggle="modal" data-bs-target="#termsModal">Terms &amp; Conditions</a>.</label>
                                 </div>
                             </div>
                             <div class="step-actions">
@@ -928,6 +928,31 @@ endforeach; ?>
                             </div>
                             </div>
                         </form>
+
+                        <!-- Terms & Conditions Modal -->
+                        <div class="modal fade" id="termsModal" tabindex="-1" aria-labelledby="termsModalLabel" aria-hidden="true">
+                            <div class="modal-dialog modal-dialog-scrollable">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="termsModalLabel">Terms &amp; Conditions</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <p>By submitting this application, you confirm that the information you provide is accurate and complete. Applications are subject to review and approval by the school administrator.</p>
+                                        <ul>
+                                            <li>Your application will be reviewed before any account is activated.</li>
+                                            <li>You agree to comply with school policies and internship guidelines.</li>
+                                            <li>Submitting false or misleading information may result in rejection.</li>
+                                            <li>Approval or rejection decisions are final, but you may reapply if instructed.</li>
+                                        </ul>
+                                        <p class="mb-0">If you have questions, contact the school administrator.</p>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
 
                         <!-- COORDINATOR REGISTRATION FORM -->
                         <form id="coordinatorForm" class="w-100 mt-4 pt-2 hide-form" action="" method="post">
