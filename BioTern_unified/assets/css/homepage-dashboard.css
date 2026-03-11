@@ -176,6 +176,7 @@
     justify-content: center;
     border-radius: 999px;
     padding: 0 10px;
+    line-height: 1;
 }
 
 #latest-attendance-pagination a.active {
@@ -183,10 +184,107 @@
 }
 
 #latest-attendance-pagination [data-role="view-all"] {
-    border-radius: 8px;
-    min-width: auto;
-    height: auto;
-    padding: 6px 10px;
+    border-radius: 6px;
+    min-width: 96px;
+    height: 34px;
+    padding: 0 12px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.06);
+    white-space: nowrap;
+}
+
+#latest-attendance-pagination [data-role="view-all"]:hover {
+    background: rgba(255, 255, 255, 0.12);
+}
+
+#latest-attendance-pagination {
+    flex-wrap: wrap;
+    row-gap: 8px;
+}
+
+#latest-attendance-pagination li {
+    display: inline-flex;
+    align-items: center;
+}
+
+#latest-attendance-pagination li:last-child {
+    margin-right: 8px;
+}
+
+#latest-attendance-pagination [data-role="view-all"] {
+    flex: 0 0 100%;
+    justify-content: center;
+}
+
+.dashboard-shell .card-footer {
+    padding-left: 18px;
+    padding-right: 18px;
+}
+
+.biometric-stat-card {
+    padding: 14px 16px !important;
+}
+
+.biometric-stat-card .wd-50.ht-50 {
+    width: 80px !important;
+    height: 64px !important;
+    border-radius: 14px !important;
+    overflow: hidden;
+    box-sizing: border-box;
+    padding: 6px 4px;
+    text-align: center;
+}
+
+.biometric-stat-card .wd-50,
+.biometric-stat-card .ht-50 {
+    width: 80px !important;
+    height: 64px !important;
+}
+
+.biometric-stat-card .fs-18 {
+    font-size: 20px !important;
+    line-height: 1.05;
+}
+
+.biometric-stat-card .wd-50.ht-50 span {
+    line-height: 1.05;
+    display: block;
+}
+
+.biometric-stat-card .wd-50.ht-50 .fs-10 {
+    font-size: 8px !important;
+    letter-spacing: 0.06em;
+    opacity: 0.85;
+    text-transform: uppercase;
+}
+
+.biometric-stat-card .text-dark a {
+    display: inline-block;
+    white-space: normal;
+    line-height: 1.2;
+}
+
+.biometric-stat-card .text-muted {
+    display: inline-block;
+    white-space: normal;
+}
+
+.latest-attendance-profile {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex: 0 0 38px;
+}
+
+.latest-attendance-profile img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
 }
 
 #reset-dashboard-layout {
