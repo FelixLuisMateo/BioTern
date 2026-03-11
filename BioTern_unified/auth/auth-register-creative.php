@@ -601,32 +601,11 @@ if (isset($_GET['registered'])) {
                         }
                         ?>
                         
-                        <!-- ROLE SELECTION SCREEN -->
-                        <div id="roleSelectionScreen" class="show-form">
-                            <div class="mt-5">
-                                <!-- Single-role apply: heading removed -->
-                                <div class="roles-wrapper">
-                                    <!-- Outer box that visually contains the 2x2 grid -->
-                                    <div class="roles-container">
-                                        <div class="roles-grid" id="rolesRow">
-                                            <div class="role-card" data-role="student" onclick="selectRole('student')" tabindex="0">
-                                                <div class="role-icon">&#128104;&#8205;&#127891;</div>
-                                                <h5>Student</h5>
-                                                <p>Student: Apply for internship</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <p class="text-muted mt-3 mb-0 fs-12">Student applications only. Staff accounts are created by the school administrator.</p>
-                            </div>
-                        </div>
-
                         <!-- STUDENT REGISTRATION FORM -->
-                        <form id="studentForm" class="w-100 mt-4 pt-2 hide-form" action="" method="post" autocomplete="off">
+                        <form id="studentForm" class="w-100 mt-4 pt-2 show-form" action="" method="post" autocomplete="off" novalidate>
                             <input type="hidden" name="role" value="student">
                             <div class="form-section">
                                 <h3 class="fs-18 fw-bold mb-3">Student Application</h3>
-                                <button type="button" class="btn btn-sm btn-outline-secondary mb-4" onclick="backToRoles()">&#8592; Back to Role Selection</button>
                             </div>
                             <div class="form-stepper" data-form="studentForm">
                                 <div class="stepper-track">
@@ -645,10 +624,10 @@ if (isset($_GET['registered'])) {
                                 <h5 class="fs-14 fw-bold mb-3">Personal Information</h5>
                                 <div class="row g-3">
                                     <div class="col-6 mb-2">
-                                        <input type="text" name="student_id" class="form-control" placeholder="School ID Number" autocomplete="off">
+                                        <input type="text" name="student_id" class="form-control" placeholder="School ID Number" autocomplete="off" required pattern="^05-\\d{4,5}$" maxlength="8">
                                     </div>
                                     <div class="col-6 mb-2">
-                                        <input type="text" name="first_name" style="padding: 12px 16px;" class="form-control" placeholder="First name" autocomplete="given-name">
+                                        <input type="text" name="first_name" style="padding: 12px 16px;" class="form-control" placeholder="First name" autocomplete="given-name" required>
                                     </div>
                                 </div>
                                 <div class="row g-3">
@@ -656,15 +635,15 @@ if (isset($_GET['registered'])) {
                                         <input type="text" name="middle_name" class="form-control" placeholder="Middle name" autocomplete="additional-name">
                                     </div>
                                     <div class="col-6 mb-2">
-                                        <input type="text" name="last_name" class="form-control" placeholder="Last name" autocomplete="family-name">
+                                        <input type="text" name="last_name" class="form-control" placeholder="Last name" autocomplete="family-name" required>
                                     </div>
                                 </div>
                                 <div class="row g-3">
                                     <div class="col-6 mb-2">
-                                        <input type="text" name="address" class="form-control" placeholder="Full Home Address" autocomplete="street-address">
+                                        <input type="text" name="address" class="form-control" placeholder="Full Home Address" autocomplete="street-address" required>
                                     </div>
                                     <div class="col-6 mb-2">
-                                        <input type="email" name="email" class="form-control" placeholder="Email Address" autocomplete="email">
+                                        <input type="email" name="email" class="form-control" placeholder="Email Address" autocomplete="email" required>
                                     </div>
                                 </div>
                                 <div class="step-actions">
@@ -679,7 +658,7 @@ if (isset($_GET['registered'])) {
                                 <div class="row g-3">
                                     <div class="col-4 mb-2">
                                         <label class="form-label fs-12" for="studentCourseSelect">Course</label>
-                                        <select name="course_id" id="studentCourseSelect" class="form-control dynamic-course-select" data-section-target="studentSectionSelect">
+                                        <select name="course_id" id="studentCourseSelect" class="form-control dynamic-course-select" data-section-target="studentSectionSelect" required>
                                             <option value="" disabled selected>Select Course</option>
                                             <?php
 require_once dirname(__DIR__) . '/config/db.php';
@@ -738,7 +717,25 @@ endforeach; ?>
                                     </div>
                                     <div class="col-4 mb-2">
                                         <label class="form-label fs-12" for="studentSectionSelect">Section</label>
-                                        <select name="section" id="studentSectionSelect" class="form-control">
+                                        <select name="section" id="studentSectionSelect" class="form-control" required>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="row g-3">
+                                    <div class="col-4 mb-2">
+                                        <label class="form-label fs-12" for="studentSchoolYear">School Year</label>
+                                        <select name="school_year" id="studentSchoolYear" class="form-control" required>
+                                            <?php
+require_once dirname(__DIR__) . '/config/db.php';
+$currentYear = (int)date('Y');
+$startYear = 2005;
+for ($y = $currentYear; $y >= $startYear; $y--):
+    $label = $y . '-' . ($y + 1);
+?>
+                                                <option value="<?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?>" <?php echo $y === $currentYear ? 'selected' : ''; ?>>
+                                                    <?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?>
+                                                </option>
+                                            <?php endfor; ?>
                                         </select>
                                     </div>
                                 </div>
@@ -838,7 +835,7 @@ endforeach; ?>
                                 <div class="row g-3">
                                     <div class="col-6 mb-2">
                                         <label class="form-label fs-12" for="finishedInternalSelect">Finished Internal?</label>
-                                        <select name="finished_internal" id="finishedInternalSelect" class="form-control">
+                                        <select name="finished_internal" id="finishedInternalSelect" class="form-control" required>
                                             <option value="no" selected>No</option>
                                             <option value="yes">Yes</option>
                                         </select>
@@ -856,11 +853,11 @@ endforeach; ?>
                                 <div class="row g-3">
                                     <div class="col-6 mb-2">
                                         <label class="form-label fs-12" for="studentDateOfBirth">Date of Birth</label>
-                                        <input type="date" id="studentDateOfBirth" name="date_of_birth" class="form-control" autocomplete="bday">
+                                        <input type="date" id="studentDateOfBirth" name="date_of_birth" class="form-control" autocomplete="bday" required>
                                     </div>
                                     <div class="col-6 mb-2">
                                         <label class="form-label fs-12" for="studentGender">Gender</label>
-                                        <select id="studentGender" name="gender" class="form-control" autocomplete="off">
+                                        <select id="studentGender" name="gender" class="form-control" autocomplete="off" required>
                                             <option value="" disabled selected>Select Gender</option>
                                             <option value="male">Male</option>
                                             <option value="female">Female</option>
@@ -870,15 +867,15 @@ endforeach; ?>
                                 <div class="row g-3">
                                     <div class="col-6 mb-2">
                                         <label class="form-label fs-12" for="studentPhone">Phone Number</label>
-                                        <input type="tel" id="studentPhone" name="phone" class="form-control" placeholder="Phone Number" autocomplete="tel">
+                                        <input type="tel" id="studentPhone" name="phone" class="form-control" placeholder="Phone Number" autocomplete="tel" required>
                                     </div>
                                     <div class="col-6 mb-2">
                                         <label class="form-label fs-12" for="studentEmergencyContact">Emergency Contact Name</label>
-                                        <input type="text" id="studentEmergencyContact" name="emergency_contact" class="form-control" placeholder="Emergency Contact Name" autocomplete="name">
+                                        <input type="text" id="studentEmergencyContact" name="emergency_contact" class="form-control" placeholder="Emergency Contact Name" autocomplete="name" required>
                                     </div>
                                     <div class="col-6 mb-2">
                                         <label class="form-label fs-12" for="studentEmergencyContactPhone">Emergency Contact Phone</label>
-                                        <input type="tel" id="studentEmergencyContactPhone" name="emergency_contact_phone" class="form-control" placeholder="Emergency Contact Phone Number" autocomplete="tel">
+                                        <input type="tel" id="studentEmergencyContactPhone" name="emergency_contact_phone" class="form-control" placeholder="Emergency Contact Phone Number" autocomplete="tel" required>
                                     </div>
                                 </div>
                                 <div class="step-actions">
@@ -892,22 +889,22 @@ endforeach; ?>
                                 <h5 class="fs-14 fw-bold mb-3">Account Information</h5>
                                 <div class="row g-3">
                                     <div class="col-6 mb-2">
-                                        <input type="text" name="username" class="form-control" placeholder="Username" autocomplete="username">
+                                        <input type="text" name="username" class="form-control" placeholder="Username" autocomplete="username" required>
                                     </div>
                                     <div class="col-6 mb-2">
-                                        <input type="email" name="account_email" class="form-control" placeholder="Account Email Address" autocomplete="email">
+                                        <input type="email" name="account_email" class="form-control" placeholder="Account Email Address" autocomplete="email" required>
                                     </div>
                                 </div>
                                 <div class="row g-3">
                                     <div class="col-6 mb-2">
                                         <div class="input-group field">
-                                            <input type="password" name="password" class="form-control password" id="studentPassword" placeholder="Password" autocomplete="new-password">
+                                            <input type="password" name="password" class="form-control password" id="studentPassword" placeholder="Password" autocomplete="new-password" required>
                                             <div class="input-group-text border-start bg-gray-2 c-pointer show-pass-toggle" data-target="studentPassword" data-bs-toggle="tooltip" title="Show/Hide Password"><i></i></div>
                                         </div>
                                     </div>
                                     <div class="col-6 mb-2">
                                         <div class="input-group field">
-                                            <input type="password" name="confirm_password" class="form-control" id="studentConfirmPassword" placeholder="Confirm password" autocomplete="new-password">
+                                            <input type="password" name="confirm_password" class="form-control" id="studentConfirmPassword" placeholder="Confirm password" autocomplete="new-password" required>
                                             <div class="input-group-text border-start bg-gray-2 c-pointer show-pass-toggle" data-target="studentConfirmPassword" data-bs-toggle="tooltip" title="Show/Hide Password"><i></i></div>
                                         </div>
                                     </div>
@@ -918,7 +915,7 @@ endforeach; ?>
                                     <label class="custom-control-label c-pointer text-muted" for="receiveMial" style="font-weight: 400 !important">Yes, I want to receive BioTern community emails</label>
                                 </div>
                                 <div class="custom-control custom-checkbox">
-                                    <input type="checkbox" class="custom-control-input" id="termsCondition">
+                                    <input type="checkbox" class="custom-control-input" id="termsCondition" required>
                                     <label class="custom-control-label c-pointer text-muted" for="termsCondition" style="font-weight: 400 !important">I agree to all the <a href="#" data-bs-toggle="modal" data-bs-target="#termsModal">Terms &amp; Conditions</a>.</label>
                                 </div>
                             </div>
@@ -959,7 +956,6 @@ endforeach; ?>
                             <input type="hidden" name="role" value="coordinator">
                             <div class="form-section">
                                 <h3 class="fs-18 fw-bold mb-3">Coordinator Registration</h3>
-                                <button type="button" class="btn btn-sm btn-outline-secondary mb-4" onclick="backToRoles()">&#8592; Back to Role Selection</button>
                             </div>
                             <div class="form-stepper" data-form="coordinatorForm">
                                 <div class="stepper-track">
@@ -1085,7 +1081,6 @@ endforeach; ?>
                             <input type="hidden" name="role" value="supervisor">
                             <div class="form-section">
                                 <h3 class="fs-18 fw-bold mb-3">Supervisor Registration</h3>
-                                <button type="button" class="btn btn-sm btn-outline-secondary mb-4" onclick="backToRoles()">&#8592; Back to Role Selection</button>
                             </div>
                             <div class="form-stepper" data-form="supervisorForm">
                                 <div class="stepper-track">
@@ -1217,7 +1212,6 @@ endforeach; ?>
                             <input type="hidden" name="role" value="admin">
                             <div class="form-section">
                                 <h3 class="fs-18 fw-bold mb-3">Admin Registration</h3>
-                                <button type="button" class="btn btn-sm btn-outline-secondary mb-4" onclick="backToRoles()">&#8592; Back to Role Selection</button>
                             </div>
                             <div class="form-stepper" data-form="adminForm">
                                 <div class="stepper-track">
@@ -1504,6 +1498,47 @@ endforeach; ?>
                 btn.addEventListener('click', () => {
                     const action = btn.getAttribute('data-step-action');
                     if (action === 'next') {
+                        const activePanel = panels.find(panel => panel.classList.contains('active'));
+                        if (activePanel) {
+                            const requiredFields = Array.prototype.slice.call(activePanel.querySelectorAll('input, select, textarea'));
+
+                            const markInvalid = (field, msg) => {
+                                field.classList.add('is-invalid');
+                                const group = field.closest('.input-group');
+                                const anchor = group || field;
+                                let feedback = anchor.parentElement ? anchor.parentElement.querySelector('.invalid-feedback') : null;
+                                if (!feedback) {
+                                    feedback = document.createElement('div');
+                                    feedback.className = 'invalid-feedback d-block';
+                                    if (anchor.parentElement) anchor.parentElement.appendChild(feedback);
+                                }
+                                feedback.textContent = msg;
+                            };
+
+                            const clearInvalid = (field) => {
+                                field.classList.remove('is-invalid');
+                                const group = field.closest('.input-group');
+                                const anchor = group || field;
+                                const feedback = anchor.parentElement ? anchor.parentElement.querySelector('.invalid-feedback') : null;
+                                if (feedback) feedback.remove();
+                            };
+
+                            let hasInvalid = false;
+                            for (let i = 0; i < requiredFields.length; i++) {
+                                const field = requiredFields[i];
+                                if (field.disabled || !field.required) continue;
+                                if (!field.checkValidity()) {
+                                    hasInvalid = true;
+                                    const msg = field.tagName === 'SELECT'
+                                        ? 'Please select an item in the list.'
+                                        : 'This field is required.';
+                                    markInvalid(field, msg);
+                                } else {
+                                    clearInvalid(field);
+                                }
+                            }
+                            if (hasInvalid) return;
+                        }
                         showStep(current + 1);
                     } else if (action === 'prev') {
                         showStep(current - 1);
@@ -1514,6 +1549,25 @@ endforeach; ?>
             form._showStep = showStep;
             form.dataset.stepperInited = '1';
             showStep(1);
+
+            form.addEventListener('input', function (e) {
+                const field = e.target;
+                if (!field || !field.classList || !field.classList.contains('is-invalid')) return;
+                field.classList.remove('is-invalid');
+                const group = field.closest('.input-group');
+                const anchor = group || field;
+                const feedback = anchor.parentElement ? anchor.parentElement.querySelector('.invalid-feedback') : null;
+                if (feedback) feedback.remove();
+            });
+            form.addEventListener('change', function (e) {
+                const field = e.target;
+                if (!field || !field.classList || !field.classList.contains('is-invalid')) return;
+                field.classList.remove('is-invalid');
+                const group = field.closest('.input-group');
+                const anchor = group || field;
+                const feedback = anchor.parentElement ? anchor.parentElement.querySelector('.invalid-feedback') : null;
+                if (feedback) feedback.remove();
+            });
         }
 
         // Validate password matches confirm password for all forms
@@ -1550,6 +1604,9 @@ endforeach; ?>
             initFormStepper('coordinatorForm');
             initFormStepper('supervisorForm');
             initFormStepper('adminForm');
+
+            const studentIdInput = document.querySelector('#studentForm input[name="student_id"]');
+            // No auto-formatting on student ID input (manual entry only).
 
             const requestedRole = new URLSearchParams(window.location.search).get('role');
             if (requestedRole && requestedRole.toLowerCase() === 'student') {
