@@ -19,6 +19,14 @@ function getPost($key) {
     return isset($_POST[$key]) ? trim($_POST[$key]) : null;
 }
 
+function getCurrentSchoolYearLabel($timestamp = null) {
+    $ts = $timestamp !== null ? (int)$timestamp : time();
+    $year = (int)date('Y', $ts);
+    $month = (int)date('n', $ts);
+    $startYear = $month >= 7 ? $year : ($year - 1);
+    return sprintf('%d-%d', $startYear, $startYear + 1);
+}
+
 function resolveDepartmentIdByCode($mysqli, $departmentCode) {
     $code = trim((string)$departmentCode);
     if ($code === '') {
@@ -216,6 +224,7 @@ if ($role === 'student') {
     $mysqli->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS external_total_hours INT(11) DEFAULT NULL");
     $mysqli->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS external_total_hours_remaining INT(11) DEFAULT NULL");
     $mysqli->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS assignment_track VARCHAR(20) NOT NULL DEFAULT 'internal'");
+    $mysqli->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS school_year VARCHAR(9) NULL");
 
     // Validate password matches confirm_password
     $password = getPost('password');
@@ -286,6 +295,7 @@ if ($role === 'student') {
     $internal_total_hours_remaining = $finished_internal_yes ? 0 : $internal_total_hours;
     $external_total_hours_remaining = $finished_internal_yes ? $external_total_hours : 0;
     $assignment_track = $finished_internal_yes ? 'external' : 'internal';
+    $school_year = getCurrentSchoolYearLabel();
     $coordinator_name = null;
     $supervisor_name = null;
 
@@ -526,7 +536,7 @@ if ($role === 'student') {
 
     // Now insert into students table using the user_id
     // Note: If emergency_contact_phone column doesn't exist, store phone in emergency_contact or add the column
-    $stmt = $mysqli->prepare("INSERT INTO students (user_id, course_id, student_id, first_name, last_name, middle_name, username, password, email, department_id, section_id, address, phone, date_of_birth, gender, supervisor_id, supervisor_name, coordinator_id, coordinator_name, internal_total_hours, internal_total_hours_remaining, external_total_hours, external_total_hours_remaining, assignment_track, emergency_contact, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULLIF(?, 0), ?, ?, ?, ?, NULLIF(?, 0), ?, NULLIF(?, 0), ?, ?, ?, ?, ?, ?, ?, NOW())");
+    $stmt = $mysqli->prepare("INSERT INTO students (user_id, course_id, student_id, first_name, last_name, middle_name, username, password, email, department_id, section_id, address, phone, date_of_birth, gender, supervisor_id, supervisor_name, coordinator_id, coordinator_name, internal_total_hours, internal_total_hours_remaining, external_total_hours, external_total_hours_remaining, assignment_track, emergency_contact, school_year, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULLIF(?, 0), ?, ?, ?, ?, NULLIF(?, 0), ?, NULLIF(?, 0), ?, ?, ?, ?, ?, ?, ?, ?, NOW())");
     
     if (!$stmt) {
         header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Database statement error: ' . $mysqli->error));
@@ -543,14 +553,14 @@ if ($role === 'student') {
     // username(s), password(s), email(s), department_id(s), section_id(i), address(s), phone(s),
     // date_of_birth(s), gender(s), supervisor_id(i), supervisor_name(s), coordinator_id(i),
     // coordinator_name(s), internal_total_hours(i), internal_total_hours_remaining(i),
-    // external_total_hours(i), external_total_hours_remaining(i), assignment_track(s), emergency_contact(s)
+    // external_total_hours(i), external_total_hours_remaining(i), assignment_track(s), emergency_contact(s), school_year(s)
     $department_id_for_student = $department_id !== null ? (string)$department_id : null;
     $section_id_for_insert = !empty($section_id) ? (int)$section_id : 0;
     $supervisor_id_for_insert = !empty($supervisor_id) ? (int)$supervisor_id : 0;
     $coordinator_id_for_insert = !empty($coordinator_id) ? (int)$coordinator_id : 0;
 
     $stmt->bind_param(
-        'iissssssssissssisisiiiiss',
+        'iissssssssissssisisiiiisss',
         $user_id,
         $course_id,
         $student_id,
@@ -575,7 +585,8 @@ if ($role === 'student') {
         $external_total_hours,
         $external_total_hours_remaining,
         $assignment_track,
-        $emergency_contact_full
+        $emergency_contact_full,
+        $school_year
     );
     
     try {

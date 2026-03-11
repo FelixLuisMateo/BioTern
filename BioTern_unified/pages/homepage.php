@@ -139,16 +139,25 @@ try {
     $dashboard_stats['attendance_completed'] = dashboard_fetch_count($conn, "SELECT COUNT(*) AS count FROM attendances WHERE status = 'approved'");
     $dashboard_stats['attendance_rejected'] = dashboard_fetch_count($conn, "SELECT COUNT(*) AS count FROM attendances WHERE status = 'rejected'");
     $dashboard_stats['attendance_total'] = dashboard_fetch_count($conn, "SELECT COUNT(*) AS count FROM attendances");
-    $dashboard_stats['student_count'] = dashboard_fetch_count($conn, "SELECT COUNT(*) AS count FROM students WHERE deleted_at IS NULL");
+    $dashboard_stats['student_count'] = dashboard_fetch_count(
+        $conn,
+        "SELECT COUNT(*) AS count
+         FROM students s
+         LEFT JOIN users u ON s.user_id = u.id
+         WHERE s.deleted_at IS NULL
+           AND COALESCE(u.application_status, 'approved') = 'approved'"
+    );
 
     $dashboard_stats['active_students'] = dashboard_fetch_count(
         $conn,
         "SELECT COUNT(DISTINCT s.id) AS count
          FROM students s
+         LEFT JOIN users u ON s.user_id = u.id
          INNER JOIN internships i ON i.student_id = s.id
          WHERE s.deleted_at IS NULL
            AND i.deleted_at IS NULL
-           AND i.status = 'ongoing'"
+           AND i.status = 'ongoing'
+           AND COALESCE(u.application_status, 'approved') = 'approved'"
     );
 
     // OJT / internship distribution
@@ -177,7 +186,14 @@ try {
 
     $dashboard_stats['active_internships'] = (int)($ojt_status_counts['ongoing'] ?? 0);
     $dashboard_stats['completed_internships'] = (int)($ojt_status_counts['completed'] ?? 0);
-    $dashboard_stats['biometric_registered'] = dashboard_fetch_count($conn, "SELECT COUNT(*) AS count FROM students WHERE biometric_registered = 1");
+    $dashboard_stats['biometric_registered'] = dashboard_fetch_count(
+        $conn,
+        "SELECT COUNT(*) AS count
+         FROM students s
+         LEFT JOIN users u ON s.user_id = u.id
+         WHERE s.biometric_registered = 1
+           AND COALESCE(u.application_status, 'approved') = 'approved'"
+    );
 
     $today = date('Y-m-d');
     $dashboard_stats['today_attendance'] = dashboard_fetch_count($conn, "SELECT COUNT(*) AS count FROM attendances WHERE DATE(attendance_date) = '{$today}'");
@@ -187,7 +203,9 @@ try {
         $conn,
         "SELECT s.id, s.student_id, s.first_name, s.last_name, s.email, s.status, s.biometric_registered, s.created_at
          FROM students s
+         LEFT JOIN users u ON s.user_id = u.id
          WHERE s.deleted_at IS NULL
+           AND COALESCE(u.application_status, 'approved') = 'approved'
          ORDER BY s.created_at DESC
          LIMIT 5"
     );
@@ -195,9 +213,12 @@ try {
     $recent_attendance = dashboard_fetch_all(
         $conn,
         "SELECT a.id, a.student_id, a.attendance_date, a.morning_time_in, a.morning_time_out, a.status, a.created_at,
-                s.first_name, s.last_name, s.email, s.student_id AS student_num
+                s.first_name, s.last_name, s.email, s.student_id AS student_num,
+                COALESCE(NULLIF(u.profile_picture, ''), NULLIF(s.profile_picture, '')) AS profile_picture
          FROM attendances a
          LEFT JOIN students s ON a.student_id = s.id
+         LEFT JOIN users u ON s.user_id = u.id
+         WHERE COALESCE(u.application_status, 'approved') = 'approved'
          ORDER BY (DATE(a.attendance_date) = CURDATE()) DESC, a.attendance_date DESC, a.created_at DESC
          LIMIT 10"
     );
@@ -321,7 +342,10 @@ $dashboard_role = strtolower(trim((string)($_SESSION['role'] ?? '')));
 $dashboard_can_review_applications = in_array($dashboard_role, ['admin', 'coordinator', 'supervisor'], true);
 
 $page_title = 'BioTern || Dashboard';
-$page_styles = array('assets/css/homepage-dashboard.css');
+$dashboard_css = 'assets/css/homepage-dashboard.css';
+$dashboard_css_path = dirname(__DIR__) . '/' . $dashboard_css;
+$dashboard_css_ver = file_exists($dashboard_css_path) ? filemtime($dashboard_css_path) : time();
+$page_styles = array($dashboard_css . '?v=' . $dashboard_css_ver);
 include 'includes/header.php';
 ?>
             <div class="page-header">
@@ -857,11 +881,29 @@ foreach ($recent_attendance as $attendance): ?>
                                             <tr>
                                                 <td>
                                                     <div class="d-flex align-items-center gap-3">
-                                                        <div class="avatar-text avatar-sm bg-soft-primary text-primary">
-                                                            <?php
+                                                        <?php
 require_once dirname(__DIR__) . '/config/db.php';
-echo strtoupper(substr($attendance['first_name'], 0, 1) . substr($attendance['last_name'], 0, 1)); ?>
-                                                        </div>
+                                                        $profilePreview = trim((string)($attendance['profile_picture'] ?? ''));
+                                                        $profileUrl = '';
+                                                        if ($profilePreview !== '') {
+                                                            $candidate = ltrim(str_replace('\\', '/', $profilePreview), '/');
+                                                            if (file_exists(dirname(__DIR__) . '/' . $candidate)) {
+                                                                $profileUrl = $candidate;
+                                                            }
+                                                        }
+                                                        if ($profileUrl === '') {
+                                                            $initials = strtoupper(substr($attendance['first_name'], 0, 1) . substr($attendance['last_name'], 0, 1));
+                                                        }
+                                                        ?>
+                                                        <?php if ($profileUrl !== ''): ?>
+                                                            <div class="latest-attendance-profile">
+                                                                <img src="<?php echo htmlspecialchars($profileUrl, ENT_QUOTES, 'UTF-8'); ?>" alt="Student profile">
+                                                            </div>
+                                                        <?php else: ?>
+                                                            <div class="avatar-text avatar-sm bg-soft-primary text-primary">
+                                                                <?php echo htmlspecialchars($initials, ENT_QUOTES, 'UTF-8'); ?>
+                                                            </div>
+                                                        <?php endif; ?>
                                                         <a href="students-view.php?id=<?php
 require_once dirname(__DIR__) . '/config/db.php';
 echo $attendance['student_id']; ?>">
@@ -972,7 +1014,7 @@ endif; ?>
                                 </div>
                             </div>
                             <div class="card-body">
-                                <div class="p-3 border border-dashed rounded-3 mb-3">
+                                <div class="p-3 border border-dashed rounded-3 mb-3 biometric-stat-card">
                                     <div class="d-flex justify-content-between">
                                         <div class="d-flex align-items-center gap-3">
                                             <div class="wd-50 ht-50 bg-soft-success text-success lh-1 d-flex align-items-center justify-content-center flex-column rounded-2">
@@ -990,7 +1032,7 @@ echo ($student_count > 0) ? round(($biometric_registered / $student_count) * 100
                                         </div>
                                     </div>
                                 </div>
-                                <div class="p-3 border border-dashed rounded-3 mb-3">
+                                <div class="p-3 border border-dashed rounded-3 mb-3 biometric-stat-card">
                                     <div class="d-flex justify-content-between">
                                         <div class="d-flex align-items-center gap-3">
                                             <div class="wd-50 ht-50 bg-soft-warning text-warning lh-1 d-flex align-items-center justify-content-center flex-column rounded-2">
