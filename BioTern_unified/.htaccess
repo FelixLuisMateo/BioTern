@@ -7,6 +7,12 @@ RewriteCond %{REQUEST_FILENAME} -f [OR]
 RewriteCond %{REQUEST_FILENAME} -d
 RewriteRule ^ - [L]
 
+# Compatibility rewrites for pages that reference shared assets from subfolders
+# (e.g. /management/assets/... -> /assets/...).
+RewriteRule ^favicon\.ico$ assets/images/favicon.ico [L,NC]
+RewriteRule ^([A-Za-z0-9_-]+)/favicon\.ico$ assets/images/favicon.ico [L,NC]
+RewriteRule ^([A-Za-z0-9_-]+)/assets/(.+)$ assets/$2 [L,NC]
+
 # Route legacy flat PHP URLs to organized folders internally (no URL change).
 RewriteRule ^([A-Za-z0-9_-]+\.php)$ legacy_router.php?file=$1 [L,QSA,NC]
 </IfModule>
