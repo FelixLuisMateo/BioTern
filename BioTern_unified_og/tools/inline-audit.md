@@ -26,12 +26,14 @@ Excluded: `vendor/`, `docs/`
 
 Current reusable assets:
 
-- CSS: `assets/css/theme.min.css`, `assets/css/homepage-dashboard.css`, `assets/css/settings-customizer-like.css`
+- CSS: `assets/css/theme.min.css`, `assets/css/core.css`, `assets/css/ui.css`, `assets/css/theme.css`, `assets/css/homepage-dashboard.css`
 - JS: `assets/js/common-init.min.js`, `assets/js/skin-init.js`, `assets/js/theme-preload-init.min.js`
 
 Target migration assets:
 
 - `assets/css/core.css`
+- `assets/css/ui.css`
+- `assets/css/theme.css`
 - `assets/js/global-ui-helpers.js`
 - `assets/js/theme-preferences-runtime.js`
 
@@ -105,7 +107,7 @@ Batch 4: Secondary modules
 - Completed: extracted `pages/demo-biometric.php` inline `<style>` block into `assets/css/demo-biometric-page.css`
 - Completed: extracted `pages/demo-biometric.php` inline runtime script into `assets/js/demo-biometric-runtime.js`
 - Completed: extracted `public/help-knowledgebase.php` inline `<style>` block into `assets/css/help-knowledgebase-page.css`
-- Completed: extracted `pages/theme-customizer.php` inline `<style>` block into `assets/css/theme-customizer-page.css`
+- Completed: extracted `pages/theme-customizer.php` inline `<style>` block into `assets/css/theme.css`
 - Completed: consolidated theme customizer page runtime into `assets/js/theme-preferences-runtime.js` and removed `assets/js/theme-customizer-page-runtime.js`
 - Completed: extracted `pages/print_attendance.php` inline `<style>` block into `assets/css/print-attendance-page.css`
 - Completed: extracted `pages/print_attendance.php` inline runtime script into `assets/js/print-attendance-runtime.js`
@@ -143,6 +145,7 @@ Batch 4: Secondary modules
 - Completed: expanded OJT create info-grid readability by aliasing repeated lead-info rows/labels/input-groups in `management/ojt-create.php` (`app-ojt-create-info-row`, `app-ojt-create-info-label`, `app-ojt-create-input-group`) with dark-mode and spacing support in `assets/css/management-ojt-create-page.css`
 - Completed: resolved mobile overlap on `auth/idnotfound-404.php` by reusing responsive 404 classes from `assets/css/auth-404-minimal-page.css` and removing fixed inline heading sizing
 - Completed: closed remaining pending alias set by adding attendance filter/selection aliases (`app-attendance-filter-link`, `app-attendance-selected-label`, `app-attendance-selected-icon`, `app-attendance-selected-count`) in `pages/attendance.php` + `assets/css/pages-attendance-page.css`, and OJT create header trigger aliases (`app-ojt-create-header-items`, `app-ojt-create-header-close-toggle`, `app-ojt-create-header-open-toggle`, `app-ojt-create-success-alert-trigger`) in `management/ojt-create.php` + `assets/css/management-ojt-create-page.css`
+- Completed: consolidated edit template runtimes into `assets/js/template-editor-page-runtime.js`, removed per-page edit runtimes, and added shared editor shell stylesheet `assets/css/page-editor-shell.css`
 
 ## Unexpected Asset Audit (2026-03-07)
 

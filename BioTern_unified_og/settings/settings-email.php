@@ -1,6 +1,5 @@
-<?php
+﻿<?php
 $page_title = 'BioTern || Email Settings';
-$page_styles = ['assets/css/settings-customizer-like.css'];
 include 'includes/header.php';
 ?>
 
@@ -407,5 +406,6 @@ include 'includes/header.php';
 </body>
 
 </html>
+
 
 

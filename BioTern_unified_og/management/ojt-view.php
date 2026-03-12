@@ -1041,7 +1041,8 @@ $dau_print_url = $app_base . 'pages/generate_dau_moa.php?' . http_build_query([
 ]);
 $page_title = 'BioTern || OJT View';
 $page_styles = [
-    'assets/css/management-ojt-view-page.css',
+    'assets/css/managements_ojt_shared.css',
+    'assets/css/managements_ojt_view.css',
 ];
 $page_scripts = [
     'assets/js/theme-customizer-init.min.js',

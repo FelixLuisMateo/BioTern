@@ -1,0 +1,146 @@
+/*
+ * Class: module.pages.generate.letter.shared
+ * Used by:
+ * - pages/generate_application_letter.php
+ * - pages/generate_endorsement_letter.php
+ */
+
+@page { size: Letter portrait; margin: 0.5in; }
+
+:root {
+  --app-letter-body-font-size: 12pt;
+  --app-letter-body-bg: #eceff3;
+  --app-letter-container-max-width: 7.5in;
+  --app-letter-container-margin: 18px auto;
+  --app-letter-container-padding: 0.4in;
+  --app-letter-header-min-height: 56px;
+  --app-letter-header-padding: 8px 0 6px;
+  --app-letter-header-border: 2px solid #1c5ab1;
+  --app-letter-header-title-size: 13pt;
+  --app-letter-header-title-weight: 600;
+  --app-letter-meta-size: 10.5pt;
+  --app-letter-meta-weight: 600;
+  --app-letter-meta-line-height: 1.2;
+  --app-letter-tel-size: 12pt;
+  --app-letter-tel-weight: 600;
+  --app-letter-crest-top: 0.24in;
+  --app-letter-crest-left: 0.12in;
+  --app-letter-crest-width: 0.82in;
+  --app-letter-crest-height: 0.8in;
+  --app-letter-content-font-size: 12pt;
+  --app-letter-content-line-height: 1.45;
+}
+
+body {
+  font-family: "Times New Roman", Times, serif;
+  color: #111;
+  font-size: var(--app-letter-body-font-size);
+  margin: 0;
+  background: var(--app-letter-body-bg);
+}
+
+.app-letter-container,
+.container {
+  width: 100%;
+  max-width: var(--app-letter-container-max-width);
+  margin: var(--app-letter-container-margin);
+  padding: var(--app-letter-container-padding);
+  box-sizing: border-box;
+  position: relative;
+  background: #fff;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.14);
+}
+
+.app-letter-header,
+.header {
+  position: relative;
+  min-height: var(--app-letter-header-min-height);
+  text-align: center;
+  border-bottom: var(--app-letter-header-border);
+  padding: var(--app-letter-header-padding);
+  margin-bottom: 10px;
+}
+
+.app-letter-crest,
+.crest {
+  position: absolute;
+  top: var(--app-letter-crest-top);
+  left: var(--app-letter-crest-left);
+  width: var(--app-letter-crest-width);
+  height: var(--app-letter-crest-height);
+  object-fit: contain;
+}
+
+.app-letter-header h2,
+.header h2 {
+  font-family: "Times New Roman", Times, serif;
+  color: #1b4f9c;
+  font-size: var(--app-letter-header-title-size);
+  margin: 0;
+  font-weight: var(--app-letter-header-title-weight);
+}
+
+.app-letter-header .app-letter-meta,
+.app-letter-header .meta,
+.header .app-letter-meta,
+.header .meta {
+  font-family: "Times New Roman", Times, serif;
+  color: #1b4f9c;
+  font-size: var(--app-letter-meta-size);
+  line-height: var(--app-letter-meta-line-height);
+  font-weight: var(--app-letter-meta-weight);
+}
+
+.app-letter-header .app-letter-tel,
+.app-letter-header .tel,
+.header .app-letter-tel,
+.header .tel {
+  font-family: "Times New Roman", Times, serif;
+  color: #1b4f9c;
+  font-size: var(--app-letter-tel-size);
+  font-weight: var(--app-letter-tel-weight);
+}
+
+.app-letter-content,
+.content {
+  font-size: var(--app-letter-content-font-size);
+  line-height: var(--app-letter-content-line-height);
+}
+
+.app-letter-actions,
+.actions {
+  margin-top: 40px;
+  padding-top: 18px;
+  border-top: 2px dashed #cbd5e1;
+}
+
+.app-letter-tip-box,
+.tip-box {
+  flex: 1 1 100%;
+  font-size: 17px;
+  line-height: 1.6;
+  border: 1px solid #dbe4f0;
+  background: #f8fafc;
+  padding: 12px 14px;
+  border-radius: 12px;
+  color: #334155;
+}
+
+.app-letter-action-btn,
+.action-btn {
+  min-width: 104px;
+  min-height: 36px;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: 12px;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+}
+
+@media print {
+  body { background: #fff; }
+  .app-letter-no-print,
+  .no-print { display: none !important; }
+  .app-letter-container,
+  .container { margin: 0; padding: 10mm; background: #fff; box-shadow: none; }
+}

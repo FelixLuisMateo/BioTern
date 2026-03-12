@@ -345,7 +345,10 @@ function getAttendanceStatus($morning_time_in) {
 <?php
 $page_title = 'BioTern || Student Attendance';
 $page_body_class = 'page-attendance';
-$page_styles = array('assets/css/pages-attendance-page.css');
+$page_styles = array(
+    'assets/css/page_shell.css',
+    'assets/css/pages-attendance-page.css'
+);
 $page_scripts = array(
     'assets/js/theme-customizer-init.min.js',
     'assets/js/pages-attendance-runtime.js',

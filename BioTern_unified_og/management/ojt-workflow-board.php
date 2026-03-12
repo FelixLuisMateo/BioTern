@@ -123,7 +123,9 @@ function status_label(string $s): string {
 
 $page_title = 'BioTern || OJT Workflow Board';
 $page_styles = [
-    'assets/css/management-ojt-workflow-board-page.css',
+    'assets/css/managements_filters.css',
+    'assets/css/managements_ojt_shared.css',
+    'assets/css/managements_ojt_workflow_board.css',
 ];
 $page_scripts = [
     'assets/js/theme-customizer-init.min.js',
@@ -143,7 +145,7 @@ include 'includes/header.php';
 <?php endif; ?>
 
 <div class="card app-ojt-workflow-surface-card card-body mb-3">
-    <form method="get" class="row g-2 align-items-end app-ojt-workflow-filter-form">
+    <form method="get" class="row g-2 align-items-end filter-form app-ojt-workflow-filter-form">
         <div class="col-md-4">
             <label class="form-label">Search Student</label>
             <input type="text" name="search" class="form-control" value="<?php echo htmlspecialchars($search); ?>" placeholder="Name / Student ID / Course">

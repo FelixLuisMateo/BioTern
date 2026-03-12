@@ -170,7 +170,8 @@ if ($sectionRes) {
 $page_title = 'Sections';
 include 'includes/header.php';
 ?>
-<link rel="stylesheet" type="text/css" href="assets/css/management-sections-page.css">
+<link rel="stylesheet" type="text/css" href="assets/css/managements_filters.css">
+<link rel="stylesheet" type="text/css" href="assets/css/managements_sections.css">
 <div class="page-header">
     <div class="page-header-left d-flex align-items-center">
         <div class="page-header-title">

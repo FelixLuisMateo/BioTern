@@ -111,13 +111,10 @@ body { background: #f5f7fb; }
     .app-ojt-list-table tbody tr {
         height: auto;
     }
-    .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-        .app-skin-dark body { background: #0b1220; }
+        .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
         .app-skin-dark .card,
         .app-skin-dark .filter-card,
         .app-skin-dark .app-ojt-filter-card {
-            border-color: #253252;
-            background: #111a2e;
             box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
         }
         .app-skin-dark .page-subtitle,

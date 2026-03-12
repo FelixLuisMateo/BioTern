@@ -5,7 +5,6 @@ $page_scripts = [
 ];
 include 'includes/header.php';
 ?>
-<link rel="stylesheet" type="text/css" href="assets/css/theme-customizer-page.css">
 
 <div class="main-content d-flex theme-customizer-page">
     <div class="content-sidebar content-sidebar-md" data-scrollbar-target="#psScrollbarInit">

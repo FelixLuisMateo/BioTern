@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 $dbHost = '127.0.0.1';
 $dbUser = 'root';
 $dbPass = '';
@@ -117,7 +117,6 @@ if (!$conn->connect_errno) {
 $selected_extensions = array_filter(array_map('trim', explode(',', support_pick($support_settings, 'allowed_extensions', ''))));
 
 $page_title = 'Support Settings';
-$page_styles = ['assets/css/settings-customizer-like.css'];
 include 'includes/header.php';
 ?>
 
@@ -400,3 +399,4 @@ include 'includes/header.php';
                 <!-- [ Content Area ] end -->
             </div>
             <?php include 'includes/footer.php'; ?>
+

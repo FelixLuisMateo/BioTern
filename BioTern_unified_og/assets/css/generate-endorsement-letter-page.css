@@ -4,57 +4,19 @@
  * - pages/generate_endorsement_letter.php
  */
 
-/* Section: print page setup and base typography */
-@page { size: Letter portrait; margin: 0.5in; }
-body { font-family: "Times New Roman", Times, serif; color: #111; font-size: 12pt; margin: 0; background: #eceff3; }
-.app-endorsement-letter-container,
-.container {
-  width: 100%;
-  max-width: 7.5in;
-  margin: 18px auto;
-  padding: 0.4in;
-  box-sizing: border-box;
-  position: relative;
-  background: #fff;
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.14);
+/* Section: shared letter shell overrides */
+:root {
+  --app-letter-crest-top: 30px;
+  --app-letter-crest-left: 30px;
+  --app-letter-crest-width: 70px;
+  --app-letter-crest-height: 70px;
+  --app-letter-tel-size: 13pt;
 }
-.app-endorsement-letter-header,
-.header {
-  position: relative;
-  min-height: 56px;
-  text-align: center;
-  border-bottom: 2px solid #1c5ab1;
-  padding: 8px 0 6px;
-  margin-bottom: 10px;
-}
-.app-endorsement-letter-crest,
-.crest { position: absolute; left: 30px; top: 30px; width: 70px; height: 70px; object-fit: contain; }
-.app-endorsement-letter-header h2,
-.header h2 {
-  font-family: "Times New Roman", Times, serif;
-  color: #1b4f9c;
-  font-size: 13pt;
-  margin: 0;
-  font-weight: 600;
-}
-.app-endorsement-letter-header .app-endorsement-letter-meta,
-.app-endorsement-letter-header .meta,
-.header .app-endorsement-letter-meta,
-.header .meta {
-  font-family: "Times New Roman", Times, serif;
-  color: #1b4f9c;
-  font-size: 10.5pt;
-  line-height: 1.2;
-  font-weight: 600;
-}
+
 .app-endorsement-letter-header .app-endorsement-letter-tel,
 .app-endorsement-letter-header .tel,
 .header .app-endorsement-letter-tel,
 .header .tel {
-  font-family: "Times New Roman", Times, serif;
-  color: #1b4f9c;
-  font-size: 13pt;
-  font-weight: 600;
   margin-bottom: -21px;
 }
 /* Section: letter body and signatures */
@@ -83,40 +45,12 @@ body { font-family: "Times New Roman", Times, serif; color: #111; font-size: 12p
 /* Section: action toolbar */
 .app-endorsement-letter-actions,
 .actions {
-  margin-top: 40px;
-  padding-top: 18px;
-  border-top: 2px dashed #cbd5e1;
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
   align-items: center;
 }
-.app-endorsement-letter-tip-box,
-.tip-box {
-  flex: 1 1 100%;
-  font-size: 17px;
-  line-height: 1.6;
-  border: 1px solid #dbe4f0;
-  background: #f8fafc;
-  padding: 12px 14px;
-  border-radius: 12px;
-  color: #334155;
-}
-.app-endorsement-letter-action-btn,
-.action-btn {
-  min-width: 104px;
-  min-height: 36px;
-  font-size: 14px;
-  font-weight: 600;
-  padding: 7px 14px;
-  cursor: pointer;
-  border-radius: 12px;
-  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
-}
 @media print {
-  body { background: #fff; }
   .app-endorsement-letter-no-print,
   .no-print { display: none !important; }
-  .app-endorsement-letter-container,
-  .container { margin: 0; padding: 10mm; background: #fff; box-shadow: none; }
 }

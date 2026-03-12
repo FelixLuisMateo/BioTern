@@ -4,11 +4,8 @@
  * - management/ojt-create.php
  */
 
-.app-skin-dark body { background: #0b1220; }
-        .main-content,
-        .app-ojt-create-main-content { min-width: 0; }
-        .form-label,
-        .app-ojt-create-form-label { font-weight: 600; font-size: 12px; letter-spacing: 0.2px; }
+.main-content,
+.app-ojt-create-main-content { min-width: 0; }
         .app-ojt-create-info-label { font-weight: 600; }
         .app-ojt-create-info-row { --bs-gutter-y: 0; }
         .app-ojt-create-input-group .input-group-text {
@@ -28,15 +25,11 @@
             justify-content: space-between;
             gap: 10px;
         }
-    .app-skin-dark .card,
-    .app-skin-dark .app-ojt-create-surface-card { background: #111a2e; border-color: #253252; }
         .app-skin-dark .app-ojt-create-input-group .input-group-text {
             background: #15213a;
             border-color: #2a3a57;
             color: #d8e2f4;
         }
-        .app-skin-dark .form-control,
-        .app-skin-dark .form-select { background-color: #0f172a; border-color: #2a3a57; color: #d8e2f4; }
         .nxl-header .user-avtar,
         .nxl-user-dropdown .user-avtar {
             width: 40px !important;
@@ -48,30 +41,14 @@
             object-position: center !important;
         }
         @media (max-width: 991.98px) {
-            .page-header,
-            .app-ojt-create-page-header { display: block; }
             .page-header-left,
             .app-ojt-create-page-header-left { margin-bottom: 10px; }
-            .page-header-right-items-wrapper,
-            .app-ojt-create-page-header-actions {
-                display: grid !important;
-                grid-template-columns: 1fr 1fr;
-                gap: 8px !important;
-                width: 100%;
-            }
-            .page-header-right-items-wrapper .btn,
-            .app-ojt-create-page-header-actions .btn { width: 100%; }
             .lead-status .row > [class*="col-"],
             .general-info .row > [class*="col-"],
             .app-ojt-create-lead-status .row > [class*="col-"],
             .app-ojt-create-general-info .row > [class*="col-"] { margin-bottom: 8px; }
         }
         @media (max-width: 767.98px) {
-            .nxl-content { padding-left: 8px; padding-right: 8px; }
-            .page-header-right-items-wrapper,
-            .app-ojt-create-page-header-actions { grid-template-columns: 1fr; }
-            .card.card-body,
-            .app-ojt-create-surface-card.card-body { border-radius: 14px; padding: 12px; }
             .lead-status .mb-5.d-flex,
             .general-info .mb-5.d-flex,
             .app-ojt-create-section-head,

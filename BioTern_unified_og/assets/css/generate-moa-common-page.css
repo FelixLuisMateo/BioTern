@@ -112,9 +112,29 @@ ol {
     gap: 12px;
 }
 
+.row-top-neg-12,
+.app-moa-row-top-neg-12 {
+    margin-top: -12px;
+}
+
 .col,
 .app-moa-col {
     flex: 1;
+}
+
+.mt-16,
+.app-moa-mt-16 {
+    margin-top: 16px;
+}
+
+.mt-neg-18,
+.app-moa-mt-neg-18 {
+    margin-top: -18px;
+}
+
+.mt-0,
+.app-moa-mt-0 {
+    margin-top: 0;
 }
 
 .right,

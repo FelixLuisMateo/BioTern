@@ -4,29 +4,6 @@
  * - management/students-view.php
  */
 
-/* Section: page layout + sticky footer */
-/* Used by management/students-view.php: page shell wrappers */
-html, body {
-            height: 100%;
-            margin: 0;
-            padding: 0;
-        }
-        body {
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
-        main.nxl-container {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-        }
-        div.nxl-content {
-            flex: 1;
-        }
-        footer.footer {
-            margin-top: auto;
-        }
         /* Section: profile stats grid */
         /* Used by management/students-view.php: profile stats cards */
         .app-students-profile-stats,
@@ -107,67 +84,6 @@ html, body {
             word-break: break-word;
         }
         
-        /* Dark mode select and Select2 styling */
-        select.form-control,
-        select.form-select,
-        .select2-container--default .select2-selection--single,
-        .select2-container--default .select2-selection--multiple {
-            color: #333;
-            background-color: #ffffff;
-        }
-        
-        /* Dark mode support for Select2 */
-        body.dark .select2-container--default .select2-selection--single,
-        body.dark .select2-container--default .select2-selection--multiple,
-        body[data-bs-theme="dark"] .select2-container--default .select2-selection--single,
-        body[data-bs-theme="dark"] .select2-container--default .select2-selection--multiple {
-            color: #f0f0f0;
-            background-color: #2d3748;
-            border-color: #4a5568 !important;
-        }
-        
-        body.dark .select2-container--default .select2-selection--single .select2-selection__rendered,
-        body[data-bs-theme="dark"] .select2-container--default .select2-selection--single .select2-selection__rendered {
-            color: #f0f0f0;
-        }
-        
-        /* Dark mode dropdown menu */
-        body.dark .select2-container--default.select2-container--open .select2-dropdown,
-        body[data-bs-theme="dark"] .select2-container--default.select2-container--open .select2-dropdown {
-            background-color: #2d3748;
-            border-color: #4a5568;
-        }
-        
-        body.dark .select2-results__option,
-        body[data-bs-theme="dark"] .select2-results__option {
-            color: #f0f0f0;
-            background-color: #2d3748;
-        }
-        
-        body.dark .select2-results__option--highlighted[aria-selected],
-        body[data-bs-theme="dark"] .select2-results__option--highlighted[aria-selected] {
-            background-color: #667eea;
-            color: #ffffff;
-        }
-        
-        body.dark .select2-container--default select.form-control,
-        body.dark select.form-control,
-        body.dark select.form-select,
-        body[data-bs-theme="dark"] select.form-control,
-        body[data-bs-theme="dark"] select.form-select {
-            color: #f0f0f0;
-            background-color: #2d3748;
-            border-color: #4a5568;
-        }
-        
-        body.dark select.form-control option,
-        body.dark select.form-select option,
-        body[data-bs-theme="dark"] select.form-control option,
-        body[data-bs-theme="dark"] select.form-select option {
-            color: #f0f0f0;
-            background-color: #2d3748;
-        }
-
         @media (max-width: 767.98px) {
             .app-students-profile-stats,
             .profile-stats {

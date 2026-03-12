@@ -1,0 +1,31 @@
+/*
+ * Class: module.pages.shell
+ * Shared page layout for sticky footer pages
+ */
+
+html,
+body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+main.nxl-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+div.nxl-content {
+    flex: 1;
+}
+
+footer.footer {
+    margin-top: auto;
+}

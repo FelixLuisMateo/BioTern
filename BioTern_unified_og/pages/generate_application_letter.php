@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 // Generate printable Application Letter for a student
 $host = 'localhost';
 $db_user = 'root';
@@ -60,8 +60,8 @@ $base_href = $asset_prefix;
 $page_body_class = 'app-generate-page';
 $page_styles = [
     'assets/css/generate-shell-clean.css',
+    'assets/css/generate-letter-shared.css',
     'assets/css/generate-application-letter-page.css',
-    'assets/css/template-color-lock.css',
 ];
 $page_scripts = [
     'assets/js/generate-application-letter-runtime.js',
@@ -170,3 +170,4 @@ if (isset($do_download_pdf) && $do_download_pdf) {
 // normal page close
 $conn->close();
 ?>
+

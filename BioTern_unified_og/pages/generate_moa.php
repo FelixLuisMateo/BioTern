@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 // Generate printable Memorandum of Agreement (MOA)
 function q($key, $default = '')
 {
@@ -47,7 +47,6 @@ $page_styles = [
     'assets/css/generate-shell-clean.css',
     'assets/css/generate-moa-common-page.css',
     'assets/css/generate-moa-page.css',
-    'assets/css/template-color-lock.css',
 ];
 $page_scripts = [
     'assets/js/generate-moa-runtime.js',
@@ -130,3 +129,4 @@ include __DIR__ . '/../includes/header.php';
     </div>
 </div>
 <?php include __DIR__ . '/../includes/footer.php'; ?>
+

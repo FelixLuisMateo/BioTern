@@ -33,7 +33,8 @@ $landing_theme_api = 'api/theme-customizer.php';
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/vendors.min.css">
     <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css">
     <link rel="stylesheet" type="text/css" href="assets/css/core.css">
-    <link rel="stylesheet" type="text/css" href="assets/css/biotern-unified.css">
+    <link rel="stylesheet" type="text/css" href="assets/css/ui.css">
+    <link rel="stylesheet" type="text/css" href="assets/css/theme.css">
 
     <style>
         :root {

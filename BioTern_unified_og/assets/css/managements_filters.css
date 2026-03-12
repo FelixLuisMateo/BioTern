@@ -1,0 +1,37 @@
+/*
+ * Class: module.management.filters
+ * Shared filter form styles for management pages
+ */
+
+.filter-form .form-label {
+    margin-bottom: 0.35rem;
+}
+
+.filter-form .form-control,
+.filter-form .form-select {
+    min-height: 42px;
+    border-radius: 8px;
+}
+
+.filter-form select.form-control {
+    text-align: left;
+    text-align-last: left;
+}
+
+.filter-form .select2-container .select2-selection--single {
+    min-height: 42px;
+    display: flex;
+    align-items: center;
+}
+
+.filter-form .select2-container--default .select2-selection--single .select2-selection__rendered {
+    line-height: 40px;
+    text-align: left;
+    padding-left: 0.15rem;
+    padding-right: 1.75rem;
+}
+
+.filter-form .select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 40px;
+}
+

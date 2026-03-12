@@ -7,13 +7,19 @@
 /* Section: select2 controls */
 /* Used by management/students-edit.php: edit student form select controls */
 /* Select2 styling adjustments - avoid overriding position computed by plugin */
+        .select2-container {
+            width: 100% !important;
+            max-width: 100%;
+        }
+
         .select2-container--default .select2-selection--single {
-            height: 40px;
-            padding: 6px 12px;
-            border-radius: 4px;
+            position: relative;
             display: flex;
             align-items: center;
-            border: 1px solid #d3d3d3;
+            min-height: 40px;
+            padding: 6px 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.375rem;
             background-color: #fff;
             color: #333;
         }
@@ -21,26 +27,38 @@
         .select2-container--default.select2-container--open .select2-selection--single {
             border-bottom-left-radius: 0;
             border-bottom-right-radius: 0;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.15);
         }
 
         .select2-container--default .select2-selection--single .select2-selection__rendered {
-            padding-left: 0;
-            align-items: center;
             display: flex;
+            align-items: center;
+            line-height: 38px;
+            padding-left: 0.75rem;
+            padding-right: 2rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: calc(100% - 80px);
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            height: 38px;
         }
 
         /* Let Select2 calculate dropdown position. Only ensure visuals and stacking. */
         .select2-container--default .select2-dropdown {
-            border: 1px solid #dddddd;
-            border-radius: 0 0 4px 4px;
+            border: 1px solid #e5e7eb;
+            border-radius: 0 0 0.375rem 0.375rem;
             box-shadow: 0 6px 12px rgba(0,0,0,0.08);
             max-height: 200px;
             overflow-y: auto;
-        }
-
-        .select2-container {
-            width: 100% !important;
-            max-width: 100%;
+            z-index: 1060;
         }
 
         .form-control.select2-hidden-accessible {
@@ -53,19 +71,6 @@
             clip: rect(0, 0, 0, 0);
             white-space: nowrap;
             border-width: 0;
-        }
-
-        /* Small tweak for arrow height and layout */
-        .select2-container--default .select2-selection--single {
-            position: relative;
-        }
-
-        .select2-container--default .select2-selection--single .select2-selection__arrow {
-            height: 28px;
-            position: absolute;
-            right: 8px;
-            top: 50%;
-            transform: translateY(-50%);
         }
 
         /* Clear (Ã—) button styling */
@@ -82,115 +87,11 @@
             border-radius: 3px;
             border: 1px solid #e0e0e0;
             background: #fff;
-            color: #333;
+            color: #6b7280;
             box-shadow: none;
             font-size: 12px;
         }
-
-        /* Truncate selected text so it doesn't overflow under icons */
-        .select2-container--default .select2-selection--single .select2-selection__rendered {
-            display: inline-block;
-            vertical-align: middle;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-width: calc(100% - 80px);
-        }
-
-        /* Section: page layout + sticky footer */
-        /* Used by management/students-edit.php: page shell wrappers */
-        html, body {
-            height: 100%;
-            margin: 0;
-            padding: 0;
-        }
-        body {
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
-        main.nxl-container {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-        }
-        div.nxl-content {
-            flex: 1;
-        }
-        footer.footer {
-            margin-top: auto;
-        }
-        
-        /* Dark mode select and Select2 styling */
-        select.form-control,
-        select.form-select,
-        .select2-container--default .select2-selection--single,
-        .select2-container--default .select2-selection--multiple {
-            color: #333 !important;
-            background-color: #ffffff !important;
-        }
-        
-        /* Dark mode support for Select2 - using app-skin-dark class */
-        html.app-skin-dark .select2-container--default .select2-selection--single,
-        html.app-skin-dark .select2-container--default .select2-selection--multiple {
-            color: #f0f0f0 !important;
-            background-color: #2d3748 !important;
-            border-color: #4a5568 !important;
-        }
-        
-        html.app-skin-dark .select2-container--default.select2-container--focus .select2-selection--single,
-        html.app-skin-dark .select2-container--default.select2-container--focus .select2-selection--multiple {
-            color: #f0f0f0 !important;
-            background-color: #2d3748 !important;
-            border-color: #667eea !important;
-        }
-        
-        html.app-skin-dark .select2-container--default .select2-selection--single .select2-selection__rendered {
-            color: #f0f0f0 !important;
-        }
-        
-        html.app-skin-dark .select2-container--default .select2-selection__placeholder {
-            color: #a0aec0 !important;
-        }
-        
-        /* Dark mode dropdown menu */
-        html.app-skin-dark .select2-container--default.select2-container--open .select2-dropdown {
-            background-color: #2d3748 !important;
-            border-color: #4a5568 !important;
-        }
-        
-        html.app-skin-dark .select2-results {
-            background-color: #2d3748 !important;
-        }
-        
-        html.app-skin-dark .select2-results__option {
-            color: #f0f0f0 !important;
-            background-color: #2d3748 !important;
-        }
-        
-        html.app-skin-dark .select2-results__option--highlighted[aria-selected] {
-            background-color: #667eea !important;
-            color: #ffffff !important;
-        }
-        
-        html.app-skin-dark .select2-container--default {
-            background-color: #2d3748 !important;
-        }
-        
-        html.app-skin-dark select.form-control,
-        html.app-skin-dark select.form-select {
-            color: #f0f0f0 !important;
-            background-color: #2d3748 !important;
-            border-color: #4a5568 !important;
-        }
-        
-        html.app-skin-dark select.form-control option,
-        html.app-skin-dark select.form-select option {
-            color: #f0f0f0 !important;
-            background-color: #2d3748 !important;
-        }
-
-        /* Dark mode support for file input (upload button + filename text) */
+/* Dark mode support for file input (upload button + filename text) */
         html.app-skin-dark input[type="file"].form-control {
             color: #f0f0f0 !important;
             background-color: #2d3748 !important;
@@ -209,41 +110,6 @@
             background: #1f2937 !important;
             border: 1px solid #4a5568 !important;
             margin-right: 12px;
-        }
-
-        /* Dropdown design sync from students-edit.blade.php */
-        .select2-container--default .select2-selection--single {
-            border: 1px solid #e5e7eb;
-            border-radius: 0.375rem;
-            min-height: 40px;
-        }
-
-        .select2-container--default .select2-selection--single .select2-selection__rendered {
-            line-height: 38px;
-            padding-left: 0.75rem;
-            padding-right: 2rem;
-        }
-
-        .select2-container--default .select2-selection--single .select2-selection__arrow {
-            height: 38px;
-            right: 8px;
-        }
-
-        .select2-container--default .select2-dropdown {
-            border: 1px solid #e5e7eb;
-            border-radius: 0.375rem;
-            overflow: hidden;
-            z-index: 1060;
-        }
-
-        .select2-container--default.select2-container--open .select2-selection--single {
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.15);
-        }
-
-        .select2-selection__clear {
-            margin-right: 0.25rem;
-            color: #6b7280;
         }
 
         /* Section: form content blocks */
@@ -315,7 +181,6 @@
             font-weight: 700 !important;
         }
         #editStudentForm .form-control,
-        #editStudentForm .select2-container--default .select2-selection--single,
         .app-students-edit-form .form-control,
         .app-students-edit-form .select2-container--default .select2-selection--single {
             min-height: 44px;
