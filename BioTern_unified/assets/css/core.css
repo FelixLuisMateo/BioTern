@@ -226,7 +226,7 @@ html.app-skin-dark .filter-form .select2-container--default .select2-selection--
 
   html.minimenu .nxl-navigation:hover {
     width: 280px !important;
-    z-index: 1027;
+    z-index: 4001 !important;
   }
 
   html.minimenu .nxl-navigation:hover .navbar-wrapper {

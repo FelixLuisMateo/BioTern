@@ -294,7 +294,7 @@ html.app-skin-dark .select2-container--default .select2-results__option--highlig
 
     html.minimenu .nxl-navigation:hover {
         width: 280px !important;
-        z-index: 1027;
+        z-index: 4001 !important;
     }
 
     html.minimenu .nxl-navigation:hover .navbar-wrapper {
