@@ -624,7 +624,7 @@ if (isset($_GET['registered'])) {
                                 <h5 class="fs-14 fw-bold mb-3">Personal Information</h5>
                                 <div class="row g-3">
                                     <div class="col-6 mb-2">
-                                        <input type="text" name="student_id" class="form-control" placeholder="School ID Number" autocomplete="off" required pattern="^05-\\d{4,5}$" maxlength="8">
+                                        <input type="text" name="student_id" class="form-control" placeholder="School ID Number" autocomplete="off" required pattern="^05-[0-9]{4,5}$" maxlength="8" title="Use format 05-1234 or 05-12345">
                                     </div>
                                     <div class="col-6 mb-2">
                                         <input type="text" name="first_name" style="padding: 12px 16px;" class="form-control" placeholder="First name" autocomplete="given-name" required>
@@ -1529,9 +1529,20 @@ endforeach; ?>
                                 if (field.disabled || !field.required) continue;
                                 if (!field.checkValidity()) {
                                     hasInvalid = true;
-                                    const msg = field.tagName === 'SELECT'
-                                        ? 'Please select an item in the list.'
-                                        : 'This field is required.';
+                                    let msg = 'Please check this field.';
+                                    if (field.validity) {
+                                        if (field.validity.valueMissing) {
+                                            msg = field.tagName === 'SELECT' ? 'Please select an item in the list.' : 'This field is required.';
+                                        } else if (field.validity.typeMismatch) {
+                                            msg = 'Please enter a valid value.';
+                                        } else if (field.validity.patternMismatch) {
+                                            msg = field.getAttribute('title') || 'Invalid format.';
+                                        } else if (field.validity.tooShort || field.validity.tooLong) {
+                                            msg = field.validationMessage || 'Please check the required length.';
+                                        } else {
+                                            msg = field.validationMessage || msg;
+                                        }
+                                    }
                                     markInvalid(field, msg);
                                 } else {
                                     clearInvalid(field);
@@ -1606,7 +1617,22 @@ endforeach; ?>
             initFormStepper('adminForm');
 
             const studentIdInput = document.querySelector('#studentForm input[name="student_id"]');
-            // No auto-formatting on student ID input (manual entry only).
+            if (studentIdInput) {
+                const studentIdPattern = /^05-[0-9]{4,5}$/;
+
+                studentIdInput.addEventListener('input', function() {
+                    this.value = this.value.replace(/\s+/g, '');
+                    if (this.value === '' || studentIdPattern.test(this.value)) {
+                        this.setCustomValidity('');
+                    } else {
+                        this.setCustomValidity('Use format 05-1234 or 05-12345');
+                    }
+                });
+
+                studentIdInput.addEventListener('blur', function() {
+                    this.value = this.value.trim();
+                });
+            }
 
             const requestedRole = new URLSearchParams(window.location.search).get('role');
             if (requestedRole && requestedRole.toLowerCase() === 'student') {

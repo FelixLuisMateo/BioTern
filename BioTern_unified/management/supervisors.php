@@ -1,8 +1,8 @@
 ﻿<?php
 require_once dirname(__DIR__) . '/config/db.php';
-$host = 'localhost';
-$db_user = 'root';
-$db_password = '';
+$host = defined('DB_HOST') ? DB_HOST : 'localhost';
+$db_user = defined('DB_USER') ? DB_USER : 'root';
+$db_password = defined('DB_PASS') ? DB_PASS : '';
 $db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
 
 $conn = new mysqli($host, $db_user, $db_password, $db_name);
@@ -70,7 +70,7 @@ if (!$table_check || $table_check->num_rows === 0) {
     $message_type = 'danger';
 } else {
     $sql = "
-        SELECT s.*, u.name AS user_name, d.name AS department_name
+        SELECT s.*, u.name AS user_name, u.username AS user_username, d.name AS department_name
         FROM supervisors s
         LEFT JOIN users u ON s.user_id = u.id
         LEFT JOIN departments d ON s.department_id = d.id
@@ -119,24 +119,14 @@ include 'includes/header.php';
 </div>
 
 <div class="main-content">
-    <?php
-require_once dirname(__DIR__) . '/config/db.php';
-if ($message !== ''): ?>
-        <div class="alert alert-<?php
-require_once dirname(__DIR__) . '/config/db.php';
-echo h($message_type); ?> py-2"><?php
-require_once dirname(__DIR__) . '/config/db.php';
-echo h($message); ?></div>
-    <?php
-require_once dirname(__DIR__) . '/config/db.php';
-endif; ?>
+    <?php if ($message !== ''): ?>
+        <div class="alert alert-<?php echo h($message_type); ?> py-2"><?php echo h($message); ?></div>
+    <?php endif; ?>
 
     <div class="card stretch stretch-full">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="card-title mb-0">All Supervisors</h5>
-            <span class="badge bg-primary text-white px-3 py-1" style="font-weight:600;"><?php
-require_once dirname(__DIR__) . '/config/db.php';
-echo count($rows); ?> total</span>
+            <span class="badge bg-primary text-white px-3 py-1" style="font-weight:600;"><?php echo count($rows); ?> total</span>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
@@ -145,7 +135,7 @@ echo count($rows); ?> total</span>
                         <tr>
                             <th>ID</th>
                             <th>Name</th>
-                            <th>User</th>
+                            <th>Username</th>
                             <th>Email</th>
                             <th>Phone</th>
                             <th>Department</th>
@@ -155,69 +145,37 @@ echo count($rows); ?> total</span>
                         </tr>
                     </thead>
                     <tbody>
-                        <?php
-require_once dirname(__DIR__) . '/config/db.php';
-if (!$rows): ?>
+                        <?php if (!$rows): ?>
                             <tr><td colspan="9" class="text-center py-4 text-muted">No supervisors found.</td></tr>
-                        <?php
-require_once dirname(__DIR__) . '/config/db.php';
-endif; ?>
-                        <?php
-require_once dirname(__DIR__) . '/config/db.php';
-foreach ($rows as $r): ?>
+                        <?php endif; ?>
+                        <?php foreach ($rows as $r): ?>
                             <tr>
-                                <td><?php
-require_once dirname(__DIR__) . '/config/db.php';
-echo (int)$r['id']; ?></td>
-                                <td><?php
-require_once dirname(__DIR__) . '/config/db.php';
-echo h(trim(($r['first_name'] ?? '') . ' ' . ($r['middle_name'] ?? '') . ' ' . ($r['last_name'] ?? ''))); ?></td>
-                                <td><?php
-require_once dirname(__DIR__) . '/config/db.php';
-echo h($r['user_name'] ?? '-'); ?></td>
-                                <td><?php
-require_once dirname(__DIR__) . '/config/db.php';
-echo h($r['email'] ?? '-'); ?></td>
-                                <td><?php
-require_once dirname(__DIR__) . '/config/db.php';
-echo h($r['phone'] ?? '-'); ?></td>
-                                <td><?php
-require_once dirname(__DIR__) . '/config/db.php';
-echo h($r['department_name'] ?? '-'); ?></td>
-                                <td><?php
-require_once dirname(__DIR__) . '/config/db.php';
-echo h($r['office'] ?? '-'); ?></td>
+                                <td><?php echo (int)$r['id']; ?></td>
+                                <td><?php echo h(trim(($r['first_name'] ?? '') . ' ' . ($r['middle_name'] ?? '') . ' ' . ($r['last_name'] ?? ''))); ?></td>
+                                <td><?php echo h($r['user_username'] ?? '-'); ?></td>
+                                <td><?php echo h($r['email'] ?? '-'); ?></td>
+                                <td><?php echo h($r['phone'] ?? '-'); ?></td>
+                                <td><?php echo h($r['department_name'] ?? '-'); ?></td>
+                                <td><?php echo h($r['office'] ?? '-'); ?></td>
                                 <td>
-                                    <?php
-require_once dirname(__DIR__) . '/config/db.php';
-if ((int)($r['is_active'] ?? 0) === 1): ?>
+                                    <?php if ((int)($r['is_active'] ?? 0) === 1): ?>
                                         <span class="badge bg-success">Active</span>
-                                    <?php
-require_once dirname(__DIR__) . '/config/db.php';
-else: ?>
+                                    <?php else: ?>
                                         <span class="badge bg-secondary">Inactive</span>
-                                    <?php
-require_once dirname(__DIR__) . '/config/db.php';
-endif; ?>
+                                    <?php endif; ?>
                                 </td>
                                 <td class="text-center">
                                     <div class="supervisor-actions">
-                                        <a href="supervisors-edit.php?id=<?php
-require_once dirname(__DIR__) . '/config/db.php';
-echo (int)$r['id']; ?>" class="btn btn-sm btn-outline-primary">Edit</a>
+                                        <a href="supervisors-edit.php?id=<?php echo (int)$r['id']; ?>" class="btn btn-sm btn-outline-primary">Edit</a>
                                         <form method="post" onsubmit="return confirm('Delete this supervisor?');">
                                             <input type="hidden" name="action" value="delete">
-                                            <input type="hidden" name="id" value="<?php
-require_once dirname(__DIR__) . '/config/db.php';
-echo (int)$r['id']; ?>">
+                                            <input type="hidden" name="id" value="<?php echo (int)$r['id']; ?>">
                                             <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
                                         </form>
                                     </div>
                                 </td>
                             </tr>
-                        <?php
-require_once dirname(__DIR__) . '/config/db.php';
-endforeach; ?>
+                        <?php endforeach; ?>
                     </tbody>
                 </table>
             </div>
@@ -226,7 +184,6 @@ endforeach; ?>
 </div>
 
 <?php
-require_once dirname(__DIR__) . '/config/db.php';
 include 'includes/footer.php';
 $conn->close();
 ?>

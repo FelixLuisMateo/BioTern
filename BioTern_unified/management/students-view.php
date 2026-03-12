@@ -22,8 +22,22 @@ if (session_status() === PHP_SESSION_NONE) {
 $current_user_id = (int)($_SESSION['user_id'] ?? 0);
 $current_user_role = strtolower(trim((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? '')));
 $can_manage_eval_unlock = in_array($current_user_role, ['admin', 'coordinator'], true);
+$can_delete_student = in_array($current_user_role, ['admin', 'coordinator', 'supervisor'], true);
 $eval_flash_message = '';
 $eval_flash_type = 'success';
+
+function table_exists(mysqli $conn, string $table): bool {
+    $safe = $conn->real_escape_string($table);
+    $res = $conn->query("SHOW TABLES LIKE '{$safe}'");
+    return ($res instanceof mysqli_result) && $res->num_rows > 0;
+}
+
+function table_has_column(mysqli $conn, string $table, string $column): bool {
+    $safe_table = $conn->real_escape_string($table);
+    $safe_col = $conn->real_escape_string($column);
+    $res = $conn->query("SHOW COLUMNS FROM `{$safe_table}` LIKE '{$safe_col}'");
+    return ($res instanceof mysqli_result) && $res->num_rows > 0;
+}
 
 function resolve_profile_image_url(string $profilePath): ?string {
     $clean = ltrim(str_replace('\\', '/', trim($profilePath)), '/');
@@ -106,6 +120,124 @@ if ($result->num_rows == 0) {
 }
 
 $student = $result->fetch_assoc();
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['action'] ?? '') === 'delete_student') {
+    if (!$can_delete_student) {
+        $eval_flash_type = 'danger';
+        $eval_flash_message = 'You do not have permission to delete student accounts.';
+    } else {
+        $posted_student_id = isset($_POST['student_id']) ? (int)$_POST['student_id'] : 0;
+        if ($posted_student_id !== $student_id) {
+            $eval_flash_type = 'danger';
+            $eval_flash_message = 'Invalid student deletion request.';
+        } else {
+            $linked_user_id = (int)($student['user_id'] ?? 0);
+            $conn->begin_transaction();
+            try {
+                // Remove student-related child rows first where available.
+                $student_cleanup = [
+                    ['table' => 'attendances', 'column' => 'student_id'],
+                    ['table' => 'internships', 'column' => 'student_id'],
+                    ['table' => 'evaluations', 'column' => 'student_id'],
+                    ['table' => 'evaluation_unlocks', 'column' => 'student_id'],
+                    ['table' => 'certificates', 'column' => 'student_id'],
+                    ['table' => 'hour_logs', 'column' => 'student_id'],
+                    ['table' => 'manual_dtr_attachments', 'column' => 'student_id'],
+                    ['table' => 'ojt_supervisor_reviews', 'column' => 'student_id'],
+                    ['table' => 'ojt_edit_audit', 'column' => 'student_id'],
+                ];
+
+                foreach ($student_cleanup as $item) {
+                    if (!table_exists($conn, $item['table']) || !table_has_column($conn, $item['table'], $item['column'])) {
+                        continue;
+                    }
+                    $sql = "DELETE FROM `{$item['table']}` WHERE `{$item['column']}` = ?";
+                    $stmt_cleanup = $conn->prepare($sql);
+                    if ($stmt_cleanup) {
+                        $stmt_cleanup->bind_param('i', $student_id);
+                        $stmt_cleanup->execute();
+                        $stmt_cleanup->close();
+                    }
+                }
+
+                $del_student = $conn->prepare('DELETE FROM students WHERE id = ? LIMIT 1');
+                if (!$del_student) {
+                    throw new Exception('Failed to prepare student deletion.');
+                }
+                $del_student->bind_param('i', $student_id);
+                if (!$del_student->execute()) {
+                    $err = $del_student->error;
+                    $del_student->close();
+                    throw new Exception('Failed to delete student row: ' . $err);
+                }
+                $del_student->close();
+
+                if ($linked_user_id > 0) {
+                    $user_cleanup = [
+                        ['table' => 'admin', 'columns' => ['user_id']],
+                        ['table' => 'coordinators', 'columns' => ['user_id']],
+                        ['table' => 'supervisors', 'columns' => ['user_id']],
+                        ['table' => 'notifications', 'columns' => ['user_id']],
+                        ['table' => 'login_logs', 'columns' => ['user_id']],
+                        ['table' => 'application_letter', 'columns' => ['user_id']],
+                        ['table' => 'endorsement_letter', 'columns' => ['user_id']],
+                        ['table' => 'moa', 'columns' => ['user_id']],
+                        ['table' => 'dau_moa', 'columns' => ['user_id']],
+                        ['table' => 'document_workflow', 'columns' => ['user_id']],
+                        ['table' => 'messages', 'columns' => ['from_user_id', 'to_user_id']],
+                    ];
+
+                    foreach ($user_cleanup as $item) {
+                        if (!table_exists($conn, $item['table'])) {
+                            continue;
+                        }
+                        $cols = $item['columns'];
+                        if (count($cols) === 1) {
+                            if (!table_has_column($conn, $item['table'], $cols[0])) {
+                                continue;
+                            }
+                            $sql = "DELETE FROM `{$item['table']}` WHERE `{$cols[0]}` = ?";
+                            $stmt_user_cleanup = $conn->prepare($sql);
+                            if ($stmt_user_cleanup) {
+                                $stmt_user_cleanup->bind_param('i', $linked_user_id);
+                                $stmt_user_cleanup->execute();
+                                $stmt_user_cleanup->close();
+                            }
+                        } else {
+                            if (!table_has_column($conn, $item['table'], $cols[0]) || !table_has_column($conn, $item['table'], $cols[1])) {
+                                continue;
+                            }
+                            $sql = "DELETE FROM `{$item['table']}` WHERE `{$cols[0]}` = ? OR `{$cols[1]}` = ?";
+                            $stmt_user_cleanup = $conn->prepare($sql);
+                            if ($stmt_user_cleanup) {
+                                $stmt_user_cleanup->bind_param('ii', $linked_user_id, $linked_user_id);
+                                $stmt_user_cleanup->execute();
+                                $stmt_user_cleanup->close();
+                            }
+                        }
+                    }
+
+                    $del_user = $conn->prepare('DELETE FROM users WHERE id = ? LIMIT 1');
+                    if ($del_user) {
+                        $del_user->bind_param('i', $linked_user_id);
+                        $del_user->execute();
+                        $del_user->close();
+                    }
+                }
+
+                $conn->commit();
+                $_SESSION['users_flash_message'] = 'Student and linked user account deleted successfully.';
+                $_SESSION['users_flash_type'] = 'success';
+                header('Location: students.php');
+                exit;
+            } catch (Throwable $e) {
+                $conn->rollback();
+                $eval_flash_type = 'danger';
+                $eval_flash_message = $e->getMessage();
+            }
+        }
+    }
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['eval_unlock_action'])) {
     if (!$can_manage_eval_unlock) {
@@ -894,10 +1026,16 @@ echo htmlspecialchars($student['email']); ?></a>
                                     </li>
                                 </ul>
                                 <div class="d-flex gap-2 text-center pt-4">
-                                    <a href="javascript:void(0);" class="w-50 btn btn-light-brand">
-                                        <i class="feather-trash-2 me-2"></i>
-                                        <span>Delete</span>
-                                    </a>
+                                    <?php if ($can_delete_student): ?>
+                                    <form method="post" class="w-50" onsubmit="return confirm('Delete this student and linked user account permanently?');">
+                                        <input type="hidden" name="action" value="delete_student">
+                                        <input type="hidden" name="student_id" value="<?php echo (int)$student['id']; ?>">
+                                        <button type="submit" class="btn btn-light-brand w-100">
+                                            <i class="feather-trash-2 me-2"></i>
+                                            <span>Delete</span>
+                                        </button>
+                                    </form>
+                                    <?php endif; ?>
                                     <a href="students-edit.php?id=<?php
 require_once dirname(__DIR__) . '/config/db.php';
 echo $student['id']; ?>" class="w-50 btn btn-primary">

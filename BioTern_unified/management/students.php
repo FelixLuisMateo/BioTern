@@ -1521,10 +1521,14 @@ if (!$is_student_user): ?>
                                                                             </li>
                                                                             <li class="dropdown-divider"></li>
                                                                             <li>
-                                                                                <a class="dropdown-item" href="javascript:void(0)">
-                                                                                    <i class="feather feather-trash-2 me-3"></i>
-                                                                                    <span>Delete</span>
-                                                                                </a>
+                                                                                <form method="post" action="students-view.php?id=<?php echo (int)$student['id']; ?>" onsubmit="return confirm('Delete this student and linked user account permanently?');" class="m-0">
+                                                                                    <input type="hidden" name="action" value="delete_student">
+                                                                                    <input type="hidden" name="student_id" value="<?php echo (int)$student['id']; ?>">
+                                                                                    <button type="submit" class="dropdown-item">
+                                                                                        <i class="feather feather-trash-2 me-3"></i>
+                                                                                        <span>Delete</span>
+                                                                                    </button>
+                                                                                </form>
                                                                             </li>
                                                                         </ul>
                                                                     </div>
