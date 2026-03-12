@@ -232,6 +232,28 @@ html.app-skin-dark .select2-container--default .select2-results__option--highlig
     object-fit: contain;
 }
 
+html.ui-preload .nxl-navigation,
+html.ui-preload .nxl-navigation *,
+html.ui-preload .nxl-header,
+html.ui-preload .nxl-container {
+    transition: none !important;
+    animation: none !important;
+}
+
+@media (min-width: 1025px) {
+    html.ui-preload.minimenu .nxl-navigation .navbar-content .nxl-caption,
+    html.ui-preload.minimenu .nxl-navigation .nxl-link .nxl-mtext,
+    html.ui-preload.minimenu .nxl-navigation .nxl-arrow {
+        display: none !important;
+    }
+
+    html.ui-preload.minimenu .nxl-navigation:hover,
+    html.ui-preload.minimenu .nxl-navigation:hover .navbar-wrapper,
+    html.ui-preload.minimenu .nxl-navigation:hover .navbar-content {
+        width: 80px !important;
+    }
+}
+
 .nxl-navigation .m-header {
     display: flex;
     align-items: center;
