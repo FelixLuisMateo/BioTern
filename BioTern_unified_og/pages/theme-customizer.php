@@ -2,7 +2,6 @@
 $page_title = 'BioTern || Theme Customizer';
 $page_scripts = [
     'assets/js/theme-customizer-init.min.js',
-    'assets/js/theme-customizer-page-runtime.js',
 ];
 include 'includes/header.php';
 ?>

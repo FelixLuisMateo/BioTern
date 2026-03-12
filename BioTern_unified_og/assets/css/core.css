@@ -167,6 +167,52 @@ html.app-skin-dark .filter-form .select2-container--default .select2-selection--
   color: #ffffff !important;
 }
 
+/* Independent surfaces: navigation + header dark mode (separate from full dark skin). */
+html.app-navigation-dark .nxl-navigation,
+html.app-navigation-dark .nxl-navigation .m-header,
+html.app-navigation-dark .nxl-navigation .navbar-content {
+  background-color: #0f172a !important;
+  border-color: #1b2436 !important;
+}
+
+html.app-navigation-dark .nxl-navigation .m-header {
+  border-bottom-color: #1b2436 !important;
+}
+
+html.app-navigation-dark .nxl-navigation .navbar-content .nxl-caption {
+  color: #9aa3b2;
+}
+
+html.app-navigation-dark .nxl-navigation .navbar-content .nxl-link {
+  color: #d1d5db;
+}
+
+html.app-navigation-dark .nxl-navigation .navbar-content .nxl-link:hover,
+html.app-navigation-dark .nxl-navigation .navbar-content .nxl-item.active > .nxl-link,
+html.app-navigation-dark .nxl-navigation .navbar-content .nxl-navbar > .nxl-item.active > .nxl-link,
+html.app-navigation-dark .nxl-navigation .navbar-content .nxl-navbar > .nxl-item:hover > .nxl-link {
+  color: #ffffff;
+  background-color: #1c2438;
+}
+
+html.app-navigation-dark .nxl-navigation .navbar-content .nxl-link .nxl-micon i {
+  color: inherit;
+}
+
+html.app-header-dark .nxl-header,
+html.app-header-dark .nxl-header .header-wrapper {
+  background-color: #0f172a !important;
+  border-color: #1b2436 !important;
+}
+
+html.app-header-dark .nxl-header .header-wrapper,
+html.app-header-dark .nxl-header .header-wrapper .nxl-head-link,
+html.app-header-dark .nxl-header .header-wrapper .nxl-h-item,
+html.app-header-dark .nxl-header .header-wrapper .nxl-h-item > a,
+html.app-header-dark .nxl-header .header-wrapper .nxl-h-item i {
+  color: #e5e7eb !important;
+}
+
 /* Force click-only behavior for selected header dropdowns (no hover-open). */
 .click-only-dropdown > .dropdown-menu {
   display: none !important;
@@ -206,48 +252,48 @@ html.app-skin-dark {
 }
 
 html.app-theme-gray {
-  --biotern-primary: #2b313c;
-  --biotern-primary-rgb: 43, 49, 60;
-  --biotern-primary-hover: #1f242c;
-  --biotern-primary-soft: #1b2028;
-  --biotern-primary-soft-text: #e5e7eb;
+  --biotern-primary: #4b5563;
+  --biotern-primary-rgb: 75, 85, 99;
+  --biotern-primary-hover: #374151;
+  --biotern-primary-soft: #e5e7eb;
+  --biotern-primary-soft-text: #1f2937;
   --biotern-primary-contrast: #ffffff;
-  --biotern-link: #cbd5e1;
-  --biotern-link-hover: #f1f5f9;
-  --biotern-body-bg: #0b0d12;
-  --biotern-surface: #11151b;
-  --biotern-surface-muted: #161c23;
-  --biotern-border: #232a33;
+  --biotern-link: #374151;
+  --biotern-link-hover: #111827;
+  --biotern-body-bg: #f3f4f6;
+  --biotern-surface: #ffffff;
+  --biotern-surface-muted: #f8fafc;
+  --biotern-border: #e5e7eb;
   --bs-primary: var(--biotern-primary);
   --bs-primary-rgb: var(--biotern-primary-rgb);
   --bs-link-color: var(--biotern-link);
   --bs-link-hover-color: var(--biotern-link-hover);
   --bs-body-bg: var(--biotern-body-bg);
-  --bs-body-color: #e5e7eb;
+  --bs-body-color: #111827;
   --bs-border-color: var(--biotern-border);
   --bs-light: var(--biotern-surface);
-  --bs-dark: #0b0d12;
-  --bs-secondary: #3a4252;
-  --bs-secondary-rgb: 58, 66, 82;
-  --bs-info: #4b5563;
-  --bs-info-rgb: 75, 85, 99;
-  --bs-teal: #4b5563;
-  --bs-teal-rgb: 75, 85, 99;
+  --bs-dark: #111827;
+  --bs-secondary: #6b7280;
+  --bs-secondary-rgb: 107, 114, 128;
+  --bs-info: #6b7280;
+  --bs-info-rgb: 107, 114, 128;
+  --bs-teal: #6b7280;
+  --bs-teal-rgb: 107, 114, 128;
 }
 
 html.app-theme-gray.app-skin-dark {
-  --biotern-primary: #2b313c;
-  --biotern-primary-rgb: 43, 49, 60;
-  --biotern-primary-hover: #1f242c;
-  --biotern-primary-soft: #1b2028;
+  --biotern-primary: #111827;
+  --biotern-primary-rgb: 17, 24, 39;
+  --biotern-primary-hover: #0b1220;
+  --biotern-primary-soft: #1f2937;
   --biotern-primary-soft-text: #e5e7eb;
   --biotern-primary-contrast: #ffffff;
   --biotern-link: #cbd5e1;
   --biotern-link-hover: #f1f5f9;
-  --biotern-body-bg: #0b0d12;
-  --biotern-surface: #11151b;
-  --biotern-surface-muted: #161c23;
-  --biotern-border: #232a33;
+  --biotern-body-bg: #07090d;
+  --biotern-surface: #0c1117;
+  --biotern-surface-muted: #11161d;
+  --biotern-border: #1b2430;
   --bs-primary: var(--biotern-primary);
   --bs-primary-rgb: var(--biotern-primary-rgb);
   --bs-link-color: var(--biotern-link);
@@ -256,7 +302,7 @@ html.app-theme-gray.app-skin-dark {
   --bs-body-color: #e5e7eb;
   --bs-border-color: var(--biotern-border);
   --bs-light: var(--biotern-surface);
-  --bs-dark: #0b0d12;
+  --bs-dark: #0b1220;
   --bs-secondary: #3a4252;
   --bs-secondary-rgb: 58, 66, 82;
   --bs-info: #4b5563;
@@ -269,23 +315,29 @@ body {
   background-color: var(--biotern-body-bg) !important;
 }
 
-html.app-theme-gray body {
+html.app-theme-gray.app-skin-dark body {
   color: #e5e7eb;
 }
 
-html.app-theme-gray h1,
-html.app-theme-gray h2,
-html.app-theme-gray h3,
-html.app-theme-gray h4,
-html.app-theme-gray h5,
-html.app-theme-gray h6 {
+html.app-theme-gray.app-skin-dark h1,
+html.app-theme-gray.app-skin-dark h2,
+html.app-theme-gray.app-skin-dark h3,
+html.app-theme-gray.app-skin-dark h4,
+html.app-theme-gray.app-skin-dark h5,
+html.app-theme-gray.app-skin-dark h6 {
   color: #f8fafc;
 }
 
-html.app-theme-gray .text-muted,
-html.app-theme-gray .text-secondary,
-html.app-theme-gray .text-soft-dark {
+html.app-theme-gray.app-skin-dark .text-muted,
+html.app-theme-gray.app-skin-dark .text-secondary,
+html.app-theme-gray.app-skin-dark .text-soft-dark {
   color: #9aa3b2 !important;
+}
+
+html.app-theme-gray:not(.app-skin-dark) .text-muted,
+html.app-theme-gray:not(.app-skin-dark) .text-secondary,
+html.app-theme-gray:not(.app-skin-dark) .text-soft-dark {
+  color: #6b7280 !important;
 }
 
 /* Apply scheme surfaces across core layout */

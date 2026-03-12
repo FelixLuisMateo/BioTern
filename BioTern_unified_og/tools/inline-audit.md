@@ -106,7 +106,7 @@ Batch 4: Secondary modules
 - Completed: extracted `pages/demo-biometric.php` inline runtime script into `assets/js/demo-biometric-runtime.js`
 - Completed: extracted `public/help-knowledgebase.php` inline `<style>` block into `assets/css/help-knowledgebase-page.css`
 - Completed: extracted `pages/theme-customizer.php` inline `<style>` block into `assets/css/theme-customizer-page.css`
-- Completed: extracted `pages/theme-customizer.php` inline runtime script into `assets/js/theme-customizer-page-runtime.js`
+- Completed: consolidated theme customizer page runtime into `assets/js/theme-preferences-runtime.js` and removed `assets/js/theme-customizer-page-runtime.js`
 - Completed: extracted `pages/print_attendance.php` inline `<style>` block into `assets/css/print-attendance-page.css`
 - Completed: extracted `pages/print_attendance.php` inline runtime script into `assets/js/print-attendance-runtime.js`
 - Completed: removed inline print button `onclick` from `pages/print_attendance.php` and bound print behavior in `assets/js/print-attendance-runtime.js`

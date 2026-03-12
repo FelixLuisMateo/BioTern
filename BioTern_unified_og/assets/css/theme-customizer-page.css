@@ -85,3 +85,29 @@ html.app-theme-gray .theme-setting-card .badge {
 .theme-select-wrap {
     min-width: 240px;
 }
+
+html.app-theme-gray.app-skin-dark .theme-customizer-page .content-area,
+html.app-theme-gray.app-skin-dark .theme-customizer-page .content-area-body {
+    background-color: var(--biotern-body-bg) !important;
+}
+
+html.app-theme-gray.app-skin-dark .theme-customizer-page .content-sidebar,
+html.app-theme-gray.app-skin-dark .theme-customizer-page .content-sidebar .content-sidebar-header,
+html.app-theme-gray.app-skin-dark .theme-customizer-page .content-area .content-area-header {
+    background-color: var(--biotern-surface) !important;
+    border-color: var(--biotern-border) !important;
+}
+
+html.app-theme-gray.app-skin-dark .theme-customizer-page .content-sidebar {
+    border-right-color: var(--biotern-border) !important;
+}
+
+html.app-theme-gray.app-skin-dark .theme-customizer-page .content-sidebar .nav-link {
+    color: var(--bs-body-color);
+}
+
+html.app-theme-gray.app-skin-dark .theme-customizer-page .content-sidebar .nav-link.active,
+html.app-theme-gray.app-skin-dark .theme-customizer-page .content-sidebar .nav-link:hover {
+    background-color: var(--biotern-primary-soft);
+    color: var(--biotern-primary-soft-text);
+}

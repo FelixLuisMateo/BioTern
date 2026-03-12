@@ -34,7 +34,8 @@
 
 - `theme-and-ui`
   - `assets/js/theme-preferences-runtime.js`
-  - `assets/js/theme-customizer-page-runtime.js`
+  - `assets/js/theme-customizer-init.min.js` (shim)
+  - `assets/js/theme-preload-init.min.js`
   - `assets/js/global-ui-helpers.js`
 
 - `management`
