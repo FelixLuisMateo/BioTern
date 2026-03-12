@@ -21,16 +21,44 @@ function h($value): string
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delete') {
     $id = (int)($_POST['id'] ?? 0);
     if ($id > 0) {
-        $stmt = $conn->prepare('UPDATE coordinators SET deleted_at = NOW() WHERE id = ?');
-        if ($stmt) {
+        $conn->begin_transaction();
+        try {
+            $user_id = 0;
+            $lookup = $conn->prepare('SELECT user_id FROM coordinators WHERE id = ? LIMIT 1');
+            if ($lookup) {
+                $lookup->bind_param('i', $id);
+                if ($lookup->execute()) {
+                    $lookup->bind_result($user_id);
+                    $lookup->fetch();
+                }
+                $lookup->close();
+            }
+
+            $stmt = $conn->prepare('DELETE FROM coordinators WHERE id = ?');
+            if (!$stmt) {
+                throw new Exception('Delete failed: ' . $conn->error);
+            }
             $stmt->bind_param('i', $id);
-            if ($stmt->execute()) {
-                $message = 'Coordinator deleted successfully.';
-            } else {
-                $message = 'Delete failed: ' . $stmt->error;
-                $message_type = 'danger';
+            if (!$stmt->execute()) {
+                throw new Exception('Delete failed: ' . $stmt->error);
             }
             $stmt->close();
+
+            if ((int)$user_id > 0) {
+                $del_user = $conn->prepare('DELETE FROM users WHERE id = ?');
+                if ($del_user) {
+                    $del_user->bind_param('i', $user_id);
+                    $del_user->execute();
+                    $del_user->close();
+                }
+            }
+
+            $conn->commit();
+            $message = 'Coordinator deleted successfully.';
+        } catch (Throwable $e) {
+            $conn->rollback();
+            $message = $e->getMessage();
+            $message_type = 'danger';
         }
     }
 }

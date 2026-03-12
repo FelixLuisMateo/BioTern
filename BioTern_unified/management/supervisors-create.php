@@ -18,6 +18,35 @@ function h($value): string
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
 }
 
+function generate_unique_username(mysqli $conn, string $base): string
+{
+    $base = preg_replace('/[^a-zA-Z0-9._-]/', '', $base);
+    if ($base === '') {
+        $base = 'user';
+    }
+    $candidate = $base;
+    $suffix = 1;
+    while (true) {
+        $stmt = $conn->prepare('SELECT id FROM users WHERE username = ? LIMIT 1');
+        if (!$stmt) {
+            return $candidate;
+        }
+        $stmt->bind_param('s', $candidate);
+        $stmt->execute();
+        $stmt->store_result();
+        $exists = $stmt->num_rows > 0;
+        $stmt->close();
+        if (!$exists) {
+            return $candidate;
+        }
+        $candidate = $base . $suffix;
+        $suffix++;
+        if ($suffix > 99) {
+            return $candidate . time();
+        }
+    }
+}
+
 $departments = [];
 $dept_res = $conn->query("SELECT id, name FROM departments ORDER BY name ASC");
 if ($dept_res) {
@@ -28,7 +57,6 @@ if ($dept_res) {
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $user_email = trim((string)($_POST['user_email'] ?? ''));
-    $user_username = trim((string)($_POST['user_username'] ?? ''));
     $first_name = trim((string)($_POST['first_name'] ?? ''));
     $last_name = trim((string)($_POST['last_name'] ?? ''));
     $middle_name = trim((string)($_POST['middle_name'] ?? ''));
@@ -46,19 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $message_type = 'danger';
     } else {
         $user_id = 0;
-        if ($user_username !== '') {
-            $user_stmt = $conn->prepare('SELECT id FROM users WHERE username = ? LIMIT 1');
-            if ($user_stmt) {
-                $user_stmt->bind_param('s', $user_username);
-                if ($user_stmt->execute()) {
-                    $user_stmt->bind_result($found_id);
-                    if ($user_stmt->fetch()) {
-                        $user_id = (int)$found_id;
-                    }
-                }
-                $user_stmt->close();
-            }
-        }
+        $has_user_input = ($user_email !== '');
         if ($user_id === 0) {
             $lookup_email = $user_email !== '' ? $user_email : $email;
             if ($lookup_email !== '') {
@@ -76,7 +92,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        if (isset($_FILES['profile_picture']) && is_array($_FILES['profile_picture']) && (int)$_FILES['profile_picture']['error'] !== UPLOAD_ERR_NO_FILE) {
+        if ($has_user_input && $user_id === 0) {
+            $final_email = $user_email !== '' ? $user_email : $email;
+            if ($final_email !== '') {
+                $name = trim($first_name . ' ' . $last_name);
+                $base_username = preg_replace('/@.+$/', '', $final_email);
+                $final_username = generate_unique_username($conn, $base_username);
+                $random_password = bin2hex(random_bytes(6));
+                $password_hash = password_hash($random_password, PASSWORD_BCRYPT);
+                $user_ins = $conn->prepare("INSERT INTO users (name, username, email, password, role, is_active, application_status, created_at) VALUES (?, ?, ?, ?, 'supervisor', 1, 'approved', NOW())");
+                if ($user_ins) {
+                    $user_ins->bind_param('ssss', $name, $final_username, $final_email, $password_hash);
+                    if ($user_ins->execute()) {
+                        $user_id = (int)$user_ins->insert_id;
+                    }
+                    $user_ins->close();
+                }
+            }
+        }
+
+        if ($message === '' && isset($_FILES['profile_picture']) && is_array($_FILES['profile_picture']) && (int)$_FILES['profile_picture']['error'] !== UPLOAD_ERR_NO_FILE) {
             $file = $_FILES['profile_picture'];
             if ((int)$file['error'] !== UPLOAD_ERR_OK) {
                 $message = 'Profile picture upload failed.';
@@ -190,10 +225,6 @@ echo h($message); ?></div><?php
 require_once dirname(__DIR__) . '/config/db.php';
 endif; ?>
             <form method="post" enctype="multipart/form-data" class="row g-3">
-                <div class="col-md-4">
-                    <label class="form-label">User Username</label>
-                    <input type="text" name="user_username" class="form-control" placeholder="">
-                </div>
                 <div class="col-md-4">
                     <label class="form-label">User Email</label>
                     <input type="email" name="user_email" class="form-control" placeholder="">

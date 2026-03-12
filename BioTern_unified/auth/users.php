@@ -19,6 +19,13 @@ function e($value): string
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
 }
 
+function table_exists(mysqli $conn, string $table): bool
+{
+    $safe = $conn->real_escape_string($table);
+    $res = $conn->query("SHOW TABLES LIKE '{$safe}'");
+    return $res && $res->num_rows > 0;
+}
+
 function normalized_upload_path(string $path): string
 {
     return ltrim(str_replace('\\', '/', trim($path)), '/');
@@ -103,17 +110,64 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['users_flash_message'] = 'You cannot delete the currently logged-in account.';
             $_SESSION['users_flash_type'] = 'danger';
         } else {
-            $stmt = $conn->prepare('DELETE FROM users WHERE id = ?');
-            if ($stmt) {
+            $conn->begin_transaction();
+            try {
+                $cleanup = [
+                    ['table' => 'admin', 'columns' => ['user_id']],
+                    ['table' => 'coordinators', 'columns' => ['user_id']],
+                    ['table' => 'supervisors', 'columns' => ['user_id']],
+                    ['table' => 'students', 'columns' => ['user_id']],
+                    ['table' => 'notifications', 'columns' => ['user_id']],
+                    ['table' => 'login_logs', 'columns' => ['user_id']],
+                    ['table' => 'application_letter', 'columns' => ['user_id']],
+                    ['table' => 'endorsement_letter', 'columns' => ['user_id']],
+                    ['table' => 'moa', 'columns' => ['user_id']],
+                    ['table' => 'dau_moa', 'columns' => ['user_id']],
+                    ['table' => 'document_workflow', 'columns' => ['user_id']],
+                    ['table' => 'messages', 'columns' => ['from_user_id', 'to_user_id']],
+                ];
+
+                foreach ($cleanup as $item) {
+                    if (!table_exists($conn, $item['table'])) {
+                        continue;
+                    }
+                    $cols = $item['columns'];
+                    if (count($cols) === 1) {
+                        $sql = "DELETE FROM `{$item['table']}` WHERE `{$cols[0]}` = ?";
+                        $stmt = $conn->prepare($sql);
+                        if ($stmt) {
+                            $stmt->bind_param('i', $id);
+                            $stmt->execute();
+                            $stmt->close();
+                        }
+                    } else {
+                        $sql = "DELETE FROM `{$item['table']}` WHERE `{$cols[0]}` = ? OR `{$cols[1]}` = ?";
+                        $stmt = $conn->prepare($sql);
+                        if ($stmt) {
+                            $stmt->bind_param('ii', $id, $id);
+                            $stmt->execute();
+                            $stmt->close();
+                        }
+                    }
+                }
+
+                $stmt = $conn->prepare('DELETE FROM users WHERE id = ?');
+                if (!$stmt) {
+                    throw new Exception('Delete failed: ' . $conn->error);
+                }
                 $stmt->bind_param('i', $id);
-                if ($stmt->execute()) {
-                    $_SESSION['users_flash_message'] = 'User deleted.';
-                    $_SESSION['users_flash_type'] = 'success';
-                } else {
-                    $_SESSION['users_flash_message'] = 'Delete failed: ' . $stmt->error;
-                    $_SESSION['users_flash_type'] = 'danger';
+                if (!$stmt->execute()) {
+                    throw new Exception('Delete failed: ' . $stmt->error);
                 }
                 $stmt->close();
+
+                $conn->commit();
+                $_SESSION['users_flash_message'] = 'User deleted.';
+                $_SESSION['users_flash_type'] = 'success';
+            } catch (Throwable $e) {
+                $conn->rollback();
+                $_SESSION['users_flash_message'] = $e->getMessage();
+                $_SESSION['users_flash_type'] = 'danger';
             }
         }
     } elseif ($action === 'upload_profile_picture') {
