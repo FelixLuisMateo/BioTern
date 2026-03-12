@@ -20,6 +20,7 @@ $dbPass = '';
 $dbName = defined('DB_NAME') ? DB_NAME : 'biotern_db';
 $script_name = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
 $asset_prefix = (strpos($script_name, '/auth/') !== false) ? '../' : '';
+$auth_local_prefix = (strpos($script_name, '/auth/') !== false) ? '' : 'auth/';
 $route_prefix = $asset_prefix;
 $login_error = '';
 $next = isset($_GET['next']) ? basename((string)$_GET['next']) : '';
@@ -146,8 +147,85 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/vendors/css/vendors.min.css">
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/theme.min.css">
+    <style>
+        body {
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        .login-bg-watermark {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            background-image: url('<?php echo htmlspecialchars($auth_local_prefix, ENT_QUOTES, 'UTF-8'); ?>building.png');
+            background-repeat: no-repeat;
+            background-position: center center;
+            background-size: cover;
+            opacity: 90%;
+        }
+
+        .auth-cover-wrapper {
+            position: relative;
+            z-index: 1;
+        }
+
+        .auth-cover-content-inner,
+        .auth-cover-sidebar-inner {
+            background-color: rgba(8, 20, 52, 0.86);
+        }
+
+        .auth-cover-content-wrapper,
+        .auth-img {
+            height: 70%;
+        }
+
+        .auth-img img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
+            display: block;
+        }
+        .auth-cover-wrapper .auth-cover-content-inner .auth-cover-content-wrapper {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            padding: 0;
+            padding-top: 80px;
+            padding-bottom: 50px;
+        }
+
+        @media (max-width: 991.98px) {
+            .auth-cover-content-inner {
+                display: none !important;
+            }
+
+            .auth-cover-wrapper {
+                display: block;
+            }
+
+            .login-bg-watermark {
+                opacity: 0.12;
+                background-position: center top;
+            }
+
+            .auth-cover-content-wrapper,
+            .auth-img {
+                min-height: 0;
+            }
+
+            .auth-cover-sidebar-inner {
+                min-height: 100vh;
+                width: 100%;
+                background-color: rgba(8, 20, 52, 0.92);
+            }
+        }
+    </style>
 </head>
 <body>
+    <div class="login-bg-watermark" aria-hidden="true"></div>
     <main class="auth-cover-wrapper">
         <div class="auth-cover-content-inner">
             <div class="auth-cover-content-wrapper">

@@ -118,6 +118,7 @@ if (!is_array($biotern_theme_preferences)) {
 $biotern_theme_preferences = array_merge($default_theme_prefs, $biotern_theme_preferences);
 
 $html_classes = [];
+$html_classes[] = 'ui-preload';
 if (($biotern_theme_preferences['skin'] ?? 'light') === 'dark') {
     $html_classes[] = 'app-skin-dark';
 }
@@ -301,6 +302,23 @@ echo htmlspecialchars($favicon_ico_href, ENT_QUOTES, 'UTF-8'); ?>">
     <!--! END: Vendors CSS-->
     <!--! BEGIN: Early Skin Script -->
     <script src="assets/js/header-early-skin.js"></script>
+    <script>
+        (function () {
+            var root = document.documentElement;
+            function clearPreload() {
+                root.classList.remove('ui-preload');
+            }
+            if (document.readyState === 'interactive' || document.readyState === 'complete') {
+                requestAnimationFrame(clearPreload);
+            } else {
+                document.addEventListener('DOMContentLoaded', function () {
+                    requestAnimationFrame(clearPreload);
+                }, { once: true });
+            }
+            window.addEventListener('load', clearPreload, { once: true });
+            setTimeout(clearPreload, 1500);
+        })();
+    </script>
     <!--! END: Early Skin Script -->
     <!--! BEGIN: Custom CSS-->
     <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css" />
