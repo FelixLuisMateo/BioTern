@@ -4,62 +4,22 @@
  * - pages/generate_application_letter.php
  */
 
-/* Section: print page setup and base typography */
-@page { size: Letter portrait; margin: 0.5in; }
-html, body { height: 100%; margin: 0; padding: 0; }
-body {
-  font-family: "Times New Roman", Times, serif;
-  color: #111;
-  background: #eceff3;
-  font-size: 13pt;
+/* Section: shared letter shell overrides */
+:root {
+  --app-letter-body-font-size: 13pt;
+  --app-letter-header-min-height: 60px;
+  --app-letter-header-padding: 0 0 0.04in 0;
+  --app-letter-header-title-size: 14pt;
+  --app-letter-header-title-weight: 600;
+  --app-letter-meta-size: 10pt;
+  --app-letter-meta-weight: 700;
+  --app-letter-tel-size: 12pt;
+  --app-letter-tel-weight: 700;
+  --app-letter-content-font-size: 14pt;
 }
-.app-application-letter-container,
-.container {
-  width: 100%;
-  max-width: 7.5in;
-  margin: 18px auto;
-  padding: 0.4in;
-  box-sizing: border-box;
-  position: relative;
-  background: #fff;
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.14);
-}
-.app-application-letter-header,
-.header {
-  position: relative;
-  min-height: 60px;
-  text-align: center;
-  border-bottom: 2px solid #1c5ab1;
-  padding: 0 0 0.04in 0;
-  margin-bottom: 10px;
-}
-.app-application-letter-crest,
-.crest { position: absolute; top: 0.24in; left: 0.12in; width: 0.82in; height: 0.80in; object-fit: contain; }
-.app-application-letter-header h2,
-.header h2 {
-  font-family: "Times New Roman", Times, serif;
-  color: #1b4f9c;
-  font-size: 14pt;
-  margin: 4px 0 2px 0;
-}
-.app-application-letter-header .app-application-letter-meta,
-.app-application-letter-header .meta,
-.header .app-application-letter-meta,
-.header .meta {
-  font-family: "Times New Roman", Times, serif;
-  color: #1b4f9c;
-  font-size: 10pt;
-  font-weight: 700;
-}
-.app-application-letter-header .app-application-letter-tel,
-.app-application-letter-header .tel,
-.header .app-application-letter-tel,
-.header .tel {
-  font-family: "Times New Roman", Times, serif;
-  color: #1b4f9c;
-  font-size: 12pt;
-  font-weight: 700;
-}
+
+html,
+body { height: 100%; margin: 0; padding: 0; }
 /* Section: letter heading and content */
 .app-application-letter-content h3,
 h3 {
@@ -80,8 +40,6 @@ h3 {
 .app-application-letter-content,
 .content {
   margin-top: 8px;
-  line-height: 1.45;
-  font-size: 14pt;
   font-family: "Times New Roman", Times, serif;
 }
 .app-application-letter-small,
@@ -117,39 +75,12 @@ h3 {
   margin-left: 8px;
 }
 /* Section: action toolbar */
-.app-application-letter-actions,
-.actions {
-  margin-top: 40px;
-  padding-top: 18px;
-  border-top: 2px dashed #cbd5e1;
-}
 .app-application-letter-actions-inline-layout,
 .actions-inline-layout {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
   align-items: center;
-}
-.app-application-letter-tip-box,
-.tip-box {
-  flex: 1 1 100%;
-  font-size: 17px;
-  line-height: 1.6;
-  border: 1px solid #dbe4f0;
-  background: #f8fafc;
-  padding: 12px 14px;
-  border-radius: 12px;
-  color: #334155;
-}
-.app-application-letter-action-btn,
-.action-btn {
-  min-width: 104px;
-  min-height: 36px;
-  font-size: 14px;
-  font-weight: 600;
-  padding: 7px 14px;
-  border-radius: 12px;
-  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
 }
 @media print {
   .app-application-letter-header,

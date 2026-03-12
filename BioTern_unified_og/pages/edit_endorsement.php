@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 $force_blank = isset($_GET['blank']) && $_GET['blank'] === '1';
 $script_name = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
 $asset_prefix = (strpos($script_name, '/pages/') !== false) ? '../' : '';
@@ -6,15 +6,27 @@ $page_title = 'BioTern || Edit Endorsement Template';
 $base_href = $asset_prefix;
 $page_body_class = 'app-editor-page';
 $page_styles = [
+    'assets/css/page-editor-shell.css',
     'assets/css/edit-endorsement-template-page.css',
-    'assets/css/template-color-lock.css',
 ];
 $page_scripts = [
-    'assets/js/edit-endorsement-template-runtime.js',
+    'assets/js/template-editor-page-runtime.js',
 ];
 
 include __DIR__ . '/../includes/header.php';
 ?>
+<script type="application/json" id="app-editor-config">
+{
+    "storageKey": "biotern_endorsement_template_html_v1",
+    "loadMode": "storage-or-default",
+    "defaultTemplateId": "default_template",
+    "resetMode": "storage-or-default",
+    "resetConfirmMessage": "Reset endorsement template to default?",
+    "resetStatusMessage": "Reset to default",
+    "backHref": "documents/document_endorsement.php",
+    "hideBrokenImagesOnError": true
+}
+</script>
 <div class="main-content app-editor-main-content" data-force-blank="<?php echo $force_blank ? '1' : '0'; ?>">
     <div class="topbar app-editor-topbar">
         <button id="btn_save" class="btn btn-primary" type="button">Save Template</button>
@@ -73,3 +85,4 @@ include __DIR__ . '/../includes/header.php';
 </div>
 
 <?php include __DIR__ . '/../includes/footer.php'; ?>
+

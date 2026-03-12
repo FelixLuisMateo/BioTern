@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 // Simple resume generator
 $host = 'localhost';
 $db_user = 'root';
@@ -38,7 +38,6 @@ $page_body_class = 'app-generate-page';
 $page_styles = [
     'assets/css/generate-shell-clean.css',
     'assets/css/generate-resume-page.css',
-    'assets/css/template-color-lock.css',
 ];
 $page_scripts = [
     'assets/js/generate-resume-runtime.js',
@@ -58,7 +57,7 @@ include __DIR__ . '/../includes/header.php';
           <?php if ($address): ?><div><strong>Address:</strong> <?php echo nl2br(htmlspecialchars($address)); ?></div><?php endif; ?>
         </div>
                 <div class="meta app-resume-meta small app-resume-small">
-            <?php echo htmlspecialchars($student['student_id'] ?? ''); ?> &nbsp;•&nbsp; <?php echo htmlspecialchars($student['course_name'] ?? ''); ?>
+            <?php echo htmlspecialchars($student['student_id'] ?? ''); ?> &nbsp;â€¢&nbsp; <?php echo htmlspecialchars($student['course_name'] ?? ''); ?>
         </div>
       </div>
 
@@ -110,3 +109,4 @@ include __DIR__ . '/../includes/header.php';
 </div>
 
 <?php include __DIR__ . '/../includes/footer.php'; ?>
+

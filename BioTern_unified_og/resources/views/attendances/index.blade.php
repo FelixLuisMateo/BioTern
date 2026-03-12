@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zxx">
 
 <head>
@@ -17,6 +17,8 @@
     <link rel="stylesheet" type="text/css" href="{{ asset('assets/vendors/css/select2-theme.min.css') }}">
     <link rel="stylesheet" type="text/css" href="{{ asset('assets/css/theme.min.css') }}">
     <link rel="stylesheet" type="text/css" href="{{ asset('assets/css/core.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('assets/css/ui.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('assets/css/theme.css') }}">
     <script src="{{ asset('assets/js/theme-preload-init.min.js') }}"></script>
     <style>
         .time-cell {
@@ -412,12 +414,12 @@
         <!-- Footer -->
         <footer class="footer">
             <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
-                <span>Copyright ©</span>
+                <span>Copyright Â©</span>
                 <script>
                     document.write(new Date().getFullYear());
                 </script>
             </p>
-            <p><span>By: <a target="_blank" href="">ACT 2A</a></span> • <span>Distributed by: <a target="_blank" href="">Group 5</a></span></p>
+            <p><span>By: <a target="_blank" href="">ACT 2A</a></span> â€¢ <span>Distributed by: <a target="_blank" href="">Group 5</a></span></p>
         </footer>
     </main>
 

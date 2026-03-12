@@ -578,7 +578,9 @@ function formatDateTime($date) {
 $page_title = 'BioTern || Edit Student - ' . $student['first_name'] . ' ' . $student['last_name'];
 $page_styles = array(
     'assets/vendors/css/datepicker.min.css',
-    'assets/css/management-students-edit-page.css',
+    'assets/css/page_shell.css',
+    'assets/css/managements_students_shared.css',
+    'assets/css/managements_students_edit.css',
 );
 $page_vendor_scripts = array('assets/vendors/js/datepicker.min.js');
 $page_scripts = array(

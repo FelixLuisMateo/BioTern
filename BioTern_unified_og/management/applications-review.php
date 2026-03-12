@@ -401,7 +401,7 @@ $sql .= " ORDER BY COALESCE(u.application_submitted_at, u.created_at) DESC, u.id
 $applications = $conn->query($sql);
 
 $page_title = 'BioTern || Student Applications';
-$page_styles = array('assets/css/management-applications-review-page.css');
+$page_styles = array('assets/css/managements_applications_review.css');
 $page_scripts = array('assets/js/applications-review-runtime.js');
 include 'includes/header.php';
 ?>

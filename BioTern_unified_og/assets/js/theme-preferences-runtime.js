@@ -120,6 +120,9 @@
     }
 
     function getSavedSkin() {
+      if (serverPrefs && (serverPrefs.skin === "dark" || serverPrefs.skin === "light")) {
+        return serverPrefs.skin === "dark" ? "app-skin-dark" : "";
+      }
       try {
         var primary = localStorage.getItem("app-skin");
         if (primary !== null) return primary;
@@ -518,6 +521,78 @@
       if (headerLightRadio) headerLightRadio.checked = header !== "dark";
     }
 
+    function bindCustomizerHeaderNavigationRadios() {
+      var navLightRadio = document.getElementById("theme-page-navigation-light");
+      var navDarkRadio = document.getElementById("theme-page-navigation-dark");
+      var headerLightRadio = document.getElementById("theme-page-header-light");
+      var headerDarkRadio = document.getElementById("theme-page-header-dark");
+
+      if (navLightRadio && pageNavigation) {
+        navLightRadio.addEventListener("change", function () {
+          if (navLightRadio.checked) pageNavigation.value = "light";
+        });
+      }
+      if (navDarkRadio && pageNavigation) {
+        navDarkRadio.addEventListener("change", function () {
+          if (navDarkRadio.checked) pageNavigation.value = "dark";
+        });
+      }
+      if (headerLightRadio && pageHeader) {
+        headerLightRadio.addEventListener("change", function () {
+          if (headerLightRadio.checked) pageHeader.value = "light";
+        });
+      }
+      if (headerDarkRadio && pageHeader) {
+        headerDarkRadio.addEventListener("change", function () {
+          if (headerDarkRadio.checked) pageHeader.value = "dark";
+        });
+      }
+    }
+
+    function bindCustomizerPageLinks() {
+      var saveLink = document.getElementById("theme-page-save-link");
+      var cancelLink = document.getElementById("theme-page-cancel-link");
+
+      if (saveLink && pageSave) {
+        saveLink.addEventListener("click", function (event) {
+          event.preventDefault();
+          pageSave.click();
+        });
+      }
+
+      if (cancelLink && pageReset) {
+        cancelLink.addEventListener("click", function (event) {
+          event.preventDefault();
+          pageReset.click();
+        });
+      }
+    }
+
+    function hideLegacyCustomizer() {
+      try {
+        var styleId = "biotern-legacy-theme-customizer-hidden";
+        if (!document.getElementById(styleId)) {
+          var style = document.createElement("style");
+          style.id = styleId;
+          style.textContent =
+            ".theme-customizer,.cutomizer-open-trigger,.customizer-open-trigger{display:none!important;}";
+          document.head.appendChild(style);
+        }
+
+        var panels = document.querySelectorAll(".theme-customizer");
+        for (var i = 0; i < panels.length; i++) {
+          panels[i].remove();
+        }
+
+        var openers = document.querySelectorAll(
+          ".cutomizer-open-trigger,.customizer-open-trigger"
+        );
+        for (var j = 0; j < openers.length; j++) {
+          openers[j].remove();
+        }
+      } catch (e) {}
+    }
+
     var s = getSavedSkin();
     var hasLocalSkinPreference = hasExplicitLocalSkinPreference();
     var isDark = typeof s === "string" && s.indexOf("dark") !== -1;
@@ -532,6 +607,12 @@
     applyMenuMode(getSavedMenuMode());
     syncMenuToggleButtons();
     syncCustomizerInputs();
+    bindCustomizerHeaderNavigationRadios();
+    bindCustomizerPageLinks();
+    hideLegacyCustomizer();
+
+    window.BioTernThemeRuntime = window.BioTernThemeRuntime || {};
+    window.BioTernThemeRuntime.cleanupLegacyCustomizer = hideLegacyCustomizer;
 
     window.addEventListener("resize", function () {
       syncMenuToggleButtons();
@@ -593,6 +674,22 @@
       pageScheme.addEventListener("change", function () {
         var scheme = pageScheme.value || "blue";
         applyScheme(scheme);
+        syncCustomizerInputs();
+      });
+    }
+
+    if (pageSkinLight) {
+      pageSkinLight.addEventListener("change", function () {
+        if (!pageSkinLight.checked) return;
+        setDark(false, false);
+        syncCustomizerInputs();
+      });
+    }
+
+    if (pageSkinDark) {
+      pageSkinDark.addEventListener("change", function () {
+        if (!pageSkinDark.checked) return;
+        setDark(true, false);
         syncCustomizerInputs();
       });
     }

@@ -15,15 +15,10 @@ body { background: #f5f7fb; }
         .app-ojt-workflow-meta { font-size: 12px; color: #6c7a92; }
         .wf-note,
         .app-ojt-workflow-note { font-size: 12px; }
-        .app-skin-dark body { background: #0b1220; }
         .app-skin-dark .wf-card,
         .app-skin-dark .app-ojt-workflow-card { background: #111a2e; border-color: #253252; }
         .app-skin-dark .wf-meta,
         .app-skin-dark .app-ojt-workflow-meta { color: #a6b4cf; }
-        .app-skin-dark .card,
-        .app-skin-dark .app-ojt-workflow-surface-card { background: #111a2e; border-color: #253252; }
-        .app-skin-dark .form-control,
-        .app-skin-dark .form-select { background-color: #0f172a; border-color: #2a3a57; color: #d8e2f4; }
         @media (max-width: 991.98px) {
             .header-right .d-flex,
             .app-ojt-workflow-header-right-actions { display: grid !important; grid-template-columns: 1fr 1fr; gap: 8px !important; }

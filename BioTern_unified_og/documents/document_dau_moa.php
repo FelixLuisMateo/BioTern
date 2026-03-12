@@ -76,7 +76,7 @@ if (isset($_GET['action'])) {
 
 $page_title = 'DAU MOA';
 $base_href = '../';
-$page_styles = ['assets/css/documents-page.css'];
+$page_styles = ['assets/css/page_shell.css', 'assets/css/documents.css'];
 $page_scripts = ['assets/js/documents-page-runtime.js'];
 include __DIR__ . '/../includes/header.php';
 ?>

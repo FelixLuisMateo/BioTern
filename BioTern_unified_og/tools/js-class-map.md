@@ -34,7 +34,8 @@
 
 - `theme-and-ui`
   - `assets/js/theme-preferences-runtime.js`
-  - `assets/js/theme-customizer-page-runtime.js`
+  - `assets/js/theme-customizer-init.min.js` (shim)
+  - `assets/js/theme-preload-init.min.js`
   - `assets/js/global-ui-helpers.js`
 
 - `management`
@@ -53,10 +54,7 @@
   - `assets/js/homepage-movable.js`
 
 - `template-editors`
-  - `assets/js/edit-moa-template-runtime.js`
-  - `assets/js/edit-dau-moa-template-runtime.js`
-  - `assets/js/edit-endorsement-template-runtime.js`
-  - `assets/js/edit-application-template-runtime.js`
+  - `assets/js/template-editor-page-runtime.js`
 
 - `reports`
   - `assets/js/reports-project-init.min.js`

@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 $host = 'localhost';
 $db_user = 'root';
 $db_password = '';
@@ -130,8 +130,8 @@ $base_href = $asset_prefix;
 $page_body_class = 'app-generate-page';
 $page_styles = [
     'assets/css/generate-shell-clean.css',
+    'assets/css/generate-letter-shared.css',
     'assets/css/generate-endorsement-letter-page.css',
-    'assets/css/template-color-lock.css',
 ];
 $page_scripts = [
     'assets/js/generate-endorsement-letter-runtime.js',
@@ -194,3 +194,4 @@ include __DIR__ . '/../includes/header.php';
 </div>
 <?php include __DIR__ . '/../includes/footer.php'; ?>
 <?php $conn->close(); ?>
+

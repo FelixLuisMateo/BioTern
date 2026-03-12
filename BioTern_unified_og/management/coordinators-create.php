@@ -112,7 +112,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $page_title = 'Create Coordinator';
 include 'includes/header.php';
 ?>
-<link rel="stylesheet" type="text/css" href="assets/css/management-create-shared-page.css">
+<link rel="stylesheet" type="text/css" href="assets/css/managements_create_shared.css">
 <div class="page-header">
     <div class="page-header-left d-flex align-items-center">
         <div class="page-header-title"><h5 class="m-b-10">Create Coordinator</h5></div>

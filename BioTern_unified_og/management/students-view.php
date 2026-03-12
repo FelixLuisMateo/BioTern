@@ -399,7 +399,11 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
 
 <?php
 $page_title = 'BioTern || Student Profile - ' . $student['first_name'] . ' ' . $student['last_name'];
-$page_styles = array('assets/css/management-students-view-page.css');
+$page_styles = array(
+    'assets/css/page_shell.css',
+    'assets/css/managements_students_shared.css',
+    'assets/css/managements_students_view.css'
+);
 $page_scripts = array(
     'assets/js/students-view-runtime.js',
     'assets/js/theme-customizer-init.min.js',

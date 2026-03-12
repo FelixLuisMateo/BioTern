@@ -1,8 +1,4 @@
-html, body { height: 100%; margin: 0; padding: 0; }
-body { display: flex; flex-direction: column; min-height: 100vh; }
-main.nxl-container { flex: 1; display: flex; flex-direction: column; }
-div.nxl-content { flex: 1; padding-bottom: 24px; }
-footer.footer { margin-top: auto; }
+div.nxl-content { padding-bottom: 24px; }
 
 /* Shared preview and layout styling */
 .doc-preview {

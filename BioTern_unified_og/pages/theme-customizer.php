@@ -2,11 +2,9 @@
 $page_title = 'BioTern || Theme Customizer';
 $page_scripts = [
     'assets/js/theme-customizer-init.min.js',
-    'assets/js/theme-customizer-page-runtime.js',
 ];
 include 'includes/header.php';
 ?>
-<link rel="stylesheet" type="text/css" href="assets/css/theme-customizer-page.css">
 
 <div class="main-content d-flex theme-customizer-page">
     <div class="content-sidebar content-sidebar-md" data-scrollbar-target="#psScrollbarInit">

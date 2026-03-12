@@ -1,0 +1,30 @@
+/*
+ * Class: module.management.sections.list
+ * Used by:
+ * - management/sections.php
+ */
+
+    html.app-skin-dark #filter-q {
+        color: #ffffff !important;
+        -webkit-text-fill-color: #ffffff !important;
+    }
+
+    html.app-skin-dark #filter-q::placeholder {
+        color: #ffffff !important;
+        opacity: 0.95;
+    }
+
+    html.app-skin-dark .filter-form .select2-container--default.select2-container--open .select2-dropdown {
+        background-color: #0f172a !important;
+        border-color: #4a5568 !important;
+    }
+
+    html.app-skin-dark .select2-results__option {
+        color: #f0f0f0 !important;
+        background-color: #0f172a !important;
+    }
+
+    html.app-skin-dark .select2-results__option--highlighted[aria-selected] {
+        background-color: #334155 !important;
+        color: #ffffff !important;
+    }

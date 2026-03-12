@@ -1,0 +1,885 @@
+/* Theme overrides: skins, schemes, and customizer surfaces. */
+
+/* ------------------------------------------------------------------------- */
+/* 1) Theme tokens + scheme variables                                         */
+/* ------------------------------------------------------------------------- */
+
+:root {
+  --biotern-primary: #3454d1;
+  --biotern-primary-rgb: 52, 84, 209;
+  --biotern-primary-hover: #2f46b8;
+  --biotern-primary-soft: #c6cff2;
+  --biotern-primary-soft-text: #2b3a7a;
+  --biotern-primary-contrast: #ffffff;
+  --biotern-link: #3454d1;
+  --biotern-link-hover: #2f46b8;
+  --biotern-body-bg: #f3f4f6;
+  --biotern-surface: #ffffff;
+  --biotern-surface-muted: #f8fafc;
+  --biotern-border: #e5e7eb;
+}
+
+html.app-skin-dark {
+  --biotern-body-bg: #0b1220;
+  --biotern-surface: #0f172a;
+  --biotern-surface-muted: #111827;
+  --biotern-border: #1b2436;
+}
+
+html.app-theme-gray {
+  --biotern-primary: #4b5563;
+  --biotern-primary-rgb: 75, 85, 99;
+  --biotern-primary-hover: #374151;
+  --biotern-primary-soft: #e5e7eb;
+  --biotern-primary-soft-text: #1f2937;
+  --biotern-primary-contrast: #ffffff;
+  --biotern-link: #374151;
+  --biotern-link-hover: #111827;
+  --biotern-body-bg: #f3f4f6;
+  --biotern-surface: #ffffff;
+  --biotern-surface-muted: #f8fafc;
+  --biotern-border: #e5e7eb;
+  --bs-primary: var(--biotern-primary);
+  --bs-primary-rgb: var(--biotern-primary-rgb);
+  --bs-link-color: var(--biotern-link);
+  --bs-link-hover-color: var(--biotern-link-hover);
+  --bs-body-bg: var(--biotern-body-bg);
+  --bs-body-color: #111827;
+  --bs-border-color: var(--biotern-border);
+  --bs-light: var(--biotern-surface);
+  --bs-dark: #111827;
+  --bs-secondary: #6b7280;
+  --bs-secondary-rgb: 107, 114, 128;
+  --bs-info: #6b7280;
+  --bs-info-rgb: 107, 114, 128;
+  --bs-teal: #6b7280;
+  --bs-teal-rgb: 107, 114, 128;
+}
+
+html.app-theme-gray.app-skin-dark {
+  --biotern-primary: #111827;
+  --biotern-primary-rgb: 17, 24, 39;
+  --biotern-primary-hover: #0b1220;
+  --biotern-primary-soft: #1f2937;
+  --biotern-primary-soft-text: #e5e7eb;
+  --biotern-primary-contrast: #ffffff;
+  --biotern-link: #cbd5e1;
+  --biotern-link-hover: #f1f5f9;
+  --biotern-body-bg: #07090d;
+  --biotern-surface: #0c1117;
+  --biotern-surface-muted: #11161d;
+  --biotern-border: #1b2430;
+  --bs-primary: var(--biotern-primary);
+  --bs-primary-rgb: var(--biotern-primary-rgb);
+  --bs-link-color: var(--biotern-link);
+  --bs-link-hover-color: var(--biotern-link-hover);
+  --bs-body-bg: var(--biotern-body-bg);
+  --bs-body-color: #e5e7eb;
+  --bs-border-color: var(--biotern-border);
+  --bs-light: var(--biotern-surface);
+  --bs-dark: #0b1220;
+  --bs-secondary: #3a4252;
+  --bs-secondary-rgb: 58, 66, 82;
+  --bs-info: #4b5563;
+  --bs-info-rgb: 75, 85, 99;
+  --bs-teal: #4b5563;
+  --bs-teal-rgb: 75, 85, 99;
+}
+
+body {
+  background-color: var(--biotern-body-bg) !important;
+}
+
+html.app-theme-gray.app-skin-dark body {
+  color: #e5e7eb;
+}
+
+html.app-theme-gray.app-skin-dark h1,
+html.app-theme-gray.app-skin-dark h2,
+html.app-theme-gray.app-skin-dark h3,
+html.app-theme-gray.app-skin-dark h4,
+html.app-theme-gray.app-skin-dark h5,
+html.app-theme-gray.app-skin-dark h6 {
+  color: #f8fafc;
+}
+
+html.app-theme-gray.app-skin-dark .text-muted,
+html.app-theme-gray.app-skin-dark .text-secondary,
+html.app-theme-gray.app-skin-dark .text-soft-dark {
+  color: #9aa3b2 !important;
+}
+
+html.app-theme-gray:not(.app-skin-dark) .text-muted,
+html.app-theme-gray:not(.app-skin-dark) .text-secondary,
+html.app-theme-gray:not(.app-skin-dark) .text-soft-dark {
+  color: #6b7280 !important;
+}
+
+/* ------------------------------------------------------------------------- */
+/* 2) Global surfaces and component tones                                    */
+/* ------------------------------------------------------------------------- */
+
+.nxl-container,
+.nxl-content,
+.main-content,
+.content-area,
+.content-area-header,
+.content-area-body,
+.page-header,
+.nxl-container .nxl-content .main-content,
+.nxl-container .nxl-content .main-content .content-area,
+.nxl-container .nxl-content .main-content .content-area .content-area-header,
+.nxl-container .nxl-content .main-content .content-sidebar {
+  background-color: var(--biotern-body-bg);
+}
+
+.card,
+.modal-content,
+.dropdown-menu,
+.nxl-header,
+.nxl-header .header-wrapper,
+.nxl-navigation,
+.nxl-navigation .m-header,
+.nxl-navigation .navbar-content,
+.nxl-container .footer,
+.content-sidebar,
+.content-sidebar .content-sidebar-header,
+.content-area .content-area-header,
+.content-area .content-area-body,
+.page-header {
+  background-color: var(--biotern-surface);
+  border-color: var(--biotern-border) !important;
+}
+
+.table,
+.table > :not(caption) > * > *,
+.list-group-item {
+  background-color: var(--biotern-surface);
+  border-color: var(--biotern-border) !important;
+}
+
+.table.table-striped > tbody > tr:nth-of-type(odd) > * {
+  background-color: var(--biotern-surface-muted);
+}
+
+.content-area-header,
+.content-sidebar-header,
+.page-header,
+.nxl-navigation .m-header,
+.nxl-header .header-wrapper,
+.nxl-container .footer {
+  border-color: var(--biotern-border) !important;
+}
+
+.nxl-navigation .navbar-content .nxl-item.active > .nxl-link,
+.nxl-navigation .navbar-content .nxl-item:hover > .nxl-link,
+.nxl-navigation .navbar-content .nxl-navbar > .nxl-item.active > .nxl-link,
+.nxl-navigation .navbar-content .nxl-navbar > .nxl-item:hover > .nxl-link,
+.content-sidebar .nav-link.active,
+.content-sidebar .nav-link:hover {
+  background-color: var(--biotern-primary-soft);
+  color: var(--biotern-primary-soft-text);
+}
+
+html.app-skin-dark .card,
+html.app-skin-dark .modal-content,
+html.app-skin-dark .dropdown-menu,
+html.app-skin-dark .nxl-header,
+html.app-skin-dark .nxl-header .header-wrapper,
+html.app-skin-dark .nxl-navigation,
+html.app-skin-dark .nxl-navigation .m-header,
+html.app-skin-dark .nxl-navigation .navbar-content,
+html.app-skin-dark .nxl-container .footer,
+html.app-skin-dark .content-sidebar,
+html.app-skin-dark .content-sidebar .content-sidebar-header,
+html.app-skin-dark .content-area .content-area-header,
+html.app-skin-dark .content-area .content-area-body,
+html.app-skin-dark .page-header {
+  background-color: var(--biotern-surface) !important;
+  border-color: var(--biotern-border) !important;
+}
+
+html.app-skin-dark .table,
+html.app-skin-dark .table > :not(caption) > * > *,
+html.app-skin-dark .list-group-item {
+  background-color: var(--biotern-surface) !important;
+  border-color: var(--biotern-border) !important;
+}
+
+html.app-skin-dark .table.table-striped > tbody > tr:nth-of-type(odd) > * {
+  background-color: var(--biotern-surface-muted) !important;
+}
+
+/* ------------------------------------------------------------------------- */
+/* 3) Form + select2 dark mode overrides                                      */
+/* ------------------------------------------------------------------------- */
+
+html.app-skin-dark input.form-control,
+html.app-skin-dark textarea.form-control,
+html.app-skin-dark .form-control[type="text"],
+html.app-skin-dark .form-control[type="email"],
+html.app-skin-dark .form-control[type="password"],
+html.app-skin-dark .form-control[type="number"],
+html.app-skin-dark .form-control[type="date"],
+html.app-skin-dark .form-control[type="time"],
+html.app-skin-dark .form-control[type="search"],
+html.app-skin-dark .form-control[type="tel"],
+html.app-skin-dark .form-control[type="url"] {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  background-color: #0f172a !important;
+  border-color: #4a5568 !important;
+}
+
+html.app-skin-dark input.form-control::placeholder,
+html.app-skin-dark textarea.form-control::placeholder {
+  color: #d1dcf0 !important;
+  opacity: 1 !important;
+}
+
+html.app-skin-dark input.form-control:-webkit-autofill,
+html.app-skin-dark input.form-control:-webkit-autofill:hover,
+html.app-skin-dark input.form-control:-webkit-autofill:focus,
+html.app-skin-dark textarea.form-control:-webkit-autofill,
+html.app-skin-dark textarea.form-control:-webkit-autofill:hover,
+html.app-skin-dark textarea.form-control:-webkit-autofill:focus {
+  -webkit-text-fill-color: #ffffff !important;
+  caret-color: #ffffff !important;
+  box-shadow: 0 0 0 1000px #0f172a inset !important;
+  -webkit-box-shadow: 0 0 0 1000px #0f172a inset !important;
+  border-color: #4a5568 !important;
+  transition: background-color 9999s ease-out 0s;
+}
+
+html.app-skin-dark input.form-control:autofill,
+html.app-skin-dark textarea.form-control:autofill {
+  color: #ffffff !important;
+  background-color: #0f172a !important;
+}
+
+html.app-skin-dark select.form-control,
+html.app-skin-dark select.form-select,
+html.app-skin-dark select.form-control option,
+html.app-skin-dark select.form-select option {
+  color: #ffffff !important;
+  background-color: #0f172a !important;
+  border-color: #4a5568 !important;
+}
+
+html.app-skin-dark .select2-container--default .select2-selection--single,
+html.app-skin-dark .select2-container--default .select2-selection--multiple {
+  color: #ffffff !important;
+  background-color: #0f172a !important;
+  border-color: #4a5568 !important;
+}
+
+html.app-skin-dark .select2-container--default .select2-selection--single .select2-selection__rendered,
+html.app-skin-dark .select2-container--default .select2-selection--multiple .select2-selection__rendered,
+html.app-skin-dark .select2-container--default .select2-selection__placeholder {
+  color: #ffffff !important;
+}
+
+html.app-skin-dark .select2-container--default.select2-container--open .select2-dropdown,
+html.app-skin-dark .select2-container--default .select2-results__option {
+  color: #ffffff !important;
+  background-color: #0f172a !important;
+  border-color: #4a5568 !important;
+}
+
+html.app-skin-dark .select2-container--default .select2-results__option--highlighted[aria-selected] {
+  color: #ffffff !important;
+  background-color: #334155 !important;
+}
+
+html.app-skin-dark .filter-form input.form-control,
+html.app-skin-dark .filter-form select.form-control,
+html.app-skin-dark .filter-form select.form-select,
+html.app-skin-dark .filter-form .select2-container--default .select2-selection--single,
+html.app-skin-dark .filter-form .select2-container--default .select2-selection--multiple {
+  color: #ffffff !important;
+}
+
+html.app-skin-dark .filter-form input.form-control::placeholder {
+  color: #d1dcf0 !important;
+  opacity: 1;
+}
+
+html.app-skin-dark .filter-form .select2-container--default .select2-selection--single .select2-selection__rendered,
+html.app-skin-dark .filter-form .select2-container--default .select2-selection--multiple .select2-selection__rendered {
+  color: #ffffff !important;
+}
+
+html.app-skin-dark .filter-form .select2-container--default .select2-selection--single .select2-selection__arrow b {
+  border-top-color: #ffffff !important;
+}
+
+/* Independent surfaces: navigation + header dark mode (separate from full dark skin). */
+html.app-navigation-dark .nxl-navigation,
+html.app-navigation-dark .nxl-navigation .m-header,
+html.app-navigation-dark .nxl-navigation .navbar-content {
+  background-color: #0f172a !important;
+  border-color: #1b2436 !important;
+}
+
+html.app-navigation-dark .nxl-navigation .m-header {
+  border-bottom-color: #1b2436 !important;
+}
+
+html.app-navigation-dark .nxl-navigation .navbar-content .nxl-caption {
+  color: #9aa3b2;
+}
+
+html.app-navigation-dark .nxl-navigation .navbar-content .nxl-link {
+  color: #d1d5db;
+}
+
+html.app-navigation-dark .nxl-navigation .navbar-content .nxl-link:hover,
+html.app-navigation-dark .nxl-navigation .navbar-content .nxl-item.active > .nxl-link,
+html.app-navigation-dark .nxl-navigation .navbar-content .nxl-navbar > .nxl-item.active > .nxl-link,
+html.app-navigation-dark .nxl-navigation .navbar-content .nxl-navbar > .nxl-item:hover > .nxl-link {
+  color: #ffffff;
+  background-color: #1c2438;
+}
+
+html.app-navigation-dark .nxl-navigation .navbar-content .nxl-link .nxl-micon i {
+  color: inherit;
+}
+
+html.app-header-dark .nxl-header,
+html.app-header-dark .nxl-header .header-wrapper {
+  background-color: #0f172a !important;
+  border-color: #1b2436 !important;
+}
+
+html.app-header-dark .nxl-header .header-wrapper,
+html.app-header-dark .nxl-header .header-wrapper .nxl-head-link,
+html.app-header-dark .nxl-header .header-wrapper .nxl-h-item,
+html.app-header-dark .nxl-header .header-wrapper .nxl-h-item > a,
+html.app-header-dark .nxl-header .header-wrapper .nxl-h-item i {
+  color: #e5e7eb !important;
+}
+
+/* ------------------------------------------------------------------------- */
+/* 4) Gray scheme adjustments                                                 */
+/* ------------------------------------------------------------------------- */
+
+html.app-theme-gray:not(.app-skin-dark) .nxl-navigation .navbar-content .nxl-caption {
+  color: #6b7280;
+}
+
+html.app-theme-gray:not(.app-skin-dark) .nxl-navigation .navbar-content .nxl-link {
+  color: #1f2937;
+}
+
+html.app-theme-gray:not(.app-skin-dark) .nxl-navigation .navbar-content .nxl-link:hover,
+html.app-theme-gray:not(.app-skin-dark) .nxl-navigation .navbar-content .nxl-item.active > .nxl-link,
+html.app-theme-gray:not(.app-skin-dark) .nxl-navigation .navbar-content .nxl-navbar > .nxl-item.active > .nxl-link,
+html.app-theme-gray:not(.app-skin-dark) .nxl-navigation .navbar-content .nxl-navbar > .nxl-item:hover > .nxl-link {
+  color: #111827;
+  background-color: var(--biotern-primary-soft);
+}
+
+html.app-theme-gray:not(.app-skin-dark) .nxl-navigation .navbar-content .nxl-link .nxl-micon i {
+  color: inherit;
+}
+
+html.app-theme-gray:not(.app-skin-dark) .breadcrumb,
+html.app-theme-gray:not(.app-skin-dark) .breadcrumb a {
+  color: #374151;
+}
+
+html.app-theme-gray:not(.app-skin-dark) .page-header .breadcrumb .breadcrumb-item:last-child {
+  color: #6b7280;
+}
+
+html.app-theme-gray.app-skin-dark .nxl-navigation .navbar-content .nxl-caption {
+  color: #9aa3b2;
+}
+
+html.app-theme-gray.app-skin-dark .nxl-navigation .navbar-content .nxl-link {
+  color: #d1d5db;
+}
+
+html.app-theme-gray.app-skin-dark .nxl-navigation .navbar-content .nxl-link:hover,
+html.app-theme-gray.app-skin-dark .nxl-navigation .navbar-content .nxl-item.active > .nxl-link,
+html.app-theme-gray.app-skin-dark .nxl-navigation .navbar-content .nxl-navbar > .nxl-item.active > .nxl-link,
+html.app-theme-gray.app-skin-dark .nxl-navigation .navbar-content .nxl-navbar > .nxl-item:hover > .nxl-link {
+  color: #f8fafc;
+  background-color: #2a303b;
+}
+
+html.app-theme-gray.app-skin-dark .nxl-navigation .navbar-content .nxl-link .nxl-micon i {
+  color: inherit;
+}
+
+html.app-theme-gray.app-skin-dark .breadcrumb,
+html.app-theme-gray.app-skin-dark .breadcrumb a {
+  color: #cbd5e1;
+}
+
+html.app-theme-gray.app-skin-dark .page-header .breadcrumb .breadcrumb-item:last-child {
+  color: #9aa3b2;
+}
+
+html.app-theme-gray:not(.app-skin-dark) input.form-control,
+html.app-theme-gray:not(.app-skin-dark) textarea.form-control,
+html.app-theme-gray:not(.app-skin-dark) .form-control[type="text"],
+html.app-theme-gray:not(.app-skin-dark) .form-control[type="email"],
+html.app-theme-gray:not(.app-skin-dark) .form-control[type="password"],
+html.app-theme-gray:not(.app-skin-dark) .form-control[type="number"],
+html.app-theme-gray:not(.app-skin-dark) .form-control[type="date"],
+html.app-theme-gray:not(.app-skin-dark) .form-control[type="time"],
+html.app-theme-gray:not(.app-skin-dark) .form-control[type="search"],
+html.app-theme-gray:not(.app-skin-dark) .form-control[type="tel"],
+html.app-theme-gray:not(.app-skin-dark) .form-control[type="url"],
+html.app-theme-gray:not(.app-skin-dark) select.form-control,
+html.app-theme-gray:not(.app-skin-dark) select.form-select {
+  color: #111827 !important;
+  background-color: #ffffff !important;
+  border-color: var(--biotern-border) !important;
+}
+
+html.app-theme-gray:not(.app-skin-dark) input.form-control::placeholder,
+html.app-theme-gray:not(.app-skin-dark) textarea.form-control::placeholder {
+  color: #6b7280 !important;
+  opacity: 1 !important;
+}
+
+html.app-theme-gray:not(.app-skin-dark) .select2-container--default .select2-selection--single,
+html.app-theme-gray:not(.app-skin-dark) .select2-container--default .select2-selection--multiple {
+  color: #111827 !important;
+  background-color: #ffffff !important;
+  border-color: var(--biotern-border) !important;
+}
+
+html.app-theme-gray:not(.app-skin-dark) .select2-container--default .select2-selection--single .select2-selection__rendered,
+html.app-theme-gray:not(.app-skin-dark) .select2-container--default .select2-selection--multiple .select2-selection__rendered,
+html.app-theme-gray:not(.app-skin-dark) .select2-container--default .select2-selection__placeholder {
+  color: #111827 !important;
+}
+
+html.app-theme-gray:not(.app-skin-dark) .select2-container--default.select2-container--open .select2-dropdown,
+html.app-theme-gray:not(.app-skin-dark) .select2-container--default .select2-results__option {
+  color: #111827 !important;
+  background-color: #ffffff !important;
+  border-color: var(--biotern-border) !important;
+}
+
+html.app-theme-gray:not(.app-skin-dark) .select2-container--default .select2-results__option--highlighted[aria-selected] {
+  color: #111827 !important;
+  background-color: #e5e7eb !important;
+}
+
+html.app-theme-gray.app-skin-dark input.form-control,
+html.app-theme-gray.app-skin-dark textarea.form-control,
+html.app-theme-gray.app-skin-dark .form-control[type="text"],
+html.app-theme-gray.app-skin-dark .form-control[type="email"],
+html.app-theme-gray.app-skin-dark .form-control[type="password"],
+html.app-theme-gray.app-skin-dark .form-control[type="number"],
+html.app-theme-gray.app-skin-dark .form-control[type="date"],
+html.app-theme-gray.app-skin-dark .form-control[type="time"],
+html.app-theme-gray.app-skin-dark .form-control[type="search"],
+html.app-theme-gray.app-skin-dark .form-control[type="tel"],
+html.app-theme-gray.app-skin-dark .form-control[type="url"],
+html.app-theme-gray.app-skin-dark select.form-control,
+html.app-theme-gray.app-skin-dark select.form-select {
+  color: #ffffff !important;
+  background-color: #0b1220 !important;
+  border-color: #1f2937 !important;
+}
+
+html.app-theme-gray.app-skin-dark input.form-control::placeholder,
+html.app-theme-gray.app-skin-dark textarea.form-control::placeholder {
+  color: #9aa3b2 !important;
+  opacity: 1 !important;
+}
+
+html.app-theme-gray.app-skin-dark .select2-container--default .select2-selection--single,
+html.app-theme-gray.app-skin-dark .select2-container--default .select2-selection--multiple {
+  color: #ffffff !important;
+  background-color: #0b1220 !important;
+  border-color: #1f2937 !important;
+}
+
+html.app-theme-gray.app-skin-dark .select2-container--default .select2-selection--single .select2-selection__rendered,
+html.app-theme-gray.app-skin-dark .select2-container--default .select2-selection--multiple .select2-selection__rendered,
+html.app-theme-gray.app-skin-dark .select2-container--default .select2-selection__placeholder {
+  color: #ffffff !important;
+}
+
+html.app-theme-gray.app-skin-dark .select2-container--default.select2-container--open .select2-dropdown,
+html.app-theme-gray.app-skin-dark .select2-container--default .select2-results__option {
+  color: #ffffff !important;
+  background-color: #0b1220 !important;
+  border-color: #1f2937 !important;
+}
+
+html.app-theme-gray.app-skin-dark .select2-container--default .select2-results__option--highlighted[aria-selected] {
+  color: #ffffff !important;
+  background-color: #1f2937 !important;
+}
+
+html.app-theme-gray a:hover,
+html.app-theme-gray .link-primary:hover {
+  color: var(--biotern-link-hover) !important;
+}
+
+html.app-theme-gray .nav-link.active,
+html.app-theme-gray .nav-link:hover,
+html.app-theme-gray .nav-pills .nav-link.active,
+html.app-theme-gray .nav-tabs .nav-link.active,
+html.app-theme-gray .customers-nav-tabs .nav-link.active,
+html.app-theme-gray .nav-tabs-custom-style .nav-link.active {
+  color: var(--biotern-primary) !important;
+}
+
+html.app-theme-gray .page-link.active,
+html.app-theme-gray .pagination .active > .page-link,
+html.app-theme-gray .dropdown-item.active,
+html.app-theme-gray .list-group-item.active {
+  background-color: var(--biotern-primary) !important;
+  border-color: var(--biotern-primary) !important;
+  color: var(--biotern-primary-contrast) !important;
+}
+
+html.app-theme-gray .progress-bar,
+html.app-theme-gray .form-check-input:checked,
+html.app-theme-gray .form-check-input:indeterminate,
+html.app-theme-gray .accordion-button:not(.collapsed),
+html.app-theme-gray .badge.bg-primary,
+html.app-theme-gray .alert-primary {
+  background-color: var(--biotern-primary) !important;
+  border-color: var(--biotern-primary) !important;
+}
+
+html.app-theme-gray .border-soft-primary {
+  border-color: var(--biotern-primary-soft) !important;
+}
+
+html.app-theme-gray .badge,
+html.app-theme-gray .badge.bg-soft-primary,
+html.app-theme-gray .badge.bg-soft-secondary,
+html.app-theme-gray .badge.bg-soft-dark {
+  color: var(--biotern-primary-soft-text) !important;
+  background-color: var(--biotern-primary-soft) !important;
+  border-color: var(--biotern-border) !important;
+}
+
+html.app-theme-gray .btn-light,
+html.app-theme-gray .btn-secondary {
+  color: #111827 !important;
+  background-color: #f1f2f4 !important;
+  border-color: var(--biotern-border) !important;
+}
+
+.text-primary {
+  color: var(--biotern-primary) !important;
+}
+
+.bg-primary {
+  background-color: var(--biotern-primary) !important;
+}
+
+.border-primary {
+  border-color: var(--biotern-primary) !important;
+}
+
+.btn-primary {
+  color: var(--biotern-primary-contrast) !important;
+  background-color: var(--biotern-primary) !important;
+  border-color: var(--biotern-primary) !important;
+}
+
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary:active,
+.btn-primary.active,
+.btn-primary.show {
+  background-color: var(--biotern-primary-hover) !important;
+  border-color: var(--biotern-primary-hover) !important;
+}
+
+.btn-outline-primary {
+  color: var(--biotern-primary) !important;
+  border-color: var(--biotern-primary) !important;
+}
+
+.btn-outline-primary:hover,
+.btn-outline-primary:focus,
+.btn-outline-primary:active {
+  color: var(--biotern-primary-contrast) !important;
+  background-color: var(--biotern-primary) !important;
+  border-color: var(--biotern-primary) !important;
+}
+
+html.app-theme-gray .btn-check:checked + .btn,
+html.app-theme-gray .btn-check:focus + .btn {
+  color: var(--biotern-primary-contrast) !important;
+  background-color: var(--biotern-primary) !important;
+  border-color: var(--biotern-primary) !important;
+}
+
+html.app-theme-gray .btn-outline-primary,
+html.app-theme-gray .btn-primary {
+  box-shadow: none !important;
+}
+
+html.app-theme-gray .nxl-header,
+html.app-theme-gray .nxl-header .header-wrapper,
+html.app-theme-gray .content-area-header,
+html.app-theme-gray .content-sidebar-header,
+html.app-theme-gray .page-header,
+html.app-theme-gray .nxl-navigation,
+html.app-theme-gray .nxl-navigation .m-header,
+html.app-theme-gray .nxl-navigation .navbar-content,
+html.app-theme-gray .content-sidebar,
+html.app-theme-gray .content-area .content-area-header,
+html.app-theme-gray .theme-customizer-page .content-area-header,
+html.app-theme-gray .theme-customizer-page .content-sidebar-header {
+  background-color: var(--biotern-surface) !important;
+  background-image: none !important;
+  border-color: var(--biotern-border) !important;
+}
+
+.bg-soft-primary,
+.badge.bg-soft-primary {
+  background-color: var(--biotern-primary-soft) !important;
+  color: var(--biotern-primary-soft-text) !important;
+}
+
+.text-soft-primary,
+.link-primary {
+  color: var(--biotern-primary) !important;
+}
+
+.link-primary:hover {
+  color: var(--biotern-primary-hover) !important;
+}
+
+/* ------------------------------------------------------------------------- */
+/* 5) Theme customizer + settings customizer surfaces                         */
+/* ------------------------------------------------------------------------- */
+
+.theme-customizer-page .content-area-body {
+  padding: 1.75rem;
+}
+
+.theme-customizer-page .content-sidebar-header,
+.theme-customizer-page .content-area-header {
+  background-color: var(--biotern-surface) !important;
+  border-bottom: 1px dashed var(--biotern-border);
+}
+
+.theme-customizer-page .content-area-body > .card.mb-0 {
+  border: 0;
+  background: transparent;
+}
+
+.theme-customizer-page .content-area-body > .card.mb-0 > .card-body {
+  padding: 0;
+}
+
+.theme-setting-card .card-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px dashed var(--bs-border-color);
+}
+
+.theme-setting-card {
+  border: 1px solid var(--biotern-border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--biotern-surface);
+}
+
+.theme-setting-card .card-body {
+  padding: 1rem;
+}
+
+.theme-setting-card .option-row {
+  padding: 16px;
+  border: 1px solid var(--biotern-border);
+  border-radius: 10px;
+  margin-bottom: 14px;
+  background: var(--biotern-surface-muted);
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.theme-setting-card .option-row:hover {
+  border-color: var(--biotern-primary);
+  transform: translateY(-1px);
+}
+
+html.app-skin-dark .theme-setting-card .option-row {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+html.app-theme-gray .theme-setting-card,
+html.app-theme-gray .theme-setting-card .option-row {
+  background: var(--biotern-surface);
+  border-color: var(--biotern-border);
+}
+
+html.app-theme-gray .theme-setting-card .option-row {
+  background: var(--biotern-surface-muted);
+}
+
+html.app-theme-gray .theme-setting-card .badge {
+  border-color: var(--biotern-border);
+  color: var(--biotern-primary);
+}
+
+.theme-setting-card .btn-check + .btn {
+  min-width: 110px;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.02em;
+}
+
+.theme-setting-card .form-select {
+  min-height: 42px;
+}
+
+.theme-setting-card .badge {
+  border: 1px solid var(--bs-border-color);
+  font-weight: 600;
+}
+
+.theme-select-wrap {
+  min-width: 240px;
+}
+
+html.app-theme-gray.app-skin-dark .theme-customizer-page .content-area,
+html.app-theme-gray.app-skin-dark .theme-customizer-page .content-area-body {
+  background-color: var(--biotern-body-bg) !important;
+}
+
+html.app-theme-gray.app-skin-dark .theme-customizer-page .content-sidebar,
+html.app-theme-gray.app-skin-dark .theme-customizer-page .content-sidebar .content-sidebar-header,
+html.app-theme-gray.app-skin-dark .theme-customizer-page .content-area .content-area-header {
+  background-color: var(--biotern-surface) !important;
+  border-color: var(--biotern-border) !important;
+}
+
+html.app-theme-gray.app-skin-dark .theme-customizer-page .content-sidebar {
+  border-right-color: var(--biotern-border) !important;
+}
+
+html.app-theme-gray.app-skin-dark .theme-customizer-page .content-sidebar .nav-link {
+  color: var(--bs-body-color);
+}
+
+html.app-theme-gray.app-skin-dark .theme-customizer-page .content-sidebar .nav-link.active,
+html.app-theme-gray.app-skin-dark .theme-customizer-page .content-sidebar .nav-link:hover {
+  background-color: var(--biotern-primary-soft);
+  color: var(--biotern-primary-soft-text);
+}
+
+.settings-theme-customizer .content-sidebar-header,
+.settings-theme-customizer .content-area-header {
+  background-color: var(--bs-body-bg) !important;
+  border-bottom: 1px dashed var(--bs-border-color);
+}
+
+.settings-theme-customizer .content-area-body {
+  padding: 1.75rem;
+}
+
+.settings-theme-customizer .content-area-body > .card.mb-0 {
+  border: 0;
+  background: transparent;
+}
+
+.settings-theme-customizer .content-area-body > .card.mb-0 > .card-body {
+  max-width: 980px;
+  margin: 0;
+  padding: 0.25rem 0;
+}
+
+.settings-theme-customizer .content-area-body .card-body > .mb-5,
+.settings-theme-customizer .content-area-body .card-body > .mb-4,
+.settings-theme-customizer .content-area-body .card-body > .mb-0 {
+  padding: 16px;
+  border: 1px solid var(--bs-border-color);
+  border-radius: 10px;
+  margin-bottom: 16px !important;
+  background: var(--bs-light);
+}
+
+html.app-skin-dark .settings-theme-customizer .content-area-body .card-body > .mb-5,
+html.app-skin-dark .settings-theme-customizer .content-area-body .card-body > .mb-4,
+html.app-skin-dark .settings-theme-customizer .content-area-body .card-body > .mb-0 {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.settings-theme-customizer .content-area-body .card-body > hr.my-5 {
+  margin: 1rem 0 !important;
+  border-top: 1px dashed var(--bs-border-color);
+  opacity: 1;
+}
+
+.settings-theme-customizer .content-area-body .form-label {
+  font-weight: 600;
+  margin-bottom: 0.45rem;
+}
+
+.settings-theme-customizer .content-area-body .card-body .form-control,
+.settings-theme-customizer .content-area-body .card-body .form-select,
+.settings-theme-customizer .content-area-body .card-body .select2-container--default .select2-selection {
+  background-color: var(--bs-body-bg);
+  border-color: var(--bs-border-color);
+  min-height: 40px;
+}
+
+.settings-theme-customizer .content-area-body .card-body .form-control:focus,
+.settings-theme-customizer .content-area-body .card-body .form-select:focus,
+.settings-theme-customizer .content-area-body .card-body .select2-container--default.select2-container--focus .select2-selection {
+  border-color: var(--bs-primary);
+}
+
+.settings-theme-customizer .theme-progress-thin {
+  height: 5px;
+}
+
+.settings-theme-customizer .theme-options-label-offset {
+  top: -12px;
+}
+
+/* ------------------------------------------------------------------------- */
+/* 6) Template color lock (force print surfaces white in dark skin)           */
+/* ------------------------------------------------------------------------- */
+
+html.app-skin-dark .app-application-letter-container,
+html.app-skin-dark .app-endorsement-letter-container,
+html.app-skin-dark .app-moa-container,
+html.app-skin-dark .app-resume-sheet,
+html.app-skin-dark #application_doc_content,
+html.app-skin-dark #application_doc_content *,
+html.app-skin-dark #endorsement_doc_content,
+html.app-skin-dark #endorsement_doc_content *,
+html.app-skin-dark #moa_doc_content,
+html.app-skin-dark #moa_doc_content *,
+html.app-skin-dark .app-resume-sheet,
+html.app-skin-dark .app-resume-sheet * {
+  background: #ffffff !important;
+  color: #000000 !important;
+}
+
+html.app-skin-dark .app-resume-photo,
+html.app-skin-dark .photo,
+html.app-skin-dark .app-resume-photo img,
+html.app-skin-dark .photo img {
+  background: transparent !important;
+}
+
+html.app-skin-dark .app-editor-paper,
+html.app-skin-dark .paper,
+html.app-skin-dark .app-editor-canvas,
+html.app-skin-dark #editor,
+html.app-skin-dark #editor * {
+  background: #ffffff !important;
+  color: #000000 !important;
+}
+
+html.app-skin-dark #editor img {
+  background: transparent !important;
+}

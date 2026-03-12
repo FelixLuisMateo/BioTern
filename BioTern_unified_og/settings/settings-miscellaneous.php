@@ -1,6 +1,5 @@
-<?php
+﻿<?php
 $page_title = 'Miscellaneous Settings';
-$page_styles = ['assets/css/settings-customizer-like.css'];
 include 'includes/header.php';
 ?>
 
@@ -263,3 +262,4 @@ include 'includes/header.php';
                 <!-- [ Content Area ] end -->
             </div>
             <?php include 'includes/footer.php'; ?>
+

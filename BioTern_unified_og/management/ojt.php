@@ -383,7 +383,9 @@ $page_title = 'BioTern || OJT Dashboard';
 $page_styles = array();
 include 'includes/header.php';
 ?>
-<link rel="stylesheet" type="text/css" href="assets/css/management-ojt-page.css">
+<link rel="stylesheet" type="text/css" href="assets/css/managements_filters.css">
+<link rel="stylesheet" type="text/css" href="assets/css/managements_ojt_shared.css">
+<link rel="stylesheet" type="text/css" href="assets/css/managements_ojt.css">
 <section class="ojt-print-sheet app-ojt-print-sheet">
     <img class="crest app-ojt-print-crest" src="assets/images/auth/auth-cover-login-bg.png" alt="crest" data-hide-onerror="1">
     <div class="header app-ojt-print-header">
@@ -475,7 +477,7 @@ include 'includes/header.php';
         </div>
 
         <div class="card app-ojt-dashboard-card card-body filter-card app-ojt-filter-card mb-3">
-            <form method="get" class="row g-2 align-items-end app-ojt-filter-form" id="ojtFilterForm">
+            <form method="get" class="row g-2 align-items-end filter-form app-ojt-filter-form" id="ojtFilterForm">
                 <div class="col-md-3">
                     <label class="form-label">Search Student</label>
                     <input type="text" name="search" id="ojtFilterSearch" class="form-control" value="<?php echo htmlspecialchars($search); ?>" placeholder="Name / Student ID / Course">

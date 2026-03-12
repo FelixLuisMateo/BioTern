@@ -7,7 +7,8 @@ $page_title = 'BioTern || OJT Create';
 $page_styles = array();
 include 'includes/header.php';
 ?>
-<link rel="stylesheet" type="text/css" href="assets/css/management-ojt-create-page.css">
+<link rel="stylesheet" type="text/css" href="assets/css/managements_ojt_shared.css">
+<link rel="stylesheet" type="text/css" href="assets/css/managements_ojt_create.css">
 
 <div class="page-header app-ojt-create-page-header">
                 <div class="page-header-left app-ojt-create-page-header-left d-flex align-items-center">

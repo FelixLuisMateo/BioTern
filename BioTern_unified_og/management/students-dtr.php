@@ -122,7 +122,7 @@ function status_badge($status) {
 $page_title = 'BioTern || Student DTR';
 include 'includes/header.php';
 ?>
-<link rel="stylesheet" type="text/css" href="assets/css/management-students-dtr-page.css">
+<link rel="stylesheet" type="text/css" href="assets/css/managements_students_dtr.css">
 
 <div class="page-header">
     <div class="page-header-left d-flex align-items-center">

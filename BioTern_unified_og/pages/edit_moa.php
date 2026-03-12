@@ -1,19 +1,29 @@
-<?php
+﻿<?php
 $script_name = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
 $asset_prefix = (strpos($script_name, '/pages/') !== false) ? '../' : '';
 $page_title = 'BioTern || Edit MOA';
 $base_href = $asset_prefix;
 $page_body_class = 'app-editor-page';
 $page_styles = [
+    'assets/css/page-editor-shell.css',
     'assets/css/edit-moa-dau-template-page.css',
-    'assets/css/template-color-lock.css',
 ];
 $page_scripts = [
-    'assets/js/edit-moa-template-runtime.js',
+    'assets/js/template-editor-page-runtime.js',
 ];
 
 include __DIR__ . '/../includes/header.php';
 ?>
+<script type="application/json" id="app-editor-config">
+{
+    "storageKey": "biotern_moa_template_html_v1",
+    "loadMode": "storage-or-fetch",
+    "resetMode": "storage-or-fetch",
+    "fetchUrl": "generate_moa.php?use_saved_template=0",
+    "fetchContentSelector": "#moa_doc_content",
+    "fetchFallbackHtml": "<p>Unable to load template.</p>"
+}
+</script>
 <div class="main-content app-editor-main-content">
     <div class="topbar app-editor-topbar">
         <button id="btn_save" class="btn btn-primary" type="button">Save Template</button>
@@ -46,3 +56,4 @@ include __DIR__ . '/../includes/header.php';
 </div>
 
 <?php include __DIR__ . '/../includes/footer.php'; ?>
+
