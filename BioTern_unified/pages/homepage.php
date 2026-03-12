@@ -242,7 +242,7 @@ try {
             COALESCE(NULLIF(u.email, ''), s.email) AS email,
             s.phone,
             s.department_id,
-            s.specialization,
+            s.office,
             s.created_at
          FROM supervisors s
          LEFT JOIN users u ON u.id = s.user_id

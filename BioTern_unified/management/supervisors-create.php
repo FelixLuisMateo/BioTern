@@ -18,14 +18,6 @@ function h($value): string
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
 }
 
-$users = [];
-$users_res = $conn->query("SELECT id, name, email FROM users ORDER BY name ASC");
-if ($users_res) {
-    while ($row = $users_res->fetch_assoc()) {
-        $users[] = $row;
-    }
-}
-
 $departments = [];
 $dept_res = $conn->query("SELECT id, name FROM departments ORDER BY name ASC");
 if ($dept_res) {
@@ -35,7 +27,8 @@ if ($dept_res) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $user_id = (int)($_POST['user_id'] ?? 0);
+    $user_email = trim((string)($_POST['user_email'] ?? ''));
+    $user_username = trim((string)($_POST['user_username'] ?? ''));
     $first_name = trim((string)($_POST['first_name'] ?? ''));
     $last_name = trim((string)($_POST['last_name'] ?? ''));
     $middle_name = trim((string)($_POST['middle_name'] ?? ''));
@@ -43,15 +36,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $phone = trim((string)($_POST['phone'] ?? ''));
     $department_id_raw = trim((string)($_POST['department_id'] ?? ''));
     $department_id = $department_id_raw !== '' ? (int)$department_id_raw : null;
-    $specialization = trim((string)($_POST['specialization'] ?? ''));
+    $office = trim((string)($_POST['office'] ?? ''));
     $bio = trim((string)($_POST['bio'] ?? ''));
     $profile_picture = '';
     $is_active = isset($_POST['is_active']) ? 1 : 0;
 
-    if ($user_id <= 0 || $first_name === '' || $last_name === '' || $email === '') {
+    if ($first_name === '' || $last_name === '' || $email === '') {
         $message = 'Please complete required fields.';
         $message_type = 'danger';
     } else {
+        $user_id = 0;
+        if ($user_username !== '') {
+            $user_stmt = $conn->prepare('SELECT id FROM users WHERE username = ? LIMIT 1');
+            if ($user_stmt) {
+                $user_stmt->bind_param('s', $user_username);
+                if ($user_stmt->execute()) {
+                    $user_stmt->bind_result($found_id);
+                    if ($user_stmt->fetch()) {
+                        $user_id = (int)$found_id;
+                    }
+                }
+                $user_stmt->close();
+            }
+        }
+        if ($user_id === 0) {
+            $lookup_email = $user_email !== '' ? $user_email : $email;
+            if ($lookup_email !== '') {
+                $user_stmt = $conn->prepare('SELECT id FROM users WHERE email = ? LIMIT 1');
+                if ($user_stmt) {
+                    $user_stmt->bind_param('s', $lookup_email);
+                    if ($user_stmt->execute()) {
+                        $user_stmt->bind_result($found_id);
+                        if ($user_stmt->fetch()) {
+                            $user_id = (int)$found_id;
+                        }
+                    }
+                    $user_stmt->close();
+                }
+            }
+        }
+
         if (isset($_FILES['profile_picture']) && is_array($_FILES['profile_picture']) && (int)$_FILES['profile_picture']['error'] !== UPLOAD_ERR_NO_FILE) {
             $file = $_FILES['profile_picture'];
             if ((int)$file['error'] !== UPLOAD_ERR_OK) {
@@ -95,9 +119,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($message !== '' && $message_type === 'danger') {
             // keep message and do not insert
         } else {
-        $stmt = $conn->prepare('INSERT INTO supervisors (user_id, first_name, last_name, middle_name, email, phone, department_id, specialization, bio, profile_picture, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+        $stmt = $conn->prepare('INSERT INTO supervisors (user_id, first_name, last_name, middle_name, email, phone, department_id, office, bio, profile_picture, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
         if ($stmt) {
-            $stmt->bind_param('isssssisssi', $user_id, $first_name, $last_name, $middle_name, $email, $phone, $department_id, $specialization, $bio, $profile_picture, $is_active);
+            $stmt->bind_param('isssssisssi', $user_id, $first_name, $last_name, $middle_name, $email, $phone, $department_id, $office, $bio, $profile_picture, $is_active);
             if ($stmt->execute()) {
                 header('Location: supervisors.php');
                 exit;
@@ -167,21 +191,12 @@ require_once dirname(__DIR__) . '/config/db.php';
 endif; ?>
             <form method="post" enctype="multipart/form-data" class="row g-3">
                 <div class="col-md-4">
-                    <label class="form-label">User *</label>
-                    <select name="user_id" class="form-select" required>
-                        <option value="">Select user</option>
-                        <?php
-require_once dirname(__DIR__) . '/config/db.php';
-foreach ($users as $u): ?>
-                            <option value="<?php
-require_once dirname(__DIR__) . '/config/db.php';
-echo (int)$u['id']; ?>"><?php
-require_once dirname(__DIR__) . '/config/db.php';
-echo h(($u['name'] ?? '') . ' (' . ($u['email'] ?? '') . ')'); ?></option>
-                        <?php
-require_once dirname(__DIR__) . '/config/db.php';
-endforeach; ?>
-                    </select>
+                    <label class="form-label">User Username</label>
+                    <input type="text" name="user_username" class="form-control" placeholder="">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">User Email</label>
+                    <input type="email" name="user_email" class="form-control" placeholder="">
                 </div>
                 <div class="col-md-4"><label class="form-label">First Name *</label><input type="text" name="first_name" class="form-control" required></div>
                 <div class="col-md-4"><label class="form-label">Last Name *</label><input type="text" name="last_name" class="form-control" required></div>
@@ -205,7 +220,7 @@ require_once dirname(__DIR__) . '/config/db.php';
 endforeach; ?>
                     </select>
                 </div>
-                <div class="col-md-4"><label class="form-label">Specialization</label><input type="text" name="specialization" class="form-control"></div>
+                <div class="col-md-4"><label class="form-label">Office</label><input type="text" name="office" class="form-control"></div>
                 <div class="col-md-4"><label class="form-label">Profile Picture</label><input type="file" name="profile_picture" class="form-control" accept="image/*"></div>
                 <div class="col-12"><label class="form-label">Bio</label><textarea name="bio" rows="2" class="form-control"></textarea></div>
                 <div class="col-12 form-check ms-1"><input class="form-check-input" type="checkbox" name="is_active" id="is_active_create" checked><label class="form-check-label" for="is_active_create">Active</label></div>

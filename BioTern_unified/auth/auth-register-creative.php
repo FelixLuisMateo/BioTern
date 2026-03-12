@@ -1152,7 +1152,7 @@ endforeach; ?>
                                     </select>
                                 </div>
                                 <div class="col-6 mb-2">
-                                    <input type="text" name="specialization" class="form-control" placeholder="Area of Expertise" required>
+                                    <input type="text" name="office" class="form-control" placeholder="Office" required>
                                 </div>
                             </div>
                             <div class="row g-3">

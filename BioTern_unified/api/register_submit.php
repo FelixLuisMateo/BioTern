@@ -674,7 +674,7 @@ if ($role === 'supervisor') {
     $last_name = getPost('last_name');
     $email = getPost('email');
     $phone = getPost('phone');
-    $specialization = getPost('specialization');
+    $office = getPost('office');
     $username = getPost('username');
     $account_email = getPost('account_email');
 
@@ -688,9 +688,9 @@ if ($role === 'supervisor') {
     }
 
     // Insert into supervisors table
-    $stmt = $mysqli->prepare("INSERT INTO supervisors (user_id, first_name, last_name, middle_name, email, phone, department_id, specialization, is_active, created_at) VALUES (?, ?, ?, NULL, ?, ?, NULL, ?, 1, NOW())");
+    $stmt = $mysqli->prepare("INSERT INTO supervisors (user_id, first_name, last_name, middle_name, email, phone, department_id, office, is_active, created_at) VALUES (?, ?, ?, NULL, ?, ?, NULL, ?, 1, NOW())");
     if ($stmt) {
-        $stmt->bind_param('isssss', $userId, $first_name, $last_name, $final_email, $phone, $specialization);
+        $stmt->bind_param('isssss', $userId, $first_name, $last_name, $final_email, $phone, $office);
         if (!$stmt->execute()) {
             $error = $stmt->error;
             $stmt->close();

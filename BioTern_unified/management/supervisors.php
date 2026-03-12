@@ -115,7 +115,7 @@ echo count($rows); ?> total</span>
                             <th>Email</th>
                             <th>Phone</th>
                             <th>Department</th>
-                            <th>Specialization</th>
+                            <th>Office</th>
                             <th>Status</th>
                             <th class="text-center">Actions</th>
                         </tr>
@@ -152,7 +152,7 @@ require_once dirname(__DIR__) . '/config/db.php';
 echo h($r['department_name'] ?? '-'); ?></td>
                                 <td><?php
 require_once dirname(__DIR__) . '/config/db.php';
-echo h($r['specialization'] ?? '-'); ?></td>
+echo h($r['office'] ?? '-'); ?></td>
                                 <td>
                                     <?php
 require_once dirname(__DIR__) . '/config/db.php';
