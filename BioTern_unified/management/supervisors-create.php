@@ -18,33 +18,26 @@ function h($value): string
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
 }
 
-function generate_unique_username(mysqli $conn, string $base): string
+function is_valid_username(string $username): bool
 {
-    $base = preg_replace('/[^a-zA-Z0-9._-]/', '', $base);
-    if ($base === '') {
-        $base = 'user';
-    }
-    $candidate = $base;
-    $suffix = 1;
-    while (true) {
-        $stmt = $conn->prepare('SELECT id FROM users WHERE username = ? LIMIT 1');
-        if (!$stmt) {
-            return $candidate;
-        }
-        $stmt->bind_param('s', $candidate);
-        $stmt->execute();
-        $stmt->store_result();
-        $exists = $stmt->num_rows > 0;
-        $stmt->close();
-        if (!$exists) {
-            return $candidate;
-        }
-        $candidate = $base . $suffix;
-        $suffix++;
-        if ($suffix > 99) {
-            return $candidate . time();
+    return (bool)preg_match('/^[a-zA-Z0-9._-]{4,30}$/', $username);
+}
+
+function has_disallowed_username_term(string $username): bool
+{
+    $check = strtolower($username);
+    $blocked_terms = [
+        'admin', 'root', 'system', 'support', 'moderator', 'owner',
+        'fuck', 'shit', 'bitch', 'asshole', 'nigger', 'porn', 'sex'
+    ];
+
+    foreach ($blocked_terms as $term) {
+        if (strpos($check, $term) !== false) {
+            return true;
         }
     }
+
+    return false;
 }
 
 $departments = [];
@@ -57,6 +50,7 @@ if ($dept_res) {
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $user_email = trim((string)($_POST['user_email'] ?? ''));
+    $username_input = trim((string)($_POST['username'] ?? ''));
     $first_name = trim((string)($_POST['first_name'] ?? ''));
     $last_name = trim((string)($_POST['last_name'] ?? ''));
     $middle_name = trim((string)($_POST['middle_name'] ?? ''));
@@ -74,40 +68,70 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $message_type = 'danger';
     } else {
         $user_id = 0;
-        $has_user_input = ($user_email !== '');
-        if ($user_id === 0) {
-            $lookup_email = $user_email !== '' ? $user_email : $email;
-            if ($lookup_email !== '') {
-                $user_stmt = $conn->prepare('SELECT id FROM users WHERE email = ? LIMIT 1');
-                if ($user_stmt) {
-                    $user_stmt->bind_param('s', $lookup_email);
-                    if ($user_stmt->execute()) {
-                        $user_stmt->bind_result($found_id);
-                        if ($user_stmt->fetch()) {
-                            $user_id = (int)$found_id;
-                        }
+        $lookup_email = $user_email !== '' ? $user_email : $email;
+        if ($lookup_email !== '') {
+            $user_stmt = $conn->prepare('SELECT id FROM users WHERE email = ? LIMIT 1');
+            if ($user_stmt) {
+                $user_stmt->bind_param('s', $lookup_email);
+                if ($user_stmt->execute()) {
+                    $user_stmt->bind_result($found_id);
+                    if ($user_stmt->fetch()) {
+                        $user_id = (int)$found_id;
                     }
-                    $user_stmt->close();
                 }
+                $user_stmt->close();
             }
         }
 
-        if ($has_user_input && $user_id === 0) {
-            $final_email = $user_email !== '' ? $user_email : $email;
-            if ($final_email !== '') {
+        if ($user_id === 0 && $lookup_email !== '') {
+                if ($username_input === '') {
+                    $message = 'Username is required when creating a new user account.';
+                    $message_type = 'danger';
+                } elseif (!is_valid_username($username_input)) {
+                    $message = 'Username must be 4-30 characters and use only letters, numbers, dot, underscore, or hyphen.';
+                    $message_type = 'danger';
+                } elseif (has_disallowed_username_term($username_input)) {
+                    $message = 'Please choose a more appropriate username.';
+                    $message_type = 'danger';
+                }
+
+                if ($message !== '') {
+                    // Validation error above.
+                } else {
+                    $check_stmt = $conn->prepare('SELECT id FROM users WHERE username = ? LIMIT 1');
+                    if ($check_stmt) {
+                        $check_stmt->bind_param('s', $username_input);
+                        $check_stmt->execute();
+                        $check_stmt->store_result();
+                        if ($check_stmt->num_rows > 0) {
+                            $message = 'Username already exists. Please choose another one.';
+                            $message_type = 'danger';
+                        }
+                        $check_stmt->close();
+                    }
+                }
+
+                if ($message !== '') {
+                    // Skip insert on username validation failures.
+                } else {
                 $name = trim($first_name . ' ' . $last_name);
-                $base_username = preg_replace('/@.+$/', '', $final_email);
-                $final_username = generate_unique_username($conn, $base_username);
                 $random_password = bin2hex(random_bytes(6));
                 $password_hash = password_hash($random_password, PASSWORD_BCRYPT);
                 $user_ins = $conn->prepare("INSERT INTO users (name, username, email, password, role, is_active, application_status, created_at) VALUES (?, ?, ?, ?, 'supervisor', 1, 'approved', NOW())");
                 if ($user_ins) {
-                    $user_ins->bind_param('ssss', $name, $final_username, $final_email, $password_hash);
+                    $user_ins->bind_param('ssss', $name, $username_input, $lookup_email, $password_hash);
                     if ($user_ins->execute()) {
                         $user_id = (int)$user_ins->insert_id;
                     }
                     $user_ins->close();
                 }
+                }
+        }
+
+        if ($user_id <= 0) {
+            if ($message === '') {
+                $message = 'Unable to link supervisor to users table. Please use a valid email.';
+                $message_type = 'danger';
             }
         }
 
@@ -228,6 +252,10 @@ endif; ?>
                 <div class="col-md-4">
                     <label class="form-label">User Email</label>
                     <input type="email" name="user_email" class="form-control" placeholder="">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Username</label>
+                    <input type="text" name="username" class="form-control">
                 </div>
                 <div class="col-md-4"><label class="form-label">First Name *</label><input type="text" name="first_name" class="form-control" required></div>
                 <div class="col-md-4"><label class="form-label">Last Name *</label><input type="text" name="last_name" class="form-control" required></div>

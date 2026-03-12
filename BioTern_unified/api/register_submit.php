@@ -121,6 +121,26 @@ function tableHasColumn($mysqli, $tableName, $columnName) {
     return $has;
 }
 
+function is_valid_username($username) {
+    return (bool)preg_match('/^[a-zA-Z0-9._-]{4,30}$/', (string)$username);
+}
+
+function has_disallowed_username_term($username) {
+    $check = strtolower((string)$username);
+    $blocked_terms = [
+        'admin', 'root', 'system', 'support', 'moderator', 'owner',
+        'fuck', 'shit', 'bitch', 'asshole', 'nigger', 'porn', 'sex'
+    ];
+
+    foreach ($blocked_terms as $term) {
+        if (strpos($check, $term) !== false) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 $mysqli->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS application_status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'approved'");
 $mysqli->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS application_submitted_at DATETIME NULL");
 $mysqli->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS approved_by INT NULL");
@@ -490,6 +510,16 @@ if ($role === 'student') {
     // Ensure username is not empty
     if (!$username) {
         $username = $first_name . '.' . $last_name;
+    }
+
+    if (!is_valid_username($username)) {
+        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Username must be 4-30 characters and use only letters, numbers, dot, underscore, or hyphen.'));
+        exit;
+    }
+
+    if (has_disallowed_username_term($username)) {
+        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Please choose a more appropriate username.'));
+        exit;
     }
 
     // Hash password
