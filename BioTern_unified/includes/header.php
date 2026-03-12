@@ -6,10 +6,17 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// Build the login URL dynamically so it always points to BioTern_unified regardless of server path.
+$_header_script = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
+$_header_unified_pos = stripos($_header_script, '/BioTern_unified/');
+$_header_login_url = ($_header_unified_pos !== false)
+    ? substr($_header_script, 0, $_header_unified_pos) . '/BioTern_unified/auth/auth-login-cover.php'
+    : '/BioTern_unified/auth/auth-login-cover.php';
+
 // Enforce authenticated session for all pages using the shared app header.
 $header_user_id_session = (int)($_SESSION['user_id'] ?? 0);
 if ($header_user_id_session <= 0) {
-    header('Location: /BioTern/BioTern_organized/auth-login-cover.php');
+    header('Location: ' . $_header_login_url);
     exit;
 }
 
@@ -30,7 +37,7 @@ if (!$header_db->connect_errno) {
                 setcookie(session_name(), '', time() - 42000, $params['path'], $params['domain'], $params['secure'], $params['httponly']);
             }
             session_destroy();
-            header('Location: /BioTern/BioTern_organized/auth-login-cover.php');
+            header('Location: ' . $_header_login_url);
             exit;
         }
 
