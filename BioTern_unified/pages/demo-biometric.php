@@ -318,11 +318,28 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 }
 
-// Fetch students for dropdown
-$students_query = "SELECT s.id, s.student_id, s.first_name, s.last_name FROM students s ORDER BY s.first_name";
+// Fetch students for dropdown (include pending applications / in-review users)
+$conn->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS application_status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'approved'");
+
+$students_query = "
+    SELECT
+        s.id,
+        COALESCE(NULLIF(s.student_id, ''), CONCAT('APP-', u.id)) AS student_id,
+        COALESCE(NULLIF(s.first_name, ''), TRIM(SUBSTRING_INDEX(u.name, ' ', 1))) AS first_name,
+        COALESCE(NULLIF(s.last_name, ''), TRIM(SUBSTRING_INDEX(u.name, ' ', -1))) AS last_name,
+                COALESCE(u.application_status, 'approved') AS application_status
+    FROM users u
+    LEFT JOIN students s ON s.user_id = u.id
+    WHERE u.role = 'student'
+            AND COALESCE(u.application_status, 'approved') = 'approved'
+            AND s.id IS NOT NULL
+    ORDER BY
+      COALESCE(s.first_name, u.name),
+      COALESCE(s.last_name, u.name)
+";
 $students_result = $conn->query($students_query);
 $students = [];
-if ($students_result->num_rows > 0) {
+if ($students_result && $students_result->num_rows > 0) {
     while ($row = $students_result->fetch_assoc()) {
         $students[] = $row;
     }
@@ -932,8 +949,11 @@ include 'includes/header.php';
                                 <select name="student_id" id="student_id" required>
                                     <option value="">-- Choose a Student --</option>
                                     <?php foreach ($students as $student): ?>
-                                        <option value="<?php echo $student['id']; ?>">
-                                            <?php echo $student['student_id'] . ' - ' . $student['first_name'] . ' ' . $student['last_name']; ?>
+                                        <?php
+                                            $option_label = trim((string)($student['student_id'] ?? '')) . ' - ' . trim((string)($student['first_name'] ?? '')) . ' ' . trim((string)($student['last_name'] ?? ''));
+                                        ?>
+                                        <option value="<?php echo (int)($student['id'] ?? 0); ?>">
+                                            <?php echo htmlspecialchars($option_label, ENT_QUOTES, 'UTF-8'); ?>
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
