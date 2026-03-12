@@ -412,14 +412,6 @@ $page_title = 'BioTern || Student Applications';
 include 'includes/header.php';
 ?>
 <style>
-    .nxl-container,
-    .nxl-content,
-    .nxl-content.apps-review-shell {
-        padding-top: -22pxd !important;
-        margin-top: -22px !important;
-        margin-left: -50px;
-    }
-
     .apps-review-shell {
         padding-top: 0;
     }
@@ -727,7 +719,14 @@ include 'includes/header.php';
         box-sizing: border-box;
     }
 
-.table-responsive { overflow-x: hidden; }
+    .table-responsive {
+        overflow-x: auto;
+        overflow-y: visible;
+    }
+
+    .apps-review-table {
+        min-width: 980px;
+    }
 
 .apps-review-table td[data-label="Status"],
 .apps-review-table th:nth-child(3),
@@ -888,8 +887,7 @@ include 'includes/header.php';
         }
     }
 </style>
-<main class="nxl-container">
-    <div class="nxl-content apps-review-shell">
+<div class="apps-review-shell">
         <div class="apps-review-title-row">
             <div class="page-header-left d-flex align-items-center">
                 <div class="page-header-title">
@@ -1186,7 +1184,6 @@ include 'includes/header.php';
                     </div>
                 </div>
             </div>
-        </div>
     </div>
 <script>
 document.addEventListener('DOMContentLoaded', function () {

@@ -1215,6 +1215,7 @@ endif; ?>
     <script src="assets/vendors/js/apexcharts.min.js"></script>
     <script src="assets/vendors/js/circle-progress.min.js"></script>
     <!--! END: Vendors JS !-->
+    <script src="assets/js/global-ui-helpers.js"></script>
     <!--! BEGIN: Apps Init  !-->
     <script src="assets/js/common-init.min.js"></script>
     <script src="assets/js/dashboard-init.min.js"></script>

@@ -26,17 +26,21 @@ $can_delete_student = in_array($current_user_role, ['admin', 'coordinator', 'sup
 $eval_flash_message = '';
 $eval_flash_type = 'success';
 
-function table_exists(mysqli $conn, string $table): bool {
-    $safe = $conn->real_escape_string($table);
-    $res = $conn->query("SHOW TABLES LIKE '{$safe}'");
-    return ($res instanceof mysqli_result) && $res->num_rows > 0;
+if (!function_exists('table_exists')) {
+    function table_exists(mysqli $conn, string $table): bool {
+        $safe = $conn->real_escape_string($table);
+        $res = $conn->query("SHOW TABLES LIKE '{$safe}'");
+        return ($res instanceof mysqli_result) && $res->num_rows > 0;
+    }
 }
 
-function table_has_column(mysqli $conn, string $table, string $column): bool {
-    $safe_table = $conn->real_escape_string($table);
-    $safe_col = $conn->real_escape_string($column);
-    $res = $conn->query("SHOW COLUMNS FROM `{$safe_table}` LIKE '{$safe_col}'");
-    return ($res instanceof mysqli_result) && $res->num_rows > 0;
+if (!function_exists('table_has_column')) {
+    function table_has_column(mysqli $conn, string $table, string $column): bool {
+        $safe_table = $conn->real_escape_string($table);
+        $safe_col = $conn->real_escape_string($column);
+        $res = $conn->query("SHOW COLUMNS FROM `{$safe_table}` LIKE '{$safe_col}'");
+        return ($res instanceof mysqli_result) && $res->num_rows > 0;
+    }
 }
 
 function resolve_profile_image_url(string $profilePath): ?string {

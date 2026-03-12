@@ -49,11 +49,13 @@ function require_roles_page(array $allowed_roles): void
     }
 }
 
-function table_exists(mysqli $conn, string $table_name): bool
-{
-    $safe = $conn->real_escape_string($table_name);
-    $res = $conn->query("SHOW TABLES LIKE '{$safe}'");
-    return $res instanceof mysqli_result && $res->num_rows > 0;
+if (!function_exists('table_exists')) {
+    function table_exists(mysqli $conn, string $table_name): bool
+    {
+        $safe = $conn->real_escape_string($table_name);
+        $res = $conn->query("SHOW TABLES LIKE '{$safe}'");
+        return $res instanceof mysqli_result && $res->num_rows > 0;
+    }
 }
 
 function insert_audit_log(

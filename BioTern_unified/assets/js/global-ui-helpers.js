@@ -28,6 +28,52 @@
     }
   }
 
+  function injectPersistentMaximizeStyle() {
+    if (document.getElementById("app-maximize-persist-style")) {
+      return;
+    }
+    var style = document.createElement("style");
+    style.id = "app-maximize-persist-style";
+    style.textContent =
+      "html.app-maximize-persist .nxl-navigation{transform:none !important;pointer-events:auto !important;}" +
+      "html.app-maximize-persist .full-screen-switcher .maximize{display:none !important;}" +
+      "html.app-maximize-persist .full-screen-switcher .minimize{display:inline-block !important;}" +
+      "html:not(.app-maximize-persist) .full-screen-switcher .maximize{display:inline-block !important;}" +
+      "html:not(.app-maximize-persist) .full-screen-switcher .minimize{display:none !important;}";
+    document.head.appendChild(style);
+  }
+
+  function getPersistentMaximizePreference() {
+    return getStorageItem("app-maximize-persist") === "1";
+  }
+
+  function setPersistentMaximizePreference(enabled) {
+    setStorageItem("app-maximize-persist", enabled ? "1" : "0");
+  }
+
+  function applyPersistentMaximizeState(enabled) {
+    injectPersistentMaximizeStyle();
+    document.documentElement.classList.toggle("app-maximize-persist", !!enabled);
+  }
+
+  function syncFullscreenButtonsState() {
+    var enabled = document.documentElement.classList.contains("app-maximize-persist");
+    var toggles = document.querySelectorAll('.full-screen-switcher .nxl-head-link, [data-action="toggle-fullscreen"]');
+    for (var i = 0; i < toggles.length; i += 1) {
+      toggles[i].classList.toggle("is-maximized", enabled);
+      toggles[i].setAttribute("aria-pressed", enabled ? "true" : "false");
+      toggles[i].setAttribute("title", enabled ? "Exit maximize" : "Maximize");
+    }
+  }
+
+  function togglePersistentMaximizeState() {
+    var nextState = !document.documentElement.classList.contains("app-maximize-persist");
+    setPersistentMaximizePreference(nextState);
+    applyPersistentMaximizeState(nextState);
+    syncFullscreenButtonsState();
+    return nextState;
+  }
+
   function showToast(container, html, timeoutMs) {
     if (!container) {
       return;
@@ -859,26 +905,80 @@
     document.addEventListener("touchend", endDrag, { passive: false, capture: true });
   }
 
+  function toggleFullscreenSafe() {
+    var root = document.documentElement;
+    var isFull = !!(
+      document.fullscreenElement ||
+      document.webkitFullscreenElement ||
+      document.mozFullScreenElement ||
+      document.msFullscreenElement
+    );
+
+    if (!isFull) {
+      var request =
+        root.requestFullscreen ||
+        root.webkitRequestFullscreen ||
+        root.mozRequestFullScreen ||
+        root.msRequestFullscreen;
+      if (typeof request === "function") {
+        request.call(root);
+      }
+      return;
+    }
+
+    var exit =
+      document.exitFullscreen ||
+      document.webkitExitFullscreen ||
+      document.mozCancelFullScreen ||
+      document.msExitFullscreen;
+    if (typeof exit === "function") {
+      exit.call(document);
+    }
+  }
+
+  function ensureJqueryFullscreenHelper() {
+    if (!window.jQuery || !window.jQuery.fn) {
+      return;
+    }
+    if (typeof window.jQuery.fn.fullScreenHelper === "function") {
+      return;
+    }
+
+    window.jQuery.fn.fullScreenHelper = function (action) {
+      if (action === "toggle" || typeof action === "undefined") {
+        toggleFullscreenSafe();
+      }
+      return this;
+    };
+  }
+
   function initDelegatedUiHandlers() {
+    ensureJqueryFullscreenHelper();
+    applyPersistentMaximizeState(getPersistentMaximizePreference());
+    syncFullscreenButtonsState();
+
     document.addEventListener("click", function (event) {
-      var toggle = event.target.closest('[data-action="toggle-fullscreen"]');
+      var toggle = event.target.closest(
+        '[data-action="toggle-fullscreen"], .full-screen-switcher .nxl-head-link'
+      );
       if (toggle) {
         event.preventDefault();
+        var enabled = togglePersistentMaximizeState();
         try {
           if (
             window.jQuery &&
             window.jQuery.fn &&
             typeof window.jQuery.fn.fullScreenHelper === "function"
           ) {
-            window.jQuery("body").fullScreenHelper("toggle");
+            if (enabled || document.fullscreenElement) {
+              window.jQuery("body").fullScreenHelper("toggle");
+            }
             return;
           }
         } catch (err) {}
 
-        if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
-          document.documentElement.requestFullscreen();
-        } else if (document.exitFullscreen) {
-          document.exitFullscreen();
+        if (enabled || document.fullscreenElement) {
+          toggleFullscreenSafe();
         }
       }
 

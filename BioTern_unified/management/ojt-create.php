@@ -1115,6 +1115,7 @@ include 'includes/header.php';
     <script src="assets/vendors/js/select2.min.js"></script>
     <script src="assets/vendors/js/select2-active.min.js"></script>
     <!--! END: Vendors JS !-->
+    <script src="assets/js/global-ui-helpers.js"></script>
     <!--! BEGIN: Apps Init  !-->
     <script src="assets/js/common-init.min.js"></script>
     <script src="assets/js/theme-customizer-init.min.js"></script>

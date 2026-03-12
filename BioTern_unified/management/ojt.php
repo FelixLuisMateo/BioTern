@@ -1126,6 +1126,7 @@ endforeach; ?>
     </div>
 </main>
 <script src="assets/vendors/js/vendors.min.js"></script>
+<script src="assets/js/global-ui-helpers.js"></script>
 <script src="assets/js/common-init.min.js"></script>
 <script src="assets/js/theme-customizer-init.min.js"></script>
 <script>
