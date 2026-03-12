@@ -71,7 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $phone = trim((string)($_POST['phone'] ?? ''));
     $department_id_raw = trim((string)($_POST['department_id'] ?? ''));
     $department_id = $department_id_raw !== '' ? (int)$department_id_raw : null;
-    $specialization = trim((string)($_POST['specialization'] ?? ''));
+    $office = trim((string)($_POST['office'] ?? ''));
     $bio = trim((string)($_POST['bio'] ?? ''));
     $profile_picture = trim((string)($_POST['profile_picture'] ?? ''));
     $is_active = isset($_POST['is_active']) ? 1 : 0;
@@ -80,9 +80,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $message = 'Please complete required fields.';
         $message_type = 'danger';
     } else {
-        $up = $conn->prepare('UPDATE supervisors SET user_id = ?, first_name = ?, last_name = ?, middle_name = ?, email = ?, phone = ?, department_id = ?, specialization = ?, bio = ?, profile_picture = ?, is_active = ? WHERE id = ?');
+        $up = $conn->prepare('UPDATE supervisors SET user_id = ?, first_name = ?, last_name = ?, middle_name = ?, email = ?, phone = ?, department_id = ?, office = ?, bio = ?, profile_picture = ?, is_active = ? WHERE id = ?');
         if ($up) {
-            $up->bind_param('isssssisssii', $user_id, $first_name, $last_name, $middle_name, $email, $phone, $department_id, $specialization, $bio, $profile_picture, $is_active, $id);
+            $up->bind_param('isssssisssii', $user_id, $first_name, $last_name, $middle_name, $email, $phone, $department_id, $office, $bio, $profile_picture, $is_active, $id);
             if ($up->execute()) {
                 header('Location: supervisors.php');
                 exit;
@@ -137,7 +137,7 @@ include 'includes/header.php';
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <div class="col-md-4"><label class="form-label">Specialization</label><input type="text" name="specialization" class="form-control" value="<?php echo h($supervisor['specialization']); ?>"></div>
+                <div class="col-md-4"><label class="form-label">Office</label><input type="text" name="office" class="form-control" value="<?php echo h($supervisor['office'] ?? ''); ?>"></div>
                 <div class="col-md-4"><label class="form-label">Profile Picture (path)</label><input type="text" name="profile_picture" class="form-control" value="<?php echo h($supervisor['profile_picture']); ?>"></div>
                 <div class="col-12"><label class="form-label">Bio</label><textarea name="bio" rows="2" class="form-control"><?php echo h($supervisor['bio']); ?></textarea></div>
                 <div class="col-12 form-check ms-1"><input class="form-check-input" type="checkbox" name="is_active" id="is_active_edit" <?php echo ((int)$supervisor['is_active'] === 1) ? 'checked' : ''; ?>><label class="form-check-label" for="is_active_edit">Active</label></div>
