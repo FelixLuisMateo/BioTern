@@ -402,26 +402,45 @@ include 'includes/header.php';
             border-radius: 14px;
             background: #ffffff;
             box-shadow: 0 6px 18px rgba(15, 23, 42, 0.04);
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .page-header-left {
+            flex: 1 1 auto;
+            min-width: 220px;
         }
         .page-header-right {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            align-content: flex-end;
+            flex-wrap: wrap;
             row-gap: 6px;
             column-gap: 6px !important;
-            flex-wrap: wrap;
-            align-items: center;
+            flex: 0 1 auto;
         }
         .page-header-right .btn,
+        .page-header-right a.btn,
         .page-header-right form .btn {
-            min-height: 34px;
+            min-height: 32px;
             border-radius: 8px;
-            font-size: 11px;
-            font-weight: 600;
-            letter-spacing: .02em;
-            padding: 0.34rem 0.72rem;
-            line-height: 1.1;
+            font-size: 10.5px;
+            font-weight: 700;
+            letter-spacing: .01em;
+            padding: 0.28rem 0.58rem;
+            line-height: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
         }
         .page-header-right form {
             margin: 0;
+            display: inline-flex;
         }
+        .page-header-right .btn i { font-size: 11px; }
         .page-header-right .btn.btn-light,
         .page-header-right .btn.btn-outline-secondary,
         .page-header-right .btn.btn-outline-primary {

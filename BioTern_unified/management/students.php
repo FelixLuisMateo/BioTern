@@ -333,6 +333,15 @@ usort($print_students, function ($a, $b) {
     <meta name="description" content="">
     <meta name="keyword" content="">
     <meta name="author" content="ACT 2A Group 5">
+    <script>
+        (function () {
+            var path = (window.location && window.location.pathname) ? window.location.pathname : '';
+            var marker = '/BioTern_unified/';
+            var idx = path.toLowerCase().indexOf(marker.toLowerCase());
+            var base = idx >= 0 ? path.substring(0, idx + marker.length) : '/BioTern/BioTern_unified/';
+            window.__bioternThemeApi = base + 'api/theme-customizer.php';
+        })();
+    </script>
     <title>BioTern || Students</title>
     <link rel="shortcut icon" type="image/x-icon" href="/BioTern/BioTern_unified/assets/images/favicon.ico?v=20260310">
     <script src="assets/js/theme-preload-init.min.js"></script>
@@ -686,6 +695,20 @@ usort($print_students, function ($a, $b) {
             border-top-right-radius: 0.5rem !important;
             border-bottom-left-radius: 0.5rem !important;
             border-bottom-right-radius: 0.5rem !important;
+        }
+
+        /* Students page: force desktop minimenu hover panel to stay in front of header layers */
+        @media (min-width: 1025px) {
+            html.minimenu .nxl-navigation:hover {
+                z-index: 5000 !important;
+            }
+
+            html.minimenu .nxl-navigation:hover .navbar-wrapper,
+            html.minimenu .nxl-navigation:hover .navbar-content,
+            html.minimenu .nxl-navigation:hover .m-header {
+                position: relative !important;
+                z-index: 5001 !important;
+            }
         }
 
         /* Keep filter/select controls below sidebar when mobile nav is open */

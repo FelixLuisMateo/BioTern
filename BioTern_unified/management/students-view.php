@@ -408,6 +408,15 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
     <meta name="description" content="">
     <meta name="keyword" content="">
     <meta name="author" content="ACT 2A Group 5">
+    <script>
+        (function () {
+            var path = (window.location && window.location.pathname) ? window.location.pathname : '';
+            var marker = '/BioTern_unified/';
+            var idx = path.toLowerCase().indexOf(marker.toLowerCase());
+            var base = idx >= 0 ? path.substring(0, idx + marker.length) : '/BioTern/BioTern_unified/';
+            window.__bioternThemeApi = base + 'api/theme-customizer.php';
+        })();
+    </script>
     <title>BioTern || Student Profile - <?php
 require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars($student['first_name'] . ' ' . $student['last_name']); ?></title>
@@ -419,6 +428,7 @@ echo htmlspecialchars($student['first_name'] . ' ' . $student['last_name']); ?><
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2-theme.min.css">
     <script>try{var s=localStorage.getItem('app-skin')||localStorage.getItem('app_skin')||localStorage.getItem('theme'); if(s&&s.indexOf('dark')!==-1)document.documentElement.classList.add('app-skin-dark');}catch(e){};</script>
     <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/css/layout-shared-overrides.css">
     <style>
         html, body {
             height: 100%;
@@ -558,6 +568,20 @@ echo htmlspecialchars($student['first_name'] . ' ' . $student['last_name']); ?><
             background-color: #2d3748;
         }
 
+        /* Keep minimenu hover panel above header/page-header on this page */
+        @media (min-width: 1025px) {
+            html.minimenu .nxl-navigation:hover {
+                z-index: 5000 !important;
+            }
+
+            html.minimenu .nxl-navigation:hover .navbar-wrapper,
+            html.minimenu .nxl-navigation:hover .navbar-content,
+            html.minimenu .nxl-navigation:hover .m-header {
+                position: relative !important;
+                z-index: 5001 !important;
+            }
+        }
+
         @media (max-width: 767.98px) {
             .profile-stats {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -596,7 +620,7 @@ echo htmlspecialchars($student['first_name'] . ' ' . $student['last_name']); ?><
 <body>
     <?php
 require_once dirname(__DIR__) . '/config/db.php';
-include_once 'includes/navigation.php'; ?>
+include_once dirname(__DIR__) . '/includes/navigation.php'; ?>
     <!--! Header !-->
     <header class="nxl-header">
         <div class="header-wrapper">
