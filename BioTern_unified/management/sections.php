@@ -244,6 +244,19 @@ include 'includes/header.php';
         background-color: #334155 !important;
         color: #ffffff !important;
     }
+
+    /* Keep Select2 menus behind other elements. */
+    .select2-container--open {
+        z-index: auto !important;
+    }
+
+    .select2-dropdown {
+        z-index: auto !important;
+    }
+    
+    .select2-container {
+        z-index: auto !important;
+    }
 </style>
 <div class="page-header">
     <div class="page-header-left d-flex align-items-center">
@@ -395,16 +408,35 @@ require_once dirname(__DIR__) . '/config/db.php';
 <?php include 'includes/footer.php'; ?>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    function initSectionFilterSelect(selector) {
+        if (!window.jQuery || !window.jQuery.fn || !window.jQuery.fn.select2) return;
+        if (!$(selector).length) return;
+
+        try {
+            if ($(selector).hasClass('select2-hidden-accessible')) {
+                $(selector).select2('destroy');
+            }
+            $(selector).select2({
+                width: '100%',
+                allowClear: false,
+                dropdownAutoWidth: false,
+                minimumResultsForSearch: Infinity,
+                dropdownParent: $('body')
+            });
+        } catch (e) {
+            $(selector).removeClass('select2-hidden-accessible').css({
+                position: '',
+                left: '',
+                width: '',
+                height: '',
+                overflow: ''
+            });
+        }
+    }
+
     if (window.jQuery) {
         ['#filter-course', '#filter-department', '#filter-section', '#filter-status'].forEach(function (selector) {
-            if ($(selector).length) {
-                $(selector).select2({
-                    width: '100%',
-                    allowClear: false,
-                    dropdownAutoWidth: false,
-                    minimumResultsForSearch: Infinity
-                });
-            }
+            initSectionFilterSelect(selector);
         });
     }
 

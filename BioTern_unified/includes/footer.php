@@ -549,6 +549,54 @@ require_once dirname(__DIR__) . '/config/db.php';
                     toggle.removeAttribute('data-bs-toggle');
                     toggle.removeAttribute('data-bs-auto-close');
                     menu.style.display = 'none';
+                    menu.style.position = 'fixed';
+                    menu.style.zIndex = '7000';
+                    menu.style.left = '-9999px';
+                    menu.classList.add('header-search-portal-menu');
+                    document.body.appendChild(menu);
+
+                    var autoCloseTimer;
+                    function setupAutoCloseOnPageDropdown() {
+                        var select2Dropdowns = document.querySelectorAll('.select2-dropdown');
+                        var bsDropdowns = document.querySelectorAll('[data-bs-toggle="dropdown"]');
+                        if (select2Dropdowns.length || bsDropdowns.length) {
+                            if (autoCloseTimer) clearTimeout(autoCloseTimer);
+                            autoCloseTimer = setTimeout(function () { closeMenu(); }, 50);
+                        }
+                    }
+                    var origMutationObserver = window.MutationObserver;
+                    if (origMutationObserver) {
+                        var observer = new origMutationObserver(function (mutations) {
+                            mutations.forEach(function (m) {
+                                if ((m.addedNodes && m.addedNodes.length) || (m.removedNodes && m.removedNodes.length)) {
+                                    setupAutoCloseOnPageDropdown();
+                                }
+                            });
+                        });
+                        observer.observe(document.body, { childList: true, subtree: true });
+                    }
+
+                    function positionMenu() {
+                        var toggleRect = toggle.getBoundingClientRect();
+                        var viewportWidth = window.innerWidth || document.documentElement.clientWidth || 1024;
+                        var viewportHeight = window.innerHeight || document.documentElement.clientHeight || 768;
+
+                        var width = Math.min(425, Math.max(280, viewportWidth - 24));
+                        var left = Math.round(toggleRect.right - width);
+                        var minLeft = 12;
+                        var maxLeft = Math.max(minLeft, viewportWidth - width - 12);
+                        if (left < minLeft) left = minLeft;
+                        if (left > maxLeft) left = maxLeft;
+
+                        var top = Math.round(toggleRect.bottom + 10);
+                        var maxHeight = Math.max(160, viewportHeight - top - 12);
+
+                        menu.style.width = width + 'px';
+                        menu.style.left = left + 'px';
+                        menu.style.top = top + 'px';
+                        menu.style.maxHeight = maxHeight + 'px';
+                        menu.style.overflowY = 'auto';
+                    }
 
                     var suggestionWrap = document.createElement('div');
                     suggestionWrap.style.padding = '0 0 6px';
@@ -563,6 +611,7 @@ require_once dirname(__DIR__) . '/config/db.php';
                     }
 
                     function openMenu() {
+                        positionMenu();
                         menu.style.display = 'block';
                         menu.classList.add('show');
                         toggle.classList.add('show');
@@ -610,8 +659,20 @@ require_once dirname(__DIR__) . '/config/db.php';
                         });
                     }
 
+                    window.addEventListener('resize', function () {
+                        if (menu.classList.contains('show')) {
+                            positionMenu();
+                        }
+                    });
+
+                    window.addEventListener('scroll', function () {
+                        if (menu.classList.contains('show')) {
+                            positionMenu();
+                        }
+                    }, true);
+
                     document.addEventListener('click', function (e) {
-                        if (!dd.contains(e.target)) closeMenu();
+                        if (!dd.contains(e.target) && !menu.contains(e.target)) closeMenu();
                     });
                 });
             });

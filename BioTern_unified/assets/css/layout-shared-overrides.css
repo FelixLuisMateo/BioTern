@@ -177,6 +177,30 @@ html.app-skin-dark .select2-container--default .select2-results__option--highlig
     transform: none !important;
 }
 
+/* Keep header search dropdown anchored and above page content. */
+.nxl-header,
+.nxl-header .header-wrapper,
+.nxl-header .header-right,
+.nxl-header .nxl-header-search {
+    overflow: visible !important;
+}
+
+.nxl-header .nxl-header-search {
+    position: relative;
+}
+
+.nxl-header .nxl-header-search .nxl-search-dropdown {
+    top: calc(100% + 10px) !important;
+    right: 0 !important;
+    left: auto !important;
+    transform: none !important;
+    z-index: 7000 !important;
+    width: min(425px, calc(100vw - 2rem));
+    max-height: min(70vh, calc(100vh - 120px));
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
 /* Keep footer pinned at the bottom on short pages. */
 .nxl-container {
     display: flex;
