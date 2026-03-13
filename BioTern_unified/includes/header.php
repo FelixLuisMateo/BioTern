@@ -416,7 +416,7 @@ include_once __DIR__ . '/navigation.php'; ?>
                             <i class="feather-sun"></i>
                         </a>
                     </div>
-                    <div class="dropdown nxl-h-item click-only-dropdown">
+                    <div class="dropdown nxl-h-item click-only-dropdown header-notification-dropdown">
                         <a class="nxl-head-link me-3" data-bs-toggle="dropdown" href="#" role="button" data-bs-auto-close="outside">
                             <i class="feather-bell"></i>
                             <?php
