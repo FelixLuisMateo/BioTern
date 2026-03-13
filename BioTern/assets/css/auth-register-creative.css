@@ -1,0 +1,348 @@
+.progress-bar div {
+        background-color: #FF4757;  /* Red - weak password */
+        height: 3px;
+        border-radius: 2px;
+        margin-right: 4px;
+    }
+    
+    .progress-bar div.active {
+        background-color: #FFA502;  /* Orange - medium */
+    }
+    
+    .progress-bar div.active.strong {
+        background-color: #2ED573;  /* Green - strong */
+    }
+
+    .role-card {
+        border: 2px solid #e9ecef;
+        border-radius: 10px;
+        padding: 25px 20px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background: #fff;
+        min-height: 180px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        color: #1a1a1a;
+    }
+
+    .role-card:hover {
+        border-color: #FF4757;
+        box-shadow: 0 5px 20px rgba(255, 71, 87, 0.15);
+        transform: translateY(-5px);
+    }
+
+    .role-card.selected {
+        border-color: #FF4757;
+        background: #fff5f5;
+        box-shadow: 0 5px 20px rgba(255, 71, 87, 0.2);
+    }
+
+    /* Dark mode support using html.app-skin-dark */
+    html.app-skin-dark .role-card {
+        background: #001033;
+        border-color: #444444;
+        color: #e0e0e0;
+    }
+
+    html.app-skin-dark .role-card:hover {
+        border-color: #FF4757;
+        box-shadow: 0 5px 20px rgba(255, 71, 87, 0.3);
+        background: #373737;
+    }
+
+    html.app-skin-dark .role-card.selected {
+        background: #3d2a2a;
+        border-color: #FF4757;
+        box-shadow: 0 5px 20px rgba(255, 71, 87, 0.4);
+    }
+
+    html.app-skin-dark .role-card h5 {
+        color: #f0f0f0;
+    }
+
+    html.app-skin-dark .role-card p {
+        color: #b0b0b0;
+    }
+
+    .role-icon {
+        font-size: 48px;
+        margin-bottom: 12px;
+        display: inline-block;
+        line-height: 1;
+    }
+
+    .role-card h5 {
+        font-size: 16px;
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: #1a1a1a;
+    }
+
+    .role-card p {
+        font-size: 13px;
+        color: #6c757d;
+        margin: 0;
+        line-height: 1.4;
+    }
+
+    .hide-form {
+        display: none;
+    }
+
+    .show-form {
+        display: block;
+    }
+
+    .form-section {
+        margin-top: 30px;
+    }
+
+    .step-panel {
+        display: none;
+    }
+
+    .step-panel.active {
+        display: block;
+    }
+
+    .form-stepper {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin: 8px 0 18px;
+    }
+
+    .stepper-track {
+        display: flex;
+        gap: 8px;
+    }
+
+    .step-dot {
+        flex: 1 1 0;
+        height: 6px;
+        border-radius: 999px;
+        background: rgba(148, 163, 184, 0.2);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .step-dot::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: rgba(59, 130, 246, 0.4);
+        transform: scaleX(0);
+        transform-origin: left;
+        transition: transform 200ms ease;
+    }
+
+    .step-dot.active::after,
+    .step-dot.done::after {
+        transform: scaleX(1);
+        background: rgba(59, 130, 246, 0.8);
+    }
+
+    .stepper-meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 12px;
+        color: #cbd5f5;
+    }
+
+    .step-actions {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        margin-top: 18px;
+    }
+
+    .step-actions .btn {
+        min-width: 140px;
+    }
+
+    /* Role selector responsive/swipe styles */
+    .roles-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-top: 10px;
+        justify-content: center;
+    }
+
+    .roles-row {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        grid-auto-rows: 1fr;
+        gap: 1rem;
+        width: 100%;
+    }
+
+    /* Outer boxed container to visually group the 2x2 choices */
+    .roles-container {
+        border: none; /* removed thick black box */
+        padding: 8px;
+        display: flex;
+        align-items: stretch;
+        justify-content: center;
+        max-width: 740px;
+        width: 100%;
+        background: transparent;
+    }
+
+    .roles-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 12px;
+        width: 100%;
+        justify-items: center;
+    }
+
+    .role-card {
+        max-width: 260px;
+        width: 100%;
+    }
+
+    .arrow-btn {
+        display: none;
+        min-width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        padding: 0;
+        border: 1px solid #e9ecef;
+        background: #fff;
+        box-shadow: 0 1px 6px rgba(0,0,0,0.05);
+        z-index: 10;
+    }
+
+    /* Mobile: horizontal swipe/scroll and snap */
+    @media (max-width: 767px) {
+        /* Collapse to a single column on small screens */
+        .roles-container {
+            border-width: 6px;
+            padding: 6px;
+            max-width: 420px;
+        }
+        .roles-grid {
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+        .role-card { min-height: 110px; }
+
+        .role-card h5 {
+            font-size: 16px;
+            white-space: normal;
+            word-break: break-word;
+        }
+
+        .role-card p {
+            font-size: 12px;
+            white-space: normal;
+        }
+
+        .arrow-btn {
+            display: flex;
+        }
+    }
+
+    /* Slightly smaller cards for very small screens */
+    @media (max-width: 420px) {
+        .role-card {
+            min-width: 170px;
+            max-width: 220px;
+            padding: 20px;
+        }
+        .role-icon { font-size: 34px; }
+    }
+
+/* Ensure select text and option text are visible (black) */
+        select.form-control {
+            color: #000 !important;
+            background-color: #fff !important;
+        }
+        select.form-control option {
+            color: #000 !important;
+        }
+
+        /* Dark mode form field readability */
+        html.app-skin-dark input.form-control,
+        html.app-skin-dark textarea.form-control,
+        html.app-skin-dark .form-control[type="text"],
+        html.app-skin-dark .form-control[type="email"],
+        html.app-skin-dark .form-control[type="password"],
+        html.app-skin-dark .form-control[type="number"],
+        html.app-skin-dark .form-control[type="date"],
+        html.app-skin-dark .form-control[type="time"],
+        html.app-skin-dark .form-control[type="search"],
+        html.app-skin-dark .form-control[type="tel"],
+        html.app-skin-dark .form-control[type="url"] {
+            color: #ffffff !important;
+            -webkit-text-fill-color: #ffffff !important;
+            background-color: #0f172a !important;
+            border-color: #4a5568 !important;
+        }
+
+        html.app-skin-dark input.form-control::placeholder,
+        html.app-skin-dark textarea.form-control::placeholder {
+            color: #d1dcf0 !important;
+            opacity: 1 !important;
+        }
+
+        html.app-skin-dark select.form-control,
+        html.app-skin-dark select.form-control option {
+            color: #ffffff !important;
+            background-color: #0f172a !important;
+            border-color: #4a5568 !important;
+        }
+
+        /* Keep browser suggestion/autofill values readable in dark mode */
+        html.app-skin-dark input.form-control:-webkit-autofill,
+        html.app-skin-dark input.form-control:-webkit-autofill:hover,
+        html.app-skin-dark input.form-control:-webkit-autofill:focus,
+        html.app-skin-dark textarea.form-control:-webkit-autofill,
+        html.app-skin-dark textarea.form-control:-webkit-autofill:hover,
+        html.app-skin-dark textarea.form-control:-webkit-autofill:focus {
+            -webkit-text-fill-color: #ffffff !important;
+            caret-color: #ffffff !important;
+            box-shadow: 0 0 0 1000px #0f172a inset !important;
+            -webkit-box-shadow: 0 0 0 1000px #0f172a inset !important;
+            border-color: #4a5568 !important;
+            transition: background-color 9999s ease-out 0s;
+        }
+
+        .select2-container--default .select2-selection--single {
+            height: calc(2.25rem + 2px);
+            border: 1px solid #d9d9d9;
+            border-radius: 6px;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: calc(2.25rem + 0px);
+            padding-left: 12px;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: calc(2.25rem + 0px);
+            right: 8px;
+        }
+
+/* Center main card vertically and horizontally */
+        .auth-minimal-wrapper {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            min-height: 100vh !important;
+            padding: 20px !important;
+            background-color: transparent;
+        }
+        /* Ensure the card doesn't overflow on small screens */
+        .card.p-sm-5 {
+            box-sizing: border-box;
+        }

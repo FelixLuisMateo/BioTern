@@ -1,0 +1,229 @@
+<?php
+require_once dirname(__DIR__) . '/config/db.php';
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+$ops_helpers = dirname(__DIR__) . '/lib/ops_helpers.php';
+if (file_exists($ops_helpers)) {
+    require_once $ops_helpers;
+    if (function_exists('require_roles_page')) {
+        require_roles_page(['admin', 'coordinator', 'supervisor']);
+    }
+}
+
+$host = defined('DB_HOST') ? DB_HOST : 'localhost';
+$db_user = defined('DB_USER') ? DB_USER : 'root';
+$db_password = defined('DB_PASS') ? DB_PASS : '';
+$db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
+$conn = new mysqli($host, $db_user, $db_password, $db_name);
+if ($conn->connect_error) die('Connection failed: ' . $conn->connect_error);
+
+$current_user_id = intval($_SESSION['user_id'] ?? 0);
+$current_role = strtolower((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? ''));
+$can_approve = in_array($current_role, ['admin', 'coordinator'], true);
+
+$conn->query("CREATE TABLE IF NOT EXISTS document_workflow (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    doc_type VARCHAR(30) NOT NULL,
+    status VARCHAR(30) NOT NULL DEFAULT 'draft',
+    review_notes TEXT NULL,
+    approved_by INT NOT NULL DEFAULT 0,
+    approved_at DATETIME NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_user_doc (user_id, doc_type)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
+
+$message = '';
+$message_type = 'success';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_workflow'])) {
+    if (!$can_approve) {
+        $message = 'You are not allowed to change workflow statuses.';
+        $message_type = 'warning';
+    } else {
+        $user_id = intval($_POST['user_id'] ?? 0);
+        $doc_type = trim((string)($_POST['doc_type'] ?? ''));
+        $status = trim((string)($_POST['status'] ?? 'draft'));
+        $note = trim((string)($_POST['review_notes'] ?? ''));
+        $allowed_docs = ['application', 'endorsement', 'moa', 'dau_moa'];
+        $allowed_status = ['draft', 'for_review', 'approved', 'rejected'];
+        if ($user_id > 0 && in_array($doc_type, $allowed_docs, true) && in_array($status, $allowed_status, true)) {
+            $approved_by = 0;
+            $approved_at = null;
+            if ($status === 'approved') {
+                $approved_by = $current_user_id;
+                $approved_at = date('Y-m-d H:i:s');
+            }
+            $stmt = $conn->prepare("INSERT INTO document_workflow (user_id, doc_type, status, review_notes, approved_by, approved_at)
+                VALUES (?, ?, ?, ?, ?, ?)
+                ON DUPLICATE KEY UPDATE
+                    status = VALUES(status),
+                    review_notes = VALUES(review_notes),
+                    approved_by = VALUES(approved_by),
+                    approved_at = VALUES(approved_at),
+                    updated_at = NOW()");
+            $stmt->bind_param('isssis', $user_id, $doc_type, $status, $note, $approved_by, $approved_at);
+            if ($stmt->execute()) {
+                $message = 'Workflow updated.';
+                $message_type = 'success';
+            } else {
+                $message = 'Failed to update workflow.';
+                $message_type = 'danger';
+            }
+            $stmt->close();
+        }
+    }
+}
+
+$search = trim((string)($_GET['search'] ?? ''));
+$doc_filter = trim((string)($_GET['doc_type'] ?? 'all'));
+
+$sql = "
+SELECT
+    s.id AS student_id,
+    s.student_id AS school_id,
+    s.first_name,
+    s.last_name,
+    c.name AS course_name,
+    w.doc_type,
+    w.status,
+    w.review_notes,
+    w.approved_at,
+    w.updated_at,
+    w.approved_by,
+    s.profile_picture
+FROM document_workflow w
+INNER JOIN students s ON s.id = w.user_id
+LEFT JOIN courses c ON c.id = s.course_id
+ORDER BY w.updated_at DESC
+";
+
+$res = $conn->query($sql);
+$columns = ['draft' => [], 'for_review' => [], 'approved' => [], 'rejected' => []];
+if ($res) {
+    while ($row = $res->fetch_assoc()) {
+        $name = strtolower(trim(($row['first_name'] ?? '') . ' ' . ($row['last_name'] ?? '') . ' ' . ($row['school_id'] ?? '') . ' ' . ($row['course_name'] ?? '')));
+        if ($search !== '' && strpos($name, strtolower($search)) === false) continue;
+        if ($doc_filter !== 'all' && $doc_filter !== (string)$row['doc_type']) continue;
+        $st = strtolower((string)($row['status'] ?? 'draft'));
+        if (!isset($columns[$st])) $st = 'draft';
+        $columns[$st][] = $row;
+    }
+}
+
+function doc_label(string $doc): string {
+    $map = ['application' => 'Application', 'endorsement' => 'Endorsement', 'moa' => 'MOA', 'dau_moa' => 'Dau MOA'];
+    return $map[$doc] ?? ucfirst($doc);
+}
+
+function status_label(string $s): string {
+    return ucfirst(str_replace('_', ' ', $s));
+}
+
+$page_title = 'BioTern || OJT Workflow Board';
+$page_styles = [
+    'assets/css/managements_filters.css',
+    'assets/css/managements_ojt_shared.css',
+    'assets/css/managements_ojt_workflow_board.css',
+];
+$page_scripts = [
+    'assets/js/theme-customizer-init.min.js',
+];
+
+include 'includes/header.php';
+?>
+<main class="nxl-container">
+    <div class="nxl-content">
+<div class="page-header app-ojt-workflow-page-header d-flex justify-content-between align-items-center">
+    <div>
+        <h5 class="m-b-10">OJT Document Workflow Board</h5>
+        <small class="text-muted">Centralized approval tracking for internship documents</small>
+    </div>
+</div>
+
+<?php if ($message !== ''): ?>
+    <div class="alert alert-<?php echo htmlspecialchars($message_type); ?> py-2"><?php echo htmlspecialchars($message); ?></div>
+<?php endif; ?>
+
+<div class="card app-ojt-workflow-surface-card card-body mb-3">
+    <form method="get" class="row g-2 align-items-end filter-form app-ojt-workflow-filter-form">
+        <div class="col-md-4">
+            <label class="form-label">Search Student</label>
+            <input type="text" name="search" class="form-control" value="<?php echo htmlspecialchars($search); ?>" placeholder="Name / Student ID / Course">
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Document Type</label>
+            <select name="doc_type" class="form-select">
+                <option value="all" <?php echo $doc_filter === 'all' ? 'selected' : ''; ?>>All</option>
+                <option value="application" <?php echo $doc_filter === 'application' ? 'selected' : ''; ?>>Application</option>
+                <option value="endorsement" <?php echo $doc_filter === 'endorsement' ? 'selected' : ''; ?>>Endorsement</option>
+                <option value="moa" <?php echo $doc_filter === 'moa' ? 'selected' : ''; ?>>MOA</option>
+                <option value="dau_moa" <?php echo $doc_filter === 'dau_moa' ? 'selected' : ''; ?>>Dau MOA</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <button class="btn btn-primary w-100" type="submit">Apply</button>
+        </div>
+        <div class="col-md-2">
+            <a href="ojt-workflow-board.php" class="btn btn-light w-100">Reset</a>
+        </div>
+    </form>
+</div>
+
+<div class="row g-3">
+    <?php foreach (['draft', 'for_review', 'approved', 'rejected'] as $col_key): ?>
+        <div class="col-lg-3 board-col app-ojt-workflow-board-col">
+            <div class="card app-ojt-workflow-surface-card card-body h-100">
+                <div class="board-head app-ojt-workflow-board-head mb-2"><?php echo htmlspecialchars(status_label($col_key)); ?> (<?php echo count($columns[$col_key]); ?>)</div>
+                <?php if (empty($columns[$col_key])): ?>
+                    <div class="text-muted fs-12">No records.</div>
+                <?php else: ?>
+                    <?php foreach ($columns[$col_key] as $item): ?>
+                        <div class="wf-card app-ojt-workflow-card">
+                            <div class="fw-semibold"><?php echo htmlspecialchars(trim(($item['first_name'] ?? '') . ' ' . ($item['last_name'] ?? ''))); ?></div>
+                            <div class="wf-meta app-ojt-workflow-meta"><?php echo htmlspecialchars((string)($item['school_id'] ?? '')); ?> | <?php echo htmlspecialchars((string)($item['course_name'] ?? '-')); ?></div>
+                            <div class="wf-meta app-ojt-workflow-meta mb-1">Doc: <?php echo htmlspecialchars(doc_label((string)($item['doc_type'] ?? ''))); ?></div>
+                            <div class="wf-note app-ojt-workflow-note mb-2"><?php echo htmlspecialchars((string)($item['review_notes'] ?? '')); ?></div>
+                            <div class="wf-meta app-ojt-workflow-meta mb-2">Updated: <?php echo htmlspecialchars((string)($item['updated_at'] ?? '')); ?></div>
+                            <div class="d-flex gap-2 mb-2 app-ojt-workflow-card-actions">
+                                <a href="ojt-view.php?id=<?php echo intval($item['student_id']); ?>#profileTab" class="btn btn-sm btn-light">Open</a>
+                            </div>
+                            <?php if ($can_approve): ?>
+                                <form method="post" class="row g-1 app-ojt-workflow-update-form">
+                                    <input type="hidden" name="update_workflow" value="1">
+                                    <input type="hidden" name="user_id" value="<?php echo intval($item['student_id']); ?>">
+                                    <input type="hidden" name="doc_type" value="<?php echo htmlspecialchars((string)$item['doc_type']); ?>">
+                                    <div class="col-12">
+                                        <select name="status" class="form-select form-select-sm">
+                                            <?php foreach (['draft', 'for_review', 'approved', 'rejected'] as $st): ?>
+                                                <option value="<?php echo $st; ?>" <?php echo ((string)$item['status'] === $st) ? 'selected' : ''; ?>><?php echo status_label($st); ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                    <div class="col-12">
+                                        <textarea name="review_notes" rows="2" class="form-control form-control-sm" placeholder="Review note"><?php echo htmlspecialchars((string)($item['review_notes'] ?? '')); ?></textarea>
+                                    </div>
+                                    <div class="col-12"><button class="btn btn-sm btn-outline-primary w-100" type="submit">Save</button></div>
+                                </form>
+                            <?php endif; ?>
+                        </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
+        </div>
+    <?php endforeach; ?>
+</div>
+
+</div> <!-- .nxl-content -->
+</main>
+<?php include 'includes/footer.php'; ?>
+<?php $conn->close(); ?>
+
+
+
+
+
+
+
