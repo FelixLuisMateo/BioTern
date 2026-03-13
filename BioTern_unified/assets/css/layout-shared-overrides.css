@@ -177,6 +177,27 @@ html.app-skin-dark .select2-container--default .select2-results__option--highlig
     transform: none !important;
 }
 
+/* Keep notifications dropdown pinned directly under the bell icon. */
+.nxl-header .header-notification-dropdown {
+    position: relative;
+}
+
+.nxl-header .header-notification-dropdown > .nxl-notifications-menu,
+.nxl-header .header-notification-dropdown > .nxl-notifications-menu[data-bs-popper],
+.nxl-header .header-notification-dropdown > #header-notification-menu {
+    top: calc(100% + 10px) !important;
+    right: 0 !important;
+    left: auto !important;
+    inset: auto 0 auto auto !important;
+    margin-top: 0 !important;
+    transform: none !important;
+    z-index: 7000 !important;
+    width: min(340px, calc(100vw - 2rem));
+    max-height: min(70vh, calc(100vh - 120px));
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
 /* Keep header search dropdown anchored and above page content. */
 .nxl-header,
 .nxl-header .header-wrapper,
@@ -199,6 +220,30 @@ html.app-skin-dark .select2-container--default .select2-results__option--highlig
     max-height: min(70vh, calc(100vh - 120px));
     overflow-x: hidden;
     overflow-y: auto;
+}
+
+/* Match notification dropdown behavior to header search dropdown. */
+.nxl-header .header-notification-dropdown {
+    position: relative;
+}
+
+.nxl-header .header-notification-dropdown .nxl-notifications-menu {
+    top: calc(100% + 10px) !important;
+    right: 0 !important;
+    left: auto !important;
+    transform: none !important;
+    z-index: 7000 !important;
+    width: min(340px, calc(100vw - 2rem));
+    max-height: min(70vh, calc(100vh - 120px));
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+.nxl-header .header-notification-dropdown .nxl-notifications-menu[data-bs-popper] {
+    top: calc(100% + 10px) !important;
+    right: 0 !important;
+    left: auto !important;
+    transform: none !important;
 }
 
 /* Keep footer pinned at the bottom on short pages. */
