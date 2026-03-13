@@ -196,6 +196,10 @@ function chat_normalize_contact(array $contact, array $recentLoginUserIds): arra
 function chat_normalize_messages(array $messages, int $currentUserId): array
 {
     $items = [];
+    $messagesById = [];
+    foreach ($messages as $message) {
+        $messagesById[(int)($message['message_id'] ?? 0)] = $message;
+    }
     $todayDate = date('Y-m-d');
     foreach ($messages as $message) {
         $createdAt = (string)($message['created_at'] ?? '');
@@ -206,10 +210,34 @@ function chat_normalize_messages(array $messages, int $currentUserId): array
         $timeFull = $ts > 0 ? date('F j, Y \a\t g:i A', $ts) : '';
         $rawMedia = trim((string)($message['media_path'] ?? ''));
         $mediaType = $rawMedia !== '' ? chat_media_kind_from_path($rawMedia) : '';
+        $replyToId = (int)($message['reply_to_message_id'] ?? 0);
+        $replyPreview = '';
+        $replyAuthor = '';
+        if ($replyToId > 0 && isset($messagesById[$replyToId])) {
+            $replyMessage = $messagesById[$replyToId];
+            $replyAuthor = ((int)($replyMessage['sender_id'] ?? 0) === $currentUserId) ? 'You' : 'Them';
+            $replyText = trim((string)($replyMessage['message'] ?? ''));
+            $replyMediaPath = trim((string)($replyMessage['media_path'] ?? ''));
+            if ($replyMediaPath !== '' && ($replyText === '' || $replyText === basename($replyMediaPath))) {
+                $replyMediaType = chat_media_kind_from_path($replyMediaPath);
+                $replyText = $replyMediaType === 'video' ? '[Video]' : '[Image]';
+            }
+            $replyPreview = $replyText;
+            if (function_exists('mb_strlen') && function_exists('mb_substr')) {
+                if (mb_strlen($replyPreview) > 90) {
+                    $replyPreview = mb_substr($replyPreview, 0, 87) . '...';
+                }
+            } elseif (strlen($replyPreview) > 90) {
+                $replyPreview = substr($replyPreview, 0, 87) . '...';
+            }
+        }
         $items[] = [
             'message_id' => (int)($message['message_id'] ?? 0),
             'sender_id' => (int)($message['sender_id'] ?? 0),
             'recipient_id' => (int)($message['recipient_id'] ?? 0),
+            'reply_to_message_id' => $replyToId,
+            'reply_preview' => $replyPreview,
+            'reply_author' => $replyAuthor,
             'message' => (string)($message['message'] ?? ''),
             'subject' => (string)($message['subject'] ?? ''),
             'media_path' => $rawMedia,
@@ -235,6 +263,7 @@ function chat_ensure_messages_table(mysqli $conn): void
             to_user_id BIGINT UNSIGNED NOT NULL,
             subject VARCHAR(255) NULL,
             message LONGTEXT NOT NULL,
+            reply_to_message_id BIGINT UNSIGNED NULL DEFAULT NULL,
             media_path VARCHAR(512) NULL DEFAULT NULL,
             is_read TINYINT(1) NOT NULL DEFAULT 0,
             created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
@@ -255,6 +284,9 @@ function chat_ensure_messages_table(mysqli $conn): void
     }
     if (!in_array('media_path', $cols, true)) {
         $conn->query("ALTER TABLE messages ADD COLUMN media_path VARCHAR(512) NULL DEFAULT NULL AFTER message");
+    }
+    if (!in_array('reply_to_message_id', $cols, true)) {
+        $conn->query("ALTER TABLE messages ADD COLUMN reply_to_message_id BIGINT UNSIGNED NULL DEFAULT NULL AFTER message");
     }
 }
 
@@ -284,6 +316,7 @@ function chat_message_meta(mysqli $conn): array
         'id_col' => isset($columns['id']) ? 'id' : '',
         'subject_col' => isset($columns['subject']) ? 'subject' : '',
         'message_type_col' => isset($columns['message_type']) ? 'message_type' : '',
+        'reply_to_col' => isset($columns['reply_to_message_id']) ? 'reply_to_message_id' : '',
         'media_path_col' => isset($columns['media_path']) ? 'media_path' : '',
         'is_read_col' => isset($columns['is_read']) ? 'is_read' : '',
         'read_at_col' => isset($columns['read_at']) ? 'read_at' : '',
@@ -310,9 +343,90 @@ if (isset($_SESSION['chat_flash']) && is_array($_SESSION['chat_flash'])) {
     unset($_SESSION['chat_flash']);
 }
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['action'] ?? '') === 'delete-conversation' && $messageMeta['ready']) {
+    $selectedUserId = (int)($_POST['user_id'] ?? 0);
+
+    if ($selectedUserId <= 0) {
+        $errorMessage = 'Select a conversation first.';
+    } elseif ($selectedUserId === $currentUserId) {
+        $errorMessage = 'Invalid conversation target.';
+    } else {
+        if ($messageMeta['deleted_at_col'] !== '') {
+            $deleteSql = 'UPDATE messages
+                SET ' . $messageMeta['deleted_at_col'] . ' = NOW()' . ($messageMeta['updated_at_col'] !== '' ? ', ' . $messageMeta['updated_at_col'] . ' = NOW()' : '') . '
+                WHERE ((' . $messageMeta['sender_col'] . ' = ? AND ' . $messageMeta['recipient_col'] . ' = ?)
+                    OR (' . $messageMeta['sender_col'] . ' = ? AND ' . $messageMeta['recipient_col'] . ' = ?))
+                  AND ' . $messageMeta['deleted_at_col'] . ' IS NULL';
+        } else {
+            $deleteSql = 'DELETE FROM messages
+                WHERE ((' . $messageMeta['sender_col'] . ' = ? AND ' . $messageMeta['recipient_col'] . ' = ?)
+                    OR (' . $messageMeta['sender_col'] . ' = ? AND ' . $messageMeta['recipient_col'] . ' = ?))';
+        }
+
+        $deleteStmt = $conn->prepare($deleteSql);
+        if (!$deleteStmt) {
+            $errorMessage = 'Failed to prepare delete query.';
+        } else {
+            $deleteStmt->bind_param('iiii', $currentUserId, $selectedUserId, $selectedUserId, $currentUserId);
+            $ok = $deleteStmt->execute();
+            $deleteStmt->close();
+            if ($ok) {
+                $successMessage = 'Conversation deleted.';
+                if (!$isAjaxRequest) {
+                    $_SESSION['chat_flash'] = ['success' => $successMessage];
+                    header('Location: apps-chat.php?user_id=' . $selectedUserId);
+                    exit;
+                }
+            } else {
+                $errorMessage = 'Failed to delete conversation.';
+            }
+        }
+    }
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['action'] ?? '') === 'unsend-message' && $messageMeta['ready']) {
+    $selectedUserId = (int)($_POST['user_id'] ?? 0);
+    $messageId = (int)($_POST['message_id'] ?? 0);
+
+    if ($selectedUserId <= 0 || $messageId <= 0) {
+        $errorMessage = 'Invalid message request.';
+    } else {
+        if ($messageMeta['deleted_at_col'] !== '') {
+            $unsendSql = 'UPDATE messages
+                SET ' . $messageMeta['deleted_at_col'] . ' = NOW()' . ($messageMeta['updated_at_col'] !== '' ? ', ' . $messageMeta['updated_at_col'] . ' = NOW()' : '') . '
+                WHERE ' . $messageMeta['id_col'] . ' = ?
+                  AND ' . $messageMeta['sender_col'] . ' = ?
+                  AND ' . $messageMeta['recipient_col'] . ' = ?
+                  AND ' . $messageMeta['deleted_at_col'] . ' IS NULL';
+        } else {
+            $unsendSql = 'DELETE FROM messages
+                WHERE ' . $messageMeta['id_col'] . ' = ?
+                  AND ' . $messageMeta['sender_col'] . ' = ?
+                  AND ' . $messageMeta['recipient_col'] . ' = ?';
+        }
+
+        $unsendStmt = $conn->prepare($unsendSql);
+        if (!$unsendStmt) {
+            $errorMessage = 'Failed to prepare unsend query.';
+        } else {
+            $unsendStmt->bind_param('iii', $messageId, $currentUserId, $selectedUserId);
+            $ok = $unsendStmt->execute();
+            $affected = $unsendStmt->affected_rows;
+            $unsendStmt->close();
+
+            if ($ok && $affected > 0) {
+                $successMessage = 'Message unsent.';
+            } else {
+                $errorMessage = 'Unable to unsend this message.';
+            }
+        }
+    }
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['action'] ?? '') === 'send-message' && $messageMeta['ready']) {
     $selectedUserId = (int)($_POST['user_id'] ?? 0);
     $draftMessage = trim((string)($_POST['message'] ?? ''));
+    $replyToMessageId = (int)($_POST['reply_to_message_id'] ?? 0);
 
     // Handle optional media upload
     $uploadedMediaPath = '';
@@ -376,10 +490,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['action'] ?? '') ==
         if (!$recipient) {
             $errorMessage = 'The selected recipient was not found.';
         } else {
+            if ($replyToMessageId > 0 && $messageMeta['id_col'] !== '') {
+                $replyCheckSql = 'SELECT ' . $messageMeta['id_col'] . ' AS id FROM messages
+                    WHERE ' . $messageMeta['id_col'] . ' = ?
+                      AND ((' . $messageMeta['sender_col'] . ' = ? AND ' . $messageMeta['recipient_col'] . ' = ?)
+                        OR (' . $messageMeta['sender_col'] . ' = ? AND ' . $messageMeta['recipient_col'] . ' = ?))'
+                      . ($messageMeta['deleted_at_col'] !== '' ? ' AND ' . $messageMeta['deleted_at_col'] . ' IS NULL' : '') . '
+                    LIMIT 1';
+                $replyCheckStmt = $conn->prepare($replyCheckSql);
+                if ($replyCheckStmt) {
+                    $replyCheckStmt->bind_param('iiiii', $replyToMessageId, $currentUserId, $selectedUserId, $selectedUserId, $currentUserId);
+                    $replyCheckStmt->execute();
+                    $replyFound = (bool)$replyCheckStmt->get_result()->fetch_assoc();
+                    $replyCheckStmt->close();
+                    if (!$replyFound) {
+                        $replyToMessageId = 0;
+                    }
+                } else {
+                    $replyToMessageId = 0;
+                }
+            }
+
             $insertColumns = [$messageMeta['sender_col'], $messageMeta['recipient_col'], 'message'];
             $insertValues = ['?', '?', '?'];
             $bindTypes = 'iis';
             $bindValues = [$currentUserId, $selectedUserId, $draftMessage];
+
+            if ($messageMeta['reply_to_col'] !== '' && $replyToMessageId > 0) {
+                $insertColumns[] = $messageMeta['reply_to_col'];
+                $insertValues[] = '?';
+                $bindTypes .= 'i';
+                $bindValues[] = $replyToMessageId;
+            }
 
             if ($messageMeta['media_path_col'] !== '' && $uploadedMediaPath !== '') {
                 $insertColumns[] = $messageMeta['media_path_col'];
@@ -625,6 +767,7 @@ if ($selectedContact && $messageMeta['ready']) {
             ' . $messageMeta['sender_col'] . ' AS sender_id,
             ' . $messageMeta['recipient_col'] . ' AS recipient_id,
             message,
+            ' . ($messageMeta['reply_to_col'] !== '' ? $messageMeta['reply_to_col'] : 'NULL') . ' AS reply_to_message_id,
             ' . ($messageMeta['subject_col'] !== '' ? $messageMeta['subject_col'] : 'NULL') . ' AS subject,
             ' . ($messageMeta['media_path_col'] !== '' ? $messageMeta['media_path_col'] : 'NULL') . ' AS media_path,
             ' . ($messageMeta['created_at_col'] !== '' ? $messageMeta['created_at_col'] : 'NULL') . ' AS created_at
@@ -644,6 +787,7 @@ if ($selectedContact && $messageMeta['ready']) {
                 'message_id' => (int)($row['message_id'] ?? 0),
                 'sender_id' => (int)($row['sender_id'] ?? 0),
                 'recipient_id' => (int)($row['recipient_id'] ?? 0),
+                'reply_to_message_id' => (int)($row['reply_to_message_id'] ?? 0),
                 'message' => (string)($row['message'] ?? ''),
                 'subject' => (string)($row['subject'] ?? ''),
                 'media_path' => (string)($row['media_path'] ?? ''),
@@ -1095,8 +1239,80 @@ include 'includes/header.php';
         cursor: pointer;
     }
 
-    .messenger-menu-item:hover {
+    .messenger-menu-item:hover,
+    .messenger-menu-item:focus-visible {
         background: var(--chat-item-hover);
+        outline: none;
+    }
+
+    .messenger-menu-divider {
+        height: 1px;
+        background: var(--chat-header-border);
+        margin: 0.25rem 0.2rem;
+    }
+
+    .messenger-menu-item.danger {
+        color: #ef4444;
+    }
+
+    .chat-confirm-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(2, 6, 23, 0.6);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 12000;
+        padding: 1rem;
+    }
+
+    .chat-confirm-overlay.show {
+        display: flex;
+    }
+
+    .chat-confirm-modal {
+        width: min(420px, 100%);
+        border-radius: 14px;
+        border: 1px solid var(--chat-header-border);
+        background: var(--chat-header-bg);
+        color: var(--chat-header-name-color);
+        box-shadow: 0 18px 38px rgba(2, 6, 23, 0.42);
+        padding: 1rem;
+    }
+
+    .chat-confirm-title {
+        margin: 0 0 0.45rem;
+        font-size: 1.03rem;
+        font-weight: 700;
+    }
+
+    .chat-confirm-text {
+        margin: 0;
+        font-size: 0.9rem;
+        color: var(--chat-header-sub-color);
+    }
+
+    .chat-confirm-actions {
+        margin-top: 1rem;
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.55rem;
+    }
+
+    .chat-confirm-btn {
+        border: 1px solid var(--chat-header-border);
+        border-radius: 9px;
+        background: transparent;
+        color: var(--chat-header-name-color);
+        padding: 0.42rem 0.72rem;
+        font-size: 0.86rem;
+        cursor: pointer;
+    }
+
+    .chat-confirm-btn.danger {
+        border-color: rgba(239, 68, 68, 0.45);
+        background: rgba(239, 68, 68, 0.14);
+        color: #ef4444;
     }
 
     .messenger-thread {
@@ -1111,6 +1327,140 @@ include 'includes/header.php';
         align-items: flex-end;
         margin-bottom: 0.18rem;
         gap: 0.45rem;
+    }
+
+    .msg-hover-menu-btn {
+        border: 0;
+        background: transparent;
+        color: var(--chat-meta-color);
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.15s ease;
+        cursor: pointer;
+        font-size: 0.95rem;
+        line-height: 1;
+        flex-shrink: 0;
+        align-self: center;
+    }
+
+    .msg-row:hover .msg-hover-menu-btn,
+    .msg-row:focus-within .msg-hover-menu-btn {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .msg-hover-menu-btn:hover {
+        background: var(--chat-item-hover);
+        color: var(--chat-header-name-color);
+    }
+
+    .msg-bubble.is-pinned {
+        box-shadow: 0 0 0 1px rgba(250, 204, 21, 0.45), 0 8px 16px rgba(17, 24, 39, 0.28);
+    }
+
+    .msg-reaction-badge {
+        margin-top: 0.2rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 24px;
+        height: 24px;
+        border-radius: 999px;
+        border: 1px solid var(--chat-header-border);
+        background: var(--chat-header-bg);
+        font-size: 0.9rem;
+        padding: 0 0.35rem;
+    }
+
+    .msg-reply-quote {
+        border-left: 3px solid var(--chat-header-border);
+        background: rgba(148, 163, 184, 0.14);
+        border-radius: 8px;
+        padding: 0.35rem 0.5rem;
+        margin-bottom: 0.4rem;
+        font-size: 0.8rem;
+        color: var(--chat-header-sub-color);
+    }
+
+    .msg-reply-quote strong {
+        display: block;
+        font-size: 0.72rem;
+        color: var(--chat-header-name-color);
+        margin-bottom: 0.1rem;
+        font-weight: 700;
+    }
+
+    .msg-action-menu {
+        position: fixed;
+        min-width: 220px;
+        border-radius: 12px;
+        border: 1px solid var(--chat-header-border);
+        background: var(--chat-header-bg);
+        box-shadow: 0 14px 34px rgba(2, 6, 23, 0.38);
+        padding: 0.35rem;
+        z-index: 14000;
+        display: none;
+    }
+
+    .msg-action-menu.show {
+        display: block;
+    }
+
+    .msg-action-emoji-row {
+        display: flex;
+        gap: 0.24rem;
+        margin-bottom: 0.35rem;
+        padding-bottom: 0.35rem;
+        border-bottom: 1px solid var(--chat-header-border);
+    }
+
+    .msg-emoji-btn {
+        border: 0;
+        background: transparent;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        cursor: pointer;
+        font-size: 1rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .msg-emoji-btn:hover {
+        background: var(--chat-item-hover);
+    }
+
+    .msg-action-item {
+        width: 100%;
+        border: 0;
+        background: transparent;
+        color: var(--chat-header-name-color);
+        text-align: left;
+        border-radius: 8px;
+        padding: 0.45rem 0.55rem;
+        font-size: 0.86rem;
+        cursor: pointer;
+    }
+
+    .msg-action-item:hover,
+    .msg-action-item:focus-visible {
+        background: var(--chat-item-hover);
+        outline: none;
+    }
+
+    .msg-action-item.danger {
+        color: #ef4444;
+    }
+
+    .msg-action-item.is-hidden {
+        display: none;
     }
 
     .msg-row.msg-group-last,
@@ -1385,6 +1735,30 @@ include 'includes/header.php';
         color: var(--chat-snippet-color);
     }
 
+    #chat-reply-preview {
+        display: none;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+        padding: 0.4rem 0.9rem 0;
+        font-size: 0.8rem;
+        color: var(--chat-snippet-color);
+    }
+
+    #chat-reply-preview.has-reply {
+        display: flex;
+    }
+
+    .chat-reply-remove {
+        background: none;
+        border: 0;
+        cursor: pointer;
+        color: #ef4444;
+        padding: 0;
+        font-size: 1rem;
+        line-height: 1;
+    }
+
     #chat-media-preview.has-file {
         display: flex;
     }
@@ -1540,8 +1914,13 @@ include 'includes/header.php';
                             <i class="feather-more-horizontal"></i>
                         </button>
                         <div class="messenger-menu" role="menu">
+                            <button type="button" class="messenger-menu-item" data-action="view-contact">View contact info</button>
+                            <button type="button" class="messenger-menu-item" data-action="mute-conversation">Mute conversation</button>
+                            <div class="messenger-menu-divider" role="separator"></div>
                             <button type="button" class="messenger-menu-item" data-action="refresh-chat">Refresh chat</button>
                             <button type="button" class="messenger-menu-item" data-action="scroll-bottom">Go to latest</button>
+                            <div class="messenger-menu-divider" role="separator"></div>
+                            <button type="button" class="messenger-menu-item danger" data-action="delete-conversation">Delete conversation</button>
                         </div>
                     </div>
                 </div>
@@ -1558,6 +1937,9 @@ include 'includes/header.php';
                         <?php foreach ($normalizedMessages as $message): ?>
                             <div class="msg-row<?php echo !empty($message['is_own']) ? ' own' : ''; ?>">
                                 <div class="msg-bubble<?php echo !empty($message['media_path']) ? ' has-media' : ''; ?>">
+                                    <?php if ((string)($message['reply_preview'] ?? '') !== ''): ?>
+                                        <div class="msg-reply-quote"><strong><?php echo chat_esc((string)($message['reply_author'] ?? '')); ?></strong><?php echo chat_esc((string)$message['reply_preview']); ?></div>
+                                    <?php endif; ?>
                                     <?php if ((string)$message['media_type'] === 'image'): ?>
                                         <img src="<?php echo chat_esc((string)$message['media_path']); ?>" class="msg-media" alt="image" onclick="window.open(this.src,'_blank')">
                                     <?php elseif ((string)$message['media_type'] === 'video'): ?>
@@ -1578,7 +1960,12 @@ include 'includes/header.php';
                     <form method="post" action="apps-chat.php?user_id=<?php echo (int)$selectedUserId; ?>" id="messenger-compose-form" enctype="multipart/form-data">
                         <input type="hidden" name="action" value="send-message">
                         <input type="hidden" name="user_id" value="<?php echo (int)$selectedUserId; ?>">
+                        <input type="hidden" name="reply_to_message_id" id="chat-reply-to-message-id" value="0">
                         <input type="file" name="chat_media" id="chat-media-input" accept="image/*,video/*" style="display:none">
+                        <div id="chat-reply-preview">
+                            <span id="chat-reply-label"></span>
+                            <button type="button" class="chat-reply-remove" id="chat-reply-remove" title="Cancel reply">&#x2715;</button>
+                        </div>
                         <div id="chat-media-preview">
                             <img id="chat-preview-thumb" class="chat-preview-thumb" src="" alt="" style="display:none">
                             <span id="chat-preview-name"></span>
@@ -1607,6 +1994,32 @@ include 'includes/header.php';
     </div>
 </div>
 
+<div class="chat-confirm-overlay" id="chat-confirm-modal" aria-hidden="true">
+    <div class="chat-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="chat-confirm-title">
+        <h6 class="chat-confirm-title" id="chat-confirm-title">Confirm action</h6>
+        <p class="chat-confirm-text" id="chat-confirm-text">Are you sure?</p>
+        <div class="chat-confirm-actions">
+            <button type="button" class="chat-confirm-btn" id="chat-confirm-cancel">Cancel</button>
+            <button type="button" class="chat-confirm-btn danger" id="chat-confirm-ok">Confirm</button>
+        </div>
+    </div>
+</div>
+
+<div class="msg-action-menu" id="msg-action-menu" aria-hidden="true">
+    <div class="msg-action-emoji-row">
+        <button type="button" class="msg-emoji-btn" data-emoji="👍" title="Like">👍</button>
+        <button type="button" class="msg-emoji-btn" data-emoji="❤️" title="Love">❤️</button>
+        <button type="button" class="msg-emoji-btn" data-emoji="😂" title="Haha">😂</button>
+        <button type="button" class="msg-emoji-btn" data-emoji="😮" title="Wow">😮</button>
+        <button type="button" class="msg-emoji-btn" data-emoji="😢" title="Sad">😢</button>
+        <button type="button" class="msg-emoji-btn" data-emoji="😡" title="Angry">😡</button>
+    </div>
+    <button type="button" class="msg-action-item" data-msg-action="reply">Reply</button>
+    <button type="button" class="msg-action-item" data-msg-action="pin">Pin message</button>
+    <button type="button" class="msg-action-item" data-msg-action="unsend">Unsend</button>
+    <button type="button" class="msg-action-item danger" data-msg-action="report">Report</button>
+</div>
+
 <script>
     (function () {
         if (document.documentElement) {
@@ -1626,10 +2039,26 @@ include 'includes/header.php';
         var headerEl = document.getElementById('messenger-chat-header');
         var formEl = document.getElementById('messenger-compose-form');
         var inputEl = document.getElementById('messenger-message-input');
+        var replyToInputEl = document.getElementById('chat-reply-to-message-id');
+        var replyPreviewEl = document.getElementById('chat-reply-preview');
+        var replyLabelEl = document.getElementById('chat-reply-label');
+        var replyRemoveEl = document.getElementById('chat-reply-remove');
         var sendBtnEl = document.getElementById('messenger-send-btn');
         var alertEl = document.getElementById('messenger-alert');
         var searchEl = document.getElementById('messenger-search');
+        var confirmModalEl = document.getElementById('chat-confirm-modal');
+        var confirmTitleEl = document.getElementById('chat-confirm-title');
+        var confirmTextEl = document.getElementById('chat-confirm-text');
+        var confirmOkEl = document.getElementById('chat-confirm-ok');
+        var confirmCancelEl = document.getElementById('chat-confirm-cancel');
+        var messageActionMenuEl = document.getElementById('msg-action-menu');
+        var currentUserId = <?php echo (int)$currentUserId; ?>;
         var selectedUserId = parseInt(app.getAttribute('data-selected-user-id') || '0', 10) || 0;
+        var selectedContactRef = null;
+        var messageCache = {};
+        var replyTarget = null;
+        var pendingConfirmFn = null;
+        var activeMessageActionId = 0;
         var pollHandle = null;
         var currentSearch = '';
 
@@ -1713,6 +2142,7 @@ include 'includes/header.php';
                 return;
             }
             var subtitle = contact.is_online ? 'Active now' : (contact.email || contact.username || '');
+            var muteLabel = isConversationMuted(contact.id) ? 'Unmute conversation' : 'Mute conversation';
             headerEl.innerHTML = '' +
                 '<div class="messenger-chat-title">' +
                     avatarMarkup(contact) +
@@ -1724,11 +2154,273 @@ include 'includes/header.php';
                 '<div class="messenger-actions">' +
                     '<button type="button" class="messenger-menu-toggle" aria-label="Conversation options" title="Conversation options"><i class="feather-more-horizontal"></i></button>' +
                     '<div class="messenger-menu" role="menu">' +
+                        '<button type="button" class="messenger-menu-item" data-action="view-contact">View contact info</button>' +
+                        '<button type="button" class="messenger-menu-item" data-action="mute-conversation">' + escapeHtml(muteLabel) + '</button>' +
+                        '<div class="messenger-menu-divider" role="separator"></div>' +
                         '<button type="button" class="messenger-menu-item" data-action="refresh-chat">Refresh chat</button>' +
                         '<button type="button" class="messenger-menu-item" data-action="scroll-bottom">Go to latest</button>' +
+                        '<div class="messenger-menu-divider" role="separator"></div>' +
+                        '<button type="button" class="messenger-menu-item danger" data-action="delete-conversation">Delete conversation</button>' +
                     '</div>' +
                 '</div>';
             bindHeaderMenu();
+        }
+
+        function muteStorageKey(userId) {
+            return 'chatMutedUser:' + String(userId || 0);
+        }
+
+        function isConversationMuted(userId) {
+            try {
+                return window.localStorage.getItem(muteStorageKey(userId)) === '1';
+            } catch (e) {
+                return false;
+            }
+        }
+
+        function setConversationMuted(userId, muted) {
+            try {
+                if (muted) {
+                    window.localStorage.setItem(muteStorageKey(userId), '1');
+                } else {
+                    window.localStorage.removeItem(muteStorageKey(userId));
+                }
+            } catch (e) {
+                // localStorage can fail in private mode; ignore silently.
+            }
+        }
+
+        function conversationStorageKey(prefix) {
+            return prefix + ':' + String(currentUserId || 0) + ':' + String(selectedUserId || 0);
+        }
+
+        function getPinnedMap() {
+            try {
+                return JSON.parse(window.localStorage.getItem(conversationStorageKey('chatPinned')) || '{}') || {};
+            } catch (e) {
+                return {};
+            }
+        }
+
+        function setPinnedMap(map) {
+            try {
+                window.localStorage.setItem(conversationStorageKey('chatPinned'), JSON.stringify(map || {}));
+            } catch (e) {
+                // ignore storage errors
+            }
+        }
+
+        function getReactionMap() {
+            try {
+                return JSON.parse(window.localStorage.getItem(conversationStorageKey('chatReactions')) || '{}') || {};
+            } catch (e) {
+                return {};
+            }
+        }
+
+        function setReactionMap(map) {
+            try {
+                window.localStorage.setItem(conversationStorageKey('chatReactions'), JSON.stringify(map || {}));
+            } catch (e) {
+                // ignore storage errors
+            }
+        }
+
+        function closeConfirmModal() {
+            if (!confirmModalEl) { return; }
+            confirmModalEl.classList.remove('show');
+            confirmModalEl.setAttribute('aria-hidden', 'true');
+            pendingConfirmFn = null;
+        }
+
+        function openConfirmModal(title, text, onConfirm, confirmLabel) {
+            if (!confirmModalEl) {
+                if (typeof onConfirm === 'function') { onConfirm(); }
+                return;
+            }
+            pendingConfirmFn = typeof onConfirm === 'function' ? onConfirm : null;
+            if (confirmTitleEl) { confirmTitleEl.textContent = title || 'Confirm action'; }
+            if (confirmTextEl) { confirmTextEl.textContent = text || 'Are you sure?'; }
+            if (confirmOkEl) { confirmOkEl.textContent = confirmLabel || 'Confirm'; }
+            confirmModalEl.classList.add('show');
+            confirmModalEl.setAttribute('aria-hidden', 'false');
+            if (confirmOkEl) { confirmOkEl.focus(); }
+        }
+
+        function closeMessageActionMenu() {
+            if (!messageActionMenuEl) { return; }
+            messageActionMenuEl.classList.remove('show');
+            messageActionMenuEl.setAttribute('aria-hidden', 'true');
+            activeMessageActionId = 0;
+        }
+
+        function getMessagePreview(msg) {
+            if (!msg) { return ''; }
+            var txt = (msg.message || '').trim();
+            if (!txt && msg.media_type === 'image') { return '[Image]'; }
+            if (!txt && msg.media_type === 'video') { return '[Video]'; }
+            if (msg.media_path && txt === msg.media_path.split('/').pop()) {
+                return msg.media_type === 'video' ? '[Video]' : '[Image]';
+            }
+            return txt;
+        }
+
+        function clearReplyTarget() {
+            replyTarget = null;
+            if (replyToInputEl) { replyToInputEl.value = '0'; }
+            if (replyLabelEl) { replyLabelEl.textContent = ''; }
+            if (replyPreviewEl) { replyPreviewEl.classList.remove('has-reply'); }
+        }
+
+        function setReplyTarget(msg) {
+            if (!msg) { clearReplyTarget(); return; }
+            replyTarget = msg;
+            if (replyToInputEl) { replyToInputEl.value = String(msg.message_id || 0); }
+            if (replyLabelEl) {
+                var preview = getMessagePreview(msg);
+                replyLabelEl.textContent = 'Replying to ' + (msg.is_own ? 'yourself' : 'them') + ': ' + (preview || '[Message]');
+            }
+            if (replyPreviewEl) { replyPreviewEl.classList.add('has-reply'); }
+        }
+
+        function openMessageActionMenu(messageId, triggerEl) {
+            if (!messageActionMenuEl || !triggerEl) { return; }
+            var msg = messageCache[String(messageId)];
+            if (!msg) { return; }
+
+            activeMessageActionId = messageId;
+            messageActionMenuEl.dataset.messageId = String(messageId);
+
+            var unsendBtn = messageActionMenuEl.querySelector('[data-msg-action="unsend"]');
+            var reportBtn = messageActionMenuEl.querySelector('[data-msg-action="report"]');
+            var pinBtn = messageActionMenuEl.querySelector('[data-msg-action="pin"]');
+            var pinnedMap = getPinnedMap();
+            var isPinned = !!pinnedMap[String(messageId)];
+
+            if (pinBtn) {
+                pinBtn.textContent = isPinned ? 'Unpin message' : 'Pin message';
+            }
+            if (unsendBtn) {
+                unsendBtn.classList.toggle('is-hidden', !msg.is_own);
+            }
+            if (reportBtn) {
+                reportBtn.classList.toggle('is-hidden', !!msg.is_own);
+            }
+
+            var rect = triggerEl.getBoundingClientRect();
+            var menuW = 220;
+            var left = rect.right + 8;
+            var top = rect.top - 8;
+            if (left + menuW > window.innerWidth - 8) {
+                left = rect.left - menuW - 8;
+            }
+            if (left < 8) {
+                left = 8;
+            }
+            if (top < 8) {
+                top = 8;
+            }
+
+            messageActionMenuEl.style.left = left + 'px';
+            messageActionMenuEl.style.top = top + 'px';
+            messageActionMenuEl.classList.add('show');
+            messageActionMenuEl.setAttribute('aria-hidden', 'false');
+        }
+
+        function deleteConversationByUserId(userId) {
+            if (!userId) { return; }
+            var fd = new FormData();
+            fd.set('action', 'delete-conversation');
+            fd.set('user_id', String(userId));
+            fd.set('ajax', '1');
+            fetch('apps-chat.php?user_id=' + encodeURIComponent(userId), {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: fd
+            }).then(function (response) {
+                return response.json();
+            }).then(function (payload) {
+                if (payload && payload.ok) {
+                    applyState(payload, { keepInput: false, forceScroll: true });
+                    clearMediaPreview();
+                    showAlert('success', payload.success || 'Conversation deleted.');
+                } else {
+                    showAlert('error', payload && payload.error ? payload.error : 'Failed to delete conversation.');
+                }
+            }).catch(function () {
+                showAlert('error', 'Failed to delete conversation.');
+            });
+        }
+
+        function unsendMessageById(messageId) {
+            if (!selectedUserId || !messageId) { return; }
+            var fd = new FormData();
+            fd.set('action', 'unsend-message');
+            fd.set('user_id', String(selectedUserId));
+            fd.set('message_id', String(messageId));
+            fd.set('ajax', '1');
+            fetch('apps-chat.php?user_id=' + encodeURIComponent(selectedUserId), {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: fd
+            }).then(function (response) {
+                return response.json();
+            }).then(function (payload) {
+                if (payload && payload.ok) {
+                    applyState(payload, { keepInput: true });
+                    showAlert('success', payload.success || 'Message unsent.');
+                } else {
+                    showAlert('error', payload && payload.error ? payload.error : 'Failed to unsend message.');
+                }
+            }).catch(function () {
+                showAlert('error', 'Failed to unsend message.');
+            });
+        }
+
+        function closeDeleteConfirm() {
+            if (!deleteConfirmEl) { return; }
+            deleteConfirmEl.classList.remove('show');
+            deleteConfirmEl.setAttribute('aria-hidden', 'true');
+            pendingDeleteUserId = 0;
+        }
+
+        function openDeleteConfirm(userId) {
+            if (!deleteConfirmEl || !userId) { return; }
+            pendingDeleteUserId = userId;
+            deleteConfirmEl.classList.add('show');
+            deleteConfirmEl.setAttribute('aria-hidden', 'false');
+            if (deleteConfirmOkEl) { deleteConfirmOkEl.focus(); }
+        }
+
+        function deleteConversationByUserId(userId) {
+            if (!userId) { return; }
+            var fd = new FormData();
+            fd.set('action', 'delete-conversation');
+            fd.set('user_id', String(userId));
+            fd.set('ajax', '1');
+            fetch('apps-chat.php?user_id=' + encodeURIComponent(userId), {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: fd
+            }).then(function (response) {
+                return response.json();
+            }).then(function (payload) {
+                if (payload && payload.ok) {
+                    applyState(payload, { keepInput: false, forceScroll: true });
+                    clearMediaPreview();
+                    showAlert('success', payload.success || 'Conversation deleted.');
+                } else {
+                    showAlert('error', payload && payload.error ? payload.error : 'Failed to delete conversation.');
+                }
+            }).catch(function () {
+                showAlert('error', 'Failed to delete conversation.');
+            });
         }
 
         function closeHeaderMenus() {
@@ -1749,6 +2441,40 @@ include 'includes/header.php';
                 event.preventDefault();
                 event.stopPropagation();
                 menu.classList.toggle('show');
+                if (menu.classList.contains('show')) {
+                    var firstItem = menu.querySelector('.messenger-menu-item');
+                    if (firstItem) { firstItem.focus(); }
+                }
+            };
+
+            toggle.onkeydown = function (event) {
+                if (event.key === 'ArrowDown' || event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    menu.classList.add('show');
+                    var firstItem = menu.querySelector('.messenger-menu-item');
+                    if (firstItem) { firstItem.focus(); }
+                } else if (event.key === 'Escape') {
+                    menu.classList.remove('show');
+                }
+            };
+
+            menu.onkeydown = function (event) {
+                var items = Array.prototype.slice.call(menu.querySelectorAll('.messenger-menu-item'));
+                if (!items.length) { return; }
+                var activeIndex = items.indexOf(document.activeElement);
+                if (event.key === 'Escape') {
+                    event.preventDefault();
+                    menu.classList.remove('show');
+                    toggle.focus();
+                    return;
+                }
+                if (event.key === 'ArrowDown') {
+                    event.preventDefault();
+                    items[(activeIndex + 1 + items.length) % items.length].focus();
+                } else if (event.key === 'ArrowUp') {
+                    event.preventDefault();
+                    items[(activeIndex - 1 + items.length) % items.length].focus();
+                }
             };
 
             menu.onclick = function (event) {
@@ -1761,6 +2487,26 @@ include 'includes/header.php';
                 } else if (action === 'scroll-bottom') {
                     scrollThreadToBottom(true);
                     updateScrollBtn();
+                } else if (action === 'view-contact') {
+                    var c = selectedContactRef;
+                    if (!c) { return; }
+                    var info = c.name || 'Unknown user';
+                    var extra = c.email || c.username || '';
+                    showAlert('success', extra ? (info + ' · ' + extra) : info);
+                } else if (action === 'mute-conversation') {
+                    if (!selectedContactRef) { return; }
+                    var currentlyMuted = isConversationMuted(selectedContactRef.id);
+                    setConversationMuted(selectedContactRef.id, !currentlyMuted);
+                    renderHeader(selectedContactRef);
+                    showAlert('success', currentlyMuted ? 'Conversation unmuted.' : 'Conversation muted.');
+                } else if (action === 'delete-conversation') {
+                    if (!selectedUserId) { return; }
+                    openConfirmModal(
+                        'Delete conversation?',
+                        'This will remove all messages in this conversation for your account.',
+                        function () { deleteConversationByUserId(selectedUserId); },
+                        'Delete'
+                    );
                 }
             };
         }
@@ -1829,6 +2575,9 @@ include 'includes/header.php';
 
             var wasBottom = forceScroll || isAtBottom();
             var n = items.length;
+            messageCache = {};
+            var pinnedMap = getPinnedMap();
+            var reactionMap = getReactionMap();
 
             // Compute grouping: consecutive same-sender in same date_key
             var groups = new Array(n);
@@ -1855,6 +2604,7 @@ include 'includes/header.php';
                 var msg = items[mi];
                 var grp = groups[mi];
                 var dk = msg.date_key || '';
+                messageCache[String(msg.message_id)] = msg;
 
                 // Date separator between days
                 if (dk && dk !== lastDateKey) {
@@ -1902,14 +2652,28 @@ include 'includes/header.php';
 
                 // Bubble title = full time for all messages (accessible via hover)
                 var bubbleTitle = msg.time_full ? ' title="' + escapeHtml(msg.time_full) + '"' : '';
+                var pinnedClass = pinnedMap[String(msg.message_id)] ? ' is-pinned' : '';
+                var reaction = reactionMap[String(msg.message_id)] || '';
 
                 html += '<div class="msg-row' + (msg.is_own ? ' own' : '') + ' ' + grp + '">';
                 if (!msg.is_own) { html += avatarHtml; }
-                html += '<div class="msg-bubble ' + grp + (msg.media_path ? ' has-media' : '') + '"' + bubbleTitle + '>';
+                if (msg.is_own) {
+                    html += '<button type="button" class="msg-hover-menu-btn" data-message-id="' + msg.message_id + '" aria-label="Message actions">&#8226;&#8226;&#8226;</button>';
+                }
+                html += '<div class="msg-bubble ' + grp + (msg.media_path ? ' has-media' : '') + pinnedClass + '"' + bubbleTitle + '>';
+                if (msg.reply_preview) {
+                    html += '<div class="msg-reply-quote"><strong>' + escapeHtml(msg.reply_author || '') + '</strong>' + escapeHtml(msg.reply_preview) + '</div>';
+                }
                 html += mediaHtml;
                 if (displayMsg) { html += nl2br(displayMsg); }
                 html += metaHtml;
+                if (reaction) {
+                    html += '<div class="msg-reaction-badge">' + escapeHtml(reaction) + '</div>';
+                }
                 html += '</div>';
+                if (!msg.is_own) {
+                    html += '<button type="button" class="msg-hover-menu-btn" data-message-id="' + msg.message_id + '" aria-label="Message actions">&#8226;&#8226;&#8226;</button>';
+                }
                 html += '</div>';
 
                 // Delivered indicator under the last own message
@@ -1928,15 +2692,23 @@ include 'includes/header.php';
 
         function applyState(payload, options) {
             var state = payload || {};
+            var previousSelectedUserId = selectedUserId;
             if (typeof state.selectedUserId === 'number' && state.selectedUserId > 0) {
                 selectedUserId = state.selectedUserId;
                 app.setAttribute('data-selected-user-id', String(selectedUserId));
             }
+            if (selectedUserId !== previousSelectedUserId) {
+                clearReplyTarget();
+            }
             renderContacts(state.contacts || []);
             if (state.selectedContact) {
+                selectedContactRef = state.selectedContact;
                 renderHeader(state.selectedContact);
                 var forceScroll = options && options.forceScroll;
                 renderMessages(state.messages || [], state.selectedContact, forceScroll);
+            } else {
+                selectedContactRef = null;
+                clearReplyTarget();
             }
             if (formEl && selectedUserId > 0) {
                 formEl.setAttribute('action', 'apps-chat.php?user_id=' + selectedUserId);
@@ -2045,7 +2817,69 @@ include 'includes/header.php';
                 scrollThreadToBottom(true);
                 updateScrollBtn();
             });
-            threadEl.addEventListener('scroll', updateScrollBtn);
+            threadEl.addEventListener('scroll', function () {
+                updateScrollBtn();
+                closeMessageActionMenu();
+            });
+        }
+
+        if (threadEl) {
+            threadEl.addEventListener('click', function (event) {
+                var actionBtn = event.target.closest('.msg-hover-menu-btn');
+                if (actionBtn) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    var mid = parseInt(actionBtn.getAttribute('data-message-id') || '0', 10);
+                    openMessageActionMenu(mid, actionBtn);
+                }
+            });
+        }
+
+        if (messageActionMenuEl) {
+            messageActionMenuEl.addEventListener('click', function (event) {
+                var emojiBtn = event.target.closest('.msg-emoji-btn');
+                if (emojiBtn) {
+                    var emoji = emojiBtn.getAttribute('data-emoji') || '';
+                    if (!emoji || !activeMessageActionId) { return; }
+                    var reactions = getReactionMap();
+                    reactions[String(activeMessageActionId)] = emoji;
+                    setReactionMap(reactions);
+                    closeMessageActionMenu();
+                    fetchState(false);
+                    return;
+                }
+
+                var action = event.target.closest('.msg-action-item');
+                if (!action || !activeMessageActionId) { return; }
+                var type = action.getAttribute('data-msg-action') || '';
+                var mid = activeMessageActionId;
+                var msg = messageCache[String(mid)];
+                closeMessageActionMenu();
+                if (!msg) { return; }
+
+                if (type === 'reply') {
+                    setReplyTarget(msg);
+                    autoGrowInput();
+                    updateSendBtn();
+                    inputEl.focus();
+                } else if (type === 'pin') {
+                    var pins = getPinnedMap();
+                    var key = String(mid);
+                    if (pins[key]) { delete pins[key]; } else { pins[key] = 1; }
+                    setPinnedMap(pins);
+                    fetchState(false);
+                } else if (type === 'unsend') {
+                    if (!msg.is_own) { return; }
+                    openConfirmModal(
+                        'Unsend this message?',
+                        'This message will be removed from the conversation.',
+                        function () { unsendMessageById(mid); },
+                        'Unsend'
+                    );
+                } else if (type === 'report') {
+                    showAlert('success', 'Message reported.');
+                }
+            });
         }
 
         // ── Messenger compose behavior: auto-grow + Enter to send ──
@@ -2101,6 +2935,7 @@ include 'includes/header.php';
                 }).then(function (result) {
                     if (result.payload && result.payload.ok) {
                         applyState(result.payload, { keepInput: false, forceScroll: true });
+                        clearReplyTarget();
                         clearMediaPreview();
                         updateSendBtn();
                         autoGrowInput();
@@ -2123,15 +2958,56 @@ include 'includes/header.php';
             });
         }
 
+        if (replyRemoveEl) {
+            replyRemoveEl.addEventListener('click', function () {
+                clearReplyTarget();
+                if (inputEl) { inputEl.focus(); }
+            });
+        }
+
         document.addEventListener('click', function (event) {
             if (!headerEl) { return; }
             if (!event.target.closest('.messenger-actions')) {
                 closeHeaderMenus();
             }
+            if (messageActionMenuEl && !event.target.closest('#msg-action-menu') && !event.target.closest('.msg-hover-menu-btn')) {
+                closeMessageActionMenu();
+            }
         });
+
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') {
+                closeHeaderMenus();
+                closeConfirmModal();
+                closeMessageActionMenu();
+            }
+        });
+
+        if (confirmCancelEl) {
+            confirmCancelEl.addEventListener('click', closeConfirmModal);
+        }
+
+        if (confirmOkEl) {
+            confirmOkEl.addEventListener('click', function () {
+                var fn = pendingConfirmFn;
+                closeConfirmModal();
+                if (typeof fn === 'function') {
+                    fn();
+                }
+            });
+        }
+
+        if (confirmModalEl) {
+            confirmModalEl.addEventListener('click', function (event) {
+                if (event.target === confirmModalEl) {
+                    closeConfirmModal();
+                }
+            });
+        }
 
         bindHeaderMenu();
 
+        clearReplyTarget();
         updateSendBtn();
         autoGrowInput();
         scrollThreadToBottom(true);
