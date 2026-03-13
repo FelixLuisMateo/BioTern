@@ -470,7 +470,7 @@ if ($student_id > 0 && ojt_edit_table_exists($conn, 'ojt_supervisor_reviews')) {
                 </div>
                 <div class="nxl-h-item d-none d-sm-flex">
                     <div class="full-screen-switcher">
-                        <a href="javascript:void(0);" class="nxl-head-link me-0" onclick="$('body').fullScreenHelper('toggle');">
+                        <a href="javascript:void(0);" class="nxl-head-link me-0" data-action="toggle-fullscreen" aria-label="Toggle fullscreen">
                             <i class="feather-maximize maximize"></i>
                             <i class="feather-minimize minimize"></i>
                         </a>
@@ -706,6 +706,7 @@ require_once dirname(__DIR__) . '/config/db.php';
     </div>
 </main>
 <script src="assets/vendors/js/vendors.min.js"></script>
+<script src="assets/js/global-ui-helpers.js"></script>
 <script src="assets/js/common-init.min.js"></script>
 <script src="assets/js/theme-customizer-init.min.js"></script>
 </body>

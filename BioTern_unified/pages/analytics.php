@@ -482,7 +482,7 @@ include_once 'includes/navigation.php'; ?>
                     
                     <div class="nxl-h-item d-none d-sm-flex">
                         <div class="full-screen-switcher">
-                            <a href="javascript:void(0);" class="nxl-head-link me-0" onclick="$('body').fullScreenHelper('toggle');">
+                            <a href="javascript:void(0);" class="nxl-head-link me-0" data-action="toggle-fullscreen" aria-label="Toggle fullscreen">
                                 <i class="feather-maximize maximize"></i>
                                 <i class="feather-minimize minimize"></i>
                             </a>
@@ -1682,6 +1682,7 @@ echo format_pct($external_pct); ?></div>
     <script src="assets/vendors/js/circle-progress.min.js"></script>
     <!--! END: Vendors JS !-->
     <!--! BEGIN: Apps Init  !-->
+    <script src="assets/js/global-ui-helpers.js"></script>
     <script src="assets/js/common-init.min.js"></script>
     <script>
         (function () {
