@@ -479,7 +479,7 @@ include 'includes/header.php';
             <h5 class="m-b-10">Create OJT Assignment</h5>
         </div>
         <ul class="breadcrumb">
-            <li class="breadcrumb-item"><a href="index.php">Home</a></li>
+            <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
             <li class="breadcrumb-item"><a href="ojt.php">OJT</a></li>
             <li class="breadcrumb-item">Create</li>
         </ul>

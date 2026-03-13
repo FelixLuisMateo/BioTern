@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 require_once dirname(__DIR__) . '/config/db.php';
 $page_title = 'BioTern || Widgets Lists';
 include 'includes/header.php';
@@ -10,7 +10,7 @@ include 'includes/header.php';
                         <h5 class="m-b-10">Widgets</h5>
                     </div>
                     <ul class="breadcrumb">
-                        <li class="breadcrumb-item"><a href="index.php">Home</a></li>
+                        <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
                         <li class="breadcrumb-item">Lists</li>
                     </ul>
                 </div>
@@ -3179,7 +3179,7 @@ include 'includes/header.php';
         <!-- [ Footer ] start -->
         <footer class="footer">
             <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
-                <span>Copyright Â©</span>
+                <span>Copyright ©</span>
                 <script>
                     document.write(new Date().getFullYear());
                 </script>

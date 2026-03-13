@@ -1612,7 +1612,7 @@ $session_profile_picture_url = $session_profile_picture !== '' ? $session_profil
                         <h5 class="m-b-10">OJT</h5>
                     </div>
                     <ul class="breadcrumb">
-                        <li class="breadcrumb-item"><a href="index.php">Home</a></li>
+                        <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
                         <li class="breadcrumb-item">View</li>
                     </ul>
                 </div>

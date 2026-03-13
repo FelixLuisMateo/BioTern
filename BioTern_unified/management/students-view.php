@@ -871,7 +871,7 @@ echo htmlspecialchars((string)($_SESSION['email'] ?? 'admin@biotern.local'), ENT
                         <h5 class="m-b-10">Student Profile</h5>
                     </div>
                     <ul class="breadcrumb">
-                        <li class="breadcrumb-item"><a href="index.php">Home</a></li>
+                        <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
                         <li class="breadcrumb-item"><a href="students.php">Students</a></li>
                         <li class="breadcrumb-item">View</li>
                     </ul>

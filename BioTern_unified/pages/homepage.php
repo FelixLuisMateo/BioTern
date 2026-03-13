@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 require_once dirname(__DIR__) . '/config/db.php';
 // Start session early to avoid headers-sent warnings
 if (session_status() === PHP_SESSION_NONE) {
@@ -354,7 +354,7 @@ include 'includes/header.php';
                         <h5 class="m-b-10">Overview</h5>
                     </div>
                     <ul class="breadcrumb">
-                        <li class="breadcrumb-item"><a href="index.php">Home</a></li>
+                        <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
                         <li class="breadcrumb-item">Overview</li>
                     </ul>
                 </div>
@@ -1188,7 +1188,7 @@ endif; ?>
         <!-- [ Footer ] start -->
         <footer class="footer">
             <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
-                <span>Copyright Â©</span>
+                <span>Copyright ©</span>
                 <script>
                     document.write(new Date().getFullYear());
                 </script>
