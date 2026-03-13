@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/notifications.php';
 
@@ -66,7 +66,7 @@ function chat_avatar_path(string $profilePicture, int $userId = 0): string
         return $normalized;
     }
 
-    // No picture stored – use a numbered default avatar so different users look distinct
+    // No picture stored â€“ use a numbered default avatar so different users look distinct
     $num = $userId > 0 ? (($userId % 12) + 1) : 1;
     return 'assets/images/avatar/' . $num . '.png';
 }
@@ -144,6 +144,30 @@ function chat_media_kind_from_path(string $path): string
     return '';
 }
 
+function chat_contains_inappropriate(string $text): bool
+{
+    $normalized = strtolower(trim($text));
+    if ($normalized === '') {
+        return false;
+    }
+
+    // Basic moderation list: profanity, explicit sexual terms, and common abuse terms.
+    $blockedTerms = [
+        'fuck', 'fucking', 'shit', 'bitch', 'asshole', 'bastard', 'dick', 'pussy',
+        'nude', 'nudes', 'porn', 'sext', 'blowjob', 'handjob', 'cum',
+        'kill yourself', 'kys',
+    ];
+
+    foreach ($blockedTerms as $term) {
+        $pattern = '/\b' . preg_quote($term, '/') . '\b/i';
+        if (preg_match($pattern, $normalized) === 1) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 function chat_normalize_contact(array $contact, array $recentLoginUserIds): array
 {
     $name = trim((string)($contact['name'] ?? ''));
@@ -205,7 +229,7 @@ function chat_normalize_messages(array $messages, int $currentUserId): array
         $createdAt = (string)($message['created_at'] ?? '');
         $ts = $createdAt !== '' ? strtotime($createdAt) : 0;
         $timeExact = $ts > 0
-            ? (date('Y-m-d', $ts) === $todayDate ? date('g:i A', $ts) : date('M j · g:i A', $ts))
+            ? (date('Y-m-d', $ts) === $todayDate ? date('g:i A', $ts) : date('M j Â· g:i A', $ts))
             : '';
         $timeFull = $ts > 0 ? date('F j, Y \a\t g:i A', $ts) : '';
         $rawMedia = trim((string)($message['media_path'] ?? ''));
@@ -231,6 +255,66 @@ function chat_normalize_messages(array $messages, int $currentUserId): array
                 $replyPreview = substr($replyPreview, 0, 87) . '...';
             }
         }
+        $rawReactionSummary = (isset($message['reaction_summary']) && is_array($message['reaction_summary'])) ? $message['reaction_summary'] : [];
+        $reactionSummary = [];
+        foreach ($rawReactionSummary as $reactionItem) {
+            if (!is_array($reactionItem)) {
+                continue;
+            }
+            $reactionEmoji = trim((string)($reactionItem['emoji'] ?? ''));
+            $reactionCount = (int)($reactionItem['count'] ?? 0);
+            if ($reactionEmoji === '' || $reactionCount <= 0) {
+                continue;
+            }
+            $reactionSummary[] = [
+                'emoji' => $reactionEmoji,
+                'count' => $reactionCount,
+            ];
+        }
+
+        $rawReactionUsers = (isset($message['reaction_users']) && is_array($message['reaction_users'])) ? $message['reaction_users'] : [];
+        $reactionUsers = [];
+        foreach ($rawReactionUsers as $reactionUser) {
+            if (!is_array($reactionUser)) {
+                continue;
+            }
+            $reactionEmoji = trim((string)($reactionUser['emoji'] ?? ''));
+            if ($reactionEmoji === '') {
+                continue;
+            }
+            $reactionUserName = trim((string)($reactionUser['name'] ?? ''));
+            if ($reactionUserName === '') {
+                $reactionUserName = 'Unknown user';
+            }
+            $reactionUserId = (int)($reactionUser['user_id'] ?? 0);
+            $reactionUsers[] = [
+                'user_id' => $reactionUserId,
+                'name' => $reactionUserName,
+                'avatar_path' => chat_avatar_path((string)($reactionUser['profile_picture'] ?? ''), $reactionUserId),
+                'initials' => chat_initials($reactionUserName),
+                'emoji' => $reactionEmoji,
+                'is_own' => $reactionUserId === $currentUserId,
+            ];
+        }
+
+        $reactionTotal = max(0, (int)($message['reaction_count'] ?? 0));
+        if ($reactionTotal <= 0) {
+            foreach ($reactionSummary as $reactionItem) {
+                $reactionTotal += (int)($reactionItem['count'] ?? 0);
+            }
+        }
+
+        $topReactionEmoji = (string)($message['reaction_emoji'] ?? '');
+        if (!empty($reactionSummary)) {
+            $topReactionEmoji = (string)($reactionSummary[0]['emoji'] ?? $topReactionEmoji);
+        }
+        if ($topReactionEmoji !== '' && empty($reactionSummary) && $reactionTotal > 0) {
+            $reactionSummary[] = [
+                'emoji' => $topReactionEmoji,
+                'count' => $reactionTotal,
+            ];
+        }
+
         $items[] = [
             'message_id' => (int)($message['message_id'] ?? 0),
             'sender_id' => (int)($message['sender_id'] ?? 0),
@@ -238,8 +322,11 @@ function chat_normalize_messages(array $messages, int $currentUserId): array
             'reply_to_message_id' => $replyToId,
             'reply_preview' => $replyPreview,
             'reply_author' => $replyAuthor,
-            'reaction_emoji' => (string)($message['reaction_emoji'] ?? ''),
+            'reaction_emoji' => $topReactionEmoji,
             'reaction_by_user_id' => (int)($message['reaction_by_user_id'] ?? 0),
+            'reaction_count' => $reactionTotal,
+            'reaction_summary' => $reactionSummary,
+            'reaction_users' => $reactionUsers,
             'message' => (string)($message['message'] ?? ''),
             'subject' => (string)($message['subject'] ?? ''),
             'media_path' => $rawMedia,
@@ -300,9 +387,27 @@ function chat_ensure_messages_table(mysqli $conn): void
     }
 }
 
+function chat_ensure_message_reactions_table(mysqli $conn): void
+{
+    $conn->query(
+        "CREATE TABLE IF NOT EXISTS message_reactions (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            message_id BIGINT UNSIGNED NOT NULL,
+            user_id BIGINT UNSIGNED NOT NULL,
+            emoji VARCHAR(32) NOT NULL,
+            created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            UNIQUE KEY uq_message_user (message_id, user_id),
+            INDEX idx_message_emoji (message_id, emoji),
+            INDEX idx_reaction_user (user_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci"
+    );
+}
+
 function chat_message_meta(mysqli $conn): array
 {
     chat_ensure_messages_table($conn);
+    chat_ensure_message_reactions_table($conn);
 
     $columns = [];
     $res = $conn->query('SHOW COLUMNS FROM messages');
@@ -335,6 +440,7 @@ function chat_message_meta(mysqli $conn): array
         'created_at_col' => isset($columns['created_at']) ? 'created_at' : '',
         'updated_at_col' => isset($columns['updated_at']) ? 'updated_at' : '',
         'deleted_at_col' => isset($columns['deleted_at']) ? 'deleted_at' : '',
+        'reactions_ready' => chat_has_table($conn, 'message_reactions'),
     ];
 }
 
@@ -442,29 +548,73 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['action'] ?? '') ==
 
     if ($selectedUserId <= 0 || $messageId <= 0) {
         $errorMessage = 'Invalid reaction request.';
-    } elseif ($messageMeta['reaction_emoji_col'] === '' || $messageMeta['reaction_by_col'] === '') {
+    } elseif (empty($messageMeta['reactions_ready'])) {
         $errorMessage = 'Reactions are not available.';
     } else {
-        $reactSql = 'UPDATE messages SET '
-            . $messageMeta['reaction_emoji_col'] . ' = NULLIF(?, \'\'), '
-            . $messageMeta['reaction_by_col'] . ' = CASE WHEN ? = \'\' THEN NULL ELSE ? END'
-            . ($messageMeta['updated_at_col'] !== '' ? ', ' . $messageMeta['updated_at_col'] . ' = NOW()' : '')
-            . ' WHERE ' . $messageMeta['id_col'] . ' = ?'
-            . ' AND ((' . $messageMeta['sender_col'] . ' = ? AND ' . $messageMeta['recipient_col'] . ' = ?)'
-            . ' OR (' . $messageMeta['sender_col'] . ' = ? AND ' . $messageMeta['recipient_col'] . ' = ?))'
-            . ($messageMeta['deleted_at_col'] !== '' ? ' AND ' . $messageMeta['deleted_at_col'] . ' IS NULL' : '');
-        $reactStmt = $conn->prepare($reactSql);
-        if (!$reactStmt) {
-            $errorMessage = 'Failed to prepare reaction query.';
+        if (function_exists('mb_substr')) {
+            $reactionEmoji = mb_substr($reactionEmoji, 0, 8);
         } else {
-            $reactStmt->bind_param('ssiiiiii', $reactionEmoji, $reactionEmoji, $currentUserId, $messageId, $currentUserId, $selectedUserId, $selectedUserId, $currentUserId);
-            $ok = $reactStmt->execute();
-            $affected = $reactStmt->affected_rows;
-            $reactStmt->close();
-            if ($ok && $affected >= 0) {
-                $successMessage = $reactionEmoji !== '' ? 'Reaction sent.' : 'Reaction removed.';
+            $reactionEmoji = substr($reactionEmoji, 0, 16);
+        }
+
+        $checkSql = 'SELECT ' . $messageMeta['id_col'] . ' AS message_id
+            FROM messages
+            WHERE ' . $messageMeta['id_col'] . ' = ?
+              AND ((' . $messageMeta['sender_col'] . ' = ? AND ' . $messageMeta['recipient_col'] . ' = ?)
+                OR (' . $messageMeta['sender_col'] . ' = ? AND ' . $messageMeta['recipient_col'] . ' = ?))'
+              . ($messageMeta['deleted_at_col'] !== '' ? ' AND ' . $messageMeta['deleted_at_col'] . ' IS NULL' : '') . '
+            LIMIT 1';
+        $checkStmt = $conn->prepare($checkSql);
+        if (!$checkStmt) {
+            $errorMessage = 'Failed to validate reaction target.';
+        } else {
+            $checkStmt->bind_param('iiiii', $messageId, $currentUserId, $selectedUserId, $selectedUserId, $currentUserId);
+            $checkStmt->execute();
+            $hasMessage = (bool)$checkStmt->get_result()->fetch_assoc();
+            $checkStmt->close();
+
+            if (!$hasMessage) {
+                $errorMessage = 'Message not found in this conversation.';
             } else {
-                $errorMessage = 'Failed to update reaction.';
+                $existingEmoji = '';
+                $existingStmt = $conn->prepare('SELECT emoji FROM message_reactions WHERE message_id = ? AND user_id = ? LIMIT 1');
+                if ($existingStmt) {
+                    $existingStmt->bind_param('ii', $messageId, $currentUserId);
+                    $existingStmt->execute();
+                    $existingRow = $existingStmt->get_result()->fetch_assoc();
+                    $existingStmt->close();
+                    $existingEmoji = (string)($existingRow['emoji'] ?? '');
+                }
+
+                if ($reactionEmoji === '' || $reactionEmoji === $existingEmoji) {
+                    $deleteReactionStmt = $conn->prepare('DELETE FROM message_reactions WHERE message_id = ? AND user_id = ?');
+                    if (!$deleteReactionStmt) {
+                        $errorMessage = 'Failed to remove reaction.';
+                    } else {
+                        $deleteReactionStmt->bind_param('ii', $messageId, $currentUserId);
+                        $ok = $deleteReactionStmt->execute();
+                        $deleteReactionStmt->close();
+                        if ($ok) {
+                            $successMessage = 'Reaction removed.';
+                        } else {
+                            $errorMessage = 'Failed to remove reaction.';
+                        }
+                    }
+                } else {
+                    $upsertReactionStmt = $conn->prepare('INSERT INTO message_reactions (message_id, user_id, emoji, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW()) ON DUPLICATE KEY UPDATE emoji = VALUES(emoji), updated_at = NOW()');
+                    if (!$upsertReactionStmt) {
+                        $errorMessage = 'Failed to save reaction.';
+                    } else {
+                        $upsertReactionStmt->bind_param('iis', $messageId, $currentUserId, $reactionEmoji);
+                        $ok = $upsertReactionStmt->execute();
+                        $upsertReactionStmt->close();
+                        if ($ok) {
+                            $successMessage = 'Reaction sent.';
+                        } else {
+                            $errorMessage = 'Failed to save reaction.';
+                        }
+                    }
+                }
             }
         }
     }
@@ -472,7 +622,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['action'] ?? '') ==
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['action'] ?? '') === 'send-message' && $messageMeta['ready']) {
     $selectedUserId = (int)($_POST['user_id'] ?? 0);
-    $draftMessage = trim((string)($_POST['message'] ?? ''));
+    $plainDraftMessage = trim((string)($_POST['message'] ?? ''));
+    $draftMessage = $plainDraftMessage;
     $replyToMessageId = (int)($_POST['reply_to_message_id'] ?? 0);
 
     // Handle optional media upload
@@ -522,6 +673,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['action'] ?? '') ==
         $errorMessage = 'Select a recipient before sending a message.';
     } elseif ($selectedUserId === $currentUserId) {
         $errorMessage = 'You cannot send a message to yourself.';
+    } elseif ($plainDraftMessage !== '' && chat_contains_inappropriate($plainDraftMessage)) {
+        $errorMessage = 'Message blocked due to inappropriate language. Please edit and try again.';
     } elseif ($draftMessage === '' && $uploadedMediaPath === '') {
         $errorMessage = 'Message cannot be empty.';
     } elseif ($errorMessage === '') {
@@ -809,6 +962,23 @@ if ($selectedContact && $messageMeta['is_read_col'] !== '') {
 $conversationMessages = [];
 if ($selectedContact && $messageMeta['ready']) {
     $orderPrimary = $messageMeta['created_at_col'] !== '' ? $messageMeta['created_at_col'] : $messageMeta['id_col'];
+    $outerMessageIdExpr = 'messages.' . $messageMeta['id_col'];
+    $legacyReactionCol = $messageMeta['reaction_emoji_col'] !== '' ? $messageMeta['reaction_emoji_col'] : 'NULL';
+    $reactionEmojiSelect = ($messageMeta['reactions_ready'] ?? false)
+        ? '(SELECT mr.emoji
+            FROM message_reactions mr
+            WHERE mr.message_id = ' . $outerMessageIdExpr . '
+            GROUP BY mr.emoji
+            ORDER BY COUNT(*) DESC, mr.emoji ASC
+            LIMIT 1)'
+        : $legacyReactionCol;
+    $reactionCountSelect = ($messageMeta['reactions_ready'] ?? false)
+        ? '(SELECT COUNT(*) FROM message_reactions mr_cnt WHERE mr_cnt.message_id = ' . $outerMessageIdExpr . ')'
+        : '(CASE WHEN ' . $legacyReactionCol . ' IS NULL OR ' . $legacyReactionCol . " = '' THEN 0 ELSE 1 END)";
+    $reactionBySelect = ($messageMeta['reactions_ready'] ?? false)
+        ? '0'
+        : ($messageMeta['reaction_by_col'] !== '' ? $messageMeta['reaction_by_col'] : 'NULL');
+
     $conversationSql = 'SELECT
             ' . $messageMeta['id_col'] . ' AS message_id,
             ' . $messageMeta['sender_col'] . ' AS sender_id,
@@ -817,8 +987,9 @@ if ($selectedContact && $messageMeta['ready']) {
             ' . ($messageMeta['reply_to_col'] !== '' ? $messageMeta['reply_to_col'] : 'NULL') . ' AS reply_to_message_id,
             ' . ($messageMeta['subject_col'] !== '' ? $messageMeta['subject_col'] : 'NULL') . ' AS subject,
             ' . ($messageMeta['media_path_col'] !== '' ? $messageMeta['media_path_col'] : 'NULL') . ' AS media_path,
-            ' . ($messageMeta['reaction_emoji_col'] !== '' ? $messageMeta['reaction_emoji_col'] : 'NULL') . ' AS reaction_emoji,
-            ' . ($messageMeta['reaction_by_col'] !== '' ? $messageMeta['reaction_by_col'] : 'NULL') . ' AS reaction_by_user_id,
+            ' . $reactionEmojiSelect . ' AS reaction_emoji,
+            ' . $reactionBySelect . ' AS reaction_by_user_id,
+            ' . $reactionCountSelect . ' AS reaction_count,
             ' . ($messageMeta['created_at_col'] !== '' ? $messageMeta['created_at_col'] : 'NULL') . ' AS created_at
         FROM messages
         WHERE ((' . $messageMeta['sender_col'] . ' = ? AND ' . $messageMeta['recipient_col'] . ' = ?)
@@ -842,10 +1013,102 @@ if ($selectedContact && $messageMeta['ready']) {
                 'media_path' => (string)($row['media_path'] ?? ''),
                 'reaction_emoji' => (string)($row['reaction_emoji'] ?? ''),
                 'reaction_by_user_id' => (int)($row['reaction_by_user_id'] ?? 0),
+                'reaction_count' => (int)($row['reaction_count'] ?? 0),
                 'created_at' => (string)($row['created_at'] ?? ''),
             ];
         }
         $conversationStmt->close();
+    }
+
+    if (!empty($messageMeta['reactions_ready']) && !empty($conversationMessages)) {
+        $messageIds = [];
+        foreach ($conversationMessages as $conversationMessage) {
+            $messageId = (int)($conversationMessage['message_id'] ?? 0);
+            if ($messageId > 0) {
+                $messageIds[$messageId] = $messageId;
+            }
+        }
+
+        if (!empty($messageIds)) {
+            $messageIds = array_values($messageIds);
+            $placeholders = implode(', ', array_fill(0, count($messageIds), '?'));
+            $reactionSql = 'SELECT mr.message_id, mr.user_id, mr.emoji, mr.updated_at, u.name, u.username, u.profile_picture
+                FROM message_reactions mr
+                LEFT JOIN users u ON u.id = mr.user_id
+                WHERE mr.message_id IN (' . $placeholders . ')
+                ORDER BY mr.message_id ASC, mr.updated_at ASC, mr.id ASC';
+            $reactionStmt = $conn->prepare($reactionSql);
+            if ($reactionStmt) {
+                $reactionStmt->bind_param(str_repeat('i', count($messageIds)), ...$messageIds);
+                $reactionStmt->execute();
+                $reactionRes = $reactionStmt->get_result();
+
+                $reactionSummaryByMessage = [];
+                $reactionUsersByMessage = [];
+                while ($reactionRow = $reactionRes->fetch_assoc()) {
+                    $messageId = (int)($reactionRow['message_id'] ?? 0);
+                    $emoji = trim((string)($reactionRow['emoji'] ?? ''));
+                    if ($messageId <= 0 || $emoji === '') {
+                        continue;
+                    }
+
+                    if (!isset($reactionSummaryByMessage[$messageId])) {
+                        $reactionSummaryByMessage[$messageId] = [];
+                    }
+                    if (!isset($reactionSummaryByMessage[$messageId][$emoji])) {
+                        $reactionSummaryByMessage[$messageId][$emoji] = 0;
+                    }
+                    $reactionSummaryByMessage[$messageId][$emoji]++;
+
+                    $reactionUserId = (int)($reactionRow['user_id'] ?? 0);
+                    $reactionUserName = trim((string)($reactionRow['name'] ?? ''));
+                    if ($reactionUserName === '') {
+                        $reactionUserName = trim((string)($reactionRow['username'] ?? ''));
+                    }
+                    if ($reactionUserName === '') {
+                        $reactionUserName = 'Unknown user';
+                    }
+
+                    if (!isset($reactionUsersByMessage[$messageId])) {
+                        $reactionUsersByMessage[$messageId] = [];
+                    }
+                    $reactionUsersByMessage[$messageId][] = [
+                        'user_id' => $reactionUserId,
+                        'name' => $reactionUserName,
+                        'profile_picture' => (string)($reactionRow['profile_picture'] ?? ''),
+                        'emoji' => $emoji,
+                    ];
+                }
+                $reactionStmt->close();
+
+                foreach ($conversationMessages as &$conversationMessage) {
+                    $messageId = (int)($conversationMessage['message_id'] ?? 0);
+                    $emojiCounts = $reactionSummaryByMessage[$messageId] ?? [];
+
+                    arsort($emojiCounts);
+                    $reactionSummary = [];
+                    $reactionTotal = 0;
+                    foreach ($emojiCounts as $emoji => $count) {
+                        $count = (int)$count;
+                        if ($count <= 0) {
+                            continue;
+                        }
+                        $reactionSummary[] = [
+                            'emoji' => (string)$emoji,
+                            'count' => $count,
+                        ];
+                        $reactionTotal += $count;
+                    }
+
+                    $conversationMessage['reaction_summary'] = $reactionSummary;
+                    $conversationMessage['reaction_users'] = $reactionUsersByMessage[$messageId] ?? [];
+                    $conversationMessage['reaction_count'] = $reactionTotal;
+                    $conversationMessage['reaction_emoji'] = !empty($reactionSummary) ? (string)$reactionSummary[0]['emoji'] : '';
+                    $conversationMessage['reaction_by_user_id'] = 0;
+                }
+                unset($conversationMessage);
+            }
+        }
     }
 }
 
@@ -886,7 +1149,7 @@ if ($isAjaxRequest) {
 include 'includes/header.php';
 ?>
 <style>
-    /* ── Light mode tokens (default) ─────────────────────────────── */
+    /* â”€â”€ Light mode tokens (default) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     :root {
         --chat-shell-bg: #f3f4f6;
         --chat-shell-shadow: 0 4px 24px rgba(13, 16, 28, 0.08);
@@ -926,7 +1189,7 @@ include 'includes/header.php';
         --chat-empty-color: rgba(15, 23, 42, 0.5);
     }
 
-    /* ── Dark mode overrides ─────────────────────────────────────── */
+    /* â”€â”€ Dark mode overrides â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     html.app-skin-dark {
         --chat-shell-bg: #121a2d;
         --chat-shell-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
@@ -998,24 +1261,25 @@ include 'includes/header.php';
         overflow: hidden;
     }
 
-    .messenger-page-alert {
+    .btchat-page-alert {
         margin: 0 0 0.5rem 0;
         flex-shrink: 0;
     }
 
-    .messenger-shell {
-        border-radius: 14px;
+    .btchat-shell {
+        border-radius: 20px;
         overflow: hidden;
         box-shadow: var(--chat-shell-shadow);
         display: grid;
-        grid-template-columns: 340px minmax(0, 1fr);
+        grid-template-columns: 320px minmax(0, 1fr);
         height: 100%;
         max-height: 100%;
         min-height: 0;
         background: var(--chat-shell-bg);
+        border: 1px solid color-mix(in srgb, var(--chat-header-border) 92%, transparent);
     }
 
-    .messenger-left {
+    .btchat-left {
         background: var(--chat-left-bg);
         color: var(--chat-left-color);
         border-right: 1px solid var(--chat-left-border);
@@ -1023,26 +1287,39 @@ include 'includes/header.php';
         flex-direction: column;
         min-height: 0;
         overflow: hidden;
+        position: relative;
     }
 
-    .messenger-left-header {
+    .btchat-left::after {
+        content: '';
+        position: absolute;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        width: 1px;
+        background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--chat-header-border) 96%, transparent), transparent);
+        pointer-events: none;
+    }
+
+    .btchat-left-header {
         padding: 1.15rem 1.15rem 0.8rem;
     }
 
-    .messenger-left-title {
+    .btchat-left-title {
         margin: 0;
-        font-size: 2rem;
+        font-size: 1.7rem;
         line-height: 1;
-        letter-spacing: 0.02em;
-        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        font-weight: 900;
         color: var(--chat-name-color);
     }
 
-    .messenger-search-wrap {
+    .btchat-search-wrap {
         padding: 0 1rem 1rem;
     }
 
-    .messenger-search {
+    .btchat-search {
         width: 100%;
         border: 1px solid var(--chat-search-border) !important;
         border-radius: 999px;
@@ -1054,47 +1331,50 @@ include 'includes/header.php';
         box-shadow: none !important;
     }
 
-    .messenger-search::placeholder {
+    .btchat-search::placeholder {
         color: var(--chat-search-placeholder);
     }
 
-    /* Explicit dark-mode overrides – beat the app theme's input rules */
-    html.app-skin-dark .messenger-search {
+    /* Explicit dark-mode overrides â€“ beat the app theme's input rules */
+    html.app-skin-dark .btchat-search {
         background-color: #121a2d !important;
         border-color: rgba(255, 255, 255, 0.2) !important;
         color: #b1b4c0 !important;
         box-shadow: none !important;
     }
 
-    html.app-skin-dark .messenger-search::placeholder {
+    html.app-skin-dark .btchat-search::placeholder {
         color: rgba(177, 180, 192, 0.7) !important;
     }
 
-    .messenger-list {
+    .btchat-list {
         overflow-y: auto;
         min-height: 0;
         padding-bottom: 0.5rem;
     }
 
-    .messenger-item {
+    .btchat-item {
         display: flex;
         align-items: center;
         gap: 0.8rem;
         text-decoration: none;
         color: inherit;
         margin: 0.18rem 0.55rem;
-        border-radius: 10px;
-        padding: 0.65rem;
-        transition: background-color 0.18s ease;
+        border-radius: 14px;
+        padding: 0.68rem;
+        border: 1px solid transparent;
+        transition: background-color 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
     }
 
-    .messenger-item:hover,
-    .messenger-item.active {
-        background: var(--chat-item-hover);
+    .btchat-item:hover,
+    .btchat-item.active {
+        background: color-mix(in srgb, var(--chat-item-hover) 78%, transparent);
+        border-color: color-mix(in srgb, var(--chat-header-border) 88%, transparent);
+        transform: translateX(2px);
     }
 
-    .messenger-avatar,
-    .messenger-avatar-text {
+    .btchat-avatar,
+    .btchat-avatar-text {
         width: 46px;
         height: 46px;
         border-radius: 50%;
@@ -1102,17 +1382,17 @@ include 'includes/header.php';
         position: relative;
     }
 
-    .messenger-avatar-wrap {
+    .btchat-avatar-wrap {
         position: relative;
         flex-shrink: 0;
     }
 
-    .messenger-avatar {
+    .btchat-avatar {
         object-fit: cover;
         border: 2px solid rgba(255, 255, 255, 0.2);
     }
 
-    .messenger-avatar-text {
+    .btchat-avatar-text {
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -1122,7 +1402,7 @@ include 'includes/header.php';
         letter-spacing: 0.05em;
     }
 
-    .messenger-status-dot {
+    .btchat-status-dot {
         position: absolute;
         right: 1px;
         bottom: 1px;
@@ -1134,23 +1414,23 @@ include 'includes/header.php';
         box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.25);
     }
 
-    .messenger-status-dot.online {
+    .btchat-status-dot.online {
         background: #22c55e;
     }
 
-    .messenger-meta {
+    .btchat-meta {
         min-width: 0;
         width: 100%;
     }
 
-    .messenger-name-row {
+    .btchat-name-row {
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 0.35rem;
     }
 
-    .messenger-name {
+    .btchat-name {
         font-size: 1rem;
         font-weight: 700;
         color: var(--chat-name-color);
@@ -1159,13 +1439,13 @@ include 'includes/header.php';
         white-space: nowrap;
     }
 
-    .messenger-time {
+    .btchat-time {
         font-size: 0.78rem;
         color: var(--chat-time-color);
         white-space: nowrap;
     }
 
-    .messenger-snippet-row {
+    .btchat-snippet-row {
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -1173,7 +1453,7 @@ include 'includes/header.php';
         margin-top: 2px;
     }
 
-    .messenger-snippet {
+    .btchat-snippet {
         color: var(--chat-snippet-color);
         font-size: 0.9rem;
         overflow: hidden;
@@ -1181,7 +1461,7 @@ include 'includes/header.php';
         white-space: nowrap;
     }
 
-    .messenger-main {
+    .btchat-main {
         position: relative;
         background: var(--chat-main-bg);
         display: flex;
@@ -1190,32 +1470,42 @@ include 'includes/header.php';
         overflow: hidden;
     }
 
-    .messenger-main > * {
+    .btchat-main::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background:
+            radial-gradient(1200px 340px at 50% -180px, color-mix(in srgb, var(--chat-send-from) 11%, transparent), transparent 72%),
+            radial-gradient(520px 200px at -80px 92%, color-mix(in srgb, var(--chat-send-to) 8%, transparent), transparent 70%);
+        pointer-events: none;
+    }
+
+    .btchat-main > * {
         position: relative;
         z-index: 1;
     }
 
-    .messenger-chat-header {
-        padding: 0.95rem 1.1rem;
+    .btchat-chat-header {
+        padding: 0.95rem 1.18rem;
         border-bottom: 1px solid var(--chat-header-border);
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 1rem;
-        background: var(--chat-header-bg);
-        backdrop-filter: blur(2px);
+        background: color-mix(in srgb, var(--chat-header-bg) 94%, transparent);
+        backdrop-filter: blur(6px);
         z-index: 22;
         overflow: visible;
     }
 
-    .messenger-chat-title {
+    .btchat-chat-title {
         display: flex;
         align-items: center;
         gap: 0.75rem;
         min-width: 0;
     }
 
-    .messenger-chat-name {
+    .btchat-chat-name {
         color: var(--chat-header-name-color);
         font-size: 1rem;
         font-weight: 700;
@@ -1224,7 +1514,7 @@ include 'includes/header.php';
         white-space: nowrap;
     }
 
-    .messenger-chat-sub {
+    .btchat-chat-sub {
         color: var(--chat-header-sub-color);
         font-size: 0.82rem;
         overflow: hidden;
@@ -1232,7 +1522,7 @@ include 'includes/header.php';
         white-space: nowrap;
     }
 
-    .messenger-actions {
+    .btchat-actions {
         color: var(--chat-actions-color);
         display: flex;
         align-items: center;
@@ -1242,7 +1532,7 @@ include 'includes/header.php';
         z-index: 26;
     }
 
-    .messenger-menu-toggle {
+    .btchat-menu-toggle {
         border: 0;
         background: transparent;
         color: var(--chat-menu-dot-color);
@@ -1256,11 +1546,11 @@ include 'includes/header.php';
         font-size: 1.15rem;
     }
 
-    .messenger-menu-toggle:hover {
+    .btchat-menu-toggle:hover {
         background: var(--chat-menu-dot-hover);
     }
 
-    .messenger-menu {
+    .btchat-menu {
         position: absolute;
         top: calc(100% + 8px);
         right: 0;
@@ -1274,11 +1564,11 @@ include 'includes/header.php';
         z-index: 80;
     }
 
-    .messenger-menu.show {
+    .btchat-menu.show {
         display: block;
     }
 
-    .messenger-menu-item {
+    .btchat-menu-item {
         width: 100%;
         border: 0;
         background: transparent;
@@ -1290,19 +1580,19 @@ include 'includes/header.php';
         cursor: pointer;
     }
 
-    .messenger-menu-item:hover,
-    .messenger-menu-item:focus-visible {
+    .btchat-menu-item:hover,
+    .btchat-menu-item:focus-visible {
         background: var(--chat-item-hover);
         outline: none;
     }
 
-    .messenger-menu-divider {
+    .btchat-menu-divider {
         height: 1px;
         background: var(--chat-header-border);
         margin: 0.25rem 0.2rem;
     }
 
-    .messenger-menu-item.danger {
+    .btchat-menu-item.danger {
         color: #ef4444;
     }
 
@@ -1366,7 +1656,7 @@ include 'includes/header.php';
         color: #ef4444;
     }
 
-    .messenger-thread {
+    .btchat-thread {
         padding: 1.1rem 1.15rem;
         overflow-y: auto;
         min-height: 0;
@@ -1416,42 +1706,232 @@ include 'includes/header.php';
     }
 
     .msg-row.has-reaction {
-        padding-bottom: 0.82rem;
+        padding-bottom: 0.95rem;
     }
 
     .msg-reaction-badge {
         position: absolute;
-        right: -0.28rem;
-        bottom: -0.82rem;
+        right: -0.36rem;
+        bottom: -0.9rem;
         margin-top: 0;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        min-width: 1.7rem;
-        height: 1.7rem;
-        border-radius: 999px;
-        border: 2px solid var(--chat-main-bg);
-        background: var(--chat-header-bg);
-        box-shadow: 0 6px 16px rgba(15, 23, 42, 0.3);
-        font-size: 0.95rem;
+        min-width: 2rem;
+        height: 1.5rem;
+        border-radius: 0.75rem;
+        border: 1px solid color-mix(in srgb, var(--chat-header-border) 72%, transparent);
+        background: linear-gradient(180deg, color-mix(in srgb, var(--chat-header-bg) 92%, #ffffff 8%), var(--chat-header-bg));
+        box-shadow: 0 8px 18px rgba(15, 23, 42, 0.24);
+        font-size: 0.92rem;
         line-height: 1;
-        padding: 0 0.34rem;
+        padding: 0 0.42rem;
         z-index: 3;
+        gap: 0.28rem;
+        cursor: pointer;
+    }
+
+    .msg-reaction-icons {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.12rem;
+        font-size: 0.88rem;
+        line-height: 1;
+    }
+
+    .msg-reaction-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .msg-reaction-count {
+        margin-left: 0.08rem;
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: var(--chat-header-name-color);
+        letter-spacing: 0.01em;
+    }
+
+    .chat-reactions-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(2, 6, 23, 0.62);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 15000;
+        padding: 1rem;
+    }
+
+    .chat-reactions-overlay.show {
+        display: flex;
+    }
+
+    .chat-reactions-modal {
+        width: min(560px, 100%);
+        max-height: min(76vh, 620px);
+        border-radius: 14px;
+        border: 1px solid var(--chat-header-border);
+        background: var(--chat-header-bg);
+        color: var(--chat-header-name-color);
+        box-shadow: 0 22px 46px rgba(2, 6, 23, 0.46);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .chat-reactions-head {
+        padding: 0.78rem 0.92rem;
+        border-bottom: 1px solid var(--chat-header-border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.7rem;
+    }
+
+    .chat-reactions-title {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 700;
+    }
+
+    .chat-reactions-close {
+        border: 0;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: var(--chat-item-hover);
+        color: var(--chat-header-name-color);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 1.15rem;
+        line-height: 1;
+    }
+
+    .chat-reactions-tabs {
+        display: flex;
+        gap: 0.35rem;
+        padding: 0.65rem 0.85rem 0.45rem;
+        border-bottom: 1px solid var(--chat-header-border);
+        overflow-x: auto;
+    }
+
+    .chat-reactions-tab {
+        border: 1px solid var(--chat-header-border);
+        background: transparent;
+        color: var(--chat-header-name-color);
+        border-radius: 999px;
+        padding: 0.26rem 0.72rem;
+        font-size: 0.82rem;
+        font-weight: 600;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+
+    .chat-reactions-tab.active {
+        background: var(--chat-item-hover);
+        border-color: transparent;
+    }
+
+    .chat-reactions-list {
+        padding: 0.45rem 0.25rem 0.55rem;
+        overflow-y: auto;
+    }
+
+    .chat-reactions-empty {
+        padding: 1.2rem 0.9rem 1.4rem;
+        text-align: center;
+        color: var(--chat-header-sub-color);
+        font-size: 0.9rem;
+    }
+
+    .chat-reaction-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.8rem;
+        padding: 0.5rem 0.72rem;
+        border-radius: 10px;
+        margin: 0 0.45rem;
+    }
+
+    .chat-reaction-row:hover {
+        background: var(--chat-item-hover);
+    }
+
+    .chat-reaction-user {
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.58rem;
+    }
+
+    .chat-reaction-avatar,
+    .chat-reaction-avatar-text {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+
+    .chat-reaction-avatar {
+        object-fit: cover;
+        border: 2px solid rgba(255, 255, 255, 0.14);
+    }
+
+    .chat-reaction-avatar-text {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #0ea5e9, #2563eb);
+        color: #fff;
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+    }
+
+    .chat-reaction-user-meta {
+        min-width: 0;
+    }
+
+    .chat-reaction-user-name {
+        font-size: 0.89rem;
+        font-weight: 700;
+        line-height: 1.15;
+        color: var(--chat-header-name-color);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .chat-reaction-user-sub {
+        font-size: 0.76rem;
+        color: var(--chat-header-sub-color);
+        margin-top: 0.1rem;
+    }
+
+    .chat-reaction-emoji {
+        font-size: 1.2rem;
+        line-height: 1;
+        flex-shrink: 0;
     }
 
     .msg-row.own .msg-reaction-badge {
         right: auto;
-        left: -0.28rem;
+        left: -0.36rem;
     }
 
     .msg-bubble.has-media .msg-reaction-badge {
-        bottom: 0.28rem;
-        right: 0.28rem;
+        bottom: 0.36rem;
+        right: 0.36rem;
     }
 
     .msg-row.own .msg-bubble.has-media .msg-reaction-badge {
         right: auto;
-        left: 0.28rem;
+        left: 0.36rem;
     }
 
     .msg-reply-quote {
@@ -1474,12 +1954,12 @@ include 'includes/header.php';
 
     .msg-action-menu {
         position: fixed;
-        min-width: 220px;
-        border-radius: 12px;
-        border: 1px solid var(--chat-header-border);
-        background: var(--chat-header-bg);
-        box-shadow: 0 14px 34px rgba(2, 6, 23, 0.38);
-        padding: 0.35rem;
+        min-width: 238px;
+        border-radius: 14px;
+        border: 1px solid color-mix(in srgb, var(--chat-header-border) 85%, transparent);
+        background: color-mix(in srgb, var(--chat-header-bg) 96%, #0ea5e9 4%);
+        box-shadow: 0 20px 42px rgba(2, 6, 23, 0.34);
+        padding: 0.45rem;
         z-index: 14000;
         display: none;
         --msg-menu-arrow-left: 50%;
@@ -1494,43 +1974,46 @@ include 'includes/header.php';
         position: absolute;
         left: var(--msg-menu-arrow-left);
         transform: translateX(-50%);
-        border-left: 8px solid transparent;
-        border-right: 8px solid transparent;
+        border-left: 9px solid transparent;
+        border-right: 9px solid transparent;
     }
 
     .msg-action-menu[data-placement="top"]::after {
         top: 100%;
-        border-top: 8px solid var(--chat-header-bg);
+        border-top: 9px solid color-mix(in srgb, var(--chat-header-bg) 96%, #0ea5e9 4%);
     }
 
     .msg-action-menu[data-placement="bottom"]::after {
         bottom: 100%;
-        border-bottom: 8px solid var(--chat-header-bg);
+        border-bottom: 9px solid color-mix(in srgb, var(--chat-header-bg) 96%, #0ea5e9 4%);
     }
 
     .msg-action-emoji-row {
         display: flex;
-        gap: 0.24rem;
-        margin-bottom: 0.35rem;
-        padding-bottom: 0.35rem;
-        border-bottom: 1px solid var(--chat-header-border);
+        gap: 0.28rem;
+        margin-bottom: 0.42rem;
+        padding: 0.2rem 0.1rem 0.52rem;
+        border-bottom: 1px dashed color-mix(in srgb, var(--chat-header-border) 75%, transparent);
     }
 
     .msg-emoji-btn {
-        border: 0;
-        background: transparent;
-        width: 28px;
-        height: 28px;
-        border-radius: 50%;
+        border: 1px solid transparent;
+        background: color-mix(in srgb, var(--chat-item-hover) 78%, transparent);
+        width: 30px;
+        height: 30px;
+        border-radius: 10px;
         cursor: pointer;
-        font-size: 1rem;
+        font-size: 0.95rem;
         display: inline-flex;
         align-items: center;
         justify-content: center;
+        transition: transform 0.14s ease, border-color 0.14s ease, background-color 0.14s ease;
     }
 
     .msg-emoji-btn:hover {
-        background: var(--chat-item-hover);
+        transform: translateY(-1px);
+        border-color: color-mix(in srgb, var(--chat-header-border) 85%, transparent);
+        background: color-mix(in srgb, var(--chat-item-hover) 60%, transparent);
     }
 
     .msg-action-item {
@@ -1539,16 +2022,36 @@ include 'includes/header.php';
         background: transparent;
         color: var(--chat-header-name-color);
         text-align: left;
-        border-radius: 8px;
-        padding: 0.45rem 0.55rem;
-        font-size: 0.86rem;
+        border-radius: 10px;
+        padding: 0.5rem 0.62rem;
+        font-size: 0.84rem;
+        font-weight: 600;
+        letter-spacing: 0.01em;
         cursor: pointer;
+        position: relative;
+        overflow: hidden;
     }
 
     .msg-action-item:hover,
     .msg-action-item:focus-visible {
-        background: var(--chat-item-hover);
+        background: color-mix(in srgb, var(--chat-item-hover) 78%, transparent);
         outline: none;
+    }
+
+    .msg-action-item::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 3px;
+        background: transparent;
+        border-radius: 99px;
+    }
+
+    .msg-action-item:hover::before,
+    .msg-action-item:focus-visible::before {
+        background: color-mix(in srgb, var(--chat-actions-color) 74%, transparent);
     }
 
     .msg-action-item.danger {
@@ -1569,21 +2072,23 @@ include 'includes/header.php';
     }
 
     .msg-bubble {
-        max-width: min(72%, 620px);
-        border-radius: 1.05rem;
-        padding: 0.56rem 0.86rem;
-        font-size: 0.94rem;
-        line-height: 1.38;
+        max-width: min(74%, 640px);
+        border-radius: 18px;
+        padding: 0.62rem 0.92rem;
+        font-size: 0.92rem;
+        line-height: 1.44;
         color: var(--chat-bubble-color);
         background: var(--chat-bubble-bg);
-        box-shadow: 0 8px 16px rgba(17, 24, 39, 0.28);
+        border: 1px solid color-mix(in srgb, var(--chat-header-border) 82%, transparent);
+        box-shadow: 0 10px 22px rgba(17, 24, 39, 0.2);
         position: relative;
         overflow: visible;
     }
 
     .msg-row.own .msg-bubble {
-        background: linear-gradient(135deg, #0d9488, #0f766e);
-        color: #ecfeff;
+        background: linear-gradient(150deg, color-mix(in srgb, var(--chat-send-from) 90%, #ffffff 10%), color-mix(in srgb, var(--chat-send-to) 94%, #02141e 6%));
+        color: #f3fbff;
+        border-color: transparent;
     }
 
     .msg-bubble.has-media {
@@ -1597,17 +2102,17 @@ include 'includes/header.php';
         padding: 0 0.2rem;
     }
 
-    /* ── Message grouping – own (right, teal) ─────────────────── */
-    .msg-row.own .msg-bubble.msg-group-first  { border-radius: 1.05rem 1.05rem 4px 1.05rem; }
-    .msg-row.own .msg-bubble.msg-group-middle { border-radius: 1.05rem 4px 4px 1.05rem; }
-    .msg-row.own .msg-bubble.msg-group-last   { border-radius: 4px 1.05rem 1.05rem 1.05rem; }
+    /* â”€â”€ Message grouping â€“ own (right, teal) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    .msg-row.own .msg-bubble.msg-group-first  { border-radius: 18px 18px 7px 18px; }
+    .msg-row.own .msg-bubble.msg-group-middle { border-radius: 18px 7px 7px 18px; }
+    .msg-row.own .msg-bubble.msg-group-last   { border-radius: 7px 18px 18px 18px; }
 
-    /* ── Message grouping – other (left, gray) ───────────────── */
-    .msg-row:not(.own) .msg-bubble.msg-group-first  { border-radius: 1.05rem 1.05rem 1.05rem 4px; }
-    .msg-row:not(.own) .msg-bubble.msg-group-middle { border-radius: 4px 1.05rem 1.05rem 4px; }
-    .msg-row:not(.own) .msg-bubble.msg-group-last   { border-radius: 4px 1.05rem 1.05rem 1.05rem; }
+    /* â”€â”€ Message grouping â€“ other (left, gray) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    .msg-row:not(.own) .msg-bubble.msg-group-first  { border-radius: 18px 18px 18px 7px; }
+    .msg-row:not(.own) .msg-bubble.msg-group-middle { border-radius: 7px 18px 18px 7px; }
+    .msg-row:not(.own) .msg-bubble.msg-group-last   { border-radius: 7px 18px 18px 18px; }
 
-    /* ── Thread avatar (left side, other's messages) ──────────── */
+    /* â”€â”€ Thread avatar (left side, other's messages) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     .msg-thread-avatar {
         width: 28px;
         height: 28px;
@@ -1641,7 +2146,7 @@ include 'includes/header.php';
         visibility: hidden;
     }
 
-    /* ── Date separator ──────────────────────────────────────── */
+    /* â”€â”€ Date separator â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     .msg-date-sep {
         display: flex;
         align-items: center;
@@ -1660,7 +2165,7 @@ include 'includes/header.php';
         background: var(--chat-header-border);
     }
 
-    /* ── Delivered / Seen status ─────────────────────────────── */
+    /* â”€â”€ Sent / Seen status â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     .msg-seen {
         text-align: right;
         font-size: 0.7rem;
@@ -1669,7 +2174,7 @@ include 'includes/header.php';
         font-style: italic;
     }
 
-    /* ── Scroll-to-bottom button ─────────────────────────────── */
+    /* â”€â”€ Scroll-to-bottom button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     #chat-scroll-btn {
         position: absolute;
         bottom: 5.5rem;
@@ -1718,63 +2223,66 @@ include 'includes/header.php';
         text-align: right;
     }
 
-    .messenger-compose {
+    .btchat-compose {
         border-top: 1px solid var(--chat-compose-border);
-        padding: 0.8rem 1rem 1rem;
-        background: var(--chat-compose-bg);
+        padding: 0.86rem 1.02rem 1rem;
+        background: color-mix(in srgb, var(--chat-compose-bg) 95%, transparent);
+        backdrop-filter: blur(6px);
     }
 
-    .messenger-compose-inner {
+    .btchat-compose-inner {
         display: flex;
         align-items: center;
-        gap: 0.6rem;
-        border-radius: 999px;
+        gap: 0.5rem;
+        border-radius: 14px;
         background: var(--chat-compose-inner-bg);
         border: 1px solid var(--chat-compose-inner-border);
-        padding: 0.35rem 0.35rem 0.35rem 0.9rem;
+        padding: 0.42rem;
     }
 
-    .messenger-compose-input {
+    .btchat-compose-input {
         flex: 1;
         background: transparent;
         border: 0;
         color: var(--chat-compose-input-color);
         outline: none;
-        font-size: 0.96rem;
+        font-size: 0.93rem;
         resize: none;
         overflow-y: auto;
-        min-height: 36px;
+        min-height: 34px;
         max-height: 140px;
-        line-height: 1.35;
-        padding: 0.42rem 0;
+        line-height: 1.4;
+        padding: 0.4rem 0.32rem;
     }
 
-    .messenger-compose-input::placeholder {
+    .btchat-compose-input::placeholder {
         color: var(--chat-compose-input-placeholder);
     }
 
-    .messenger-send-btn {
+    .btchat-send-btn {
         border: 0;
-        border-radius: 999px;
-        width: 38px;
-        height: 38px;
+        border-radius: 12px;
+        width: 40px;
+        height: 40px;
         background: linear-gradient(135deg, var(--chat-send-from), var(--chat-send-to));
         color: var(--chat-send-text);
         display: inline-flex;
         align-items: center;
         justify-content: center;
+        box-shadow: 0 8px 18px rgba(14, 165, 233, 0.35);
     }
 
-    .messenger-send-btn:disabled {
+    .btchat-send-btn:disabled {
         opacity: 0.65;
         cursor: not-allowed;
     }
 
-    .messenger-send-btn.is-like {
+    .btchat-send-btn.is-like {
         background: none;
-        font-size: 1.4rem;
+        font-size: 1.2rem;
         line-height: 1;
         color: var(--chat-attach-btn-color);
+        box-shadow: none;
     }
 
     .msg-time-exact {
@@ -1803,9 +2311,9 @@ include 'includes/header.php';
         margin-bottom: 0.35rem;
     }
 
-    .messenger-attach-btn {
-        background: none;
-        border: 0;
+    .btchat-attach-btn {
+        background: color-mix(in srgb, var(--chat-item-hover) 75%, transparent);
+        border: 1px solid color-mix(in srgb, var(--chat-header-border) 85%, transparent);
         width: 36px;
         height: 36px;
         padding: 0;
@@ -1814,19 +2322,21 @@ include 'includes/header.php';
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.1rem;
+        font-size: 1rem;
         line-height: 1;
         flex-shrink: 0;
         align-self: center;
+        border-radius: 11px;
+        transition: transform 0.14s ease;
     }
 
-    .messenger-attach-btn:hover {
-        opacity: 0.75;
+    .btchat-attach-btn:hover {
+        transform: translateY(-1px);
     }
 
-    .messenger-emoji-btn {
-        background: none;
-        border: 0;
+    .btchat-emoji-btn {
+        background: color-mix(in srgb, var(--chat-item-hover) 75%, transparent);
+        border: 1px solid color-mix(in srgb, var(--chat-header-border) 85%, transparent);
         width: 36px;
         height: 36px;
         padding: 0;
@@ -1835,14 +2345,16 @@ include 'includes/header.php';
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.1rem;
+        font-size: 1rem;
         line-height: 1;
         flex-shrink: 0;
         align-self: center;
+        border-radius: 11px;
+        transition: transform 0.14s ease;
     }
 
-    .messenger-emoji-btn:hover {
-        opacity: 0.75;
+    .btchat-emoji-btn:hover {
+        transform: translateY(-1px);
     }
 
     #chat-emoji-picker {
@@ -1998,7 +2510,7 @@ include 'includes/header.php';
         line-height: 1;
     }
 
-    .messenger-system-alert {
+    .btchat-system-alert {
         position: absolute;
         top: 1rem;
         right: 1rem;
@@ -2006,7 +2518,7 @@ include 'includes/header.php';
         z-index: 4;
     }
 
-    .messenger-empty {
+    .btchat-empty {
         flex: 1;
         display: flex;
         align-items: center;
@@ -2017,7 +2529,7 @@ include 'includes/header.php';
     }
 
     @media (max-width: 1199px) {
-        .messenger-shell {
+        .btchat-shell {
             grid-template-columns: 300px minmax(0, 1fr);
             height: 100%;
             max-height: 100%;
@@ -2036,18 +2548,18 @@ include 'includes/header.php';
             max-height: calc(100vh - 74px);
         }
 
-        .messenger-shell {
+        .btchat-shell {
             grid-template-columns: 1fr;
             height: 100%;
             max-height: 100%;
             min-height: 0;
         }
 
-        .messenger-left {
+        .btchat-left {
             max-height: 42%;
         }
 
-        .messenger-main {
+        .btchat-main {
             min-height: 58%;
         }
 
@@ -2058,21 +2570,21 @@ include 'includes/header.php';
 </style>
 <div class="main-content">
     <?php if ($errorMessage !== ''): ?>
-        <div class="alert alert-danger messenger-page-alert"><?php echo chat_esc($errorMessage); ?></div>
+        <div class="alert alert-danger btchat-page-alert"><?php echo chat_esc($errorMessage); ?></div>
     <?php endif; ?>
     <?php if ($successMessage !== ''): ?>
-        <div class="alert alert-success messenger-page-alert"><?php echo chat_esc($successMessage); ?></div>
+        <div class="alert alert-success btchat-page-alert"><?php echo chat_esc($successMessage); ?></div>
     <?php endif; ?>
 
-    <div class="messenger-shell" id="messenger-app" data-selected-user-id="<?php echo (int)$selectedUserId; ?>">
-        <aside class="messenger-left">
-            <div class="messenger-left-header">
-                <h2 class="messenger-left-title">Chats</h2>
+    <div class="btchat-shell" id="btchat-app" data-selected-user-id="<?php echo (int)$selectedUserId; ?>">
+        <aside class="btchat-left">
+            <div class="btchat-left-header">
+                <h2 class="btchat-left-title">Inbox</h2>
             </div>
-            <div class="messenger-search-wrap">
-                <input type="search" class="messenger-search" id="messenger-search" placeholder="Search contacts">
+            <div class="btchat-search-wrap">
+                <input type="search" class="btchat-search" id="btchat-search" placeholder="Search contacts">
             </div>
-            <div class="messenger-list" id="messenger-list">
+            <div class="btchat-list" id="btchat-list">
                 <?php if (empty($contacts)): ?>
                     <div class="px-3 py-4 text-white-50">No users available.</div>
                 <?php else: ?>
@@ -2081,19 +2593,19 @@ include 'includes/header.php';
                         $isActiveContact = (int)$contact['id'] === $selectedUserId;
                         $contactName = (string)$contact['name'];
                         ?>
-                        <a class="messenger-item<?php echo $isActiveContact ? ' active' : ''; ?>" href="apps-chat.php?user_id=<?php echo (int)$contact['id']; ?>" data-user-id="<?php echo (int)$contact['id']; ?>">
-                            <span class="messenger-avatar-wrap">
-                                <img src="<?php echo chat_esc((string)$contact['avatar_path']); ?>" alt="<?php echo chat_esc($contactName); ?>" class="messenger-avatar" onerror="this.style.display='none';var f=this.nextElementSibling;if(f&&f.classList.contains('messenger-avatar-text'))f.style.removeProperty('display');">
-                                <span class="messenger-avatar-text" style="display:none"><?php echo chat_esc((string)$contact['initials']); ?></span>
-                                <span class="messenger-status-dot<?php echo !empty($contact['is_online']) ? ' online' : ''; ?>"></span>
+                        <a class="btchat-item<?php echo $isActiveContact ? ' active' : ''; ?>" href="apps-chat.php?user_id=<?php echo (int)$contact['id']; ?>" data-user-id="<?php echo (int)$contact['id']; ?>">
+                            <span class="btchat-avatar-wrap">
+                                <img src="<?php echo chat_esc((string)$contact['avatar_path']); ?>" alt="<?php echo chat_esc($contactName); ?>" class="btchat-avatar" onerror="this.style.display='none';var f=this.nextElementSibling;if(f&&f.classList.contains('btchat-avatar-text'))f.style.removeProperty('display');">
+                                <span class="btchat-avatar-text" style="display:none"><?php echo chat_esc((string)$contact['initials']); ?></span>
+                                <span class="btchat-status-dot<?php echo !empty($contact['is_online']) ? ' online' : ''; ?>"></span>
                             </span>
-                            <div class="messenger-meta">
-                                <div class="messenger-name-row">
-                                    <span class="messenger-name"><?php echo chat_esc($contactName); ?></span>
-                                    <span class="messenger-time"><?php echo chat_esc((string)$contact['last_message_label']); ?></span>
+                            <div class="btchat-meta">
+                                <div class="btchat-name-row">
+                                    <span class="btchat-name"><?php echo chat_esc($contactName); ?></span>
+                                    <span class="btchat-time"><?php echo chat_esc((string)$contact['last_message_label']); ?></span>
                                 </div>
-                                <div class="messenger-snippet-row">
-                                    <span class="messenger-snippet"><?php echo chat_esc((string)($contact['last_message'] !== '' ? $contact['last_message'] : 'No messages yet')); ?></span>
+                                <div class="btchat-snippet-row">
+                                    <span class="btchat-snippet"><?php echo chat_esc((string)($contact['last_message'] !== '' ? $contact['last_message'] : 'No messages yet')); ?></span>
                                     <?php if ((int)($contact['unread_count'] ?? 0) > 0): ?>
                                         <span class="badge rounded-pill bg-primary"><?php echo (int)$contact['unread_count']; ?></span>
                                     <?php endif; ?>
@@ -2105,8 +2617,8 @@ include 'includes/header.php';
             </div>
         </aside>
 
-        <section class="messenger-main">
-            <div id="messenger-alert" class="messenger-system-alert"></div>
+        <section class="btchat-main">
+            <div id="btchat-alert" class="btchat-system-alert"></div>
             <button id="chat-scroll-btn" type="button" aria-label="Scroll to bottom">
                 &#8595;<span class="scroll-btn-badge" style="display:none"></span>
             </button>
@@ -2114,37 +2626,37 @@ include 'includes/header.php';
                 <?php
                 $selectedName = (string)$normalizedSelectedContact['name'];
                 ?>
-                <div class="messenger-chat-header" id="messenger-chat-header">
-                    <div class="messenger-chat-title">
-                        <span class="messenger-avatar-wrap">
-                            <img src="<?php echo chat_esc((string)$normalizedSelectedContact['avatar_path']); ?>" alt="<?php echo chat_esc($selectedName); ?>" class="messenger-avatar" onerror="this.style.display='none';var f=this.nextElementSibling;if(f&&f.classList.contains('messenger-avatar-text'))f.style.removeProperty('display');">
-                            <span class="messenger-avatar-text" style="display:none"><?php echo chat_esc((string)$normalizedSelectedContact['initials']); ?></span>
-                            <span class="messenger-status-dot<?php echo !empty($normalizedSelectedContact['is_online']) ? ' online' : ''; ?>"></span>
+                <div class="btchat-chat-header" id="btchat-chat-header">
+                    <div class="btchat-chat-title">
+                        <span class="btchat-avatar-wrap">
+                            <img src="<?php echo chat_esc((string)$normalizedSelectedContact['avatar_path']); ?>" alt="<?php echo chat_esc($selectedName); ?>" class="btchat-avatar" onerror="this.style.display='none';var f=this.nextElementSibling;if(f&&f.classList.contains('btchat-avatar-text'))f.style.removeProperty('display');">
+                            <span class="btchat-avatar-text" style="display:none"><?php echo chat_esc((string)$normalizedSelectedContact['initials']); ?></span>
+                            <span class="btchat-status-dot<?php echo !empty($normalizedSelectedContact['is_online']) ? ' online' : ''; ?>"></span>
                         </span>
                         <div class="min-w-0">
-                            <div class="messenger-chat-name"><?php echo chat_esc($selectedName); ?></div>
-                            <div class="messenger-chat-sub"><?php echo chat_esc(!empty($normalizedSelectedContact['is_online']) ? 'Active now' : ((string)($normalizedSelectedContact['email'] ?? $normalizedSelectedContact['username'] ?? ''))); ?></div>
+                            <div class="btchat-chat-name"><?php echo chat_esc($selectedName); ?></div>
+                            <div class="btchat-chat-sub"><?php echo chat_esc(!empty($normalizedSelectedContact['is_online']) ? 'Online' : ((string)($normalizedSelectedContact['email'] ?? $normalizedSelectedContact['username'] ?? ''))); ?></div>
                         </div>
                     </div>
-                    <div class="messenger-actions">
-                        <button type="button" class="messenger-menu-toggle" aria-label="Conversation options" title="Conversation options">
+                    <div class="btchat-actions">
+                        <button type="button" class="btchat-menu-toggle" aria-label="Thread options" title="Thread options">
                             <i class="feather-more-horizontal"></i>
                         </button>
-                        <div class="messenger-menu" role="menu">
-                            <button type="button" class="messenger-menu-item" data-action="view-contact">View contact info</button>
-                            <button type="button" class="messenger-menu-item" data-action="mute-conversation">Mute conversation</button>
-                            <div class="messenger-menu-divider" role="separator"></div>
-                            <button type="button" class="messenger-menu-item" data-action="refresh-chat">Refresh chat</button>
-                            <button type="button" class="messenger-menu-item" data-action="scroll-bottom">Go to latest</button>
-                            <div class="messenger-menu-divider" role="separator"></div>
-                            <button type="button" class="messenger-menu-item danger" data-action="delete-conversation">Delete conversation</button>
+                        <div class="btchat-menu" role="menu">
+                            <button type="button" class="btchat-menu-item" data-action="view-contact">Contact details</button>
+                            <button type="button" class="btchat-menu-item" data-action="mute-conversation">Mute conversation</button>
+                            <div class="btchat-menu-divider" role="separator"></div>
+                            <button type="button" class="btchat-menu-item" data-action="refresh-chat">Refresh chat</button>
+                            <button type="button" class="btchat-menu-item" data-action="scroll-bottom">Jump to recent</button>
+                            <div class="btchat-menu-divider" role="separator"></div>
+                            <button type="button" class="btchat-menu-item danger" data-action="delete-conversation">Delete conversation</button>
                         </div>
                     </div>
                 </div>
 
-                <div class="messenger-thread" id="messenger-thread">
+                <div class="btchat-thread" id="btchat-thread">
                     <?php if (empty($normalizedMessages)): ?>
-                        <div class="messenger-empty">
+                        <div class="btchat-empty">
                             <div>
                                 <h6 class="mb-2 text-white">No messages yet</h6>
                                 <div class="text-white-50">Start the conversation with <?php echo chat_esc($selectedName); ?>.</div>
@@ -2152,7 +2664,34 @@ include 'includes/header.php';
                         </div>
                     <?php else: ?>
                         <?php foreach ($normalizedMessages as $message): ?>
-                            <div class="msg-row<?php echo !empty($message['is_own']) ? ' own' : ''; ?><?php echo !empty($message['reaction_emoji']) ? ' has-reaction' : ''; ?>">
+                            <?php
+                            $reactionSummary = (isset($message['reaction_summary']) && is_array($message['reaction_summary'])) ? $message['reaction_summary'] : [];
+                            $reactionTotal = (int)($message['reaction_count'] ?? 0);
+                            if ($reactionTotal <= 0) {
+                                foreach ($reactionSummary as $reactionItem) {
+                                    $reactionTotal += (int)($reactionItem['count'] ?? 0);
+                                }
+                            }
+                            if (empty($reactionSummary) && (string)($message['reaction_emoji'] ?? '') !== '' && $reactionTotal > 0) {
+                                $reactionSummary[] = [
+                                    'emoji' => (string)$message['reaction_emoji'],
+                                    'count' => $reactionTotal,
+                                ];
+                            }
+                            $reactionIcons = [];
+                            foreach ($reactionSummary as $reactionItem) {
+                                $reactionEmoji = trim((string)($reactionItem['emoji'] ?? ''));
+                                if ($reactionEmoji === '') {
+                                    continue;
+                                }
+                                $reactionIcons[] = $reactionEmoji;
+                                if (count($reactionIcons) >= 2) {
+                                    break;
+                                }
+                            }
+                            $hasReaction = $reactionTotal > 0 && !empty($reactionIcons);
+                            ?>
+                            <div class="msg-row<?php echo !empty($message['is_own']) ? ' own' : ''; ?><?php echo $hasReaction ? ' has-reaction' : ''; ?>">
                                 <div class="msg-bubble<?php echo !empty($message['media_path']) ? ' has-media' : ''; ?>">
                                     <?php if ((string)($message['reply_preview'] ?? '') !== ''): ?>
                                         <div class="msg-reply-quote"><strong><?php echo chat_esc((string)($message['reply_author'] ?? '')); ?></strong><?php echo chat_esc((string)$message['reply_preview']); ?></div>
@@ -2167,8 +2706,11 @@ include 'includes/header.php';
                                     <div class="msg-meta" title="<?php echo chat_esc((string)$message['time_full']); ?>">
                                         <?php echo chat_esc((string)$message['time_label']); ?><?php if ((string)$message['time_exact'] !== ''): ?> &middot; <span class="msg-time-exact"><?php echo chat_esc((string)$message['time_exact']); ?></span><?php endif; ?>
                                     </div>
-                                    <?php if ((string)($message['reaction_emoji'] ?? '') !== ''): ?>
-                                        <div class="msg-reaction-badge"><?php echo chat_esc((string)$message['reaction_emoji']); ?></div>
+                                    <?php if ($hasReaction): ?>
+                                        <button type="button" class="msg-reaction-badge" data-reaction-mid="<?php echo (int)($message['message_id'] ?? 0); ?>" aria-label="View reactions">
+                                            <span class="msg-reaction-icons"><?php foreach ($reactionIcons as $reactionIcon): ?><span class="msg-reaction-icon"><?php echo chat_esc((string)$reactionIcon); ?></span><?php endforeach; ?></span>
+                                            <span class="msg-reaction-count"><?php echo $reactionTotal; ?></span>
+                                        </button>
                                     <?php endif; ?>
                                 </div>
                             </div>
@@ -2176,8 +2718,8 @@ include 'includes/header.php';
                     <?php endif; ?>
                 </div>
 
-                <div class="messenger-compose">
-                    <form method="post" action="apps-chat.php?user_id=<?php echo (int)$selectedUserId; ?>" id="messenger-compose-form" enctype="multipart/form-data">
+                <div class="btchat-compose">
+                    <form method="post" action="apps-chat.php?user_id=<?php echo (int)$selectedUserId; ?>" id="btchat-compose-form" enctype="multipart/form-data">
                         <input type="hidden" name="action" value="send-message">
                         <input type="hidden" name="user_id" value="<?php echo (int)$selectedUserId; ?>">
                         <input type="hidden" name="reply_to_message_id" id="chat-reply-to-message-id" value="0">
@@ -2193,14 +2735,14 @@ include 'includes/header.php';
                             <div class="chat-emoji-grid" id="chat-emoji-grid"></div>
                             <div class="chat-emoji-empty" id="chat-emoji-empty" style="display:none">No emoji found</div>
                             <div class="chat-emoji-tabs" id="chat-emoji-tabs">
-                                <button type="button" class="chat-emoji-tab active" data-emoji-cat="smileys" title="Smileys">😀</button>
-                                <button type="button" class="chat-emoji-tab" data-emoji-cat="people" title="People">🧑</button>
-                                <button type="button" class="chat-emoji-tab" data-emoji-cat="animals" title="Animals">🐱</button>
-                                <button type="button" class="chat-emoji-tab" data-emoji-cat="food" title="Food">🍔</button>
-                                <button type="button" class="chat-emoji-tab" data-emoji-cat="travel" title="Travel">🚗</button>
-                                <button type="button" class="chat-emoji-tab" data-emoji-cat="objects" title="Objects">💡</button>
-                                <button type="button" class="chat-emoji-tab" data-emoji-cat="symbols" title="Symbols">➕</button>
-                                <button type="button" class="chat-emoji-tab" data-emoji-cat="flags" title="Flags">🏁</button>
+                                <button type="button" class="chat-emoji-tab active" data-emoji-cat="smileys" title="Smileys">ðŸ˜€</button>
+                                <button type="button" class="chat-emoji-tab" data-emoji-cat="people" title="People">ðŸ§‘</button>
+                                <button type="button" class="chat-emoji-tab" data-emoji-cat="animals" title="Animals">ðŸ±</button>
+                                <button type="button" class="chat-emoji-tab" data-emoji-cat="food" title="Food">ðŸ”</button>
+                                <button type="button" class="chat-emoji-tab" data-emoji-cat="travel" title="Travel">ðŸš—</button>
+                                <button type="button" class="chat-emoji-tab" data-emoji-cat="objects" title="Objects">ðŸ’¡</button>
+                                <button type="button" class="chat-emoji-tab" data-emoji-cat="symbols" title="Symbols">âž•</button>
+                                <button type="button" class="chat-emoji-tab" data-emoji-cat="flags" title="Flags">ðŸ</button>
                             </div>
                         </div>
                         <div id="chat-media-preview">
@@ -2208,22 +2750,22 @@ include 'includes/header.php';
                             <span id="chat-preview-name"></span>
                             <button type="button" class="chat-preview-remove" id="chat-preview-remove" title="Remove">&#x2715;</button>
                         </div>
-                        <div class="messenger-compose-inner">
-                            <button type="button" class="messenger-attach-btn" id="chat-attach-btn" title="Send image or video">
+                        <div class="btchat-compose-inner">
+                            <button type="button" class="btchat-attach-btn" id="chat-attach-btn" title="Send image or video">
                                 <i class="feather-paperclip"></i>
                             </button>
-                            <button type="button" class="messenger-emoji-btn" id="chat-emoji-btn" title="Emoji">
+                            <button type="button" class="btchat-emoji-btn" id="chat-emoji-btn" title="Emoji">
                                 <i class="feather-smile"></i>
                             </button>
-                            <textarea class="messenger-compose-input" id="messenger-message-input" name="message" placeholder="Aa" rows="1"><?php echo chat_esc($draftMessage); ?></textarea>
-                            <button type="submit" class="messenger-send-btn" id="messenger-send-btn" aria-label="Send" data-mode="send">
+                            <textarea class="btchat-compose-input" id="btchat-message-input" name="message" placeholder="Aa" rows="1"><?php echo chat_esc($draftMessage); ?></textarea>
+                            <button type="submit" class="btchat-send-btn" id="btchat-send-btn" aria-label="Send" data-mode="send">
                                 <i class="feather-send"></i>
                             </button>
                         </div>
                     </form>
                 </div>
             <?php else: ?>
-                <div class="messenger-empty">
+                <div class="btchat-empty">
                     <div>
                         <h5 class="mb-2 text-white">Choose a conversation</h5>
                         <div class="text-white-50">Select someone from the left to start chatting.</div>
@@ -2245,14 +2787,25 @@ include 'includes/header.php';
     </div>
 </div>
 
+<div class="chat-reactions-overlay" id="chat-reactions-modal" aria-hidden="true">
+    <div class="chat-reactions-modal" role="dialog" aria-modal="true" aria-labelledby="chat-reactions-title">
+        <div class="chat-reactions-head">
+            <h6 class="chat-reactions-title" id="chat-reactions-title">Reaction details</h6>
+            <button type="button" class="chat-reactions-close" id="chat-reactions-close" aria-label="Close">&times;</button>
+        </div>
+        <div class="chat-reactions-tabs" id="chat-reactions-tabs"></div>
+        <div class="chat-reactions-list" id="chat-reactions-list"></div>
+    </div>
+</div>
+
 <div class="msg-action-menu" id="msg-action-menu" aria-hidden="true">
     <div class="msg-action-emoji-row">
-        <button type="button" class="msg-emoji-btn" data-emoji="👍" title="Like">👍</button>
-        <button type="button" class="msg-emoji-btn" data-emoji="❤️" title="Love">❤️</button>
-        <button type="button" class="msg-emoji-btn" data-emoji="😂" title="Haha">😂</button>
-        <button type="button" class="msg-emoji-btn" data-emoji="😮" title="Wow">😮</button>
-        <button type="button" class="msg-emoji-btn" data-emoji="😢" title="Sad">😢</button>
-        <button type="button" class="msg-emoji-btn" data-emoji="😡" title="Angry">😡</button>
+        <button type="button" class="msg-emoji-btn" data-emoji="ðŸ‘" title="Like">ðŸ‘</button>
+        <button type="button" class="msg-emoji-btn" data-emoji="â¤ï¸" title="Love">â¤ï¸</button>
+        <button type="button" class="msg-emoji-btn" data-emoji="ðŸ˜‚" title="Haha">ðŸ˜‚</button>
+        <button type="button" class="msg-emoji-btn" data-emoji="ðŸ˜®" title="Wow">ðŸ˜®</button>
+        <button type="button" class="msg-emoji-btn" data-emoji="ðŸ˜¢" title="Sad">ðŸ˜¢</button>
+        <button type="button" class="msg-emoji-btn" data-emoji="ðŸ˜¡" title="Angry">ðŸ˜¡</button>
     </div>
     <button type="button" class="msg-action-item" data-msg-action="reply">Reply</button>
     <button type="button" class="msg-action-item" data-msg-action="pin">Pin message</button>
@@ -2269,29 +2822,33 @@ include 'includes/header.php';
             document.body.classList.add('chat-page-lock');
         }
 
-        var app = document.getElementById('messenger-app');
+        var app = document.getElementById('btchat-app');
         if (!app || !window.fetch) {
             return;
         }
 
-        var listEl = document.getElementById('messenger-list');
-        var threadEl = document.getElementById('messenger-thread');
-        var headerEl = document.getElementById('messenger-chat-header');
-        var formEl = document.getElementById('messenger-compose-form');
-        var inputEl = document.getElementById('messenger-message-input');
+        var listEl = document.getElementById('btchat-list');
+        var threadEl = document.getElementById('btchat-thread');
+        var headerEl = document.getElementById('btchat-chat-header');
+        var formEl = document.getElementById('btchat-compose-form');
+        var inputEl = document.getElementById('btchat-message-input');
         var replyToInputEl = document.getElementById('chat-reply-to-message-id');
         var replyPreviewEl = document.getElementById('chat-reply-preview');
         var replyLabelEl = document.getElementById('chat-reply-label');
         var replyRemoveEl = document.getElementById('chat-reply-remove');
-        var sendBtnEl = document.getElementById('messenger-send-btn');
-        var alertEl = document.getElementById('messenger-alert');
-        var searchEl = document.getElementById('messenger-search');
+        var sendBtnEl = document.getElementById('btchat-send-btn');
+        var alertEl = document.getElementById('btchat-alert');
+        var searchEl = document.getElementById('btchat-search');
         var confirmModalEl = document.getElementById('chat-confirm-modal');
         var confirmTitleEl = document.getElementById('chat-confirm-title');
         var confirmTextEl = document.getElementById('chat-confirm-text');
         var confirmOkEl = document.getElementById('chat-confirm-ok');
         var confirmCancelEl = document.getElementById('chat-confirm-cancel');
         var messageActionMenuEl = document.getElementById('msg-action-menu');
+        var reactionsModalEl = document.getElementById('chat-reactions-modal');
+        var reactionsTabsEl = document.getElementById('chat-reactions-tabs');
+        var reactionsListEl = document.getElementById('chat-reactions-list');
+        var reactionsCloseEl = document.getElementById('chat-reactions-close');
         var currentUserId = <?php echo (int)$currentUserId; ?>;
         var selectedUserId = parseInt(app.getAttribute('data-selected-user-id') || '0', 10) || 0;
         var selectedContactRef = null;
@@ -2301,6 +2858,7 @@ include 'includes/header.php';
         var activeMessageActionId = 0;
         var pollHandle = null;
         var currentSearch = '';
+        var reactionsModalState = null;
 
         function escapeHtml(value) {
             return String(value == null ? '' : value)
@@ -2316,11 +2874,11 @@ include 'includes/header.php';
         }
 
         function avatarMarkup(contact) {
-            var onErr = "this.style.display='none';var f=this.nextElementSibling;if(f&&f.classList.contains('messenger-avatar-text'))f.style.removeProperty('display');";
-            var imgTag = '<img src="' + escapeHtml(contact ? contact.avatar_path : '') + '" alt="' + escapeHtml(contact ? contact.name : '') + '" class="messenger-avatar" onerror="' + onErr + '">';
-            var spanTag = '<span class="messenger-avatar-text" style="display:none">' + escapeHtml(contact ? contact.initials : 'BT') + '</span>';
-            var dotClass = contact && contact.is_online ? 'messenger-status-dot online' : 'messenger-status-dot';
-            return '<span class="messenger-avatar-wrap">' + imgTag + spanTag + '<span class="' + dotClass + '"></span></span>';
+            var onErr = "this.style.display='none';var f=this.nextElementSibling;if(f&&f.classList.contains('btchat-avatar-text'))f.style.removeProperty('display');";
+            var imgTag = '<img src="' + escapeHtml(contact ? contact.avatar_path : '') + '" alt="' + escapeHtml(contact ? contact.name : '') + '" class="btchat-avatar" onerror="' + onErr + '">';
+            var spanTag = '<span class="btchat-avatar-text" style="display:none">' + escapeHtml(contact ? contact.initials : 'BT') + '</span>';
+            var dotClass = contact && contact.is_online ? 'btchat-status-dot online' : 'btchat-status-dot';
+            return '<span class="btchat-avatar-wrap">' + imgTag + spanTag + '<span class="' + dotClass + '"></span></span>';
         }
 
         function showAlert(type, message) {
@@ -2361,15 +2919,15 @@ include 'includes/header.php';
                 var unread = contact.unread_count > 0 ? '<span class="badge rounded-pill bg-primary">' + contact.unread_count + '</span>' : '';
                 var snippet = contact.last_message ? contact.last_message : 'No messages yet';
                 return '' +
-                    '<a class="messenger-item' + activeClass + '" href="apps-chat.php?user_id=' + contact.id + '" data-user-id="' + contact.id + '">' +
+                    '<a class="btchat-item' + activeClass + '" href="apps-chat.php?user_id=' + contact.id + '" data-user-id="' + contact.id + '">' +
                         avatarMarkup(contact) +
-                        '<div class="messenger-meta">' +
-                            '<div class="messenger-name-row">' +
-                                '<span class="messenger-name">' + escapeHtml(contact.name) + '</span>' +
-                                '<span class="messenger-time">' + escapeHtml(contact.last_message_label || 'No messages yet') + '</span>' +
+                        '<div class="btchat-meta">' +
+                            '<div class="btchat-name-row">' +
+                                '<span class="btchat-name">' + escapeHtml(contact.name) + '</span>' +
+                                '<span class="btchat-time">' + escapeHtml(contact.last_message_label || 'No messages yet') + '</span>' +
                             '</div>' +
-                            '<div class="messenger-snippet-row">' +
-                                '<span class="messenger-snippet">' + escapeHtml(snippet) + '</span>' +
+                            '<div class="btchat-snippet-row">' +
+                                '<span class="btchat-snippet">' + escapeHtml(snippet) + '</span>' +
                                 unread +
                             '</div>' +
                         '</div>' +
@@ -2381,26 +2939,26 @@ include 'includes/header.php';
             if (!headerEl || !contact) {
                 return;
             }
-            var subtitle = contact.is_online ? 'Active now' : (contact.email || contact.username || '');
+            var subtitle = contact.is_online ? 'Online' : (contact.email || contact.username || '');
             var muteLabel = isConversationMuted(contact.id) ? 'Unmute conversation' : 'Mute conversation';
             headerEl.innerHTML = '' +
-                '<div class="messenger-chat-title">' +
+                '<div class="btchat-chat-title">' +
                     avatarMarkup(contact) +
                     '<div class="min-w-0">' +
-                        '<div class="messenger-chat-name">' + escapeHtml(contact.name) + '</div>' +
-                        '<div class="messenger-chat-sub">' + escapeHtml(subtitle) + '</div>' +
+                        '<div class="btchat-chat-name">' + escapeHtml(contact.name) + '</div>' +
+                        '<div class="btchat-chat-sub">' + escapeHtml(subtitle) + '</div>' +
                     '</div>' +
                 '</div>' +
-                '<div class="messenger-actions">' +
-                    '<button type="button" class="messenger-menu-toggle" aria-label="Conversation options" title="Conversation options"><i class="feather-more-horizontal"></i></button>' +
-                    '<div class="messenger-menu" role="menu">' +
-                        '<button type="button" class="messenger-menu-item" data-action="view-contact">View contact info</button>' +
-                        '<button type="button" class="messenger-menu-item" data-action="mute-conversation">' + escapeHtml(muteLabel) + '</button>' +
-                        '<div class="messenger-menu-divider" role="separator"></div>' +
-                        '<button type="button" class="messenger-menu-item" data-action="refresh-chat">Refresh chat</button>' +
-                        '<button type="button" class="messenger-menu-item" data-action="scroll-bottom">Go to latest</button>' +
-                        '<div class="messenger-menu-divider" role="separator"></div>' +
-                        '<button type="button" class="messenger-menu-item danger" data-action="delete-conversation">Delete conversation</button>' +
+                '<div class="btchat-actions">' +
+                    '<button type="button" class="btchat-menu-toggle" aria-label="Thread options" title="Thread options"><i class="feather-more-horizontal"></i></button>' +
+                    '<div class="btchat-menu" role="menu">' +
+                        '<button type="button" class="btchat-menu-item" data-action="view-contact">Contact details</button>' +
+                        '<button type="button" class="btchat-menu-item" data-action="mute-conversation">' + escapeHtml(muteLabel) + '</button>' +
+                        '<div class="btchat-menu-divider" role="separator"></div>' +
+                        '<button type="button" class="btchat-menu-item" data-action="refresh-chat">Refresh chat</button>' +
+                        '<button type="button" class="btchat-menu-item" data-action="scroll-bottom">Jump to recent</button>' +
+                        '<div class="btchat-menu-divider" role="separator"></div>' +
+                        '<button type="button" class="btchat-menu-item danger" data-action="delete-conversation">Delete conversation</button>' +
                     '</div>' +
                 '</div>';
             bindHeaderMenu();
@@ -2476,6 +3034,117 @@ include 'includes/header.php';
             messageActionMenuEl.classList.remove('show');
             messageActionMenuEl.setAttribute('aria-hidden', 'true');
             activeMessageActionId = 0;
+        }
+
+        function closeReactionsModal() {
+            if (!reactionsModalEl) { return; }
+            reactionsModalEl.classList.remove('show');
+            reactionsModalEl.setAttribute('aria-hidden', 'true');
+            reactionsModalState = null;
+            if (reactionsTabsEl) { reactionsTabsEl.innerHTML = ''; }
+            if (reactionsListEl) { reactionsListEl.innerHTML = ''; }
+        }
+
+        function renderReactionsModal() {
+            if (!reactionsModalState || !reactionsTabsEl || !reactionsListEl) { return; }
+            var summary = Array.isArray(reactionsModalState.summary) ? reactionsModalState.summary : [];
+            var users = Array.isArray(reactionsModalState.users) ? reactionsModalState.users : [];
+            var activeFilter = reactionsModalState.filter || 'all';
+            var totalCount = parseInt(reactionsModalState.total || '0', 10);
+            if (!(totalCount > 0)) {
+                totalCount = users.length;
+            }
+
+            var tabsHtml = '<button type="button" class="chat-reactions-tab' + (activeFilter === 'all' ? ' active' : '') + '" data-reaction-filter="all">All ' + totalCount + '</button>';
+            tabsHtml += summary.map(function (item) {
+                return '<button type="button" class="chat-reactions-tab' + (activeFilter === item.emoji ? ' active' : '') + '" data-reaction-filter="' + escapeHtml(item.emoji) + '">' + escapeHtml(item.emoji) + ' ' + parseInt(item.count || '0', 10) + '</button>';
+            }).join('');
+            reactionsTabsEl.innerHTML = tabsHtml;
+
+            var filteredUsers = users.filter(function (item) {
+                return activeFilter === 'all' || item.emoji === activeFilter;
+            });
+
+            if (!filteredUsers.length) {
+                reactionsListEl.innerHTML = '<div class="chat-reactions-empty">No reactions found.</div>';
+                return;
+            }
+
+            reactionsListEl.innerHTML = filteredUsers.map(function (item) {
+                var name = item.name || 'Unknown user';
+                var avatar = item.avatar_path || '';
+                var initials = item.initials || 'BT';
+                var onErr = "this.style.display='none';var f=this.nextElementSibling;if(f)f.style.removeProperty('display');";
+                return '' +
+                    '<div class="chat-reaction-row">' +
+                        '<div class="chat-reaction-user">' +
+                            '<img src="' + escapeHtml(avatar) + '" class="chat-reaction-avatar" alt="' + escapeHtml(name) + '" onerror="' + onErr + '">' +
+                            '<span class="chat-reaction-avatar-text" style="display:none">' + escapeHtml(initials) + '</span>' +
+                            '<div class="chat-reaction-user-meta">' +
+                                '<div class="chat-reaction-user-name">' + escapeHtml(name) + '</div>' +
+                                '<div class="chat-reaction-user-sub">' + (item.is_own ? 'You reacted' : 'Reacted') + '</div>' +
+                            '</div>' +
+                        '</div>' +
+                        '<span class="chat-reaction-emoji">' + escapeHtml(item.emoji || '') + '</span>' +
+                    '</div>';
+            }).join('');
+        }
+
+        function openReactionsModal(messageId) {
+            if (!reactionsModalEl || !messageId) { return; }
+            var msg = messageCache[String(messageId)];
+            if (!msg) { return; }
+
+            var summaryRaw = Array.isArray(msg.reaction_summary) ? msg.reaction_summary : [];
+            var summary = summaryRaw
+                .map(function (item) {
+                    return {
+                        emoji: String(item && item.emoji ? item.emoji : ''),
+                        count: parseInt(item && item.count ? item.count : '0', 10)
+                    };
+                })
+                .filter(function (item) {
+                    return item.emoji !== '' && item.count > 0;
+                });
+
+            var usersRaw = Array.isArray(msg.reaction_users) ? msg.reaction_users : [];
+            var users = usersRaw
+                .map(function (item) {
+                    var name = String(item && item.name ? item.name : '').trim() || 'Unknown user';
+                    return {
+                        user_id: parseInt(item && item.user_id ? item.user_id : '0', 10) || 0,
+                        name: name,
+                        avatar_path: String(item && item.avatar_path ? item.avatar_path : ''),
+                        initials: String(item && item.initials ? item.initials : 'BT'),
+                        emoji: String(item && item.emoji ? item.emoji : ''),
+                        is_own: !!(item && item.is_own)
+                    };
+                })
+                .filter(function (item) {
+                    return item.emoji !== '';
+                });
+
+            if (!summary.length && msg.reaction_emoji) {
+                var fallbackCount = parseInt(msg.reaction_count || '1', 10);
+                summary = [{ emoji: String(msg.reaction_emoji), count: fallbackCount > 0 ? fallbackCount : 1 }];
+            }
+
+            var total = parseInt(msg.reaction_count || '0', 10);
+            if (!(total > 0)) {
+                total = users.length;
+            }
+
+            reactionsModalState = {
+                messageId: messageId,
+                summary: summary,
+                users: users,
+                total: total,
+                filter: 'all'
+            };
+
+            renderReactionsModal();
+            reactionsModalEl.classList.add('show');
+            reactionsModalEl.setAttribute('aria-hidden', 'false');
         }
 
         function getMessagePreview(msg) {
@@ -2688,7 +3357,7 @@ include 'includes/header.php';
 
         function closeHeaderMenus() {
             if (!headerEl) { return; }
-            var menus = headerEl.querySelectorAll('.messenger-menu.show');
+            var menus = headerEl.querySelectorAll('.btchat-menu.show');
             menus.forEach(function (menuEl) {
                 menuEl.classList.remove('show');
             });
@@ -2696,8 +3365,8 @@ include 'includes/header.php';
 
         function bindHeaderMenu() {
             if (!headerEl) { return; }
-            var toggle = headerEl.querySelector('.messenger-menu-toggle');
-            var menu = headerEl.querySelector('.messenger-menu');
+            var toggle = headerEl.querySelector('.btchat-menu-toggle');
+            var menu = headerEl.querySelector('.btchat-menu');
             if (!toggle || !menu) { return; }
 
             toggle.onclick = function (event) {
@@ -2705,7 +3374,7 @@ include 'includes/header.php';
                 event.stopPropagation();
                 menu.classList.toggle('show');
                 if (menu.classList.contains('show')) {
-                    var firstItem = menu.querySelector('.messenger-menu-item');
+                    var firstItem = menu.querySelector('.btchat-menu-item');
                     if (firstItem) { firstItem.focus(); }
                 }
             };
@@ -2714,7 +3383,7 @@ include 'includes/header.php';
                 if (event.key === 'ArrowDown' || event.key === 'Enter' || event.key === ' ') {
                     event.preventDefault();
                     menu.classList.add('show');
-                    var firstItem = menu.querySelector('.messenger-menu-item');
+                    var firstItem = menu.querySelector('.btchat-menu-item');
                     if (firstItem) { firstItem.focus(); }
                 } else if (event.key === 'Escape') {
                     menu.classList.remove('show');
@@ -2722,7 +3391,7 @@ include 'includes/header.php';
             };
 
             menu.onkeydown = function (event) {
-                var items = Array.prototype.slice.call(menu.querySelectorAll('.messenger-menu-item'));
+                var items = Array.prototype.slice.call(menu.querySelectorAll('.btchat-menu-item'));
                 if (!items.length) { return; }
                 var activeIndex = items.indexOf(document.activeElement);
                 if (event.key === 'Escape') {
@@ -2741,7 +3410,7 @@ include 'includes/header.php';
             };
 
             menu.onclick = function (event) {
-                var btn = event.target.closest('.messenger-menu-item');
+                var btn = event.target.closest('.btchat-menu-item');
                 if (!btn) { return; }
                 var action = btn.getAttribute('data-action') || '';
                 menu.classList.remove('show');
@@ -2755,7 +3424,7 @@ include 'includes/header.php';
                     if (!c) { return; }
                     var info = c.name || 'Unknown user';
                     var extra = c.email || c.username || '';
-                    showAlert('success', extra ? (info + ' · ' + extra) : info);
+                    showAlert('success', extra ? (info + ' Â· ' + extra) : info);
                 } else if (action === 'mute-conversation') {
                     if (!selectedContactRef) { return; }
                     var currentlyMuted = isConversationMuted(selectedContactRef.id);
@@ -2832,7 +3501,7 @@ include 'includes/header.php';
             if (!threadEl) { return; }
             var items = Array.isArray(messages) ? messages : [];
             if (!items.length) {
-                threadEl.innerHTML = '<div class="messenger-empty"><div><h6 class="mb-2 text-white">No messages yet</h6><div class="text-white-50">Start the conversation with ' + escapeHtml(selectedContact ? selectedContact.name : 'this user') + '.</div></div></div>';
+                threadEl.innerHTML = '<div class="btchat-empty"><div><h6 class="mb-2 text-white">No messages yet</h6><div class="text-white-50">Start the conversation with ' + escapeHtml(selectedContact ? selectedContact.name : 'this user') + '.</div></div></div>';
                 return;
             }
 
@@ -2852,7 +3521,7 @@ include 'includes/header.php';
                 else { groups[gi] = 'msg-group-only'; }
             }
 
-            // Find last own message index for Delivered indicator
+            // Find last own message index for Sent indicator
             var lastOwnIdx = -1;
             for (var li = n - 1; li >= 0; li--) {
                 if (items[li].is_own) { lastOwnIdx = li; break; }
@@ -2915,9 +3584,32 @@ include 'includes/header.php';
                 // Bubble title = full time for all messages (accessible via hover)
                 var bubbleTitle = msg.time_full ? ' title="' + escapeHtml(msg.time_full) + '"' : '';
                 var pinnedClass = pinnedMap[String(msg.message_id)] ? ' is-pinned' : '';
-                var reaction = msg.reaction_emoji || '';
+                var reactionSummaryRaw = Array.isArray(msg.reaction_summary) ? msg.reaction_summary : [];
+                var reactionSummary = reactionSummaryRaw
+                    .map(function (item) {
+                        return {
+                            emoji: String(item && item.emoji ? item.emoji : ''),
+                            count: parseInt(item && item.count ? item.count : '0', 10)
+                        };
+                    })
+                    .filter(function (item) {
+                        return item.emoji !== '' && item.count > 0;
+                    });
+                var reactionCount = parseInt(msg.reaction_count || '0', 10);
+                if (!(reactionCount > 0)) {
+                    reactionCount = reactionSummary.reduce(function (sum, item) {
+                        return sum + (item.count || 0);
+                    }, 0);
+                }
+                if (!reactionSummary.length && msg.reaction_emoji) {
+                    reactionSummary = [{ emoji: String(msg.reaction_emoji), count: reactionCount > 0 ? reactionCount : 1 }];
+                }
+                var hasReaction = reactionCount > 0 && reactionSummary.length > 0;
+                var reactionIconsHtml = reactionSummary.slice(0, 2).map(function (item) {
+                    return '<span class="msg-reaction-icon">' + escapeHtml(item.emoji) + '</span>';
+                }).join('');
 
-                html += '<div class="msg-row' + (msg.is_own ? ' own' : '') + ' ' + grp + (reaction ? ' has-reaction' : '') + '">';
+                html += '<div class="msg-row' + (msg.is_own ? ' own' : '') + ' ' + grp + (hasReaction ? ' has-reaction' : '') + '">';
                 if (!msg.is_own) { html += avatarHtml; }
                 if (msg.is_own) {
                     html += '<button type="button" class="msg-hover-menu-btn" data-message-id="' + msg.message_id + '" aria-label="Message actions">&#8226;&#8226;&#8226;</button>';
@@ -2929,8 +3621,11 @@ include 'includes/header.php';
                 html += mediaHtml;
                 if (displayMsg) { html += nl2br(displayMsg); }
                 html += metaHtml;
-                if (reaction) {
-                    html += '<div class="msg-reaction-badge">' + escapeHtml(reaction) + '</div>';
+                if (hasReaction) {
+                    html += '<button type="button" class="msg-reaction-badge" data-reaction-mid="' + msg.message_id + '" aria-label="View reactions">' +
+                        '<span class="msg-reaction-icons">' + reactionIconsHtml + '</span>' +
+                        '<span class="msg-reaction-count">' + reactionCount + '</span>' +
+                    '</button>';
                 }
                 html += '</div>';
                 if (!msg.is_own) {
@@ -2938,9 +3633,9 @@ include 'includes/header.php';
                 }
                 html += '</div>';
 
-                // Delivered indicator under the last own message
+                // Sent indicator under the last own message
                 if (mi === lastOwnIdx) {
-                    html += '<div class="msg-seen">Delivered</div>';
+                    html += '<div class="msg-seen">Sent</div>';
                 }
             }
 
@@ -3027,7 +3722,7 @@ include 'includes/header.php';
             });
         }
 
-        // ── Media attach button & preview ──────────────────────────────
+        // â”€â”€ Media attach button & preview â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         var mediaInputEl = document.getElementById('chat-media-input');
         var attachBtnEl = document.getElementById('chat-attach-btn');
         var previewEl = document.getElementById('chat-media-preview');
@@ -3043,14 +3738,14 @@ include 'includes/header.php';
         var activeEmojiCategory = 'smileys';
 
         var emojiCatalog = {
-            smileys: ['😀','😁','😂','🤣','😃','😄','😅','😆','😉','😊','🙂','🙃','😋','😎','🥳','😍','😘','😗','😙','😚','🤗','🤔','😐','😶','🙄','😏','😣','😥','😮','🤐','😯','😪','😫','🥱','😴','😌','😛','😜','😝','🤤','😒','😓','😔','😕','🙁','☹️','😖','😞','😟','😤','😢','😭','😦','😧','😨','😩','🤯','😬','😰','😱','🥵','🥶','😡','🤬'],
-            people: ['👍','👎','👏','🙌','👐','🤝','🙏','✌️','🤞','🤟','👌','🤌','🤏','👈','👉','👆','👇','☝️','✋','🤚','🖐️','🫶','💪','🫵','👋','🧠','👀','🫂','❤️','💛','💚','💙','💜','🖤','🤍','🤎'],
-            animals: ['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🐔','🐧','🐦','🐤','🦆','🦉','🦇','🐺','🐗','🐴','🦄','🐝','🐛','🦋','🐌','🐞','🐢','🐍','🦎','🐙','🦑'],
-            food: ['🍏','🍎','🍐','🍊','🍋','🍌','🍉','🍇','🍓','🫐','🍈','🍒','🍑','🥭','🍍','🥥','🥝','🍅','🥑','🍆','🥔','🥕','🌽','🌶️','🥒','🥬','🥦','🧄','🧅','🍄','🥜','🍞','🧀','🍗','🍖','🍔','🍟','🍕','🌭','🥪','🌮','🌯','🥙','🍜','🍝','🍣','🍩','🍪'],
-            travel: ['🚗','🚕','🚙','🚌','🚎','🏎️','🚓','🚑','🚒','🚚','🚜','🛵','🏍️','🚲','✈️','🛩️','🚁','🚀','🛸','🚤','⛵','🛥️','🚢','⚓','🗺️','🧭','🗽','🗼','🏰','🏯','🏖️','🏝️','🏔️','⛺','🌋','🛤️','🌉'],
-            objects: ['⌚','📱','💻','⌨️','🖥️','🖨️','🖱️','📷','📹','🎥','📞','☎️','📺','📻','🎙️','⏰','⏳','💡','🔦','🕯️','🧯','🧲','🔋','🔌','🧰','🛠️','⚙️','🔒','🔓','🔑','🪙','💰','💎','📌','📎','✂️','🧪','💊','🩹'],
-            symbols: ['❤️','💔','❣️','💕','💞','💓','💗','💖','💘','💝','✔️','✖️','➕','➖','➗','♾️','‼️','⁉️','❓','❗','💯','✅','☑️','⚠️','🚫','🔞','🔕','🔔','♻️','🔁','🔂','▶️','⏸️','⏹️','⏺️'],
-            flags: ['🏁','🚩','🏳️','🏴','🏳️‍🌈','🏳️‍⚧️','🇵🇭','🇺🇸','🇬🇧','🇯🇵','🇰🇷','🇨🇦','🇦🇺','🇫🇷','🇩🇪','🇮🇹','🇪🇸','🇸🇬','🇲🇾','🇹🇭']
+            smileys: ['ðŸ˜€','ðŸ˜','ðŸ˜‚','ðŸ¤£','ðŸ˜ƒ','ðŸ˜„','ðŸ˜…','ðŸ˜†','ðŸ˜‰','ðŸ˜Š','ðŸ™‚','ðŸ™ƒ','ðŸ˜‹','ðŸ˜Ž','ðŸ¥³','ðŸ˜','ðŸ˜˜','ðŸ˜—','ðŸ˜™','ðŸ˜š','ðŸ¤—','ðŸ¤”','ðŸ˜','ðŸ˜¶','ðŸ™„','ðŸ˜','ðŸ˜£','ðŸ˜¥','ðŸ˜®','ðŸ¤','ðŸ˜¯','ðŸ˜ª','ðŸ˜«','ðŸ¥±','ðŸ˜´','ðŸ˜Œ','ðŸ˜›','ðŸ˜œ','ðŸ˜','ðŸ¤¤','ðŸ˜’','ðŸ˜“','ðŸ˜”','ðŸ˜•','ðŸ™','â˜¹ï¸','ðŸ˜–','ðŸ˜ž','ðŸ˜Ÿ','ðŸ˜¤','ðŸ˜¢','ðŸ˜­','ðŸ˜¦','ðŸ˜§','ðŸ˜¨','ðŸ˜©','ðŸ¤¯','ðŸ˜¬','ðŸ˜°','ðŸ˜±','ðŸ¥µ','ðŸ¥¶','ðŸ˜¡','ðŸ¤¬'],
+            people: ['ðŸ‘','ðŸ‘Ž','ðŸ‘','ðŸ™Œ','ðŸ‘','ðŸ¤','ðŸ™','âœŒï¸','ðŸ¤ž','ðŸ¤Ÿ','ðŸ‘Œ','ðŸ¤Œ','ðŸ¤','ðŸ‘ˆ','ðŸ‘‰','ðŸ‘†','ðŸ‘‡','â˜ï¸','âœ‹','ðŸ¤š','ðŸ–ï¸','ðŸ«¶','ðŸ’ª','ðŸ«µ','ðŸ‘‹','ðŸ§ ','ðŸ‘€','ðŸ«‚','â¤ï¸','ðŸ’›','ðŸ’š','ðŸ’™','ðŸ’œ','ðŸ–¤','ðŸ¤','ðŸ¤Ž'],
+            animals: ['ðŸ¶','ðŸ±','ðŸ­','ðŸ¹','ðŸ°','ðŸ¦Š','ðŸ»','ðŸ¼','ðŸ¨','ðŸ¯','ðŸ¦','ðŸ®','ðŸ·','ðŸ¸','ðŸµ','ðŸ”','ðŸ§','ðŸ¦','ðŸ¤','ðŸ¦†','ðŸ¦‰','ðŸ¦‡','ðŸº','ðŸ—','ðŸ´','ðŸ¦„','ðŸ','ðŸ›','ðŸ¦‹','ðŸŒ','ðŸž','ðŸ¢','ðŸ','ðŸ¦Ž','ðŸ™','ðŸ¦‘'],
+            food: ['ðŸ','ðŸŽ','ðŸ','ðŸŠ','ðŸ‹','ðŸŒ','ðŸ‰','ðŸ‡','ðŸ“','ðŸ«','ðŸˆ','ðŸ’','ðŸ‘','ðŸ¥­','ðŸ','ðŸ¥¥','ðŸ¥','ðŸ…','ðŸ¥‘','ðŸ†','ðŸ¥”','ðŸ¥•','ðŸŒ½','ðŸŒ¶ï¸','ðŸ¥’','ðŸ¥¬','ðŸ¥¦','ðŸ§„','ðŸ§…','ðŸ„','ðŸ¥œ','ðŸž','ðŸ§€','ðŸ—','ðŸ–','ðŸ”','ðŸŸ','ðŸ•','ðŸŒ­','ðŸ¥ª','ðŸŒ®','ðŸŒ¯','ðŸ¥™','ðŸœ','ðŸ','ðŸ£','ðŸ©','ðŸª'],
+            travel: ['ðŸš—','ðŸš•','ðŸš™','ðŸšŒ','ðŸšŽ','ðŸŽï¸','ðŸš“','ðŸš‘','ðŸš’','ðŸšš','ðŸšœ','ðŸ›µ','ðŸï¸','ðŸš²','âœˆï¸','ðŸ›©ï¸','ðŸš','ðŸš€','ðŸ›¸','ðŸš¤','â›µ','ðŸ›¥ï¸','ðŸš¢','âš“','ðŸ—ºï¸','ðŸ§­','ðŸ—½','ðŸ—¼','ðŸ°','ðŸ¯','ðŸ–ï¸','ðŸï¸','ðŸ”ï¸','â›º','ðŸŒ‹','ðŸ›¤ï¸','ðŸŒ‰'],
+            objects: ['âŒš','ðŸ“±','ðŸ’»','âŒ¨ï¸','ðŸ–¥ï¸','ðŸ–¨ï¸','ðŸ–±ï¸','ðŸ“·','ðŸ“¹','ðŸŽ¥','ðŸ“ž','â˜Žï¸','ðŸ“º','ðŸ“»','ðŸŽ™ï¸','â°','â³','ðŸ’¡','ðŸ”¦','ðŸ•¯ï¸','ðŸ§¯','ðŸ§²','ðŸ”‹','ðŸ”Œ','ðŸ§°','ðŸ› ï¸','âš™ï¸','ðŸ”’','ðŸ”“','ðŸ”‘','ðŸª™','ðŸ’°','ðŸ’Ž','ðŸ“Œ','ðŸ“Ž','âœ‚ï¸','ðŸ§ª','ðŸ’Š','ðŸ©¹'],
+            symbols: ['â¤ï¸','ðŸ’”','â£ï¸','ðŸ’•','ðŸ’ž','ðŸ’“','ðŸ’—','ðŸ’–','ðŸ’˜','ðŸ’','âœ”ï¸','âœ–ï¸','âž•','âž–','âž—','â™¾ï¸','â€¼ï¸','â‰ï¸','â“','â—','ðŸ’¯','âœ…','â˜‘ï¸','âš ï¸','ðŸš«','ðŸ”ž','ðŸ”•','ðŸ””','â™»ï¸','ðŸ”','ðŸ”‚','â–¶ï¸','â¸ï¸','â¹ï¸','âºï¸'],
+            flags: ['ðŸ','ðŸš©','ðŸ³ï¸','ðŸ´','ðŸ³ï¸â€ðŸŒˆ','ðŸ³ï¸â€âš§ï¸','ðŸ‡µðŸ‡­','ðŸ‡ºðŸ‡¸','ðŸ‡¬ðŸ‡§','ðŸ‡¯ðŸ‡µ','ðŸ‡°ðŸ‡·','ðŸ‡¨ðŸ‡¦','ðŸ‡¦ðŸ‡º','ðŸ‡«ðŸ‡·','ðŸ‡©ðŸ‡ª','ðŸ‡®ðŸ‡¹','ðŸ‡ªðŸ‡¸','ðŸ‡¸ðŸ‡¬','ðŸ‡²ðŸ‡¾','ðŸ‡¹ðŸ‡­']
         };
 
         function emojiMatchesQuery(emoji, query) {
@@ -3184,6 +3879,15 @@ include 'includes/header.php';
 
         if (threadEl) {
             threadEl.addEventListener('click', function (event) {
+                var reactionBtn = event.target.closest('.msg-reaction-badge[data-reaction-mid]');
+                if (reactionBtn) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    var reactionMid = parseInt(reactionBtn.getAttribute('data-reaction-mid') || '0', 10);
+                    openReactionsModal(reactionMid);
+                    return;
+                }
+
                 var actionBtn = event.target.closest('.msg-hover-menu-btn');
                 if (actionBtn) {
                     event.preventDefault();
@@ -3239,7 +3943,7 @@ include 'includes/header.php';
             });
         }
 
-        // ── Messenger compose behavior: auto-grow + Enter to send ──
+        // â”€â”€ BioTern Chat compose behavior: auto-grow + Enter to send â”€â”€
         function autoGrowInput() {
             if (!inputEl) { return; }
             inputEl.style.height = 'auto';
@@ -3273,8 +3977,8 @@ include 'includes/header.php';
                 var mode = sendBtnEl && sendBtnEl.dataset ? sendBtnEl.dataset.mode : 'send';
 
                 if (!message && !hasMedia && mode === 'like') {
-                    inputEl.value = '👍';
-                    message = '👍';
+                    inputEl.value = 'ðŸ‘';
+                    message = 'ðŸ‘';
                 }
 
                 if (!message && !hasMedia) {
@@ -3331,7 +4035,7 @@ include 'includes/header.php';
 
         document.addEventListener('click', function (event) {
             if (!headerEl) { return; }
-            if (!event.target.closest('.messenger-actions')) {
+            if (!event.target.closest('.btchat-actions')) {
                 closeHeaderMenus();
             }
             if (messageActionMenuEl && !event.target.closest('#msg-action-menu') && !event.target.closest('.msg-hover-menu-btn')) {
@@ -3348,6 +4052,7 @@ include 'includes/header.php';
                 closeConfirmModal();
                 closeMessageActionMenu();
                 closeEmojiPicker();
+                closeReactionsModal();
             }
         });
 
@@ -3373,6 +4078,27 @@ include 'includes/header.php';
             });
         }
 
+        if (reactionsTabsEl) {
+            reactionsTabsEl.addEventListener('click', function (event) {
+                var tab = event.target.closest('[data-reaction-filter]');
+                if (!tab || !reactionsModalState) { return; }
+                reactionsModalState.filter = tab.getAttribute('data-reaction-filter') || 'all';
+                renderReactionsModal();
+            });
+        }
+
+        if (reactionsCloseEl) {
+            reactionsCloseEl.addEventListener('click', closeReactionsModal);
+        }
+
+        if (reactionsModalEl) {
+            reactionsModalEl.addEventListener('click', function (event) {
+                if (event.target === reactionsModalEl) {
+                    closeReactionsModal();
+                }
+            });
+        }
+
         bindHeaderMenu();
 
         clearReplyTarget();
@@ -3393,3 +4119,4 @@ include 'includes/header.php';
 include 'includes/footer.php';
 $conn->close();
 ?>
+
