@@ -1462,7 +1462,7 @@ $session_profile_picture_url = $session_profile_picture !== '' ? $session_profil
                     </div>
                     <div class="nxl-h-item d-none d-sm-flex">
                         <div class="full-screen-switcher">
-                            <a href="javascript:void(0);" class="nxl-head-link me-0" onclick="$('body').fullScreenHelper('toggle');">
+                            <a href="javascript:void(0);" class="nxl-head-link me-0" data-action="toggle-fullscreen" aria-label="Toggle fullscreen">
                                 <i class="feather-maximize maximize"></i>
                                 <i class="feather-minimize minimize"></i>
                             </a>
@@ -2389,6 +2389,7 @@ require_once dirname(__DIR__) . '/config/db.php';
     <script src="<?php echo htmlspecialchars($asset_base); ?>/vendors/js/select2-active.min.js"></script>
     <!--! END: Vendors JS !-->
     <!--! BEGIN: Apps Init  !-->
+    <script src="<?php echo htmlspecialchars($asset_base); ?>/js/global-ui-helpers.js"></script>
     <script src="<?php echo htmlspecialchars($asset_base); ?>/js/common-init.min.js"></script>
     <script src="<?php echo htmlspecialchars($asset_base); ?>/js/theme-customizer-init.min.js"></script>
     <script src="<?php echo htmlspecialchars($asset_base); ?>/js/leads-view-init.min.js"></script>

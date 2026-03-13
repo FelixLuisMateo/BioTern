@@ -149,6 +149,29 @@ html.app-skin-dark .select2-container--default .select2-results__option--highlig
     color: #ffffff !important;
 }
 
+/* Keep collapsible filter forms flush inside the panel across pages. */
+.page-header-collapse .filter-form.row {
+    --bs-gutter-x: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    width: 100% !important;
+}
+
+.page-header-collapse .filter-form > [class*="col-"] {
+    min-width: 0;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+
+.page-header-collapse .filter-form .form-control,
+.page-header-collapse .filter-form .form-select,
+.page-header-collapse .filter-form .select2-container,
+.page-header-collapse .filter-form .select2-container .select2-selection--single,
+.page-header-collapse .filter-form .select2-container .select2-selection--multiple {
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
 /* Force click-only behavior for selected header dropdowns (no hover-open). */
 .click-only-dropdown > .dropdown-menu {
     display: none !important;
@@ -356,5 +379,15 @@ html.ui-preload .nxl-container {
         overflow-x: hidden !important;
         overflow-y: auto !important;
         overscroll-behavior: contain;
+    }
+
+    /* Keep desktop content clear of expanded mini sidebar (prevents filter overlap). */
+    html.minimenu .nxl-navigation:hover ~ .nxl-header,
+    html.minimenu .nxl-navigation:hover ~ .nxl-container .page-header {
+        left: 280px !important;
+    }
+
+    html.minimenu .nxl-navigation:hover ~ .nxl-container {
+        margin-left: 280px !important;
     }
 }

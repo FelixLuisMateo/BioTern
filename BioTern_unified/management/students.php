@@ -1021,7 +1021,7 @@ include_once dirname(__DIR__) . '/includes/navigation.php'; ?>
                     </div>
                     <div class="nxl-h-item d-none d-sm-flex">
                         <div class="full-screen-switcher">
-                            <a href="javascript:void(0);" class="nxl-head-link me-0" onclick="$('body').fullScreenHelper('toggle');">
+                            <a href="javascript:void(0);" class="nxl-head-link me-0" data-action="toggle-fullscreen" aria-label="Toggle fullscreen">
                                 <i class="feather-maximize maximize"></i>
                                 <i class="feather-minimize minimize"></i>
                             </a>
@@ -1620,6 +1620,7 @@ endif; ?>
     <script src="assets/vendors/js/dataTables.bs5.min.js"></script>
     <script src="assets/vendors/js/select2.min.js"></script>
     <script src="assets/vendors/js/select2-active.min.js"></script>
+    <script src="assets/js/global-ui-helpers.js"></script>
     <script src="assets/js/common-init.min.js"></script>
     <script src="assets/js/customers-init.min.js"></script>
     <script src="assets/js/theme-customizer-init.min.js"></script>
@@ -1830,7 +1831,7 @@ endif; ?>
             }
 
             function toXml(rows) {
-                var xml = ['<?xml version="1.0" encoding="UTF-8"?>', '<students>'];
+                var xml = ['<' + '?xml version="1.0" encoding="UTF-8"?>', '<students>'];
                 rows.forEach(function (r) {
                     function escXml(v) {
                         return String(v || '')

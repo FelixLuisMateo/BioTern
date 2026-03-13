@@ -957,29 +957,43 @@
     applyPersistentMaximizeState(getPersistentMaximizePreference());
     syncFullscreenButtonsState();
 
+    document.addEventListener(
+      "click",
+      function (event) {
+        var toggle = event.target.closest(
+          '[data-action="toggle-fullscreen"], .full-screen-switcher .nxl-head-link'
+        );
+        if (!toggle) {
+          return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+        if (typeof event.stopImmediatePropagation === "function") {
+          event.stopImmediatePropagation();
+        }
+
+        var enabled = togglePersistentMaximizeState();
+        var isFullscreenNow = !!(
+          document.fullscreenElement ||
+          document.webkitFullscreenElement ||
+          document.mozFullScreenElement ||
+          document.msFullscreenElement
+        );
+
+        if (enabled !== isFullscreenNow) {
+          toggleFullscreenSafe();
+        }
+      },
+      true
+    );
+
     document.addEventListener("click", function (event) {
       var toggle = event.target.closest(
         '[data-action="toggle-fullscreen"], .full-screen-switcher .nxl-head-link'
       );
       if (toggle) {
-        event.preventDefault();
-        var enabled = togglePersistentMaximizeState();
-        try {
-          if (
-            window.jQuery &&
-            window.jQuery.fn &&
-            typeof window.jQuery.fn.fullScreenHelper === "function"
-          ) {
-            if (enabled || document.fullscreenElement) {
-              window.jQuery("body").fullScreenHelper("toggle");
-            }
-            return;
-          }
-        } catch (err) {}
-
-        if (enabled || document.fullscreenElement) {
-          toggleFullscreenSafe();
-        }
+        return;
       }
 
       var printBtn = event.target.closest('[data-action="print-page"]');
