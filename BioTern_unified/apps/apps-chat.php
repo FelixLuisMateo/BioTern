@@ -238,6 +238,8 @@ function chat_normalize_messages(array $messages, int $currentUserId): array
             'reply_to_message_id' => $replyToId,
             'reply_preview' => $replyPreview,
             'reply_author' => $replyAuthor,
+            'reaction_emoji' => (string)($message['reaction_emoji'] ?? ''),
+            'reaction_by_user_id' => (int)($message['reaction_by_user_id'] ?? 0),
             'message' => (string)($message['message'] ?? ''),
             'subject' => (string)($message['subject'] ?? ''),
             'media_path' => $rawMedia,
@@ -265,6 +267,8 @@ function chat_ensure_messages_table(mysqli $conn): void
             message LONGTEXT NOT NULL,
             reply_to_message_id BIGINT UNSIGNED NULL DEFAULT NULL,
             media_path VARCHAR(512) NULL DEFAULT NULL,
+            reaction_emoji VARCHAR(32) NULL DEFAULT NULL,
+            reaction_by_user_id BIGINT UNSIGNED NULL DEFAULT NULL,
             is_read TINYINT(1) NOT NULL DEFAULT 0,
             created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -287,6 +291,12 @@ function chat_ensure_messages_table(mysqli $conn): void
     }
     if (!in_array('reply_to_message_id', $cols, true)) {
         $conn->query("ALTER TABLE messages ADD COLUMN reply_to_message_id BIGINT UNSIGNED NULL DEFAULT NULL AFTER message");
+    }
+    if (!in_array('reaction_emoji', $cols, true)) {
+        $conn->query("ALTER TABLE messages ADD COLUMN reaction_emoji VARCHAR(32) NULL DEFAULT NULL AFTER media_path");
+    }
+    if (!in_array('reaction_by_user_id', $cols, true)) {
+        $conn->query("ALTER TABLE messages ADD COLUMN reaction_by_user_id BIGINT UNSIGNED NULL DEFAULT NULL AFTER reaction_emoji");
     }
 }
 
@@ -318,6 +328,8 @@ function chat_message_meta(mysqli $conn): array
         'message_type_col' => isset($columns['message_type']) ? 'message_type' : '',
         'reply_to_col' => isset($columns['reply_to_message_id']) ? 'reply_to_message_id' : '',
         'media_path_col' => isset($columns['media_path']) ? 'media_path' : '',
+        'reaction_emoji_col' => isset($columns['reaction_emoji']) ? 'reaction_emoji' : '',
+        'reaction_by_col' => isset($columns['reaction_by_user_id']) ? 'reaction_by_user_id' : '',
         'is_read_col' => isset($columns['is_read']) ? 'is_read' : '',
         'read_at_col' => isset($columns['read_at']) ? 'read_at' : '',
         'created_at_col' => isset($columns['created_at']) ? 'created_at' : '',
@@ -418,6 +430,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['action'] ?? '') ==
                 $successMessage = 'Message unsent.';
             } else {
                 $errorMessage = 'Unable to unsend this message.';
+            }
+        }
+    }
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['action'] ?? '') === 'react-message' && $messageMeta['ready']) {
+    $selectedUserId = (int)($_POST['user_id'] ?? 0);
+    $messageId = (int)($_POST['message_id'] ?? 0);
+    $reactionEmoji = trim((string)($_POST['reaction_emoji'] ?? ''));
+
+    if ($selectedUserId <= 0 || $messageId <= 0) {
+        $errorMessage = 'Invalid reaction request.';
+    } elseif ($messageMeta['reaction_emoji_col'] === '' || $messageMeta['reaction_by_col'] === '') {
+        $errorMessage = 'Reactions are not available.';
+    } else {
+        $reactSql = 'UPDATE messages SET '
+            . $messageMeta['reaction_emoji_col'] . ' = NULLIF(?, \'\'), '
+            . $messageMeta['reaction_by_col'] . ' = CASE WHEN ? = \'\' THEN NULL ELSE ? END'
+            . ($messageMeta['updated_at_col'] !== '' ? ', ' . $messageMeta['updated_at_col'] . ' = NOW()' : '')
+            . ' WHERE ' . $messageMeta['id_col'] . ' = ?'
+            . ' AND ((' . $messageMeta['sender_col'] . ' = ? AND ' . $messageMeta['recipient_col'] . ' = ?)'
+            . ' OR (' . $messageMeta['sender_col'] . ' = ? AND ' . $messageMeta['recipient_col'] . ' = ?))'
+            . ($messageMeta['deleted_at_col'] !== '' ? ' AND ' . $messageMeta['deleted_at_col'] . ' IS NULL' : '');
+        $reactStmt = $conn->prepare($reactSql);
+        if (!$reactStmt) {
+            $errorMessage = 'Failed to prepare reaction query.';
+        } else {
+            $reactStmt->bind_param('ssiiiiii', $reactionEmoji, $reactionEmoji, $currentUserId, $messageId, $currentUserId, $selectedUserId, $selectedUserId, $currentUserId);
+            $ok = $reactStmt->execute();
+            $affected = $reactStmt->affected_rows;
+            $reactStmt->close();
+            if ($ok && $affected >= 0) {
+                $successMessage = $reactionEmoji !== '' ? 'Reaction sent.' : 'Reaction removed.';
+            } else {
+                $errorMessage = 'Failed to update reaction.';
             }
         }
     }
@@ -770,6 +817,8 @@ if ($selectedContact && $messageMeta['ready']) {
             ' . ($messageMeta['reply_to_col'] !== '' ? $messageMeta['reply_to_col'] : 'NULL') . ' AS reply_to_message_id,
             ' . ($messageMeta['subject_col'] !== '' ? $messageMeta['subject_col'] : 'NULL') . ' AS subject,
             ' . ($messageMeta['media_path_col'] !== '' ? $messageMeta['media_path_col'] : 'NULL') . ' AS media_path,
+            ' . ($messageMeta['reaction_emoji_col'] !== '' ? $messageMeta['reaction_emoji_col'] : 'NULL') . ' AS reaction_emoji,
+            ' . ($messageMeta['reaction_by_col'] !== '' ? $messageMeta['reaction_by_col'] : 'NULL') . ' AS reaction_by_user_id,
             ' . ($messageMeta['created_at_col'] !== '' ? $messageMeta['created_at_col'] : 'NULL') . ' AS created_at
         FROM messages
         WHERE ((' . $messageMeta['sender_col'] . ' = ? AND ' . $messageMeta['recipient_col'] . ' = ?)
@@ -791,6 +840,8 @@ if ($selectedContact && $messageMeta['ready']) {
                 'message' => (string)($row['message'] ?? ''),
                 'subject' => (string)($row['subject'] ?? ''),
                 'media_path' => (string)($row['media_path'] ?? ''),
+                'reaction_emoji' => (string)($row['reaction_emoji'] ?? ''),
+                'reaction_by_user_id' => (int)($row['reaction_by_user_id'] ?? 0),
                 'created_at' => (string)($row['created_at'] ?? ''),
             ];
         }
@@ -1364,18 +1415,43 @@ include 'includes/header.php';
         box-shadow: 0 0 0 1px rgba(250, 204, 21, 0.45), 0 8px 16px rgba(17, 24, 39, 0.28);
     }
 
+    .msg-row.has-reaction {
+        padding-bottom: 0.82rem;
+    }
+
     .msg-reaction-badge {
-        margin-top: 0.2rem;
+        position: absolute;
+        right: -0.28rem;
+        bottom: -0.82rem;
+        margin-top: 0;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        min-width: 24px;
-        height: 24px;
+        min-width: 1.7rem;
+        height: 1.7rem;
         border-radius: 999px;
-        border: 1px solid var(--chat-header-border);
+        border: 2px solid var(--chat-main-bg);
         background: var(--chat-header-bg);
-        font-size: 0.9rem;
-        padding: 0 0.35rem;
+        box-shadow: 0 6px 16px rgba(15, 23, 42, 0.3);
+        font-size: 0.95rem;
+        line-height: 1;
+        padding: 0 0.34rem;
+        z-index: 3;
+    }
+
+    .msg-row.own .msg-reaction-badge {
+        right: auto;
+        left: -0.28rem;
+    }
+
+    .msg-bubble.has-media .msg-reaction-badge {
+        bottom: 0.28rem;
+        right: 0.28rem;
+    }
+
+    .msg-row.own .msg-bubble.has-media .msg-reaction-badge {
+        right: auto;
+        left: 0.28rem;
     }
 
     .msg-reply-quote {
@@ -1406,10 +1482,30 @@ include 'includes/header.php';
         padding: 0.35rem;
         z-index: 14000;
         display: none;
+        --msg-menu-arrow-left: 50%;
     }
 
     .msg-action-menu.show {
         display: block;
+    }
+
+    .msg-action-menu::after {
+        content: '';
+        position: absolute;
+        left: var(--msg-menu-arrow-left);
+        transform: translateX(-50%);
+        border-left: 8px solid transparent;
+        border-right: 8px solid transparent;
+    }
+
+    .msg-action-menu[data-placement="top"]::after {
+        top: 100%;
+        border-top: 8px solid var(--chat-header-bg);
+    }
+
+    .msg-action-menu[data-placement="bottom"]::after {
+        bottom: 100%;
+        border-bottom: 8px solid var(--chat-header-bg);
     }
 
     .msg-action-emoji-row {
@@ -1481,6 +1577,8 @@ include 'includes/header.php';
         color: var(--chat-bubble-color);
         background: var(--chat-bubble-bg);
         box-shadow: 0 8px 16px rgba(17, 24, 39, 0.28);
+        position: relative;
+        overflow: visible;
     }
 
     .msg-row.own .msg-bubble {
@@ -1726,6 +1824,125 @@ include 'includes/header.php';
         opacity: 0.75;
     }
 
+    .messenger-emoji-btn {
+        background: none;
+        border: 0;
+        width: 36px;
+        height: 36px;
+        padding: 0;
+        color: var(--chat-attach-btn-color);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+        line-height: 1;
+        flex-shrink: 0;
+        align-self: center;
+    }
+
+    .messenger-emoji-btn:hover {
+        opacity: 0.75;
+    }
+
+    #chat-emoji-picker {
+        display: none;
+        position: absolute;
+        bottom: calc(100% + 10px);
+        left: 0.8rem;
+        width: min(360px, calc(100vw - 2.2rem));
+        border-radius: 14px;
+        border: 1px solid var(--chat-header-border);
+        background: var(--chat-header-bg);
+        box-shadow: 0 16px 36px rgba(2, 6, 23, 0.45);
+        z-index: 120;
+        overflow: hidden;
+    }
+
+    #chat-emoji-picker.show {
+        display: block;
+    }
+
+    .chat-emoji-search-wrap {
+        padding: 0.65rem 0.65rem 0.45rem;
+    }
+
+    .chat-emoji-search {
+        width: 100%;
+        border: 1px solid var(--chat-compose-inner-border);
+        border-radius: 999px;
+        background: var(--chat-compose-inner-bg);
+        color: var(--chat-compose-input-color);
+        font-size: 0.86rem;
+        padding: 0.5rem 0.78rem;
+        outline: none;
+    }
+
+    .chat-emoji-grid {
+        display: grid;
+        grid-template-columns: repeat(8, minmax(0, 1fr));
+        gap: 0.25rem;
+        padding: 0 0.55rem 0.5rem;
+        max-height: 210px;
+        overflow-y: auto;
+    }
+
+    .chat-emoji-item {
+        border: 0;
+        background: transparent;
+        border-radius: 8px;
+        width: 36px;
+        height: 36px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 1.24rem;
+        line-height: 1;
+        padding: 0;
+    }
+
+    .chat-emoji-item:hover {
+        background: var(--chat-item-hover);
+    }
+
+    .chat-emoji-empty {
+        padding: 0.2rem 0.1rem 0.65rem;
+        text-align: center;
+        font-size: 0.78rem;
+        color: var(--chat-snippet-color);
+    }
+
+    .chat-emoji-tabs {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.15rem;
+        border-top: 1px solid var(--chat-header-border);
+        padding: 0.35rem 0.45rem;
+        background: var(--chat-compose-inner-bg);
+    }
+
+    .chat-emoji-tab {
+        border: 0;
+        background: transparent;
+        color: var(--chat-snippet-color);
+        width: 30px;
+        height: 28px;
+        border-radius: 8px;
+        font-size: 0.95rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+    }
+
+    .chat-emoji-tab.active,
+    .chat-emoji-tab:hover {
+        color: var(--chat-header-name-color);
+        background: var(--chat-item-hover);
+    }
+
     #chat-media-preview {
         display: none;
         align-items: center;
@@ -1935,7 +2152,7 @@ include 'includes/header.php';
                         </div>
                     <?php else: ?>
                         <?php foreach ($normalizedMessages as $message): ?>
-                            <div class="msg-row<?php echo !empty($message['is_own']) ? ' own' : ''; ?>">
+                            <div class="msg-row<?php echo !empty($message['is_own']) ? ' own' : ''; ?><?php echo !empty($message['reaction_emoji']) ? ' has-reaction' : ''; ?>">
                                 <div class="msg-bubble<?php echo !empty($message['media_path']) ? ' has-media' : ''; ?>">
                                     <?php if ((string)($message['reply_preview'] ?? '') !== ''): ?>
                                         <div class="msg-reply-quote"><strong><?php echo chat_esc((string)($message['reply_author'] ?? '')); ?></strong><?php echo chat_esc((string)$message['reply_preview']); ?></div>
@@ -1950,6 +2167,9 @@ include 'includes/header.php';
                                     <div class="msg-meta" title="<?php echo chat_esc((string)$message['time_full']); ?>">
                                         <?php echo chat_esc((string)$message['time_label']); ?><?php if ((string)$message['time_exact'] !== ''): ?> &middot; <span class="msg-time-exact"><?php echo chat_esc((string)$message['time_exact']); ?></span><?php endif; ?>
                                     </div>
+                                    <?php if ((string)($message['reaction_emoji'] ?? '') !== ''): ?>
+                                        <div class="msg-reaction-badge"><?php echo chat_esc((string)$message['reaction_emoji']); ?></div>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                         <?php endforeach; ?>
@@ -1966,6 +2186,23 @@ include 'includes/header.php';
                             <span id="chat-reply-label"></span>
                             <button type="button" class="chat-reply-remove" id="chat-reply-remove" title="Cancel reply">&#x2715;</button>
                         </div>
+                        <div id="chat-emoji-picker">
+                            <div class="chat-emoji-search-wrap">
+                                <input type="search" id="chat-emoji-search" class="chat-emoji-search" placeholder="Search emoji">
+                            </div>
+                            <div class="chat-emoji-grid" id="chat-emoji-grid"></div>
+                            <div class="chat-emoji-empty" id="chat-emoji-empty" style="display:none">No emoji found</div>
+                            <div class="chat-emoji-tabs" id="chat-emoji-tabs">
+                                <button type="button" class="chat-emoji-tab active" data-emoji-cat="smileys" title="Smileys">😀</button>
+                                <button type="button" class="chat-emoji-tab" data-emoji-cat="people" title="People">🧑</button>
+                                <button type="button" class="chat-emoji-tab" data-emoji-cat="animals" title="Animals">🐱</button>
+                                <button type="button" class="chat-emoji-tab" data-emoji-cat="food" title="Food">🍔</button>
+                                <button type="button" class="chat-emoji-tab" data-emoji-cat="travel" title="Travel">🚗</button>
+                                <button type="button" class="chat-emoji-tab" data-emoji-cat="objects" title="Objects">💡</button>
+                                <button type="button" class="chat-emoji-tab" data-emoji-cat="symbols" title="Symbols">➕</button>
+                                <button type="button" class="chat-emoji-tab" data-emoji-cat="flags" title="Flags">🏁</button>
+                            </div>
+                        </div>
                         <div id="chat-media-preview">
                             <img id="chat-preview-thumb" class="chat-preview-thumb" src="" alt="" style="display:none">
                             <span id="chat-preview-name"></span>
@@ -1974,6 +2211,9 @@ include 'includes/header.php';
                         <div class="messenger-compose-inner">
                             <button type="button" class="messenger-attach-btn" id="chat-attach-btn" title="Send image or video">
                                 <i class="feather-paperclip"></i>
+                            </button>
+                            <button type="button" class="messenger-emoji-btn" id="chat-emoji-btn" title="Emoji">
+                                <i class="feather-smile"></i>
                             </button>
                             <textarea class="messenger-compose-input" id="messenger-message-input" name="message" placeholder="Aa" rows="1"><?php echo chat_esc($draftMessage); ?></textarea>
                             <button type="submit" class="messenger-send-btn" id="messenger-send-btn" aria-label="Send" data-mode="send">
@@ -2210,22 +2450,6 @@ include 'includes/header.php';
             }
         }
 
-        function getReactionMap() {
-            try {
-                return JSON.parse(window.localStorage.getItem(conversationStorageKey('chatReactions')) || '{}') || {};
-            } catch (e) {
-                return {};
-            }
-        }
-
-        function setReactionMap(map) {
-            try {
-                window.localStorage.setItem(conversationStorageKey('chatReactions'), JSON.stringify(map || {}));
-            } catch (e) {
-                // ignore storage errors
-            }
-        }
-
         function closeConfirmModal() {
             if (!confirmModalEl) { return; }
             confirmModalEl.classList.remove('show');
@@ -2307,24 +2531,63 @@ include 'includes/header.php';
                 reportBtn.classList.toggle('is-hidden', !!msg.is_own);
             }
 
+            messageActionMenuEl.classList.add('show');
+            messageActionMenuEl.setAttribute('aria-hidden', 'false');
+
             var rect = triggerEl.getBoundingClientRect();
-            var menuW = 220;
-            var left = rect.right + 8;
-            var top = rect.top - 8;
-            if (left + menuW > window.innerWidth - 8) {
-                left = rect.left - menuW - 8;
-            }
+            var menuRect = messageActionMenuEl.getBoundingClientRect();
+            var menuW = menuRect.width || 220;
+            var menuH = menuRect.height || 180;
+            var left = rect.left + (rect.width / 2) - (menuW / 2);
+            var top = rect.top - menuH - 12;
+            var placement = 'top';
+
             if (left < 8) {
                 left = 8;
             }
+            if (left + menuW > window.innerWidth - 8) {
+                left = window.innerWidth - menuW - 8;
+            }
             if (top < 8) {
-                top = 8;
+                top = rect.bottom + 12;
+                placement = 'bottom';
             }
 
+            var arrowLeft = rect.left + (rect.width / 2) - left;
+            if (arrowLeft < 18) { arrowLeft = 18; }
+            if (arrowLeft > menuW - 18) { arrowLeft = menuW - 18; }
+
+            messageActionMenuEl.dataset.placement = placement;
+            messageActionMenuEl.style.setProperty('--msg-menu-arrow-left', arrowLeft + 'px');
             messageActionMenuEl.style.left = left + 'px';
             messageActionMenuEl.style.top = top + 'px';
-            messageActionMenuEl.classList.add('show');
-            messageActionMenuEl.setAttribute('aria-hidden', 'false');
+        }
+
+        function reactToMessage(messageId, reactionEmoji) {
+            if (!selectedUserId || !messageId) { return; }
+            var fd = new FormData();
+            fd.set('action', 'react-message');
+            fd.set('user_id', String(selectedUserId));
+            fd.set('message_id', String(messageId));
+            fd.set('reaction_emoji', reactionEmoji || '');
+            fd.set('ajax', '1');
+            fetch('apps-chat.php?user_id=' + encodeURIComponent(selectedUserId), {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: fd
+            }).then(function (response) {
+                return response.json();
+            }).then(function (payload) {
+                if (payload && payload.ok) {
+                    applyState(payload, { keepInput: true });
+                } else {
+                    showAlert('error', payload && payload.error ? payload.error : 'Failed to react to message.');
+                }
+            }).catch(function () {
+                showAlert('error', 'Failed to react to message.');
+            });
         }
 
         function deleteConversationByUserId(userId) {
@@ -2577,7 +2840,6 @@ include 'includes/header.php';
             var n = items.length;
             messageCache = {};
             var pinnedMap = getPinnedMap();
-            var reactionMap = getReactionMap();
 
             // Compute grouping: consecutive same-sender in same date_key
             var groups = new Array(n);
@@ -2653,9 +2915,9 @@ include 'includes/header.php';
                 // Bubble title = full time for all messages (accessible via hover)
                 var bubbleTitle = msg.time_full ? ' title="' + escapeHtml(msg.time_full) + '"' : '';
                 var pinnedClass = pinnedMap[String(msg.message_id)] ? ' is-pinned' : '';
-                var reaction = reactionMap[String(msg.message_id)] || '';
+                var reaction = msg.reaction_emoji || '';
 
-                html += '<div class="msg-row' + (msg.is_own ? ' own' : '') + ' ' + grp + '">';
+                html += '<div class="msg-row' + (msg.is_own ? ' own' : '') + ' ' + grp + (reaction ? ' has-reaction' : '') + '">';
                 if (!msg.is_own) { html += avatarHtml; }
                 if (msg.is_own) {
                     html += '<button type="button" class="msg-hover-menu-btn" data-message-id="' + msg.message_id + '" aria-label="Message actions">&#8226;&#8226;&#8226;</button>';
@@ -2772,6 +3034,66 @@ include 'includes/header.php';
         var previewThumbEl = document.getElementById('chat-preview-thumb');
         var previewNameEl = document.getElementById('chat-preview-name');
         var previewRemoveEl = document.getElementById('chat-preview-remove');
+        var emojiBtnEl = document.getElementById('chat-emoji-btn');
+        var emojiPickerEl = document.getElementById('chat-emoji-picker');
+        var emojiGridEl = document.getElementById('chat-emoji-grid');
+        var emojiSearchEl = document.getElementById('chat-emoji-search');
+        var emojiTabsEl = document.getElementById('chat-emoji-tabs');
+        var emojiEmptyEl = document.getElementById('chat-emoji-empty');
+        var activeEmojiCategory = 'smileys';
+
+        var emojiCatalog = {
+            smileys: ['😀','😁','😂','🤣','😃','😄','😅','😆','😉','😊','🙂','🙃','😋','😎','🥳','😍','😘','😗','😙','😚','🤗','🤔','😐','😶','🙄','😏','😣','😥','😮','🤐','😯','😪','😫','🥱','😴','😌','😛','😜','😝','🤤','😒','😓','😔','😕','🙁','☹️','😖','😞','😟','😤','😢','😭','😦','😧','😨','😩','🤯','😬','😰','😱','🥵','🥶','😡','🤬'],
+            people: ['👍','👎','👏','🙌','👐','🤝','🙏','✌️','🤞','🤟','👌','🤌','🤏','👈','👉','👆','👇','☝️','✋','🤚','🖐️','🫶','💪','🫵','👋','🧠','👀','🫂','❤️','💛','💚','💙','💜','🖤','🤍','🤎'],
+            animals: ['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🐔','🐧','🐦','🐤','🦆','🦉','🦇','🐺','🐗','🐴','🦄','🐝','🐛','🦋','🐌','🐞','🐢','🐍','🦎','🐙','🦑'],
+            food: ['🍏','🍎','🍐','🍊','🍋','🍌','🍉','🍇','🍓','🫐','🍈','🍒','🍑','🥭','🍍','🥥','🥝','🍅','🥑','🍆','🥔','🥕','🌽','🌶️','🥒','🥬','🥦','🧄','🧅','🍄','🥜','🍞','🧀','🍗','🍖','🍔','🍟','🍕','🌭','🥪','🌮','🌯','🥙','🍜','🍝','🍣','🍩','🍪'],
+            travel: ['🚗','🚕','🚙','🚌','🚎','🏎️','🚓','🚑','🚒','🚚','🚜','🛵','🏍️','🚲','✈️','🛩️','🚁','🚀','🛸','🚤','⛵','🛥️','🚢','⚓','🗺️','🧭','🗽','🗼','🏰','🏯','🏖️','🏝️','🏔️','⛺','🌋','🛤️','🌉'],
+            objects: ['⌚','📱','💻','⌨️','🖥️','🖨️','🖱️','📷','📹','🎥','📞','☎️','📺','📻','🎙️','⏰','⏳','💡','🔦','🕯️','🧯','🧲','🔋','🔌','🧰','🛠️','⚙️','🔒','🔓','🔑','🪙','💰','💎','📌','📎','✂️','🧪','💊','🩹'],
+            symbols: ['❤️','💔','❣️','💕','💞','💓','💗','💖','💘','💝','✔️','✖️','➕','➖','➗','♾️','‼️','⁉️','❓','❗','💯','✅','☑️','⚠️','🚫','🔞','🔕','🔔','♻️','🔁','🔂','▶️','⏸️','⏹️','⏺️'],
+            flags: ['🏁','🚩','🏳️','🏴','🏳️‍🌈','🏳️‍⚧️','🇵🇭','🇺🇸','🇬🇧','🇯🇵','🇰🇷','🇨🇦','🇦🇺','🇫🇷','🇩🇪','🇮🇹','🇪🇸','🇸🇬','🇲🇾','🇹🇭']
+        };
+
+        function emojiMatchesQuery(emoji, query) {
+            if (!query) { return true; }
+            // Simple fallback matching on known category and direct emoji glyph.
+            return emoji.indexOf(query) !== -1;
+        }
+
+        function renderEmojiPicker() {
+            if (!emojiGridEl) { return; }
+            var query = emojiSearchEl ? emojiSearchEl.value.trim() : '';
+            var source = emojiCatalog[activeEmojiCategory] || [];
+            var filtered = source.filter(function (e) {
+                return emojiMatchesQuery(e, query);
+            });
+
+            emojiGridEl.innerHTML = filtered.map(function (emoji) {
+                return '<button type="button" class="chat-emoji-item" data-chat-emoji="' + emoji + '">' + emoji + '</button>';
+            }).join('');
+
+            if (emojiEmptyEl) {
+                emojiEmptyEl.style.display = filtered.length ? 'none' : 'block';
+            }
+        }
+
+        function closeEmojiPicker() {
+            if (emojiPickerEl) {
+                emojiPickerEl.classList.remove('show');
+            }
+        }
+
+        function insertEmojiAtCursor(emoji) {
+            if (!inputEl || !emoji) { return; }
+            var start = inputEl.selectionStart || 0;
+            var end = inputEl.selectionEnd || 0;
+            var value = inputEl.value || '';
+            inputEl.value = value.slice(0, start) + emoji + value.slice(end);
+            var caret = start + emoji.length;
+            inputEl.focus();
+            inputEl.setSelectionRange(caret, caret);
+            autoGrowInput();
+            updateSendBtn();
+        }
 
         function clearMediaPreview() {
             if (mediaInputEl) { mediaInputEl.value = ''; }
@@ -2812,6 +3134,43 @@ include 'includes/header.php';
             });
         }
 
+        if (emojiBtnEl && emojiPickerEl) {
+            emojiBtnEl.addEventListener('click', function (event) {
+                event.preventDefault();
+                emojiPickerEl.classList.toggle('show');
+                if (emojiPickerEl.classList.contains('show')) {
+                    renderEmojiPicker();
+                    if (emojiSearchEl) { emojiSearchEl.focus(); }
+                }
+            });
+
+            if (emojiGridEl) {
+                emojiGridEl.addEventListener('click', function (event) {
+                    var btn = event.target.closest('[data-chat-emoji]');
+                    if (!btn) { return; }
+                    insertEmojiAtCursor(btn.getAttribute('data-chat-emoji') || '');
+                    closeEmojiPicker();
+                });
+            }
+
+            if (emojiTabsEl) {
+                emojiTabsEl.addEventListener('click', function (event) {
+                    var tab = event.target.closest('[data-emoji-cat]');
+                    if (!tab) { return; }
+                    activeEmojiCategory = tab.getAttribute('data-emoji-cat') || 'smileys';
+                    var allTabs = emojiTabsEl.querySelectorAll('[data-emoji-cat]');
+                    allTabs.forEach(function (el) {
+                        el.classList.toggle('active', el === tab);
+                    });
+                    renderEmojiPicker();
+                });
+            }
+
+            if (emojiSearchEl) {
+                emojiSearchEl.addEventListener('input', renderEmojiPicker);
+            }
+        }
+
         if (scrollBtnEl && threadEl) {
             scrollBtnEl.addEventListener('click', function () {
                 scrollThreadToBottom(true);
@@ -2841,11 +3200,9 @@ include 'includes/header.php';
                 if (emojiBtn) {
                     var emoji = emojiBtn.getAttribute('data-emoji') || '';
                     if (!emoji || !activeMessageActionId) { return; }
-                    var reactions = getReactionMap();
-                    reactions[String(activeMessageActionId)] = emoji;
-                    setReactionMap(reactions);
+                    var reactionMessageId = activeMessageActionId;
                     closeMessageActionMenu();
-                    fetchState(false);
+                    reactToMessage(reactionMessageId, emoji);
                     return;
                 }
 
@@ -2913,6 +3270,13 @@ include 'includes/header.php';
                 }
                 var message = inputEl.value.trim();
                 var hasMedia = mediaInputEl && mediaInputEl.files && mediaInputEl.files.length > 0;
+                var mode = sendBtnEl && sendBtnEl.dataset ? sendBtnEl.dataset.mode : 'send';
+
+                if (!message && !hasMedia && mode === 'like') {
+                    inputEl.value = '👍';
+                    message = '👍';
+                }
+
                 if (!message && !hasMedia) {
                     return;
                 }
@@ -2973,6 +3337,9 @@ include 'includes/header.php';
             if (messageActionMenuEl && !event.target.closest('#msg-action-menu') && !event.target.closest('.msg-hover-menu-btn')) {
                 closeMessageActionMenu();
             }
+            if (emojiPickerEl && !event.target.closest('#chat-emoji-picker') && !event.target.closest('#chat-emoji-btn')) {
+                closeEmojiPicker();
+            }
         });
 
         document.addEventListener('keydown', function (event) {
@@ -2980,6 +3347,7 @@ include 'includes/header.php';
                 closeHeaderMenus();
                 closeConfirmModal();
                 closeMessageActionMenu();
+                closeEmojiPicker();
             }
         });
 
@@ -3008,6 +3376,7 @@ include 'includes/header.php';
         bindHeaderMenu();
 
         clearReplyTarget();
+        renderEmojiPicker();
         updateSendBtn();
         autoGrowInput();
         scrollThreadToBottom(true);
