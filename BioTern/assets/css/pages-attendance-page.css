@@ -1,0 +1,480 @@
+/*
+ * Class: module.pages.attendance
+ * Used by:
+ * - pages/attendance.php
+ */
+
+/* Section: layout scaffolding */
+html,
+body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+main.nxl-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+div.nxl-content {
+    flex: 1;
+}
+
+footer.footer {
+    margin-top: auto;
+}
+
+/* Section: filter panel layout */
+.filter-form {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 0.65rem;
+    align-items: end;
+}
+
+.filter-form > [class*="col-"] {
+    width: 100%;
+    max-width: 100%;
+    padding-right: 0;
+    padding-left: 0;
+}
+
+.filter-form .form-control,
+.filter-form .form-select,
+.filter-form .select2-container .select2-selection--single {
+    min-height: 42px;
+}
+
+.filter-panel {
+    border: 1px solid #dfe7f3;
+    border-radius: 14px;
+    padding: 1rem 1rem 0.4rem;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+.filter-panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.6rem;
+    border-bottom: 1px solid #e5edf7;
+}
+
+.filter-panel-head-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+.filter-panel-label {
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: #1e3a8a;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0;
+}
+
+.filter-panel-sub {
+    font-size: 0.78rem;
+    color: #64748b;
+    margin: 0;
+}
+
+.filter-toggle-btn {
+    border-color: #d5deed;
+    color: #1e293b;
+    background: #f8fbff;
+}
+
+.filter-toggle-btn:hover,
+.filter-toggle-btn:focus {
+    background-color: #eef4ff;
+    color: #0f172a;
+    border-color: #b8c7e2;
+}
+
+html.app-skin-dark .filter-panel {
+    border-color: #243246;
+    background: linear-gradient(180deg, #0f172a 0%, #111d33 100%);
+    box-shadow: 0 10px 24px rgba(2, 8, 23, 0.5);
+}
+
+html.app-skin-dark .filter-panel-head {
+    border-bottom-color: #243246;
+}
+
+html.app-skin-dark .filter-panel-label {
+    color: #dbeafe;
+}
+
+html.app-skin-dark .filter-panel-sub {
+    color: #94a3b8;
+}
+
+html.app-skin-dark .filter-toggle-btn {
+    background-color: #0f172a;
+    color: #e2e8f0;
+    border-color: #334155;
+}
+
+html.app-skin-dark .filter-toggle-btn:hover,
+html.app-skin-dark .filter-toggle-btn:focus {
+    background-color: #1e293b;
+    color: #f8fafc;
+    border-color: #475569;
+}
+
+@media (max-width: 767.98px) {
+    .filter-form {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    }
+
+    .filter-panel {
+        padding: 0.85rem 0.75rem 0.25rem;
+    }
+
+    .filter-panel-head {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .filter-panel-head-actions {
+        width: 100%;
+    }
+
+    .filter-panel-head-actions .btn {
+        width: 100%;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .filter-form {
+        grid-template-columns: 1fr;
+    }
+}
+
+        /* Section: bulk actions toolbar */
+        /* Used by pages/attendance.php: #bulkActionsToolbar toolbar controls */
+        .app-attendance-bulk-toolbar,
+        .bulk-toolbar {
+            background-color: var(--bs-body-bg);
+            border: 1px solid var(--bs-border-color);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        .app-attendance-bulk-toolbar span,
+        .bulk-toolbar span {
+            color: var(--bs-body-color);
+        }
+        /* dark theme override when app-skin-dark class present */
+        html.app-skin-dark .app-attendance-bulk-toolbar,
+        html.app-skin-dark .bulk-toolbar {
+            background-color: #0f172a;
+            border-color: #1b2436;
+        }
+        html.app-skin-dark .app-attendance-bulk-toolbar span,
+        html.app-skin-dark .bulk-toolbar span {
+            color: #f0f0f0;
+        }
+        /* enlarge toolbar buttons and adjust spacing */
+        .app-attendance-bulk-toolbar .btn,
+        .bulk-toolbar .btn {
+            font-size: 0.95rem;
+            padding: 0.45rem 0.75rem;
+            font-weight: 600;
+            border-radius: 0.35rem;
+            min-width: 90px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .app-attendance-bulk-toolbar .btn i,
+        .bulk-toolbar .btn i {
+            margin-right: 0.25rem;
+        }
+        /* custom colours to match app theme closely */
+        .app-attendance-bulk-toolbar .btn-success,
+        .bulk-toolbar .btn-success {
+            background: #28a745;
+            border-color: #28a745;
+            color: #fff;
+        }
+        .app-attendance-bulk-toolbar .btn-success:hover,
+        .bulk-toolbar .btn-success:hover {
+            background: #218838;
+            border-color: #1e7e34;
+        }
+        .app-attendance-bulk-toolbar .btn-warning,
+        .bulk-toolbar .btn-warning {
+            background: #fd7e14;
+            border-color: #fd7e14;
+            color: #fff;
+        }
+        .app-attendance-bulk-toolbar .btn-warning:hover,
+        .bulk-toolbar .btn-warning:hover {
+            background: #e8590c;
+            border-color: #d9480f;
+        }
+        .app-attendance-bulk-toolbar .btn-danger,
+        .bulk-toolbar .btn-danger {
+            background: #dc3545;
+            border-color: #dc3545;
+            color: #fff;
+        }
+        .app-attendance-bulk-toolbar .btn-danger:hover,
+        .bulk-toolbar .btn-danger:hover {
+            background: #c82333;
+            border-color: #bd2130;
+        }
+        .app-attendance-bulk-toolbar .btn-outline-secondary,
+        .bulk-toolbar .btn-outline-secondary {
+            background: transparent;
+            border-color: var(--bs-border-color);
+            color: var(--bs-body-color);
+        }
+        .app-attendance-bulk-toolbar .btn-outline-secondary:hover,
+        .bulk-toolbar .btn-outline-secondary:hover {
+            background: var(--bs-border-color);
+            color: var(--bs-body-color);
+        }
+        /* Section: filter/select controls */
+        /* Used by pages/attendance.php: #attendanceFilterForm filter controls */
+        .app-attendance-filter-form select.form-control,
+        .app-attendance-filter-form select.form-select,
+        select.form-control,
+        select.form-select,
+        .select2-container--default .select2-selection--single,
+        .select2-container--default .select2-selection--multiple {
+            color: #333 !important;
+            background-color: #ffffff !important;
+        }
+        
+        /* Dark mode support for Select2 - using app-skin-dark class */
+        html.app-skin-dark .select2-container--default .select2-selection--single,
+        html.app-skin-dark .select2-container--default .select2-selection--multiple {
+            color: #f0f0f0 !important;
+            background-color: #0f172a !important;
+            border-color: #4a5568 !important;
+        }
+        
+        html.app-skin-dark .select2-container--default.select2-container--focus .select2-selection--single,
+        html.app-skin-dark .select2-container--default.select2-container--focus .select2-selection--multiple {
+            color: #f0f0f0 !important;
+            background-color: #0f172a !important;
+            border-color: #4a5568 !important;
+        }
+        
+        html.app-skin-dark .select2-container--default .select2-selection--single .select2-selection__rendered {
+            color: #ffffff !important;
+        }
+        
+        html.app-skin-dark .select2-container--default .select2-selection__placeholder {
+            color: #ffffff !important;
+        }
+        
+        /* Dark mode dropdown menu */
+        html.app-skin-dark .select2-container--default.select2-container--open .select2-dropdown {
+            background-color: #0f172a !important;
+            border-color: #4a5568 !important;
+        }
+        
+        html.app-skin-dark .select2-results {
+            background-color: #0f172a !important;
+        }
+        
+        html.app-skin-dark .select2-results__option {
+            color: #ffffff !important;
+            background-color: #0f172a !important;
+        }
+        
+        html.app-skin-dark .select2-results__option--highlighted[aria-selected] {
+            background-color: #667eea !important;
+            color: #ffffff !important;
+        }
+        
+        html.app-skin-dark .select2-container--default {
+            background-color: #0f172a !important;
+        }
+        
+        html.app-skin-dark select.form-control,
+        html.app-skin-dark select.form-select {
+            color: #ffffff !important;
+            background-color: #0f172a !important;
+            border-color: #4a5568 !important;
+        }
+        
+        html.app-skin-dark select.form-control option,
+        html.app-skin-dark select.form-select option {
+            color: #ffffff !important;
+            background-color: #2d3748 !important;
+        }
+
+        .app-attendance-filter-form select.form-control,
+        .filter-form select.form-control {
+            text-align: left;
+            text-align-last: left;
+        }
+
+        .app-attendance-filter-form .select2-container--default .select2-selection--single .select2-selection__rendered,
+        .filter-form .select2-container--default .select2-selection--single .select2-selection__rendered {
+            text-align: left;
+            padding-left: 0.75rem;
+            padding-right: 1.75rem;
+        }
+
+        /* Filter border styling to match header filter look */
+        .app-attendance-filter-form input.form-control,
+        .app-attendance-filter-form select.form-control,
+        .app-attendance-filter-form .select2-container--bootstrap-5 .select2-selection,
+        .app-attendance-filter-form .select2-container--default .select2-selection--single,
+        .filter-form input.form-control,
+        .filter-form select.form-control,
+        .filter-form .select2-container--bootstrap-5 .select2-selection,
+        .filter-form .select2-container--default .select2-selection--single {
+            border-color: #4e6283 !important;
+            border-width: 1px !important;
+        }
+
+        .app-attendance-filter-form input.form-control:focus,
+        .app-attendance-filter-form select.form-control:focus,
+        .app-attendance-filter-form .select2-container--bootstrap-5.select2-container--focus .select2-selection,
+        .app-attendance-filter-form .select2-container--default.select2-container--focus .select2-selection--single,
+        .filter-form input.form-control:focus,
+        .filter-form select.form-control:focus,
+        .filter-form .select2-container--bootstrap-5.select2-container--focus .select2-selection,
+        .filter-form .select2-container--default.select2-container--focus .select2-selection--single {
+            border-color: #7f9ecf !important;
+            box-shadow: 0 0 0 0.15rem rgba(127, 158, 207, 0.22) !important;
+        }
+
+        /* Force white text for Select2 Bootstrap-5 themed filter dropdowns */
+        .app-attendance-filter-form .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered,
+        .app-attendance-filter-form .select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__rendered,
+        .app-attendance-filter-form .select2-container--bootstrap-5 .select2-selection__placeholder,
+        .filter-form .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered,
+        .filter-form .select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__rendered,
+        .filter-form .select2-container--bootstrap-5 .select2-selection__placeholder {
+            color: #ffffff !important;
+            -webkit-text-fill-color: #ffffff !important;
+            opacity: 1 !important;
+        }
+
+        .app-attendance-filter-form .select2-container--bootstrap-5 .select2-dropdown .select2-results__option,
+        .filter-form .select2-container--bootstrap-5 .select2-dropdown .select2-results__option {
+            color: #ffffff !important;
+        }
+
+        /* Light mode: keep Select2 text readable on white backgrounds */
+        .filter-form .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered,
+        .filter-form .select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__rendered,
+        .filter-form .select2-container--bootstrap-5 .select2-selection__placeholder {
+            color: #283c50 !important;
+            -webkit-text-fill-color: #283c50 !important;
+            opacity: 1 !important;
+        }
+
+        .filter-form .select2-container--bootstrap-5 .select2-dropdown .select2-results__option {
+            color: #283c50 !important;
+        }
+
+        /* Dark mode: use white text for Select2 Bootstrap-5 theme */
+        html.app-skin-dark .filter-form .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered,
+        html.app-skin-dark .filter-form .select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__rendered,
+        html.app-skin-dark .filter-form .select2-container--bootstrap-5 .select2-selection__placeholder {
+            color: #ffffff !important;
+            -webkit-text-fill-color: #ffffff !important;
+        }
+
+        html.app-skin-dark .filter-form .select2-container--bootstrap-5 .select2-dropdown .select2-results__option {
+            color: #ffffff !important;
+        }
+
+/* Section: table/dropdown stacking and clipping fixes */
+        /* Used by pages/attendance.php: .app-attendance-table-card actions menu */
+        .page-header .dropdown-menu,
+        .page-header-right .dropdown-menu {
+            z-index: 99999 !important;
+        }
+        .page-header,
+        .page-header-right {
+            overflow: visible !important;
+        }
+
+        /* Attendance actions menu should not be clipped by wrappers */
+        .app-attendance-table-card,
+        .app-attendance-table-card .card-body,
+        .app-attendance-table-card .table-responsive,
+        .app-attendance-table-card .table,
+        .app-attendance-table-card .table-hover tbody tr,
+        .app-attendance-table-card td,
+        .attendance-table-card,
+        .attendance-table-card .card-body,
+        .attendance-table-card .table-responsive,
+        .attendance-table-card .table,
+        .attendance-table-card .table-hover tbody tr,
+        .attendance-table-card td {
+            overflow: visible !important;
+        }
+
+        .app-attendance-table-card .dropdown,
+        .attendance-table-card .dropdown {
+            position: relative !important;
+        }
+
+        .app-attendance-table-card .dropdown-menu,
+        .attendance-table-card .dropdown-menu {
+            z-index: 20000 !important;
+        }
+
+.app-attendance-table-card .dropdown-menu,
+.attendance-table-card .dropdown-menu {
+            margin-top: 5px;
+        }
+
+        /* Section: DataTable footer spacing */
+        /* Used by pages/attendance.php: #attendanceList DataTable wrapper */
+        .attendanceList_wrapper .row:last-child {
+            margin-top: 2220px;
+            padding-bottom: 6px;
+        }
+
+        /* Used by pages/attendance.php: #bulkActionsToolbar visibility state */
+        .app-attendance-bulk-toolbar-hidden,
+        .attendance-bulk-toolbar-hidden {
+            display: none;
+        }
+
+        .attendance-selected-label,
+        .app-attendance-selected-label {
+            font-weight: 600;
+        }
+
+        .attendance-selected-icon,
+        .app-attendance-selected-icon {
+            font-size: 16px;
+        }
+
+        .attendance-selected-count,
+        .app-attendance-selected-count {
+            font-size: 1.1rem;
+        }
+
+        .attendance-filter,
+        .app-attendance-filter-link {
+            cursor: pointer;
+        }

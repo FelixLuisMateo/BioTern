@@ -1,0 +1,529 @@
+/*
+ * Class: module.management.students
+ * Used by:
+ * - management/students.php
+ */
+
+/* Section: layout scaffolding */
+html,
+body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+main.nxl-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+div.nxl-content {
+    flex: 1;
+}
+
+/* Section: filter panel layout */
+.filter-form {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 0.65rem;
+    align-items: end;
+}
+
+.filter-form > [class*="col-"] {
+    width: 100%;
+    max-width: 100%;
+    padding-right: 0;
+    padding-left: 0;
+}
+
+.filter-form .form-label {
+    margin-bottom: 0.35rem;
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #334155;
+}
+
+.filter-form .form-control,
+.filter-form .form-select,
+.filter-form .select2-container .select2-selection--single {
+    min-height: 42px;
+}
+
+.filter-form .select2-container .select2-selection--single {
+    min-height: 42px;
+    display: flex;
+    align-items: center;
+}
+
+.filter-form .select2-container--default .select2-selection--single .select2-selection__rendered {
+    line-height: 40px;
+    text-align: left;
+    padding-left: 0.15rem;
+    padding-right: 1.75rem;
+}
+
+.filter-form select.form-control {
+    text-align: left;
+    text-align-last: left;
+}
+
+.filter-form .select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 40px;
+}
+
+.filter-panel {
+    border: 1px solid #dfe7f3;
+    border-radius: 14px;
+    padding: 1rem 1rem 0.4rem;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+.filter-panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.6rem;
+    border-bottom: 1px solid #e5edf7;
+}
+
+.filter-panel-head-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+.filter-panel-label {
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: #1e3a8a;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0;
+}
+
+.filter-panel-sub {
+    font-size: 0.78rem;
+    color: #64748b;
+    margin: 0;
+}
+
+.filter-toggle-btn {
+    border-color: #d5deed;
+    color: #1e293b;
+    background: #f8fbff;
+}
+
+.filter-toggle-btn:hover,
+.filter-toggle-btn:focus {
+    background-color: #eef4ff;
+    color: #0f172a;
+    border-color: #b8c7e2;
+}
+
+html.app-skin-dark .filter-panel {
+    border-color: #243246;
+    background: linear-gradient(180deg, #0f172a 0%, #111d33 100%);
+    box-shadow: 0 10px 24px rgba(2, 8, 23, 0.5);
+}
+
+html.app-skin-dark .filter-panel-head {
+    border-bottom-color: #243246;
+}
+
+html.app-skin-dark .filter-panel-label {
+    color: #dbeafe;
+}
+
+html.app-skin-dark .filter-panel-sub {
+    color: #94a3b8;
+}
+
+html.app-skin-dark .filter-toggle-btn {
+    background-color: #0f172a;
+    color: #e2e8f0;
+    border-color: #334155;
+}
+
+html.app-skin-dark .filter-toggle-btn:hover,
+html.app-skin-dark .filter-toggle-btn:focus {
+    background-color: #1e293b;
+    color: #f8fafc;
+    border-color: #475569;
+}
+
+html.app-skin-dark .filter-form .form-label {
+    color: #cbd5e1;
+}
+
+@media (max-width: 767.98px) {
+    .filter-panel {
+        padding: 0.85rem 0.75rem 0.25rem;
+    }
+
+    .filter-form {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    }
+
+    .filter-panel-head {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .filter-panel-head-actions {
+        width: 100%;
+    }
+
+    .filter-panel-head-actions .btn {
+        width: 100%;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .filter-form {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Z-index controls for select2 and header stacking */
+.nxl-header {
+    z-index: 3000 !important;
+}
+
+.page-header {
+    z-index: 2900 !important;
+}
+
+.filter-form,
+.filter-form .select2-container,
+.filter-form .select2-container--open,
+.filter-form .select2-container--open .select2-dropdown {
+    z-index: 900 !important;
+}
+
+.filter-form .select2-container--open .select2-dropdown--above {
+    top: calc(100% - 1px) !important;
+    bottom: auto !important;
+    border-top-left-radius: 0.5rem;
+    border-top-right-radius: 0.5rem;
+}
+
+.filter-form .select2-container--open.select2-container--above .select2-selection--single,
+.filter-form .select2-container--open.select2-container--above .select2-selection--multiple {
+    border-top-left-radius: 0.5rem !important;
+    border-top-right-radius: 0.5rem !important;
+    border-bottom-left-radius: 0.5rem !important;
+    border-bottom-right-radius: 0.5rem !important;
+}
+
+@media (min-width: 1025px) {
+    html.minimenu .nxl-navigation:hover {
+        z-index: 5000 !important;
+    }
+
+    html.minimenu .nxl-navigation:hover .navbar-wrapper,
+    html.minimenu .nxl-navigation:hover .navbar-content,
+    html.minimenu .nxl-navigation:hover .m-header {
+        position: relative !important;
+        z-index: 5001 !important;
+    }
+}
+
+/* Table wrapper + dropdown portal */
+.students-table-wrap {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+}
+
+.students-table-wrap #customerList,
+.students-table-wrap .dataTables_wrapper {
+    min-width: 1180px;
+}
+
+.students-table-wrap th,
+.students-table-wrap td {
+    white-space: nowrap;
+}
+
+.students-action-menu-portal {
+    z-index: 5000;
+}
+
+.students-action-dropdown > a.portal-open {
+    background: rgba(37, 99, 235, 0.14);
+    border-color: rgba(37, 99, 235, 0.45);
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.18);
+}
+
+html.app-skin-dark .students-action-dropdown > a.portal-open {
+    background: rgba(96, 165, 250, 0.15);
+    border-color: rgba(96, 165, 250, 0.55);
+    box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2);
+}
+
+@media (max-width: 991.98px) {
+    .students-table-wrap #customerList,
+    .students-table-wrap .dataTables_wrapper {
+        min-width: 980px;
+    }
+}
+
+/* Section: filter controls and select2 */
+        /* Used by management/students.php: #studentsFilterForm */
+        /* Calendar input design */
+        .app-students-filter-form input[type="date"].form-control {
+            min-height: 42px;
+            border-radius: 8px;
+            padding-right: 2.25rem;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .app-students-filter-form input[type="date"].form-control:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.2);
+        }
+
+        html.app-skin-dark .app-students-filter-form input[type="date"].form-control {
+            color: #f0f0f0 !important;
+            background-color: #0f172a !important;
+            border-color: #4a5568 !important;
+        }
+
+        html.app-skin-dark .app-students-filter-form input[type="date"].form-control::-webkit-calendar-picker-indicator {
+            filter: invert(1) brightness(1.2);
+            opacity: 0.9;
+            cursor: pointer;
+        }
+
+        html.app-skin-dark .app-students-filter-form input[type="date"].form-control::-webkit-datetime-edit,
+        html.app-skin-dark .app-students-filter-form input[type="date"].form-control::-webkit-datetime-edit-text,
+        html.app-skin-dark .app-students-filter-form input[type="date"].form-control::-webkit-datetime-edit-month-field,
+        html.app-skin-dark .app-students-filter-form input[type="date"].form-control::-webkit-datetime-edit-day-field,
+        html.app-skin-dark .app-students-filter-form input[type="date"].form-control::-webkit-datetime-edit-year-field {
+            color: #f0f0f0;
+        }
+
+        .app-students-filter-form .filter-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1.55rem;
+        }
+
+        .app-students-filter-form .filter-actions .btn {
+            min-height: 42px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Match ALL filter dropboxes with date picker color */
+        html.app-skin-dark .app-students-filter-form select.form-control,
+        html.app-skin-dark .app-students-filter-form select.form-select,
+        html.app-skin-dark .app-students-filter-form .select2-container--default .select2-selection--single {
+            color: #f0f0f0 !important;
+            background-color: #0f172a !important;
+            border-color: #4a5568 !important;
+        }
+
+        html.app-skin-dark .app-students-filter-form .select2-container--default .select2-selection--single .select2-selection__rendered {
+            color: #f0f0f0 !important;
+        }
+
+        html.app-skin-dark .app-students-filter-form .select2-container--default.select2-container--open .select2-dropdown,
+        html.app-skin-dark .app-students-filter-form .select2-results__option {
+            background-color: #2d3748 !important;
+            color: #f0f0f0 !important;
+            border-color: #4a5568 !important;
+        }
+
+        /* Keep filter/select controls below sidebar when mobile nav is open */
+        @media (max-width: 1024px) {
+            .nxl-navigation,
+            .nxl-navigation.mob-navigation-active {
+                z-index: 4000 !important;
+            }
+
+            .select2-container,
+            .select2-container--open,
+            .select2-dropdown,
+            .app-students-filter-form,
+            .nxl-content .row.mb-3 {
+                z-index: 1 !important;
+                position: relative;
+            }
+        }
+
+        /* Footer layout fix */
+        .footer {
+            flex-wrap: wrap;
+            row-gap: 0.5rem;
+            column-gap: 1rem;
+        }
+
+        .footer .footer-meta {
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            flex-wrap: wrap;
+        }
+
+        .footer .footer-links {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        @media (max-width: 575.98px) {
+            .footer {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+
+        /* Section: print list output */
+        /* Used by management/students.php: hidden print-only list sheet */
+        .app-students-print-sheet,
+        .student-list-print-sheet {
+            display: none;
+        }
+
+        @media print {
+            body * {
+                visibility: hidden !important;
+            }
+
+            .app-students-print-sheet,
+            .app-students-print-sheet *,
+            .student-list-print-sheet,
+            .student-list-print-sheet * {
+                visibility: visible !important;
+            }
+
+            .app-students-print-sheet,
+            .student-list-print-sheet {
+                display: block !important;
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                background: #ffffff;
+                color: #111111;
+                font-family: Arial, Helvetica, sans-serif;
+                font-size: 12px;
+                padding: 18px 24px;
+            }
+
+            .app-students-print-sheet .header,
+            .student-list-print-sheet .header {
+                position: relative;
+                min-height: 0.9in;
+                text-align: center;
+                border-bottom: 1px solid #8ab0e6;
+                padding: 0.08in 0 0.06in 0;
+                margin-bottom: 14px;
+            }
+
+            .app-students-print-sheet .crest,
+            .student-list-print-sheet .crest {
+                position: absolute;
+                top: 0.22in;
+                left: 0.22in;
+                width: 0.77in;
+                height: 0.76in;
+                object-fit: contain;
+            }
+
+            .app-students-print-sheet .header h2,
+            .student-list-print-sheet .header h2 {
+                font-family: Calibri, Arial, sans-serif;
+                color: #1b4f9c;
+                font-size: 14pt;
+                margin: 6px 0 2px 0;
+                font-weight: 700;
+                text-transform: uppercase;
+            }
+
+            .app-students-print-sheet .header .meta,
+            .student-list-print-sheet .header .meta {
+                font-family: Calibri, Arial, sans-serif;
+                color: #1b4f9c;
+                font-size: 10pt;
+            }
+
+            .app-students-print-sheet .header .tel,
+            .student-list-print-sheet .header .tel {
+                font-family: Calibri, Arial, sans-serif;
+                color: #1b4f9c;
+                font-size: 12pt;
+            }
+
+            .app-students-print-sheet .print-title,
+            .student-list-print-sheet .print-title {
+                text-align: center;
+                font-size: 34px;
+                letter-spacing: 1px;
+                font-weight: 700;
+                margin: 26px 0 22px;
+            }
+
+            .app-students-print-sheet .print-meta,
+            .student-list-print-sheet .print-meta {
+                margin-bottom: 14px;
+                font-size: 13px;
+            }
+
+            .app-students-print-sheet .print-meta strong,
+            .student-list-print-sheet .print-meta strong {
+                min-width: 76px;
+                display: inline-block;
+            }
+
+            .app-students-print-sheet table,
+            .student-list-print-sheet table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 12px;
+            }
+
+            .app-students-print-sheet th,
+            .app-students-print-sheet td,
+            .student-list-print-sheet th,
+            .student-list-print-sheet td {
+                border: 1px solid #d9d9d9;
+                padding: 8px 8px;
+                text-align: left;
+            }
+
+            .app-students-print-sheet th,
+            .student-list-print-sheet th {
+                text-transform: uppercase;
+                font-weight: 700;
+                background: #f8f8f8;
+            }
+
+            .app-students-print-sheet td.col-index,
+            .app-students-print-sheet th.col-index,
+            .student-list-print-sheet td.col-index,
+            .student-list-print-sheet th.col-index {
+                width: 46px;
+                text-align: center;
+            }
+        }
