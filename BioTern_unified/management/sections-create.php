@@ -5,7 +5,7 @@ $db_user = defined('DB_USER') ? DB_USER : 'root';
 $db_password = defined('DB_PASS') ? DB_PASS : ''; 
 $db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
 
-$message = defined('DB_PASS') ? DB_PASS : ''; 
+$message = '';
 $message_type = 'info';
 
 try {
@@ -32,6 +32,41 @@ function has_col(array $cols, string $name): bool {
     return in_array(strtolower($name), $cols, true);
 }
 
+function get_unique_indexes(mysqli $conn, string $table): array {
+    $indexes = [];
+    $res = $conn->query("SHOW INDEX FROM `" . $conn->real_escape_string($table) . "` WHERE Non_unique = 0");
+    if ($res) {
+        while ($row = $res->fetch_assoc()) {
+            $keyName = (string)($row['Key_name'] ?? '');
+            if ($keyName === '' || strtoupper($keyName) === 'PRIMARY') {
+                continue;
+            }
+            $seq = (int)($row['Seq_in_index'] ?? 0);
+            $col = strtolower((string)($row['Column_name'] ?? ''));
+            if ($seq > 0 && $col !== '') {
+                $indexes[$keyName][$seq] = $col;
+            }
+        }
+    }
+
+    foreach ($indexes as $key => $cols) {
+        ksort($cols);
+        $indexes[$key] = array_values($cols);
+    }
+
+    return $indexes;
+}
+
+function has_unique_index(array $indexes, array $expectedCols): bool {
+    $expected = array_map('strtolower', $expectedCols);
+    foreach ($indexes as $cols) {
+        if ($cols === $expected) {
+            return true;
+        }
+    }
+    return false;
+}
+
 $sectionCols = get_table_columns($conn, 'sections');
 $courseCols = get_table_columns($conn, 'courses');
 $deptCols = get_table_columns($conn, 'departments');
@@ -42,6 +77,10 @@ $hasSectionIsActive = has_col($sectionCols, 'is_active');
 $hasSectionStatus = has_col($sectionCols, 'status');
 $hasSectionCreatedAt = has_col($sectionCols, 'created_at');
 $hasSectionUpdatedAt = has_col($sectionCols, 'updated_at');
+
+$sectionUniqueIndexes = get_unique_indexes($conn, 'sections');
+$hasUniqueSectionCodeOnly = has_unique_index($sectionUniqueIndexes, ['code']);
+$hasUniqueSectionCodeAndName = has_unique_index($sectionUniqueIndexes, ['code', 'name']);
 
 $hasCourseDeletedAt = has_col($courseCols, 'deleted_at');
 $hasDeptDeletedAt = has_col($deptCols, 'deleted_at');
@@ -113,13 +152,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $sectionsToCreate = [];
             for ($letter = $startLetter; $letter <= $endLetter; $letter++) {
                 $suffix = $startNumber . chr($letter);
+                $codeValue = $selectedCourseCode;
+
+                if ($hasUniqueSectionCodeOnly && !$hasUniqueSectionCodeAndName) {
+                    $codeValue = $selectedCourseCode . $suffix;
+                }
+
                 $sectionsToCreate[] = [
-                    'code' => $selectedCourseCode,
+                    'code' => $codeValue,
                     'name' => $suffix,
                 ];
             }
 
-            $dupSql = "SELECT id FROM sections WHERE code = ? AND name = ?";
+            $dupSql = "SELECT id FROM sections WHERE code = ?";
+            if (!$hasUniqueSectionCodeOnly || $hasUniqueSectionCodeAndName) {
+                $dupSql .= " AND name = ?";
+            }
             if ($hasSectionDeletedAt) {
                 $dupSql .= " AND deleted_at IS NULL";
             }
@@ -128,14 +176,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $createdCount = 0;
             $skippedCount = 0;
-            $errorText = defined('DB_PASS') ? DB_PASS : ''; 
+            $errorText = '';
 
             foreach ($sectionsToCreate as $sectionEntry) {
                 $code = (string)$sectionEntry['code'];
                 $name = (string)$sectionEntry['name'];
                 $exists = false;
                 if ($dupStmt) {
-                    $dupStmt->bind_param('ss', $code, $name);
+                    if (!$hasUniqueSectionCodeOnly || $hasUniqueSectionCodeAndName) {
+                        $dupStmt->bind_param('ss', $code, $name);
+                    } else {
+                        $dupStmt->bind_param('s', $code);
+                    }
                     $dupStmt->execute();
                     $exists = (bool)$dupStmt->get_result()->fetch_assoc();
                 }
@@ -171,10 +223,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 $insertSql = "INSERT INTO sections (" . implode(', ', $columns) . ") VALUES (" . implode(', ', $values) . ")";
-                if ($conn->query($insertSql)) {
-                    $createdCount++;
-                } else {
-                    $errorText = $conn->error;
+                try {
+                    if ($conn->query($insertSql)) {
+                        $createdCount++;
+                    } else {
+                        $errorText = $conn->error;
+                        break;
+                    }
+                } catch (mysqli_sql_exception $e) {
+                    $errorText = $e->getMessage();
                     break;
                 }
             }
