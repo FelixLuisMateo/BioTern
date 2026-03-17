@@ -1,14 +1,60 @@
-﻿<?php
+<?php
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/notifications.php';
 
-if (session_status() === PHP_SESSION_NONE) {
+if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
     session_start();
 }
 
 function chat_esc($value): string
 {
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
+}
+
+function chat_supported_reactions(): array
+{
+    static $reactions = null;
+    if ($reactions !== null) {
+        return $reactions;
+    }
+
+    $reactions = [
+        'Like' => html_entity_decode('&#128077;', ENT_QUOTES, 'UTF-8'),
+        'Love' => html_entity_decode('&#10084;&#65039;', ENT_QUOTES, 'UTF-8'),
+        'Haha' => html_entity_decode('&#128514;', ENT_QUOTES, 'UTF-8'),
+        'Wow' => html_entity_decode('&#128558;', ENT_QUOTES, 'UTF-8'),
+        'Sad' => html_entity_decode('&#128546;', ENT_QUOTES, 'UTF-8'),
+        'Angry' => html_entity_decode('&#128545;', ENT_QUOTES, 'UTF-8'),
+    ];
+
+    return $reactions;
+}
+
+function chat_normalize_reaction_emoji(string $emoji): string
+{
+    $emoji = trim($emoji);
+    if ($emoji === '') {
+        return '';
+    }
+
+    $reactions = chat_supported_reactions();
+    $aliases = [
+        'ðŸ‘' => $reactions['Like'],
+        $reactions['Like'] => $reactions['Like'],
+        'â¤ï¸' => $reactions['Love'],
+        html_entity_decode('&#10084;', ENT_QUOTES, 'UTF-8') => $reactions['Love'],
+        $reactions['Love'] => $reactions['Love'],
+        'ðŸ˜‚' => $reactions['Haha'],
+        $reactions['Haha'] => $reactions['Haha'],
+        'ðŸ˜®' => $reactions['Wow'],
+        $reactions['Wow'] => $reactions['Wow'],
+        'ðŸ˜¢' => $reactions['Sad'],
+        $reactions['Sad'] => $reactions['Sad'],
+        'ðŸ˜¡' => $reactions['Angry'],
+        $reactions['Angry'] => $reactions['Angry'],
+    ];
+
+    return $aliases[$emoji] ?? $emoji;
 }
 
 function chat_initials(string $name): string
@@ -261,7 +307,7 @@ function chat_normalize_messages(array $messages, int $currentUserId): array
             if (!is_array($reactionItem)) {
                 continue;
             }
-            $reactionEmoji = trim((string)($reactionItem['emoji'] ?? ''));
+            $reactionEmoji = chat_normalize_reaction_emoji((string)($reactionItem['emoji'] ?? ''));
             $reactionCount = (int)($reactionItem['count'] ?? 0);
             if ($reactionEmoji === '' || $reactionCount <= 0) {
                 continue;
@@ -278,7 +324,7 @@ function chat_normalize_messages(array $messages, int $currentUserId): array
             if (!is_array($reactionUser)) {
                 continue;
             }
-            $reactionEmoji = trim((string)($reactionUser['emoji'] ?? ''));
+            $reactionEmoji = chat_normalize_reaction_emoji((string)($reactionUser['emoji'] ?? ''));
             if ($reactionEmoji === '') {
                 continue;
             }
@@ -304,7 +350,7 @@ function chat_normalize_messages(array $messages, int $currentUserId): array
             }
         }
 
-        $topReactionEmoji = (string)($message['reaction_emoji'] ?? '');
+        $topReactionEmoji = chat_normalize_reaction_emoji((string)($message['reaction_emoji'] ?? ''));
         if (!empty($reactionSummary)) {
             $topReactionEmoji = (string)($reactionSummary[0]['emoji'] ?? $topReactionEmoji);
         }
@@ -447,6 +493,7 @@ function chat_message_meta(mysqli $conn): array
 $currentUserId = (int)($_SESSION['user_id'] ?? 0);
 $currentUserName = trim((string)($_SESSION['name'] ?? $_SESSION['username'] ?? 'BioTern User'));
 $page_title = 'BioTern || Chat';
+$requestMethod = (string)($_SERVER['REQUEST_METHOD'] ?? 'GET');
 $isAjaxRequest = ((string)($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'XMLHttpRequest') || ((string)($_REQUEST['ajax'] ?? '') === '1');
 
 $messageMeta = chat_message_meta($conn);
@@ -461,7 +508,7 @@ if (isset($_SESSION['chat_flash']) && is_array($_SESSION['chat_flash'])) {
     unset($_SESSION['chat_flash']);
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['action'] ?? '') === 'delete-conversation' && $messageMeta['ready']) {
+if ($requestMethod === 'POST' && (string)($_POST['action'] ?? '') === 'delete-conversation' && $messageMeta['ready']) {
     $selectedUserId = (int)($_POST['user_id'] ?? 0);
 
     if ($selectedUserId <= 0) {
@@ -502,7 +549,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['action'] ?? '') ==
     }
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['action'] ?? '') === 'unsend-message' && $messageMeta['ready']) {
+if ($requestMethod === 'POST' && (string)($_POST['action'] ?? '') === 'unsend-message' && $messageMeta['ready']) {
     $selectedUserId = (int)($_POST['user_id'] ?? 0);
     $messageId = (int)($_POST['message_id'] ?? 0);
 
@@ -541,7 +588,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['action'] ?? '') ==
     }
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['action'] ?? '') === 'react-message' && $messageMeta['ready']) {
+if ($requestMethod === 'POST' && (string)($_POST['action'] ?? '') === 'react-message' && $messageMeta['ready']) {
     $selectedUserId = (int)($_POST['user_id'] ?? 0);
     $messageId = (int)($_POST['message_id'] ?? 0);
     $reactionEmoji = trim((string)($_POST['reaction_emoji'] ?? ''));
@@ -556,6 +603,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['action'] ?? '') ==
         } else {
             $reactionEmoji = substr($reactionEmoji, 0, 16);
         }
+        $reactionEmoji = chat_normalize_reaction_emoji($reactionEmoji);
 
         $checkSql = 'SELECT ' . $messageMeta['id_col'] . ' AS message_id
             FROM messages
@@ -583,7 +631,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['action'] ?? '') ==
                     $existingStmt->execute();
                     $existingRow = $existingStmt->get_result()->fetch_assoc();
                     $existingStmt->close();
-                    $existingEmoji = (string)($existingRow['emoji'] ?? '');
+                    $existingEmoji = chat_normalize_reaction_emoji((string)($existingRow['emoji'] ?? ''));
                 }
 
                 if ($reactionEmoji === '' || $reactionEmoji === $existingEmoji) {
@@ -620,7 +668,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['action'] ?? '') ==
     }
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['action'] ?? '') === 'send-message' && $messageMeta['ready']) {
+if ($requestMethod === 'POST' && (string)($_POST['action'] ?? '') === 'send-message' && $messageMeta['ready']) {
     $selectedUserId = (int)($_POST['user_id'] ?? 0);
     $plainDraftMessage = trim((string)($_POST['message'] ?? ''));
     $draftMessage = $plainDraftMessage;
@@ -1011,7 +1059,7 @@ if ($selectedContact && $messageMeta['ready']) {
                 'message' => (string)($row['message'] ?? ''),
                 'subject' => (string)($row['subject'] ?? ''),
                 'media_path' => (string)($row['media_path'] ?? ''),
-                'reaction_emoji' => (string)($row['reaction_emoji'] ?? ''),
+                'reaction_emoji' => chat_normalize_reaction_emoji((string)($row['reaction_emoji'] ?? '')),
                 'reaction_by_user_id' => (int)($row['reaction_by_user_id'] ?? 0),
                 'reaction_count' => (int)($row['reaction_count'] ?? 0),
                 'created_at' => (string)($row['created_at'] ?? ''),
@@ -1047,7 +1095,7 @@ if ($selectedContact && $messageMeta['ready']) {
                 $reactionUsersByMessage = [];
                 while ($reactionRow = $reactionRes->fetch_assoc()) {
                     $messageId = (int)($reactionRow['message_id'] ?? 0);
-                    $emoji = trim((string)($reactionRow['emoji'] ?? ''));
+                    $emoji = chat_normalize_reaction_emoji((string)($reactionRow['emoji'] ?? ''));
                     if ($messageId <= 0 || $emoji === '') {
                         continue;
                     }
@@ -1235,6 +1283,8 @@ include 'includes/header.php';
         overflow: hidden;
         display: flex;
         flex-direction: column;
+        position: relative;
+        z-index: 0;
     }
 
     html.chat-page-lock,
@@ -1259,6 +1309,8 @@ include 'includes/header.php';
         height: calc(100vh - 80px);
         max-height: calc(100vh - 80px);
         overflow: hidden;
+        position: relative;
+        z-index: 0;
     }
 
     .btchat-page-alert {
@@ -1277,6 +1329,8 @@ include 'includes/header.php';
         min-height: 0;
         background: var(--chat-shell-bg);
         border: 1px solid color-mix(in srgb, var(--chat-header-border) 92%, transparent);
+        position: relative;
+        z-index: 0;
     }
 
     .btchat-left {
@@ -1661,6 +1715,11 @@ include 'includes/header.php';
         overflow-y: auto;
         min-height: 0;
         flex: 1;
+        transition: opacity 0.16s ease;
+    }
+
+    .btchat-thread.is-loading {
+        opacity: 0.52;
     }
 
     .msg-row {
@@ -2800,12 +2859,9 @@ include 'includes/header.php';
 
 <div class="msg-action-menu" id="msg-action-menu" aria-hidden="true">
     <div class="msg-action-emoji-row">
-        <button type="button" class="msg-emoji-btn" data-emoji="ðŸ‘" title="Like">ðŸ‘</button>
-        <button type="button" class="msg-emoji-btn" data-emoji="â¤ï¸" title="Love">â¤ï¸</button>
-        <button type="button" class="msg-emoji-btn" data-emoji="ðŸ˜‚" title="Haha">ðŸ˜‚</button>
-        <button type="button" class="msg-emoji-btn" data-emoji="ðŸ˜®" title="Wow">ðŸ˜®</button>
-        <button type="button" class="msg-emoji-btn" data-emoji="ðŸ˜¢" title="Sad">ðŸ˜¢</button>
-        <button type="button" class="msg-emoji-btn" data-emoji="ðŸ˜¡" title="Angry">ðŸ˜¡</button>
+        <?php foreach (chat_supported_reactions() as $reactionLabel => $reactionEmoji): ?>
+        <button type="button" class="msg-emoji-btn" data-emoji="<?php echo chat_esc($reactionEmoji); ?>" title="<?php echo chat_esc($reactionLabel); ?>"><?php echo chat_esc($reactionEmoji); ?></button>
+        <?php endforeach; ?>
     </div>
     <button type="button" class="msg-action-item" data-msg-action="reply">Reply</button>
     <button type="button" class="msg-action-item" data-msg-action="pin">Pin message</button>
@@ -2859,6 +2915,8 @@ include 'includes/header.php';
         var pollHandle = null;
         var currentSearch = '';
         var reactionsModalState = null;
+        var fetchAbortController = null;
+        var stateRequestToken = 0;
 
         function escapeHtml(value) {
             return String(value == null ? '' : value)
@@ -2896,6 +2954,44 @@ include 'includes/header.php';
                     alertEl.innerHTML = '';
                 }
             }, 2500);
+        }
+
+        function setThreadLoading(isLoading) {
+            if (!threadEl) {
+                return;
+            }
+            threadEl.classList.toggle('is-loading', !!isLoading);
+        }
+
+        function setActiveContactVisual(userId) {
+            if (!listEl) {
+                return;
+            }
+            var items = listEl.querySelectorAll('a[data-user-id]');
+            items.forEach(function (item) {
+                var itemUserId = parseInt(item.getAttribute('data-user-id') || '0', 10) || 0;
+                item.classList.toggle('active', itemUserId === userId);
+            });
+        }
+
+        function primeHeaderFromListItem(link) {
+            if (!headerEl || !link) {
+                return;
+            }
+            var contactNameEl = link.querySelector('.btchat-name');
+            var contactSnippetEl = link.querySelector('.btchat-snippet');
+            var avatarImg = link.querySelector('.btchat-avatar');
+            var avatarText = link.querySelector('.btchat-avatar-text');
+            var contact = {
+                id: selectedUserId,
+                name: contactNameEl ? contactNameEl.textContent.trim() : 'Conversation',
+                email: contactSnippetEl ? contactSnippetEl.textContent.trim() : '',
+                username: '',
+                avatar_path: avatarImg ? (avatarImg.getAttribute('src') || '') : '',
+                initials: avatarText ? avatarText.textContent.trim() : 'BT',
+                is_online: !!link.querySelector('.btchat-status-dot.online')
+            };
+            renderHeader(contact);
         }
 
         function renderContacts(contacts) {
@@ -3247,15 +3343,38 @@ include 'includes/header.php';
                 },
                 body: fd
             }).then(function (response) {
-                return response.json();
-            }).then(function (payload) {
+                return response.text().then(function (text) {
+                    return {
+                        ok: response.ok,
+                        text: text
+                    };
+                });
+            }).then(function (result) {
+                var payload = null;
+                try {
+                    payload = result.text ? JSON.parse(result.text) : null;
+                } catch (error) {
+                    payload = null;
+                }
+
                 if (payload && payload.ok) {
                     applyState(payload, { keepInput: true });
-                } else {
-                    showAlert('error', payload && payload.error ? payload.error : 'Failed to react to message.');
+                    return;
                 }
-            }).catch(function () {
+
+                if (payload && payload.error) {
+                    showAlert('error', payload.error);
+                    return;
+                }
+
+                if (result.ok) {
+                    fetchState(true);
+                    return;
+                }
+
                 showAlert('error', 'Failed to react to message.');
+            }).catch(function () {
+                fetchState(true);
             });
         }
 
@@ -3679,19 +3798,31 @@ include 'includes/header.php';
                     inputEl.value = '';
                 }
             }
+            setActiveContactVisual(selectedUserId);
+            setThreadLoading(false);
         }
 
         function fetchState(showErrors, options) {
             if (!selectedUserId) {
                 return Promise.resolve(null);
             }
+            var requestToken = ++stateRequestToken;
+            if (fetchAbortController && typeof fetchAbortController.abort === 'function') {
+                fetchAbortController.abort();
+            }
+            fetchAbortController = typeof AbortController !== 'undefined' ? new AbortController() : null;
+            var requestUrl = 'apps-chat.php?ajax=1&user_id=' + encodeURIComponent(selectedUserId);
             return fetch('apps-chat.php?ajax=1&user_id=' + encodeURIComponent(selectedUserId), {
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest'
-                }
+                },
+                signal: fetchAbortController ? fetchAbortController.signal : undefined
             }).then(function (response) {
                 return response.json();
             }).then(function (payload) {
+                if (requestToken !== stateRequestToken) {
+                    return null;
+                }
                 if (payload && payload.ok) {
                     applyState(payload, {
                         keepInput: true,
@@ -3701,10 +3832,14 @@ include 'includes/header.php';
                     showAlert('error', payload && payload.error ? payload.error : 'Failed to refresh chat.');
                 }
                 return payload;
-            }).catch(function () {
+            }).catch(function (error) {
+                if (error && error.name === 'AbortError') {
+                    return null;
+                }
                 if (showErrors) {
                     showAlert('error', 'Failed to refresh chat.');
                 }
+                setThreadLoading(false);
                 return null;
             });
         }
@@ -3715,9 +3850,22 @@ include 'includes/header.php';
                 if (!link) {
                     return;
                 }
-                // Keep native navigation as a reliable fallback so user selection
-                // always works even if AJAX refresh fails.
+                event.preventDefault();
                 selectedUserId = parseInt(link.getAttribute('data-user-id') || '0', 10) || 0;
+                if (!selectedUserId) {
+                    window.location.href = link.getAttribute('href') || 'apps-chat.php';
+                    return;
+                }
+                setActiveContactVisual(selectedUserId);
+                primeHeaderFromListItem(link);
+                setThreadLoading(true);
+                history.replaceState(null, '', 'apps-chat.php?user_id=' + selectedUserId);
+                fetchState(true, { forceScroll: true }).then(function (payload) {
+                    if (!payload || !payload.ok) {
+                        setThreadLoading(false);
+                        window.location.href = link.getAttribute('href') || ('apps-chat.php?user_id=' + selectedUserId);
+                    }
+                });
             });
         }
 
@@ -3984,6 +4132,7 @@ include 'includes/header.php';
                     return;
                 }
                 var formData = new FormData(formEl);
+                formData.set('action', 'send-message');
                 formData.set('ajax', '1');
                 formData.set('user_id', String(selectedUserId));
                 if (sendBtnEl) {
@@ -3996,7 +4145,13 @@ include 'includes/header.php';
                     },
                     body: formData
                 }).then(function (response) {
-                    return response.json().then(function (payload) {
+                    return response.text().then(function (text) {
+                        var payload = null;
+                        try {
+                            payload = JSON.parse(text);
+                        } catch (error) {
+                            payload = null;
+                        }
                         return { ok: response.ok, payload: payload };
                     });
                 }).then(function (result) {
@@ -4006,11 +4161,15 @@ include 'includes/header.php';
                         clearMediaPreview();
                         updateSendBtn();
                         autoGrowInput();
+                    } else if (result.payload && !result.payload.ok) {
+                        showAlert('error', result.payload.error ? result.payload.error : 'Failed to send.');
+                    } else if (result.ok) {
+                        fetchState(true, { forceScroll: true });
                     } else {
-                        showAlert('error', result.payload && result.payload.error ? result.payload.error : 'Failed to send.');
+                        showAlert('error', 'Failed to send.');
                     }
                 }).catch(function () {
-                    showAlert('error', 'Failed to send.');
+                    fetchState(true, { forceScroll: true });
                 }).finally(function () {
                     if (sendBtnEl) { sendBtnEl.disabled = false; }
                     if (inputEl) { inputEl.focus(); }
