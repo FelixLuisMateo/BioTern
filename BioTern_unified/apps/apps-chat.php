@@ -1585,6 +1585,26 @@ include 'includes/header.php';
         min-width: 0;
     }
 
+    .btchat-back-btn {
+        display: none;
+        border: 0;
+        background: transparent;
+        color: var(--chat-actions-color);
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        line-height: 1;
+        cursor: pointer;
+        flex-shrink: 0;
+    }
+
+    .btchat-back-btn:hover {
+        background: var(--chat-menu-dot-hover);
+    }
+
     .btchat-chat-name {
         color: var(--chat-header-name-color);
         font-size: 1rem;
@@ -2317,7 +2337,7 @@ include 'includes/header.php';
 
     .btchat-compose {
         border-top: 1px solid var(--chat-compose-border);
-        padding: 0.86rem 1.02rem 1rem;
+        padding: 0.86rem 1.02rem calc(1rem + env(safe-area-inset-bottom, 0px));
         background: color-mix(in srgb, var(--chat-compose-bg) 95%, transparent);
         backdrop-filter: blur(6px);
     }
@@ -2329,7 +2349,8 @@ include 'includes/header.php';
         border-radius: 14px;
         background: var(--chat-compose-inner-bg);
         border: 1px solid var(--chat-compose-inner-border);
-        padding: 0.42rem;
+        padding: 0.5rem;
+        min-height: 52px;
     }
 
     .btchat-compose-input {
@@ -2341,10 +2362,10 @@ include 'includes/header.php';
         font-size: 0.93rem;
         resize: none;
         overflow-y: auto;
-        min-height: 34px;
+        min-height: 40px;
         max-height: 140px;
         line-height: 1.4;
-        padding: 0.4rem 0.32rem;
+        padding: 0.48rem 0.32rem;
     }
 
     .btchat-compose-input::placeholder {
@@ -2631,32 +2652,199 @@ include 'includes/header.php';
 
     @media (max-width: 991px) {
         body.chat-page-lock .nxl-container {
-            height: calc(100vh - 62px);
-            max-height: calc(100vh - 62px);
+            height: calc(100dvh - 62px);
+            max-height: calc(100dvh - 62px);
         }
 
         .nxl-container .nxl-content {
-            height: calc(100vh - 74px);
-            max-height: calc(100vh - 74px);
+            height: calc(100dvh - 74px);
+            max-height: calc(100dvh - 74px);
+            padding: 0 !important;
+        }
+
+        .main-content {
+            padding: 0 !important;
         }
 
         .btchat-shell {
-            grid-template-columns: 1fr;
+            display: block;
             height: 100%;
             max-height: 100%;
             min-height: 0;
+            border-radius: 0;
+            border-left: 0;
+            border-right: 0;
         }
 
         .btchat-left {
-            max-height: 42%;
+            max-height: none;
+            min-height: 0;
+            height: 100%;
         }
 
         .btchat-main {
-            min-height: 58%;
+            min-height: 0;
+            display: none;
+            height: 100%;
+        }
+
+        .btchat-shell.btchat-mobile-convo-open .btchat-left {
+            display: none;
+        }
+
+        .btchat-shell.btchat-mobile-convo-open .btchat-main {
+            display: flex;
+        }
+
+        .btchat-left-header {
+            padding: 0.9rem 0.9rem 0.65rem;
+        }
+
+        .btchat-search-wrap {
+            padding: 0 0.78rem 0.78rem;
+        }
+
+        .btchat-item {
+            margin: 0.14rem 0.45rem;
+            padding: 0.6rem;
+        }
+
+        .btchat-chat-header {
+            padding: 0.8rem 0.9rem;
+        }
+
+        .btchat-back-btn {
+            display: inline-flex;
+        }
+
+        .btchat-thread {
+            padding: 0.9rem 0.8rem;
+        }
+
+        .btchat-compose {
+            padding: 0.72rem 0.78rem calc(3.6rem + env(safe-area-inset-bottom, 0px));
         }
 
         .msg-bubble {
-            max-width: 86%;
+            max-width: 90%;
+        }
+
+        .msg-media {
+            max-width: min(200px, 100%);
+        }
+
+        .msg-media-video {
+            max-width: min(220px, 100%);
+        }
+
+        #chat-scroll-btn {
+            right: 0.85rem;
+            bottom: 5rem;
+        }
+    }
+
+    @media (max-width: 767px) {
+        .btchat-left-title {
+            font-size: 1.05rem;
+        }
+
+        .btchat-avatar,
+        .btchat-avatar-text {
+            width: 42px;
+            height: 42px;
+        }
+
+        .btchat-time {
+            font-size: 0.72rem;
+        }
+
+        .btchat-snippet {
+            font-size: 0.84rem;
+        }
+
+        .btchat-actions {
+            gap: 0.45rem;
+        }
+
+        .btchat-menu {
+            min-width: 148px;
+        }
+
+        .msg-bubble {
+            max-width: 94%;
+            font-size: 0.9rem;
+            padding: 0.5rem 0.74rem;
+        }
+
+        .msg-reaction-badge {
+            min-width: 1.9rem;
+            height: 1.4rem;
+            padding: 0 0.34rem;
+        }
+
+        .btchat-compose-inner {
+            gap: 0.4rem;
+            padding: 0.46rem;
+            min-height: 50px;
+        }
+
+        .btchat-attach-btn,
+        .btchat-emoji-btn {
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
+        }
+
+        .btchat-send-btn {
+            width: 38px;
+            height: 38px;
+        }
+
+        #chat-emoji-picker {
+            left: 0.45rem;
+            width: calc(100vw - 0.9rem);
+            max-width: none;
+        }
+
+        .chat-reactions-overlay {
+            padding: 0.65rem;
+        }
+
+        .chat-reactions-modal {
+            max-height: min(82dvh, 620px);
+        }
+    }
+
+    @media (max-width: 480px) {
+        .btchat-chat-sub {
+            font-size: 0.76rem;
+        }
+
+        .btchat-thread {
+            padding: 0.75rem 0.62rem;
+        }
+
+        .msg-row {
+            gap: 0.3rem;
+        }
+
+        .msg-meta {
+            font-size: 0.68rem;
+        }
+
+        .msg-action-menu {
+            min-width: 208px;
+            max-width: calc(100vw - 0.8rem);
+        }
+
+        .chat-confirm-overlay,
+        .chat-reactions-overlay {
+            padding: 0.5rem;
+        }
+
+        .chat-confirm-modal,
+        .chat-reactions-modal {
+            width: 100%;
         }
     }
 </style>
@@ -2720,6 +2908,7 @@ include 'includes/header.php';
                 ?>
                 <div class="btchat-chat-header" id="btchat-chat-header">
                     <div class="btchat-chat-title">
+                        <button type="button" class="btchat-back-btn" id="btchat-mobile-back" aria-label="Back to conversations" title="Back">&#8592;</button>
                         <span class="btchat-avatar-wrap">
                             <img src="<?php echo chat_esc((string)$normalizedSelectedContact['avatar_path']); ?>" alt="<?php echo chat_esc($selectedName); ?>" class="btchat-avatar" onerror="this.style.display='none';var f=this.nextElementSibling;if(f&&f.classList.contains('btchat-avatar-text'))f.style.removeProperty('display');">
                             <span class="btchat-avatar-text" style="display:none"><?php echo chat_esc((string)$normalizedSelectedContact['initials']); ?></span>
@@ -2953,6 +3142,7 @@ include 'includes/header.php';
         var lastContactsSignature = '';
         var lastMessagesSignature = '';
         var lastRenderedUserId = 0;
+        var mobileLayoutQuery = (typeof window.matchMedia === 'function') ? window.matchMedia('(max-width: 991px)') : null;
 
         function escapeHtml(value) {
             return String(value == null ? '' : value)
@@ -3076,6 +3266,53 @@ include 'includes/header.php';
             });
         }
 
+        function isMobileLayout() {
+            return !!(mobileLayoutQuery && mobileLayoutQuery.matches);
+        }
+
+        function setMobileConversationOpen(shouldOpen) {
+            if (!app) {
+                return;
+            }
+            if (!isMobileLayout()) {
+                app.classList.remove('btchat-mobile-convo-open');
+                return;
+            }
+            app.classList.toggle('btchat-mobile-convo-open', !!shouldOpen);
+        }
+
+        function setMobileHistoryState(view, userId) {
+            if (!isMobileLayout() || !window.history || typeof window.history.replaceState !== 'function') {
+                return;
+            }
+            var normalizedView = view === 'conversation' ? 'conversation' : 'list';
+            var normalizedUserId = (userId && userId > 0) ? userId : 0;
+            var state = {
+                btchatView: normalizedView,
+                userId: normalizedUserId
+            };
+            var url = normalizedView === 'conversation' && normalizedUserId > 0
+                ? ('apps-chat.php?user_id=' + normalizedUserId)
+                : 'apps-chat.php';
+            try {
+                window.history.replaceState(state, '', url);
+            } catch (e) {
+                // Ignore history API issues on restricted environments.
+            }
+        }
+
+        function pushMobileConversationState(userId) {
+            if (!isMobileLayout() || !window.history || typeof window.history.pushState !== 'function' || !(userId > 0)) {
+                return;
+            }
+            var url = 'apps-chat.php?user_id=' + userId;
+            try {
+                window.history.pushState({ btchatView: 'conversation', userId: userId }, '', url);
+            } catch (e) {
+                // Ignore history API issues on restricted environments.
+            }
+        }
+
         function primeHeaderFromListItem(link) {
             if (!headerEl || !link) {
                 return;
@@ -3141,6 +3378,7 @@ include 'includes/header.php';
             var muteLabel = isConversationMuted(contact.id) ? 'Unmute conversation' : 'Mute conversation';
             headerEl.innerHTML = '' +
                 '<div class="btchat-chat-title">' +
+                    '<button type="button" class="btchat-back-btn" id="btchat-mobile-back" aria-label="Back to conversations" title="Back">&#8592;</button>' +
                     avatarMarkup(contact) +
                     '<div class="min-w-0">' +
                         '<div class="btchat-chat-name">' + escapeHtml(contact.name) + '</div>' +
@@ -3527,8 +3765,21 @@ include 'includes/header.php';
 
         function bindHeaderMenu() {
             if (!headerEl) { return; }
+            var backBtn = headerEl.querySelector('.btchat-back-btn');
             var toggle = headerEl.querySelector('.btchat-menu-toggle');
             var menu = headerEl.querySelector('.btchat-menu');
+
+            if (backBtn) {
+                backBtn.onclick = function (event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    setMobileConversationOpen(false);
+                    closeHeaderMenus();
+                    closeMessageActionMenu();
+                    closeEmojiPicker();
+                };
+            }
+
             if (!toggle || !menu) { return; }
 
             toggle.onclick = function (event) {
@@ -3631,7 +3882,7 @@ include 'includes/header.php';
         function updateSendBtn() {
             if (!sendBtnEl || !inputEl) { return; }
             var hasMedia = mediaInputEl && mediaInputEl.files && mediaInputEl.files.length > 0;
-            var hasText = inputEl.value.trim() !== '';
+            var hasText = inputEl.value.replace(/[\s\n\r\t]+/g, '') !== '';
             if (hasText || hasMedia) {
                 sendBtnEl.classList.remove('is-like');
                 sendBtnEl.innerHTML = '<i class="feather-send"></i>';
@@ -3835,6 +4086,9 @@ include 'includes/header.php';
             if (state.selectedContact) {
                 selectedContactRef = state.selectedContact;
                 renderHeader(state.selectedContact);
+                if (contactChanged && selectedUserId > 0) {
+                    setMobileConversationOpen(true);
+                }
                 if (forceScroll || contactChanged || messagesSignature !== lastMessagesSignature || selectedUserId !== lastRenderedUserId) {
                     renderMessages(messages, state.selectedContact, forceScroll);
                     lastMessagesSignature = messagesSignature;
@@ -3842,6 +4096,7 @@ include 'includes/header.php';
                 }
             } else {
                 selectedContactRef = null;
+                setMobileConversationOpen(false);
                 clearReplyTarget();
                 lastMessagesSignature = '';
                 lastRenderedUserId = 0;
@@ -3915,10 +4170,20 @@ include 'includes/header.php';
                     window.location.href = link.getAttribute('href') || 'apps-chat.php';
                     return;
                 }
+                var wasMobileConversationOpen = isMobileLayout() && app.classList.contains('btchat-mobile-convo-open');
                 setActiveContactVisual(selectedUserId);
                 primeHeaderFromListItem(link);
                 setThreadLoading(true);
-                history.replaceState(null, '', 'apps-chat.php?user_id=' + selectedUserId);
+                setMobileConversationOpen(true);
+                if (isMobileLayout()) {
+                    if (wasMobileConversationOpen) {
+                        setMobileHistoryState('conversation', selectedUserId);
+                    } else {
+                        pushMobileConversationState(selectedUserId);
+                    }
+                } else {
+                    history.replaceState(null, '', 'apps-chat.php?user_id=' + selectedUserId);
+                }
                 fetchState(true, { forceScroll: true }).then(function (payload) {
                     if (!payload || !payload.ok) {
                         setThreadLoading(false);
@@ -4159,7 +4424,15 @@ include 'includes/header.php';
         if (inputEl) {
             inputEl.addEventListener('keydown', function (event) {
                 if (event.key === 'Enter' && !event.shiftKey) {
+                    if (isMobileLayout()) {
+                        return;
+                    }
                     event.preventDefault();
+                    var hasMediaOnEnter = mediaInputEl && mediaInputEl.files && mediaInputEl.files.length > 0;
+                    var hasTextOnEnter = inputEl.value.replace(/[\r\n\s]+/g, '') !== '';
+                    if (!hasTextOnEnter && !hasMediaOnEnter) {
+                        return;
+                    }
                     if (formEl) {
                         formEl.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
                     }
@@ -4179,12 +4452,12 @@ include 'includes/header.php';
                     return;
                 }
                 var message = inputEl.value.trim();
+                var normalizedMessage = inputEl.value.replace(/[\r\n\s]+/g, '');
                 var hasMedia = mediaInputEl && mediaInputEl.files && mediaInputEl.files.length > 0;
                 var mode = sendBtnEl && sendBtnEl.dataset ? sendBtnEl.dataset.mode : 'send';
 
-                if (!message && !hasMedia && mode === 'like') {
-                    inputEl.value = '\uD83D\uDC4D';
-                    message = '\uD83D\uDC4D';
+                if (!hasMedia && normalizedMessage === '') {
+                    message = '';
                 }
 
                 if (!message && !hasMedia) {
@@ -4300,7 +4573,49 @@ include 'includes/header.php';
             });
         }
 
+        if (mobileLayoutQuery) {
+            mobileLayoutQuery.addEventListener('change', function () {
+                if (!isMobileLayout()) {
+                    app.classList.remove('btchat-mobile-convo-open');
+                    return;
+                }
+                if (selectedUserId > 0 && app.classList.contains('btchat-mobile-convo-open')) {
+                    setMobileConversationOpen(true);
+                }
+            });
+        }
+
+        window.addEventListener('popstate', function (event) {
+            if (!isMobileLayout()) {
+                return;
+            }
+            var state = event.state || {};
+            if (state.btchatView === 'conversation' && state.userId > 0) {
+                selectedUserId = parseInt(state.userId, 10) || 0;
+                if (!selectedUserId) {
+                    setMobileConversationOpen(false);
+                    return;
+                }
+                app.setAttribute('data-selected-user-id', String(selectedUserId));
+                setActiveContactVisual(selectedUserId);
+                setMobileConversationOpen(true);
+                setThreadLoading(true);
+                fetchState(false, { forceScroll: false });
+                return;
+            }
+
+            setMobileConversationOpen(false);
+            closeHeaderMenus();
+            closeMessageActionMenu();
+            closeEmojiPicker();
+            closeReactionsModal();
+        });
+
         bindHeaderMenu();
+
+        if (isMobileLayout()) {
+            setMobileHistoryState('list', 0);
+        }
 
         clearReplyTarget();
         renderEmojiPicker();
