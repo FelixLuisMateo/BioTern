@@ -273,7 +273,7 @@ function chat_moderation_error(string $text): string
         'putang ina', 'putang ina mo', 'tang ina', 'tangina mo',
         'anak ng puta', 'anak ka ng puta', 'bwakanang ina', 'bwakanang ina mo',
         'gago ka', 'ulol ka', 'biot ka', 'bayot ka',
-        'kupal ka', 'tarantado ka', 'hayop ka', 'hayup ka',
+        'kupal ka', 'tarantado ka', ',
         'puta ka', 'gago mo',
     ] as $phrase) {
         $pattern = '/\b' . preg_quote($phrase, '/') . '\b/u';
@@ -300,7 +300,7 @@ function chat_moderation_error(string $text): string
         'putaragis', 'putaena', 'bwiset', 'bwisit', 'bwakanangina', 'bwakananginamo',
         'hindot', 'libog', 'salsal', 'bayag', 'burat', 'pokpok',
         'biot', 'bayot', 'bading',
-        'gunggong', 'kolokoy', 'hinayupak', 'hayop', 'hayup', 'lintik', 'demonyo',
+        'gunggong', 'kolokoy', 'hinayupak',  'lintik', 'demonyo',
         'punyemas', 'burikat', 'pokpokin',
         // Cebuano / Visayan
         'yawa', 'yawaa', 'buang', 'otin', 'bilat', 'pisti', 'piste', 'atay',
@@ -4744,7 +4744,7 @@ include 'includes/header.php';
                 'putaragis', 'putaena', 'bwiset', 'bwisit', 'bwakanangina', 'bwakananginamo',
                 'hindot', 'libog', 'salsal', 'bayag', 'burat', 'pokpok',
                 'biot', 'bayot', 'bading',
-                'gunggong', 'kolokoy', 'hinayupak', 'hayop', 'hayup', 'lintik', 'demonyo',
+                'gunggong', 'kolokoy', 'hinayupak', 'lintik', 'demonyo',
                 'punyemas', 'burikat', 'pokpokin',
                 'yawa', 'yawaa', 'buang', 'otin', 'bilat', 'pisti', 'piste', 'atay', 'amaw', 'yati',
                 'cono', 'joder', 'cabron', 'mierda', 'pendejo', 'verga', 'chinga', 'culero',
@@ -4756,7 +4756,7 @@ include 'includes/header.php';
                 'putang ina', 'putang ina mo', 'tang ina', 'tangina mo',
                 'anak ng puta', 'anak ka ng puta', 'bwakanang ina', 'bwakanang ina mo',
                 'gago ka', 'ulol ka', 'biot ka', 'bayot ka',
-                'kupal ka', 'tarantado ka', 'hayop ka', 'hayup ka',
+                'kupal ka', 'tarantado ka',
                 'puta ka', 'gago mo'
             ];
             var blockedNativeTerms = [
