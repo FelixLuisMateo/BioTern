@@ -36,6 +36,18 @@ function chatlogs_preview(string $message, int $maxLen = 120): string
     return strlen($message) > $maxLen ? substr($message, 0, $maxLen - 3) . '...' : $message;
 }
 
+function chatlogs_initial(string $value): string
+{
+    $value = trim($value);
+    if ($value === '') {
+        return '?';
+    }
+    if (function_exists('mb_substr') && function_exists('mb_strtoupper')) {
+        return mb_strtoupper(mb_substr($value, 0, 1));
+    }
+    return strtoupper(substr($value, 0, 1));
+}
+
 $columns = [];
 $colRes = $conn->query('SHOW COLUMNS FROM messages');
 if ($colRes instanceof mysqli_result) {
@@ -216,17 +228,30 @@ include 'includes/header.php';
         color: var(--chatlogs-text);
     }
 
+    .logs-hero {
+        padding: 0.9rem 1rem;
+        margin-bottom: 0.85rem;
+    }
+
+    .logs-hero h6 {
+        font-size: 0.96rem;
+    }
+
+    .logs-hero p {
+        font-size: 0.8rem;
+    }
+
     .chatlogs-kpi-grid {
         display: grid;
         grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 0.75rem;
-        margin-bottom: 1rem;
+        gap: 0.6rem;
+        margin-bottom: 0.85rem;
     }
 
     .chatlogs-kpi {
         border: 1px solid var(--chatlogs-border);
         border-radius: 12px;
-        padding: 0.85rem 1rem;
+        padding: 0.7rem 0.85rem;
         background: var(--chatlogs-surface);
         color: var(--chatlogs-text);
     }
@@ -239,10 +264,10 @@ include 'includes/header.php';
     }
 
     .chatlogs-kpi-value {
-        font-size: 1.45rem;
+        font-size: 1.2rem;
         font-weight: 700;
         line-height: 1.1;
-        margin-top: 0.25rem;
+        margin-top: 0.15rem;
     }
 
     .chatlogs-kpi-value.text-dark {
@@ -253,18 +278,22 @@ include 'includes/header.php';
         border: 1px solid var(--chatlogs-border);
         border-radius: 12px;
         background: var(--chatlogs-surface);
-        padding: 0.95rem;
-        margin-bottom: 1rem;
+        padding: 0.8rem 0.9rem;
+        margin-bottom: 0.85rem;
     }
 
     .chatlogs-filter .form-label {
         color: var(--chatlogs-muted);
+        font-size: 0.73rem;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
     }
 
     .chatlogs-filter .form-control {
         background: var(--chatlogs-input-bg) !important;
         border-color: var(--chatlogs-input-border) !important;
         color: var(--chatlogs-text) !important;
+        min-height: 40px;
     }
 
     .chatlogs-filter .form-control::placeholder {
@@ -321,57 +350,70 @@ include 'includes/header.php';
     }
 
     .chatlogs-msg {
-        max-width: 560px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        display: block;
+        line-height: 1.45;
+        white-space: normal;
+        word-break: break-word;
     }
 
     .chatlogs-pill {
         border-radius: 999px;
-        padding: 0.28rem 0.6rem;
-        font-size: 0.72rem;
+        padding: 0.18rem 0.5rem;
+        font-size: 0.67rem;
         font-weight: 600;
         display: inline-block;
+        line-height: 1.2;
     }
 
     /* Conversation group styles */
+    .chatlogs-conversations {
+        display: grid;
+        gap: 0.75rem;
+    }
+
     .chatlogs-convo {
         border: 1px solid var(--chatlogs-border);
         border-radius: 12px;
         overflow: hidden;
         background: var(--chatlogs-surface);
-        margin-bottom: 1rem;
     }
 
     .chatlogs-convo-header {
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         justify-content: space-between;
-        padding: 0.65rem 1rem;
+        padding: 0.55rem 0.8rem;
         background: var(--chatlogs-surface-soft);
         border-bottom: 1px solid var(--chatlogs-border);
-        gap: 0.5rem;
+        gap: 0.65rem;
         flex-wrap: wrap;
+    }
+
+    .chatlogs-convo-headline {
+        display: grid;
+        gap: 0.28rem;
+        min-width: 0;
     }
 
     .chatlogs-convo-participants {
         display: flex;
         align-items: center;
-        gap: 0.5rem;
-        font-size: 0.875rem;
+        gap: 0.4rem;
+        font-size: 0.82rem;
         font-weight: 600;
         color: var(--chatlogs-text);
+        min-width: 0;
+        flex-wrap: wrap;
     }
 
     .chatlogs-convo-participants .avatar-badge {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 1.75rem;
-        height: 1.75rem;
+        width: 1.45rem;
+        height: 1.45rem;
         border-radius: 50%;
-        font-size: 0.7rem;
+        font-size: 0.62rem;
         font-weight: 700;
         background: rgba(37,99,235,0.14);
         color: #2563eb;
@@ -385,53 +427,49 @@ include 'includes/header.php';
 
     .chatlogs-convo-participants .sep {
         color: var(--chatlogs-muted);
-        font-size: 0.75rem;
+        font-size: 0.68rem;
         font-weight: 400;
     }
 
     .chatlogs-convo-meta {
         display: flex;
         align-items: center;
-        gap: 0.5rem;
-        font-size: 0.72rem;
+        gap: 0.35rem;
+        font-size: 0.68rem;
         color: var(--chatlogs-muted);
+        flex-wrap: wrap;
     }
 
-    .chatlogs-convo-table {
-        width: 100%;
-        border-collapse: collapse;
+    .chatlogs-thread {
+        display: grid;
     }
 
-    .chatlogs-convo-table thead th {
-        font-size: 0.7rem;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-        color: var(--chatlogs-muted);
-        background: var(--chatlogs-surface-soft);
+    .chatlogs-thread-row {
+        display: grid;
+        grid-template-columns: 108px 116px minmax(0, 1fr) auto;
+        gap: 0.65rem;
+        align-items: start;
+        padding: 0.5rem 0.8rem;
         border-bottom: 1px solid var(--chatlogs-border);
-        padding: 0.45rem 0.75rem;
-        white-space: nowrap;
-        font-weight: 600;
     }
 
-    .chatlogs-convo-table tbody td {
-        padding: 0.55rem 0.75rem;
-        font-size: 0.825rem;
-        color: var(--chatlogs-text);
-        border-bottom: 1px solid var(--chatlogs-border);
-        vertical-align: middle;
-    }
-
-    .chatlogs-convo-table tbody tr:last-child td {
+    .chatlogs-thread-row:last-child {
         border-bottom: none;
     }
 
-    .chatlogs-convo-table tbody tr:nth-child(even) td {
+    .chatlogs-thread-row:nth-child(even) {
         background: var(--chatlogs-row-even);
     }
 
-    .chatlogs-convo-table tbody tr:hover td {
+    .chatlogs-thread-row:hover {
         background: var(--chatlogs-row-hover);
+    }
+
+    .chatlogs-thread-time {
+        font-size: 0.72rem;
+        color: var(--chatlogs-muted);
+        white-space: nowrap;
+        padding-top: 0.12rem;
     }
 
     .chatlogs-sender-own {
@@ -452,16 +490,62 @@ include 'includes/header.php';
         color: #67d4f8;
     }
 
+    .chatlogs-thread-sender {
+        font-size: 0.77rem;
+        min-width: 0;
+        padding-top: 0.08rem;
+    }
+
+    .chatlogs-thread-main {
+        min-width: 0;
+        display: grid;
+        gap: 0.28rem;
+    }
+
+    .chatlogs-thread-submeta {
+        display: flex;
+        gap: 0.35rem;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .chatlogs-empty {
+        padding: 1rem;
+        text-align: center;
+        color: var(--chatlogs-muted);
+    }
+
     @media (max-width: 991.98px) {
         .chatlogs-kpi-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
         }
-        .chatlogs-msg { max-width: 320px; }
+
+        .chatlogs-thread-row {
+            grid-template-columns: 92px 104px minmax(0, 1fr);
+        }
+
+        .chatlogs-thread-actions {
+            grid-column: 2 / 4;
+        }
     }
 
     @media (max-width: 575.98px) {
         .chatlogs-kpi-grid { grid-template-columns: 1fr; }
-        .chatlogs-msg { max-width: 210px; }
+
+        .logs-hero {
+            padding: 0.75rem 0.85rem;
+        }
+
+        .chatlogs-thread-row {
+            grid-template-columns: 1fr;
+            gap: 0.35rem;
+        }
+
+        .chatlogs-thread-time,
+        .chatlogs-thread-sender,
+        .chatlogs-thread-actions {
+            padding-top: 0;
+        }
     }
 </style>
 
@@ -558,75 +642,64 @@ include 'includes/header.php';
                                     $lastMsg = reset($msgs); // newest
                                     $firstTime = $firstMsg['created_at'] !== '' ? date('M d, Y', strtotime($firstMsg['created_at'])) : '-';
                                     $lastTime = $lastMsg['created_at'] !== '' ? date('M d, Y h:i A', strtotime($lastMsg['created_at'])) : '-';
-                                    $initA = mb_strtoupper(mb_substr($nameA, 0, 1));
-                                    $initB = mb_strtoupper(mb_substr($nameB, 0, 1));
+                                    $initA = chatlogs_initial($nameA);
+                                    $initB = chatlogs_initial($nameB);
                             ?>
                                 <div class="chatlogs-convo">
                                     <div class="chatlogs-convo-header">
-                                        <div class="chatlogs-convo-participants">
-                                            <span class="avatar-badge"><?php echo chatlogs_esc($initA); ?></span>
-                                            <?php echo chatlogs_esc($nameA); ?>
-                                            <span class="sep"><i class="feather-repeat" style="font-size:0.8rem;"></i></span>
-                                            <span class="avatar-badge"><?php echo chatlogs_esc($initB); ?></span>
-                                            <?php echo chatlogs_esc($nameB); ?>
+                                        <div class="chatlogs-convo-headline">
+                                            <div class="chatlogs-convo-participants">
+                                                <span class="avatar-badge"><?php echo chatlogs_esc($initA); ?></span>
+                                                <?php echo chatlogs_esc($nameA); ?>
+                                                <span class="sep"><i class="feather-repeat" style="font-size:0.72rem;"></i></span>
+                                                <span class="avatar-badge"><?php echo chatlogs_esc($initB); ?></span>
+                                                <?php echo chatlogs_esc($nameB); ?>
+                                            </div>
+                                            <div class="chatlogs-convo-meta">
+                                                <span><i class="feather-calendar me-1"></i>Since <?php echo chatlogs_esc($firstTime); ?></span>
+                                                <span>Last <?php echo chatlogs_esc($lastTime); ?></span>
+                                            </div>
                                         </div>
                                         <div class="chatlogs-convo-meta">
                                             <span><i class="feather-message-square me-1"></i><?php echo $msgCount; ?> msg<?php echo $msgCount !== 1 ? 's' : ''; ?></span>
-                                            <span class="mx-1">·</span>
                                             <span class="text-success"><i class="feather-check-circle me-1"></i><?php echo $readCount; ?> read</span>
-                                            <span class="mx-1">·</span>
-                                            <span>Since <?php echo chatlogs_esc($firstTime); ?></span>
-                                            <span class="mx-1">·</span>
-                                            <span>Last <?php echo chatlogs_esc($lastTime); ?></span>
                                         </div>
                                     </div>
-                                    <div class="table-responsive">
-                                        <table class="chatlogs-convo-table">
-                                            <thead>
-                                                <tr>
-                                                    <th style="width:130px;">Time</th>
-                                                    <th style="width:120px;">From</th>
-                                                    <th>Message</th>
-                                                    <th style="width:80px;">Media</th>
-                                                    <th style="width:110px;">Status</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <?php foreach (array_reverse($msgs) as $row):
-                                                    $createdAt = trim((string)$row['created_at']);
-                                                    $timeLabel = $createdAt !== '' ? date('M d, h:i A', strtotime($createdAt)) : '-';
-                                                    $messageText = trim((string)$row['message']);
-                                                    $mediaPath = trim((string)$row['media_path']);
-                                                    $preview = $messageText !== '' ? chatlogs_preview($messageText, 140) : ($mediaPath !== '' ? '[Media]' : '-');
-                                                    $isOwn = ($row['sender_name'] === $nameA);
-                                                    $senderClass = $isOwn ? 'chatlogs-sender-own' : 'chatlogs-sender-other';
-                                                    if ($row['is_read'] && trim((string)$row['read_at']) !== '') {
-                                                        $statusLabel = 'Seen ' . date('h:i A', strtotime((string)$row['read_at']));
-                                                        $pillClass = 'bg-soft-success text-success';
-                                                    } elseif ($row['is_read']) {
-                                                        $statusLabel = 'Seen';
-                                                        $pillClass = 'bg-soft-success text-success';
-                                                    } else {
-                                                        $statusLabel = 'Delivered';
-                                                        $pillClass = 'bg-soft-warning text-warning';
-                                                    }
-                                                ?>
-                                                    <tr>
-                                                        <td class="text-muted" style="font-size:0.775rem;white-space:nowrap;"><?php echo chatlogs_esc($timeLabel); ?></td>
-                                                        <td><span class="<?php echo $senderClass; ?>"><?php echo chatlogs_esc($row['sender_name']); ?></span></td>
-                                                        <td><span class="chatlogs-msg" title="<?php echo chatlogs_esc($messageText); ?>"><?php echo chatlogs_esc($preview); ?></span></td>
-                                                        <td>
-                                                            <?php if ($mediaPath !== ''): ?>
-                                                                <span class="chatlogs-pill bg-soft-info text-info">Media</span>
-                                                            <?php else: ?>
-                                                                <span class="text-muted">–</span>
-                                                            <?php endif; ?>
-                                                        </td>
-                                                        <td><span class="chatlogs-pill <?php echo $pillClass; ?>"><?php echo chatlogs_esc($statusLabel); ?></span></td>
-                                                    </tr>
-                                                <?php endforeach; ?>
-                                            </tbody>
-                                        </table>
+                                    <div class="chatlogs-thread">
+                                        <?php foreach (array_reverse($msgs) as $row):
+                                            $createdAt = trim((string)$row['created_at']);
+                                            $timeLabel = $createdAt !== '' ? date('M d, h:i A', strtotime($createdAt)) : '-';
+                                            $messageText = trim((string)$row['message']);
+                                            $mediaPath = trim((string)$row['media_path']);
+                                            $preview = $messageText !== '' ? chatlogs_preview($messageText, 180) : ($mediaPath !== '' ? '[Media attachment]' : '-');
+                                            $isOwn = ($row['sender_name'] === $nameA);
+                                            $senderClass = $isOwn ? 'chatlogs-sender-own' : 'chatlogs-sender-other';
+                                            if ($row['is_read'] && trim((string)$row['read_at']) !== '') {
+                                                $statusLabel = 'Seen ' . date('h:i A', strtotime((string)$row['read_at']));
+                                                $pillClass = 'bg-soft-success text-success';
+                                            } elseif ($row['is_read']) {
+                                                $statusLabel = 'Seen';
+                                                $pillClass = 'bg-soft-success text-success';
+                                            } else {
+                                                $statusLabel = 'Delivered';
+                                                $pillClass = 'bg-soft-warning text-warning';
+                                            }
+                                        ?>
+                                            <div class="chatlogs-thread-row">
+                                                <div class="chatlogs-thread-time"><?php echo chatlogs_esc($timeLabel); ?></div>
+                                                <div class="chatlogs-thread-sender"><span class="<?php echo $senderClass; ?>"><?php echo chatlogs_esc($row['sender_name']); ?></span></div>
+                                                <div class="chatlogs-thread-main">
+                                                    <span class="chatlogs-msg" title="<?php echo chatlogs_esc($messageText); ?>"><?php echo chatlogs_esc($preview); ?></span>
+                                                    <div class="chatlogs-thread-submeta">
+                                                        <?php if ($mediaPath !== ''): ?>
+                                                            <span class="chatlogs-pill bg-soft-info text-info">Media</span>
+                                                        <?php endif; ?>
+                                                        <span class="chatlogs-pill <?php echo $pillClass; ?>"><?php echo chatlogs_esc($statusLabel); ?></span>
+                                                    </div>
+                                                </div>
+                                                <div class="chatlogs-thread-actions"></div>
+                                            </div>
+                                        <?php endforeach; ?>
                                     </div>
                                 </div>
                             <?php endforeach; ?>
