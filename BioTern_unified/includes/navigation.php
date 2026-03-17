@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 require_once dirname(__DIR__) . '/config/db.php';
 // Centralized navigation include (grouped/relabeled).
 if (session_status() === PHP_SESSION_NONE) {
@@ -98,6 +98,7 @@ if ($nav_can_internship): ?>
                         <li class="nxl-item"><a class="nxl-link" href="reports-ojt.php">OJT Report</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="reports-project.php">Project Report</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="reports-timesheets.php">Timesheets Report</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="reports-chat-logs.php">Chat Logs</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="reports-login-logs.php">Login Logs</a></li>
                     </ul>
                 </li>

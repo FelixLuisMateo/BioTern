@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/notifications.php';
 
@@ -278,6 +278,11 @@ function chat_normalize_messages(array $messages, int $currentUserId): array
             ? (date('Y-m-d', $ts) === $todayDate ? date('g:i A', $ts) : date('M j Â· g:i A', $ts))
             : '';
         $timeFull = $ts > 0 ? date('F j, Y \a\t g:i A', $ts) : '';
+        $readAt = (string)($message['read_at'] ?? '');
+        $readTs = $readAt !== '' ? strtotime($readAt) : 0;
+        $readTimeExact = $readTs > 0
+            ? (date('Y-m-d', $readTs) === $todayDate ? date('g:i A', $readTs) : date('M j, Y g:i A', $readTs))
+            : '';
         $rawMedia = trim((string)($message['media_path'] ?? ''));
         $mediaType = $rawMedia !== '' ? chat_media_kind_from_path($rawMedia) : '';
         $replyToId = (int)($message['reply_to_message_id'] ?? 0);
@@ -381,6 +386,10 @@ function chat_normalize_messages(array $messages, int $currentUserId): array
             'time_label' => chat_time_label($createdAt),
             'time_exact' => $timeExact,
             'time_full' => $timeFull,
+            'is_read' => (int)($message['is_read'] ?? 0) === 1,
+            'read_at' => $readAt,
+            'read_time_label' => $readAt !== '' ? chat_time_label($readAt) : '',
+            'read_time_exact' => $readTimeExact,
             'date_key' => $ts > 0 ? date('Y-m-d', $ts) : '',
             'is_own' => (int)($message['sender_id'] ?? 0) === $currentUserId,
         ];
@@ -820,6 +829,8 @@ if ($requestMethod === 'POST' && (string)($_POST['action'] ?? '') === 'send-mess
             } else {
                 $insertStmt->bind_param($bindTypes, ...$bindValues);
                 $executed = $insertStmt->execute();
+                $insertErrNo = (int)$insertStmt->errno;
+                $insertError = (string)$insertStmt->error;
                 $insertStmt->close();
 
                 if ($executed) {
@@ -843,6 +854,7 @@ if ($requestMethod === 'POST' && (string)($_POST['action'] ?? '') === 'send-mess
                         exit;
                     }
                 } else {
+                    error_log('[BioTern Chat] send-message failed: sender=' . $currentUserId . ' recipient=' . $selectedUserId . ' errno=' . $insertErrNo . ' error=' . $insertError);
                     $errorMessage = 'Failed to send the message.';
                 }
             }
@@ -1038,6 +1050,8 @@ if ($selectedContact && $messageMeta['ready']) {
             ' . $reactionEmojiSelect . ' AS reaction_emoji,
             ' . $reactionBySelect . ' AS reaction_by_user_id,
             ' . $reactionCountSelect . ' AS reaction_count,
+            ' . ($messageMeta['is_read_col'] !== '' ? $messageMeta['is_read_col'] : '0') . ' AS is_read,
+            ' . ($messageMeta['read_at_col'] !== '' ? $messageMeta['read_at_col'] : 'NULL') . ' AS read_at,
             ' . ($messageMeta['created_at_col'] !== '' ? $messageMeta['created_at_col'] : 'NULL') . ' AS created_at
         FROM messages
         WHERE ((' . $messageMeta['sender_col'] . ' = ? AND ' . $messageMeta['recipient_col'] . ' = ?)
@@ -1062,6 +1076,8 @@ if ($selectedContact && $messageMeta['ready']) {
                 'reaction_emoji' => chat_normalize_reaction_emoji((string)($row['reaction_emoji'] ?? '')),
                 'reaction_by_user_id' => (int)($row['reaction_by_user_id'] ?? 0),
                 'reaction_count' => (int)($row['reaction_count'] ?? 0),
+                'is_read' => (int)($row['is_read'] ?? 0),
+                'read_at' => (string)($row['read_at'] ?? ''),
                 'created_at' => (string)($row['created_at'] ?? ''),
             ];
         }
@@ -1199,82 +1215,92 @@ include 'includes/header.php';
 <style>
     /* â”€â”€ Light mode tokens (default) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     :root {
-        --chat-shell-bg: #f3f4f6;
+        --chat-shell-bg: #eef2f6;
         --chat-shell-shadow: 0 4px 24px rgba(13, 16, 28, 0.08);
         --chat-left-bg: #ffffff;
-        --chat-left-color: #1e293b;
-        --chat-left-border: rgba(0, 0, 0, 0.09);
-        --chat-search-bg: rgba(0, 0, 0, 0.06);
-        --chat-search-border: rgba(0, 0, 0, 0.12);
-        --chat-search-color: #1e293b;
-        --chat-search-placeholder: rgba(15, 23, 42, 0.45);
-        --chat-item-hover: rgba(0, 0, 0, 0.06);
-        --chat-name-color: #0f172a;
-        --chat-time-color: rgba(15, 23, 42, 0.5);
-        --chat-snippet-color: rgba(15, 23, 42, 0.55);
-        --chat-main-bg: #f3f4f6;
-        --chat-header-border: rgba(0, 0, 0, 0.08);
+        --chat-left-color: #1f2937;
+        --chat-left-border: rgba(15, 23, 42, 0.12);
+        --chat-search-bg: #f8fafc;
+        --chat-search-border: rgba(30, 41, 59, 0.2);
+        --chat-search-color: #1f2937;
+        --chat-search-placeholder: rgba(30, 41, 59, 0.58);
+        --chat-item-hover: rgba(30, 41, 59, 0.08);
+        --chat-name-color: #111827;
+        --chat-time-color: rgba(17, 24, 39, 0.7);
+        --chat-snippet-color: rgba(17, 24, 39, 0.76);
+        --chat-main-bg: #f2f5fa;
+        --chat-header-border: rgba(30, 41, 59, 0.16);
         --chat-header-bg: #ffffff;
-        --chat-header-name-color: #0f172a;
-        --chat-header-sub-color: rgba(15, 23, 42, 0.55);
-        --chat-actions-color: #db2777;
-        --chat-menu-dot-color: #0f172a;
-        --chat-menu-dot-hover: rgba(15, 23, 42, 0.08);
-        --chat-attach-btn-color: #0ea5e9;
-        --chat-send-from: #0ea5e9;
-        --chat-send-to: #0284c7;
+        --chat-header-name-color: #111827;
+        --chat-header-sub-color: rgba(17, 24, 39, 0.78);
+        --chat-actions-color: #334155;
+        --chat-menu-dot-color: #1f2937;
+        --chat-menu-dot-hover: rgba(30, 41, 59, 0.1);
+        --chat-attach-btn-color: #334155;
+        --chat-send-from: #1e40af;
+        --chat-send-to: #1e3a8a;
         --chat-send-text: #ffffff;
-        --chat-bubble-bg: #e2e8f0;
-        --chat-bubble-color: #0f172a;
-        --chat-meta-color: rgba(15, 23, 42, 0.45);
-        --chat-compose-border: rgba(0, 0, 0, 0.08);
+        --chat-bubble-bg: #e9eff6;
+        --chat-bubble-color: #111827;
+        --chat-own-bubble-bg: #1e3a8a;
+        --chat-own-bubble-color: #ffffff;
+        --chat-own-bubble-border: #1e3a8a;
+        --chat-own-bubble-shadow: 0 2px 9px rgba(30, 58, 138, 0.2);
+        --chat-own-meta-color: rgba(239, 246, 255, 0.92);
+        --chat-meta-color: rgba(17, 24, 39, 0.7);
+        --chat-compose-border: rgba(30, 41, 59, 0.16);
         --chat-compose-bg: #ffffff;
-        --chat-compose-inner-bg: #f3f4f6;
-        --chat-compose-inner-border: rgba(0, 0, 0, 0.12);
-        --chat-compose-input-color: #0f172a;
-        --chat-compose-input-placeholder: rgba(15, 23, 42, 0.4);
+        --chat-compose-inner-bg: #f8fafc;
+        --chat-compose-inner-border: rgba(30, 41, 59, 0.2);
+        --chat-compose-input-color: #111827;
+        --chat-compose-input-placeholder: rgba(17, 24, 39, 0.55);
         --chat-status-dot-border: #ffffff;
-        --chat-empty-color: rgba(15, 23, 42, 0.5);
+        --chat-empty-color: rgba(17, 24, 39, 0.76);
     }
 
     /* â”€â”€ Dark mode overrides â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     html.app-skin-dark {
-        --chat-shell-bg: #121a2d;
+        --chat-shell-bg: #111827;
         --chat-shell-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
-        --chat-left-bg: #1c2438;
-        --chat-left-color: #b1b4c0;
-        --chat-left-border: rgba(255, 255, 255, 0.06);
-        --chat-search-bg: #121a2d;
-        --chat-search-border: rgba(255, 255, 255, 0.14);
-        --chat-search-color: #b1b4c0;
-        --chat-search-placeholder: rgba(177, 180, 192, 0.65);
-        --chat-item-hover: rgba(255, 255, 255, 0.07);
-        --chat-name-color: #b1b4c0;
-        --chat-time-color: rgba(177, 180, 192, 0.65);
-        --chat-snippet-color: rgba(177, 180, 192, 0.65);
-        --chat-main-bg: #121a2d;
-        --chat-header-border: rgba(255, 255, 255, 0.06);
-        --chat-header-bg: #1c2438;
-        --chat-header-name-color: #b1b4c0;
-        --chat-header-sub-color: rgba(177, 180, 192, 0.7);
-        --chat-actions-color: #f472b6;
-        --chat-menu-dot-color: #b1b4c0;
-        --chat-menu-dot-hover: rgba(255, 255, 255, 0.08);
-        --chat-attach-btn-color: #7dd3fc;
-        --chat-send-from: #22d3ee;
-        --chat-send-to: #0891b2;
+        --chat-left-bg: #1f2937;
+        --chat-left-color: #e2e8f0;
+        --chat-left-border: rgba(148, 163, 184, 0.28);
+        --chat-search-bg: #0f172a;
+        --chat-search-border: rgba(148, 163, 184, 0.4);
+        --chat-search-color: #e2e8f0;
+        --chat-search-placeholder: rgba(226, 232, 240, 0.72);
+        --chat-item-hover: rgba(148, 163, 184, 0.18);
+        --chat-name-color: #f1f5f9;
+        --chat-time-color: rgba(226, 232, 240, 0.8);
+        --chat-snippet-color: rgba(226, 232, 240, 0.84);
+        --chat-main-bg: #0f172a;
+        --chat-header-border: rgba(148, 163, 184, 0.3);
+        --chat-header-bg: #1f2937;
+        --chat-header-name-color: #f1f5f9;
+        --chat-header-sub-color: rgba(226, 232, 240, 0.85);
+        --chat-actions-color: #cbd5e1;
+        --chat-menu-dot-color: #e2e8f0;
+        --chat-menu-dot-hover: rgba(148, 163, 184, 0.22);
+        --chat-attach-btn-color: #cbd5e1;
+        --chat-send-from: #2563eb;
+        --chat-send-to: #1d4ed8;
         --chat-send-text: #ffffff;
-        --chat-bubble-bg: #1c2438;
-        --chat-bubble-color: #b1b4c0;
-        --chat-meta-color: rgba(177, 180, 192, 0.65);
-        --chat-compose-border: rgba(255, 255, 255, 0.06);
-        --chat-compose-bg: #1c2438;
-        --chat-compose-inner-bg: #121a2d;
-        --chat-compose-inner-border: rgba(255, 255, 255, 0.08);
-        --chat-compose-input-color: #b1b4c0;
-        --chat-compose-input-placeholder: rgba(177, 180, 192, 0.55);
-        --chat-status-dot-border: #1c2438;
-        --chat-empty-color: rgba(177, 180, 192, 0.7);
+        --chat-bubble-bg: #243244;
+        --chat-bubble-color: #f1f5f9;
+        --chat-own-bubble-bg: #2563eb;
+        --chat-own-bubble-color: #f8fbff;
+        --chat-own-bubble-border: #1d4ed8;
+        --chat-own-bubble-shadow: 0 3px 12px rgba(2, 6, 23, 0.45);
+        --chat-own-meta-color: rgba(219, 234, 254, 0.94);
+        --chat-meta-color: rgba(226, 232, 240, 0.82);
+        --chat-compose-border: rgba(148, 163, 184, 0.32);
+        --chat-compose-bg: #1f2937;
+        --chat-compose-inner-bg: #0f172a;
+        --chat-compose-inner-border: rgba(148, 163, 184, 0.42);
+        --chat-compose-input-color: #f1f5f9;
+        --chat-compose-input-placeholder: rgba(226, 232, 240, 0.7);
+        --chat-status-dot-border: #1f2937;
+        --chat-empty-color: rgba(226, 232, 240, 0.84);
     }
 
     .main-content {
@@ -1361,11 +1387,11 @@ include 'includes/header.php';
 
     .btchat-left-title {
         margin: 0;
-        font-size: 1.7rem;
+        font-size: 1.18rem;
         line-height: 1;
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-        font-weight: 900;
+        letter-spacing: 0.02em;
+        text-transform: none;
+        font-weight: 700;
         color: var(--chat-name-color);
     }
 
@@ -1509,7 +1535,7 @@ include 'includes/header.php';
 
     .btchat-snippet {
         color: var(--chat-snippet-color);
-        font-size: 0.9rem;
+        font-size: 0.92rem;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -2123,7 +2149,7 @@ include 'includes/header.php';
 
     .msg-row.msg-group-last,
     .msg-row.msg-group-only {
-        margin-bottom: 0.72rem;
+        margin-bottom: 0.55rem;
     }
 
     .msg-row.own {
@@ -2131,23 +2157,24 @@ include 'includes/header.php';
     }
 
     .msg-bubble {
-        max-width: min(74%, 640px);
-        border-radius: 18px;
-        padding: 0.62rem 0.92rem;
-        font-size: 0.92rem;
-        line-height: 1.44;
+        max-width: min(72%, 620px);
+        border-radius: 14px;
+        padding: 0.56rem 0.84rem;
+        font-size: 0.95rem;
+        line-height: 1.5;
         color: var(--chat-bubble-color);
         background: var(--chat-bubble-bg);
-        border: 1px solid color-mix(in srgb, var(--chat-header-border) 82%, transparent);
-        box-shadow: 0 10px 22px rgba(17, 24, 39, 0.2);
+        border: 1px solid color-mix(in srgb, var(--chat-header-border) 88%, transparent);
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.09);
         position: relative;
         overflow: visible;
     }
 
     .msg-row.own .msg-bubble {
-        background: linear-gradient(150deg, color-mix(in srgb, var(--chat-send-from) 90%, #ffffff 10%), color-mix(in srgb, var(--chat-send-to) 94%, #02141e 6%));
-        color: #f3fbff;
-        border-color: transparent;
+        background: var(--chat-own-bubble-bg);
+        color: var(--chat-own-bubble-color);
+        border-color: var(--chat-own-bubble-border);
+        box-shadow: var(--chat-own-bubble-shadow);
     }
 
     .msg-bubble.has-media {
@@ -2162,14 +2189,14 @@ include 'includes/header.php';
     }
 
     /* â”€â”€ Message grouping â€“ own (right, teal) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-    .msg-row.own .msg-bubble.msg-group-first  { border-radius: 18px 18px 7px 18px; }
-    .msg-row.own .msg-bubble.msg-group-middle { border-radius: 18px 7px 7px 18px; }
-    .msg-row.own .msg-bubble.msg-group-last   { border-radius: 7px 18px 18px 18px; }
+    .msg-row.own .msg-bubble.msg-group-first  { border-radius: 14px 14px 6px 14px; }
+    .msg-row.own .msg-bubble.msg-group-middle { border-radius: 14px 6px 6px 14px; }
+    .msg-row.own .msg-bubble.msg-group-last   { border-radius: 6px 14px 14px 14px; }
 
     /* â”€â”€ Message grouping â€“ other (left, gray) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-    .msg-row:not(.own) .msg-bubble.msg-group-first  { border-radius: 18px 18px 18px 7px; }
-    .msg-row:not(.own) .msg-bubble.msg-group-middle { border-radius: 7px 18px 18px 7px; }
-    .msg-row:not(.own) .msg-bubble.msg-group-last   { border-radius: 7px 18px 18px 18px; }
+    .msg-row:not(.own) .msg-bubble.msg-group-first  { border-radius: 14px 14px 14px 6px; }
+    .msg-row:not(.own) .msg-bubble.msg-group-middle { border-radius: 6px 14px 14px 6px; }
+    .msg-row:not(.own) .msg-bubble.msg-group-last   { border-radius: 6px 14px 14px 14px; }
 
     /* â”€â”€ Thread avatar (left side, other's messages) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     .msg-thread-avatar {
@@ -2227,10 +2254,11 @@ include 'includes/header.php';
     /* â”€â”€ Sent / Seen status â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     .msg-seen {
         text-align: right;
-        font-size: 0.7rem;
+        font-size: 0.74rem;
         color: var(--chat-meta-color);
         padding: 0.05rem 0.5rem 0.45rem;
-        font-style: italic;
+        font-style: normal;
+        font-weight: 600;
     }
 
     /* â”€â”€ Scroll-to-bottom button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
@@ -2280,6 +2308,11 @@ include 'includes/header.php';
         font-size: 0.72rem;
         color: var(--chat-meta-color);
         text-align: right;
+    }
+
+    .msg-row.own .msg-meta,
+    .msg-row.own .msg-meta .msg-time-exact {
+        color: var(--chat-own-meta-color);
     }
 
     .btchat-compose {
@@ -2917,6 +2950,9 @@ include 'includes/header.php';
         var reactionsModalState = null;
         var fetchAbortController = null;
         var stateRequestToken = 0;
+        var lastContactsSignature = '';
+        var lastMessagesSignature = '';
+        var lastRenderedUserId = 0;
 
         function escapeHtml(value) {
             return String(value == null ? '' : value)
@@ -2929,6 +2965,72 @@ include 'includes/header.php';
 
         function nl2br(value) {
             return escapeHtml(value).replace(/\n/g, '<br>');
+        }
+
+        function parseJsonResponse(response) {
+            return response.text().then(function (text) {
+                var payload = null;
+                try {
+                    payload = text ? JSON.parse(text) : null;
+                } catch (error) {
+                    payload = null;
+                }
+                return {
+                    ok: response.ok,
+                    payload: payload,
+                    text: text
+                };
+            });
+        }
+
+        function postChatAction(formData, userId) {
+            return fetch('apps-chat.php?user_id=' + encodeURIComponent(userId), {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: formData
+            }).then(parseJsonResponse);
+        }
+
+        function buildContactsSignature(contacts) {
+            var items = Array.isArray(contacts) ? contacts : [];
+            return items.map(function (item) {
+                return [
+                    item.id || 0,
+                    item.last_message_at || '',
+                    item.unread_count || 0,
+                    item.message_count || 0,
+                    item.last_message || ''
+                ].join(':');
+            }).join('|');
+        }
+
+        function buildMessagesSignature(messages) {
+            var items = Array.isArray(messages) ? messages : [];
+            return items.map(function (item) {
+                return [
+                    item.message_id || 0,
+                    item.time_exact || '',
+                    item.reaction_count || 0,
+                    item.reaction_emoji || '',
+                    item.is_read ? 1 : 0,
+                    item.read_at || ''
+                ].join(':');
+            }).join('|');
+        }
+
+        function deliveryStatusLabel(msg) {
+            if (!msg || !msg.is_own) {
+                return '';
+            }
+            if (msg.is_read) {
+                if (msg.read_time_exact) {
+                    return 'Seen at ' + msg.read_time_exact;
+                }
+                return 'Seen';
+            }
+            return 'Delivered';
         }
 
         function avatarMarkup(contact) {
@@ -3336,26 +3438,8 @@ include 'includes/header.php';
             fd.set('message_id', String(messageId));
             fd.set('reaction_emoji', reactionEmoji || '');
             fd.set('ajax', '1');
-            fetch('apps-chat.php?user_id=' + encodeURIComponent(selectedUserId), {
-                method: 'POST',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                body: fd
-            }).then(function (response) {
-                return response.text().then(function (text) {
-                    return {
-                        ok: response.ok,
-                        text: text
-                    };
-                });
-            }).then(function (result) {
-                var payload = null;
-                try {
-                    payload = result.text ? JSON.parse(result.text) : null;
-                } catch (error) {
-                    payload = null;
-                }
+            postChatAction(fd, selectedUserId).then(function (result) {
+                var payload = result.payload;
 
                 if (payload && payload.ok) {
                     applyState(payload, { keepInput: true });
@@ -3384,15 +3468,8 @@ include 'includes/header.php';
             fd.set('action', 'delete-conversation');
             fd.set('user_id', String(userId));
             fd.set('ajax', '1');
-            fetch('apps-chat.php?user_id=' + encodeURIComponent(userId), {
-                method: 'POST',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                body: fd
-            }).then(function (response) {
-                return response.json();
-            }).then(function (payload) {
+            postChatAction(fd, userId).then(function (result) {
+                var payload = result.payload;
                 if (payload && payload.ok) {
                     applyState(payload, { keepInput: false, forceScroll: true });
                     clearMediaPreview();
@@ -3412,15 +3489,8 @@ include 'includes/header.php';
             fd.set('user_id', String(selectedUserId));
             fd.set('message_id', String(messageId));
             fd.set('ajax', '1');
-            fetch('apps-chat.php?user_id=' + encodeURIComponent(selectedUserId), {
-                method: 'POST',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                body: fd
-            }).then(function (response) {
-                return response.json();
-            }).then(function (payload) {
+            postChatAction(fd, selectedUserId).then(function (result) {
+                var payload = result.payload;
                 if (payload && payload.ok) {
                     applyState(payload, { keepInput: true });
                     showAlert('success', payload.success || 'Message unsent.');
@@ -3445,33 +3515,6 @@ include 'includes/header.php';
             deleteConfirmEl.classList.add('show');
             deleteConfirmEl.setAttribute('aria-hidden', 'false');
             if (deleteConfirmOkEl) { deleteConfirmOkEl.focus(); }
-        }
-
-        function deleteConversationByUserId(userId) {
-            if (!userId) { return; }
-            var fd = new FormData();
-            fd.set('action', 'delete-conversation');
-            fd.set('user_id', String(userId));
-            fd.set('ajax', '1');
-            fetch('apps-chat.php?user_id=' + encodeURIComponent(userId), {
-                method: 'POST',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                body: fd
-            }).then(function (response) {
-                return response.json();
-            }).then(function (payload) {
-                if (payload && payload.ok) {
-                    applyState(payload, { keepInput: false, forceScroll: true });
-                    clearMediaPreview();
-                    showAlert('success', payload.success || 'Conversation deleted.');
-                } else {
-                    showAlert('error', payload && payload.error ? payload.error : 'Failed to delete conversation.');
-                }
-            }).catch(function () {
-                showAlert('error', 'Failed to delete conversation.');
-            });
         }
 
         function closeHeaderMenus() {
@@ -3754,7 +3797,8 @@ include 'includes/header.php';
 
                 // Sent indicator under the last own message
                 if (mi === lastOwnIdx) {
-                    html += '<div class="msg-seen">Sent</div>';
+                    var statusLabel = deliveryStatusLabel(msg);
+                    html += '<div class="msg-seen">' + escapeHtml(statusLabel || 'Sent') + '</div>';
                 }
             }
 
@@ -3776,15 +3820,31 @@ include 'includes/header.php';
             if (selectedUserId !== previousSelectedUserId) {
                 clearReplyTarget();
             }
-            renderContacts(state.contacts || []);
+            var contacts = state.contacts || [];
+            var messages = state.messages || [];
+            var contactsSignature = buildContactsSignature(contacts);
+            var messagesSignature = buildMessagesSignature(messages);
+            var forceScroll = !!(options && options.forceScroll);
+            var contactChanged = selectedUserId !== previousSelectedUserId;
+
+            if (contactsSignature !== lastContactsSignature || contactChanged) {
+                renderContacts(contacts);
+                lastContactsSignature = contactsSignature;
+            }
+
             if (state.selectedContact) {
                 selectedContactRef = state.selectedContact;
                 renderHeader(state.selectedContact);
-                var forceScroll = options && options.forceScroll;
-                renderMessages(state.messages || [], state.selectedContact, forceScroll);
+                if (forceScroll || contactChanged || messagesSignature !== lastMessagesSignature || selectedUserId !== lastRenderedUserId) {
+                    renderMessages(messages, state.selectedContact, forceScroll);
+                    lastMessagesSignature = messagesSignature;
+                    lastRenderedUserId = selectedUserId;
+                }
             } else {
                 selectedContactRef = null;
                 clearReplyTarget();
+                lastMessagesSignature = '';
+                lastRenderedUserId = 0;
             }
             if (formEl && selectedUserId > 0) {
                 formEl.setAttribute('action', 'apps-chat.php?user_id=' + selectedUserId);
@@ -3812,14 +3872,13 @@ include 'includes/header.php';
             }
             fetchAbortController = typeof AbortController !== 'undefined' ? new AbortController() : null;
             var requestUrl = 'apps-chat.php?ajax=1&user_id=' + encodeURIComponent(selectedUserId);
-            return fetch('apps-chat.php?ajax=1&user_id=' + encodeURIComponent(selectedUserId), {
+            return fetch(requestUrl, {
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest'
                 },
                 signal: fetchAbortController ? fetchAbortController.signal : undefined
-            }).then(function (response) {
-                return response.json();
-            }).then(function (payload) {
+            }).then(parseJsonResponse).then(function (result) {
+                var payload = result.payload;
                 if (requestToken !== stateRequestToken) {
                     return null;
                 }
@@ -4124,8 +4183,8 @@ include 'includes/header.php';
                 var mode = sendBtnEl && sendBtnEl.dataset ? sendBtnEl.dataset.mode : 'send';
 
                 if (!message && !hasMedia && mode === 'like') {
-                    inputEl.value = 'ðŸ‘';
-                    message = 'ðŸ‘';
+                    inputEl.value = '\uD83D\uDC4D';
+                    message = '\uD83D\uDC4D';
                 }
 
                 if (!message && !hasMedia) {
@@ -4138,23 +4197,7 @@ include 'includes/header.php';
                 if (sendBtnEl) {
                     sendBtnEl.disabled = true;
                 }
-                fetch('apps-chat.php?user_id=' + encodeURIComponent(selectedUserId), {
-                    method: 'POST',
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
-                    },
-                    body: formData
-                }).then(function (response) {
-                    return response.text().then(function (text) {
-                        var payload = null;
-                        try {
-                            payload = JSON.parse(text);
-                        } catch (error) {
-                            payload = null;
-                        }
-                        return { ok: response.ok, payload: payload };
-                    });
-                }).then(function (result) {
+                postChatAction(formData, selectedUserId).then(function (result) {
                     if (result.payload && result.payload.ok) {
                         applyState(result.payload, { keepInput: false, forceScroll: true });
                         clearReplyTarget();
