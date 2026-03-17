@@ -1,4 +1,4 @@
-<?php
+                                                                                                <?php
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/notifications.php';
 
@@ -190,28 +190,141 @@ function chat_media_kind_from_path(string $path): string
     return '';
 }
 
-function chat_contains_inappropriate(string $text): bool
+function chat_blocked_message_emojis(): array
 {
-    $normalized = strtolower(trim($text));
-    if ($normalized === '') {
-        return false;
+    return [
+        html_entity_decode('&#128405;', ENT_QUOTES, 'UTF-8'),
+        html_entity_decode('&#127814;', ENT_QUOTES, 'UTF-8'),
+        html_entity_decode('&#127825;', ENT_QUOTES, 'UTF-8'),
+        html_entity_decode('&#128166;', ENT_QUOTES, 'UTF-8'),
+        html_entity_decode('&#128069;', ENT_QUOTES, 'UTF-8'),
+    ];
+}
+
+function chat_moderation_payload(string $text): array
+{
+    $clean = preg_replace('/[\x{200B}-\x{200D}\x{FEFF}]+/u', '', $text);
+    if (!is_string($clean)) {
+        $clean = $text;
     }
 
-    // Basic moderation list: profanity, explicit sexual terms, and common abuse terms.
-    $blockedTerms = [
-        'fuck', 'fucking', 'shit', 'bitch', 'asshole', 'bastard', 'dick', 'pussy',
-        'nude', 'nudes', 'porn', 'sext', 'blowjob', 'handjob', 'cum',
-        'kill yourself', 'kys',
-    ];
+    $lower = function_exists('mb_strtolower') ? mb_strtolower($clean, 'UTF-8') : strtolower($clean);
+    $lower = strtr($lower, [
+        '0' => 'o',
+        '1' => 'i',
+        '3' => 'e',
+        '4' => 'a',
+        '5' => 's',
+        '7' => 't',
+        '@' => 'a',
+        '$' => 's',
+    ]);
 
-    foreach ($blockedTerms as $term) {
-        $pattern = '/\b' . preg_quote($term, '/') . '\b/i';
-        if (preg_match($pattern, $normalized) === 1) {
-            return true;
+    $normalized = preg_replace('/[^\p{L}\p{N}\s]+/u', ' ', $lower);
+    if (!is_string($normalized)) {
+        $normalized = $lower;
+    }
+    $normalized = trim((string)(preg_replace('/\s+/u', ' ', $normalized) ?? $normalized));
+
+    $compact = preg_replace('/[^\p{L}\p{N}]+/u', '', $lower);
+    if (!is_string($compact)) {
+        $compact = '';
+    }
+
+    $symbolCompact = trim((string)(preg_replace('/\s+/u', '', $clean) ?? $clean));
+
+    return [
+        'clean' => $clean,
+        'normalized' => $normalized,
+        'compact' => $compact,
+        'symbol_compact' => $symbolCompact,
+    ];
+}
+
+function chat_moderation_error(string $text): string
+{
+    if (trim($text) === '') {
+        return '';
+    }
+
+    foreach (chat_blocked_message_emojis() as $emoji) {
+        if ($emoji !== '' && str_contains($text, $emoji)) {
+            return 'Message blocked due to unsupported or offensive emoji.';
         }
     }
 
-    return false;
+    $payload = chat_moderation_payload($text);
+    $normalized = $payload['normalized'];
+    $compact = $payload['compact'];
+    $symbolCompact = $payload['symbol_compact'];
+
+    foreach (['./.', '/./', '.|.'] as $token) {
+        if ($symbolCompact !== '' && str_contains($symbolCompact, $token)) {
+            return 'Message blocked due to disallowed symbol patterns.';
+        }
+    }
+
+    foreach ([
+        'kill yourself', 'kill ur self', 'kill your self',
+        'putang ina', 'tang ina', 'anak ng puta',
+    ] as $phrase) {
+        $pattern = '/\b' . preg_quote($phrase, '/') . '\b/u';
+        if ($normalized !== '' && preg_match($pattern, $normalized) === 1) {
+            return 'Message blocked due to inappropriate language. Please edit and try again.';
+        }
+    }
+
+    $blockedTerms = [
+        // English
+        'fuck', 'fucking', 'shit', 'bitch', 'asshole', 'bastard', 'dick', 'pussy',
+        'nude', 'nudes', 'porn', 'sext', 'blowjob', 'handjob', 'cum', 'kys',
+        'cunt', 'whore', 'slut', 'rape', 'rapist', 'pedo', 'pedophile',
+        'jizz', 'boner', 'wank', 'wanker', 'fap', 'hentai', 'horny',
+        'orgasm', 'masturbate', 'masturbation', 'threesome', 'gangbang', 'creampie',
+        'anal', 'erection', 'ejaculate', 'ejaculation', 'xxx',
+        // Filipino / Tagalog
+        'putangina', 'potangina', 'puta', 'punyeta', 'gago', 'gaga', 'tangina',
+        'leche', 'buwisit', 'kupal', 'tarantado', 'pakshet', 'pakyu', 'putcha',
+        'kantot', 'iyot', 'jakol', 'tite', 'pekpek', 'ulol', 'bobo',
+        // Cebuano / Visayan
+        'yawa', 'buang', 'otin', 'bilat',
+        // Spanish
+        'cono', 'coño', 'joder', 'cabron', 'cabrón', 'mierda', 'pendejo',
+        'verga', 'chinga', 'culero',
+        // Korean (romanized)
+        'sibal', 'ssibal', 'gaeseki', 'jiral', 'byeongsin',
+        // Japanese (romanized)
+        'kuso', 'kutabare', 'chinko', 'manko',
+    ];
+
+    foreach ($blockedTerms as $term) {
+        $pattern = '/\b' . preg_quote($term, '/') . '\b/u';
+        if ($normalized !== '' && preg_match($pattern, $normalized) === 1) {
+            return 'Message blocked due to inappropriate language. Please edit and try again.';
+        }
+        if ($compact !== '' && str_contains($compact, str_replace(' ', '', $term))) {
+            return 'Message blocked due to inappropriate language. Please edit and try again.';
+        }
+    }
+
+    // Native-script check — Korean Hangul, Japanese, Chinese, accented Spanish
+    $blockedNativeTerms = [
+        '시발', '씨발', '개새끼', '병신', '지랄', '창녀', '보지', '자지',
+        'くそ', 'くたばれ', 'ちんこ', 'まんこ', '死ね', 'うんこ',
+        '操你妈', '你妈的', '他妈的', '去死', '傻逼', '草泥马', '肏你',
+    ];
+    foreach ($blockedNativeTerms as $native) {
+        if (str_contains($text, $native)) {
+            return 'Message blocked due to inappropriate language. Please edit and try again.';
+        }
+    }
+
+    return '';
+}
+
+function chat_contains_inappropriate(string $text): bool
+{
+    return chat_moderation_error($text) !== '';
 }
 
 function chat_normalize_contact(array $contact, array $recentLoginUserIds): array
@@ -510,6 +623,7 @@ $selectedUserId = isset($_POST['user_id']) ? (int)$_POST['user_id'] : (int)($_GE
 $draftMessage = '';
 $errorMessage = '';
 $successMessage = '';
+$composeWarningMessage = '';
 
 if (isset($_SESSION['chat_flash']) && is_array($_SESSION['chat_flash'])) {
     $successMessage = (string)($_SESSION['chat_flash']['success'] ?? '');
@@ -613,6 +727,11 @@ if ($requestMethod === 'POST' && (string)($_POST['action'] ?? '') === 'react-mes
             $reactionEmoji = substr($reactionEmoji, 0, 16);
         }
         $reactionEmoji = chat_normalize_reaction_emoji($reactionEmoji);
+        $supportedReactionEmoji = array_values(chat_supported_reactions());
+
+        if ($reactionEmoji !== '' && !in_array($reactionEmoji, $supportedReactionEmoji, true)) {
+            $errorMessage = 'Only the standard chat reactions are allowed.';
+        }
 
         $checkSql = 'SELECT ' . $messageMeta['id_col'] . ' AS message_id
             FROM messages
@@ -621,10 +740,10 @@ if ($requestMethod === 'POST' && (string)($_POST['action'] ?? '') === 'react-mes
                 OR (' . $messageMeta['sender_col'] . ' = ? AND ' . $messageMeta['recipient_col'] . ' = ?))'
               . ($messageMeta['deleted_at_col'] !== '' ? ' AND ' . $messageMeta['deleted_at_col'] . ' IS NULL' : '') . '
             LIMIT 1';
-        $checkStmt = $conn->prepare($checkSql);
-        if (!$checkStmt) {
+        $checkStmt = $errorMessage === '' ? $conn->prepare($checkSql) : null;
+        if ($errorMessage === '' && !$checkStmt) {
             $errorMessage = 'Failed to validate reaction target.';
-        } else {
+        } elseif ($errorMessage === '') {
             $checkStmt->bind_param('iiiii', $messageId, $currentUserId, $selectedUserId, $selectedUserId, $currentUserId);
             $checkStmt->execute();
             $hasMessage = (bool)$checkStmt->get_result()->fetch_assoc();
@@ -682,6 +801,8 @@ if ($requestMethod === 'POST' && (string)($_POST['action'] ?? '') === 'send-mess
     $plainDraftMessage = trim((string)($_POST['message'] ?? ''));
     $draftMessage = $plainDraftMessage;
     $replyToMessageId = (int)($_POST['reply_to_message_id'] ?? 0);
+    $messageModerationError = $plainDraftMessage !== '' ? chat_moderation_error($plainDraftMessage) : '';
+    $composeWarningMessage = '';
 
     // Handle optional media upload
     $uploadedMediaPath = '';
@@ -730,8 +851,9 @@ if ($requestMethod === 'POST' && (string)($_POST['action'] ?? '') === 'send-mess
         $errorMessage = 'Select a recipient before sending a message.';
     } elseif ($selectedUserId === $currentUserId) {
         $errorMessage = 'You cannot send a message to yourself.';
-    } elseif ($plainDraftMessage !== '' && chat_contains_inappropriate($plainDraftMessage)) {
-        $errorMessage = 'Message blocked due to inappropriate language. Please edit and try again.';
+    } elseif ($messageModerationError !== '') {
+        $errorMessage = $messageModerationError;
+        $composeWarningMessage = $messageModerationError;
     } elseif ($draftMessage === '' && $uploadedMediaPath === '') {
         $errorMessage = 'Message cannot be empty.';
     } elseif ($errorMessage === '') {
@@ -1959,6 +2081,143 @@ include 'includes/header.php';
         line-height: 1;
     }
 
+    .chat-media-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(2, 6, 23, 0.94);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 2147483000;
+        padding: clamp(0.35rem, 1vw, 0.8rem);
+        backdrop-filter: blur(14px);
+    }
+
+    .chat-media-overlay.show {
+        display: flex;
+    }
+
+    .chat-media-modal {
+        width: 100%;
+        height: 100%;
+        max-width: none;
+        max-height: none;
+        position: relative;
+        border-radius: 0;
+        border: 0;
+        background: transparent;
+        color: var(--chat-header-name-color);
+        box-shadow: none;
+        display: flex;
+        flex-direction: column;
+        overflow: visible;
+    }
+
+    .chat-media-head {
+        display: block;
+        position: absolute;
+        top: 0.45rem;
+        right: 0.45rem;
+        z-index: 4;
+        padding: 0;
+    }
+
+    .chat-media-title {
+        display: none;
+    }
+
+    .chat-media-close {
+        border: 0;
+        min-width: 88px;
+        height: 40px;
+        padding: 0 0.8rem 0 0.68rem;
+        border-radius: 999px;
+        background: rgba(15, 23, 42, 0.88);
+        color: #f8fafc;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        cursor: pointer;
+        font-size: 0.84rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        line-height: 1;
+        box-shadow: 0 14px 30px rgba(2, 6, 23, 0.34);
+        backdrop-filter: blur(8px);
+        transition: background 0.16s ease, transform 0.16s ease;
+    }
+
+    .chat-media-close-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.1);
+        font-size: 0.95rem;
+        line-height: 1;
+        flex-shrink: 0;
+    }
+
+    .chat-media-close-label {
+        display: inline-block;
+        white-space: nowrap;
+    }
+
+    .chat-media-close:hover {
+        background: rgba(30, 41, 59, 0.96);
+        transform: scale(1.04);
+    }
+
+    .chat-media-body {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.65rem 0;
+        overflow: hidden;
+        background: transparent;
+    }
+
+    .chat-media-view {
+        display: block;
+        max-width: min(98vw, 1720px);
+        max-height: calc(100vh - 1.4rem);
+        width: auto;
+        height: auto;
+        margin: auto;
+        border: 0;
+        border-radius: 18px;
+        background: transparent;
+        box-shadow: 0 26px 65px rgba(2, 6, 23, 0.42);
+    }
+
+    .chat-media-view.video {
+        width: min(98vw, 1580px);
+        aspect-ratio: 16 / 9;
+    }
+
+    .chat-media-stage {
+        width: 100%;
+        height: 100%;
+        max-width: none;
+        max-height: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .chat-media-frame {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
     .chat-reactions-tabs {
         display: flex;
         gap: 0.35rem;
@@ -2242,6 +2501,7 @@ include 'includes/header.php';
 
     .msg-bubble.has-media {
         background: transparent !important;
+        border: 0 !important;
         box-shadow: none;
         padding: 0;
     }
@@ -2385,6 +2645,37 @@ include 'includes/header.php';
         backdrop-filter: blur(6px);
     }
 
+    .btchat-compose-warning {
+        display: none;
+        align-items: flex-start;
+        gap: 0.55rem;
+        margin: 0 0 0.65rem;
+        padding: 0.72rem 0.82rem;
+        border-radius: 12px;
+        border: 1px solid rgba(248, 113, 113, 0.28);
+        background: rgba(127, 29, 29, 0.22);
+        color: #fecaca;
+        font-size: 0.83rem;
+        line-height: 1.4;
+    }
+
+    .btchat-compose-warning.show {
+        display: flex;
+    }
+
+    .btchat-compose-warning-icon {
+        flex-shrink: 0;
+        width: 1.1rem;
+        text-align: center;
+        font-weight: 700;
+        line-height: 1.3;
+    }
+
+    .btchat-compose-warning-text {
+        min-width: 0;
+        font-weight: 600;
+    }
+
     .btchat-compose-inner {
         display: flex;
         align-items: center;
@@ -2452,6 +2743,7 @@ include 'includes/header.php';
         max-height: 260px;
         width: auto;
         height: auto;
+        border: 0;
         border-radius: 0.65rem;
         margin-bottom: 0.35rem;
         cursor: pointer;
@@ -2463,8 +2755,10 @@ include 'includes/header.php';
         max-height: 280px;
         width: auto;
         height: auto;
+        border: 0;
         border-radius: 0.65rem;
         margin-bottom: 0.35rem;
+        cursor: pointer;
     }
 
     .btchat-attach-btn {
@@ -2881,13 +3175,36 @@ include 'includes/header.php';
         }
 
         .chat-confirm-overlay,
-        .chat-reactions-overlay {
-            padding: 0.5rem;
+        .chat-reactions-overlay,
+        .chat-media-overlay {
+            padding: 0.3rem;
         }
 
         .chat-confirm-modal,
-        .chat-reactions-modal {
+        .chat-reactions-modal,
+        .chat-media-modal {
             width: 100%;
+        }
+
+        .chat-media-body {
+            padding: 0.4rem 0;
+        }
+
+        .chat-media-view {
+            max-width: calc(100vw - 0.6rem);
+            max-height: calc(100vh - 0.6rem);
+            border-radius: 16px;
+        }
+
+        .chat-media-view.video {
+            width: calc(100vw - 0.6rem);
+        }
+
+        .chat-media-close {
+            min-width: 80px;
+            height: 36px;
+            padding: 0 0.72rem 0 0.58rem;
+            font-size: 0.78rem;
         }
     }
 </style>
@@ -3021,9 +3338,9 @@ include 'includes/header.php';
                                         <div class="msg-reply-quote"><strong><?php echo chat_esc((string)($message['reply_author'] ?? '')); ?></strong><?php echo chat_esc((string)$message['reply_preview']); ?></div>
                                     <?php endif; ?>
                                     <?php if ((string)$message['media_type'] === 'image'): ?>
-                                        <img src="<?php echo chat_esc((string)$message['media_path']); ?>" class="msg-media" alt="image" onclick="window.open(this.src,'_blank')">
+                                        <img src="<?php echo chat_esc((string)$message['media_path']); ?>" class="msg-media" alt="image" data-media-viewer="image">
                                     <?php elseif ((string)$message['media_type'] === 'video'): ?>
-                                        <video src="<?php echo chat_esc((string)$message['media_path']); ?>" class="msg-media-video" controls></video>
+                                        <video src="<?php echo chat_esc((string)$message['media_path']); ?>" class="msg-media-video" controls preload="metadata" data-media-viewer="video"></video>
                                     <?php endif; ?>
                                     <?php $displayMsg = (string)$message['message']; if (!empty($message['media_path']) && $displayMsg === basename((string)$message['media_path'])) $displayMsg = ''; ?>
                                     <?php if ($displayMsg !== ''): ?><?php echo nl2br(chat_esc($displayMsg)); ?><?php endif; ?>
@@ -3074,6 +3391,10 @@ include 'includes/header.php';
                             <span id="chat-preview-name"></span>
                             <button type="button" class="chat-preview-remove" id="chat-preview-remove" title="Remove">&#x2715;</button>
                         </div>
+                        <div class="btchat-compose-warning<?php echo $composeWarningMessage !== '' ? ' show' : ''; ?>" id="btchat-compose-warning"<?php echo $composeWarningMessage === '' ? ' aria-hidden="true"' : ''; ?>>
+                            <span class="btchat-compose-warning-icon" aria-hidden="true">!</span>
+                            <span class="btchat-compose-warning-text" id="btchat-compose-warning-text"><?php echo chat_esc($composeWarningMessage); ?></span>
+                        </div>
                         <div class="btchat-compose-inner">
                             <button type="button" class="btchat-attach-btn" id="chat-attach-btn" title="Send image or video">
                                 <i class="feather-paperclip"></i>
@@ -3122,6 +3443,19 @@ include 'includes/header.php';
     </div>
 </div>
 
+<div class="chat-media-overlay" id="chat-media-modal" aria-hidden="true">
+    <div class="chat-media-modal" role="dialog" aria-modal="true" aria-labelledby="chat-media-title">
+        <div class="chat-media-head">
+            <h6 class="chat-media-title" id="chat-media-title">Image</h6>
+            <button type="button" class="chat-media-close" id="chat-media-close" aria-label="Close viewer">
+                <span class="chat-media-close-icon" aria-hidden="true">&times;</span>
+                <span class="chat-media-close-label">Close</span>
+            </button>
+        </div>
+        <div class="chat-media-body" id="chat-media-body"></div>
+    </div>
+</div>
+
 <div class="msg-action-menu" id="msg-action-menu" aria-hidden="true">
     <div class="msg-action-emoji-row">
         <?php foreach (chat_supported_reactions() as $reactionLabel => $reactionEmoji): ?>
@@ -3159,6 +3493,8 @@ include 'includes/header.php';
         var replyRemoveEl = document.getElementById('chat-reply-remove');
         var sendBtnEl = document.getElementById('btchat-send-btn');
         var alertEl = document.getElementById('btchat-alert');
+        var composeWarningEl = document.getElementById('btchat-compose-warning');
+        var composeWarningTextEl = document.getElementById('btchat-compose-warning-text');
         var searchEl = document.getElementById('btchat-search');
         var confirmModalEl = document.getElementById('chat-confirm-modal');
         var confirmTitleEl = document.getElementById('chat-confirm-title');
@@ -3170,6 +3506,10 @@ include 'includes/header.php';
         var reactionsTabsEl = document.getElementById('chat-reactions-tabs');
         var reactionsListEl = document.getElementById('chat-reactions-list');
         var reactionsCloseEl = document.getElementById('chat-reactions-close');
+        var mediaModalEl = document.getElementById('chat-media-modal');
+        var mediaModalBodyEl = document.getElementById('chat-media-body');
+        var mediaModalTitleEl = document.getElementById('chat-media-title');
+        var mediaModalCloseEl = document.getElementById('chat-media-close');
         var currentUserId = <?php echo (int)$currentUserId; ?>;
         var selectedUserId = parseInt(app.getAttribute('data-selected-user-id') || '0', 10) || 0;
         var selectedContactRef = null;
@@ -3180,6 +3520,7 @@ include 'includes/header.php';
         var pollHandle = null;
         var currentSearch = '';
         var reactionsModalState = null;
+        var mediaModalState = null;
         var fetchAbortController = null;
         var stateRequestToken = 0;
         var lastContactsSignature = '';
@@ -3289,6 +3630,31 @@ include 'includes/header.php';
                     alertEl.innerHTML = '';
                 }
             }, 2500);
+        }
+
+        function clearComposeWarning() {
+            if (!composeWarningEl) {
+                return;
+            }
+            composeWarningEl.classList.remove('show');
+            composeWarningEl.setAttribute('aria-hidden', 'true');
+            if (composeWarningTextEl) {
+                composeWarningTextEl.textContent = '';
+            }
+        }
+
+        function showComposeWarning(message) {
+            if (!composeWarningEl || !composeWarningTextEl || !message) {
+                return;
+            }
+            composeWarningTextEl.textContent = message;
+            composeWarningEl.classList.add('show');
+            composeWarningEl.setAttribute('aria-hidden', 'false');
+        }
+
+        function isModerationWarning(message) {
+            var text = String(message || '').toLowerCase();
+            return text.indexOf('message blocked') !== -1 || text.indexOf('disallowed symbol') !== -1;
         }
 
         function setThreadLoading(isLoading) {
@@ -3522,6 +3888,51 @@ include 'includes/header.php';
             reactionsModalState = null;
             if (reactionsTabsEl) { reactionsTabsEl.innerHTML = ''; }
             if (reactionsListEl) { reactionsListEl.innerHTML = ''; }
+        }
+
+        function closeMediaModal() {
+            if (!mediaModalEl) { return; }
+            mediaModalEl.classList.remove('show');
+            mediaModalEl.setAttribute('aria-hidden', 'true');
+            mediaModalState = null;
+            if (mediaModalBodyEl) {
+                mediaModalBodyEl.innerHTML = '';
+            }
+            if (mediaModalTitleEl) {
+                mediaModalTitleEl.textContent = 'Image';
+            }
+        }
+
+        function openMediaModal(type, src, label) {
+            if (!mediaModalEl || !mediaModalBodyEl || !src) {
+                return;
+            }
+
+            var mediaType = type === 'video' ? 'video' : 'image';
+            var title = label || (mediaType === 'video' ? 'Video' : 'Image');
+            var mediaHtml = '';
+
+            if (mediaType === 'video') {
+                mediaHtml = '<video src="' + escapeHtml(src) + '" class="chat-media-view video" controls autoplay playsinline></video>';
+            } else {
+                mediaHtml = '<img src="' + escapeHtml(src) + '" class="chat-media-view image" alt="' + escapeHtml(title) + '">';
+            }
+
+            mediaModalState = {
+                type: mediaType,
+                src: src,
+                title: title
+            };
+
+            mediaModalBodyEl.innerHTML = '<div class="chat-media-stage"><div class="chat-media-frame">' + mediaHtml + '</div></div>';
+            if (mediaModalTitleEl) {
+                mediaModalTitleEl.textContent = title;
+            }
+            mediaModalEl.classList.add('show');
+            mediaModalEl.setAttribute('aria-hidden', 'false');
+            if (mediaModalCloseEl) {
+                mediaModalCloseEl.focus();
+            }
         }
 
         function renderReactionsModal() {
@@ -4002,9 +4413,9 @@ include 'includes/header.php';
                 // Media
                 var mediaHtml = '';
                 if (msg.media_type === 'image' && msg.media_path) {
-                    mediaHtml = '<img src="' + escapeHtml(msg.media_path) + '" class="msg-media" alt="image" onclick="window.open(this.src,\'_blank\')">';
+                    mediaHtml = '<img src="' + escapeHtml(msg.media_path) + '" class="msg-media" alt="image" data-media-viewer="image">';
                 } else if (msg.media_type === 'video' && msg.media_path) {
-                    mediaHtml = '<video src="' + escapeHtml(msg.media_path) + '" class="msg-media-video" controls></video>';
+                    mediaHtml = '<video src="' + escapeHtml(msg.media_path) + '" class="msg-media-video" controls preload="metadata" data-media-viewer="video"></video>';
                 }
 
                 var displayMsg = msg.message || '';
@@ -4250,6 +4661,7 @@ include 'includes/header.php';
         var emojiTabsEl = document.getElementById('chat-emoji-tabs');
         var emojiEmptyEl = document.getElementById('chat-emoji-empty');
         var activeEmojiCategory = 'smileys';
+        var blockedChatEmojis = ['🖕', '🍆', '🍑', '💦', '👅'];
 
         var emojiCatalog = {
             smileys: ['ðŸ˜€','ðŸ˜','ðŸ˜‚','ðŸ¤£','ðŸ˜ƒ','ðŸ˜„','ðŸ˜…','ðŸ˜†','ðŸ˜‰','ðŸ˜Š','ðŸ™‚','ðŸ™ƒ','ðŸ˜‹','ðŸ˜Ž','ðŸ¥³','ðŸ˜','ðŸ˜˜','ðŸ˜—','ðŸ˜™','ðŸ˜š','ðŸ¤—','ðŸ¤”','ðŸ˜','ðŸ˜¶','ðŸ™„','ðŸ˜','ðŸ˜£','ðŸ˜¥','ðŸ˜®','ðŸ¤','ðŸ˜¯','ðŸ˜ª','ðŸ˜«','ðŸ¥±','ðŸ˜´','ðŸ˜Œ','ðŸ˜›','ðŸ˜œ','ðŸ˜','ðŸ¤¤','ðŸ˜’','ðŸ˜“','ðŸ˜”','ðŸ˜•','ðŸ™','â˜¹ï¸','ðŸ˜–','ðŸ˜ž','ðŸ˜Ÿ','ðŸ˜¤','ðŸ˜¢','ðŸ˜­','ðŸ˜¦','ðŸ˜§','ðŸ˜¨','ðŸ˜©','ðŸ¤¯','ðŸ˜¬','ðŸ˜°','ðŸ˜±','ðŸ¥µ','ðŸ¥¶','ðŸ˜¡','ðŸ¤¬'],
@@ -4268,12 +4680,90 @@ include 'includes/header.php';
             return emoji.indexOf(query) !== -1;
         }
 
+        function getChatModerationError(message) {
+            var text = String(message || '').trim();
+            if (!text) { return ''; }
+
+            for (var i = 0; i < blockedChatEmojis.length; i++) {
+                if (text.indexOf(blockedChatEmojis[i]) !== -1) {
+                    return 'Message blocked due to unsupported or offensive emoji.';
+                }
+            }
+
+            var symbolCompact = text.replace(/\s+/g, '');
+            var blockedSymbolTokens = ['./.', '/./', '.|.'];
+            for (var si = 0; si < blockedSymbolTokens.length; si++) {
+                if (symbolCompact.indexOf(blockedSymbolTokens[si]) !== -1) {
+                    return 'Message blocked due to disallowed symbol patterns.';
+                }
+            }
+
+            var normalized = text
+                .toLowerCase()
+                .replace(/[013457@$]/g, function (char) {
+                    return ({ '0': 'o', '1': 'i', '3': 'e', '4': 'a', '5': 's', '7': 't', '@': 'a', '$': 's' })[char] || char;
+                })
+                .replace(/[^a-z0-9\s]+/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+            var compact = normalized.replace(/\s+/g, '');
+            var blockedTerms = [
+                'fuck', 'fucking', 'shit', 'bitch', 'asshole', 'bastard', 'dick', 'pussy',
+                'nude', 'nudes', 'porn', 'sext', 'blowjob', 'handjob', 'cum', 'kys',
+                'cunt', 'whore', 'slut', 'rape', 'rapist', 'pedo', 'pedophile',
+                'jizz', 'boner', 'wank', 'wanker', 'fap', 'hentai', 'horny',
+                'orgasm', 'masturbate', 'masturbation', 'threesome', 'gangbang', 'creampie',
+                'anal', 'erection', 'ejaculate', 'ejaculation', 'xxx',
+                'putangina', 'potangina', 'puta', 'punyeta', 'gago', 'gaga', 'tangina',
+                'leche', 'buwisit', 'kupal', 'tarantado', 'pakshet', 'pakyu', 'putcha',
+                'kantot', 'iyot', 'jakol', 'tite', 'pekpek', 'ulol', 'bobo',
+                'yawa', 'buang', 'otin', 'bilat',
+                'cono', 'joder', 'cabron', 'mierda', 'pendejo', 'verga', 'chinga', 'culero',
+                'sibal', 'ssibal', 'gaeseki', 'jiral', 'byeongsin',
+                'kuso', 'kutabare', 'chinko', 'manko'
+            ];
+            var blockedPhrases = [
+                'kill yourself', 'kill ur self', 'kill your self',
+                'putang ina', 'tang ina', 'anak ng puta'
+            ];
+            var blockedNativeTerms = [
+                '\uC2DC\uBC1C', '\uC528\uBC1C', '\uAC1C\uC0C8\uB07C', '\uBCD1\uC2E0', '\uC9C0\uB784', '\uCC3D\uB140', '\uBCF4\uC9C0', '\uC790\uC9C0',
+                '\u304F\u305D', '\u304F\u305F\u3070\u308C', '\u3061\u3093\u3053', '\u307E\u3093\u3053', '\u6B7B\u306D', '\u3046\u3093\u3053',
+                '\u64CD\u4F60\u5988', '\u4F60\u5988\u7684', '\u4ED6\u5988\u7684', '\u53BB\u6B7B', '\u50BB\u903C', '\u8349\u6CE5\u9A6C', '\u8085\u4F60',
+                'co\u00F1o', 'cabr\u00F3n'
+            ];
+
+            for (var pi = 0; pi < blockedPhrases.length; pi++) {
+                var phrasePattern = new RegExp('\\b' + blockedPhrases[pi].replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b');
+                if (phrasePattern.test(normalized)) {
+                    return 'Message blocked due to inappropriate language. Please edit and try again.';
+                }
+            }
+
+            var textLower = text.toLowerCase();
+            for (var ni = 0; ni < blockedNativeTerms.length; ni++) {
+                if (textLower.indexOf(blockedNativeTerms[ni].toLowerCase()) !== -1) {
+                    return 'Message blocked due to inappropriate language. Please edit and try again.';
+                }
+            }
+
+            for (var ti = 0; ti < blockedTerms.length; ti++) {
+                var term = blockedTerms[ti];
+                var pattern = new RegExp('\\b' + term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b');
+                if (pattern.test(normalized) || compact.indexOf(term) !== -1) {
+                    return 'Message blocked due to inappropriate language. Please edit and try again.';
+                }
+            }
+
+            return '';
+        }
+
         function renderEmojiPicker() {
             if (!emojiGridEl) { return; }
             var query = emojiSearchEl ? emojiSearchEl.value.trim() : '';
             var source = emojiCatalog[activeEmojiCategory] || [];
             var filtered = source.filter(function (e) {
-                return emojiMatchesQuery(e, query);
+                return blockedChatEmojis.indexOf(e) === -1 && emojiMatchesQuery(e, query);
             });
 
             emojiGridEl.innerHTML = filtered.map(function (emoji) {
@@ -4393,6 +4883,18 @@ include 'includes/header.php';
 
         if (threadEl) {
             threadEl.addEventListener('click', function (event) {
+                var mediaEl = event.target.closest('[data-media-viewer]');
+                if (mediaEl) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    openMediaModal(
+                        mediaEl.getAttribute('data-media-viewer') || '',
+                        mediaEl.getAttribute('src') || '',
+                        mediaEl.getAttribute('data-media-viewer') === 'video' ? 'Video' : 'Image'
+                    );
+                    return;
+                }
+
                 var reactionBtn = event.target.closest('.msg-reaction-badge[data-reaction-mid]');
                 if (reactionBtn) {
                     event.preventDefault();
@@ -4484,6 +4986,7 @@ include 'includes/header.php';
             inputEl.addEventListener('input', function () {
                 autoGrowInput();
                 updateSendBtn();
+                clearComposeWarning();
             });
             autoGrowInput();
         }
@@ -4498,12 +5001,18 @@ include 'includes/header.php';
                 var normalizedMessage = inputEl.value.replace(/[\r\n\s]+/g, '');
                 var hasMedia = mediaInputEl && mediaInputEl.files && mediaInputEl.files.length > 0;
                 var mode = sendBtnEl && sendBtnEl.dataset ? sendBtnEl.dataset.mode : 'send';
+                var moderationError = getChatModerationError(message);
 
                 if (!hasMedia && normalizedMessage === '') {
                     message = '';
                 }
 
                 if (!message && !hasMedia) {
+                    return;
+                }
+                if (moderationError) {
+                    showComposeWarning(moderationError);
+                    if (inputEl) { inputEl.focus(); }
                     return;
                 }
                 var formData = new FormData(formEl);
@@ -4515,14 +5024,21 @@ include 'includes/header.php';
                 }
                 postChatAction(formData, selectedUserId).then(function (result) {
                     if (result.payload && result.payload.ok) {
+                        clearComposeWarning();
                         applyState(result.payload, { keepInput: false, forceScroll: true });
                         clearReplyTarget();
                         clearMediaPreview();
                         updateSendBtn();
                         autoGrowInput();
                     } else if (result.payload && !result.payload.ok) {
-                        showAlert('error', result.payload.error ? result.payload.error : 'Failed to send.');
+                        var errorMessage = result.payload.error ? result.payload.error : 'Failed to send.';
+                        if (isModerationWarning(errorMessage)) {
+                            showComposeWarning(errorMessage);
+                        } else {
+                            showAlert('error', errorMessage);
+                        }
                     } else if (result.ok) {
+                        clearComposeWarning();
                         fetchState(true, { forceScroll: true });
                     } else {
                         showAlert('error', 'Failed to send.');
@@ -4570,6 +5086,7 @@ include 'includes/header.php';
                 closeMessageActionMenu();
                 closeEmojiPicker();
                 closeReactionsModal();
+                closeMediaModal();
             }
         });
 
@@ -4612,6 +5129,18 @@ include 'includes/header.php';
             reactionsModalEl.addEventListener('click', function (event) {
                 if (event.target === reactionsModalEl) {
                     closeReactionsModal();
+                }
+            });
+        }
+
+        if (mediaModalCloseEl) {
+            mediaModalCloseEl.addEventListener('click', closeMediaModal);
+        }
+
+        if (mediaModalEl) {
+            mediaModalEl.addEventListener('click', function (event) {
+                if (event.target === mediaModalEl) {
+                    closeMediaModal();
                 }
             });
         }
