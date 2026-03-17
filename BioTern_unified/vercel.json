@@ -2,20 +2,12 @@
   "version": 2,
   "builds": [
     {
-      "src": "**/*.php",
+      "src": "index.php",
       "use": "@vercel/php"
     },
     {
-      "src": "assets/**/*",
-      "use": "@vercel/static"
-    },
-    {
-      "src": "uploads/**/*",
-      "use": "@vercel/static"
-    },
-    {
-      "src": "documents/**/*",
-      "use": "@vercel/static"
+      "src": "legacy_router.php",
+      "use": "@vercel/php"
     }
   ],
   "routes": [
