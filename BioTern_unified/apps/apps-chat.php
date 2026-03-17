@@ -1,4 +1,4 @@
-                                                                                                <?php
+<?php
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/notifications.php';
 
@@ -258,15 +258,23 @@ function chat_moderation_error(string $text): string
     $compact = $payload['compact'];
     $symbolCompact = $payload['symbol_compact'];
 
-    foreach (['./.', '/./', '.|.'] as $token) {
-        if ($symbolCompact !== '' && str_contains($symbolCompact, $token)) {
+    $symbolCompactLower = function_exists('mb_strtolower') ? mb_strtolower($symbolCompact, 'UTF-8') : strtolower($symbolCompact);
+    foreach (['./.', '/./', '.|.', '<==3', '<===3', '<====3', '8==d', '8===d', '8====d', 'b==d', 'b===d', 'b====d'] as $token) {
+        if ($symbolCompactLower !== '' && str_contains($symbolCompactLower, $token)) {
             return 'Message blocked due to disallowed symbol patterns.';
         }
+    }
+    if ($symbolCompactLower !== '' && preg_match('/(?:<|8|b|c)[=\-~_]{2,}(?:3|d)/u', $symbolCompactLower) === 1) {
+        return 'Message blocked due to disallowed symbol patterns.';
     }
 
     foreach ([
         'kill yourself', 'kill ur self', 'kill your self',
-        'putang ina', 'tang ina', 'anak ng puta',
+        'putang ina', 'putang ina mo', 'tang ina', 'tangina mo',
+        'anak ng puta', 'anak ka ng puta', 'bwakanang ina', 'bwakanang ina mo',
+        'gago ka', 'ulol ka', 'biot ka', 'bayot ka',
+        'kupal ka', 'tarantado ka', 'hayop ka', 'hayup ka',
+        'puta ka', 'gago mo',
     ] as $phrase) {
         $pattern = '/\b' . preg_quote($phrase, '/') . '\b/u';
         if ($normalized !== '' && preg_match($pattern, $normalized) === 1) {
@@ -278,6 +286,7 @@ function chat_moderation_error(string $text): string
         // English
         'fuck', 'fucking', 'shit', 'bitch', 'asshole', 'bastard', 'dick', 'pussy',
         'nude', 'nudes', 'porn', 'sext', 'blowjob', 'handjob', 'cum', 'kys',
+        'fck', 'fvck', 'phuck', 'btch', 'biatch',
         'cunt', 'whore', 'slut', 'rape', 'rapist', 'pedo', 'pedophile',
         'jizz', 'boner', 'wank', 'wanker', 'fap', 'hentai', 'horny',
         'orgasm', 'masturbate', 'masturbation', 'threesome', 'gangbang', 'creampie',
@@ -286,8 +295,16 @@ function chat_moderation_error(string $text): string
         'putangina', 'potangina', 'puta', 'punyeta', 'gago', 'gaga', 'tangina',
         'leche', 'buwisit', 'kupal', 'tarantado', 'pakshet', 'pakyu', 'putcha',
         'kantot', 'iyot', 'jakol', 'tite', 'pekpek', 'ulol', 'bobo',
+        'ptngina', 'tngina', 'ulul',
+        'tanga', 'inutil', 'ogag', 'engot', 'gagu',
+        'putaragis', 'putaena', 'bwiset', 'bwisit', 'bwakanangina', 'bwakananginamo',
+        'hindot', 'libog', 'salsal', 'bayag', 'burat', 'pokpok',
+        'biot', 'bayot', 'bading',
+        'gunggong', 'kolokoy', 'hinayupak', 'hayop', 'hayup', 'lintik', 'demonyo',
+        'punyemas', 'burikat', 'pokpokin',
         // Cebuano / Visayan
-        'yawa', 'buang', 'otin', 'bilat',
+        'yawa', 'yawaa', 'buang', 'otin', 'bilat', 'pisti', 'piste', 'atay',
+        'amaw', 'yati',
         // Spanish
         'cono', 'coño', 'joder', 'cabron', 'cabrón', 'mierda', 'pendejo',
         'verga', 'chinga', 'culero',
@@ -4691,11 +4708,15 @@ include 'includes/header.php';
             }
 
             var symbolCompact = text.replace(/\s+/g, '');
-            var blockedSymbolTokens = ['./.', '/./', '.|.'];
+            var symbolCompactLower = symbolCompact.toLowerCase();
+            var blockedSymbolTokens = ['./.', '/./', '.|.', '<==3', '<===3', '<====3', '8==d', '8===d', '8====d', 'b==d', 'b===d', 'b====d'];
             for (var si = 0; si < blockedSymbolTokens.length; si++) {
-                if (symbolCompact.indexOf(blockedSymbolTokens[si]) !== -1) {
+                if (symbolCompactLower.indexOf(blockedSymbolTokens[si]) !== -1) {
                     return 'Message blocked due to disallowed symbol patterns.';
                 }
+            }
+            if (/(?:<|8|b|c)[=\-~_]{2,}(?:3|d)/.test(symbolCompactLower)) {
+                return 'Message blocked due to disallowed symbol patterns.';
             }
 
             var normalized = text
@@ -4710,6 +4731,7 @@ include 'includes/header.php';
             var blockedTerms = [
                 'fuck', 'fucking', 'shit', 'bitch', 'asshole', 'bastard', 'dick', 'pussy',
                 'nude', 'nudes', 'porn', 'sext', 'blowjob', 'handjob', 'cum', 'kys',
+                'fck', 'fvck', 'phuck', 'btch', 'biatch',
                 'cunt', 'whore', 'slut', 'rape', 'rapist', 'pedo', 'pedophile',
                 'jizz', 'boner', 'wank', 'wanker', 'fap', 'hentai', 'horny',
                 'orgasm', 'masturbate', 'masturbation', 'threesome', 'gangbang', 'creampie',
@@ -4717,14 +4739,25 @@ include 'includes/header.php';
                 'putangina', 'potangina', 'puta', 'punyeta', 'gago', 'gaga', 'tangina',
                 'leche', 'buwisit', 'kupal', 'tarantado', 'pakshet', 'pakyu', 'putcha',
                 'kantot', 'iyot', 'jakol', 'tite', 'pekpek', 'ulol', 'bobo',
-                'yawa', 'buang', 'otin', 'bilat',
+                'ptngina', 'tngina', 'ulul',
+                'tanga', 'inutil', 'ogag', 'engot', 'gagu',
+                'putaragis', 'putaena', 'bwiset', 'bwisit', 'bwakanangina', 'bwakananginamo',
+                'hindot', 'libog', 'salsal', 'bayag', 'burat', 'pokpok',
+                'biot', 'bayot', 'bading',
+                'gunggong', 'kolokoy', 'hinayupak', 'hayop', 'hayup', 'lintik', 'demonyo',
+                'punyemas', 'burikat', 'pokpokin',
+                'yawa', 'yawaa', 'buang', 'otin', 'bilat', 'pisti', 'piste', 'atay', 'amaw', 'yati',
                 'cono', 'joder', 'cabron', 'mierda', 'pendejo', 'verga', 'chinga', 'culero',
                 'sibal', 'ssibal', 'gaeseki', 'jiral', 'byeongsin',
                 'kuso', 'kutabare', 'chinko', 'manko'
             ];
             var blockedPhrases = [
                 'kill yourself', 'kill ur self', 'kill your self',
-                'putang ina', 'tang ina', 'anak ng puta'
+                'putang ina', 'putang ina mo', 'tang ina', 'tangina mo',
+                'anak ng puta', 'anak ka ng puta', 'bwakanang ina', 'bwakanang ina mo',
+                'gago ka', 'ulol ka', 'biot ka', 'bayot ka',
+                'kupal ka', 'tarantado ka', 'hayop ka', 'hayup ka',
+                'puta ka', 'gago mo'
             ];
             var blockedNativeTerms = [
                 '\uC2DC\uBC1C', '\uC528\uBC1C', '\uAC1C\uC0C8\uB07C', '\uBCD1\uC2E0', '\uC9C0\uB784', '\uCC3D\uB140', '\uBCF4\uC9C0', '\uC790\uC9C0',
