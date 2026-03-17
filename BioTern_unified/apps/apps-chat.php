@@ -1017,6 +1017,49 @@ if ($selectedContact && $messageMeta['is_read_col'] !== '') {
         $markReadStmt->execute();
         $markReadStmt->close();
     }
+
+    if (function_exists('biotern_notification_columns')) {
+        $notificationColumns = biotern_notification_columns($conn);
+        if (!empty($notificationColumns)) {
+            $notificationWhere = 'user_id = ? AND is_read = 0';
+            if (isset($notificationColumns['action_url'])) {
+                $notificationWhere .= ' AND action_url = ?';
+            }
+            if (isset($notificationColumns['type'])) {
+                $notificationWhere .= ' AND type = ?';
+            } elseif (isset($notificationColumns['title'])) {
+                $notificationWhere .= ' AND title = ?';
+            }
+            if (isset($notificationColumns['deleted_at'])) {
+                $notificationWhere .= ' AND deleted_at IS NULL';
+            }
+
+            $notificationSql = 'UPDATE notifications SET is_read = 1 WHERE ' . $notificationWhere;
+            $notificationStmt = $conn->prepare($notificationSql);
+            if ($notificationStmt) {
+                $chatActionUrl = 'apps-chat.php?user_id=' . $selectedUserId;
+                if (isset($notificationColumns['action_url']) && isset($notificationColumns['type'])) {
+                    $notificationType = 'message';
+                    $notificationStmt->bind_param('iss', $currentUserId, $chatActionUrl, $notificationType);
+                } elseif (isset($notificationColumns['action_url']) && isset($notificationColumns['title'])) {
+                    $notificationTitle = 'New chat message';
+                    $notificationStmt->bind_param('iss', $currentUserId, $chatActionUrl, $notificationTitle);
+                } elseif (isset($notificationColumns['action_url'])) {
+                    $notificationStmt->bind_param('is', $currentUserId, $chatActionUrl);
+                } elseif (isset($notificationColumns['type'])) {
+                    $notificationType = 'message';
+                    $notificationStmt->bind_param('is', $currentUserId, $notificationType);
+                } elseif (isset($notificationColumns['title'])) {
+                    $notificationTitle = 'New chat message';
+                    $notificationStmt->bind_param('is', $currentUserId, $notificationTitle);
+                } else {
+                    $notificationStmt->bind_param('i', $currentUserId);
+                }
+                $notificationStmt->execute();
+                $notificationStmt->close();
+            }
+        }
+    }
 }
 
 $conversationMessages = [];
