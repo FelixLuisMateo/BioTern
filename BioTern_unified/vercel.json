@@ -3,11 +3,11 @@
   "builds": [
     {
       "src": "index.php",
-      "use": "@vercel/php"
+      "use": "vercel-php"
     },
     {
       "src": "legacy_router.php",
-      "use": "@vercel/php"
+      "use": "vercel-php"
     }
   ],
   "routes": [
