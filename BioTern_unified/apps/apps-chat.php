@@ -3715,10 +3715,9 @@ include 'includes/header.php';
                 if (!link) {
                     return;
                 }
-                event.preventDefault();
+                // Keep native navigation as a reliable fallback so user selection
+                // always works even if AJAX refresh fails.
                 selectedUserId = parseInt(link.getAttribute('data-user-id') || '0', 10) || 0;
-                history.replaceState(null, '', 'apps-chat.php?user_id=' + selectedUserId);
-                fetchState(true, { forceScroll: true });
             });
         }
 
