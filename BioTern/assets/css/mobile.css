@@ -119,12 +119,15 @@ body.mobile-bottom-nav {
 
 @media (max-width: 991.98px) {
     body.mobile-bottom-nav .page-header {
-        padding: 10px 0.95rem 8px;
-        gap: 0.5rem;
+        min-height: 56px;
+        padding: 12px 14px;
+        gap: 0.75rem;
         border-bottom: none !important;
         display: flex;
         align-items: center;
         justify-content: space-between;
+        position: relative;
+        overflow: visible;
     }
 
     body.mobile-bottom-nav .page-header-left {
@@ -152,6 +155,9 @@ body.mobile-bottom-nav {
         width: auto;
         gap: 0.5rem;
         margin-left: auto;
+        display: flex;
+        align-items: center;
+        position: relative;
     }
 
     body.mobile-bottom-nav .page-header-quick {
@@ -225,17 +231,91 @@ body.mobile-bottom-nav {
     body.mobile-bottom-nav .app-students-actions-toggle::after,
     body.mobile-bottom-nav .app-applications-actions-toggle::after {
         content: '...';
-        font-size: 20px;
+        font-size: 18px;
         line-height: 1;
         letter-spacing: 2px;
         font-weight: 700;
         color: #e2e8f0;
+    }
+
+    body.mobile-bottom-nav .page-header-actions {
+        position: absolute !important;
+        top: calc(100% + 8px) !important;
+        right: 0 !important;
+        left: auto !important;
+        width: min(320px, 92vw) !important;
+        margin-top: 0 !important;
+        z-index: 50 !important;
     }
 }
 
 @media (max-width: 420px) {
     body.mobile-bottom-nav .page-header-quick {
         grid-template-columns: 1fr;
+    }
+}
+
+/* Force mobile dashboard header to be a single row: title left, actions right. */
+@media (max-width: 991.98px) {
+    body.mobile-bottom-nav .dashboard-page-header {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        min-height: 56px;
+        padding: 12px 14px !important;
+    }
+
+    body.mobile-bottom-nav .dashboard-page-header .page-header-left {
+        flex: 1 1 auto;
+        width: auto !important;
+        align-items: center;
+        justify-content: flex-start !important;
+    }
+
+    body.mobile-bottom-nav .dashboard-page-header .page-header-title h5 {
+        font-size: 1.05rem;
+        text-align: left;
+        margin: 0 !important;
+    }
+
+    body.mobile-bottom-nav .dashboard-page-header .breadcrumb {
+        display: none !important;
+    }
+
+    body.mobile-bottom-nav .dashboard-page-header .page-header-right {
+        width: auto !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 0.5rem;
+        margin-left: auto;
+    }
+
+    body.mobile-bottom-nav .dashboard-page-header .page-header-quick {
+        display: none !important;
+    }
+
+    body.mobile-bottom-nav .dashboard-page-header .page-header-actions-toggle {
+        width: 40px !important;
+        min-width: 40px !important;
+        max-width: 40px !important;
+        min-height: 40px !important;
+        border-radius: 999px !important;
+        padding: 0 !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+
+    body.mobile-bottom-nav .dashboard-page-header .page-header-actions-toggle span,
+    body.mobile-bottom-nav .dashboard-page-header .page-header-actions-toggle i {
+        display: none !important;
+    }
+
+    body.mobile-bottom-nav .dashboard-page-header .page-header-actions-toggle::after {
+        content: '...';
+        font-size: 18px;
+        letter-spacing: 2px;
+        font-weight: 700;
     }
 }
 
@@ -501,15 +581,16 @@ html.app-skin-dark .biotern-bottom-sheet-panel {
         border-bottom: 1px solid var(--mobile-border) !important;
         background: var(--mobile-surface) !important;
         border-radius: 18px !important;
-        padding: 12px 16px !important;
+        padding: 12px 14px !important;
+        min-height: 56px;
         box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12) !important;
         align-items: center !important;
-        justify-content: center !important;
+        justify-content: space-between !important;
     }
 
     body.mobile-bottom-nav.dashboard-home .page-header-left {
-        width: 100%;
-        justify-content: center !important;
+        width: auto;
+        justify-content: flex-start !important;
         gap: 6px !important;
     }
 
@@ -518,6 +599,7 @@ html.app-skin-dark .biotern-bottom-sheet-panel {
         padding-right: 0 !important;
         border-right: 0 !important;
         font-size: 1.05rem;
+        text-align: left;
     }
 
     body.mobile-bottom-nav.dashboard-home .breadcrumb {
@@ -525,10 +607,8 @@ html.app-skin-dark .biotern-bottom-sheet-panel {
     }
 
     body.mobile-bottom-nav.dashboard-home .page-header-right {
-        position: absolute;
-        left: 12px;
-        top: 50%;
-        transform: translateY(-50%);
+        position: static;
+        transform: none;
         width: auto !important;
         margin: 0 !important;
     }
@@ -552,6 +632,20 @@ html.app-skin-dark .biotern-bottom-sheet-panel {
     body.mobile-bottom-nav.dashboard-home .page-header-actions-toggle::after {
         color: var(--mobile-accent-contrast) !important;
         letter-spacing: 3px;
+    }
+}
+
+/* Hide footer on mobile UI; keep it desktop-only. */
+@media (max-width: 991.98px) {
+    .footer {
+        display: none !important;
+    }
+}
+
+/* Ensure footer is visible on desktop widths. */
+@media (min-width: 992px) {
+    .footer {
+        display: flex !important;
     }
 }
 
