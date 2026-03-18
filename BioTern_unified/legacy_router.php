@@ -128,6 +128,9 @@ if (!is_file($target)) {
     exit('Not found');
 }
 
+chdir(__DIR__);
+set_include_path(__DIR__ . PATH_SEPARATOR . get_include_path());
+
 // Global auth guard so all routed pages are tied to a logged-in account.
 $public_files = [
   'index.php',

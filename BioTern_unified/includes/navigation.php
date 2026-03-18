@@ -21,13 +21,14 @@ if ($nav_dir === '' || $nav_dir === '.') {
     $nav_dir = '';
 }
 $nav_dir = preg_replace('#/(management|pages|auth)$#i', '', $nav_dir);
+$nav_root = ($nav_dir === '' ? '' : $nav_dir) . '/';
 $nav_asset_base = ($nav_dir === '' ? '' : $nav_dir) . '/assets';
-$nav_asset_fallback = '/BioTern/BioTern_unified/assets';
+$nav_asset_fallback = $nav_root . 'assets';
 ?>
 <nav class="nxl-navigation">
     <div class="navbar-wrapper">
         <div class="m-header">
-            <a href="/BioTern/BioTern_unified/homepage.php" class="b-brand">
+            <a href="<?php echo htmlspecialchars($nav_root, ENT_QUOTES, 'UTF-8'); ?>homepage.php" class="b-brand">
                     <img src="<?php echo htmlspecialchars($nav_asset_base); ?>/images/logo-full.png" alt="BioTern" class="logo logo-lg logo-lg-contained nav-fallback-img" data-fallback-src="<?php echo htmlspecialchars($nav_asset_fallback); ?>/images/logo-full.png" />
                     <img src="<?php echo htmlspecialchars($nav_asset_base); ?>/images/logo-abbr.png" alt="" class="logo logo-sm nav-fallback-img" data-fallback-src="<?php echo htmlspecialchars($nav_asset_fallback); ?>/images/logo-abbr.png" />
             </a>
