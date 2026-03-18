@@ -1,20 +1,33 @@
 <?php
 // Database configuration
+if (!function_exists('biotern_env_first')) {
+    function biotern_env_first(array $keys, $default = null)
+    {
+        foreach ($keys as $key) {
+            $value = getenv($key);
+            if ($value !== false && $value !== null && $value !== '') {
+                return $value;
+            }
+        }
+        return $default;
+    }
+}
+
 if (!defined('DB_HOST')) {
-    define('DB_HOST', getenv('DB_HOST') !== false ? (string)getenv('DB_HOST') : '127.0.0.1');
+    define('DB_HOST', (string)biotern_env_first(['DB_HOST'], '127.0.0.1'));
 }
 if (!defined('DB_USER')) {
-    define('DB_USER', getenv('DB_USER') !== false ? (string)getenv('DB_USER') : 'root');
+    define('DB_USER', (string)biotern_env_first(['DB_USER', 'DB_USERNAME'], 'root'));
 }
 if (!defined('DB_PASS')) {
-    define('DB_PASS', getenv('DB_PASS') !== false ? (string)getenv('DB_PASS') : '');
+    define('DB_PASS', (string)biotern_env_first(['DB_PASS', 'DB_PASSWORD'], ''));
 }
 if (!defined('DB_NAME')) {
-    define('DB_NAME', getenv('DB_NAME') !== false ? (string)getenv('DB_NAME') : 'biotern_db');
+    define('DB_NAME', (string)biotern_env_first(['DB_NAME', 'DB_DATABASE'], 'biotern_db'));
 }
 if (!defined('DB_PORT')) {
-    $dbPort = getenv('DB_PORT');
-    define('DB_PORT', $dbPort !== false ? (int)$dbPort : 3306);
+    $dbPort = biotern_env_first(['DB_PORT'], 3306);
+    define('DB_PORT', (int)$dbPort);
 }
 
 // Create connection

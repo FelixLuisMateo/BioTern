@@ -2,6 +2,14 @@
   "version": 2,
   "builds": [
     {
+      "src": "assets/**",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "uploads/**",
+      "use": "@vercel/static"
+    },
+    {
       "src": "index.php",
       "use": "vercel-php"
     },
@@ -14,6 +22,18 @@
     {
       "src": "^/$",
       "dest": "/index.php"
+    },
+    {
+      "src": "^/assets/(.*)$",
+      "dest": "/assets/$1"
+    },
+    {
+      "src": "^/uploads/(.*)$",
+      "dest": "/uploads/$1"
+    },
+    {
+      "src": "^/(.*\\.(?:css|js|map|png|jpg|jpeg|gif|svg|ico|webp|woff|woff2|ttf|eot))$",
+      "dest": "/$1"
     },
     {
       "handle": "filesystem"
