@@ -101,16 +101,9 @@ if (!function_exists('biotern_db_has_column')) {
     function biotern_db_has_column(mysqli $mysqli, string $table, string $column): bool
     {
         $safeTable = str_replace('`', '``', $table);
-        $stmt = $mysqli->prepare("SHOW COLUMNS FROM `{$safeTable}` LIKE ?");
-        if (!$stmt) {
-            return false;
-        }
-        $stmt->bind_param('s', $column);
-        $stmt->execute();
-        $res = $stmt->get_result();
-        $has = ($res instanceof mysqli_result) && $res->num_rows > 0;
-        $stmt->close();
-        return $has;
+        $safeColumn = $mysqli->real_escape_string($column);
+        $res = $mysqli->query("SHOW COLUMNS FROM `{$safeTable}` LIKE '{$safeColumn}'");
+        return ($res instanceof mysqli_result) && $res->num_rows > 0;
     }
 }
 

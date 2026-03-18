@@ -5,16 +5,9 @@ require_once __DIR__ . '/ops_helpers.php';
 function eval_table_has_column(mysqli $conn, string $table, string $column): bool
 {
     $table_safe = str_replace('`', '``', $table);
-    $stmt = $conn->prepare("SHOW COLUMNS FROM `{$table_safe}` LIKE ?");
-    if (!$stmt) {
-        return false;
-    }
-    $stmt->bind_param('s', $column);
-    $stmt->execute();
-    $res = $stmt->get_result();
-    $exists = $res && $res->num_rows > 0;
-    $stmt->close();
-    return $exists;
+    $column_safe = $conn->real_escape_string($column);
+    $res = $conn->query("SHOW COLUMNS FROM `{$table_safe}` LIKE '{$column_safe}'");
+    return ($res instanceof mysqli_result) && $res->num_rows > 0;
 }
 
 function ensure_evaluation_unlock_table(mysqli $conn): void

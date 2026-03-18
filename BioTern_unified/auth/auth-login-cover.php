@@ -22,6 +22,7 @@ $dbPort = defined('DB_PORT') ? (int)DB_PORT : 3306;
 $script_name = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
 $asset_prefix = (strpos($script_name, '/auth/') !== false) ? '../' : '';
 $auth_local_prefix = (strpos($script_name, '/auth/') !== false) ? '' : 'auth/';
+$auth_building_href = (strpos($script_name, '/auth/') !== false) ? 'building.png' : 'auth/building.png';
 $route_prefix = $asset_prefix;
 $login_error = '';
 $next = isset($_GET['next']) ? basename((string)$_GET['next']) : '';
@@ -55,16 +56,9 @@ function log_login_attempt($mysqli, $userId, $identifier, $role, $status, $reaso
 function auth_login_has_column(mysqli $mysqli, string $table, string $column): bool
 {
     $safeTable = str_replace('`', '``', $table);
-    $stmt = $mysqli->prepare("SHOW COLUMNS FROM `{$safeTable}` LIKE ?");
-    if (!$stmt) {
-        return false;
-    }
-    $stmt->bind_param('s', $column);
-    $stmt->execute();
-    $res = $stmt->get_result();
-    $has = ($res && $res->num_rows > 0);
-    $stmt->close();
-    return $has;
+    $safeColumn = $mysqli->real_escape_string($column);
+    $res = $mysqli->query("SHOW COLUMNS FROM `{$safeTable}` LIKE '{$safeColumn}'");
+    return ($res instanceof mysqli_result) && $res->num_rows > 0;
 }
 
 function auth_login_ensure_users_schema(mysqli $mysqli): void
@@ -192,7 +186,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             inset: 0;
             z-index: 0;
             pointer-events: none;
-            background-image: url('<?php echo htmlspecialchars($auth_local_prefix, ENT_QUOTES, 'UTF-8'); ?>building.png');
+            background-image: url('<?php echo htmlspecialchars($auth_building_href, ENT_QUOTES, 'UTF-8'); ?>');
             background-repeat: no-repeat;
             background-position: center center;
             background-size: cover;
