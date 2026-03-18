@@ -386,10 +386,12 @@ function getAttendanceStatus($morning_time_in) {
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/dataTables.bs5.min.css">
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2.min.css">
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2-theme.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/vendors/css/datepicker.min.css">
     <!--! END: Vendors CSS-->
     <!--! BEGIN: Custom CSS-->
     <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css">
     <link rel="stylesheet" type="text/css" href="assets/css/layout-shared-overrides.css">
+    <link rel="stylesheet" type="text/css" href="assets/css/datepicker-global.css">
     <!--! END: Custom CSS-->
     <!--! HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries !-->
     <!--! WARNING: Respond.js doesn"t work if you view the page via file: !-->
@@ -1592,6 +1594,8 @@ endif; ?>
     <script src="assets/vendors/js/dataTables.bs5.min.js"></script>
     <script src="assets/vendors/js/select2.min.js"></script>
     <script src="assets/vendors/js/select2-active.min.js"></script>
+    <script src="assets/vendors/js/datepicker.min.js"></script>
+    <script src="assets/js/global-datepicker-init.js"></script>
     <!--! END: Vendors JS !-->
     
     <style>

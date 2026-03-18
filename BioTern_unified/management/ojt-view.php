@@ -1143,10 +1143,12 @@ $session_profile_picture_url = $session_profile_picture !== '' ? $session_profil
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_base); ?>/vendors/css/vendors.min.css">
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_base); ?>/vendors/css/select2.min.css">
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_base); ?>/vendors/css/select2-theme.min.css">
+    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_base); ?>/vendors/css/datepicker.min.css">
     <!--! END: Vendors CSS-->
     <!--! BEGIN: Custom CSS-->
     <script>try{var s=localStorage.getItem('app-skin')||localStorage.getItem('app_skin')||localStorage.getItem('theme'); if(s&&s.indexOf('dark')!==-1)document.documentElement.classList.add('app-skin-dark');}catch(e){};</script>
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_base); ?>/css/theme.min.css">
+    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_base); ?>/css/datepicker-global.css">
     <style>
         body { background: #f5f7fb; }
         .card { border: 1px solid #e8edf6; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04); }
@@ -2387,9 +2389,11 @@ require_once dirname(__DIR__) . '/config/db.php';
     <!-- vendors.min.js {always must need to be top} -->
     <script src="<?php echo htmlspecialchars($asset_base); ?>/vendors/js/select2.min.js"></script>
     <script src="<?php echo htmlspecialchars($asset_base); ?>/vendors/js/select2-active.min.js"></script>
+    <script src="<?php echo htmlspecialchars($asset_base); ?>/vendors/js/datepicker.min.js"></script>
     <!--! END: Vendors JS !-->
     <!--! BEGIN: Apps Init  !-->
     <script src="<?php echo htmlspecialchars($asset_base); ?>/js/global-ui-helpers.js"></script>
+    <script src="<?php echo htmlspecialchars($asset_base); ?>/js/global-datepicker-init.js"></script>
     <script src="<?php echo htmlspecialchars($asset_base); ?>/js/common-init.min.js"></script>
     <script src="<?php echo htmlspecialchars($asset_base); ?>/js/theme-customizer-init.min.js"></script>
     <script src="<?php echo htmlspecialchars($asset_base); ?>/js/leads-view-init.min.js"></script>

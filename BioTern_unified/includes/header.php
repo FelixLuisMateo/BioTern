@@ -289,6 +289,7 @@ echo htmlspecialchars($favicon_ico_href, ENT_QUOTES, 'UTF-8'); ?>">
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/dataTables.bs5.min.css">
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2.min.css">
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2-theme.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/vendors/css/datepicker.min.css">
     <!--! END: Vendors CSS-->
     <!--! BEGIN: Early Skin Script -->
     <script src="assets/js/header-early-skin.js"></script>
@@ -313,6 +314,7 @@ echo htmlspecialchars($favicon_ico_href, ENT_QUOTES, 'UTF-8'); ?>">
     <!--! BEGIN: Custom CSS-->
     <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css" />
     <link rel="stylesheet" type="text/css" href="assets/css/layout-shared-overrides.css" />
+    <link rel="stylesheet" type="text/css" href="assets/css/datepicker-global.css" />
     <?php
 require_once dirname(__DIR__) . '/config/db.php';
 if (isset($page_styles) && is_array($page_styles)): ?>

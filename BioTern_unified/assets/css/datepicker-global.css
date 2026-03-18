@@ -1,0 +1,51 @@
+.datepicker-dropdown {
+    z-index: 1085 !important;
+}
+
+.datepicker-picker {
+    border: 1px solid #d6dbe6;
+    border-radius: 10px;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.2);
+}
+
+.datepicker-header .datepicker-controls .button,
+.datepicker-footer .datepicker-controls .button {
+    border-radius: 8px;
+}
+
+html.app-skin-dark .datepicker-picker {
+    background: #1f2937;
+    border-color: #3a455a;
+    color: #e5ebf7;
+    box-shadow: 0 12px 28px rgba(2, 6, 23, 0.55);
+}
+
+html.app-skin-dark .datepicker-title,
+html.app-skin-dark .datepicker-footer {
+    background: #243142;
+    box-shadow: none;
+    color: #d7e0f2;
+}
+
+html.app-skin-dark .datepicker-controls .button {
+    background: #1b2533;
+    border-color: #3a455a;
+    color: #d7e0f2;
+}
+
+html.app-skin-dark .datepicker-controls .button:hover {
+    background: #2a3a50;
+    border-color: #4f6484;
+}
+
+html.app-skin-dark .datepicker-cell:not(.disabled):hover {
+    background: #2a3a50;
+}
+
+html.app-skin-dark .datepicker-view .dow {
+    color: #a9b3c8;
+}
+
+html.app-skin-dark .datepicker-cell.disabled {
+    color: #64748b;
+}
