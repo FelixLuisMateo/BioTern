@@ -2174,6 +2174,15 @@ include 'includes/header.php';
         background: var(--chat-menu-dot-hover);
     }
 
+    /* Prevent global tooltip/pseudo-label styles from rendering text near the three-dot button */
+    .btchat-menu-toggle::before,
+    .btchat-menu-toggle::after,
+    .msg-hover-menu-btn::before,
+    .msg-hover-menu-btn::after {
+        content: none !important;
+        display: none !important;
+    }
+
     .btchat-menu {
         position: absolute;
         top: calc(100% + 8px);
@@ -2218,6 +2227,11 @@ include 'includes/header.php';
 
     .btchat-menu-item.danger {
         color: #ef4444;
+    }
+
+    /* Keep chat modals clean from global tooltip overlays */
+    .main-content .tooltip {
+        display: none !important;
     }
 
     .chat-confirm-overlay {
@@ -2280,6 +2294,149 @@ include 'includes/header.php';
         color: #ef4444;
     }
 
+    .chat-contact-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(2, 6, 23, 0.6);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 12050;
+        padding: 1rem;
+    }
+
+    .chat-contact-overlay.show {
+        display: flex;
+    }
+
+    .chat-contact-modal {
+        width: min(460px, 100%);
+        border-radius: 14px;
+        border: 1px solid var(--chat-header-border);
+        background: var(--chat-header-bg);
+        color: var(--chat-header-name-color);
+        box-shadow: 0 18px 38px rgba(2, 6, 23, 0.42);
+        overflow: hidden;
+    }
+
+    .chat-contact-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.7rem;
+        padding: 0.88rem 0.95rem;
+        border-bottom: 1px solid var(--chat-header-border);
+    }
+
+    .chat-contact-title {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 700;
+    }
+
+    .chat-contact-close {
+        border: 0;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: var(--chat-item-hover);
+        color: var(--chat-header-name-color);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 1.12rem;
+        line-height: 1;
+    }
+
+    .chat-contact-body {
+        padding: 0.95rem;
+    }
+
+    .chat-contact-identity {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding-bottom: 0.8rem;
+        margin-bottom: 0.8rem;
+        border-bottom: 1px solid color-mix(in srgb, var(--chat-header-border) 78%, transparent);
+    }
+
+    .chat-contact-avatar-host .btchat-avatar,
+    .chat-contact-avatar-host .btchat-avatar-text {
+        width: 52px;
+        height: 52px;
+    }
+
+    .chat-contact-name {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--chat-header-name-color);
+    }
+
+    .chat-contact-sub {
+        margin: 0.12rem 0 0;
+        font-size: 0.84rem;
+        color: var(--chat-header-sub-color);
+    }
+
+    .chat-contact-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0.48rem;
+    }
+
+    .chat-contact-row {
+        display: grid;
+        grid-template-columns: 108px 1fr;
+        gap: 0.6rem;
+        align-items: start;
+        font-size: 0.88rem;
+    }
+
+    .chat-contact-key {
+        color: var(--chat-header-sub-color);
+        font-weight: 700;
+    }
+
+    .chat-contact-value {
+        color: var(--chat-header-name-color);
+        word-break: break-word;
+    }
+
+    .chat-contact-value.preview {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .chat-contact-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.55rem;
+        margin-top: 0.9rem;
+        padding-top: 0.9rem;
+        border-top: 1px solid color-mix(in srgb, var(--chat-header-border) 78%, transparent);
+    }
+
+    .chat-contact-action {
+        border: 1px solid var(--chat-header-border);
+        border-radius: 9px;
+        background: transparent;
+        color: var(--chat-header-name-color);
+        padding: 0.42rem 0.72rem;
+        font-size: 0.86rem;
+        cursor: pointer;
+    }
+
+    .chat-contact-action.danger {
+        border-color: rgba(239, 68, 68, 0.45);
+        background: rgba(239, 68, 68, 0.14);
+        color: #ef4444;
+    }
+
     .chat-report-overlay {
         position: fixed;
         inset: 0;
@@ -2289,10 +2446,15 @@ include 'includes/header.php';
         justify-content: center;
         z-index: 12100;
         padding: 1rem;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.2s ease;
     }
 
     .chat-report-overlay.show {
         display: flex;
+        pointer-events: auto;
+        opacity: 1;
     }
 
     .chat-report-modal {
@@ -2303,6 +2465,7 @@ include 'includes/header.php';
         color: var(--chat-header-name-color);
         box-shadow: 0 18px 38px rgba(2, 6, 23, 0.42);
         padding: 1rem;
+        overflow: hidden;
     }
 
     .chat-report-title {
@@ -2319,6 +2482,7 @@ include 'includes/header.php';
 
     .chat-report-field {
         margin-bottom: 0.7rem;
+        overflow: hidden;
     }
 
     .chat-report-label {
@@ -2410,7 +2574,7 @@ include 'includes/header.php';
     }
 
     .msg-row:hover .msg-hover-menu-btn,
-    .msg-row:focus-within .msg-hover-menu-btn {
+    .msg-hover-menu-btn:focus-visible {
         opacity: 1;
         pointer-events: auto;
     }
@@ -3773,7 +3937,7 @@ include 'includes/header.php';
                         </div>
                     </div>
                     <div class="btchat-actions">
-                        <button type="button" class="btchat-menu-toggle" aria-label="Thread options" title="Thread options">
+                        <button type="button" class="btchat-menu-toggle">
                             <i class="feather-more-horizontal"></i>
                         </button>
                         <div class="btchat-menu" role="menu">
@@ -3925,6 +4089,41 @@ include 'includes/header.php';
     </div>
 </div>
 
+<div class="chat-contact-overlay" id="chat-contact-modal" aria-hidden="true">
+    <div class="chat-contact-modal" role="dialog" aria-modal="true" aria-labelledby="chat-contact-title">
+        <div class="chat-contact-head">
+            <h6 class="chat-contact-title" id="chat-contact-title">Contact details</h6>
+            <button type="button" class="chat-contact-close" id="chat-contact-close" aria-label="Close">&times;</button>
+        </div>
+        <div class="chat-contact-body">
+            <div class="chat-contact-identity">
+                <div class="chat-contact-avatar-host" id="chat-contact-avatar-host"></div>
+                <div>
+                    <p class="chat-contact-name" id="chat-contact-name">Unknown user</p>
+                    <p class="chat-contact-sub" id="chat-contact-sub">-</p>
+                </div>
+            </div>
+            <div class="chat-contact-grid">
+                <div class="chat-contact-row"><div class="chat-contact-key">User ID</div><div class="chat-contact-value" id="chat-contact-user-id">-</div></div>
+                <div class="chat-contact-row"><div class="chat-contact-key">Username</div><div class="chat-contact-value" id="chat-contact-username">-</div></div>
+                <div class="chat-contact-row"><div class="chat-contact-key">Email</div><div class="chat-contact-value" id="chat-contact-email">-</div></div>
+                <div class="chat-contact-row"><div class="chat-contact-key">Status</div><div class="chat-contact-value" id="chat-contact-status">Offline</div></div>
+                <div class="chat-contact-row"><div class="chat-contact-key">Conversation</div><div class="chat-contact-value" id="chat-contact-muted-state">Unmuted</div></div>
+                <div class="chat-contact-row"><div class="chat-contact-key">Last active</div><div class="chat-contact-value" id="chat-contact-last-active">No messages yet</div></div>
+                <div class="chat-contact-row"><div class="chat-contact-key">Last message</div><div class="chat-contact-value preview" id="chat-contact-last-message">No messages yet</div></div>
+                <div class="chat-contact-row"><div class="chat-contact-key">Unread</div><div class="chat-contact-value" id="chat-contact-unread">0</div></div>
+                <div class="chat-contact-row"><div class="chat-contact-key">Messages</div><div class="chat-contact-value" id="chat-contact-total">0</div></div>
+                <div class="chat-contact-row"><div class="chat-contact-key">Reportable</div><div class="chat-contact-value" id="chat-contact-reportable">0 messages</div></div>
+            </div>
+            <div class="chat-contact-actions">
+                <button type="button" class="chat-contact-action" id="chat-contact-mute">Mute conversation</button>
+                <button type="button" class="chat-contact-action danger" id="chat-contact-report-user">Report user</button>
+                <button type="button" class="chat-contact-action" id="chat-contact-close-secondary">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="chat-report-overlay" id="chat-report-modal" aria-hidden="true">
     <div class="chat-report-modal" role="dialog" aria-modal="true" aria-labelledby="chat-report-title">
         <h6 class="chat-report-title" id="chat-report-title">Report message</h6>
@@ -4021,6 +4220,24 @@ include 'includes/header.php';
         var confirmTextEl = document.getElementById('chat-confirm-text');
         var confirmOkEl = document.getElementById('chat-confirm-ok');
         var confirmCancelEl = document.getElementById('chat-confirm-cancel');
+        var contactModalEl = document.getElementById('chat-contact-modal');
+        var contactCloseEl = document.getElementById('chat-contact-close');
+        var contactAvatarHostEl = document.getElementById('chat-contact-avatar-host');
+        var contactNameEl = document.getElementById('chat-contact-name');
+        var contactSubEl = document.getElementById('chat-contact-sub');
+        var contactUserIdEl = document.getElementById('chat-contact-user-id');
+        var contactUsernameEl = document.getElementById('chat-contact-username');
+        var contactEmailEl = document.getElementById('chat-contact-email');
+        var contactStatusEl = document.getElementById('chat-contact-status');
+        var contactMutedStateEl = document.getElementById('chat-contact-muted-state');
+        var contactLastActiveEl = document.getElementById('chat-contact-last-active');
+        var contactLastMessageEl = document.getElementById('chat-contact-last-message');
+        var contactUnreadEl = document.getElementById('chat-contact-unread');
+        var contactTotalEl = document.getElementById('chat-contact-total');
+        var contactReportableEl = document.getElementById('chat-contact-reportable');
+        var contactMuteEl = document.getElementById('chat-contact-mute');
+        var contactReportUserEl = document.getElementById('chat-contact-report-user');
+        var contactCloseSecondaryEl = document.getElementById('chat-contact-close-secondary');
         var reportModalEl = document.getElementById('chat-report-modal');
         var reportReasonEl = document.getElementById('chat-report-reason');
         var reportNoteEl = document.getElementById('chat-report-note');
@@ -4043,6 +4260,7 @@ include 'includes/header.php';
         var pendingConfirmFn = null;
         var pendingReportFn = null;
         var activeMessageActionId = 0;
+        var activeMessageActionTriggerEl = null;
         var pollHandle = null;
         var currentSearch = '';
         var reactionsModalState = null;
@@ -4053,6 +4271,8 @@ include 'includes/header.php';
         var lastHeaderSignature = '';
         var lastMessagesSignature = '';
         var lastRenderedUserId = 0;
+        var contactModalUserId = 0;
+        var suppressHeaderToggleUntil = 0;
         var mobileLayoutQuery = (typeof window.matchMedia === 'function') ? window.matchMedia('(max-width: 991px)') : null;
 
         function escapeHtml(value) {
@@ -4066,6 +4286,39 @@ include 'includes/header.php';
 
         function nl2br(value) {
             return escapeHtml(value).replace(/\n/g, '<br>');
+        }
+
+        function scrubActionTooltips(rootEl) {
+            var scope = rootEl || document;
+            var buttons = scope.querySelectorAll('.btchat-menu-toggle, .msg-hover-menu-btn');
+
+            buttons.forEach(function (btn) {
+                btn.removeAttribute('title');
+                btn.removeAttribute('data-bs-toggle');
+                btn.removeAttribute('data-bs-original-title');
+                btn.removeAttribute('data-original-title');
+                btn.removeAttribute('aria-describedby');
+
+                if (window.bootstrap && window.bootstrap.Tooltip && typeof window.bootstrap.Tooltip.getInstance === 'function') {
+                    var tip = window.bootstrap.Tooltip.getInstance(btn);
+                    if (tip && typeof tip.dispose === 'function') {
+                        tip.dispose();
+                    }
+                }
+            });
+
+            document.querySelectorAll('.tooltip').forEach(function (tipEl) {
+                var tipId = tipEl.getAttribute('id');
+                if (!tipId) {
+                    tipEl.remove();
+                    return;
+                }
+
+                var triggerEl = document.querySelector('[aria-describedby="' + tipId + '"]');
+                if (!triggerEl || triggerEl.matches('.btchat-menu-toggle, .msg-hover-menu-btn')) {
+                    tipEl.remove();
+                }
+            });
         }
 
         function parseJsonResponse(response) {
@@ -4339,7 +4592,7 @@ include 'includes/header.php';
                     '</div>' +
                 '</div>' +
                 '<div class="btchat-actions">' +
-                    '<button type="button" class="btchat-menu-toggle" aria-label="Thread options" title="Thread options"><i class="feather-more-horizontal"></i></button>' +
+                    '<button type="button" class="btchat-menu-toggle"><i class="feather-more-horizontal"></i></button>' +
                     '<div class="btchat-menu" role="menu">' +
                         '<button type="button" class="btchat-menu-item" data-action="view-contact">Contact details</button>' +
                         '<button type="button" class="btchat-menu-item" data-action="mute-conversation">' + escapeHtml(muteLabel) + '</button>' +
@@ -4351,6 +4604,7 @@ include 'includes/header.php';
                     '</div>' +
                 '</div>';
             bindHeaderMenu();
+            scrubActionTooltips(headerEl);
         }
 
         function muteStorageKey(userId) {
@@ -4401,7 +4655,123 @@ include 'includes/header.php';
             if (!confirmModalEl) { return; }
             confirmModalEl.classList.remove('show');
             confirmModalEl.setAttribute('aria-hidden', 'true');
+            closeHeaderMenus();
+            closeMessageActionMenu();
+            scrubActionTooltips(document);
             pendingConfirmFn = null;
+        }
+
+        function closeContactModal() {
+            if (!contactModalEl) { return; }
+            contactModalEl.classList.remove('show');
+            contactModalEl.setAttribute('aria-hidden', 'true');
+            contactModalUserId = 0;
+            closeHeaderMenus();
+        }
+
+        function latestReportableMessageIdForUser(userId) {
+            if (!(userId > 0)) {
+                return 0;
+            }
+
+            var latestId = 0;
+            Object.keys(messageCache).forEach(function (key) {
+                var msg = messageCache[key];
+                if (!msg || msg.is_unsent) {
+                    return;
+                }
+                if (parseInt(msg.sender_id || '0', 10) !== userId) {
+                    return;
+                }
+                var mid = parseInt(msg.message_id || '0', 10);
+                if (mid > latestId) {
+                    latestId = mid;
+                }
+            });
+
+            return latestId;
+        }
+
+        function openContactModal(contact) {
+            if (!contactModalEl || !contact) { return; }
+
+            contactModalUserId = parseInt(contact.id || '0', 10) || 0;
+            var displayName = String(contact.name || contact.username || 'Unknown user');
+            var username = String(contact.username || '-');
+            var email = String(contact.email || '-');
+            var subtitle = email !== '-' ? email : username;
+            var onlineState = contact.is_online ? 'Online' : 'Offline';
+            var lastActive = String(contact.last_message_label || 'No messages yet');
+            var lastMessagePreview = String(contact.last_message || 'No messages yet');
+            var unreadCount = Math.max(0, parseInt(contact.unread_count || '0', 10));
+            var totalMessages = Math.max(0, parseInt(contact.message_count || '0', 10));
+            var isMuted = isConversationMuted(contactModalUserId);
+            var reportableCount = 0;
+
+            if (lastMessagePreview.length > 180) {
+                lastMessagePreview = lastMessagePreview.slice(0, 177) + '...';
+            }
+
+            Object.keys(messageCache).forEach(function (key) {
+                var msg = messageCache[key];
+                if (!msg || msg.is_unsent) {
+                    return;
+                }
+                if (parseInt(msg.sender_id || '0', 10) === contactModalUserId) {
+                    reportableCount += 1;
+                }
+            });
+
+            if (contactAvatarHostEl) {
+                contactAvatarHostEl.innerHTML = avatarMarkup(contact);
+            }
+            if (contactNameEl) {
+                contactNameEl.textContent = displayName;
+            }
+            if (contactSubEl) {
+                contactSubEl.textContent = subtitle;
+            }
+            if (contactUserIdEl) {
+                contactUserIdEl.textContent = contactModalUserId > 0 ? String(contactModalUserId) : '-';
+            }
+            if (contactUsernameEl) {
+                contactUsernameEl.textContent = username;
+            }
+            if (contactEmailEl) {
+                contactEmailEl.textContent = email;
+            }
+            if (contactStatusEl) {
+                contactStatusEl.textContent = onlineState;
+            }
+            if (contactMutedStateEl) {
+                contactMutedStateEl.textContent = isMuted ? 'Muted' : 'Unmuted';
+            }
+            if (contactLastActiveEl) {
+                contactLastActiveEl.textContent = lastActive;
+            }
+            if (contactLastMessageEl) {
+                contactLastMessageEl.textContent = lastMessagePreview;
+            }
+            if (contactUnreadEl) {
+                contactUnreadEl.textContent = String(unreadCount);
+            }
+            if (contactTotalEl) {
+                contactTotalEl.textContent = String(totalMessages);
+            }
+            if (contactReportableEl) {
+                contactReportableEl.textContent = reportableCount + (reportableCount === 1 ? ' message' : ' messages');
+            }
+            if (contactMuteEl) {
+                contactMuteEl.textContent = isMuted ? 'Unmute conversation' : 'Mute conversation';
+            }
+
+            closeHeaderMenus();
+            closeMessageActionMenu();
+            contactModalEl.classList.add('show');
+            contactModalEl.setAttribute('aria-hidden', 'false');
+            if (contactCloseEl) {
+                contactCloseEl.focus();
+            }
         }
 
         function openConfirmModal(title, text, onConfirm, confirmLabel) {
@@ -4409,6 +4779,9 @@ include 'includes/header.php';
                 if (typeof onConfirm === 'function') { onConfirm(); }
                 return;
             }
+            closeHeaderMenus();
+            closeMessageActionMenu();
+            scrubActionTooltips(document);
             pendingConfirmFn = typeof onConfirm === 'function' ? onConfirm : null;
             if (confirmTitleEl) { confirmTitleEl.textContent = title || 'Confirm action'; }
             if (confirmTextEl) { confirmTextEl.textContent = text || 'Are you sure?'; }
@@ -4422,6 +4795,15 @@ include 'includes/header.php';
             if (!messageActionMenuEl) { return; }
             messageActionMenuEl.classList.remove('show');
             messageActionMenuEl.setAttribute('aria-hidden', 'true');
+            messageActionMenuEl.removeAttribute('data-message-id');
+            messageActionMenuEl.removeAttribute('data-placement');
+            messageActionMenuEl.style.removeProperty('--msg-menu-arrow-left');
+            messageActionMenuEl.style.removeProperty('left');
+            messageActionMenuEl.style.removeProperty('top');
+            if (activeMessageActionTriggerEl && typeof activeMessageActionTriggerEl.blur === 'function') {
+                activeMessageActionTriggerEl.blur();
+            }
+            activeMessageActionTriggerEl = null;
             activeMessageActionId = 0;
         }
 
@@ -4616,6 +4998,7 @@ include 'includes/header.php';
             if (!msg) { return; }
 
             activeMessageActionId = messageId;
+            activeMessageActionTriggerEl = triggerEl;
             messageActionMenuEl.dataset.messageId = String(messageId);
 
             var emojiRow = messageActionMenuEl.querySelector('.msg-action-emoji-row');
@@ -4773,6 +5156,19 @@ include 'includes/header.php';
             if (!reportModalEl) { return; }
             reportModalEl.classList.remove('show');
             reportModalEl.setAttribute('aria-hidden', 'true');
+            closeHeaderMenus();
+            closeMessageActionMenu();
+            scrubActionTooltips(document);
+            // Ensure all form elements are properly reset
+            if (reportReasonEl) {
+                reportReasonEl.blur();
+            }
+            if (reportNoteEl) {
+                reportNoteEl.blur();
+            }
+            if (document.activeElement && typeof document.activeElement.blur === 'function') {
+                document.activeElement.blur();
+            }
             pendingReportFn = null;
         }
 
@@ -4793,6 +5189,9 @@ include 'includes/header.php';
                 }
                 return;
             }
+            closeHeaderMenus();
+            closeMessageActionMenu();
+            scrubActionTooltips(document);
             pendingReportFn = typeof onConfirm === 'function' ? onConfirm : null;
             if (reportReasonEl) {
                 reportReasonEl.value = 'Harassment or abusive language';
@@ -4809,6 +5208,9 @@ include 'includes/header.php';
 
         function reportMessageById(messageId, reason) {
             if (!selectedUserId || !messageId) { return; }
+            closeHeaderMenus();
+            closeMessageActionMenu();
+            scrubActionTooltips(document);
             var fd = new FormData();
             fd.set('action', 'report-message');
             fd.set('user_id', String(selectedUserId));
@@ -4822,8 +5224,41 @@ include 'includes/header.php';
                 } else {
                     showAlert('error', payload && payload.error ? payload.error : 'Failed to report message.');
                 }
+                window.setTimeout(function () {
+                    closeHeaderMenus();
+                    closeMessageActionMenu();
+                    scrubActionTooltips(document);
+                }, 0);
             }).catch(function () {
                 showAlert('error', 'Failed to report message.');
+                window.setTimeout(function () {
+                    closeHeaderMenus();
+                    closeMessageActionMenu();
+                    scrubActionTooltips(document);
+                }, 0);
+            });
+        }
+
+        function reportUserFromContactModal() {
+            if (!(contactModalUserId > 0)) {
+                showAlert('error', 'Select a contact first.');
+                return;
+            }
+
+            var latestMessageId = latestReportableMessageIdForUser(contactModalUserId);
+            if (!(latestMessageId > 0)) {
+                showAlert('error', 'No recent message from this user to report.');
+                return;
+            }
+
+            closeContactModal();
+            openReportModal(function (selectedReason) {
+                openConfirmModal(
+                    'Report this user?',
+                    'This will report their most recent message for moderation review. Reason: ' + selectedReason,
+                    function () { reportMessageById(latestMessageId, selectedReason); },
+                    'Report'
+                );
             });
         }
 
@@ -4872,6 +5307,9 @@ include 'includes/header.php';
             toggle.onclick = function (event) {
                 event.preventDefault();
                 event.stopPropagation();
+                if (Date.now() < suppressHeaderToggleUntil) {
+                    return;
+                }
                 menu.classList.toggle('show');
                 if (menu.classList.contains('show')) {
                     var firstItem = menu.querySelector('.btchat-menu-item');
@@ -4882,6 +5320,9 @@ include 'includes/header.php';
             toggle.onkeydown = function (event) {
                 if (event.key === 'ArrowDown' || event.key === 'Enter' || event.key === ' ') {
                     event.preventDefault();
+                    if (Date.now() < suppressHeaderToggleUntil) {
+                        return;
+                    }
                     menu.classList.add('show');
                     var firstItem = menu.querySelector('.btchat-menu-item');
                     if (firstItem) { firstItem.focus(); }
@@ -4922,9 +5363,7 @@ include 'includes/header.php';
                 } else if (action === 'view-contact') {
                     var c = selectedContactRef;
                     if (!c) { return; }
-                    var info = c.name || 'Unknown user';
-                    var extra = c.email || c.username || '';
-                    showAlert('success', extra ? (info + ' Â· ' + extra) : info);
+                    openContactModal(c);
                 } else if (action === 'mute-conversation') {
                     if (!selectedContactRef) { return; }
                     var currentlyMuted = isConversationMuted(selectedContactRef.id);
@@ -5112,7 +5551,7 @@ include 'includes/header.php';
                 html += '<div class="msg-row' + (msg.is_own ? ' own' : '') + ' ' + grp + (hasReaction ? ' has-reaction' : '') + '">';
                 if (!msg.is_own) { html += avatarHtml; }
                 if (msg.is_own) {
-                    html += '<button type="button" class="msg-hover-menu-btn" data-message-id="' + msg.message_id + '" aria-label="Message actions">&#8226;&#8226;&#8226;</button>';
+                    html += '<button type="button" class="msg-hover-menu-btn" data-message-id="' + msg.message_id + '">&#8226;&#8226;&#8226;</button>';
                 }
                 html += '<div class="msg-bubble ' + grp + (msg.media_path ? ' has-media' : '') + (isUnsent ? ' is-unsent' : '') + pinnedClass + '"' + bubbleTitle + '>';
                 if (msg.reply_preview && !isUnsent) {
@@ -5129,7 +5568,7 @@ include 'includes/header.php';
                 }
                 html += '</div>';
                 if (!msg.is_own && !isUnsent) {
-                    html += '<button type="button" class="msg-hover-menu-btn" data-message-id="' + msg.message_id + '" aria-label="Message actions">&#8226;&#8226;&#8226;</button>';
+                    html += '<button type="button" class="msg-hover-menu-btn" data-message-id="' + msg.message_id + '">&#8226;&#8226;&#8226;</button>';
                 }
                 html += '</div>';
 
@@ -5146,6 +5585,7 @@ include 'includes/header.php';
                 threadEl.scrollTop = threadEl.scrollHeight;
             }
             updateScrollBtn();
+            scrubActionTooltips(threadEl);
         }
 
         function applyState(payload, options) {
@@ -5750,6 +6190,7 @@ include 'includes/header.php';
             if (event.key === 'Escape') {
                 closeHeaderMenus();
                 closeConfirmModal();
+                closeContactModal();
                 closeReportModal();
                 closeMessageActionMenu();
                 closeEmojiPicker();
@@ -5762,12 +6203,48 @@ include 'includes/header.php';
             confirmCancelEl.addEventListener('click', closeConfirmModal);
         }
 
+        if (contactCloseEl) {
+            contactCloseEl.addEventListener('click', closeContactModal);
+        }
+
+        if (contactCloseSecondaryEl) {
+            contactCloseSecondaryEl.addEventListener('click', closeContactModal);
+        }
+
+        if (contactMuteEl) {
+            contactMuteEl.addEventListener('click', function () {
+                if (!(contactModalUserId > 0)) {
+                    return;
+                }
+                var currentlyMuted = isConversationMuted(contactModalUserId);
+                setConversationMuted(contactModalUserId, !currentlyMuted);
+                contactMuteEl.textContent = currentlyMuted ? 'Mute conversation' : 'Unmute conversation';
+                if (contactMutedStateEl) {
+                    contactMutedStateEl.textContent = currentlyMuted ? 'Unmuted' : 'Muted';
+                }
+
+                if (selectedContactRef && parseInt(selectedContactRef.id || '0', 10) === contactModalUserId) {
+                    renderHeader(selectedContactRef);
+                }
+                showAlert('success', currentlyMuted ? 'Conversation unmuted.' : 'Conversation muted.');
+            });
+        }
+
+        if (contactReportUserEl) {
+            contactReportUserEl.addEventListener('click', function () {
+                reportUserFromContactModal();
+            });
+        }
+
         if (reportCancelEl) {
             reportCancelEl.addEventListener('click', closeReportModal);
         }
 
         if (reportOkEl) {
-            reportOkEl.addEventListener('click', function () {
+            reportOkEl.addEventListener('click', function (event) {
+                event.preventDefault();
+                event.stopPropagation();
+                suppressHeaderToggleUntil = Date.now() + 650;
                 var reason = buildReportReason();
                 var fn = pendingReportFn;
                 closeReportModal();
@@ -5778,12 +6255,20 @@ include 'includes/header.php';
         }
 
         if (confirmOkEl) {
-            confirmOkEl.addEventListener('click', function () {
+            confirmOkEl.addEventListener('click', function (event) {
+                event.preventDefault();
+                event.stopPropagation();
+                suppressHeaderToggleUntil = Date.now() + 650;
                 var fn = pendingConfirmFn;
                 closeConfirmModal();
                 if (typeof fn === 'function') {
                     fn();
                 }
+                window.setTimeout(function () {
+                    closeHeaderMenus();
+                    closeMessageActionMenu();
+                    scrubActionTooltips(document);
+                }, 0);
             });
         }
 
@@ -5791,6 +6276,14 @@ include 'includes/header.php';
             confirmModalEl.addEventListener('click', function (event) {
                 if (event.target === confirmModalEl) {
                     closeConfirmModal();
+                }
+            });
+        }
+
+        if (contactModalEl) {
+            contactModalEl.addEventListener('click', function (event) {
+                if (event.target === contactModalEl) {
+                    closeContactModal();
                 }
             });
         }
@@ -5875,6 +6368,7 @@ include 'includes/header.php';
         });
 
         bindHeaderMenu();
+        scrubActionTooltips(app);
 
         if (isMobileLayout()) {
             setMobileHistoryState('list', 0);
