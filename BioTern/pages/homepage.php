@@ -347,27 +347,47 @@ include 'includes/header.php';
                     </ul>
                 </div>
                 <div class="page-header-right ms-auto">
-                    <div class="d-flex align-items-center gap-2">
-                        <span class="badge bg-soft-primary text-primary fs-11">
-                            <i class="feather-calendar me-1"></i> <?php echo date('M d, Y'); ?>
-                        </span>
-                        <button type="button" id="toggle-dashboard-layout" class="btn btn-sm btn-light-brand">
-                            <i class="feather-move me-1"></i> Edit Layout
-                        </button>
-                        <button type="button" id="reset-dashboard-layout" class="btn btn-sm btn-light-brand">
-                            <i class="feather-refresh-cw me-1"></i> Reset Layout
-                        </button>
-                        <a href="students.php" class="btn btn-sm btn-light-brand">
-                            <i class="feather-users me-1"></i> Manage Students
-                        </a>
-                        <?php if ($dashboard_can_review_applications): ?>
-                        <a href="applications-review.php" class="btn btn-sm btn-light-brand">
-                            <i class="feather-user-check me-1"></i> Review Applications
-                        </a>
-                        <?php endif; ?>
-                        <a href="attendance.php" class="btn btn-sm btn-primary">
-                            <i class="feather-check-square me-1"></i> Review Attendance
-                        </a>
+                    <button class="btn btn-sm btn-primary page-header-actions-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#dashboardPageActions" aria-expanded="false" aria-controls="dashboardPageActions">
+                        <i class="feather-grid me-1"></i> Actions
+                    </button>
+                    <div class="page-header-actions collapse" id="dashboardPageActions">
+                        <div class="page-header-action-grid">
+                            <span class="badge bg-soft-primary text-primary fs-11">
+                                <i class="feather-calendar me-1"></i> <?php echo date('M d, Y'); ?>
+                            </span>
+                            <button type="button" id="toggle-dashboard-layout" class="btn btn-sm btn-light-brand">
+                                <i class="feather-move me-1"></i> Edit Layout
+                            </button>
+                            <button type="button" id="reset-dashboard-layout" class="btn btn-sm btn-light-brand">
+                                <i class="feather-refresh-cw me-1"></i> Reset Layout
+                            </button>
+                            <a href="students.php" class="btn btn-sm btn-light-brand">
+                                <i class="feather-users me-1"></i> Manage Students
+                            </a>
+                            <a href="students-edit.php" class="btn btn-sm btn-light-brand">
+                                <i class="feather-plus-circle me-1"></i> Add Student
+                            </a>
+                            <?php if ($dashboard_can_review_applications): ?>
+                            <a href="applications-review.php" class="btn btn-sm btn-light-brand">
+                                <i class="feather-user-check me-1"></i> Review Applications
+                            </a>
+                            <?php endif; ?>
+                            <a href="ojt.php" class="btn btn-sm btn-light-brand">
+                                <i class="feather-briefcase me-1"></i> OJT List
+                            </a>
+                            <a href="attendance.php" class="btn btn-sm btn-light-brand">
+                                <i class="feather-calendar me-1"></i> Attendance Today
+                            </a>
+                            <a href="demo-biometric.php" class="btn btn-sm btn-light-brand">
+                                <i class="feather-activity me-1"></i> Biometric Demo
+                            </a>
+                            <a href="reports-timesheets.php" class="btn btn-sm btn-light-brand">
+                                <i class="feather-file-text me-1"></i> Reports
+                            </a>
+                            <a href="attendance.php" class="btn btn-sm btn-primary">
+                                <i class="feather-check-square me-1"></i> Review Attendance
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -399,138 +419,6 @@ include 'includes/header.php';
                         </div>
                     </div>
 
-                    <div class="col-12 dashboard-movable" data-move-key="kpi-strip">
-                        <div class="row g-3 align-items-stretch dashboard-move-handle" title="Drag to move this section">
-                            <div class="col-xxl-2 col-lg-4 col-md-6">
-                                <div class="card mb-0 h-100 kpi-card">
-                                    <div class="card-body d-flex flex-column justify-content-between gap-2">
-                                        <span class="fs-11 text-muted d-block mb-2">Pending Attendance</span>
-                                        <h4 class="fw-bold text-dark mb-1"><?php echo $attendance_awaiting; ?></h4>
-                                        <span class="badge bg-soft-warning text-warning"><?php echo $attendance_pending_rate; ?>% pending</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-xxl-2 col-lg-4 col-md-6">
-                                <div class="card mb-0 h-100 kpi-card">
-                                    <div class="card-body d-flex flex-column justify-content-between gap-2">
-                                        <span class="fs-11 text-muted d-block mb-2">Biometric Pending</span>
-                                        <h4 class="fw-bold text-dark mb-1"><?php echo $pending_biometrics; ?></h4>
-                                        <span class="badge bg-soft-danger text-danger text-wrap">students without registration</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-xxl-2 col-lg-4 col-md-6">
-                                <div class="card mb-0 h-100 kpi-card">
-                                    <div class="card-body d-flex flex-column justify-content-between gap-2">
-                                        <span class="fs-11 text-muted d-block mb-2">Active Students</span>
-                                        <h4 class="fw-bold text-dark mb-1"><?php echo $active_students; ?></h4>
-                                        <span class="badge bg-soft-primary text-primary"><?php echo $active_student_rate; ?>% of total students</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-xxl-2 col-lg-4 col-md-6">
-                                <div class="card mb-0 h-100 kpi-card">
-                                    <div class="card-body d-flex flex-column justify-content-between gap-2">
-                                        <span class="fs-11 text-muted d-block mb-2">Active Internships</span>
-                                        <h4 class="fw-bold text-dark mb-1"><?php echo $active_internships; ?></h4>
-                                        <span class="badge bg-soft-info text-info">ongoing placements</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-xxl-2 col-lg-4 col-md-6">
-                                <div class="card mb-0 h-100 kpi-card">
-                                    <div class="card-body d-flex flex-column justify-content-between gap-2">
-                                        <span class="fs-11 text-muted d-block mb-2">Attendance Today</span>
-                                        <h4 class="fw-bold text-dark mb-1"><?php echo $today_attendance; ?></h4>
-                                        <span class="badge bg-soft-secondary text-dark"><?php echo date('M d, Y'); ?></span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-xxl-2 col-lg-4 col-md-6">
-                                <div class="card mb-0 h-100 kpi-card">
-                                    <div class="card-body d-flex flex-column justify-content-between gap-2">
-                                        <span class="fs-11 text-muted d-block mb-2">Attendance Approved</span>
-                                        <h4 class="fw-bold text-dark mb-1"><?php echo $attendance_completed; ?></h4>
-                                        <span class="badge bg-soft-success text-success"><?php echo $attendance_approval_rate; ?>% approval rate</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-xxl-8 order-3 order-xxl-3 section-tight dashboard-movable" data-move-key="operations-pulse">
-                        <div class="card stretch stretch-full">
-                            <div class="card-header dashboard-move-handle" title="Drag to move this section">
-                                <h5 class="card-title">Operations Pulse</h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="mb-4">
-                                    <div class="d-flex justify-content-between mb-2">
-                                        <span class="fs-12 text-muted">Attendance Approval Progress</span>
-                                        <span class="fs-12 fw-semibold text-dark"><?php echo $attendance_completed; ?>/<?php echo $attendance_total; ?></span>
-                                    </div>
-                                    <div class="progress ht-5">
-                                        <div class="progress-bar bg-success" role="progressbar" data-progress-width="<?php echo $attendance_approval_rate; ?>"></div>
-                                    </div>
-                                </div>
-                                <div class="mb-4">
-                                    <div class="d-flex justify-content-between mb-2">
-                                        <span class="fs-12 text-muted">Biometric Enrollment</span>
-                                        <span class="fs-12 fw-semibold text-dark"><?php echo $biometric_registered; ?>/<?php echo $student_count; ?></span>
-                                    </div>
-                                    <div class="progress ht-5">
-                                        <div class="progress-bar bg-primary" role="progressbar" data-progress-width="<?php echo ($student_count > 0) ? round(($biometric_registered / $student_count) * 100) : 0; ?>"></div>
-                                    </div>
-                                </div>
-                                <div>
-                                    <div class="d-flex justify-content-between mb-2">
-                                        <span class="fs-12 text-muted">Internship Completion</span>
-                                        <span class="fs-12 fw-semibold text-dark"><?php echo $completed_internships; ?>/<?php echo $internship_count; ?></span>
-                                    </div>
-                                    <div class="progress ht-5">
-                                        <div class="progress-bar bg-info" role="progressbar" data-progress-width="<?php echo ($internship_count > 0) ? round(($completed_internships / $internship_count) * 100) : 0; ?>"></div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="card-footer d-flex flex-wrap gap-2">
-                                <a href="attendance.php" class="btn btn-sm btn-light-brand"><i class="feather-check-circle me-1"></i> Process Attendance</a>
-                                <a href="students.php" class="btn btn-sm btn-light-brand"><i class="feather-users me-1"></i> View Students</a>
-                                <a href="demo-biometric.php" class="btn btn-sm btn-light-brand"><i class="feather-activity me-1"></i> Biometric Queue</a>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-xxl-4 order-4 order-xxl-4 section-tight dashboard-movable" data-move-key="priority-items">
-                        <div class="card stretch stretch-full">
-                            <div class="card-header dashboard-move-handle" title="Drag to move this section">
-                                <h5 class="card-title">Priority Items</h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="d-flex align-items-center justify-content-between p-3 border border-dashed rounded-3 mb-3">
-                                    <div>
-                                        <div class="fw-semibold text-dark">Attendance for Review</div>
-                                        <div class="fs-12 text-muted">Pending submissions requiring approval</div>
-                                    </div>
-                                    <span class="badge bg-soft-warning text-warning fs-12"><?php echo $attendance_awaiting; ?></span>
-                                </div>
-                                <div class="d-flex align-items-center justify-content-between p-3 border border-dashed rounded-3 mb-3">
-                                    <div>
-                                        <div class="fw-semibold text-dark">Students Without Biometrics</div>
-                                        <div class="fs-12 text-muted">Needs registration to enable attendance flow</div>
-                                    </div>
-                                    <span class="badge bg-soft-danger text-danger fs-12"><?php echo $pending_biometrics; ?></span>
-                                </div>
-                                <div class="d-flex align-items-center justify-content-between p-3 border border-dashed rounded-3">
-                                    <div>
-                                        <div class="fw-semibold text-dark">OJT Not Yet Completed</div>
-                                        <div class="fs-12 text-muted">Internships still active or pending</div>
-                                    </div>
-                                    <span class="badge bg-soft-info text-info fs-12"><?php echo max(0, $internship_count - $completed_internships); ?></span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
                     <!-- [Recent Activities & Logs] start (replaces Payment Record) -->
                     <div class="col-xxl-8 order-5 order-xxl-5 section-tight dashboard-movable" data-move-key="recent-activities">
                         <div class="card stretch stretch-full">
@@ -538,14 +426,16 @@ include 'includes/header.php';
                                 <h5 class="card-title">Recent Activities & Logs</h5>
                                 <div class="card-header-action">
                                     <div class="card-header-btn">
+                                        <div data-bs-toggle="tooltip" title="Collapse">
+                                            <button class="avatar-text avatar-xs bg-soft-primary text-primary dashboard-collapse-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#dash-recent-activities" aria-expanded="false" aria-controls="dash-recent-activities">
+                                                <i class="feather-chevron-down"></i>
+                                            </button>
+                                        </div>
                                         <div data-bs-toggle="tooltip" title="Delete">
                                             <a href="javascript:void(0);" class="avatar-text avatar-xs bg-danger" data-bs-toggle="remove"> </a>
                                         </div>
                                         <div data-bs-toggle="tooltip" title="Refresh">
                                             <a href="javascript:void(0);" class="avatar-text avatar-xs bg-warning" data-bs-toggle="refresh"> </a>
-                                        </div>
-                                        <div data-bs-toggle="tooltip" title="Maximize/Minimize">
-                                            <a href="javascript:void(0);" class="avatar-text avatar-xs bg-success" data-bs-toggle="expand"> </a>
                                         </div>
                                     </div>
                                     <div class="dropdown">
@@ -555,16 +445,29 @@ include 'includes/header.php';
                                             </div>
                                         </a>
                                         <div class="dropdown-menu dropdown-menu-end">
-                                            <a href="javascript:void(0);" class="dropdown-item"><i class="feather-sliders"></i>Filter</a>
-                                            <a href="javascript:void(0);" class="dropdown-item"><i class="feather-download"></i>Export</a>
+                                            <button type="button" class="dropdown-item" onclick="BioTernDashboard.exportRecentActivitiesCSV()">
+                                                <i class="feather-download"></i> Export CSV
+                                            </button>
+                                            <button type="button" class="dropdown-item" onclick="BioTernDashboard.toggleActivitiesCompact()">
+                                                <i class="feather-align-justify"></i> Compact View
+                                            </button>
                                             <div class="dropdown-divider"></div>
-                                            <a href="javascript:void(0);" class="dropdown-item"><i class="feather-settings"></i>Settings</a>
+                                            <button type="button" class="dropdown-item" onclick="BioTernDashboard.goToApplicationsReview()">
+                                                <i class="feather-user-check"></i> Applications Review
+                                            </button>
+                                            <button type="button" class="dropdown-item" onclick="BioTernDashboard.goToAttendance()">
+                                                <i class="feather-check-square"></i> Attendance
+                                            </button>
+                                            <button type="button" class="dropdown-item" onclick="BioTernDashboard.goToStudents()">
+                                                <i class="feather-users"></i> Students
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            <div class="card-body custom-card-action p-0">
-                                <div class="app-scroll-y-400">
+                            <div class="collapse dashboard-card-body" id="dash-recent-activities">
+                                <div class="card-body custom-card-action p-0">
+                                    <div class="app-scroll-y-400">
                                     <?php if (count($recent_activities) > 0): ?>
                                         <?php
                                         $activityMeta = [
@@ -610,7 +513,7 @@ include 'includes/header.php';
                                             'label' => ucfirst(str_replace('_', ' ', $activityType)),
                                         ];
                                         ?>
-                                        <div class="d-flex align-items-center gap-3 p-3 border-bottom">
+                                          <div class="d-flex align-items-center gap-3 p-3 border-bottom recent-activity-item">
                                             <div class="avatar-text avatar-sm rounded-circle activity-icon <?php echo $meta['class']; ?>">
                                                 <i class="feather-<?php echo $meta['icon']; ?> app-icon-14"></i>
                                             </div>
@@ -634,92 +537,13 @@ include 'includes/header.php';
                                     <?php else: ?>
                                         <p class="text-muted text-center py-4">No recent activities found</p>
                                     <?php endif; ?>
+                                    </div>
                                 </div>
+                                <a href="javascript:void(0);" class="card-footer fs-11 fw-bold text-uppercase text-center py-3">View All Activities</a>
                             </div>
-                            <a href="javascript:void(0);" class="card-footer fs-11 fw-bold text-uppercase text-center py-3">View All Activities</a>
                         </div>
                     </div>
                     <!-- [Recent Activities & Logs] end -->
-
-                    <!-- [Admin Quick Actions] (moved next to Recent Activities) -->
-                    <?php // Admin Quick Actions: moved to be side-by-side with Recent Activities ?>
-                    <div class="col-xxl-4 order-6 order-xxl-6 section-tight dashboard-movable" data-move-key="admin-quick-actions">
-                        <div class="card stretch stretch-full">
-                            <div class="card-header dashboard-move-handle" title="Drag to move this section">
-                                <h5 class="card-title">Admin Quick Actions</h5>
-                                <div class="card-header-action">
-                                    <div class="card-header-btn">
-                                        <div data-bs-toggle="tooltip" title="Refresh">
-                                            <a href="javascript:void(0);" class="avatar-text avatar-xs bg-warning" data-bs-toggle="refresh"> </a>
-                                        </div>
-                                        <div data-bs-toggle="tooltip" title="Maximize/Minimize">
-                                            <a href="javascript:void(0);" class="avatar-text avatar-xs bg-success" data-bs-toggle="expand"> </a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="card-body">
-                                <?php
-                                $qa_total_students = 0;
-                                $qa_total_internships = 0;
-                                $qa_attendance_today = 0;
-                                $qa_biometric_registered = 0;
-
-                                if (isset($conn)) {
-                                    $qa_total_students = dashboard_safe_table_count($conn, 'students', '1');
-                                    $qa_total_internships = dashboard_safe_table_count($conn, 'internships', '1');
-
-                                    if (dashboard_column_exists($conn, 'attendances', 'date')) {
-                                        $qa_attendance_today = dashboard_safe_table_count($conn, 'attendances', 'date = CURDATE()');
-                                    } elseif (dashboard_column_exists($conn, 'attendances', 'log_time')) {
-                                        $qa_attendance_today = dashboard_safe_table_count($conn, 'attendances', 'DATE(log_time) = CURDATE()');
-                                    }
-
-                                    if (dashboard_column_exists($conn, 'students', 'biometric_registered')) {
-                                        $qa_biometric_registered = dashboard_safe_table_count($conn, 'students', 'biometric_registered = 1');
-                                    }
-                                }
-                                ?>
-                                <div class="row g-2">
-                                    <div class="col-6">
-                                        <a href="students.php" class="btn btn-primary btn-lg w-100 d-flex align-items-center justify-content-center">
-                                            <i class="feather-users me-2"></i> Students
-                                            <span class="badge bg-white text-dark ms-3"><?php echo $qa_total_students; ?></span>
-                                        </a>
-                                    </div>
-                                    <div class="col-6">
-                                        <a href="students-edit.php" class="btn btn-success btn-lg w-100 d-flex align-items-center justify-content-center">
-                                            <i class="feather-plus-circle me-2"></i> Add Student
-                                        </a>
-                                    </div>
-                                    <div class="col-6">
-                                        <a href="ojt.php" class="btn btn-info btn-lg w-100 d-flex align-items-center justify-content-center">
-                                            <i class="feather-briefcase me-2"></i> OJT List
-                                            <span class="badge bg-white text-dark ms-3"><?php echo $qa_total_internships; ?></span>
-                                        </a>
-                                    </div>
-                                    <div class="col-6">
-                                        <a href="attendance.php" class="btn btn-warning btn-lg w-100 d-flex align-items-center justify-content-center">
-                                            <i class="feather-calendar me-2"></i> Attendance Today
-                                            <span class="badge bg-white text-dark ms-3"><?php echo $qa_attendance_today; ?></span>
-                                        </a>
-                                    </div>
-                                    <div class="col-6">
-                                        <a href="demo-biometric.php" class="btn btn-secondary btn-lg w-100 d-flex align-items-center justify-content-center">
-                                            <i class="feather-activity me-2"></i> Biometric Demo
-                                            <span class="badge bg-white text-dark ms-3"><?php echo $qa_biometric_registered; ?></span>
-                                        </a>
-                                    </div>
-                                    <div class="col-6">
-                                        <a href="reports-timesheets.php" class="btn btn-dark btn-lg w-100 d-flex align-items-center justify-content-center">
-                                            <i class="feather-file-text me-2"></i> Reports
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-                            <a href="javascript:void(0);" class="card-footer fs-11 fw-bold text-uppercase text-center">Admin quick actions</a>
-                        </div>
-                    </div>
 
                     
 
@@ -730,14 +554,16 @@ include 'includes/header.php';
                                 <h5 class="card-title latest-attendance-title">Latest Attendance Records <span class="badge bg-soft-success text-success fs-11">Active Today: <?php echo $today_attendance; ?></span></h5>
                                 <div class="card-header-action">
                                     <div class="card-header-btn">
+                                        <div data-bs-toggle="tooltip" title="Collapse">
+                                            <button class="avatar-text avatar-xs bg-soft-primary text-primary dashboard-collapse-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#dash-latest-attendance" aria-expanded="false" aria-controls="dash-latest-attendance">
+                                                <i class="feather-chevron-down"></i>
+                                            </button>
+                                        </div>
                                         <div data-bs-toggle="tooltip" title="Delete">
                                             <a href="javascript:void(0);" class="avatar-text avatar-xs bg-danger" data-bs-toggle="remove"> </a>
                                         </div>
                                         <div data-bs-toggle="tooltip" title="Refresh">
                                             <a href="javascript:void(0);" class="avatar-text avatar-xs bg-warning" data-bs-toggle="refresh"> </a>
-                                        </div>
-                                        <div data-bs-toggle="tooltip" title="Maximize/Minimize">
-                                            <a href="javascript:void(0);" class="avatar-text avatar-xs bg-success" data-bs-toggle="expand"> </a>
                                         </div>
                                     </div>
                                     <div class="dropdown">
@@ -747,20 +573,30 @@ include 'includes/header.php';
                                             </div>
                                         </a>
                                         <div class="dropdown-menu dropdown-menu-end">
-                                            <a href="javascript:void(0);" class="dropdown-item"><i class="feather-at-sign"></i>New</a>
-                                            <a href="javascript:void(0);" class="dropdown-item"><i class="feather-calendar"></i>Event</a>
-                                            <a href="javascript:void(0);" class="dropdown-item"><i class="feather-bell"></i>Snoozed</a>
-                                            <a href="javascript:void(0);" class="dropdown-item"><i class="feather-trash-2"></i>Deleted</a>
+                                            <button type="button" class="dropdown-item" onclick="BioTernDashboard.exportAttendanceCSV()">
+                                                <i class="feather-download"></i> Export CSV
+                                            </button>
+                                            <button type="button" class="dropdown-item" onclick="BioTernDashboard.toggleAttendanceCompact()">
+                                                <i class="feather-list"></i> Compact Rows
+                                            </button>
                                             <div class="dropdown-divider"></div>
-                                            <a href="javascript:void(0);" class="dropdown-item"><i class="feather-settings"></i>Settings</a>
-                                            <a href="javascript:void(0);" class="dropdown-item"><i class="feather-life-buoy"></i>Tips & Tricks</a>
+                                            <button type="button" class="dropdown-item" onclick="BioTernDashboard.goToAttendance()">
+                                                <i class="feather-check-square"></i> Attendance
+                                            </button>
+                                            <button type="button" class="dropdown-item" onclick="BioTernDashboard.goToStudents()">
+                                                <i class="feather-users"></i> Students
+                                            </button>
+                                            <button type="button" class="dropdown-item" onclick="BioTernDashboard.goToReports()">
+                                                <i class="feather-file-text"></i> Reports
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            <div class="card-body custom-card-action p-0">
-                                <div class="table-responsive">
-                                    <table class="table table-hover mb-0">
+                            <div class="collapse dashboard-card-body" id="dash-latest-attendance">
+                                <div class="card-body custom-card-action p-0">
+                                    <div class="table-responsive">
+                                    <table class="table table-hover mb-0" id="latest-attendance-table">
                                         <thead>
                                             <tr class="border-b">
                                                 <th scope="row">Students</th>
@@ -803,10 +639,12 @@ include 'includes/header.php';
                                                     }
                                                     ?>
                                                 </td>
-                                                <td class="text-end">
-                                                    <a href="attendance.php"><i class="feather-more-vertical"></i></a>
-                                                </td>
-                                            </tr>
+                                                  <td class="text-end">
+                                                      <button type="button" class="btn btn-link p-0" onclick="BioTernDashboard.openAttendanceRecord(<?php echo (int)($attendance['id'] ?? 0); ?>)">
+                                                          <i class="feather-more-vertical"></i>
+                                                      </button>
+                                                  </td>
+                                              </tr>
                                                 <?php endforeach; ?>
                                             <?php else: ?>
                                             <tr>
@@ -815,10 +653,10 @@ include 'includes/header.php';
                                             <?php endif; ?>
                                         </tbody>
                                     </table>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="card-footer">
-                                <ul class="list-unstyled d-flex align-items-center gap-2 mb-0 pagination-common-style" id="latest-attendance-pagination">
+                                <div class="card-footer">
+                                    <ul class="list-unstyled d-flex align-items-center gap-2 mb-0 pagination-common-style" id="latest-attendance-pagination">
                                     <li>
                                         <a href="javascript:void(0);" data-role="prev"><i class="bi bi-arrow-left"></i></a>
                                     </li>
@@ -831,85 +669,12 @@ include 'includes/header.php';
                                     <li>
                                         <a href="javascript:void(0);" data-role="next"><i class="bi bi-arrow-right"></i></a>
                                     </li>
-                                </ul>
+                                    </ul>
+                                </div>
                             </div>
                         </div>
                     </div>
                     <!-- [Latest Attendance Records] end -->
-                    <!--! BEGIN: [Biometric Registration Status] !-->
-                    <div class="col-xxl-4 order-2 order-xxl-2 section-tight dashboard-movable" data-move-key="biometric-status">
-                        <div class="card stretch stretch-full">
-                            <div class="card-header dashboard-move-handle" title="Drag to move this section">
-                                <h5 class="card-title">Biometric Registration Status</h5>
-                                <div class="card-header-action">
-                                    <div class="card-header-btn">
-                                        <div data-bs-toggle="tooltip" title="Delete">
-                                            <a href="javascript:void(0);" class="avatar-text avatar-xs bg-danger" data-bs-toggle="remove"> </a>
-                                        </div>
-                                        <div data-bs-toggle="tooltip" title="Refresh">
-                                            <a href="javascript:void(0);" class="avatar-text avatar-xs bg-warning" data-bs-toggle="refresh"> </a>
-                                        </div>
-                                        <div data-bs-toggle="tooltip" title="Maximize/Minimize">
-                                            <a href="javascript:void(0);" class="avatar-text avatar-xs bg-success" data-bs-toggle="expand"> </a>
-                                        </div>
-                                    </div>
-                                    <div class="dropdown">
-                                        <a href="javascript:void(0);" class="avatar-text avatar-sm" data-bs-toggle="dropdown" data-bs-offset="25, 25">
-                                            <div data-bs-toggle="tooltip" title="Options">
-                                                <i class="feather-more-vertical"></i>
-                                            </div>
-                                        </a>
-                                        <div class="dropdown-menu dropdown-menu-end">
-                                            <a href="javascript:void(0);" class="dropdown-item"><i class="feather-at-sign"></i>New</a>
-                                            <a href="javascript:void(0);" class="dropdown-item"><i class="feather-calendar"></i>Event</a>
-                                            <a href="javascript:void(0);" class="dropdown-item"><i class="feather-bell"></i>Snoozed</a>
-                                            <a href="javascript:void(0);" class="dropdown-item"><i class="feather-trash-2"></i>Deleted</a>
-                                            <div class="dropdown-divider"></div>
-                                            <a href="javascript:void(0);" class="dropdown-item"><i class="feather-settings"></i>Settings</a>
-                                            <a href="javascript:void(0);" class="dropdown-item"><i class="feather-life-buoy"></i>Tips & Tricks</a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="card-body">
-                                <div class="p-3 border border-dashed rounded-3 mb-3">
-                                    <div class="d-flex justify-content-between">
-                                        <div class="d-flex align-items-center gap-3">
-                                            <div class="wd-50 ht-50 bg-soft-success text-success lh-1 d-flex align-items-center justify-content-center flex-column rounded-2">
-                                                <span class="fs-18 fw-bold mb-1 d-block"><?php echo $biometric_registered; ?></span>
-                                                <span class="fs-10 fw-semibold text-uppercase d-block">Registered</span>
-                                            </div>
-                                            <div class="text-dark">
-                                                <a href="demo-biometric.php" class="fw-bold mb-2 text-truncate-1-line">Students Registered</a>
-                                                <span class="fs-11 fw-normal text-muted text-truncate-1-line"><?php echo ($student_count > 0) ? round(($biometric_registered / $student_count) * 100) : 0; ?>% of total</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="p-3 border border-dashed rounded-3 mb-3">
-                                    <div class="d-flex justify-content-between">
-                                        <div class="d-flex align-items-center gap-3">
-                                            <div class="wd-50 ht-50 bg-soft-warning text-warning lh-1 d-flex align-items-center justify-content-center flex-column rounded-2">
-                                                <span class="fs-18 fw-bold mb-1 d-block"><?php echo ($student_count - $biometric_registered); ?></span>
-                                                <span class="fs-10 fw-semibold text-uppercase d-block">Pending</span>
-                                            </div>
-                                            <div class="text-dark">
-                                                <a href="demo-biometric.php" class="fw-bold mb-2 text-truncate-1-line">Awaiting Registration</a>
-                                                <span class="fs-11 fw-normal text-muted text-truncate-1-line"><?php echo ($student_count > 0) ? round((($student_count - $biometric_registered) / $student_count) * 100) : 0; ?>% pending</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="progress mb-3 ht-5">
-                                    <div class="progress-bar bg-success" role="progressbar" data-progress-width="<?php echo ($student_count > 0) ? round(($biometric_registered / $student_count) * 100) : 0; ?>"></div>
-                                </div>
-                                <p class="text-muted text-center fs-12 mb-0">Overall Biometric Registration Progress</p>
-                            </div>
-                            <a href="demo-biometric.php" class="card-footer fs-11 fw-bold text-uppercase text-center py-4">Manage Biometric</a>
-                        </div>
-                    </div>
-                    <!--! END: [Biometric Registration Status] !-->
-
                     <!--! BEGIN: [Coordinators List] !-->
                     <div class="col-xxl-4 dashboard-movable" data-move-key="coordinators">
                         <div class="card stretch stretch-full">
@@ -917,39 +682,43 @@ include 'includes/header.php';
                                 <h5 class="card-title">Coordinators</h5>
                                 <div class="card-header-action">
                                     <div class="card-header-btn">
+                                        <div data-bs-toggle="tooltip" title="Collapse">
+                                            <button class="avatar-text avatar-xs bg-soft-primary text-primary dashboard-collapse-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#dash-coordinators" aria-expanded="false" aria-controls="dash-coordinators">
+                                                <i class="feather-chevron-down"></i>
+                                            </button>
+                                        </div>
                                         <div data-bs-toggle="tooltip" title="Delete">
                                             <a href="javascript:void(0);" class="avatar-text avatar-xs bg-danger" data-bs-toggle="remove"> </a>
                                         </div>
                                         <div data-bs-toggle="tooltip" title="Refresh">
                                             <a href="javascript:void(0);" class="avatar-text avatar-xs bg-warning" data-bs-toggle="refresh"> </a>
                                         </div>
-                                        <div data-bs-toggle="tooltip" title="Maximize/Minimize">
-                                            <a href="javascript:void(0);" class="avatar-text avatar-xs bg-success" data-bs-toggle="expand"> </a>
-                                        </div>
                                     </div>
                                 </div>
                             </div>
-                            <div class="card-body custom-card-action">
-                                <?php if (count($coordinators) > 0): ?>
-                                    <?php foreach ($coordinators as $coordinator): ?>
-                                    <div class="hstack justify-content-between border border-dashed rounded-3 p-3 mb-3">
-                                        <div class="hstack gap-3">
-                                            <div class="avatar-text avatar-lg bg-soft-primary text-primary">
-                                                <?php echo strtoupper(substr($coordinator['name'], 0, 1)); ?>
+                            <div class="collapse dashboard-card-body" id="dash-coordinators">
+                                <div class="card-body custom-card-action">
+                                    <?php if (count($coordinators) > 0): ?>
+                                        <?php foreach ($coordinators as $coordinator): ?>
+                                        <div class="hstack justify-content-between border border-dashed rounded-3 p-3 mb-3">
+                                            <div class="hstack gap-3">
+                                                <div class="avatar-text avatar-lg bg-soft-primary text-primary">
+                                                    <?php echo strtoupper(substr($coordinator['name'], 0, 1)); ?>
+                                                </div>
+                                                <div>
+                                                    <a href="javascript:void(0);" class="fw-semibold"><?php echo htmlspecialchars($coordinator['name']); ?></a>
+                                                    <div class="fs-11 text-muted"><?php echo htmlspecialchars($coordinator['email']); ?></div>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <a href="javascript:void(0);" class="fw-semibold"><?php echo htmlspecialchars($coordinator['name']); ?></a>
-                                                <div class="fs-11 text-muted"><?php echo htmlspecialchars($coordinator['email']); ?></div>
-                                            </div>
+                                            <span class="badge bg-soft-info text-info fs-10">Coordinator</span>
                                         </div>
-                                        <span class="badge bg-soft-info text-info fs-10">Coordinator</span>
-                                    </div>
-                                    <?php endforeach; ?>
-                                <?php else: ?>
-                                    <p class="text-muted text-center">No coordinators found</p>
-                                <?php endif; ?>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <p class="text-muted text-center">No coordinators found</p>
+                                    <?php endif; ?>
+                                </div>
+                                <a href="javascript:void(0);" class="card-footer fs-11 fw-bold text-uppercase text-center py-3">View All Coordinators</a>
                             </div>
-                            <a href="javascript:void(0);" class="card-footer fs-11 fw-bold text-uppercase text-center py-3">View All Coordinators</a>
                         </div>
                     </div>
                     <!--! END: [Coordinators List] !-->
@@ -960,39 +729,43 @@ include 'includes/header.php';
                                 <h5 class="card-title">Supervisors</h5>
                                 <div class="card-header-action">
                                     <div class="card-header-btn">
+                                        <div data-bs-toggle="tooltip" title="Collapse">
+                                            <button class="avatar-text avatar-xs bg-soft-primary text-primary dashboard-collapse-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#dash-supervisors" aria-expanded="false" aria-controls="dash-supervisors">
+                                                <i class="feather-chevron-down"></i>
+                                            </button>
+                                        </div>
                                         <div data-bs-toggle="tooltip" title="Delete">
                                             <a href="javascript:void(0);" class="avatar-text avatar-xs bg-danger" data-bs-toggle="remove"> </a>
                                         </div>
                                         <div data-bs-toggle="tooltip" title="Refresh">
                                             <a href="javascript:void(0);" class="avatar-text avatar-xs bg-warning" data-bs-toggle="refresh"> </a>
                                         </div>
-                                        <div data-bs-toggle="tooltip" title="Maximize/Minimize">
-                                            <a href="javascript:void(0);" class="avatar-text avatar-xs bg-success" data-bs-toggle="expand"> </a>
-                                        </div>
                                     </div>
                                 </div>
                             </div>
-                            <div class="card-body custom-card-action">
-                                <?php if (count($supervisors) > 0): ?>
-                                    <?php foreach ($supervisors as $supervisor): ?>
-                                    <div class="hstack justify-content-between border border-dashed rounded-3 p-3 mb-3">
-                                        <div class="hstack gap-3">
-                                            <div class="avatar-text avatar-lg bg-soft-success text-success">
-                                                <?php echo strtoupper(substr($supervisor['name'], 0, 1)); ?>
+                            <div class="collapse dashboard-card-body" id="dash-supervisors">
+                                <div class="card-body custom-card-action">
+                                    <?php if (count($supervisors) > 0): ?>
+                                        <?php foreach ($supervisors as $supervisor): ?>
+                                        <div class="hstack justify-content-between border border-dashed rounded-3 p-3 mb-3">
+                                            <div class="hstack gap-3">
+                                                <div class="avatar-text avatar-lg bg-soft-success text-success">
+                                                    <?php echo strtoupper(substr($supervisor['name'], 0, 1)); ?>
+                                                </div>
+                                                <div>
+                                                    <a href="javascript:void(0);" class="fw-semibold"><?php echo htmlspecialchars($supervisor['name']); ?></a>
+                                                    <div class="fs-11 text-muted"><?php echo htmlspecialchars($supervisor['email']); ?></div>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <a href="javascript:void(0);" class="fw-semibold"><?php echo htmlspecialchars($supervisor['name']); ?></a>
-                                                <div class="fs-11 text-muted"><?php echo htmlspecialchars($supervisor['email']); ?></div>
-                                            </div>
+                                            <span class="badge bg-soft-success text-success fs-10">Supervisor</span>
                                         </div>
-                                        <span class="badge bg-soft-success text-success fs-10">Supervisor</span>
-                                    </div>
-                                    <?php endforeach; ?>
-                                <?php else: ?>
-                                    <p class="text-muted text-center">No supervisors found</p>
-                                <?php endif; ?>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <p class="text-muted text-center">No supervisors found</p>
+                                    <?php endif; ?>
+                                </div>
+                                <a href="javascript:void(0);" class="card-footer fs-11 fw-bold text-uppercase text-center py-3">View All Supervisors</a>
                             </div>
-                            <a href="javascript:void(0);" class="card-footer fs-11 fw-bold text-uppercase text-center py-3">View All Supervisors</a>
                         </div>
                     </div>
                     <!--! END: [Supervisors List] !-->

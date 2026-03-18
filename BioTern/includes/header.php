@@ -298,6 +298,7 @@ if ($header_db instanceof mysqli) {
     <link rel="stylesheet" type="text/css" href="assets/css/core.css" />
     <link rel="stylesheet" type="text/css" href="assets/css/ui.css" />
     <link rel="stylesheet" type="text/css" href="assets/css/theme.css" />
+    <link rel="stylesheet" type="text/css" href="assets/css/mobile.min.css" />
     <?php if (isset($page_styles) && is_array($page_styles)): ?>
         <?php foreach ($page_styles as $stylesheet): ?>
             <?php if (is_string($stylesheet) && trim($stylesheet) !== ''): ?>

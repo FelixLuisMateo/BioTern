@@ -235,3 +235,17 @@
     background-color: #e3f2fd;
     color: #1d4ed8;
 }
+
+.dashboard-activities-compact .recent-activity-item {
+    padding-top: 10px !important;
+    padding-bottom: 10px !important;
+}
+
+.page-header-action-grid {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+/* Collapse toggles are available on all viewports. */
