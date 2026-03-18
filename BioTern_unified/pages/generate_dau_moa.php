@@ -232,7 +232,10 @@ if ($use_saved_template): ?>
             var saved = localStorage.getItem('biotern_dau_moa_template_html_v1');
             var doc = document.getElementById('moa_doc_content');
             if (saved && doc) {
-                doc.innerHTML = saved;
+                var temp = document.createElement('div');
+                temp.innerHTML = saved;
+                var extracted = temp.querySelector('#moa_doc_content') || temp.querySelector('.doc') || temp;
+                doc.innerHTML = extracted.innerHTML || saved;
             }
         } catch (err) {}
     })();

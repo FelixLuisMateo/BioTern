@@ -122,6 +122,18 @@ if ($file === '' || !isset($map[$file])) {
     exit('Not found');
 }
 
+$request_uri = (string)($_SERVER['REQUEST_URI'] ?? '');
+if ($request_uri !== '' && stripos($request_uri, 'legacy_router.php') !== false) {
+  $query = $_GET;
+  unset($query['file']);
+  $destination = $file;
+  if (!empty($query)) {
+    $destination .= '?' . http_build_query($query);
+  }
+  header('Location: ' . $destination, true, 302);
+  exit;
+}
+
 $target = __DIR__ . '/' . $map[$file];
 if (!is_file($target)) {
     http_response_code(404);

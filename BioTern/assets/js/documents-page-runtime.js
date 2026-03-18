@@ -63,6 +63,7 @@
 
     function initApplicationPage() {
         var PREFILL_STUDENT_ID = parseInt(cfg.prefillStudentId || 0, 10) || 0;
+        var ENABLE_TEMPLATE_PREVIEW = true;
         var APP_TEMPLATE_STORAGE_KEY = 'biotern_application_template_html_v1';
         var APP_FORM_STORAGE_KEY = 'biotern_application_form_values_v1';
         var APP_SELECTED_STUDENT_KEY = 'biotern_application_selected_student_v1';
@@ -190,6 +191,7 @@
         }
 
         function loadApplicationTemplateHtml() {
+            if (!ENABLE_TEMPLATE_PREVIEW) return false;
             if (!letterContent) return false;
             try {
                 var saved = pageStorage.getItem(APP_TEMPLATE_STORAGE_KEY);

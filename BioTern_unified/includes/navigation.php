@@ -25,7 +25,7 @@ $nav_asset_fallback = $nav_asset_base;
 if (!function_exists('nav_page_href')) {
     function nav_page_href(string $root, string $file): string
     {
-        return htmlspecialchars($root . 'legacy_router.php?file=' . rawurlencode($file), ENT_QUOTES, 'UTF-8');
+        return htmlspecialchars($root . ltrim($file, '/'), ENT_QUOTES, 'UTF-8');
     }
 }
 ?>
