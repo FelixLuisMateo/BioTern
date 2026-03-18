@@ -1,9 +1,43 @@
-﻿<?php
+<?php
 require_once dirname(__DIR__) . '/config/db.php';
+require_once dirname(__DIR__) . '/lib/notifications.php';
 // Shared header include.  Sets up HTML <head> and page header/navigation.
 // Pages can set a $page_title variable before including this file.
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
+}
+
+if (!function_exists('header_notification_safe_target')) {
+    function header_notification_safe_target(string $target, string $fallback = 'homepage.php'): string
+    {
+        $target = trim($target);
+        if ($target === '') {
+            return $fallback;
+        }
+        if (preg_match('~^(?:[a-z][a-z0-9+.-]*:)?//~i', $target)) {
+            return $fallback;
+        }
+        return $target;
+    }
+}
+
+if (!function_exists('header_notification_badge_text')) {
+    function header_notification_badge_text(string $value): string
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return 'NT';
+        }
+        $parts = preg_split('/\s+/', $value) ?: [];
+        $first = $parts[0] ?? '';
+        $second = $parts[1] ?? '';
+        if ($second !== '') {
+            $result = substr($first, 0, 1) . substr($second, 0, 1);
+        } else {
+            $result = substr($first, 0, 2);
+        }
+        return strtoupper($result !== '' ? $result : 'NT');
+    }
 }
 
 // Build the login URL dynamically so it always points to BioTern_unified regardless of server path.
@@ -15,15 +49,27 @@ $_header_login_url = ($_header_unified_pos !== false)
 
 // Enforce authenticated session for all pages using the shared app header.
 $header_user_id_session = (int)($_SESSION['user_id'] ?? 0);
+$header_conn = @new mysqli(
+    defined('DB_HOST') ? DB_HOST : '127.0.0.1',
+    defined('DB_USER') ? DB_USER : 'root',
+    defined('DB_PASS') ? DB_PASS : '',
+    defined('DB_NAME') ? DB_NAME : 'biotern_db',
+    defined('DB_PORT') ? (int)DB_PORT : 3306
+);
+
+if ($header_user_id_session <= 0 && !$header_conn->connect_errno) {
+    biotern_auth_restore_session_from_cookie($header_conn);
+    $header_user_id_session = (int)($_SESSION['user_id'] ?? 0);
+}
+
 if ($header_user_id_session <= 0) {
     header('Location: ' . $_header_login_url);
     exit;
 }
 
 // Refresh session identity from DB so page access stays connected to current account data.
-$header_db = @new mysqli(defined('DB_HOST') ? DB_HOST : '127.0.0.1', defined('DB_USER') ? DB_USER : 'root', defined('DB_PASS') ? DB_PASS : '', defined('DB_NAME') ? DB_NAME : 'biotern_db');
-if (!$header_db->connect_errno) {
-    $stmt = $header_db->prepare("SELECT id, name, username, email, role, is_active, profile_picture FROM users WHERE id = ? LIMIT 1");
+if (!$header_conn->connect_errno) {
+    $stmt = $header_conn->prepare("SELECT id, name, username, email, role, is_active, profile_picture FROM users WHERE id = ? LIMIT 1");
     if ($stmt) {
         $stmt->bind_param('i', $header_user_id_session);
         $stmt->execute();
@@ -49,7 +95,6 @@ if (!$header_db->connect_errno) {
         $_SESSION['profile_picture'] = (string)($header_user['profile_picture'] ?? '');
         $_SESSION['logged_in'] = true;
     }
-    $header_db->close();
 }
 
 if (!isset($page_title) || trim($page_title) === '') {
@@ -167,88 +212,37 @@ if ($session_avatar !== '') {
 
 $header_notifications = [];
 $header_notifications_unread = 0;
+$header_notification_return_url = header_notification_safe_target((string)($_SERVER['REQUEST_URI'] ?? ''), 'homepage.php');
 if ($header_user_id_session > 0) {
-    $hdr_db = @new mysqli(defined('DB_HOST') ? DB_HOST : '127.0.0.1', defined('DB_USER') ? DB_USER : 'root', defined('DB_PASS') ? DB_PASS : '', defined('DB_NAME') ? DB_NAME : 'biotern_db');
-    if (!$hdr_db->connect_errno) {
-        $has_title = false;
-        $has_message = false;
-        $has_type = false;
-        $has_data = false;
-        $col_res = $hdr_db->query("SHOW COLUMNS FROM notifications");
-        if ($col_res instanceof mysqli_result) {
-            while ($col = $col_res->fetch_assoc()) {
-                $field = strtolower((string)($col['Field'] ?? ''));
-                if ($field === 'title') $has_title = true;
-                if ($field === 'message') $has_message = true;
-                if ($field === 'type') $has_type = true;
-                if ($field === 'data') $has_data = true;
+    if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && isset($_POST['header_notification_action'])) {
+        $notificationAction = trim((string)($_POST['header_notification_action'] ?? ''));
+        $notificationId = (int)($_POST['header_notification_id'] ?? 0);
+        $notificationNext = header_notification_safe_target((string)($_POST['header_notification_next'] ?? ''), $header_notification_return_url);
+
+        if (!$header_conn->connect_errno) {
+            if ($notificationAction === 'mark_read' && $notificationId > 0) {
+                biotern_notifications_mark_read($header_conn, $header_user_id_session, $notificationId);
+            } elseif ($notificationAction === 'mark_all_read') {
+                biotern_notifications_mark_all_read($header_conn, $header_user_id_session);
+            } elseif ($notificationAction === 'clear_one' && $notificationId > 0) {
+                biotern_notifications_clear($header_conn, $header_user_id_session, $notificationId);
+            } elseif ($notificationAction === 'clear_all') {
+                biotern_notifications_clear_all($header_conn, $header_user_id_session);
             }
         }
 
-        $count_stmt = $hdr_db->prepare("SELECT COUNT(*) AS unread_count FROM notifications WHERE user_id = ? AND (is_read = 0 OR is_read IS NULL)");
-        if ($count_stmt) {
-            $count_stmt->bind_param('i', $header_user_id_session);
-            $count_stmt->execute();
-            $row = $count_stmt->get_result()->fetch_assoc();
-            $count_stmt->close();
-            $header_notifications_unread = (int)($row['unread_count'] ?? 0);
-        }
-
-        if ($has_title && $has_message) {
-            $list_stmt = $hdr_db->prepare(
-                "SELECT id, title, message, is_read, created_at
-                 FROM notifications
-                 WHERE user_id = ?
-                 ORDER BY created_at DESC, id DESC
-                 LIMIT 6"
-            );
-            if ($list_stmt) {
-                $list_stmt->bind_param('i', $header_user_id_session);
-                $list_stmt->execute();
-                $res = $list_stmt->get_result();
-                while ($n = $res->fetch_assoc()) {
-                    $header_notifications[] = [
-                        'title' => (string)($n['title'] ?? 'Notification'),
-                        'message' => (string)($n['message'] ?? ''),
-                        'is_read' => (int)($n['is_read'] ?? 0),
-                        'created_at' => (string)($n['created_at'] ?? ''),
-                    ];
-                }
-                $list_stmt->close();
-            }
-        } elseif ($has_type && $has_data) {
-            $list_stmt = $hdr_db->prepare(
-                "SELECT id, type, data, is_read, created_at
-                 FROM notifications
-                 WHERE user_id = ?
-                 ORDER BY created_at DESC, id DESC
-                 LIMIT 6"
-            );
-            if ($list_stmt) {
-                $list_stmt->bind_param('i', $header_user_id_session);
-                $list_stmt->execute();
-                $res = $list_stmt->get_result();
-                while ($n = $res->fetch_assoc()) {
-                    $raw_data = (string)($n['data'] ?? '');
-                    $title = ucfirst((string)($n['type'] ?? 'notification'));
-                    $message = $raw_data;
-                    $json = json_decode($raw_data, true);
-                    if (is_array($json)) {
-                        $title = (string)($json['title'] ?? $title);
-                        $message = (string)($json['message'] ?? $message);
-                    }
-                    $header_notifications[] = [
-                        'title' => $title,
-                        'message' => $message,
-                        'is_read' => (int)($n['is_read'] ?? 0),
-                        'created_at' => (string)($n['created_at'] ?? ''),
-                    ];
-                }
-                $list_stmt->close();
-            }
-        }
-        $hdr_db->close();
+        header('Location: ' . $notificationNext);
+        exit;
     }
+
+    if (!$header_conn->connect_errno) {
+        $header_notifications_unread = biotern_notifications_count_unread($header_conn, $header_user_id_session);
+        $header_notifications = biotern_notifications_fetch($header_conn, $header_user_id_session, 8);
+    }
+}
+
+if ($header_conn instanceof mysqli && !$header_conn->connect_errno) {
+    $header_conn->close();
 }
 ?>
 <!DOCTYPE html>
@@ -306,6 +300,7 @@ echo htmlspecialchars($favicon_ico_href, ENT_QUOTES, 'UTF-8'); ?>">
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/dataTables.bs5.min.css">
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2.min.css">
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2-theme.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/vendors/css/datepicker.min.css">
     <!--! END: Vendors CSS-->
     <!--! BEGIN: Early Skin Script -->
     <script src="assets/js/header-early-skin.js"></script>
@@ -330,6 +325,7 @@ echo htmlspecialchars($favicon_ico_href, ENT_QUOTES, 'UTF-8'); ?>">
     <!--! BEGIN: Custom CSS-->
     <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css" />
     <link rel="stylesheet" type="text/css" href="assets/css/layout-shared-overrides.css" />
+    <link rel="stylesheet" type="text/css" href="assets/css/datepicker-global.css" />
     <?php
 require_once dirname(__DIR__) . '/config/db.php';
 if (isset($page_styles) && is_array($page_styles)): ?>
@@ -419,53 +415,79 @@ include_once __DIR__ . '/navigation.php'; ?>
                     <div class="dropdown nxl-h-item click-only-dropdown header-notification-dropdown">
                         <a class="nxl-head-link me-3" data-bs-toggle="dropdown" href="#" role="button" data-bs-auto-close="outside">
                             <i class="feather-bell"></i>
-                            <?php
-require_once dirname(__DIR__) . '/config/db.php';
-if ($header_notifications_unread > 0): ?>
-                                <span class="badge bg-danger nxl-h-badge"><?php
-require_once dirname(__DIR__) . '/config/db.php';
-echo (int)$header_notifications_unread; ?></span>
-                            <?php
-require_once dirname(__DIR__) . '/config/db.php';
-endif; ?>
+                            <?php if ($header_notifications_unread > 0): ?>
+                                <span class="badge bg-danger nxl-h-badge"><?php echo (int)$header_notifications_unread; ?></span>
+                            <?php endif; ?>
                         </a>
                         <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-notifications-menu">
-                            <div class="d-flex justify-content-between align-items-center notifications-head px-3 py-2 border-bottom">
-                                <span class="fw-semibold">Notifications</span>
-                                <span class="badge bg-soft-primary text-primary"><?php
-require_once dirname(__DIR__) . '/config/db.php';
-echo (int)$header_notifications_unread; ?> unread</span>
+                            <div class="notifications-head header-notifications-head">
+                                <div class="header-notifications-summary">
+                                    <span class="header-notifications-kicker">Activity Center</span>
+                                    <div class="header-notifications-title-row">
+                                        <span class="fw-semibold">Notifications</span>
+                                        <span class="header-notifications-count"><?php echo (int)$header_notifications_unread; ?> unread</span>
+                                    </div>
+                                    <div class="header-notifications-subtitle">Operational alerts, chat activity, and account updates.</div>
+                                </div>
+                                <?php if (!empty($header_notifications)): ?>
+                                    <div class="header-notifications-toolbar">
+                                        <form method="post" class="m-0">
+                                            <input type="hidden" name="header_notification_action" value="mark_all_read">
+                                            <input type="hidden" name="header_notification_next" value="<?php echo htmlspecialchars($header_notification_return_url, ENT_QUOTES, 'UTF-8'); ?>">
+                                            <button type="submit" class="header-notification-toolbar-btn">Mark all read</button>
+                                        </form>
+                                        <form method="post" class="m-0">
+                                            <input type="hidden" name="header_notification_action" value="clear_all">
+                                            <input type="hidden" name="header_notification_next" value="<?php echo htmlspecialchars($header_notification_return_url, ENT_QUOTES, 'UTF-8'); ?>">
+                                            <button type="submit" class="header-notification-toolbar-btn danger">Clear all</button>
+                                        </form>
+                                    </div>
+                                <?php endif; ?>
                             </div>
-                            <?php
-require_once dirname(__DIR__) . '/config/db.php';
-if (!empty($header_notifications)): ?>
-                                <?php
-require_once dirname(__DIR__) . '/config/db.php';
-foreach ($header_notifications as $n): ?>
-                                    <div class="notifications-item">
-                                        <img src="assets/images/avatar/1.png" alt="" class="rounded me-3 border">
-                                        <div class="notifications-desc">
-                                            <a href="javascript:void(0);" class="font-body text-truncate-2-line"><?php
-require_once dirname(__DIR__) . '/config/db.php';
-echo htmlspecialchars($n['title'], ENT_QUOTES, 'UTF-8'); ?></a>
-                                            <div class="fs-12 text-muted text-truncate-2-line"><?php
-require_once dirname(__DIR__) . '/config/db.php';
-echo htmlspecialchars($n['message'], ENT_QUOTES, 'UTF-8'); ?></div>
-                                            <div class="notifications-date text-muted border-bottom border-bottom-dashed"><?php
-require_once dirname(__DIR__) . '/config/db.php';
-echo htmlspecialchars($n['created_at'] !== '' ? date('M d, Y h:i A', strtotime($n['created_at'])) : 'Just now', ENT_QUOTES, 'UTF-8'); ?></div>
+                            <?php if (!empty($header_notifications)): ?>
+                                <div class="header-notifications-list">
+                                <?php foreach ($header_notifications as $n): ?>
+                                    <?php
+                                    $notificationTitle = (string)($n['title'] ?? 'Notification');
+                                    $notificationMessage = (string)($n['message'] ?? '');
+                                    $notificationCreatedAt = (string)($n['created_at'] ?? '');
+                                    $notificationActionUrl = header_notification_safe_target((string)($n['action_url'] ?? ''), $header_notification_return_url);
+                                    $notificationIsUnread = (int)($n['is_read'] ?? 0) === 0;
+                                    $notificationOpenLabel = trim((string)($n['action_url'] ?? '')) !== '' ? 'Open' : 'Mark read';
+                                    $notificationBadge = header_notification_badge_text($notificationTitle);
+                                    ?>
+                                    <div class="notifications-item header-notification-item<?php echo $notificationIsUnread ? ' unread' : ''; ?>">
+                                        <div class="header-notification-badge"><?php echo htmlspecialchars($notificationBadge, ENT_QUOTES, 'UTF-8'); ?></div>
+                                        <div class="notifications-desc header-notification-desc">
+                                            <div class="header-notification-meta-row">
+                                                <div class="header-notification-title"><?php echo htmlspecialchars($notificationTitle, ENT_QUOTES, 'UTF-8'); ?></div>
+                                                <div class="header-notification-time"><?php echo htmlspecialchars($notificationCreatedAt !== '' ? date('M d, Y h:i A', strtotime($notificationCreatedAt)) : 'Just now', ENT_QUOTES, 'UTF-8'); ?></div>
+                                            </div>
+                                            <div class="header-notification-message"><?php echo htmlspecialchars($notificationMessage, ENT_QUOTES, 'UTF-8'); ?></div>
+                                            <div class="header-notification-actions">
+                                                <form method="post" class="m-0">
+                                                    <input type="hidden" name="header_notification_action" value="mark_read">
+                                                    <input type="hidden" name="header_notification_id" value="<?php echo (int)($n['id'] ?? 0); ?>">
+                                                    <input type="hidden" name="header_notification_next" value="<?php echo htmlspecialchars($notificationActionUrl, ENT_QUOTES, 'UTF-8'); ?>">
+                                                    <button type="submit" class="header-notification-action-link primary"><?php echo htmlspecialchars($notificationOpenLabel, ENT_QUOTES, 'UTF-8'); ?></button>
+                                                </form>
+                                                <form method="post" class="m-0">
+                                                    <input type="hidden" name="header_notification_action" value="clear_one">
+                                                    <input type="hidden" name="header_notification_id" value="<?php echo (int)($n['id'] ?? 0); ?>">
+                                                    <input type="hidden" name="header_notification_next" value="<?php echo htmlspecialchars($header_notification_return_url, ENT_QUOTES, 'UTF-8'); ?>">
+                                                    <button type="submit" class="header-notification-action-link">Dismiss</button>
+                                                </form>
+                                            </div>
                                         </div>
                                     </div>
-                                <?php
-require_once dirname(__DIR__) . '/config/db.php';
-endforeach; ?>
-                            <?php
-require_once dirname(__DIR__) . '/config/db.php';
-else: ?>
-                                <div class="px-3 py-3 text-muted fs-12">No notifications yet.</div>
-                            <?php
-require_once dirname(__DIR__) . '/config/db.php';
-endif; ?>
+                                <?php endforeach; ?>
+                                </div>
+                            <?php else: ?>
+                                <div class="header-notifications-empty">
+                                    <div class="header-notifications-empty-title">No notifications</div>
+                                    <div class="header-notifications-empty-copy">New activity will appear here when something requires your attention.</div>
+                                </div>
+                            <?php endif; ?>
                         </div>
                     </div>
                     <div class="dropdown nxl-h-item click-only-dropdown">

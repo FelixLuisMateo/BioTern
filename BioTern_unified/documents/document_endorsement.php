@@ -1,12 +1,13 @@
-﻿<?php
+<?php
 require_once dirname(__DIR__) . '/config/db.php';
-$host = 'localhost';
-$db_user = 'root';
-$db_password = '';
+$host = defined('DB_HOST') ? DB_HOST : 'localhost';
+$db_user = defined('DB_USER') ? DB_USER : 'root';
+$db_password = defined('DB_PASS') ? DB_PASS : '';
 $db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
+$db_port = defined('DB_PORT') ? (int)DB_PORT : 3306;
 
 try {
-    $conn = new mysqli($host, $db_user, $db_password, $db_name);
+    $conn = new mysqli($host, $db_user, $db_password, $db_name, $db_port);
     if ($conn->connect_error) die('Connection failed: ' . $conn->connect_error);
 } catch (Exception $e) {
     die('Database error: ' . $e->getMessage());
@@ -75,7 +76,7 @@ if (isset($_GET['action'])) {
     exit;
 }
 $page_title = 'Endorsement Letter';
-$base_href = '../';
+$base_href = '';
 include __DIR__ . '/../includes/header.php';
 ?>
 <style>
@@ -498,6 +499,12 @@ echo intval($prefill_student_id); ?>;
         const selectedName = getSelectedStudentName();
         const studentsValue = typed.length ? typed.join('\n') : selectedName;
         if (studentsValue) p.set('students', studentsValue);
+        try {
+            const savedTemplate = localStorage.getItem('biotern_endorsement_template_html_v1');
+            if (savedTemplate && savedTemplate.trim()) {
+                p.set('use_saved_template', '1');
+            }
+        } catch (e) {}
         const genUrl = 'pages/generate_endorsement_letter.php?' + p.toString();
         btnGenerate.href = genUrl;
         btnFileEdit.href = 'pages/edit_endorsement.php?blank=1';
@@ -701,6 +708,20 @@ echo intval($prefill_student_id); ?>;
         const either = greetingRadios.find(function(r){ return r.value === 'either'; });
         if (either) either.checked = true;
     }
+
+    (function loadSavedTemplatePreview(){
+        try {
+            var saved = localStorage.getItem('biotern_endorsement_template_html_v1');
+            if (!saved) return;
+            var out = document.getElementById('preview_content');
+            if (!out) return;
+            var temp = document.createElement('div');
+            temp.innerHTML = saved;
+            var extracted = temp.querySelector('#endorsement_doc_content') || temp.querySelector('.content') || temp;
+            out.innerHTML = extracted ? extracted.innerHTML : (temp.innerHTML || saved);
+        } catch (err) {}
+    })();
+
     updatePreview();
     updateLinks();
 })();

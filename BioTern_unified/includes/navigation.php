@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 require_once dirname(__DIR__) . '/config/db.php';
 // Centralized navigation include (grouped/relabeled).
 if (session_status() === PHP_SESSION_NONE) {
@@ -15,19 +15,24 @@ $nav_can_academic = ($nav_is_admin || $nav_is_coordinator);
 $nav_can_workspace = ($nav_is_admin || $nav_is_coordinator);
 $nav_can_system = $nav_is_admin;
 $nav_can_reports = ($nav_is_admin || $nav_is_coordinator || $nav_is_supervisor);
-$nav_dir = str_replace('\\', '/', dirname($_SERVER['PHP_SELF'] ?? ''));
-$nav_dir = rtrim($nav_dir, '/');
-if ($nav_dir === '' || $nav_dir === '.') {
-    $nav_dir = '';
+$nav_root = isset($base_href) && is_string($base_href) ? $base_href : '';
+if ($nav_root !== '' && substr($nav_root, -1) !== '/') {
+    $nav_root .= '/';
 }
-$nav_dir = preg_replace('#/(management|pages|auth)$#i', '', $nav_dir);
-$nav_asset_base = ($nav_dir === '' ? '' : $nav_dir) . '/assets';
-$nav_asset_fallback = '/BioTern/BioTern_unified/assets';
+$nav_asset_base = $nav_root . 'assets';
+$nav_asset_fallback = $nav_asset_base;
+
+if (!function_exists('nav_page_href')) {
+    function nav_page_href(string $root, string $file): string
+    {
+        return htmlspecialchars($root . ltrim($file, '/'), ENT_QUOTES, 'UTF-8');
+    }
+}
 ?>
 <nav class="nxl-navigation">
     <div class="navbar-wrapper">
         <div class="m-header">
-            <a href="/BioTern/BioTern_unified/homepage.php" class="b-brand">
+            <a href="<?php echo nav_page_href($nav_root, 'homepage.php'); ?>" class="b-brand">
                     <img src="<?php echo htmlspecialchars($nav_asset_base); ?>/images/logo-full.png" alt="BioTern" class="logo logo-lg logo-lg-contained nav-fallback-img" data-fallback-src="<?php echo htmlspecialchars($nav_asset_fallback); ?>/images/logo-full.png" />
                     <img src="<?php echo htmlspecialchars($nav_asset_base); ?>/images/logo-abbr.png" alt="" class="logo logo-sm nav-fallback-img" data-fallback-src="<?php echo htmlspecialchars($nav_asset_fallback); ?>/images/logo-abbr.png" />
             </a>
@@ -43,14 +48,12 @@ $nav_asset_fallback = '/BioTern/BioTern_unified/assets';
                         <span class="nxl-mtext">Dashboard</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                     </a>
                     <ul class="nxl-submenu">
-                        <li class="nxl-item"><a class="nxl-link" href="homepage.php">Overview</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="analytics.php">Analytics</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'homepage.php'); ?>">Overview</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'analytics.php'); ?>">Analytics</a></li>
                     </ul>
                 </li>
 
-                <?php
-require_once dirname(__DIR__) . '/config/db.php';
-if ($nav_can_internship): ?>
+                <?php if ($nav_can_internship): ?>
                 <li class="nxl-item nxl-caption">
                     <span>Internship</span>
                 </li>
@@ -60,10 +63,10 @@ if ($nav_can_internship): ?>
                         <span class="nxl-mtext">Student Management</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                     </a>
                     <ul class="nxl-submenu">
-                        <li class="nxl-item"><a class="nxl-link" href="students.php">Students List</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="applications-review.php">Applications Review</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="attendance.php">Attendance DTR</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="demo-biometric.php">Demo Biometric</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'students.php'); ?>">Students List</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'applications-review.php'); ?>">Applications Review</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'attendance.php'); ?>">Attendance DTR</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'demo-biometric.php'); ?>">Demo Biometric</a></li>
                     </ul>
                 </li>
                 <li class="nxl-item nxl-hasmenu">
@@ -72,8 +75,8 @@ if ($nav_can_internship): ?>
                         <span class="nxl-mtext">OJT Management</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                     </a>
                     <ul class="nxl-submenu">
-                        <li class="nxl-item"><a class="nxl-link" href="ojt.php">OJT List</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="ojt-create.php">OJT Create</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'ojt.php'); ?>">OJT List</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'ojt-create.php'); ?>">OJT Create</a></li>
                     </ul>
                 </li>
                 <li class="nxl-item nxl-hasmenu">
@@ -82,10 +85,10 @@ if ($nav_can_internship): ?>
                         <span class="nxl-mtext">Documents</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                     </a>
                     <ul class="nxl-submenu">
-                        <li class="nxl-item"><a class="nxl-link" href="document_application.php">Application</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="document_endorsement.php">Endorsement</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="document_moa.php">MOA</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="document_dau_moa.php">Dau MOA</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'document_application.php'); ?>">Application</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'document_endorsement.php'); ?>">Endorsement</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'document_moa.php'); ?>">MOA</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'document_dau_moa.php'); ?>">Dau MOA</a></li>
                     </ul>
                 </li>
                 <li class="nxl-item nxl-hasmenu">
@@ -94,16 +97,16 @@ if ($nav_can_internship): ?>
                         <span class="nxl-mtext">Reports</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                     </a>
                     <ul class="nxl-submenu">
-                        <li class="nxl-item"><a class="nxl-link" href="reports-sales.php">Sales Report</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="reports-ojt.php">OJT Report</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="reports-project.php">Project Report</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="reports-timesheets.php">Timesheets Report</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="reports-login-logs.php">Login Logs</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'reports-sales.php'); ?>">Sales Report</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'reports-ojt.php'); ?>">OJT Report</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'reports-project.php'); ?>">Project Report</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'reports-timesheets.php'); ?>">Timesheets Report</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'reports-chat-logs.php'); ?>">Chat Logs</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'reports-chat-reports.php'); ?>">Reported Chats</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'reports-login-logs.php'); ?>">Login Logs</a></li>
                     </ul>
                 </li>
-                <?php
-require_once dirname(__DIR__) . '/config/db.php';
-endif; ?>
+                <?php endif; ?>
 
                 <?php if ($nav_is_student): ?>
                 <li class="nxl-item nxl-caption">
@@ -115,8 +118,8 @@ endif; ?>
                         <span class="nxl-mtext">My Account</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                     </a>
                     <ul class="nxl-submenu">
-                        <li class="nxl-item"><a class="nxl-link" href="student-profile.php">My Profile</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="student-dtr.php">My DTR</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'student-profile.php'); ?>">My Profile</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'student-dtr.php'); ?>">My DTR</a></li>
                     </ul>
                 </li>
                 <li class="nxl-item nxl-hasmenu">
@@ -125,17 +128,15 @@ endif; ?>
                         <span class="nxl-mtext">My Documents</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                     </a>
                     <ul class="nxl-submenu">
-                        <li class="nxl-item"><a class="nxl-link" href="document_application.php">Application</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="document_endorsement.php">Endorsement</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="document_moa.php">MOA</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="document_dau_moa.php">Dau MOA</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'document_application.php'); ?>">Application</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'document_endorsement.php'); ?>">Endorsement</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'document_moa.php'); ?>">MOA</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'document_dau_moa.php'); ?>">Dau MOA</a></li>
                     </ul>
                 </li>
                 <?php endif; ?>
 
-                <?php
-require_once dirname(__DIR__) . '/config/db.php';
-if ($nav_can_academic): ?>
+                <?php if ($nav_can_academic): ?>
                 <li class="nxl-item nxl-caption">
                     <span>Academic</span>
                 </li>
@@ -145,20 +146,16 @@ if ($nav_can_academic): ?>
                         <span class="nxl-mtext">Academic Setup</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                     </a>
                     <ul class="nxl-submenu">
-                        <li class="nxl-item"><a class="nxl-link" href="courses.php">Courses</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="departments.php">Departments</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="sections.php">Sections</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="coordinators.php">Coordinators</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="supervisors.php">Supervisors</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'courses.php'); ?>">Courses</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'departments.php'); ?>">Departments</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'sections.php'); ?>">Sections</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'coordinators.php'); ?>">Coordinators</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'supervisors.php'); ?>">Supervisors</a></li>
                     </ul>
                 </li>
-                <?php
-require_once dirname(__DIR__) . '/config/db.php';
-endif; ?>
+                <?php endif; ?>
 
-                <?php
-require_once dirname(__DIR__) . '/config/db.php';
-if ($nav_can_workspace): ?>
+                <?php if ($nav_can_workspace): ?>
                 <li class="nxl-item nxl-caption">
                     <span>Workspace</span>
                 </li>
@@ -168,12 +165,12 @@ if ($nav_can_workspace): ?>
                         <span class="nxl-mtext">Applications</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                     </a>
                     <ul class="nxl-submenu">
-                        <li class="nxl-item"><a class="nxl-link" href="apps-chat.php">Chat</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="apps-email.php">Email</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="apps-tasks.php">Tasks</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="apps-notes.php">Notes</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="apps-storage.php">Storage</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="apps-calendar.php">Calendar</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'apps-chat.php'); ?>">Chat</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'apps-email.php'); ?>">Email</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'apps-tasks.php'); ?>">Tasks</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'apps-notes.php'); ?>">Notes</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'apps-storage.php'); ?>">Storage</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'apps-calendar.php'); ?>">Calendar</a></li>
                     </ul>
                 </li>
                 <li class="nxl-item nxl-hasmenu">
@@ -182,20 +179,16 @@ if ($nav_can_workspace): ?>
                         <span class="nxl-mtext">Widgets</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                     </a>
                     <ul class="nxl-submenu">
-                        <li class="nxl-item"><a class="nxl-link" href="widgets-lists.php">Lists</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="widgets-tables.php">Tables</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="widgets-charts.php">Charts</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="widgets-statistics.php">Statistics</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="widgets-miscellaneous.php">Miscellaneous</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'widgets-lists.php'); ?>">Lists</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'widgets-tables.php'); ?>">Tables</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'widgets-charts.php'); ?>">Charts</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'widgets-statistics.php'); ?>">Statistics</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'widgets-miscellaneous.php'); ?>">Miscellaneous</a></li>
                     </ul>
                 </li>
-                <?php
-require_once dirname(__DIR__) . '/config/db.php';
-endif; ?>
+                <?php endif; ?>
 
-                <?php
-require_once dirname(__DIR__) . '/config/db.php';
-if ($nav_can_system): ?>
+                <?php if ($nav_can_system): ?>
                 <li class="nxl-item nxl-caption">
                     <span>System</span>
                 </li>
@@ -216,16 +209,16 @@ if ($nav_can_system): ?>
                         <span class="nxl-mtext">Settings</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                     </a>
                     <ul class="nxl-submenu">
-                        <li class="nxl-item"><a class="nxl-link" href="settings-general.php">General</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="settings-seo.php">SEO</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="settings-tags.php">Tags</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="settings-email.php">Email</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="settings-tasks.php">Tasks</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="settings-ojt.php">Leads</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="settings-support.php">Support</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="settings-students.php">Students</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="settings-miscellaneous.php">Miscellaneous</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="theme-customizer.php">Theme Customizer</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'settings-general.php'); ?>">General</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'settings-seo.php'); ?>">SEO</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'settings-tags.php'); ?>">Tags</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'settings-email.php'); ?>">Email</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'settings-tasks.php'); ?>">Tasks</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'settings-ojt.php'); ?>">Leads</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'settings-support.php'); ?>">Support</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'settings-students.php'); ?>">Students</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'settings-miscellaneous.php'); ?>">Miscellaneous</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'theme-customizer.php'); ?>">Theme Customizer</a></li>
                     </ul>
                 </li>
                 <li class="nxl-item nxl-hasmenu">
@@ -234,14 +227,12 @@ if ($nav_can_system): ?>
                         <span class="nxl-mtext">Help Center</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                     </a>
                     <ul class="nxl-submenu">
-                        <li class="nxl-item"><a class="nxl-link" href="settings-support.php">Support</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="help-knowledgebase.php">Knowledge Base</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'settings-support.php'); ?>">Support</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'help-knowledgebase.php'); ?>">Knowledge Base</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="/docs/documentations">Documentations</a></li>
                     </ul>
                 </li>
-                <?php
-require_once dirname(__DIR__) . '/config/db.php';
-endif; ?>
+                <?php endif; ?>
             </ul>
         </div>
     </div>

@@ -257,6 +257,7 @@ if ($do_download_pdf || $do_download_html) ob_start();
         // Apply once for default template content.
         applyRuntimeValues();
         // Expose for later call after saved-template injection.
+        window.__ensurePrintableHoursSpan = ensurePrintableHoursSpan;
         window.__applyApplicationRuntimeValues = applyRuntimeValues;
     })();
 
@@ -317,7 +318,9 @@ if ($do_download_pdf || $do_download_html) ob_start();
 
     // button actions
     (function(){
-        ensurePrintableHoursSpan(<?php echo json_encode($ap_hours); ?>);
+        if (typeof window.__ensurePrintableHoursSpan === 'function') {
+            window.__ensurePrintableHoursSpan(<?php echo json_encode($ap_hours); ?>);
+        }
 
         // print button: open print dialog — note: browser headers/footers are controlled by print dialog settings
         var printButton = document.getElementById('btn_print');
@@ -354,7 +357,7 @@ if ($do_download_pdf || $do_download_html) ob_start();
             if (saved && doc) {
                 var temp = document.createElement('div');
                 temp.innerHTML = saved;
-                var extracted = temp.querySelector('.content');
+                var extracted = temp.querySelector('#application_doc_content') || temp.querySelector('.content') || temp.querySelector('.doc');
                 var savedCrest = temp.querySelector('.crest');
                 if (savedCrest && pageCrest) {
                     var style = savedCrest.style || {};
@@ -363,7 +366,6 @@ if ($do_download_pdf || $do_download_html) ob_start();
                     if (style.width) pageCrest.style.width = style.width;
                     if (style.height) pageCrest.style.height = style.height;
                 }
-                if (!extracted) extracted = temp.querySelector('#application_doc_content');
                 if (extracted) {
                     doc.innerHTML = extracted.innerHTML;
                 } else {

@@ -61,6 +61,22 @@ if (!isset($base_href)) {
     $base_href = '';
 }
 
+$favicon_ico_path = dirname(__DIR__) . '/assets/images/favicon.ico';
+$favicon_png_path = dirname(__DIR__) . '/assets/images/favicon-rounded.png';
+$favicon_logo_path = dirname(__DIR__) . '/assets/images/logo-abbr.png';
+$favicon_ico_version = @filemtime($favicon_ico_path);
+$favicon_png_version = @filemtime($favicon_png_path);
+$favicon_logo_version = @filemtime($favicon_logo_path);
+if ($favicon_ico_version === false) {
+    $favicon_ico_version = '20260318';
+}
+if ($favicon_png_version === false) {
+    $favicon_png_version = '20260318';
+}
+if ($favicon_logo_version === false) {
+    $favicon_logo_version = '20260318';
+}
+
 $biotern_theme_api_endpoint = $base_href . 'api/theme-customizer.php';
 require_once __DIR__ . '/theme-preferences.php';
 
@@ -256,7 +272,11 @@ if ($header_db instanceof mysqli) {
     <title><?php echo htmlspecialchars($page_title, ENT_QUOTES, 'UTF-8'); ?></title>
     <!--! END:  Apps Title-->
     <!--! BEGIN: Favicon-->
-    <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
+    <link rel="icon" type="image/png" sizes="192x192" href="assets/images/logo-abbr.png?v=<?php echo rawurlencode((string)$favicon_logo_version); ?>">
+    <link rel="icon" type="image/png" sizes="64x64" href="assets/images/favicon-rounded.png?v=<?php echo rawurlencode((string)$favicon_png_version); ?>">
+    <link rel="apple-touch-icon" href="assets/images/logo-abbr.png?v=<?php echo rawurlencode((string)$favicon_logo_version); ?>">
+    <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico?v=<?php echo rawurlencode((string)$favicon_ico_version); ?>">
+    <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico?v=<?php echo rawurlencode((string)$favicon_ico_version); ?>">
     <!--! END: Favicon-->
     <!-- paceOptions are configured in assets/js/theme-preload-init.min.js -->
     <script src="assets/js/theme-preload-init.min.js"></script>

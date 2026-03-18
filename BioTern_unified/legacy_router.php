@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 require_once __DIR__ . '/config/db.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -64,6 +64,8 @@ $map = [
   'reports-timesheets.php' => 'reports/reports-timesheets.php',
   'reports-attendance-operations.php' => 'reports/reports-attendance-operations.php',
   'reports-login-logs.php' => 'reports/reports-login-logs.php',
+  'reports-chat-logs.php' => 'reports/reports-chat-logs.php',
+  'reports-chat-reports.php' => 'reports/reports-chat-reports.php',
 
   'settings-general.php' => 'settings/settings-general.php',
   'settings-seo.php' => 'settings/settings-seo.php',
@@ -120,11 +122,26 @@ if ($file === '' || !isset($map[$file])) {
     exit('Not found');
 }
 
+$request_uri = (string)($_SERVER['REQUEST_URI'] ?? '');
+if ($request_uri !== '' && stripos($request_uri, 'legacy_router.php') !== false) {
+  $query = $_GET;
+  unset($query['file']);
+  $destination = $file;
+  if (!empty($query)) {
+    $destination .= '?' . http_build_query($query);
+  }
+  header('Location: ' . $destination, true, 302);
+  exit;
+}
+
 $target = __DIR__ . '/' . $map[$file];
 if (!is_file($target)) {
     http_response_code(404);
     exit('Not found');
 }
+
+chdir(__DIR__);
+set_include_path(__DIR__ . PATH_SEPARATOR . get_include_path());
 
 // Global auth guard so all routed pages are tied to a logged-in account.
 $public_files = [
@@ -166,8 +183,20 @@ if ($is_logged_in && $file === 'auth-register-creative.php') {
 
 // Refresh session fields from DB to keep account info consistent across all pages.
 if ($is_logged_in) {
-  $db = @new mysqli(defined('DB_HOST') ? DB_HOST : '127.0.0.1', defined('DB_USER') ? DB_USER : 'root', defined('DB_PASS') ? DB_PASS : '', defined('DB_NAME') ? DB_NAME : 'biotern_db');
-  if (!$db->connect_errno) {
+  $db = null;
+  try {
+    $db = new mysqli(
+      defined('DB_HOST') ? DB_HOST : '127.0.0.1',
+      defined('DB_USER') ? DB_USER : 'root',
+      defined('DB_PASS') ? DB_PASS : '',
+      defined('DB_NAME') ? DB_NAME : 'biotern_db',
+      defined('DB_PORT') ? (int)DB_PORT : 3306
+    );
+  } catch (mysqli_sql_exception $e) {
+    $db = null;
+  }
+
+  if ($db instanceof mysqli && !$db->connect_errno) {
     $stmt = $db->prepare("SELECT id, name, username, email, role, is_active, profile_picture FROM users WHERE id = ? LIMIT 1");
     if ($stmt) {
       $stmt->bind_param('i', $current_user_id);
@@ -208,7 +237,7 @@ if ($is_logged_in) {
     'attendance.php', 'attendance-corrections.php', 'edit_attendance.php', 'print_attendance.php',
     'demo-biometric.php',
     'ojt.php', 'ojt-create.php', 'ojt-edit.php', 'ojt-view.php', 'ojt-workflow-board.php',
-    'reports-sales.php', 'reports-ojt.php', 'reports-project.php', 'reports-timesheets.php', 'reports-attendance-operations.php', 'reports-login-logs.php',
+    'reports-sales.php', 'reports-ojt.php', 'reports-project.php', 'reports-timesheets.php', 'reports-attendance-operations.php', 'reports-login-logs.php', 'reports-chat-logs.php', 'reports-chat-reports.php',
   ];
   $academic_files = [
     'courses.php', 'courses-create.php', 'courses-edit.php',

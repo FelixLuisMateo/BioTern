@@ -25,13 +25,14 @@ $current_role = strtolower(trim((string) (
 $is_student_user = ($current_role === 'student');
 
 // Database Connection
-$host = 'localhost';
-$db_user = 'root';
-$db_password = '';
+$host = defined('DB_HOST') ? DB_HOST : 'localhost';
+$db_user = defined('DB_USER') ? DB_USER : 'root';
+$db_password = defined('DB_PASS') ? DB_PASS : '';
 $db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
+$db_port = defined('DB_PORT') ? (int)DB_PORT : 3306;
 
 try {
-    $conn = new mysqli($host, $db_user, $db_password, $db_name);
+    $conn = new mysqli($host, $db_user, $db_password, $db_name, $db_port);
     if ($conn->connect_error) {
         die("Connection failed: " . $conn->connect_error);
     }
@@ -350,8 +351,10 @@ usort($print_students, function ($a, $b) {
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/dataTables.bs5.min.css">
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2.min.css">
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2-theme.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/vendors/css/datepicker.min.css">
     <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css">
     <link rel="stylesheet" type="text/css" href="assets/css/layout-shared-overrides.css">
+    <link rel="stylesheet" type="text/css" href="assets/css/datepicker-global.css">
     <style>
         html, body {
             height: 100%;
@@ -1620,7 +1623,9 @@ endif; ?>
     <script src="assets/vendors/js/dataTables.bs5.min.js"></script>
     <script src="assets/vendors/js/select2.min.js"></script>
     <script src="assets/vendors/js/select2-active.min.js"></script>
+    <script src="assets/vendors/js/datepicker.min.js"></script>
     <script src="assets/js/global-ui-helpers.js"></script>
+    <script src="assets/js/global-datepicker-init.js"></script>
     <script src="assets/js/common-init.min.js"></script>
     <script src="assets/js/customers-init.min.js"></script>
     <script src="assets/js/theme-customizer-init.min.js"></script>

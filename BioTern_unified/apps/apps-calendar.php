@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 require_once dirname(__DIR__) . '/config/db.php';
 $page_title = 'BioTern || Calendar';
 include 'includes/header.php';
@@ -567,7 +567,6 @@ include 'includes/header.php';
     <script src="assets/vendors/js/tui-calendar.min.js"></script>
     <script src="assets/vendors/js/tui-calendars.min.js"></script>
     <script src="assets/vendors/js/tui-schedules.min.js"></script>
-    <script src="assets/vendors/js/tui-calendar-init.min.js"></script>
     <!--! END: Vendors JS !-->
     <!--! BEGIN: Apps Init  !-->
     <script src="assets/js/common-init.min.js"></script>

@@ -1,6 +1,21 @@
 <?php
+require_once __DIR__ . '/config/db.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
+}
+
+if ((int)($_SESSION['user_id'] ?? 0) <= 0) {
+    $index_conn = @new mysqli(
+        defined('DB_HOST') ? DB_HOST : '127.0.0.1',
+        defined('DB_USER') ? DB_USER : 'root',
+        defined('DB_PASS') ? DB_PASS : '',
+        defined('DB_NAME') ? DB_NAME : 'biotern_db',
+        defined('DB_PORT') ? (int)DB_PORT : 3306
+    );
+    if (!$index_conn->connect_errno) {
+        biotern_auth_restore_session_from_cookie($index_conn);
+        $index_conn->close();
+    }
 }
 
 $landing_user_id = (int)($_SESSION['user_id'] ?? 0);

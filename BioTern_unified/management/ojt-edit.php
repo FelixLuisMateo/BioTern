@@ -400,8 +400,10 @@ if ($student_id > 0 && ojt_edit_table_exists($conn, 'ojt_supervisor_reviews')) {
     <script src="assets/js/theme-preload-init.min.js"></script>
     <link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/vendors.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/vendors/css/datepicker.min.css">
     <script>try{var s=localStorage.getItem('app-skin')||localStorage.getItem('app_skin')||localStorage.getItem('theme'); if(s&&s.indexOf('dark')!==-1)document.documentElement.classList.add('app-skin-dark');}catch(e){};</script>
     <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/css/datepicker-global.css">
     <style>
         body { background: #f5f7fb; }
         .card { border: 1px solid #e8edf6; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04); }
@@ -706,7 +708,9 @@ require_once dirname(__DIR__) . '/config/db.php';
     </div>
 </main>
 <script src="assets/vendors/js/vendors.min.js"></script>
+<script src="assets/vendors/js/datepicker.min.js"></script>
 <script src="assets/js/global-ui-helpers.js"></script>
+<script src="assets/js/global-datepicker-init.js"></script>
 <script src="assets/js/common-init.min.js"></script>
 <script src="assets/js/theme-customizer-init.min.js"></script>
 </body>

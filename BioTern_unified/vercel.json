@@ -1,0 +1,54 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "assets/**",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "uploads/**",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "index.php",
+      "use": "vercel-php"
+    },
+    {
+      "src": "legacy_router.php",
+      "use": "vercel-php"
+    }
+  ],
+  "routes": [
+    {
+      "src": "^/$",
+      "dest": "/index.php"
+    },
+    {
+      "src": "^/BioTern/BioTern_unified/(.*)$",
+      "dest": "/$1"
+    },
+    {
+      "src": "^/assets/(.*)$",
+      "dest": "/assets/$1"
+    },
+    {
+      "src": "^/uploads/(.*)$",
+      "dest": "/uploads/$1"
+    },
+    {
+      "src": "^/(.*\\.(?:css|js|map|png|jpg|jpeg|gif|svg|ico|webp|woff|woff2|ttf|eot))$",
+      "dest": "/$1"
+    },
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "^/(.*\\.php)$",
+      "dest": "/legacy_router.php?file=$1"
+    },
+    {
+      "src": "^(.*)$",
+      "dest": "/index.php"
+    }
+  ]
+}

@@ -36,7 +36,7 @@ $greeting_pref = strtolower(trim((string)($_GET['greeting_pref'] ?? 'either')));
 if (!in_array($greeting_pref, ['sir', 'maam', 'either'], true)) {
     $greeting_pref = 'either';
 }
-$use_saved_template = false;
+$use_saved_template = isset($_GET['use_saved_template']) && $_GET['use_saved_template'] === '1';
 
 $students = [];
 if ($students_raw !== '') {
@@ -234,15 +234,54 @@ if ($recipient !== '') {
 })();
 
 (function(){
+    function setText(id, value) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        el.textContent = value || '';
+    }
+
+    function applyRuntimeValues() {
+        setText('ed_recipient', <?php echo json_encode($recipient_print ?: '__________________________'); ?>);
+        setText('ed_position', <?php echo json_encode($position ?: '__________________________'); ?>);
+        setText('ed_company', <?php echo json_encode($company ?: '__________________________'); ?>);
+        setText('ed_company_address', <?php echo json_encode($company_address ?: '__________________________'); ?>);
+        var salutation = document.getElementById('pv_salutation') || document.querySelector('#endorsement_doc_content p');
+        if (salutation && (salutation.id === 'pv_salutation' || /^Dear\b/i.test((salutation.textContent || '').trim()))) {
+            salutation.textContent = <?php echo json_encode($salutation); ?>;
+        }
+
+        var ul = document.getElementById('ed_students');
+        if (ul) {
+            ul.innerHTML = '';
+            var students = <?php echo json_encode(array_values($students)); ?>;
+            if (!Array.isArray(students) || !students.length) {
+                students = ['__________________________'];
+            }
+            students.forEach(function(s){
+                var li = document.createElement('li');
+                li.textContent = s;
+                ul.appendChild(li);
+            });
+        }
+    }
+
+    applyRuntimeValues();
+    window.__applyEndorsementRuntimeValues = applyRuntimeValues;
+})();
+
+(function(){
     if (!<?php echo $use_saved_template ? 'true' : 'false'; ?>) return;
     try {
         var saved = localStorage.getItem('biotern_endorsement_template_html_v1');
         if (!saved) return;
         var temp = document.createElement('div');
         temp.innerHTML = saved;
-        var content = temp.querySelector('.content') || temp;
+        var content = temp.querySelector('#endorsement_doc_content') || temp.querySelector('.content') || temp.querySelector('.doc') || temp;
         var out = document.getElementById('endorsement_doc_content');
         if (out && content) out.innerHTML = content.innerHTML;
+        if (typeof window.__applyEndorsementRuntimeValues === 'function') {
+            window.__applyEndorsementRuntimeValues();
+        }
     } catch (e) {}
 })();
 </script>

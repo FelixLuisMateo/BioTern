@@ -1,14 +1,15 @@
-﻿<?php
+<?php
 require_once dirname(__DIR__) . '/config/db.php';
 // Documents page - provides UI to generate student documents (Application Letter etc.)
 
-$host = 'localhost';
-$db_user = 'root';
-$db_password = '';
+$host = defined('DB_HOST') ? DB_HOST : 'localhost';
+$db_user = defined('DB_USER') ? DB_USER : 'root';
+$db_password = defined('DB_PASS') ? DB_PASS : '';
 $db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
+$db_port = defined('DB_PORT') ? (int)DB_PORT : 3306;
 
 try {
-    $conn = new mysqli($host, $db_user, $db_password, $db_name);
+    $conn = new mysqli($host, $db_user, $db_password, $db_name, $db_port);
     if ($conn->connect_error) die('Connection failed: ' . $conn->connect_error);
 } catch (Exception $e) {
     die('Database error: ' . $e->getMessage());
@@ -67,7 +68,7 @@ if (isset($_GET['action'])) {
 }
 
 $page_title = 'Documents';
-$base_href = '../';
+$base_href = '';
 include __DIR__ . '/../includes/header.php';
 ?>
 <style>
@@ -329,6 +330,7 @@ include __DIR__ . '/../includes/header.php';
         window.addEventListener('load', function() {
         (function(){
             const APP_TEMPLATE_STORAGE_KEY = 'biotern_application_template_html_v1';
+            const ENABLE_TEMPLATE_PREVIEW = true;
             const APP_FORM_STORAGE_KEY = 'biotern_application_form_values_v1';
             const APP_SELECTED_STUDENT_KEY = 'biotern_application_selected_student_v1';
             const PREFILL_STUDENT_ID = <?php
@@ -345,10 +347,9 @@ echo intval($prefill_student_id); ?>;
             let selectedStudentId = null;
             let isFileEditMode = false;
             let hasLoadedSavedTemplate = false;
-            const pageStorage = window.sessionStorage;
+            const pageStorage = window.localStorage;
 
             function clearPageState() {
-                try { pageStorage.removeItem(APP_TEMPLATE_STORAGE_KEY); } catch (err) {}
                 try { pageStorage.removeItem(APP_FORM_STORAGE_KEY); } catch (err) {}
                 try { pageStorage.removeItem(APP_SELECTED_STUDENT_KEY); } catch (err) {}
             }
@@ -459,6 +460,7 @@ echo intval($prefill_student_id); ?>;
             }
 
             function loadApplicationTemplateHtml() {
+                if (!ENABLE_TEMPLATE_PREVIEW) return false;
                 if (!letterContent) return false;
                 try {
                     const saved = pageStorage.getItem(APP_TEMPLATE_STORAGE_KEY);
