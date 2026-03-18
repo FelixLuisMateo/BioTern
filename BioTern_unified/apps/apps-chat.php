@@ -739,6 +739,22 @@ function chat_message_meta(mysqli $conn): array
 
 $currentUserId = (int)($_SESSION['user_id'] ?? 0);
 $currentUserName = trim((string)($_SESSION['name'] ?? $_SESSION['username'] ?? 'BioTern User'));
+$currentUserRole = strtolower(trim((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? '')));
+$isStudentChatUser = ($currentUserRole === 'student');
+$currentStudentCourseId = 0;
+$studentScopeErrorMessage = 'Students can only chat with students from the same course.';
+
+if ($isStudentChatUser && $currentUserId > 0) {
+    $studentCourseStmt = $conn->prepare('SELECT course_id FROM students WHERE user_id = ? LIMIT 1');
+    if ($studentCourseStmt) {
+        $studentCourseStmt->bind_param('i', $currentUserId);
+        $studentCourseStmt->execute();
+        $studentCourseRow = $studentCourseStmt->get_result()->fetch_assoc();
+        $studentCourseStmt->close();
+        $currentStudentCourseId = (int)($studentCourseRow['course_id'] ?? 0);
+    }
+}
+
 $page_title = 'BioTern || Chat';
 $requestMethod = (string)($_SERVER['REQUEST_METHOD'] ?? 'GET');
 $isAjaxRequest = ((string)($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'XMLHttpRequest') || ((string)($_REQUEST['ajax'] ?? '') === '1');
@@ -761,8 +777,6 @@ if ($requestMethod === 'POST' && (string)($_POST['action'] ?? '') === 'delete-co
 
     if ($selectedUserId <= 0) {
         $errorMessage = 'Select a conversation first.';
-    } elseif ($selectedUserId === $currentUserId) {
-        $errorMessage = 'Invalid conversation target.';
     } else {
         if ($messageMeta['deleted_at_col'] !== '') {
             $deleteSql = 'UPDATE messages
@@ -1226,8 +1240,6 @@ if ($requestMethod === 'POST' && (string)($_POST['action'] ?? '') === 'send-mess
 
     if ($selectedUserId <= 0) {
         $errorMessage = 'Select a recipient before sending a message.';
-    } elseif ($selectedUserId === $currentUserId) {
-        $errorMessage = 'You cannot send a message to yourself.';
     } elseif ($messageModerationError !== '') {
         $errorMessage = $messageModerationError;
         $composeWarningMessage = $messageModerationError;
@@ -1245,6 +1257,22 @@ if ($requestMethod === 'POST' && (string)($_POST['action'] ?? '') === 'send-mess
 
         if (!$recipient) {
             $errorMessage = 'The selected recipient was not found.';
+        } elseif ($isStudentChatUser && $selectedUserId !== $currentUserId) {
+            if ($currentStudentCourseId <= 0) {
+                $errorMessage = $studentScopeErrorMessage;
+            } else {
+                $sameCourseStmt = $conn->prepare('SELECT 1 FROM students WHERE user_id = ? AND course_id = ? LIMIT 1');
+                $isSameCourseRecipient = false;
+                if ($sameCourseStmt) {
+                    $sameCourseStmt->bind_param('ii', $selectedUserId, $currentStudentCourseId);
+                    $sameCourseStmt->execute();
+                    $isSameCourseRecipient = (bool)$sameCourseStmt->get_result()->fetch_assoc();
+                    $sameCourseStmt->close();
+                }
+                if (!$isSameCourseRecipient) {
+                    $errorMessage = $studentScopeErrorMessage;
+                }
+            }
         } else {
             if ($replyToMessageId > 0 && $messageMeta['id_col'] !== '') {
                 $replyCheckSql = 'SELECT ' . $messageMeta['id_col'] . ' AS id FROM messages
@@ -1398,6 +1426,14 @@ if ($currentUserId > 0 && $messageMeta['ready']) {
         $contactParams[] = $currentUserId;
     }
 
+    $studentScopeFilterSql = '';
+    if ($isStudentChatUser) {
+        $studentScopeFilterSql = ' AND (u.id = ? OR EXISTS (SELECT 1 FROM students su WHERE su.user_id = u.id AND su.course_id = ?))';
+        $contactTypes .= 'ii';
+        $contactParams[] = $currentUserId;
+        $contactParams[] = $currentStudentCourseId;
+    }
+
     $contactsSql = '
         SELECT
             u.id,
@@ -1430,15 +1466,12 @@ if ($currentUserId > 0 && $messageMeta['ready']) {
             ' . $lastMediaSelect . ',
             ' . $unreadSelect . '
         FROM users u
-        WHERE u.id <> ?
-          AND (u.is_active = 1 OR u.is_active IS NULL)
+            WHERE (u.is_active = 1 OR u.is_active IS NULL)' . $studentScopeFilterSql . '
         ORDER BY
             CASE WHEN last_message_at IS NULL THEN 1 ELSE 0 END,
             last_message_at DESC,
             u.name ASC';
 
-    $contactTypes .= 'i';
-    $contactParams[] = $currentUserId;
     $contactsStmt = $conn->prepare($contactsSql);
     if ($contactsStmt) {
         $contactsStmt->bind_param($contactTypes, ...$contactParams);
@@ -1474,6 +1507,13 @@ if ($selectedUserId > 0) {
         if ((int)$contact['id'] === $selectedUserId) {
             $selectedContact = $contact;
             break;
+        }
+    }
+
+    if ($isStudentChatUser && $selectedContact === null) {
+        $selectedUserId = 0;
+        if ($errorMessage === '') {
+            $errorMessage = $studentScopeErrorMessage;
         }
     }
 
@@ -3413,6 +3453,10 @@ include 'includes/header.php';
     }
 
     .btchat-compose-warning.show {
+        display: none;
+    }
+
+    .btchat-compose-warning.show[data-warning-visible="1"] {
         display: flex;
     }
 
@@ -4146,9 +4190,10 @@ include 'includes/header.php';
                             <span id="chat-preview-name"></span>
                             <button type="button" class="chat-preview-remove" id="chat-preview-remove" title="Remove">&#x2715;</button>
                         </div>
-                        <div class="btchat-compose-warning<?php echo $composeWarningMessage !== '' ? ' show' : ''; ?>" id="btchat-compose-warning"<?php echo $composeWarningMessage === '' ? ' aria-hidden="true"' : ''; ?>>
+                        <?php $composeWarningText = trim((string)$composeWarningMessage); ?>
+                        <div class="btchat-compose-warning<?php echo $composeWarningText !== '' ? ' show' : ''; ?>" id="btchat-compose-warning" data-warning-visible="<?php echo $composeWarningText !== '' ? '1' : '0'; ?>"<?php echo $composeWarningText === '' ? ' aria-hidden="true"' : ''; ?>>
                             <span class="btchat-compose-warning-icon" aria-hidden="true">!</span>
-                            <span class="btchat-compose-warning-text" id="btchat-compose-warning-text"><?php echo chat_esc($composeWarningMessage); ?></span>
+                            <span class="btchat-compose-warning-text" id="btchat-compose-warning-text"><?php echo chat_esc($composeWarningText); ?></span>
                         </div>
                         <div class="btchat-compose-inner">
                             <button type="button" class="btchat-attach-btn" id="chat-attach-btn" title="Send image or video">
@@ -4375,6 +4420,7 @@ include 'includes/header.php';
         var fetchAbortController = null;
         var stateRequestToken = 0;
         var lastContactsSignature = '';
+        var lastContactsData = [];
         var lastHeaderSignature = '';
         var lastMessagesSignature = '';
         var lastRenderedUserId = 0;
@@ -4546,6 +4592,7 @@ include 'includes/header.php';
                 return;
             }
             composeWarningEl.classList.remove('show');
+            composeWarningEl.setAttribute('data-warning-visible', '0');
             composeWarningEl.setAttribute('aria-hidden', 'true');
             if (composeWarningTextEl) {
                 composeWarningTextEl.textContent = '';
@@ -4553,11 +4600,14 @@ include 'includes/header.php';
         }
 
         function showComposeWarning(message) {
-            if (!composeWarningEl || !composeWarningTextEl || !message) {
+            var warningText = String(message || '').trim();
+            if (!composeWarningEl || !composeWarningTextEl || warningText === '') {
+                clearComposeWarning();
                 return;
             }
-            composeWarningTextEl.textContent = message;
+            composeWarningTextEl.textContent = warningText;
             composeWarningEl.classList.add('show');
+            composeWarningEl.setAttribute('data-warning-visible', '1');
             composeWarningEl.setAttribute('aria-hidden', 'false');
         }
 
@@ -5534,7 +5584,7 @@ include 'includes/header.php';
                     var currentlyMuted = isConversationMuted(selectedContactRef.id);
                     setConversationMuted(selectedContactRef.id, !currentlyMuted);
                     renderHeader(selectedContactRef);
-                    showAlert('success', currentlyMuted ? 'Conversation unmuted.' : 'Conversation muted.');
+                    clearComposeWarning();
                 } else if (action === 'delete-conversation') {
                     if (!selectedUserId) { return; }
                     openConfirmModal(
@@ -5764,6 +5814,7 @@ include 'includes/header.php';
                 clearReplyTarget();
             }
             var contacts = state.contacts || [];
+            lastContactsData = contacts;
             var messages = state.messages || [];
             var contactsSignature = buildContactsSignature(contacts);
             var messagesSignature = buildMessagesSignature(messages);
@@ -6340,6 +6391,10 @@ include 'includes/header.php';
         if (searchEl) {
             searchEl.addEventListener('input', function () {
                 currentSearch = searchEl.value.trim();
+                if (lastContactsData.length) {
+                    renderContacts(lastContactsData);
+                    return;
+                }
                 fetchState(false);
             });
         }
@@ -6404,7 +6459,7 @@ include 'includes/header.php';
                 if (selectedContactRef && parseInt(selectedContactRef.id || '0', 10) === contactModalUserId) {
                     renderHeader(selectedContactRef);
                 }
-                showAlert('success', currentlyMuted ? 'Conversation unmuted.' : 'Conversation muted.');
+                clearComposeWarning();
             });
         }
 
