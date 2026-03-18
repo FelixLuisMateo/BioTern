@@ -81,6 +81,11 @@ if (!defined('DB_PORT')) {
     define('DB_PORT', (int)$dbPort);
 }
 
+@ini_set('mysqli.default_host', (string)DB_HOST);
+@ini_set('mysqli.default_user', (string)DB_USER);
+@ini_set('mysqli.default_pw', (string)DB_PASS);
+@ini_set('mysqli.default_port', (string)DB_PORT);
+
 // Create connection
 $conn = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME, DB_PORT);
 

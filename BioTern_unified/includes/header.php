@@ -55,7 +55,13 @@ if ($header_user_id_session <= 0) {
 }
 
 // Refresh session identity from DB so page access stays connected to current account data.
-$header_db = @new mysqli(defined('DB_HOST') ? DB_HOST : '127.0.0.1', defined('DB_USER') ? DB_USER : 'root', defined('DB_PASS') ? DB_PASS : '', defined('DB_NAME') ? DB_NAME : 'biotern_db');
+$header_db = @new mysqli(
+    defined('DB_HOST') ? DB_HOST : '127.0.0.1',
+    defined('DB_USER') ? DB_USER : 'root',
+    defined('DB_PASS') ? DB_PASS : '',
+    defined('DB_NAME') ? DB_NAME : 'biotern_db',
+    defined('DB_PORT') ? (int)DB_PORT : 3306
+);
 if (!$header_db->connect_errno) {
     $stmt = $header_db->prepare("SELECT id, name, username, email, role, is_active, profile_picture FROM users WHERE id = ? LIMIT 1");
     if ($stmt) {
@@ -208,7 +214,13 @@ if ($header_user_id_session > 0) {
         $notificationId = (int)($_POST['header_notification_id'] ?? 0);
         $notificationNext = header_notification_safe_target((string)($_POST['header_notification_next'] ?? ''), $header_notification_return_url);
 
-        $hdr_db = @new mysqli(defined('DB_HOST') ? DB_HOST : '127.0.0.1', defined('DB_USER') ? DB_USER : 'root', defined('DB_PASS') ? DB_PASS : '', defined('DB_NAME') ? DB_NAME : 'biotern_db');
+        $hdr_db = @new mysqli(
+            defined('DB_HOST') ? DB_HOST : '127.0.0.1',
+            defined('DB_USER') ? DB_USER : 'root',
+            defined('DB_PASS') ? DB_PASS : '',
+            defined('DB_NAME') ? DB_NAME : 'biotern_db',
+            defined('DB_PORT') ? (int)DB_PORT : 3306
+        );
         if (!$hdr_db->connect_errno) {
             if ($notificationAction === 'mark_read' && $notificationId > 0) {
                 biotern_notifications_mark_read($hdr_db, $header_user_id_session, $notificationId);
@@ -226,7 +238,13 @@ if ($header_user_id_session > 0) {
         exit;
     }
 
-    $hdr_db = @new mysqli(defined('DB_HOST') ? DB_HOST : '127.0.0.1', defined('DB_USER') ? DB_USER : 'root', defined('DB_PASS') ? DB_PASS : '', defined('DB_NAME') ? DB_NAME : 'biotern_db');
+    $hdr_db = @new mysqli(
+        defined('DB_HOST') ? DB_HOST : '127.0.0.1',
+        defined('DB_USER') ? DB_USER : 'root',
+        defined('DB_PASS') ? DB_PASS : '',
+        defined('DB_NAME') ? DB_NAME : 'biotern_db',
+        defined('DB_PORT') ? (int)DB_PORT : 3306
+    );
     if (!$hdr_db->connect_errno) {
         $header_notifications_unread = biotern_notifications_count_unread($hdr_db, $header_user_id_session);
         $header_notifications = biotern_notifications_fetch($hdr_db, $header_user_id_session, 8);
