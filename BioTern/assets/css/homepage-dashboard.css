@@ -580,8 +580,19 @@ html.app-theme-gray:not(.app-skin-dark) {
 }
 
 .dashboard-page-header {
-    position: relative;
     border-radius: 14px;
+}
+
+@media (min-width: 992px) {
+    .dashboard-page-header {
+        border-radius: 0;
+    }
+
+    .dashboard-page-header .page-header-title h5 {
+        border-right: 1px solid #cdd4e8;
+        margin-right: 8px;
+        padding-right: 10px;
+    }
 }
 
 .dashboard-mobile-summary {

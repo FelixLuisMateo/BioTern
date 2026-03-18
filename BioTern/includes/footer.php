@@ -178,8 +178,7 @@ $page_render_footer = isset($page_render_footer) ? (bool)$page_render_footer : !
             'icon' => 'feather-settings',
             'routes' => [
                 'auth-register-creative.php', 'users.php', 'create_admin.php',
-                'settings-general.php', 'settings-seo.php', 'settings-tags.php', 'settings-email.php', 'settings-tasks.php', 'settings-ojt.php',
-                'settings-support.php', 'settings-students.php', 'settings-miscellaneous.php', 'settings-localization.php', 'theme-customizer.php',
+                'settings-support.php', 'theme-customizer.php',
                 'help-knowledgebase.php',
             ],
             'sections' => [
@@ -194,16 +193,7 @@ $page_render_footer = isset($page_render_footer) ? (bool)$page_render_footer : !
                 [
                     'title' => 'Settings',
                     'items' => [
-                        ['label' => 'General', 'href' => 'settings-general.php', 'icon' => 'feather-sliders'],
-                        ['label' => 'SEO', 'href' => 'settings-seo.php', 'icon' => 'feather-globe'],
-                        ['label' => 'Tags', 'href' => 'settings-tags.php', 'icon' => 'feather-tag'],
-                        ['label' => 'Email', 'href' => 'settings-email.php', 'icon' => 'feather-mail'],
-                        ['label' => 'Tasks', 'href' => 'settings-tasks.php', 'icon' => 'feather-check-square'],
-                        ['label' => 'OJT', 'href' => 'settings-ojt.php', 'icon' => 'feather-briefcase'],
                         ['label' => 'Support', 'href' => 'settings-support.php', 'icon' => 'feather-life-buoy'],
-                        ['label' => 'Students', 'href' => 'settings-students.php', 'icon' => 'feather-users'],
-                        ['label' => 'Misc', 'href' => 'settings-miscellaneous.php', 'icon' => 'feather-layers'],
-                        ['label' => 'Localization', 'href' => 'settings-localization.php', 'icon' => 'feather-flag'],
                         ['label' => 'Theme', 'href' => 'theme-customizer.php', 'icon' => 'feather-droplet'],
                     ],
                 ],
@@ -227,8 +217,8 @@ $page_render_footer = isset($page_render_footer) ? (bool)$page_render_footer : !
             [
                 'title' => 'Account',
                 'items' => [
-                    ['label' => 'Profile Details', 'href' => 'settings-general.php', 'icon' => 'feather-user'],
-                    ['label' => 'Account Settings', 'href' => 'settings-general.php', 'icon' => 'feather-settings'],
+                    ['label' => 'Profile Details', 'href' => 'settings-support.php', 'icon' => 'feather-user'],
+                    ['label' => 'Account Settings', 'href' => 'settings-support.php', 'icon' => 'feather-settings'],
                     ['label' => 'Logout', 'href' => '/BioTern/BioTern/auth/auth-login-cover.php?logout=1', 'icon' => 'feather-log-out'],
                 ],
             ],

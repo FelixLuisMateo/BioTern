@@ -368,6 +368,7 @@ $dashboard_role = strtolower(trim((string)($_SESSION['role'] ?? '')));
 $dashboard_can_review_applications = in_array($dashboard_role, ['admin', 'coordinator', 'supervisor'], true);
 
 $page_title = 'BioTern || Dashboard';
+$page_body_class = 'dashboard-home';
 $page_styles = array('assets/css/homepage-dashboard.css');
 $page_vendor_scripts = array(
     'assets/vendors/js/daterangepicker.min.js',

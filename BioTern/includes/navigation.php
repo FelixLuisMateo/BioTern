@@ -96,9 +96,7 @@ $nav_active_users = biotern_nav_any_active($nav_current_file, [
     'auth-register-creative.php', 'users.php', 'create_admin.php',
 ]);
 $nav_active_settings = biotern_nav_any_active($nav_current_file, [
-    'settings-general.php', 'settings-seo.php', 'settings-tags.php', 'settings-email.php',
-    'settings-tasks.php', 'settings-ojt.php', 'settings-support.php', 'settings-students.php',
-    'settings-miscellaneous.php', 'settings-localization.php', 'theme-customizer.php',
+    'settings-support.php', 'theme-customizer.php',
 ]);
 $nav_active_help = biotern_nav_any_active($nav_current_file, [
     'help-knowledgebase.php', 'settings-support.php',
@@ -253,15 +251,7 @@ $nav_active_help = biotern_nav_any_active($nav_current_file, [
                         <span class="nxl-mtext">Settings</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                     </a>
                     <ul class="nxl-submenu">
-                        <li class="nxl-item<?php echo biotern_nav_is_active('settings-general.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="settings-general.php">General</a></li>
-                        <li class="nxl-item<?php echo biotern_nav_is_active('settings-seo.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="settings-seo.php">SEO</a></li>
-                        <li class="nxl-item<?php echo biotern_nav_is_active('settings-tags.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="settings-tags.php">Tags</a></li>
-                        <li class="nxl-item<?php echo biotern_nav_is_active('settings-email.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="settings-email.php">Email</a></li>
-                        <li class="nxl-item<?php echo biotern_nav_is_active('settings-tasks.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="settings-tasks.php">Tasks</a></li>
-                        <li class="nxl-item<?php echo biotern_nav_is_active('settings-ojt.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="settings-ojt.php">Leads</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('settings-support.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="settings-support.php">Support</a></li>
-                        <li class="nxl-item<?php echo biotern_nav_is_active('settings-students.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="settings-students.php">Students</a></li>
-                        <li class="nxl-item<?php echo biotern_nav_is_active('settings-miscellaneous.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="settings-miscellaneous.php">Miscellaneous</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('theme-customizer.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="theme-customizer.php">Theme Customizer</a></li>
                     </ul>
                 </li>
