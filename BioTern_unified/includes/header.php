@@ -49,11 +49,6 @@ $_header_login_url = ($_header_unified_pos !== false)
 
 // Enforce authenticated session for all pages using the shared app header.
 $header_user_id_session = (int)($_SESSION['user_id'] ?? 0);
-if ($header_user_id_session <= 0) {
-    header('Location: ' . $_header_login_url);
-    exit;
-}
-
 $header_conn = @new mysqli(
     defined('DB_HOST') ? DB_HOST : '127.0.0.1',
     defined('DB_USER') ? DB_USER : 'root',
@@ -61,6 +56,16 @@ $header_conn = @new mysqli(
     defined('DB_NAME') ? DB_NAME : 'biotern_db',
     defined('DB_PORT') ? (int)DB_PORT : 3306
 );
+
+if ($header_user_id_session <= 0 && !$header_conn->connect_errno) {
+    biotern_auth_restore_session_from_cookie($header_conn);
+    $header_user_id_session = (int)($_SESSION['user_id'] ?? 0);
+}
+
+if ($header_user_id_session <= 0) {
+    header('Location: ' . $_header_login_url);
+    exit;
+}
 
 // Refresh session identity from DB so page access stays connected to current account data.
 if (!$header_conn->connect_errno) {

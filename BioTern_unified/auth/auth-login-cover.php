@@ -5,6 +5,13 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 if (isset($_GET['logout']) && (string)$_GET['logout'] === '1') {
+    $logout_conn = @new mysqli($dbHost ?? (defined('DB_HOST') ? DB_HOST : '127.0.0.1'), $dbUser ?? (defined('DB_USER') ? DB_USER : 'root'), $dbPass ?? (defined('DB_PASS') ? DB_PASS : ''), $dbName ?? (defined('DB_NAME') ? DB_NAME : 'biotern_db'), $dbPort ?? (defined('DB_PORT') ? (int)DB_PORT : 3306));
+    if ($logout_conn instanceof mysqli && !$logout_conn->connect_errno) {
+        biotern_auth_clear_persistent_login($logout_conn);
+        $logout_conn->close();
+    } else {
+        biotern_auth_clear_persistent_login();
+    }
     $_SESSION = [];
     if (ini_get('session.use_cookies')) {
         $params = session_get_cookie_params();
@@ -28,6 +35,19 @@ $login_error = '';
 $next = isset($_GET['next']) ? basename((string)$_GET['next']) : '';
 if ($next !== '' && !preg_match('/^[A-Za-z0-9_-]+\.php$/', $next)) {
     $next = '';
+}
+
+if ((int)($_SESSION['user_id'] ?? 0) <= 0 && $_SERVER['REQUEST_METHOD'] !== 'POST') {
+    $restore_conn = @new mysqli($dbHost, $dbUser, $dbPass, $dbName, $dbPort);
+    if (!$restore_conn->connect_errno) {
+        if (biotern_auth_restore_session_from_cookie($restore_conn)) {
+            $restore_conn->close();
+            $target = $next !== '' ? ($route_prefix . $next) : ($route_prefix . 'homepage.php');
+            header('Location: ' . $target);
+            exit;
+        }
+        $restore_conn->close();
+    }
 }
 
 function log_login_attempt($mysqli, $userId, $identifier, $role, $status, $reason, $ip, $userAgent)
@@ -148,6 +168,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['profile_picture'] = (string)($user['profile_picture'] ?? '');
                     $_SESSION['logged_in'] = true;
 
+                    biotern_auth_issue_persistent_login($mysqli, (int)$user['id']);
+
                     log_login_attempt($mysqli, (int)$user['id'], $identifier, (string)($user['role'] ?? ''), 'success', 'login_success', $client_ip, $client_user_agent);
 
                     $target = $next !== '' ? ($route_prefix . $next) : ($route_prefix . 'homepage.php');
@@ -198,6 +220,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             z-index: 1;
         }
 
+        .auth-cover-sidebar-inner {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 24px 16px;
+        }
+
+        .auth-cover-card-wrapper {
+            width: 100%;
+            max-width: 480px;
+            margin: 0 auto;
+        }
+
+        .auth-cover-card {
+            width: 100%;
+            border-radius: 14px;
+        }
+
+        .auth-cover-card .wd-50 {
+            width: 72px !important;
+            margin-bottom: 1rem !important;
+        }
+
+        .auth-cover-card .wd-50 img {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+
         .auth-cover-content-inner,
         .auth-cover-sidebar-inner {
             background-color: rgba(8, 20, 52, 0.86);
@@ -246,7 +298,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             .auth-cover-sidebar-inner {
                 min-height: 100vh;
                 width: 100%;
+                max-width: 100%;
+                flex: 0 0 100%;
                 background-color: rgba(8, 20, 52, 0.92);
+                padding: 16px 10px;
+            }
+
+            .auth-cover-card {
+                padding: 1.15rem 0.95rem !important;
+            }
+
+            .auth-cover-card h2 {
+                font-size: 1.35rem;
+                margin-bottom: 0.85rem !important;
+            }
+
+            .auth-cover-card h4 {
+                font-size: 0.85rem;
+                line-height: 1.35;
+            }
+
+            .auth-cover-card .form-control,
+            .auth-cover-card .btn {
+                font-size: 0.9rem;
+            }
+
+            .auth-cover-card .btn-lg {
+                padding-top: 0.6rem;
+                padding-bottom: 0.6rem;
+            }
+
+            .auth-cover-card .d-flex.align-items-center.justify-content-between {
+                flex-wrap: wrap;
+                gap: 0.5rem;
             }
         }
     </style>
