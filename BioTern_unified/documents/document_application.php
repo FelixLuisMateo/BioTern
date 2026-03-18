@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 require_once dirname(__DIR__) . '/config/db.php';
 // Documents page - provides UI to generate student documents (Application Letter etc.)
 
@@ -68,7 +68,7 @@ if (isset($_GET['action'])) {
 }
 
 $page_title = 'Documents';
-$base_href = '../';
+$base_href = '';
 include __DIR__ . '/../includes/header.php';
 ?>
 <style>
@@ -330,6 +330,7 @@ include __DIR__ . '/../includes/header.php';
         window.addEventListener('load', function() {
         (function(){
             const APP_TEMPLATE_STORAGE_KEY = 'biotern_application_template_html_v1';
+            const ENABLE_TEMPLATE_PREVIEW = true;
             const APP_FORM_STORAGE_KEY = 'biotern_application_form_values_v1';
             const APP_SELECTED_STUDENT_KEY = 'biotern_application_selected_student_v1';
             const PREFILL_STUDENT_ID = <?php
@@ -346,10 +347,9 @@ echo intval($prefill_student_id); ?>;
             let selectedStudentId = null;
             let isFileEditMode = false;
             let hasLoadedSavedTemplate = false;
-            const pageStorage = window.sessionStorage;
+            const pageStorage = window.localStorage;
 
             function clearPageState() {
-                try { pageStorage.removeItem(APP_TEMPLATE_STORAGE_KEY); } catch (err) {}
                 try { pageStorage.removeItem(APP_FORM_STORAGE_KEY); } catch (err) {}
                 try { pageStorage.removeItem(APP_SELECTED_STUDENT_KEY); } catch (err) {}
             }
@@ -460,6 +460,7 @@ echo intval($prefill_student_id); ?>;
             }
 
             function loadApplicationTemplateHtml() {
+                if (!ENABLE_TEMPLATE_PREVIEW) return false;
                 if (!letterContent) return false;
                 try {
                     const saved = pageStorage.getItem(APP_TEMPLATE_STORAGE_KEY);

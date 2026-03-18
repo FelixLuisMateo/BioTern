@@ -1,11 +1,17 @@
-﻿<?php
+<?php
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/attendance_rules.php';
 require_once dirname(__DIR__) . '/lib/ops_helpers.php';
 
 header('Content-Type: application/json');
 
-$conn = new mysqli(defined('DB_HOST') ? DB_HOST : 'localhost', defined('DB_USER') ? DB_USER : 'root', defined('DB_PASS') ? DB_PASS : '', defined('DB_NAME') ? DB_NAME : 'biotern_db');
+$conn = new mysqli(
+    defined('DB_HOST') ? DB_HOST : 'localhost',
+    defined('DB_USER') ? DB_USER : 'root',
+    defined('DB_PASS') ? DB_PASS : '',
+    defined('DB_NAME') ? DB_NAME : 'biotern_db',
+    defined('DB_PORT') ? (int)DB_PORT : 3306
+);
 if ($conn->connect_error) {
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Database connection failed']);

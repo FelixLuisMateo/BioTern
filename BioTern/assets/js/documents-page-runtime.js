@@ -35,8 +35,35 @@
         });
     }
 
+    function getLocalTemplateHtml(storageKey) {
+        if (!storageKey) return '';
+        try {
+            return localStorage.getItem(storageKey) || '';
+        } catch (err) {
+            return '';
+        }
+    }
+
+    function applySavedTemplateHtml(storageKey, targetId, selectors) {
+        var target = document.getElementById(targetId);
+        if (!target) return false;
+        var saved = getLocalTemplateHtml(storageKey);
+        if (!saved) return false;
+
+        var temp = document.createElement('div');
+        temp.innerHTML = saved;
+        var extracted = null;
+        (selectors || []).some(function (selector) {
+            extracted = temp.querySelector(selector);
+            return !!extracted;
+        });
+        target.innerHTML = extracted ? extracted.innerHTML : (temp.innerHTML || saved);
+        return true;
+    }
+
     function initApplicationPage() {
         var PREFILL_STUDENT_ID = parseInt(cfg.prefillStudentId || 0, 10) || 0;
+        var ENABLE_TEMPLATE_PREVIEW = true;
         var APP_TEMPLATE_STORAGE_KEY = 'biotern_application_template_html_v1';
         var APP_FORM_STORAGE_KEY = 'biotern_application_form_values_v1';
         var APP_SELECTED_STUDENT_KEY = 'biotern_application_selected_student_v1';
@@ -51,10 +78,9 @@
         var selectedStudentId = null;
         var isFileEditMode = false;
         var hasLoadedSavedTemplate = false;
-        var pageStorage = window.sessionStorage;
+        var pageStorage = window.localStorage;
 
         function clearPageState() {
-            try { pageStorage.removeItem(APP_TEMPLATE_STORAGE_KEY); } catch (err) {}
             try { pageStorage.removeItem(APP_FORM_STORAGE_KEY); } catch (err) {}
             try { pageStorage.removeItem(APP_SELECTED_STUDENT_KEY); } catch (err) {}
         }
@@ -165,6 +191,7 @@
         }
 
         function loadApplicationTemplateHtml() {
+            if (!ENABLE_TEMPLATE_PREVIEW) return false;
             if (!letterContent) return false;
             try {
                 var saved = pageStorage.getItem(APP_TEMPLATE_STORAGE_KEY);
@@ -357,11 +384,9 @@
             if (inputCompany.value) params.set('ap_company', inputCompany.value);
             if (inputCompanyAddress.value) params.set('ap_address', inputCompanyAddress.value);
             if (getHoursValue()) params.set('ap_hours', getHoursValue());
-            try {
-                if (pageStorage.getItem(APP_TEMPLATE_STORAGE_KEY)) {
-                    params.set('use_saved_template', '1');
-                }
-            } catch (err) {}
+            if (getLocalTemplateHtml(APP_TEMPLATE_STORAGE_KEY)) {
+                params.set('use_saved_template', '1');
+            }
             params.set('date', new Date().toLocaleDateString());
             var url = 'pages/generate_application_letter.php?' + params.toString();
             gen.dataset.url = url;
@@ -409,6 +434,7 @@
         var pageUrl = isDau ? 'documents/document_dau_moa.php' : 'documents/document_moa.php';
         var generateUrl = isDau ? 'pages/generate_dau_moa.php?' : 'pages/generate_moa.php?';
         var editorUrl = isDau ? 'pages/edit_dau_moa.php' : 'pages/edit_moa.php';
+        var templateStorageKey = isDau ? 'biotern_dau_moa_template_html_v1' : 'biotern_moa_template_html_v1';
         var PREFILL_STUDENT_ID = parseInt(cfg.prefillStudentId || 0, 10) || 0;
 
         var select = $('#student_select');
@@ -439,6 +465,14 @@
         var bookNo = document.getElementById('moa_book_no');
         var seriesNo = document.getElementById('moa_series_no');
         var btnGenerate = document.getElementById('btn_generate_moa');
+
+        function setTextSafe(ids, value) {
+            var list = Array.isArray(ids) ? ids : [ids];
+            list.forEach(function (id) {
+                var el = document.getElementById(id);
+                if (el) el.textContent = value;
+            });
+        }
 
         select.select2({
             placeholder: '',
@@ -585,37 +619,37 @@
         }
 
         function updatePreview() {
-            document.getElementById('pv_partner_company_name').textContent = partnerName.value || '__________________________';
-            document.getElementById('pv_partner_name').textContent = partnerRep.value || '__________________________';
-            document.getElementById('pv_partner_address').textContent = partnerAddress.value || '__________________________';
-            document.getElementById('pv_company_receipt').textContent = companyReceipt.value || '__________________________';
-            document.getElementById('pv_total_hours').textContent = (totalHours && totalHours.value) ? totalHours.value : '250';
-            document.getElementById('pv_partner_rep').textContent = partnerRep.value || '__________________________';
-            document.getElementById('pv_partner_position').textContent = partnerPosition.value || (isDau ? 'Barangay Dau PYAP President' : '______________, ');
-            document.getElementById('pv_school_rep').textContent = schoolRep.value || '__________________';
-            document.getElementById('pv_signed_at').textContent = signedAt.value || '__________________';
-            document.getElementById('pv_signed_day').textContent = withOrdinalSuffix(signedDay.value) || '_____';
-            document.getElementById('pv_signed_month').textContent = signedMonth.value || '__________________';
-            document.getElementById('pv_signed_year').textContent = signedYear.value || '20__';
-            document.getElementById('pv_presence_partner_rep').textContent = presencePartnerRep.value || '______________________________';
-            document.getElementById('pv_presence_school_admin').textContent = presenceSchoolAdmin.value || '______________________';
-            document.getElementById('pv_presence_school_admin_position').textContent = presenceSchoolAdminPosition.value || '______________________';
-            document.getElementById('pv_school_position').textContent = schoolPosition.value || '__________________';
-            document.getElementById('pv_notary_city').textContent = notaryCity.value || '__________________';
+            setTextSafe('pv_partner_company_name', partnerName.value || '__________________________');
+            setTextSafe('pv_partner_name', partnerRep.value || '__________________________');
+            setTextSafe('pv_partner_address', partnerAddress.value || '__________________________');
+            setTextSafe('pv_company_receipt', companyReceipt.value || '__________________________');
+            setTextSafe('pv_total_hours', (totalHours && totalHours.value) ? totalHours.value : '250');
+            setTextSafe('pv_partner_rep', partnerRep.value || '__________________________');
+            setTextSafe('pv_partner_position', partnerPosition.value || (isDau ? 'Barangay Dau PYAP President' : '______________, '));
+            setTextSafe('pv_school_rep', schoolRep.value || '__________________');
+            setTextSafe('pv_signed_at', signedAt.value || '__________________');
+            setTextSafe('pv_signed_day', withOrdinalSuffix(signedDay.value) || '_____');
+            setTextSafe('pv_signed_month', signedMonth.value || '__________________');
+            setTextSafe('pv_signed_year', signedYear.value || '20__');
+            setTextSafe(['pv_presence_partner_rep', 'company_receipt'], presencePartnerRep.value || '______________________________');
+            setTextSafe(['pv_presence_school_admin', 'presence_school_admin'], presenceSchoolAdmin.value || '______________________');
+            setTextSafe(['pv_presence_school_admin_position', 'presence_school_admin_position'], presenceSchoolAdminPosition.value || '______________________');
+            setTextSafe('pv_school_position', schoolPosition.value || '__________________');
+            setTextSafe('pv_notary_city', notaryCity.value || '__________________');
             var appeared1Value = (notaryAppeared1 && notaryAppeared1.value) || (presencePartnerRep && presencePartnerRep.value) || '';
             var pvNotaryAppeared1 = document.getElementById('pv_notary_appeared_1');
             if (pvNotaryAppeared1) pvNotaryAppeared1.textContent = appeared1Value || '__________________';
             var pvNotaryAppeared2 = document.getElementById('pv_notary_appeared_2');
             if (pvNotaryAppeared2) pvNotaryAppeared2.textContent = (notaryAppeared2 && notaryAppeared2.value) || '__________________';
-            document.getElementById('pv_notary_day').textContent = withOrdinalSuffix(notaryDay.value) || '_____';
-            document.getElementById('pv_notary_month').textContent = notaryMonth.value || '__________________';
-            document.getElementById('pv_notary_year').textContent = notaryYear.value || '20___';
-            document.getElementById('pv_notary_place').textContent = notaryPlace.value || '__________________';
-            document.getElementById('pv_doc_no').textContent = docNo.value || '______';
-            document.getElementById('pv_page_no').textContent = pageNo.value || '_____';
-            document.getElementById('pv_book_no').textContent = bookNo.value || '_____';
-            document.getElementById('pv_series_no').textContent = seriesNo.value || '_____';
-            document.getElementById('moa_date').textContent = new Date().toLocaleDateString();
+            setTextSafe('pv_notary_day', withOrdinalSuffix(notaryDay.value) || '_____');
+            setTextSafe('pv_notary_month', notaryMonth.value || '__________________');
+            setTextSafe('pv_notary_year', notaryYear.value || '20___');
+            setTextSafe('pv_notary_place', notaryPlace.value || '__________________');
+            setTextSafe('pv_doc_no', docNo.value || '______');
+            setTextSafe('pv_page_no', pageNo.value || '_____');
+            setTextSafe('pv_book_no', bookNo.value || '_____');
+            setTextSafe('pv_series_no', seriesNo.value || '_____');
+            setTextSafe('moa_date', new Date().toLocaleDateString());
         }
 
         function updateGenerateLink() {
@@ -647,6 +681,7 @@
             if (pageNo.value) params.set('page_no', pageNo.value);
             if (bookNo.value) params.set('book_no', bookNo.value);
             if (seriesNo.value) params.set('series_no', seriesNo.value);
+            if (getLocalTemplateHtml(templateStorageKey)) params.set('use_saved_template', '1');
             params.set('date', new Date().toLocaleDateString());
             var url = generateUrl + params.toString();
             btnGenerate.dataset.url = url;
@@ -674,6 +709,7 @@
             window.location.href = url;
         });
 
+        applySavedTemplateHtml(templateStorageKey, 'moa_content', ['#moa_doc_content', '#moa_content', '.doc']);
         updatePreview();
         updateGenerateLink();
         if (PREFILL_STUDENT_ID > 0) prefillByStudentId(PREFILL_STUDENT_ID);
@@ -773,13 +809,20 @@
         }
 
         function updatePreview() {
-            document.getElementById('pv_recipient').textContent = formatRecipientName(inputRecipient.value);
-            document.getElementById('pv_position').textContent = inputPosition.value || '__________________________';
-            document.getElementById('pv_company').textContent = inputCompany.value || '__________________________';
-            document.getElementById('pv_company_address').textContent = inputCompanyAddress.value || '__________________________';
-            document.getElementById('pv_salutation').textContent = detectSalutation(inputRecipient.value);
+            var pvRecipient = document.getElementById('pv_recipient') || document.getElementById('ed_recipient');
+            var pvPosition = document.getElementById('pv_position') || document.getElementById('ed_position');
+            var pvCompany = document.getElementById('pv_company') || document.getElementById('ed_company');
+            var pvCompanyAddress = document.getElementById('pv_company_address') || document.getElementById('ed_company_address');
+            var pvSalutation = document.getElementById('pv_salutation');
 
-            var ul = document.getElementById('pv_students');
+            if (pvRecipient) pvRecipient.textContent = formatRecipientName(inputRecipient.value);
+            if (pvPosition) pvPosition.textContent = inputPosition.value || '__________________________';
+            if (pvCompany) pvCompany.textContent = inputCompany.value || '__________________________';
+            if (pvCompanyAddress) pvCompanyAddress.textContent = inputCompanyAddress.value || '__________________________';
+            if (pvSalutation) pvSalutation.textContent = detectSalutation(inputRecipient.value);
+
+            var ul = document.getElementById('pv_students') || document.getElementById('ed_students');
+            if (!ul) return;
             var typed = sanitizeStudentLines(inputStudents.value);
             var selectedName = getSelectedStudentName();
             var lines = typed.length ? typed : (selectedName ? [selectedName] : []);
@@ -814,6 +857,7 @@
             var selectedName = getSelectedStudentName();
             var studentsValue = typed.length ? typed.join('\n') : selectedName;
             if (studentsValue) p.set('students', studentsValue);
+            if (getLocalTemplateHtml('biotern_endorsement_template_html_v1')) p.set('use_saved_template', '1');
             var genUrl = 'pages/generate_endorsement_letter.php?' + p.toString();
             btnGenerate.href = genUrl;
             btnFileEdit.href = 'pages/edit_endorsement.php?blank=1';
@@ -1009,6 +1053,7 @@
             var either = greetingRadios.find(function (r) { return r.value === 'either'; });
             if (either) either.checked = true;
         }
+        applySavedTemplateHtml('biotern_endorsement_template_html_v1', 'preview_content', ['#endorsement_doc_content', '#preview_content', '.content']);
         updatePreview();
         updateLinks();
     }

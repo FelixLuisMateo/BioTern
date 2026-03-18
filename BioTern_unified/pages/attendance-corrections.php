@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/ops_helpers.php';
 if (session_status() === PHP_SESSION_NONE) {
@@ -6,7 +6,13 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 require_roles_page(['admin', 'coordinator', 'supervisor']);
 
-$conn = new mysqli(defined('DB_HOST') ? DB_HOST : 'localhost', defined('DB_USER') ? DB_USER : 'root', defined('DB_PASS') ? DB_PASS : '', defined('DB_NAME') ? DB_NAME : 'biotern_db');
+$conn = new mysqli(
+    defined('DB_HOST') ? DB_HOST : 'localhost',
+    defined('DB_USER') ? DB_USER : 'root',
+    defined('DB_PASS') ? DB_PASS : '',
+    defined('DB_NAME') ? DB_NAME : 'biotern_db',
+    defined('DB_PORT') ? (int)DB_PORT : 3306
+);
 if ($conn->connect_error) {
     die("DB connection failed");
 }

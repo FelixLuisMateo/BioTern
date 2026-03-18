@@ -21,6 +21,21 @@ $dbName = defined('DB_NAME') ? DB_NAME : 'biotern_db';
 $script_name = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
 $asset_prefix = (strpos($script_name, '/auth/') !== false) ? '../' : '';
 $route_prefix = $asset_prefix;
+$favicon_ico_path = dirname(__DIR__) . '/assets/images/favicon.ico';
+$favicon_png_path = dirname(__DIR__) . '/assets/images/favicon-rounded.png';
+$favicon_logo_path = dirname(__DIR__) . '/assets/images/logo-abbr.png';
+$favicon_ico_version = @filemtime($favicon_ico_path);
+$favicon_png_version = @filemtime($favicon_png_path);
+$favicon_logo_version = @filemtime($favicon_logo_path);
+if ($favicon_ico_version === false) {
+    $favicon_ico_version = '20260318';
+}
+if ($favicon_png_version === false) {
+    $favicon_png_version = '20260318';
+}
+if ($favicon_logo_version === false) {
+    $favicon_logo_version = '20260318';
+}
 $login_error = '';
 $next = isset($_GET['next']) ? basename((string)$_GET['next']) : '';
 if ($next !== '' && !preg_match('/^[A-Za-z0-9_-]+\.php$/', $next)) {
@@ -141,7 +156,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta http-equiv="x-ua-compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>BioTern || Login Cover</title>
-    <link rel="shortcut icon" type="image/x-icon" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/favicon.ico?v=20260310">
+    <link rel="icon" type="image/png" sizes="192x192" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/logo-abbr.png?v=<?php echo rawurlencode((string)$favicon_logo_version); ?>">
+    <link rel="icon" type="image/png" sizes="64x64" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/favicon-rounded.png?v=<?php echo rawurlencode((string)$favicon_png_version); ?>">
+    <link rel="apple-touch-icon" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/logo-abbr.png?v=<?php echo rawurlencode((string)$favicon_logo_version); ?>">
+    <link rel="icon" type="image/x-icon" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/favicon.ico?v=<?php echo rawurlencode((string)$favicon_ico_version); ?>">
+    <link rel="shortcut icon" type="image/x-icon" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/favicon.ico?v=<?php echo rawurlencode((string)$favicon_ico_version); ?>">
     <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/js/theme-preload-init.min.js"></script>
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/vendors/css/vendors.min.css">

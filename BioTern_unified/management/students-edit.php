@@ -18,11 +18,16 @@ $can_edit_sensitive_hours = in_array($current_role, ['admin', 'coordinator', 'su
 $can_edit_hours = true;
 
 // Ensure new student assignment/hour fields exist.
-$conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS internal_total_hours INT(11) DEFAULT NULL");
-$conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS internal_total_hours_remaining INT(11) DEFAULT NULL");
-$conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS external_total_hours INT(11) DEFAULT NULL");
-$conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS external_total_hours_remaining INT(11) DEFAULT NULL");
-$conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS assignment_track VARCHAR(20) NOT NULL DEFAULT 'internal'");
+$studentEditSchemaColumns = [
+    'internal_total_hours' => "internal_total_hours INT(11) DEFAULT NULL",
+    'internal_total_hours_remaining' => "internal_total_hours_remaining INT(11) DEFAULT NULL",
+    'external_total_hours' => "external_total_hours INT(11) DEFAULT NULL",
+    'external_total_hours_remaining' => "external_total_hours_remaining INT(11) DEFAULT NULL",
+    'assignment_track' => "assignment_track VARCHAR(20) NOT NULL DEFAULT 'internal'",
+];
+foreach ($studentEditSchemaColumns as $column => $definition) {
+    biotern_db_add_column_if_missing($conn, 'students', $column, $definition);
+}
 
 // Get student ID from URL parameter
 $student_id = isset($_GET['id']) ? intval($_GET['id']) : 0;

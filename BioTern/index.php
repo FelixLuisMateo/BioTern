@@ -54,7 +54,7 @@ $page_scripts = [
                     <div class="col-lg-8">
                         <div class="hero-body">
                             <span class="mini-pill mb-3"><i class="feather-shield"></i> Biometric-secured internship monitoring</span>
-                            <h1 class="hero-title mb-3">Built for schools, supervisors, and interns in one BioTern workspace.</h1>
+                            <h1 class="hero-title mb-3">Builsdsdt for schools, supervisors, and interns in one BioTern workspace.</h1>
                             <p class="hero-subtitle mb-4">Track attendance with biometric confidence, monitor internship progress, and generate key documents and reports without juggling multiple systems.</p>
                             <div class="hero-cta">
                                 <a href="<?php echo htmlspecialchars($landing_hero_href, ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-primary btn-lg"><?php echo htmlspecialchars($landing_hero_label, ENT_QUOTES, 'UTF-8'); ?></a>

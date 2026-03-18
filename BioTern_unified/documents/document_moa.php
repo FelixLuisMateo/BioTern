@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 require_once dirname(__DIR__) . '/config/db.php';
 // Documents page - UI to prepare Memorandum of Agreement (MOA)
 
@@ -68,7 +68,7 @@ if (isset($_GET['action'])) {
 }
 
 $page_title = 'MOA';
-$base_href = '../';
+$base_href = '';
 include __DIR__ . '/../includes/header.php';
 ?>
 <style>
@@ -412,6 +412,7 @@ include __DIR__ . '/../includes/header.php';
         window.addEventListener('load', function() {
         (function(){
             const MOA_TEMPLATE_STORAGE_KEY = 'biotern_moa_template_html_v1';
+            const ENABLE_TEMPLATE_PREVIEW = true;
             const PREFILL_STUDENT_ID = <?php
 require_once dirname(__DIR__) . '/config/db.php';
 echo intval($prefill_student_id); ?>;
@@ -471,11 +472,15 @@ echo intval($prefill_student_id); ?>;
             }
 
             function loadMoaTemplateHtml() {
+                if (!ENABLE_TEMPLATE_PREVIEW) return false;
                 if (!moaContent) return false;
                 try {
                     const saved = localStorage.getItem(MOA_TEMPLATE_STORAGE_KEY);
                     if (!saved) return false;
-                    moaContent.innerHTML = saved;
+                    const temp = document.createElement('div');
+                    temp.innerHTML = saved;
+                    const extracted = temp.querySelector('#moa_doc_content') || temp.querySelector('#moa_content') || temp.querySelector('.doc');
+                    moaContent.innerHTML = extracted ? extracted.innerHTML : (temp.innerHTML || saved);
                     hasLoadedSavedTemplate = true;
                     return true;
                 } catch (err) {
@@ -685,6 +690,11 @@ echo intval($prefill_student_id); ?>;
                 if (pageNo.value) params.set('page_no', pageNo.value);
                 if (bookNo.value) params.set('book_no', bookNo.value);
                 if (seriesNo.value) params.set('series_no', seriesNo.value);
+                try {
+                    if (localStorage.getItem(MOA_TEMPLATE_STORAGE_KEY)) {
+                        params.set('use_saved_template', '1');
+                    }
+                } catch (err) {}
                 params.set('date', new Date().toLocaleDateString());
                 const url = 'pages/generate_moa.php?' + params.toString();
                 btnGenerate.dataset.url = url;
@@ -707,6 +717,7 @@ echo intval($prefill_student_id); ?>;
             });
 
             // initialize (always render live autofill preview)
+            loadMoaTemplateHtml();
             updatePreview();
             updateGenerateLink();
             if (PREFILL_STUDENT_ID > 0) prefillByStudentId(PREFILL_STUDENT_ID);

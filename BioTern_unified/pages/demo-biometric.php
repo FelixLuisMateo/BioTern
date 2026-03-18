@@ -319,7 +319,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 }
 
 // Fetch students for dropdown (include pending applications / in-review users)
-$conn->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS application_status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'approved'");
+biotern_db_add_column_if_missing(
+    $conn,
+    'users',
+    'application_status',
+    "application_status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'approved'"
+);
 
 $students_query = "
     SELECT

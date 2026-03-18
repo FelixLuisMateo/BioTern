@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 require_once dirname(__DIR__) . '/config/db.php';
 // Simple registration handler for demo purposes.
 // IMPORTANT: Review and secure before using in production.
@@ -142,12 +142,17 @@ function has_disallowed_username_term($username) {
     return false;
 }
 
-$mysqli->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS application_status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'approved'");
-$mysqli->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS application_submitted_at DATETIME NULL");
-$mysqli->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS approved_by INT NULL");
-$mysqli->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS approved_at DATETIME NULL");
-$mysqli->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS rejected_at DATETIME NULL");
-$mysqli->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS approval_notes VARCHAR(255) NULL");
+$registerUserSchemaColumns = [
+    'application_status' => "application_status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'approved'",
+    'application_submitted_at' => "application_submitted_at DATETIME NULL",
+    'approved_by' => "approved_by INT NULL",
+    'approved_at' => "approved_at DATETIME NULL",
+    'rejected_at' => "rejected_at DATETIME NULL",
+    'approval_notes' => "approval_notes VARCHAR(255) NULL",
+];
+foreach ($registerUserSchemaColumns as $column => $definition) {
+    biotern_db_add_column_if_missing($mysqli, 'users', $column, $definition);
+}
 
 function ensureSectionId($mysqli, $sectionValue, $courseId, $departmentId) {
     $sectionRaw = trim((string)$sectionValue);
@@ -240,12 +245,17 @@ if ($role === 'student') {
     $default_external_hours = 250;
 
     // Keep student hour/assignment fields available even on older databases.
-    $mysqli->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS department_id VARCHAR(255) NULL");
-    $mysqli->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS internal_total_hours_remaining INT(11) DEFAULT NULL");
-    $mysqli->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS external_total_hours INT(11) DEFAULT NULL");
-    $mysqli->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS external_total_hours_remaining INT(11) DEFAULT NULL");
-    $mysqli->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS assignment_track VARCHAR(20) NOT NULL DEFAULT 'internal'");
-    $mysqli->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS school_year VARCHAR(9) NULL");
+    $registerStudentSchemaColumns = [
+        'department_id' => "department_id VARCHAR(255) NULL",
+        'internal_total_hours_remaining' => "internal_total_hours_remaining INT(11) DEFAULT NULL",
+        'external_total_hours' => "external_total_hours INT(11) DEFAULT NULL",
+        'external_total_hours_remaining' => "external_total_hours_remaining INT(11) DEFAULT NULL",
+        'assignment_track' => "assignment_track VARCHAR(20) NOT NULL DEFAULT 'internal'",
+        'school_year' => "school_year VARCHAR(9) NULL",
+    ];
+    foreach ($registerStudentSchemaColumns as $column => $definition) {
+        biotern_db_add_column_if_missing($mysqli, 'students', $column, $definition);
+    }
 
     // Validate password matches confirm_password
     $password = getPost('password');
