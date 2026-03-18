@@ -129,6 +129,14 @@ if ($theme_scheme === 'gray') {
 }
 $html_class_attr = implode(' ', $html_classes);
 $page_body_class = isset($page_body_class) && is_string($page_body_class) ? trim($page_body_class) : '';
+$header_script_name = (string)($_SERVER['SCRIPT_NAME'] ?? '');
+$header_is_management_page = stripos($header_script_name, '/management/') !== false;
+if ($header_is_management_page) {
+    $page_body_class = trim($page_body_class . ' management-page');
+}
+if (!$page_is_public && stripos($page_body_class, 'mobile-bottom-nav') === false) {
+    $page_body_class = trim($page_body_class . ' mobile-bottom-nav');
+}
 
 $header_user_name = 'BioTern User';
 $header_user_email = 'admin@biotern.local';
@@ -299,6 +307,10 @@ if ($header_db instanceof mysqli) {
     <link rel="stylesheet" type="text/css" href="assets/css/ui.css" />
     <link rel="stylesheet" type="text/css" href="assets/css/theme.css" />
     <link rel="stylesheet" type="text/css" href="assets/css/mobile.min.css" />
+    <link rel="stylesheet" type="text/css" href="assets/css/mobile-bottom-nav.css" />
+    <?php if ($header_is_management_page): ?>
+        <link rel="stylesheet" type="text/css" href="assets/css/managements_mobile.css" />
+    <?php endif; ?>
     <?php if (isset($page_styles) && is_array($page_styles)): ?>
         <?php foreach ($page_styles as $stylesheet): ?>
             <?php if (is_string($stylesheet) && trim($stylesheet) !== ''): ?>

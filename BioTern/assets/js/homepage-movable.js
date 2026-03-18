@@ -1,6 +1,5 @@
 (function () {
     var CARD_REGISTRY = {
-        'overview-hero': { name: 'Overview Hero', init: initOverviewHeroCard },
         'kpi-strip': { name: 'KPI Strip', init: initKpiStripCard },
         'latest-attendance': { name: 'Latest Attendance Records', init: initLatestAttendanceCard },
         'biometric-status': { name: 'Biometric Registration Status', init: initBiometricStatusCard },
@@ -8,6 +7,7 @@
         'priority-items': { name: 'Priority Items', init: initPriorityItemsCard },
         'recent-activities': { name: 'Recent Activities & Logs', init: initRecentActivitiesCard },
         'admin-quick-actions': { name: 'Admin Quick Actions', init: initAdminQuickActionsCard },
+        'active-students': { name: 'Active Students', init: initActiveStudentsCard },
         'coordinators': { name: 'Coordinators', init: initCoordinatorsCard },
         'supervisors': { name: 'Supervisors', init: initSupervisorsCard }
     };
@@ -17,7 +17,7 @@
         var row = document.querySelector('.main-content.dashboard-shell > .row');
         if (!row) return;
 
-        var storageKey = 'biotern-homepage-layout-v1';
+        var storageKey = 'biotern-homepage-layout-v2';
         var cards = Array.from(row.children).filter(function (item) {
             return item.classList.contains('dashboard-movable') && item.dataset.moveKey;
         });
@@ -44,22 +44,15 @@
                 shell.classList.toggle('layout-edit-active', isEditMode);
             }
 
-            cards.forEach(function (item) {
-                item.setAttribute('draggable', isEditMode ? 'true' : 'false');
-                var handle = item.querySelector('.dashboard-move-handle');
-                if (handle) {
-                    handle.setAttribute('draggable', isEditMode ? 'true' : 'false');
-                }
-            });
-
-            var toggleBtn = document.getElementById('toggle-dashboard-layout');
-            if (toggleBtn) {
+            var toggleButtons = document.querySelectorAll('#toggle-dashboard-layout, #toggle-dashboard-layout-mobile');
+            toggleButtons.forEach(function (toggleBtn) {
+                if (!toggleBtn) return;
                 toggleBtn.innerHTML = isEditMode
                     ? '<i class="feather-check me-1"></i> Done'
                     : '<i class="feather-move me-1"></i> Edit Layout';
                 toggleBtn.classList.toggle('btn-primary', isEditMode);
                 toggleBtn.classList.toggle('btn-light-brand', !isEditMode);
-            }
+            });
         }
 
         function applyOrder(order) {
@@ -90,8 +83,8 @@
         }
 
         function clearTargets() {
-            row.querySelectorAll('.dashboard-movable.drag-target').forEach(function (item) {
-                item.classList.remove('drag-target');
+            row.querySelectorAll('.dashboard-movable.drag-target, .dashboard-movable.drag-before, .dashboard-movable.drag-after').forEach(function (item) {
+                item.classList.remove('drag-target', 'drag-before', 'drag-after');
             });
         }
 
@@ -107,12 +100,11 @@
             });
         }
 
-        var toggleLayoutButton = document.getElementById('toggle-dashboard-layout');
-        if (toggleLayoutButton) {
+        document.querySelectorAll('#toggle-dashboard-layout, #toggle-dashboard-layout-mobile').forEach(function (toggleLayoutButton) {
             toggleLayoutButton.addEventListener('click', function () {
                 setEditMode(!isEditMode);
             });
-        }
+        });
 
         window.BioTernHomepage = window.BioTernHomepage || {};
         window.BioTernHomepage.resetLayout = resetLayout;
@@ -128,22 +120,13 @@
         });
 
         cards.forEach(function (item) {
-            var handle = item.querySelector('.dashboard-move-handle');
-            if (!handle) return;
-
             item.setAttribute('draggable', 'true');
-            handle.setAttribute('draggable', 'true');
 
             item.querySelectorAll('a, button, input, select, textarea').forEach(function (ctrl) {
                 ctrl.setAttribute('draggable', 'false');
             });
 
             function beginDrag(event) {
-                if (!isEditMode) {
-                    event.preventDefault();
-                    return;
-                }
-
                 var interactiveTarget = event.target.closest('a, button, input, select, textarea, .dropdown-menu, .pagination-common-style');
                 if (interactiveTarget) {
                     event.preventDefault();
@@ -158,19 +141,23 @@
                 }
             }
 
-            handle.addEventListener('dragstart', beginDrag);
             item.addEventListener('dragstart', beginDrag);
 
-            handle.addEventListener('dragend', function () {
+            item.addEventListener('dragend', function () {
                 if (dragged) dragged.classList.remove('dragging');
                 dragged = null;
                 clearTargets();
+                saveOrder();
             });
 
             item.addEventListener('dragover', function (event) {
-                if (!isEditMode || !dragged || dragged === item) return;
+                if (!dragged || dragged === item) return;
                 event.preventDefault();
+                clearTargets();
                 item.classList.add('drag-target');
+                var itemRect = item.getBoundingClientRect();
+                var placeAfter = event.clientY > (itemRect.top + itemRect.height / 2);
+                item.classList.add(placeAfter ? 'drag-after' : 'drag-before');
                 if (event.dataTransfer) {
                     event.dataTransfer.dropEffect = 'move';
                 }
@@ -181,15 +168,13 @@
             });
 
             item.addEventListener('drop', function (event) {
-                if (!isEditMode || !dragged || dragged === item) return;
+                if (!dragged || dragged === item) return;
                 event.preventDefault();
-                item.classList.remove('drag-target');
+                item.classList.remove('drag-target', 'drag-before', 'drag-after');
 
                 var itemRect = item.getBoundingClientRect();
                 var placeAfter = event.clientY > (itemRect.top + itemRect.height / 2);
                 row.insertBefore(dragged, placeAfter ? item.nextSibling : item);
-
-                saveOrder();
             });
         });
 
@@ -252,84 +237,264 @@
     function initLatestAttendanceCard(attendanceCardNode) {
         if (!attendanceCardNode) return;
 
-            var tableRows = Array.from(attendanceCardNode.querySelectorAll('tbody tr')).filter(function (line) {
-                return line.querySelectorAll('td').length > 1;
-            });
-            var pagination = attendanceCardNode.querySelector('#latest-attendance-pagination');
-            var pageLinks = pagination ? Array.from(pagination.querySelectorAll('[data-role="page"]')) : [];
-            var pageSize = 5;
-            var currentPage = 1;
+        var tableRows = Array.from(attendanceCardNode.querySelectorAll('tbody tr')).filter(function (line) {
+            return line.querySelectorAll('td').length > 1;
+        });
 
-            function renderAttendancePage(page, showAll) {
-                if (!tableRows.length) return;
-                var totalPages = Math.max(1, Math.ceil(tableRows.length / pageSize));
-                currentPage = Math.min(totalPages, Math.max(1, page));
-                var start = (currentPage - 1) * pageSize;
-                var end = start + pageSize;
-
-                tableRows.forEach(function (line, index) {
-                    var visible = showAll || (index >= start && index < end);
-                    line.style.display = visible ? '' : 'none';
-                });
-
-                pageLinks.forEach(function (link, index) {
-                    var pageNumber = index + 1;
-                    link.classList.toggle('active', pageNumber === currentPage && !showAll);
-                    link.parentElement.style.display = pageNumber <= totalPages ? '' : 'none';
-                });
-            }
-
-            attendanceCardNode._renderAttendancePage = renderAttendancePage;
-
-            if (pagination) {
-                pagination.addEventListener('click', function (event) {
-                    var target = event.target.closest('a[data-role]');
-                    if (!target) return;
-                    event.preventDefault();
-
-                    var role = target.getAttribute('data-role');
-                    if (role === 'prev') {
-                        renderAttendancePage(currentPage - 1, false);
-                    } else if (role === 'next') {
-                        renderAttendancePage(currentPage + 1, false);
-                    } else if (role === 'page') {
-                        var page = parseInt(target.getAttribute('data-page') || '1', 10);
-                        renderAttendancePage(page, false);
-                    } else if (role === 'view-all') {
-                        renderAttendancePage(1, true);
-                        pageLinks.forEach(function (link) { link.classList.remove('active'); });
-                    }
-                });
-            }
-
-            renderAttendancePage(1, false);
+        if (!tableRows.length) return;
+        tableRows.forEach(function (line) {
+            line.style.display = '';
+        });
     }
 
     function initRecentActivitiesCard(cardNode) {
-        var recentActivityCard = cardNode ? cardNode.querySelector('.card') : null;
-        if (recentActivityCard) {
-            var activityItems = recentActivityCard.querySelectorAll('.card-body .border-bottom');
-            activityItems.forEach(function (item, index) {
-                if (index >= 8) {
-                    item.setAttribute('data-expand-detail', '1');
-                    item.classList.add('detail-hidden');
-                }
-            });
-        }
+        if (!cardNode) return;
     }
 
-    function initOverviewHeroCard() {}
     function initKpiStripCard() {}
     function initBiometricStatusCard() {}
     function initOperationsPulseCard() {}
     function initPriorityItemsCard() {}
     function initAdminQuickActionsCard() {}
+    function initActiveStudentsCard() {}
     function initCoordinatorsCard() {}
     function initSupervisorsCard() {}
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initHomepageMovable);
-    } else {
+    function initOjtOverviewChart() {
+        try {
+            if (typeof ApexCharts === 'undefined') {
+                return;
+            }
+
+            var el = document.querySelector('#ojt-overview-pie');
+            if (!el) {
+                return;
+            }
+
+            var cfg = document.getElementById('homepage-runtime-config');
+            var pending = Number((cfg && cfg.dataset.ojtPending) || 0);
+            var ongoing = Number((cfg && cfg.dataset.ojtOngoing) || 0);
+            var completed = Number((cfg && cfg.dataset.ojtCompleted) || 0);
+            var cancelled = Number((cfg && cfg.dataset.ojtCancelled) || 0);
+
+            var chart = new ApexCharts(el, {
+                chart: { type: 'donut', height: 260 },
+                series: [pending, ongoing, completed, cancelled],
+                labels: ['Pending', 'Ongoing', 'Completed', 'Cancelled'],
+                colors: ['#f6c23e', '#36b9cc', '#1cc88a', '#e74a3b'],
+                legend: { position: 'bottom' },
+                responsive: [
+                    {
+                        breakpoint: 768,
+                        options: { chart: { height: 200 }, legend: { position: 'bottom' } },
+                    },
+                ],
+            });
+
+            chart.render();
+        } catch (e) {
+            console.error('OJT chart init error', e);
+        }
+    }
+
+    function initSidebarMiniMenuCollapse() {
+        function collapseSidebarMenus() {
+            if (!document.documentElement.classList.contains('minimenu')) return;
+            document
+                .querySelectorAll(
+                    '.nxl-navigation .nxl-item.nxl-hasmenu.open, .nxl-navigation .nxl-item.nxl-hasmenu.nxl-trigger'
+                )
+                .forEach(function (item) {
+                    item.classList.remove('open', 'nxl-trigger');
+                });
+        }
+
+        function runAfterToggle() {
+            collapseSidebarMenus();
+            setTimeout(collapseSidebarMenus, 80);
+            setTimeout(collapseSidebarMenus, 220);
+        }
+
+        collapseSidebarMenus();
+
+        ['menu-mini-button', 'menu-expend-button', 'mobile-collapse'].forEach(function (id) {
+            var btn = document.getElementById(id);
+            if (btn) btn.addEventListener('click', runAfterToggle);
+        });
+
+        var nav = document.querySelector('.nxl-navigation');
+        if (window.MutationObserver && nav) {
+            var observer = new MutationObserver(function () {
+                if (document.documentElement.classList.contains('minimenu')) {
+                    collapseSidebarMenus();
+                }
+            });
+            observer.observe(nav, {
+                subtree: true,
+                attributes: true,
+                attributeFilter: ['class'],
+            });
+        }
+    }
+
+    function applyProgressWidths() {
+        document.querySelectorAll('[data-progress-width]').forEach(function (bar) {
+            var raw = bar.getAttribute('data-progress-width');
+            var value = Number(raw);
+            if (!isFinite(value)) {
+                value = 0;
+            }
+            value = Math.max(0, Math.min(100, value));
+            bar.style.width = value + '%';
+            bar.setAttribute('aria-valuenow', String(value));
+        });
+    }
+
+    function downloadCSV(filename, rows) {
+        if (!rows.length) {
+            return;
+        }
+        var csv = rows
+            .map(function (row) {
+                return row
+                    .map(function (value) {
+                        var str = String(value == null ? '' : value);
+                        if (str.search(/(\"|,|\\n)/g) >= 0) {
+                            str = '\"' + str.replace(/\"/g, '\"\"') + '\"';
+                        }
+                        return str;
+                    })
+                    .join(',');
+            })
+            .join('\n');
+        var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        var link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    function exportAttendanceCSV() {
+        var table = document.getElementById('latest-attendance-table');
+        if (!table) {
+            return;
+        }
+        var rows = [];
+        rows.push(['Student', 'Student ID', 'Attendance Date', 'Time In', 'Status']);
+        table.querySelectorAll('tbody tr').forEach(function (tr) {
+            var cols = tr.querySelectorAll('td');
+            if (cols.length < 4) return;
+            var studentName = cols[0].querySelector('.fw-semibold');
+            var studentId = cols[0].querySelector('.text-muted');
+            rows.push([
+                studentName ? studentName.textContent.trim() : '',
+                studentId ? studentId.textContent.trim() : '',
+                cols[1].textContent.trim(),
+                cols[2].textContent.trim(),
+                cols[3].textContent.trim(),
+            ]);
+        });
+        downloadCSV('latest-attendance.csv', rows);
+    }
+
+    function exportRecentActivitiesCSV() {
+        var rows = [];
+        rows.push(['Activity', 'Date']);
+        document.querySelectorAll('.recent-activity-item').forEach(function (row) {
+            var title = row.querySelector('.fw-semibold');
+            var date = row.querySelector('.text-muted.border-bottom-dashed');
+            rows.push([
+                title ? title.textContent.trim() : '',
+                date ? date.textContent.trim() : '',
+            ]);
+        });
+        downloadCSV('recent-activities.csv', rows);
+    }
+
+    function toggleAttendanceCompact() {
+        var table = document.getElementById('latest-attendance-table');
+        if (!table) return;
+        table.classList.toggle('table-sm');
+    }
+
+    function toggleActivitiesCompact() {
+        document.body.classList.toggle('dashboard-activities-compact');
+    }
+
+    function goTo(path) {
+        window.location.href = path;
+    }
+
+    function openAttendanceRecord(id) {
+        if (!id) {
+            goTo('attendance.php');
+            return;
+        }
+        goTo('attendance.php?attendance_id=' + encodeURIComponent(String(id)));
+    }
+
+    function initHomepageRuntime() {
+        initOjtOverviewChart();
+        initSidebarMiniMenuCollapse();
+        applyProgressWidths();
+    }
+
+    function initActionsPanelToggle() {
+        var toggle = document.querySelector('.page-header-actions-toggle');
+        var panel = document.getElementById('dashboardPageActions');
+        if (!toggle || !panel) return;
+
+        function setOpen(isOpen) {
+            panel.classList.toggle('is-open', isOpen);
+            toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        }
+
+        setOpen(false);
+
+        toggle.addEventListener('click', function (event) {
+            event.preventDefault();
+            var isOpen = panel.classList.contains('is-open');
+            setOpen(!isOpen);
+        });
+
+        document.addEventListener('click', function (event) {
+            if (!panel.classList.contains('is-open')) return;
+            if (panel.contains(event.target) || toggle.contains(event.target)) return;
+            setOpen(false);
+        });
+    }
+
+    window.BioTernDashboard = {
+        exportAttendanceCSV: exportAttendanceCSV,
+        exportRecentActivitiesCSV: exportRecentActivitiesCSV,
+        toggleAttendanceCompact: toggleAttendanceCompact,
+        toggleActivitiesCompact: toggleActivitiesCompact,
+        openAttendanceRecord: openAttendanceRecord,
+        goToAttendance: function () {
+            goTo('attendance.php');
+        },
+        goToStudents: function () {
+            goTo('students.php');
+        },
+        goToApplicationsReview: function () {
+            goTo('applications-review.php');
+        },
+        goToReports: function () {
+            goTo('reports-timesheets.php');
+        },
+    };
+
+    function initHomepage() {
         initHomepageMovable();
+        initHomepageRuntime();
+        initActionsPanelToggle();
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initHomepage);
+    } else {
+        initHomepage();
     }
 })();

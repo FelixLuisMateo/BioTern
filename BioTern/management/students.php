@@ -408,14 +408,14 @@ include 'includes/header.php';
                         <li class="breadcrumb-item">Students</li>
                     </ul>
                 </div>
-                <div class="page-header-right ms-auto">
-                    <div class="page-header-right-items">
-                        <div class="d-flex d-md-none">
-                            <a href="javascript:void(0)" class="page-header-right-close-toggle">
-                                <i class="feather-arrow-left me-2"></i>
-                                <span>Back</span>
-                            </a>
-                        </div>
+                <div class="page-header-right ms-auto app-students-header-actions">
+                    <div class="d-flex d-md-none align-items-center">
+                        <button type="button" class="btn btn-light-brand app-students-actions-toggle" data-bs-toggle="collapse" data-bs-target="#studentsActionsCollapse" aria-expanded="false" aria-controls="studentsActionsCollapse">
+                            <i class="feather-align-right me-2"></i>
+                            <span>Actions</span>
+                        </button>
+                    </div>
+                    <div class="page-header-right-items collapse d-md-flex app-students-actions-panel" id="studentsActionsCollapse">
                         <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
                             <button type="button" class="btn btn-light-brand" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="false" aria-controls="collapseOne">
                                 <i class="feather-bar-chart me-2"></i>
@@ -467,11 +467,6 @@ include 'includes/header.php';
                                 <span>Create Students</span>
                             </a>
                         </div>
-                    </div>
-                    <div class="d-md-none d-flex align-items-center">
-                        <a href="javascript:void(0)" class="page-header-right-open-toggle">
-                            <i class="feather-align-right fs-20"></i>
-                        </a>
                     </div>
                 </div>
             </div>
@@ -763,6 +758,128 @@ include 'includes/header.php';
                                             <?php endif; ?>
                                         </tbody>
                                     </table>
+                                </div>
+                                <div class="app-students-mobile-list">
+                                    <?php if (count($students) > 0): ?>
+                                        <?php foreach ($students as $index => $student): ?>
+                                            <?php
+                                            $status_raw = strtolower(trim((string)($student['live_clock_status'] ?? '')));
+                                            $status_class = 'status-unknown';
+                                            if (in_array($status_raw, ['1', 'active', 'present', 'online'], true) || strpos($status_raw, 'active') !== false) {
+                                                $status_class = 'status-active';
+                                            } elseif (in_array($status_raw, ['0', 'inactive', 'offline', 'absent'], true) || strpos($status_raw, 'inactive') !== false) {
+                                                $status_class = 'status-inactive';
+                                            }
+                                            ?>
+                                            <details class="app-student-mobile-item">
+                                                <summary class="app-student-mobile-summary">
+                                                    <div class="app-student-mobile-summary-main">
+                                                        <div class="avatar-image avatar-md">
+                                                            <?php
+                                                            $pp = $student['profile_picture'] ?? '';
+                                                            $pp_url = resolve_profile_image_url($pp);
+                                                            if ($pp_url !== null) {
+                                                                echo '<img src="' . htmlspecialchars($pp_url) . '" alt="" class="img-fluid">';
+                                                            } else {
+                                                                echo '<img src="assets/images/avatar/' . (($index % 5) + 1) . '.png" alt="" class="img-fluid">';
+                                                            }
+                                                            ?>
+                                                        </div>
+                                                        <div class="app-student-mobile-summary-text">
+                                                            <span class="app-student-mobile-name"><?php echo htmlspecialchars($student['first_name'] . ' ' . $student['last_name']); ?></span>
+                                                            <span class="app-student-mobile-subtext">ID: <?php echo htmlspecialchars((string)$student['student_id']); ?> &middot; <?php echo htmlspecialchars($student['course_name'] ?? 'N/A'); ?></span>
+                                                        </div>
+                                                    </div>
+                                                    <span class="app-student-mobile-status-dot <?php echo htmlspecialchars($status_class); ?>" aria-hidden="true"></span>
+                                                </summary>
+                                                <div class="app-student-mobile-details">
+                                                    <div class="app-student-mobile-row">
+                                                        <span class="app-student-mobile-label">Student ID</span>
+                                                        <span class="app-student-mobile-value"><?php echo htmlspecialchars((string)$student['student_id']); ?></span>
+                                                    </div>
+                                                    <div class="app-student-mobile-row">
+                                                        <span class="app-student-mobile-label">Course</span>
+                                                        <span class="app-student-mobile-value"><?php echo htmlspecialchars($student['course_name'] ?? 'N/A'); ?></span>
+                                                    </div>
+                                                    <div class="app-student-mobile-row">
+                                                        <span class="app-student-mobile-label">Section</span>
+                                                        <span class="app-student-mobile-value"><?php echo htmlspecialchars($student['section_name'] ?? '-'); ?></span>
+                                                    </div>
+                                                    <div class="app-student-mobile-row">
+                                                        <span class="app-student-mobile-label">Supervisor</span>
+                                                        <span class="app-student-mobile-value"><?php echo htmlspecialchars($student['supervisor_name'] ?? '-'); ?></span>
+                                                    </div>
+                                                    <div class="app-student-mobile-row">
+                                                        <span class="app-student-mobile-label">Coordinator</span>
+                                                        <span class="app-student-mobile-value"><?php echo htmlspecialchars($student['coordinator_name'] ?? '-'); ?></span>
+                                                    </div>
+                                                    <div class="app-student-mobile-row">
+                                                        <span class="app-student-mobile-label">Last Logged</span>
+                                                        <span class="app-student-mobile-value"><?php echo formatDate($student['created_at']); ?></span>
+                                                    </div>
+                                                    <div class="app-student-mobile-row">
+                                                        <span class="app-student-mobile-label">Status</span>
+                                                        <span class="app-student-mobile-value"><?php echo getStatusBadge($student['live_clock_status']); ?></span>
+                                                    </div>
+                                                    <div class="app-student-mobile-actions">
+                                                        <a href="students-view.php?id=<?php echo (int)$student['id']; ?>" class="btn btn-primary btn-sm">View</a>
+                                                        <?php if (!$is_student_user): ?>
+                                                            <a href="students-edit.php?id=<?php echo (int)$student['id']; ?>" class="btn btn-outline-primary btn-sm">Edit</a>
+                                                            <div class="dropdown students-action-dropdown">
+                                                                <a href="javascript:void(0)" class="btn btn-outline-secondary btn-sm" data-bs-toggle="dropdown" data-bs-offset="0,21">More</a>
+                                                                <ul class="dropdown-menu">
+                                                                    <li>
+                                                                        <a class="dropdown-item" href="students-edit.php?id=<?php echo (int)$student['id']; ?>">
+                                                                            <i class="feather feather-edit-3 me-3"></i>
+                                                                            <span>Edit</span>
+                                                                        </a>
+                                                                    </li>
+                                                                    <li>
+                                                                        <a class="dropdown-item" href="students-view.php?id=<?php echo (int)$student['id']; ?>" target="_blank" rel="noopener noreferrer">
+                                                                            <i class="feather feather-printer me-3"></i>
+                                                                            <span>Print</span>
+                                                                        </a>
+                                                                    </li>
+                                                                    <li>
+                                                                        <a class="dropdown-item" href="mailto:<?php echo rawurlencode((string)($student['email'] ?? '')); ?>?subject=<?php echo rawurlencode('Reminder from BioTern'); ?>">
+                                                                            <i class="feather feather-clock me-3"></i>
+                                                                            <span>Remind</span>
+                                                                        </a>
+                                                                    </li>
+                                                                    <li class="dropdown-divider"></li>
+                                                                    <li>
+                                                                        <a class="dropdown-item" href="javascript:void(0)">
+                                                                            <i class="feather feather-archive me-3"></i>
+                                                                            <span>Archive</span>
+                                                                        </a>
+                                                                    </li>
+                                                                    <li>
+                                                                        <a class="dropdown-item" href="javascript:void(0)">
+                                                                            <i class="feather feather-alert-octagon me-3"></i>
+                                                                            <span>Report Spam</span>
+                                                                        </a>
+                                                                    </li>
+                                                                    <li class="dropdown-divider"></li>
+                                                                    <li>
+                                                                        <form method="post" action="students-view.php?id=<?php echo (int)$student['id']; ?>" onsubmit="return confirm('Delete this student and linked user account permanently?');" class="m-0">
+                                                                            <input type="hidden" name="action" value="delete_student">
+                                                                            <input type="hidden" name="student_id" value="<?php echo (int)$student['id']; ?>">
+                                                                            <button type="submit" class="dropdown-item">
+                                                                                <i class="feather feather-trash-2 me-3"></i>
+                                                                                <span>Delete</span>
+                                                                            </button>
+                                                                        </form>
+                                                                    </li>
+                                                                </ul>
+                                                            </div>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                </div>
+                                            </details>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <div class="app-students-mobile-empty text-muted">No students found.</div>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                         </div>
