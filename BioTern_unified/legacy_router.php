@@ -65,6 +65,7 @@ $map = [
   'reports-attendance-operations.php' => 'reports/reports-attendance-operations.php',
   'reports-login-logs.php' => 'reports/reports-login-logs.php',
   'reports-chat-logs.php' => 'reports/reports-chat-logs.php',
+  'reports-chat-reports.php' => 'reports/reports-chat-reports.php',
 
   'settings-general.php' => 'settings/settings-general.php',
   'settings-seo.php' => 'settings/settings-seo.php',
@@ -209,7 +210,7 @@ if ($is_logged_in) {
     'attendance.php', 'attendance-corrections.php', 'edit_attendance.php', 'print_attendance.php',
     'demo-biometric.php',
     'ojt.php', 'ojt-create.php', 'ojt-edit.php', 'ojt-view.php', 'ojt-workflow-board.php',
-    'reports-sales.php', 'reports-ojt.php', 'reports-project.php', 'reports-timesheets.php', 'reports-attendance-operations.php', 'reports-login-logs.php', 'reports-chat-logs.php',
+    'reports-sales.php', 'reports-ojt.php', 'reports-project.php', 'reports-timesheets.php', 'reports-attendance-operations.php', 'reports-login-logs.php', 'reports-chat-logs.php', 'reports-chat-reports.php',
   ];
   $academic_files = [
     'courses.php', 'courses-create.php', 'courses-edit.php',
