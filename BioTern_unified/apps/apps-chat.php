@@ -1162,20 +1162,22 @@ if ($requestMethod === 'POST' && (string)($_POST['action'] ?? '') === 'send-mess
     $mediaUploadError = '';
     if (!empty($_FILES['chat_media']['name'])) {
         $file = $_FILES['chat_media'];
-        $allowedMime = [
-            'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp',
-            'video/mp4', 'video/webm', 'video/ogg', 'video/quicktime',
-        ];
-        $maxSize = 20 * 1024 * 1024; // 20 MB
+        $imageMime = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+        $videoMime = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime'];
+        $allowedMime = array_merge($imageMime, $videoMime);
+        $maxImageSize = 10 * 1024 * 1024; // 10 MB
+        $maxVideoSize = 50 * 1024 * 1024; // 50 MB
         if ($file['error'] !== UPLOAD_ERR_OK) {
             $mediaUploadError = 'File upload failed (code ' . (int)$file['error'] . ').';
-        } elseif ($file['size'] > $maxSize) {
-            $mediaUploadError = 'File is too large (max 20 MB).';
         } else {
             $finfo = new finfo(FILEINFO_MIME_TYPE);
             $mime = $finfo->file($file['tmp_name']);
             if (!in_array($mime, $allowedMime, true)) {
                 $mediaUploadError = 'File type not allowed.';
+            } elseif (in_array($mime, $imageMime, true) && $file['size'] > $maxImageSize) {
+                $mediaUploadError = 'Image is too large (max 10 MB).';
+            } elseif (in_array($mime, $videoMime, true) && $file['size'] > $maxVideoSize) {
+                $mediaUploadError = 'Video is too large (max 50 MB).';
             } else {
                 $ext = strtolower(pathinfo((string)$file['name'], PATHINFO_EXTENSION));
                 $safeExt = preg_replace('/[^a-z0-9]/', '', $ext);
