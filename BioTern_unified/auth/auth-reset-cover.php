@@ -6,10 +6,11 @@ if (session_status() === PHP_SESSION_NONE) {
 
 require_once dirname(__DIR__) . '/vendor/autoload.php';
 
-$dbHost = '127.0.0.1';
-$dbUser = 'root';
-$dbPass = '';
+$dbHost = defined('DB_HOST') ? DB_HOST : '127.0.0.1';
+$dbUser = defined('DB_USER') ? DB_USER : 'root';
+$dbPass = defined('DB_PASS') ? DB_PASS : '';
 $dbName = defined('DB_NAME') ? DB_NAME : 'biotern_db';
+$dbPort = defined('DB_PORT') ? (int)DB_PORT : 3306;
 $script_name = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
 $asset_prefix = (strpos($script_name, '/auth/') !== false) ? '../' : '';
 
@@ -171,7 +172,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['identifier'])) {
     if ($identifier === '') {
         $reset_error = 'Please provide your email or username.';
     } else {
-        $mysqli = new mysqli($dbHost, $dbUser, $dbPass, $dbName);
+        $mysqli = new mysqli($dbHost, $dbUser, $dbPass, $dbName, $dbPort);
         if ($mysqli->connect_errno) {
             $reset_error = 'Database connection failed.';
         } else {
