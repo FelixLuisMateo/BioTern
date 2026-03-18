@@ -99,6 +99,7 @@ if ($nav_can_internship): ?>
                         <li class="nxl-item"><a class="nxl-link" href="reports-project.php">Project Report</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="reports-timesheets.php">Timesheets Report</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="reports-chat-logs.php">Chat Logs</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="reports-chat-reports.php">Reported Chats</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="reports-login-logs.php">Login Logs</a></li>
                     </ul>
                 </li>

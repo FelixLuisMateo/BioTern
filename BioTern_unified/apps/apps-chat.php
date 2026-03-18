@@ -190,28 +190,163 @@ function chat_media_kind_from_path(string $path): string
     return '';
 }
 
-function chat_contains_inappropriate(string $text): bool
+function chat_unsent_marker(): string
 {
-    $normalized = strtolower(trim($text));
-    if ($normalized === '') {
-        return false;
+    return '__btchat_unsent__';
+}
+
+function chat_blocked_message_emojis(): array
+{
+    return [
+        html_entity_decode('&#128405;', ENT_QUOTES, 'UTF-8'),
+        html_entity_decode('&#127814;', ENT_QUOTES, 'UTF-8'),
+        html_entity_decode('&#127825;', ENT_QUOTES, 'UTF-8'),
+        html_entity_decode('&#128166;', ENT_QUOTES, 'UTF-8'),
+        html_entity_decode('&#128069;', ENT_QUOTES, 'UTF-8'),
+    ];
+}
+
+function chat_moderation_payload(string $text): array
+{
+    $clean = preg_replace('/[\x{200B}-\x{200D}\x{FEFF}]+/u', '', $text);
+    if (!is_string($clean)) {
+        $clean = $text;
     }
 
-    // Basic moderation list: profanity, explicit sexual terms, and common abuse terms.
-    $blockedTerms = [
-        'fuck', 'fucking', 'shit', 'bitch', 'asshole', 'bastard', 'dick', 'pussy',
-        'nude', 'nudes', 'porn', 'sext', 'blowjob', 'handjob', 'cum',
-        'kill yourself', 'kys',
-    ];
+    $lower = function_exists('mb_strtolower') ? mb_strtolower($clean, 'UTF-8') : strtolower($clean);
+    $lower = strtr($lower, [
+        '0' => 'o',
+        '1' => 'i',
+        '3' => 'e',
+        '4' => 'a',
+        '5' => 's',
+        '7' => 't',
+        '@' => 'a',
+        '$' => 's',
+    ]);
 
-    foreach ($blockedTerms as $term) {
-        $pattern = '/\b' . preg_quote($term, '/') . '\b/i';
-        if (preg_match($pattern, $normalized) === 1) {
-            return true;
+    $normalized = preg_replace('/[^\p{L}\p{N}\s]+/u', ' ', $lower);
+    if (!is_string($normalized)) {
+        $normalized = $lower;
+    }
+    $normalized = trim((string)(preg_replace('/\s+/u', ' ', $normalized) ?? $normalized));
+
+    $compact = preg_replace('/[^\p{L}\p{N}]+/u', '', $lower);
+    if (!is_string($compact)) {
+        $compact = '';
+    }
+
+    $symbolCompact = trim((string)(preg_replace('/\s+/u', '', $clean) ?? $clean));
+
+    return [
+        'clean' => $clean,
+        'normalized' => $normalized,
+        'compact' => $compact,
+        'symbol_compact' => $symbolCompact,
+    ];
+}
+
+function chat_moderation_error(string $text): string
+{
+    if (trim($text) === '') {
+        return '';
+    }
+
+    foreach (chat_blocked_message_emojis() as $emoji) {
+        if ($emoji !== '' && str_contains($text, $emoji)) {
+            return 'Message blocked due to unsupported or offensive emoji.';
         }
     }
 
-    return false;
+    $payload = chat_moderation_payload($text);
+    $normalized = $payload['normalized'];
+    $compact = $payload['compact'];
+    $symbolCompact = $payload['symbol_compact'];
+
+    $symbolCompactLower = function_exists('mb_strtolower') ? mb_strtolower($symbolCompact, 'UTF-8') : strtolower($symbolCompact);
+    foreach (['./.', '/./', '.|.', '<==3', '<===3', '<====3', '8==d', '8===d', '8====d', 'b==d', 'b===d', 'b====d'] as $token) {
+        if ($symbolCompactLower !== '' && str_contains($symbolCompactLower, $token)) {
+            return 'Message blocked due to disallowed symbol patterns.';
+        }
+    }
+    if ($symbolCompactLower !== '' && preg_match('/(?:<|8|b|c)[=\-~_]{2,}(?:3|d)/u', $symbolCompactLower) === 1) {
+        return 'Message blocked due to disallowed symbol patterns.';
+    }
+
+    foreach ([
+        'kill yourself', 'kill ur self', 'kill your self',
+        'putang ina', 'putang ina mo', 'tang ina', 'tangina mo',
+        'anak ng puta', 'anak ka ng puta', 'bwakanang ina', 'bwakanang ina mo',
+        'gago ka', 'ulol ka', 'biot ka', 'bayot ka',
+        'kupal ka', 'tarantado ka', 'hayop ka', 'hayup ka',
+        'puta ka', 'gago mo',
+    ] as $phrase) {
+        $pattern = '/\b' . preg_quote($phrase, '/') . '\b/u';
+        if ($normalized !== '' && preg_match($pattern, $normalized) === 1) {
+            return 'Message blocked due to inappropriate language. Please edit and try again.';
+        }
+    }
+
+    $blockedTerms = [
+        // English
+        'fuck', 'fucking', 'shit', 'bitch', 'asshole', 'bastard', 'dick', 'pussy',
+        'nude', 'nudes', 'porn', 'sext', 'blowjob', 'handjob', 'cum', 'kys',
+        'fck', 'fvck', 'phuck', 'btch', 'biatch',
+        'cunt', 'whore', 'slut', 'rape', 'rapist', 'pedo', 'pedophile',
+        'jizz', 'boner', 'wank', 'wanker', 'fap', 'hentai', 'horny',
+        'orgasm', 'masturbate', 'masturbation', 'threesome', 'gangbang', 'creampie',
+        'anal', 'erection', 'ejaculate', 'ejaculation', 'xxx',
+        // Filipino / Tagalog
+        'putangina', 'potangina', 'puta', 'punyeta', 'gago', 'gaga', 'tangina',
+        'leche', 'buwisit', 'kupal', 'tarantado', 'pakshet', 'pakyu', 'putcha',
+        'kantot', 'iyot', 'jakol', 'tite', 'pekpek', 'ulol', 'bobo',
+        'ptngina', 'tngina', 'ulul',
+        'tanga', 'inutil', 'ogag', 'engot', 'gagu',
+        'putaragis', 'putaena', 'bwiset', 'bwisit', 'bwakanangina', 'bwakananginamo',
+        'hindot', 'libog', 'salsal', 'bayag', 'burat', 'pokpok',
+        'biot', 'bayot', 'bading',
+        'gunggong', 'kolokoy', 'hinayupak',  'lintik', 'demonyo',
+        'punyemas', 'burikat', 'pokpokin',
+        // Cebuano / Visayan
+        'yawa', 'yawaa', 'buang', 'otin', 'bilat', 'pisti', 'piste', 'atay',
+        'amaw', 'yati',
+        // Spanish
+        'cono', 'coño', 'joder', 'cabron', 'cabrón', 'mierda', 'pendejo',
+        'verga', 'chinga', 'culero',
+        // Korean (romanized)
+        'sibal', 'ssibal', 'gaeseki', 'jiral', 'byeongsin',
+        // Japanese (romanized)
+        'kuso', 'kutabare', 'chinko', 'manko',
+    ];
+
+    foreach ($blockedTerms as $term) {
+        $pattern = '/\b' . preg_quote($term, '/') . '\b/u';
+        if ($normalized !== '' && preg_match($pattern, $normalized) === 1) {
+            return 'Message blocked due to inappropriate language. Please edit and try again.';
+        }
+        if ($compact !== '' && str_contains($compact, str_replace(' ', '', $term))) {
+            return 'Message blocked due to inappropriate language. Please edit and try again.';
+        }
+    }
+
+    // Native-script check — Korean Hangul, Japanese, Chinese, accented Spanish
+    $blockedNativeTerms = [
+        '시발', '씨발', '개새끼', '병신', '지랄', '창녀', '보지', '자지',
+        'くそ', 'くたばれ', 'ちんこ', 'まんこ', '死ね', 'うんこ',
+        '操你妈', '你妈的', '他妈的', '去死', '傻逼', '草泥马', '肏你',
+    ];
+    foreach ($blockedNativeTerms as $native) {
+        if (str_contains($text, $native)) {
+            return 'Message blocked due to inappropriate language. Please edit and try again.';
+        }
+    }
+
+    return '';
+}
+
+function chat_contains_inappropriate(string $text): bool
+{
+    return chat_moderation_error($text) !== '';
 }
 
 function chat_normalize_contact(array $contact, array $recentLoginUserIds): array
@@ -228,6 +363,10 @@ function chat_normalize_contact(array $contact, array $recentLoginUserIds): arra
     $lastMessage = trim((string)($contact['last_message'] ?? ''));
     $lastMediaPath = trim((string)($contact['last_media_path'] ?? ''));
     $lastMessageAt = (string)($contact['last_message_at'] ?? '');
+
+    if ($lastMessage === chat_unsent_marker()) {
+        $lastMessage = 'Message was unsent';
+    }
 
     // Replace raw media filenames with a readable contact list preview.
     $previewMediaKind = '';
@@ -285,15 +424,28 @@ function chat_normalize_messages(array $messages, int $currentUserId): array
             : '';
         $rawMedia = trim((string)($message['media_path'] ?? ''));
         $mediaType = $rawMedia !== '' ? chat_media_kind_from_path($rawMedia) : '';
+        $messageTextRaw = (string)($message['message'] ?? '');
+        $unsentAt = trim((string)($message['unsent_at'] ?? ''));
+        $isOwn = (int)($message['sender_id'] ?? 0) === $currentUserId;
+        $isUnsent = $unsentAt !== '' || trim($messageTextRaw) === chat_unsent_marker();
+        $isPinned = (int)($message['is_pinned'] ?? 0) === 1;
+        if ($isUnsent) {
+            $rawMedia = '';
+            $mediaType = '';
+            $isPinned = false;
+        }
         $replyToId = (int)($message['reply_to_message_id'] ?? 0);
         $replyPreview = '';
         $replyAuthor = '';
         if ($replyToId > 0 && isset($messagesById[$replyToId])) {
             $replyMessage = $messagesById[$replyToId];
+            $replyUnsentAt = trim((string)($replyMessage['unsent_at'] ?? ''));
             $replyAuthor = ((int)($replyMessage['sender_id'] ?? 0) === $currentUserId) ? 'You' : 'Them';
             $replyText = trim((string)($replyMessage['message'] ?? ''));
             $replyMediaPath = trim((string)($replyMessage['media_path'] ?? ''));
-            if ($replyMediaPath !== '' && ($replyText === '' || $replyText === basename($replyMediaPath))) {
+            if ($replyUnsentAt !== '') {
+                $replyText = '[Message unsent]';
+            } elseif ($replyMediaPath !== '' && ($replyText === '' || $replyText === basename($replyMediaPath))) {
                 $replyMediaType = chat_media_kind_from_path($replyMediaPath);
                 $replyText = $replyMediaType === 'video' ? '[Video]' : '[Image]';
             }
@@ -366,6 +518,21 @@ function chat_normalize_messages(array $messages, int $currentUserId): array
             ];
         }
 
+        if ($isUnsent) {
+            $reactionSummary = [];
+            $reactionUsers = [];
+            $reactionTotal = 0;
+            $topReactionEmoji = '';
+            $replyToId = 0;
+            $replyPreview = '';
+            $replyAuthor = '';
+        }
+
+        $messageText = $messageTextRaw;
+        if ($isUnsent) {
+            $messageText = $isOwn ? 'You unsent a message' : 'This message was unsent';
+        }
+
         $items[] = [
             'message_id' => (int)($message['message_id'] ?? 0),
             'sender_id' => (int)($message['sender_id'] ?? 0),
@@ -378,7 +545,7 @@ function chat_normalize_messages(array $messages, int $currentUserId): array
             'reaction_count' => $reactionTotal,
             'reaction_summary' => $reactionSummary,
             'reaction_users' => $reactionUsers,
-            'message' => (string)($message['message'] ?? ''),
+            'message' => $messageText,
             'subject' => (string)($message['subject'] ?? ''),
             'media_path' => $rawMedia,
             'media_type' => $mediaType,
@@ -391,7 +558,10 @@ function chat_normalize_messages(array $messages, int $currentUserId): array
             'read_time_label' => $readAt !== '' ? chat_time_label($readAt) : '',
             'read_time_exact' => $readTimeExact,
             'date_key' => $ts > 0 ? date('Y-m-d', $ts) : '',
-            'is_own' => (int)($message['sender_id'] ?? 0) === $currentUserId,
+            'is_own' => $isOwn,
+            'is_pinned' => $isPinned,
+            'is_unsent' => $isUnsent,
+            'unsent_at' => $unsentAt,
         ];
     }
 
@@ -459,10 +629,76 @@ function chat_ensure_message_reactions_table(mysqli $conn): void
     );
 }
 
+function chat_ensure_message_pins_table(mysqli $conn): void
+{
+    $conn->query(
+        "CREATE TABLE IF NOT EXISTS message_pins (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            message_id BIGINT UNSIGNED NOT NULL,
+            pinned_by_user_id BIGINT UNSIGNED NOT NULL,
+            created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            UNIQUE KEY uq_message_pin (message_id),
+            INDEX idx_pinned_by_user (pinned_by_user_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci"
+    );
+}
+
+function chat_ensure_message_reports_table(mysqli $conn): void
+{
+    $conn->query(
+        "CREATE TABLE IF NOT EXISTS message_reports (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            message_id BIGINT UNSIGNED NOT NULL,
+            reporter_user_id BIGINT UNSIGNED NOT NULL,
+            reported_user_id BIGINT UNSIGNED NOT NULL,
+            reason VARCHAR(255) NOT NULL DEFAULT 'Inappropriate message',
+            status VARCHAR(20) NOT NULL DEFAULT 'open',
+            moderator_note VARCHAR(255) NULL DEFAULT NULL,
+            reviewed_by_user_id BIGINT UNSIGNED NULL DEFAULT NULL,
+            reviewed_at TIMESTAMP NULL DEFAULT NULL,
+            created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            UNIQUE KEY uq_reporter_message (message_id, reporter_user_id),
+            INDEX idx_reported_user (reported_user_id),
+            INDEX idx_report_status (status),
+            INDEX idx_report_reviewed_at (reviewed_at),
+            INDEX idx_report_created (created_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci"
+    );
+
+    $reportCols = [];
+    $res = $conn->query('SHOW COLUMNS FROM message_reports');
+    if ($res instanceof mysqli_result) {
+        while ($row = $res->fetch_assoc()) {
+            $field = strtolower((string)($row['Field'] ?? ''));
+            if ($field !== '') {
+                $reportCols[$field] = true;
+            }
+        }
+        $res->free();
+    }
+
+    if (!isset($reportCols['status'])) {
+        $conn->query("ALTER TABLE message_reports ADD COLUMN status VARCHAR(20) NOT NULL DEFAULT 'open' AFTER reason");
+    }
+    if (!isset($reportCols['moderator_note'])) {
+        $conn->query("ALTER TABLE message_reports ADD COLUMN moderator_note VARCHAR(255) NULL DEFAULT NULL AFTER status");
+    }
+    if (!isset($reportCols['reviewed_by_user_id'])) {
+        $conn->query("ALTER TABLE message_reports ADD COLUMN reviewed_by_user_id BIGINT UNSIGNED NULL DEFAULT NULL AFTER moderator_note");
+    }
+    if (!isset($reportCols['reviewed_at'])) {
+        $conn->query("ALTER TABLE message_reports ADD COLUMN reviewed_at TIMESTAMP NULL DEFAULT NULL AFTER reviewed_by_user_id");
+    }
+}
+
 function chat_message_meta(mysqli $conn): array
 {
     chat_ensure_messages_table($conn);
     chat_ensure_message_reactions_table($conn);
+    chat_ensure_message_pins_table($conn);
+    chat_ensure_message_reports_table($conn);
 
     $columns = [];
     $res = $conn->query('SHOW COLUMNS FROM messages');
@@ -496,6 +732,8 @@ function chat_message_meta(mysqli $conn): array
         'updated_at_col' => isset($columns['updated_at']) ? 'updated_at' : '',
         'deleted_at_col' => isset($columns['deleted_at']) ? 'deleted_at' : '',
         'reactions_ready' => chat_has_table($conn, 'message_reactions'),
+        'pins_ready' => chat_has_table($conn, 'message_pins'),
+        'reports_ready' => chat_has_table($conn, 'message_reports'),
     ];
 }
 
@@ -510,6 +748,7 @@ $selectedUserId = isset($_POST['user_id']) ? (int)$_POST['user_id'] : (int)($_GE
 $draftMessage = '';
 $errorMessage = '';
 $successMessage = '';
+$composeWarningMessage = '';
 
 if (isset($_SESSION['chat_flash']) && is_array($_SESSION['chat_flash'])) {
     $successMessage = (string)($_SESSION['chat_flash']['success'] ?? '');
@@ -569,29 +808,126 @@ if ($requestMethod === 'POST' && (string)($_POST['action'] ?? '') === 'unsend-me
             $unsendSql = 'UPDATE messages
                 SET ' . $messageMeta['deleted_at_col'] . ' = NOW()' . ($messageMeta['updated_at_col'] !== '' ? ', ' . $messageMeta['updated_at_col'] . ' = NOW()' : '') . '
                 WHERE ' . $messageMeta['id_col'] . ' = ?
-                  AND ' . $messageMeta['sender_col'] . ' = ?
-                  AND ' . $messageMeta['recipient_col'] . ' = ?
+                                    AND ' . $messageMeta['sender_col'] . ' = ?
                   AND ' . $messageMeta['deleted_at_col'] . ' IS NULL';
         } else {
-            $unsendSql = 'DELETE FROM messages
-                WHERE ' . $messageMeta['id_col'] . ' = ?
-                  AND ' . $messageMeta['sender_col'] . ' = ?
-                  AND ' . $messageMeta['recipient_col'] . ' = ?';
+                        $unsetMediaSql = $messageMeta['media_path_col'] !== '' ? ', ' . $messageMeta['media_path_col'] . ' = NULL' : '';
+                        $unsetReplySql = $messageMeta['reply_to_col'] !== '' ? ', ' . $messageMeta['reply_to_col'] . ' = NULL' : '';
+                        $unsetSubjectSql = $messageMeta['subject_col'] !== '' ? ', ' . $messageMeta['subject_col'] . ' = NULL' : '';
+                        $unsendSql = 'UPDATE messages
+                                SET message = ?' . $unsetMediaSql . $unsetReplySql . $unsetSubjectSql . ($messageMeta['updated_at_col'] !== '' ? ', ' . $messageMeta['updated_at_col'] . ' = NOW()' : '') . '
+                                WHERE ' . $messageMeta['id_col'] . ' = ?
+                                    AND ' . $messageMeta['sender_col'] . ' = ?';
         }
 
         $unsendStmt = $conn->prepare($unsendSql);
         if (!$unsendStmt) {
             $errorMessage = 'Failed to prepare unsend query.';
         } else {
-            $unsendStmt->bind_param('iii', $messageId, $currentUserId, $selectedUserId);
+            if ($messageMeta['deleted_at_col'] !== '') {
+                $unsendStmt->bind_param('ii', $messageId, $currentUserId);
+            } else {
+                $unsentMarker = chat_unsent_marker();
+                $unsendStmt->bind_param('sii', $unsentMarker, $messageId, $currentUserId);
+            }
             $ok = $unsendStmt->execute();
             $affected = $unsendStmt->affected_rows;
             $unsendStmt->close();
 
             if ($ok && $affected > 0) {
+                if (!empty($messageMeta['pins_ready'])) {
+                    $cleanupPinStmt = $conn->prepare('DELETE FROM message_pins WHERE message_id = ?');
+                    if ($cleanupPinStmt) {
+                        $cleanupPinStmt->bind_param('i', $messageId);
+                        $cleanupPinStmt->execute();
+                        $cleanupPinStmt->close();
+                    }
+                }
                 $successMessage = 'Message unsent.';
             } else {
                 $errorMessage = 'Unable to unsend this message.';
+            }
+        }
+    }
+}
+
+if ($requestMethod === 'POST' && (string)($_POST['action'] ?? '') === 'remove-message' && $messageMeta['ready']) {
+    $selectedUserId = (int)($_POST['user_id'] ?? 0);
+    $messageId = (int)($_POST['message_id'] ?? 0);
+
+    if ($selectedUserId <= 0 || $messageId <= 0) {
+        $errorMessage = 'Invalid message request.';
+    } else {
+        if ($messageMeta['deleted_at_col'] !== '') {
+            $removeSql = 'DELETE FROM messages
+                WHERE ' . $messageMeta['id_col'] . ' = ?
+                  AND ' . $messageMeta['sender_col'] . ' = ?
+                  AND ' . $messageMeta['deleted_at_col'] . ' IS NOT NULL';
+            $removeStmt = $conn->prepare($removeSql);
+            if (!$removeStmt) {
+                $errorMessage = 'Failed to prepare remove query.';
+            } else {
+                $removeStmt->bind_param('ii', $messageId, $currentUserId);
+                $ok = $removeStmt->execute();
+                $affected = $removeStmt->affected_rows;
+                $removeStmt->close();
+                if ($ok && $affected > 0) {
+                    if (!empty($messageMeta['pins_ready'])) {
+                        $cleanupPinStmt = $conn->prepare('DELETE FROM message_pins WHERE message_id = ?');
+                        if ($cleanupPinStmt) {
+                            $cleanupPinStmt->bind_param('i', $messageId);
+                            $cleanupPinStmt->execute();
+                            $cleanupPinStmt->close();
+                        }
+                    }
+                    if (!empty($messageMeta['reactions_ready'])) {
+                        $cleanupStmt = $conn->prepare('DELETE FROM message_reactions WHERE message_id = ?');
+                        if ($cleanupStmt) {
+                            $cleanupStmt->bind_param('i', $messageId);
+                            $cleanupStmt->execute();
+                            $cleanupStmt->close();
+                        }
+                    }
+                    $successMessage = 'Message removed.';
+                } else {
+                    $errorMessage = 'Unable to remove this message.';
+                }
+            }
+        } else {
+            $removeSql = 'DELETE FROM messages
+                WHERE ' . $messageMeta['id_col'] . ' = ?
+                  AND ' . $messageMeta['sender_col'] . ' = ?
+                  AND message = ?';
+            $removeStmt = $conn->prepare($removeSql);
+            if (!$removeStmt) {
+                $errorMessage = 'Failed to prepare remove query.';
+            } else {
+                $unsentMarker = chat_unsent_marker();
+                $removeStmt->bind_param('iis', $messageId, $currentUserId, $unsentMarker);
+                $ok = $removeStmt->execute();
+                $affected = $removeStmt->affected_rows;
+                $removeStmt->close();
+                if ($ok && $affected > 0) {
+                    if (!empty($messageMeta['pins_ready'])) {
+                        $cleanupPinStmt = $conn->prepare('DELETE FROM message_pins WHERE message_id = ?');
+                        if ($cleanupPinStmt) {
+                            $cleanupPinStmt->bind_param('i', $messageId);
+                            $cleanupPinStmt->execute();
+                            $cleanupPinStmt->close();
+                        }
+                    }
+                    if (!empty($messageMeta['reactions_ready'])) {
+                        $cleanupStmt = $conn->prepare('DELETE FROM message_reactions WHERE message_id = ?');
+                        if ($cleanupStmt) {
+                            $cleanupStmt->bind_param('i', $messageId);
+                            $cleanupStmt->execute();
+                            $cleanupStmt->close();
+                        }
+                    }
+                    $successMessage = 'Message removed.';
+                } else {
+                    $errorMessage = 'Unable to remove this message.';
+                }
             }
         }
     }
@@ -613,6 +949,11 @@ if ($requestMethod === 'POST' && (string)($_POST['action'] ?? '') === 'react-mes
             $reactionEmoji = substr($reactionEmoji, 0, 16);
         }
         $reactionEmoji = chat_normalize_reaction_emoji($reactionEmoji);
+        $supportedReactionEmoji = array_values(chat_supported_reactions());
+
+        if ($reactionEmoji !== '' && !in_array($reactionEmoji, $supportedReactionEmoji, true)) {
+            $errorMessage = 'Only the standard chat reactions are allowed.';
+        }
 
         $checkSql = 'SELECT ' . $messageMeta['id_col'] . ' AS message_id
             FROM messages
@@ -621,10 +962,10 @@ if ($requestMethod === 'POST' && (string)($_POST['action'] ?? '') === 'react-mes
                 OR (' . $messageMeta['sender_col'] . ' = ? AND ' . $messageMeta['recipient_col'] . ' = ?))'
               . ($messageMeta['deleted_at_col'] !== '' ? ' AND ' . $messageMeta['deleted_at_col'] . ' IS NULL' : '') . '
             LIMIT 1';
-        $checkStmt = $conn->prepare($checkSql);
-        if (!$checkStmt) {
+        $checkStmt = $errorMessage === '' ? $conn->prepare($checkSql) : null;
+        if ($errorMessage === '' && !$checkStmt) {
             $errorMessage = 'Failed to validate reaction target.';
-        } else {
+        } elseif ($errorMessage === '') {
             $checkStmt->bind_param('iiiii', $messageId, $currentUserId, $selectedUserId, $selectedUserId, $currentUserId);
             $checkStmt->execute();
             $hasMessage = (bool)$checkStmt->get_result()->fetch_assoc();
@@ -677,31 +1018,166 @@ if ($requestMethod === 'POST' && (string)($_POST['action'] ?? '') === 'react-mes
     }
 }
 
+if ($requestMethod === 'POST' && (string)($_POST['action'] ?? '') === 'toggle-pin' && $messageMeta['ready']) {
+    $selectedUserId = (int)($_POST['user_id'] ?? 0);
+    $messageId = (int)($_POST['message_id'] ?? 0);
+    $pinState = trim(strtolower((string)($_POST['pin_state'] ?? '')));
+    $shouldPin = $pinState !== '0' && $pinState !== 'false' && $pinState !== 'off' && $pinState !== 'unpin';
+
+    if ($selectedUserId <= 0 || $messageId <= 0) {
+        $errorMessage = 'Invalid pin request.';
+    } elseif (empty($messageMeta['pins_ready'])) {
+        $errorMessage = 'Pinning is not available.';
+    } else {
+        $checkSql = 'SELECT ' . $messageMeta['id_col'] . ' AS message_id
+            FROM messages
+            WHERE ' . $messageMeta['id_col'] . ' = ?
+              AND ((' . $messageMeta['sender_col'] . ' = ? AND ' . $messageMeta['recipient_col'] . ' = ?)
+                OR (' . $messageMeta['sender_col'] . ' = ? AND ' . $messageMeta['recipient_col'] . ' = ?))'
+              . ($messageMeta['deleted_at_col'] !== '' ? ' AND ' . $messageMeta['deleted_at_col'] . ' IS NULL' : ' AND message <> ?') . '
+            LIMIT 1';
+        $checkStmt = $conn->prepare($checkSql);
+        if (!$checkStmt) {
+            $errorMessage = 'Failed to validate pin target.';
+        } else {
+            if ($messageMeta['deleted_at_col'] !== '') {
+                $checkStmt->bind_param('iiiii', $messageId, $currentUserId, $selectedUserId, $selectedUserId, $currentUserId);
+            } else {
+                $unsentMarker = chat_unsent_marker();
+                $checkStmt->bind_param('iiiiis', $messageId, $currentUserId, $selectedUserId, $selectedUserId, $currentUserId, $unsentMarker);
+            }
+            $checkStmt->execute();
+            $hasMessage = (bool)$checkStmt->get_result()->fetch_assoc();
+            $checkStmt->close();
+
+            if (!$hasMessage) {
+                $errorMessage = 'Message not found in this conversation.';
+            } elseif ($shouldPin) {
+                $pinStmt = $conn->prepare('INSERT INTO message_pins (message_id, pinned_by_user_id, created_at, updated_at) VALUES (?, ?, NOW(), NOW()) ON DUPLICATE KEY UPDATE pinned_by_user_id = VALUES(pinned_by_user_id), updated_at = NOW()');
+                if (!$pinStmt) {
+                    $errorMessage = 'Failed to pin message.';
+                } else {
+                    $pinStmt->bind_param('ii', $messageId, $currentUserId);
+                    $ok = $pinStmt->execute();
+                    $pinStmt->close();
+                    if ($ok) {
+                        $successMessage = 'Message pinned.';
+                    } else {
+                        $errorMessage = 'Failed to pin message.';
+                    }
+                }
+            } else {
+                $unpinStmt = $conn->prepare('DELETE FROM message_pins WHERE message_id = ?');
+                if (!$unpinStmt) {
+                    $errorMessage = 'Failed to unpin message.';
+                } else {
+                    $unpinStmt->bind_param('i', $messageId);
+                    $ok = $unpinStmt->execute();
+                    $unpinStmt->close();
+                    if ($ok) {
+                        $successMessage = 'Message unpinned.';
+                    } else {
+                        $errorMessage = 'Failed to unpin message.';
+                    }
+                }
+            }
+        }
+    }
+}
+
+if ($requestMethod === 'POST' && (string)($_POST['action'] ?? '') === 'report-message' && $messageMeta['ready']) {
+    $messageId = (int)($_POST['message_id'] ?? 0);
+    $reportReason = trim((string)($_POST['reason'] ?? ''));
+
+    if ($messageId <= 0) {
+        $errorMessage = 'Invalid report request.';
+    } elseif (empty($messageMeta['reports_ready'])) {
+        $errorMessage = 'Reporting is not available.';
+    } else {
+        $checkSql = 'SELECT ' . $messageMeta['id_col'] . ' AS message_id, ' . $messageMeta['sender_col'] . ' AS sender_id, ' . $messageMeta['recipient_col'] . ' AS recipient_id
+            FROM messages
+            WHERE ' . $messageMeta['id_col'] . ' = ?
+              AND (' . $messageMeta['sender_col'] . ' = ? OR ' . $messageMeta['recipient_col'] . ' = ?)'
+              . ($messageMeta['deleted_at_col'] !== '' ? ' AND ' . $messageMeta['deleted_at_col'] . ' IS NULL' : ' AND message <> ?') . '
+            LIMIT 1';
+        $checkStmt = $conn->prepare($checkSql);
+        if (!$checkStmt) {
+            $errorMessage = 'Failed to validate report target.';
+        } else {
+            if ($messageMeta['deleted_at_col'] !== '') {
+                $checkStmt->bind_param('iii', $messageId, $currentUserId, $currentUserId);
+            } else {
+                $unsentMarker = chat_unsent_marker();
+                $checkStmt->bind_param('iiis', $messageId, $currentUserId, $currentUserId, $unsentMarker);
+            }
+            $checkStmt->execute();
+            $targetRow = $checkStmt->get_result()->fetch_assoc();
+            $checkStmt->close();
+
+            if (!$targetRow) {
+                $errorMessage = 'Message not found in this conversation.';
+            } else {
+                $reportedUserId = (int)($targetRow['sender_id'] ?? 0);
+                if ($reportedUserId <= 0 || $reportedUserId === $currentUserId) {
+                    $errorMessage = 'This message cannot be reported.';
+                } else {
+                    if ($reportReason === '') {
+                        $reportReason = 'Inappropriate message';
+                    }
+                    if (function_exists('mb_substr')) {
+                        $reportReason = mb_substr($reportReason, 0, 255, 'UTF-8');
+                    } else {
+                        $reportReason = substr($reportReason, 0, 255);
+                    }
+
+                    $reportStmt = $conn->prepare("INSERT INTO message_reports (message_id, reporter_user_id, reported_user_id, reason, status, moderator_note, reviewed_by_user_id, reviewed_at, created_at, updated_at) VALUES (?, ?, ?, ?, 'open', NULL, NULL, NULL, NOW(), NOW()) ON DUPLICATE KEY UPDATE reason = VALUES(reason), status = 'open', moderator_note = NULL, reviewed_by_user_id = NULL, reviewed_at = NULL, updated_at = NOW()");
+                    if (!$reportStmt) {
+                        $errorMessage = 'Failed to submit report.';
+                    } else {
+                        $reportStmt->bind_param('iiis', $messageId, $currentUserId, $reportedUserId, $reportReason);
+                        $ok = $reportStmt->execute();
+                        $reportStmt->close();
+                        if ($ok) {
+                            $successMessage = 'Message reported.';
+                        } else {
+                            $errorMessage = 'Failed to submit report.';
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 if ($requestMethod === 'POST' && (string)($_POST['action'] ?? '') === 'send-message' && $messageMeta['ready']) {
     $selectedUserId = (int)($_POST['user_id'] ?? 0);
     $plainDraftMessage = trim((string)($_POST['message'] ?? ''));
     $draftMessage = $plainDraftMessage;
     $replyToMessageId = (int)($_POST['reply_to_message_id'] ?? 0);
+    $messageModerationError = $plainDraftMessage !== '' ? chat_moderation_error($plainDraftMessage) : '';
+    $composeWarningMessage = '';
 
     // Handle optional media upload
     $uploadedMediaPath = '';
     $mediaUploadError = '';
     if (!empty($_FILES['chat_media']['name'])) {
         $file = $_FILES['chat_media'];
-        $allowedMime = [
-            'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp',
-            'video/mp4', 'video/webm', 'video/ogg', 'video/quicktime',
-        ];
-        $maxSize = 20 * 1024 * 1024; // 20 MB
+        $imageMime = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+        $videoMime = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime'];
+        $allowedMime = array_merge($imageMime, $videoMime);
+        $maxImageSize = 10 * 1024 * 1024; // 10 MB
+        $maxVideoSize = 50 * 1024 * 1024; // 50 MB
         if ($file['error'] !== UPLOAD_ERR_OK) {
             $mediaUploadError = 'File upload failed (code ' . (int)$file['error'] . ').';
-        } elseif ($file['size'] > $maxSize) {
-            $mediaUploadError = 'File is too large (max 20 MB).';
         } else {
             $finfo = new finfo(FILEINFO_MIME_TYPE);
             $mime = $finfo->file($file['tmp_name']);
             if (!in_array($mime, $allowedMime, true)) {
                 $mediaUploadError = 'File type not allowed.';
+            } elseif (in_array($mime, $imageMime, true) && $file['size'] > $maxImageSize) {
+                $mediaUploadError = 'Image is too large (max 10 MB).';
+            } elseif (in_array($mime, $videoMime, true) && $file['size'] > $maxVideoSize) {
+                $mediaUploadError = 'Video is too large (max 50 MB).';
             } else {
                 $ext = strtolower(pathinfo((string)$file['name'], PATHINFO_EXTENSION));
                 $safeExt = preg_replace('/[^a-z0-9]/', '', $ext);
@@ -730,8 +1206,9 @@ if ($requestMethod === 'POST' && (string)($_POST['action'] ?? '') === 'send-mess
         $errorMessage = 'Select a recipient before sending a message.';
     } elseif ($selectedUserId === $currentUserId) {
         $errorMessage = 'You cannot send a message to yourself.';
-    } elseif ($plainDraftMessage !== '' && chat_contains_inappropriate($plainDraftMessage)) {
-        $errorMessage = 'Message blocked due to inappropriate language. Please edit and try again.';
+    } elseif ($messageModerationError !== '') {
+        $errorMessage = $messageModerationError;
+        $composeWarningMessage = $messageModerationError;
     } elseif ($draftMessage === '' && $uploadedMediaPath === '') {
         $errorMessage = 'Message cannot be empty.';
     } elseif ($errorMessage === '') {
@@ -1093,12 +1570,14 @@ if ($selectedContact && $messageMeta['ready']) {
             ' . $reactionEmojiSelect . ' AS reaction_emoji,
             ' . $reactionBySelect . ' AS reaction_by_user_id,
             ' . $reactionCountSelect . ' AS reaction_count,
+            ' . (!empty($messageMeta['pins_ready']) ? '(CASE WHEN EXISTS (SELECT 1 FROM message_pins mp WHERE mp.message_id = ' . $outerMessageIdExpr . ') THEN 1 ELSE 0 END)' : '0') . ' AS is_pinned,
             ' . ($messageMeta['is_read_col'] !== '' ? $messageMeta['is_read_col'] : '0') . ' AS is_read,
             ' . ($messageMeta['read_at_col'] !== '' ? $messageMeta['read_at_col'] : 'NULL') . ' AS read_at,
-            ' . ($messageMeta['created_at_col'] !== '' ? $messageMeta['created_at_col'] : 'NULL') . ' AS created_at
+            ' . ($messageMeta['created_at_col'] !== '' ? $messageMeta['created_at_col'] : 'NULL') . ' AS created_at,
+            ' . ($messageMeta['deleted_at_col'] !== '' ? $messageMeta['deleted_at_col'] : 'NULL') . ' AS unsent_at
         FROM messages
         WHERE ((' . $messageMeta['sender_col'] . ' = ? AND ' . $messageMeta['recipient_col'] . ' = ?)
-            OR (' . $messageMeta['sender_col'] . ' = ? AND ' . $messageMeta['recipient_col'] . ' = ?))' . $deletedConversationFilter . '
+            OR (' . $messageMeta['sender_col'] . ' = ? AND ' . $messageMeta['recipient_col'] . ' = ?))
         ORDER BY ' . $orderPrimary . ' ASC, ' . $messageMeta['id_col'] . ' ASC
         LIMIT 200';
 
@@ -1119,9 +1598,11 @@ if ($selectedContact && $messageMeta['ready']) {
                 'reaction_emoji' => chat_normalize_reaction_emoji((string)($row['reaction_emoji'] ?? '')),
                 'reaction_by_user_id' => (int)($row['reaction_by_user_id'] ?? 0),
                 'reaction_count' => (int)($row['reaction_count'] ?? 0),
+                'is_pinned' => (int)($row['is_pinned'] ?? 0),
                 'is_read' => (int)($row['is_read'] ?? 0),
                 'read_at' => (string)($row['read_at'] ?? ''),
                 'created_at' => (string)($row['created_at'] ?? ''),
+                'unsent_at' => (string)($row['unsent_at'] ?? ''),
             ];
         }
         $conversationStmt->close();
@@ -1799,6 +2280,96 @@ include 'includes/header.php';
         color: #ef4444;
     }
 
+    .chat-report-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(2, 6, 23, 0.6);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 12100;
+        padding: 1rem;
+    }
+
+    .chat-report-overlay.show {
+        display: flex;
+    }
+
+    .chat-report-modal {
+        width: min(480px, 100%);
+        border-radius: 14px;
+        border: 1px solid var(--chat-header-border);
+        background: var(--chat-header-bg);
+        color: var(--chat-header-name-color);
+        box-shadow: 0 18px 38px rgba(2, 6, 23, 0.42);
+        padding: 1rem;
+    }
+
+    .chat-report-title {
+        margin: 0 0 0.35rem;
+        font-size: 1.03rem;
+        font-weight: 700;
+    }
+
+    .chat-report-text {
+        margin: 0 0 0.8rem;
+        font-size: 0.9rem;
+        color: var(--chat-header-sub-color);
+    }
+
+    .chat-report-field {
+        margin-bottom: 0.7rem;
+    }
+
+    .chat-report-label {
+        display: block;
+        margin-bottom: 0.36rem;
+        font-size: 0.82rem;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+        color: var(--chat-header-name-color);
+    }
+
+    .chat-report-select,
+    .chat-report-note {
+        width: 100%;
+        border: 1px solid var(--chat-compose-inner-border);
+        border-radius: 10px;
+        background: var(--chat-compose-inner-bg);
+        color: var(--chat-compose-input-color);
+        padding: 0.56rem 0.66rem;
+        font-size: 0.88rem;
+    }
+
+    .chat-report-select::placeholder,
+    .chat-report-note::placeholder {
+        color: var(--chat-compose-input-placeholder);
+    }
+
+    .chat-report-select:focus,
+    .chat-report-note:focus {
+        outline: none;
+        border-color: color-mix(in srgb, var(--chat-actions-color) 70%, var(--chat-header-border));
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--chat-actions-color) 25%, transparent);
+    }
+
+    .chat-report-note {
+        min-height: 74px;
+        resize: vertical;
+    }
+
+    html.app-skin-dark .chat-report-select option {
+        background: #1f2937;
+        color: #f1f5f9;
+    }
+
+    .chat-report-actions {
+        margin-top: 0.9rem;
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.55rem;
+    }
+
     .btchat-thread {
         padding: 1.1rem 1.15rem;
         overflow-y: auto;
@@ -1850,7 +2421,26 @@ include 'includes/header.php';
     }
 
     .msg-bubble.is-pinned {
-        box-shadow: 0 0 0 1px rgba(250, 204, 21, 0.45), 0 8px 16px rgba(17, 24, 39, 0.28);
+        border-color: rgba(250, 204, 21, 0.92) !important;
+        box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.72), 0 10px 24px rgba(250, 204, 21, 0.26), 0 8px 18px rgba(17, 24, 39, 0.24);
+    }
+
+    .msg-bubble.is-pinned::after {
+        content: 'PIN';
+        position: absolute;
+        top: -0.62rem;
+        right: 0.52rem;
+        font-size: 0.58rem;
+        letter-spacing: 0.08em;
+        font-weight: 800;
+        line-height: 1;
+        padding: 0.18rem 0.32rem;
+        border-radius: 999px;
+        color: #111827;
+        background: linear-gradient(135deg, #fde047, #f59e0b);
+        box-shadow: 0 6px 14px rgba(245, 158, 11, 0.34);
+        text-transform: uppercase;
+        pointer-events: none;
     }
 
     .msg-row.has-reaction {
@@ -1957,6 +2547,143 @@ include 'includes/header.php';
         cursor: pointer;
         font-size: 1.15rem;
         line-height: 1;
+    }
+
+    .chat-media-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(2, 6, 23, 0.94);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 2147483000;
+        padding: clamp(0.35rem, 1vw, 0.8rem);
+        backdrop-filter: blur(14px);
+    }
+
+    .chat-media-overlay.show {
+        display: flex;
+    }
+
+    .chat-media-modal {
+        width: 100%;
+        height: 100%;
+        max-width: none;
+        max-height: none;
+        position: relative;
+        border-radius: 0;
+        border: 0;
+        background: transparent;
+        color: var(--chat-header-name-color);
+        box-shadow: none;
+        display: flex;
+        flex-direction: column;
+        overflow: visible;
+    }
+
+    .chat-media-head {
+        display: block;
+        position: absolute;
+        top: 0.45rem;
+        right: 0.45rem;
+        z-index: 4;
+        padding: 0;
+    }
+
+    .chat-media-title {
+        display: none;
+    }
+
+    .chat-media-close {
+        border: 0;
+        min-width: 88px;
+        height: 40px;
+        padding: 0 0.8rem 0 0.68rem;
+        border-radius: 999px;
+        background: rgba(15, 23, 42, 0.88);
+        color: #f8fafc;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        cursor: pointer;
+        font-size: 0.84rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        line-height: 1;
+        box-shadow: 0 14px 30px rgba(2, 6, 23, 0.34);
+        backdrop-filter: blur(8px);
+        transition: background 0.16s ease, transform 0.16s ease;
+    }
+
+    .chat-media-close-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.1);
+        font-size: 0.95rem;
+        line-height: 1;
+        flex-shrink: 0;
+    }
+
+    .chat-media-close-label {
+        display: inline-block;
+        white-space: nowrap;
+    }
+
+    .chat-media-close:hover {
+        background: rgba(30, 41, 59, 0.96);
+        transform: scale(1.04);
+    }
+
+    .chat-media-body {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.65rem 0;
+        overflow: hidden;
+        background: transparent;
+    }
+
+    .chat-media-view {
+        display: block;
+        max-width: min(98vw, 1720px);
+        max-height: calc(100vh - 1.4rem);
+        width: auto;
+        height: auto;
+        margin: auto;
+        border: 0;
+        border-radius: 18px;
+        background: transparent;
+        box-shadow: 0 26px 65px rgba(2, 6, 23, 0.42);
+    }
+
+    .chat-media-view.video {
+        width: min(98vw, 1580px);
+        aspect-ratio: 16 / 9;
+    }
+
+    .chat-media-stage {
+        width: 100%;
+        height: 100%;
+        max-width: none;
+        max-height: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .chat-media-frame {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 
     .chat-reactions-tabs {
@@ -2144,6 +2871,10 @@ include 'includes/header.php';
         border-bottom: 1px dashed color-mix(in srgb, var(--chat-header-border) 75%, transparent);
     }
 
+    .msg-action-emoji-row.is-hidden {
+        display: none;
+    }
+
     .msg-emoji-btn {
         border: 1px solid transparent;
         background: color-mix(in srgb, var(--chat-item-hover) 78%, transparent);
@@ -2242,8 +2973,28 @@ include 'includes/header.php';
 
     .msg-bubble.has-media {
         background: transparent !important;
+        border: 0 !important;
         box-shadow: none;
         padding: 0;
+    }
+
+    .msg-bubble.has-media.is-pinned {
+        border: 2px solid rgba(250, 204, 21, 0.92) !important;
+        border-radius: 0.8rem;
+        box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.55), 0 10px 24px rgba(250, 204, 21, 0.22) !important;
+        padding: 2px;
+        background: color-mix(in srgb, #f59e0b 18%, transparent) !important;
+    }
+
+    .msg-bubble.is-unsent {
+        font-style: italic;
+        opacity: 0.88;
+        border-style: dashed;
+        color: var(--chat-meta-color);
+    }
+
+    .msg-row.own .msg-bubble.is-unsent {
+        color: var(--chat-own-meta-color);
     }
 
     .msg-bubble.has-media .msg-meta {
@@ -2385,6 +3136,37 @@ include 'includes/header.php';
         backdrop-filter: blur(6px);
     }
 
+    .btchat-compose-warning {
+        display: none;
+        align-items: flex-start;
+        gap: 0.55rem;
+        margin: 0 0 0.65rem;
+        padding: 0.72rem 0.82rem;
+        border-radius: 12px;
+        border: 1px solid rgba(248, 113, 113, 0.28);
+        background: rgba(127, 29, 29, 0.22);
+        color: #fecaca;
+        font-size: 0.83rem;
+        line-height: 1.4;
+    }
+
+    .btchat-compose-warning.show {
+        display: flex;
+    }
+
+    .btchat-compose-warning-icon {
+        flex-shrink: 0;
+        width: 1.1rem;
+        text-align: center;
+        font-weight: 700;
+        line-height: 1.3;
+    }
+
+    .btchat-compose-warning-text {
+        min-width: 0;
+        font-weight: 600;
+    }
+
     .btchat-compose-inner {
         display: flex;
         align-items: center;
@@ -2452,6 +3234,7 @@ include 'includes/header.php';
         max-height: 260px;
         width: auto;
         height: auto;
+        border: 0;
         border-radius: 0.65rem;
         margin-bottom: 0.35rem;
         cursor: pointer;
@@ -2463,8 +3246,10 @@ include 'includes/header.php';
         max-height: 280px;
         width: auto;
         height: auto;
+        border: 0;
         border-radius: 0.65rem;
         margin-bottom: 0.35rem;
+        cursor: pointer;
     }
 
     .btchat-attach-btn {
@@ -2881,13 +3666,38 @@ include 'includes/header.php';
         }
 
         .chat-confirm-overlay,
-        .chat-reactions-overlay {
-            padding: 0.5rem;
+        .chat-report-overlay,
+        .chat-reactions-overlay,
+        .chat-media-overlay {
+            padding: 0.3rem;
         }
 
         .chat-confirm-modal,
-        .chat-reactions-modal {
+        .chat-report-modal,
+        .chat-reactions-modal,
+        .chat-media-modal {
             width: 100%;
+        }
+
+        .chat-media-body {
+            padding: 0.4rem 0;
+        }
+
+        .chat-media-view {
+            max-width: calc(100vw - 0.6rem);
+            max-height: calc(100vh - 0.6rem);
+            border-radius: 16px;
+        }
+
+        .chat-media-view.video {
+            width: calc(100vw - 0.6rem);
+        }
+
+        .chat-media-close {
+            min-width: 80px;
+            height: 36px;
+            padding: 0 0.72rem 0 0.58rem;
+            font-size: 0.78rem;
         }
     }
 </style>
@@ -3021,9 +3831,9 @@ include 'includes/header.php';
                                         <div class="msg-reply-quote"><strong><?php echo chat_esc((string)($message['reply_author'] ?? '')); ?></strong><?php echo chat_esc((string)$message['reply_preview']); ?></div>
                                     <?php endif; ?>
                                     <?php if ((string)$message['media_type'] === 'image'): ?>
-                                        <img src="<?php echo chat_esc((string)$message['media_path']); ?>" class="msg-media" alt="image" onclick="window.open(this.src,'_blank')">
+                                        <img src="<?php echo chat_esc((string)$message['media_path']); ?>" class="msg-media" alt="image" data-media-viewer="image">
                                     <?php elseif ((string)$message['media_type'] === 'video'): ?>
-                                        <video src="<?php echo chat_esc((string)$message['media_path']); ?>" class="msg-media-video" controls></video>
+                                        <video src="<?php echo chat_esc((string)$message['media_path']); ?>" class="msg-media-video" controls preload="metadata" data-media-viewer="video"></video>
                                     <?php endif; ?>
                                     <?php $displayMsg = (string)$message['message']; if (!empty($message['media_path']) && $displayMsg === basename((string)$message['media_path'])) $displayMsg = ''; ?>
                                     <?php if ($displayMsg !== ''): ?><?php echo nl2br(chat_esc($displayMsg)); ?><?php endif; ?>
@@ -3059,20 +3869,24 @@ include 'includes/header.php';
                             <div class="chat-emoji-grid" id="chat-emoji-grid"></div>
                             <div class="chat-emoji-empty" id="chat-emoji-empty" style="display:none">No emoji found</div>
                             <div class="chat-emoji-tabs" id="chat-emoji-tabs">
-                                <button type="button" class="chat-emoji-tab active" data-emoji-cat="smileys" title="Smileys">ðŸ˜€</button>
-                                <button type="button" class="chat-emoji-tab" data-emoji-cat="people" title="People">ðŸ§‘</button>
-                                <button type="button" class="chat-emoji-tab" data-emoji-cat="animals" title="Animals">ðŸ±</button>
-                                <button type="button" class="chat-emoji-tab" data-emoji-cat="food" title="Food">ðŸ”</button>
-                                <button type="button" class="chat-emoji-tab" data-emoji-cat="travel" title="Travel">ðŸš—</button>
-                                <button type="button" class="chat-emoji-tab" data-emoji-cat="objects" title="Objects">ðŸ’¡</button>
-                                <button type="button" class="chat-emoji-tab" data-emoji-cat="symbols" title="Symbols">âž•</button>
-                                <button type="button" class="chat-emoji-tab" data-emoji-cat="flags" title="Flags">ðŸ</button>
+                                <button type="button" class="chat-emoji-tab active" data-emoji-cat="smileys" title="Smileys">&#128512;</button>
+                                <button type="button" class="chat-emoji-tab" data-emoji-cat="people" title="People">&#129489;</button>
+                                <button type="button" class="chat-emoji-tab" data-emoji-cat="animals" title="Animals">&#128049;</button>
+                                <button type="button" class="chat-emoji-tab" data-emoji-cat="food" title="Food">&#127828;</button>
+                                <button type="button" class="chat-emoji-tab" data-emoji-cat="travel" title="Travel">&#128663;</button>
+                                <button type="button" class="chat-emoji-tab" data-emoji-cat="objects" title="Objects">&#128161;</button>
+                                <button type="button" class="chat-emoji-tab" data-emoji-cat="symbols" title="Symbols">&#10133;</button>
+                                <button type="button" class="chat-emoji-tab" data-emoji-cat="flags" title="Flags">&#127937;</button>
                             </div>
                         </div>
                         <div id="chat-media-preview">
                             <img id="chat-preview-thumb" class="chat-preview-thumb" src="" alt="" style="display:none">
                             <span id="chat-preview-name"></span>
                             <button type="button" class="chat-preview-remove" id="chat-preview-remove" title="Remove">&#x2715;</button>
+                        </div>
+                        <div class="btchat-compose-warning<?php echo $composeWarningMessage !== '' ? ' show' : ''; ?>" id="btchat-compose-warning"<?php echo $composeWarningMessage === '' ? ' aria-hidden="true"' : ''; ?>>
+                            <span class="btchat-compose-warning-icon" aria-hidden="true">!</span>
+                            <span class="btchat-compose-warning-text" id="btchat-compose-warning-text"><?php echo chat_esc($composeWarningMessage); ?></span>
                         </div>
                         <div class="btchat-compose-inner">
                             <button type="button" class="btchat-attach-btn" id="chat-attach-btn" title="Send image or video">
@@ -3111,6 +3925,32 @@ include 'includes/header.php';
     </div>
 </div>
 
+<div class="chat-report-overlay" id="chat-report-modal" aria-hidden="true">
+    <div class="chat-report-modal" role="dialog" aria-modal="true" aria-labelledby="chat-report-title">
+        <h6 class="chat-report-title" id="chat-report-title">Report message</h6>
+        <p class="chat-report-text">Tell us why you are reporting this message.</p>
+        <div class="chat-report-field">
+            <label for="chat-report-reason" class="chat-report-label">Reason</label>
+            <select id="chat-report-reason" class="chat-report-select">
+                <option value="Harassment or abusive language">Harassment or abusive language</option>
+                <option value="Spam or scam">Spam or scam</option>
+                <option value="Sexual content">Sexual content</option>
+                <option value="Hate speech">Hate speech</option>
+                <option value="Threat or violence">Threat or violence</option>
+                <option value="Other">Other</option>
+            </select>
+        </div>
+        <div class="chat-report-field">
+            <label for="chat-report-note" class="chat-report-label">Details (optional)</label>
+            <textarea id="chat-report-note" class="chat-report-note" maxlength="220" placeholder="Add short details to help moderation review."></textarea>
+        </div>
+        <div class="chat-report-actions">
+            <button type="button" class="chat-confirm-btn" id="chat-report-cancel">Cancel</button>
+            <button type="button" class="chat-confirm-btn danger" id="chat-report-ok">Continue</button>
+        </div>
+    </div>
+</div>
+
 <div class="chat-reactions-overlay" id="chat-reactions-modal" aria-hidden="true">
     <div class="chat-reactions-modal" role="dialog" aria-modal="true" aria-labelledby="chat-reactions-title">
         <div class="chat-reactions-head">
@@ -3119,6 +3959,19 @@ include 'includes/header.php';
         </div>
         <div class="chat-reactions-tabs" id="chat-reactions-tabs"></div>
         <div class="chat-reactions-list" id="chat-reactions-list"></div>
+    </div>
+</div>
+
+<div class="chat-media-overlay" id="chat-media-modal" aria-hidden="true">
+    <div class="chat-media-modal" role="dialog" aria-modal="true" aria-labelledby="chat-media-title">
+        <div class="chat-media-head">
+            <h6 class="chat-media-title" id="chat-media-title">Image</h6>
+            <button type="button" class="chat-media-close" id="chat-media-close" aria-label="Close viewer">
+                <span class="chat-media-close-icon" aria-hidden="true">&times;</span>
+                <span class="chat-media-close-label">Close</span>
+            </button>
+        </div>
+        <div class="chat-media-body" id="chat-media-body"></div>
     </div>
 </div>
 
@@ -3131,6 +3984,7 @@ include 'includes/header.php';
     <button type="button" class="msg-action-item" data-msg-action="reply">Reply</button>
     <button type="button" class="msg-action-item" data-msg-action="pin">Pin message</button>
     <button type="button" class="msg-action-item" data-msg-action="unsend">Unsend</button>
+    <button type="button" class="msg-action-item danger is-hidden" data-msg-action="remove">Remove</button>
     <button type="button" class="msg-action-item danger" data-msg-action="report">Report</button>
 </div>
 
@@ -3159,30 +4013,44 @@ include 'includes/header.php';
         var replyRemoveEl = document.getElementById('chat-reply-remove');
         var sendBtnEl = document.getElementById('btchat-send-btn');
         var alertEl = document.getElementById('btchat-alert');
+        var composeWarningEl = document.getElementById('btchat-compose-warning');
+        var composeWarningTextEl = document.getElementById('btchat-compose-warning-text');
         var searchEl = document.getElementById('btchat-search');
         var confirmModalEl = document.getElementById('chat-confirm-modal');
         var confirmTitleEl = document.getElementById('chat-confirm-title');
         var confirmTextEl = document.getElementById('chat-confirm-text');
         var confirmOkEl = document.getElementById('chat-confirm-ok');
         var confirmCancelEl = document.getElementById('chat-confirm-cancel');
+        var reportModalEl = document.getElementById('chat-report-modal');
+        var reportReasonEl = document.getElementById('chat-report-reason');
+        var reportNoteEl = document.getElementById('chat-report-note');
+        var reportOkEl = document.getElementById('chat-report-ok');
+        var reportCancelEl = document.getElementById('chat-report-cancel');
         var messageActionMenuEl = document.getElementById('msg-action-menu');
         var reactionsModalEl = document.getElementById('chat-reactions-modal');
         var reactionsTabsEl = document.getElementById('chat-reactions-tabs');
         var reactionsListEl = document.getElementById('chat-reactions-list');
         var reactionsCloseEl = document.getElementById('chat-reactions-close');
+        var mediaModalEl = document.getElementById('chat-media-modal');
+        var mediaModalBodyEl = document.getElementById('chat-media-body');
+        var mediaModalTitleEl = document.getElementById('chat-media-title');
+        var mediaModalCloseEl = document.getElementById('chat-media-close');
         var currentUserId = <?php echo (int)$currentUserId; ?>;
         var selectedUserId = parseInt(app.getAttribute('data-selected-user-id') || '0', 10) || 0;
         var selectedContactRef = null;
         var messageCache = {};
         var replyTarget = null;
         var pendingConfirmFn = null;
+        var pendingReportFn = null;
         var activeMessageActionId = 0;
         var pollHandle = null;
         var currentSearch = '';
         var reactionsModalState = null;
+        var mediaModalState = null;
         var fetchAbortController = null;
         var stateRequestToken = 0;
         var lastContactsSignature = '';
+        var lastHeaderSignature = '';
         var lastMessagesSignature = '';
         var lastRenderedUserId = 0;
         var mobileLayoutQuery = (typeof window.matchMedia === 'function') ? window.matchMedia('(max-width: 991px)') : null;
@@ -3239,14 +4107,31 @@ include 'includes/header.php';
             }).join('|');
         }
 
+        function buildHeaderSignature(contact) {
+            if (!contact || !contact.id) { return ''; }
+            return [
+                String(contact.id || 0),
+                String(contact.name || ''),
+                String(contact.email || ''),
+                String(contact.username || ''),
+                contact.is_online ? '1' : '0',
+                isConversationMuted(contact.id) ? '1' : '0'
+            ].join('|');
+        }
+
         function buildMessagesSignature(messages) {
             var items = Array.isArray(messages) ? messages : [];
             return items.map(function (item) {
                 return [
                     item.message_id || 0,
                     item.time_exact || '',
+                    item.message || '',
+                    item.media_path || '',
+                    item.is_unsent ? 1 : 0,
+                    item.unsent_at || '',
                     item.reaction_count || 0,
                     item.reaction_emoji || '',
+                    item.is_pinned ? 1 : 0,
                     item.is_read ? 1 : 0,
                     item.read_at || ''
                 ].join(':');
@@ -3289,6 +4174,31 @@ include 'includes/header.php';
                     alertEl.innerHTML = '';
                 }
             }, 2500);
+        }
+
+        function clearComposeWarning() {
+            if (!composeWarningEl) {
+                return;
+            }
+            composeWarningEl.classList.remove('show');
+            composeWarningEl.setAttribute('aria-hidden', 'true');
+            if (composeWarningTextEl) {
+                composeWarningTextEl.textContent = '';
+            }
+        }
+
+        function showComposeWarning(message) {
+            if (!composeWarningEl || !composeWarningTextEl || !message) {
+                return;
+            }
+            composeWarningTextEl.textContent = message;
+            composeWarningEl.classList.add('show');
+            composeWarningEl.setAttribute('aria-hidden', 'false');
+        }
+
+        function isModerationWarning(message) {
+            var text = String(message || '').toLowerCase();
+            return text.indexOf('message blocked') !== -1 || text.indexOf('disallowed symbol') !== -1;
         }
 
         function setThreadLoading(isLoading) {
@@ -3467,24 +4377,24 @@ include 'includes/header.php';
             }
         }
 
-        function conversationStorageKey(prefix) {
-            return prefix + ':' + String(currentUserId || 0) + ':' + String(selectedUserId || 0);
-        }
-
-        function getPinnedMap() {
-            try {
-                return JSON.parse(window.localStorage.getItem(conversationStorageKey('chatPinned')) || '{}') || {};
-            } catch (e) {
-                return {};
-            }
-        }
-
-        function setPinnedMap(map) {
-            try {
-                window.localStorage.setItem(conversationStorageKey('chatPinned'), JSON.stringify(map || {}));
-            } catch (e) {
-                // ignore storage errors
-            }
+        function togglePinMessageById(messageId, shouldPin) {
+            if (!selectedUserId || !messageId) { return; }
+            var fd = new FormData();
+            fd.set('action', 'toggle-pin');
+            fd.set('user_id', String(selectedUserId));
+            fd.set('message_id', String(messageId));
+            fd.set('pin_state', shouldPin ? 'pin' : 'unpin');
+            fd.set('ajax', '1');
+            postChatAction(fd, selectedUserId).then(function (result) {
+                var payload = result.payload;
+                if (payload && payload.ok) {
+                    applyState(payload, { keepInput: true });
+                } else {
+                    showAlert('error', payload && payload.error ? payload.error : 'Failed to update pin.');
+                }
+            }).catch(function () {
+                showAlert('error', 'Failed to update pin.');
+            });
         }
 
         function closeConfirmModal() {
@@ -3522,6 +4432,51 @@ include 'includes/header.php';
             reactionsModalState = null;
             if (reactionsTabsEl) { reactionsTabsEl.innerHTML = ''; }
             if (reactionsListEl) { reactionsListEl.innerHTML = ''; }
+        }
+
+        function closeMediaModal() {
+            if (!mediaModalEl) { return; }
+            mediaModalEl.classList.remove('show');
+            mediaModalEl.setAttribute('aria-hidden', 'true');
+            mediaModalState = null;
+            if (mediaModalBodyEl) {
+                mediaModalBodyEl.innerHTML = '';
+            }
+            if (mediaModalTitleEl) {
+                mediaModalTitleEl.textContent = 'Image';
+            }
+        }
+
+        function openMediaModal(type, src, label) {
+            if (!mediaModalEl || !mediaModalBodyEl || !src) {
+                return;
+            }
+
+            var mediaType = type === 'video' ? 'video' : 'image';
+            var title = label || (mediaType === 'video' ? 'Video' : 'Image');
+            var mediaHtml = '';
+
+            if (mediaType === 'video') {
+                mediaHtml = '<video src="' + escapeHtml(src) + '" class="chat-media-view video" controls autoplay playsinline></video>';
+            } else {
+                mediaHtml = '<img src="' + escapeHtml(src) + '" class="chat-media-view image" alt="' + escapeHtml(title) + '">';
+            }
+
+            mediaModalState = {
+                type: mediaType,
+                src: src,
+                title: title
+            };
+
+            mediaModalBodyEl.innerHTML = '<div class="chat-media-stage"><div class="chat-media-frame">' + mediaHtml + '</div></div>';
+            if (mediaModalTitleEl) {
+                mediaModalTitleEl.textContent = title;
+            }
+            mediaModalEl.classList.add('show');
+            mediaModalEl.setAttribute('aria-hidden', 'false');
+            if (mediaModalCloseEl) {
+                mediaModalCloseEl.focus();
+            }
         }
 
         function renderReactionsModal() {
@@ -3663,20 +4618,33 @@ include 'includes/header.php';
             activeMessageActionId = messageId;
             messageActionMenuEl.dataset.messageId = String(messageId);
 
+            var emojiRow = messageActionMenuEl.querySelector('.msg-action-emoji-row');
+            var replyBtn = messageActionMenuEl.querySelector('[data-msg-action="reply"]');
             var unsendBtn = messageActionMenuEl.querySelector('[data-msg-action="unsend"]');
+            var removeBtn = messageActionMenuEl.querySelector('[data-msg-action="remove"]');
             var reportBtn = messageActionMenuEl.querySelector('[data-msg-action="report"]');
             var pinBtn = messageActionMenuEl.querySelector('[data-msg-action="pin"]');
-            var pinnedMap = getPinnedMap();
-            var isPinned = !!pinnedMap[String(messageId)];
+            var isPinned = !!msg.is_pinned;
+            var isUnsent = !!msg.is_unsent;
 
             if (pinBtn) {
                 pinBtn.textContent = isPinned ? 'Unpin message' : 'Pin message';
+                pinBtn.classList.toggle('is-hidden', isUnsent);
+            }
+            if (replyBtn) {
+                replyBtn.classList.toggle('is-hidden', isUnsent);
             }
             if (unsendBtn) {
-                unsendBtn.classList.toggle('is-hidden', !msg.is_own);
+                unsendBtn.classList.toggle('is-hidden', !msg.is_own || isUnsent);
+            }
+            if (removeBtn) {
+                removeBtn.classList.toggle('is-hidden', !(msg.is_own && isUnsent));
             }
             if (reportBtn) {
                 reportBtn.classList.toggle('is-hidden', !!msg.is_own);
+            }
+            if (emojiRow) {
+                emojiRow.classList.toggle('is-hidden', isUnsent);
             }
 
             messageActionMenuEl.classList.add('show');
@@ -3774,12 +4742,88 @@ include 'includes/header.php';
                 var payload = result.payload;
                 if (payload && payload.ok) {
                     applyState(payload, { keepInput: true });
-                    showAlert('success', payload.success || 'Message unsent.');
                 } else {
                     showAlert('error', payload && payload.error ? payload.error : 'Failed to unsend message.');
                 }
             }).catch(function () {
                 showAlert('error', 'Failed to unsend message.');
+            });
+        }
+
+        function removeMessageById(messageId) {
+            if (!selectedUserId || !messageId) { return; }
+            var fd = new FormData();
+            fd.set('action', 'remove-message');
+            fd.set('user_id', String(selectedUserId));
+            fd.set('message_id', String(messageId));
+            fd.set('ajax', '1');
+            postChatAction(fd, selectedUserId).then(function (result) {
+                var payload = result.payload;
+                if (payload && payload.ok) {
+                    applyState(payload, { keepInput: true });
+                } else {
+                    showAlert('error', payload && payload.error ? payload.error : 'Failed to remove message.');
+                }
+            }).catch(function () {
+                showAlert('error', 'Failed to remove message.');
+            });
+        }
+
+        function closeReportModal() {
+            if (!reportModalEl) { return; }
+            reportModalEl.classList.remove('show');
+            reportModalEl.setAttribute('aria-hidden', 'true');
+            pendingReportFn = null;
+        }
+
+        function buildReportReason() {
+            var baseReason = reportReasonEl ? String(reportReasonEl.value || '').trim() : '';
+            var extraNote = reportNoteEl ? String(reportNoteEl.value || '').trim() : '';
+            if (!baseReason) {
+                baseReason = 'Inappropriate message';
+            }
+            var reason = extraNote ? (baseReason + ': ' + extraNote) : baseReason;
+            return reason.slice(0, 255);
+        }
+
+        function openReportModal(onConfirm) {
+            if (!reportModalEl) {
+                if (typeof onConfirm === 'function') {
+                    onConfirm('Inappropriate message');
+                }
+                return;
+            }
+            pendingReportFn = typeof onConfirm === 'function' ? onConfirm : null;
+            if (reportReasonEl) {
+                reportReasonEl.value = 'Harassment or abusive language';
+            }
+            if (reportNoteEl) {
+                reportNoteEl.value = '';
+            }
+            reportModalEl.classList.add('show');
+            reportModalEl.setAttribute('aria-hidden', 'false');
+            if (reportReasonEl) {
+                reportReasonEl.focus();
+            }
+        }
+
+        function reportMessageById(messageId, reason) {
+            if (!selectedUserId || !messageId) { return; }
+            var fd = new FormData();
+            fd.set('action', 'report-message');
+            fd.set('user_id', String(selectedUserId));
+            fd.set('message_id', String(messageId));
+            fd.set('reason', String(reason || 'Inappropriate message'));
+            fd.set('ajax', '1');
+            postChatAction(fd, selectedUserId).then(function (result) {
+                var payload = result.payload;
+                if (payload && payload.ok) {
+                    showAlert('success', payload.success || 'Message reported.');
+                } else {
+                    showAlert('error', payload && payload.error ? payload.error : 'Failed to report message.');
+                }
+            }).catch(function () {
+                showAlert('error', 'Failed to report message.');
             });
         }
 
@@ -3964,7 +5008,6 @@ include 'includes/header.php';
             var wasBottom = forceScroll || isAtBottom();
             var n = items.length;
             messageCache = {};
-            var pinnedMap = getPinnedMap();
 
             // Compute grouping: consecutive same-sender in same date_key
             var groups = new Array(n);
@@ -3991,6 +5034,7 @@ include 'includes/header.php';
                 var msg = items[mi];
                 var grp = groups[mi];
                 var dk = msg.date_key || '';
+                var isUnsent = !!msg.is_unsent;
                 messageCache[String(msg.message_id)] = msg;
 
                 // Date separator between days
@@ -4001,10 +5045,10 @@ include 'includes/header.php';
 
                 // Media
                 var mediaHtml = '';
-                if (msg.media_type === 'image' && msg.media_path) {
-                    mediaHtml = '<img src="' + escapeHtml(msg.media_path) + '" class="msg-media" alt="image" onclick="window.open(this.src,\'_blank\')">';
-                } else if (msg.media_type === 'video' && msg.media_path) {
-                    mediaHtml = '<video src="' + escapeHtml(msg.media_path) + '" class="msg-media-video" controls></video>';
+                if (!isUnsent && msg.media_type === 'image' && msg.media_path) {
+                    mediaHtml = '<img src="' + escapeHtml(msg.media_path) + '" class="msg-media" alt="image" data-media-viewer="image">';
+                } else if (!isUnsent && msg.media_type === 'video' && msg.media_path) {
+                    mediaHtml = '<video src="' + escapeHtml(msg.media_path) + '" class="msg-media-video" controls preload="metadata" data-media-viewer="video"></video>';
                 }
 
                 var displayMsg = msg.message || '';
@@ -4039,7 +5083,7 @@ include 'includes/header.php';
 
                 // Bubble title = full time for all messages (accessible via hover)
                 var bubbleTitle = msg.time_full ? ' title="' + escapeHtml(msg.time_full) + '"' : '';
-                var pinnedClass = pinnedMap[String(msg.message_id)] ? ' is-pinned' : '';
+                var pinnedClass = msg.is_pinned ? ' is-pinned' : '';
                 var reactionSummaryRaw = Array.isArray(msg.reaction_summary) ? msg.reaction_summary : [];
                 var reactionSummary = reactionSummaryRaw
                     .map(function (item) {
@@ -4060,7 +5104,7 @@ include 'includes/header.php';
                 if (!reactionSummary.length && msg.reaction_emoji) {
                     reactionSummary = [{ emoji: String(msg.reaction_emoji), count: reactionCount > 0 ? reactionCount : 1 }];
                 }
-                var hasReaction = reactionCount > 0 && reactionSummary.length > 0;
+                var hasReaction = !isUnsent && reactionCount > 0 && reactionSummary.length > 0;
                 var reactionIconsHtml = reactionSummary.slice(0, 2).map(function (item) {
                     return '<span class="msg-reaction-icon">' + escapeHtml(item.emoji) + '</span>';
                 }).join('');
@@ -4070,8 +5114,8 @@ include 'includes/header.php';
                 if (msg.is_own) {
                     html += '<button type="button" class="msg-hover-menu-btn" data-message-id="' + msg.message_id + '" aria-label="Message actions">&#8226;&#8226;&#8226;</button>';
                 }
-                html += '<div class="msg-bubble ' + grp + (msg.media_path ? ' has-media' : '') + pinnedClass + '"' + bubbleTitle + '>';
-                if (msg.reply_preview) {
+                html += '<div class="msg-bubble ' + grp + (msg.media_path ? ' has-media' : '') + (isUnsent ? ' is-unsent' : '') + pinnedClass + '"' + bubbleTitle + '>';
+                if (msg.reply_preview && !isUnsent) {
                     html += '<div class="msg-reply-quote"><strong>' + escapeHtml(msg.reply_author || '') + '</strong>' + escapeHtml(msg.reply_preview) + '</div>';
                 }
                 html += mediaHtml;
@@ -4084,7 +5128,7 @@ include 'includes/header.php';
                     '</button>';
                 }
                 html += '</div>';
-                if (!msg.is_own) {
+                if (!msg.is_own && !isUnsent) {
                     html += '<button type="button" class="msg-hover-menu-btn" data-message-id="' + msg.message_id + '" aria-label="Message actions">&#8226;&#8226;&#8226;</button>';
                 }
                 html += '</div>';
@@ -4128,7 +5172,11 @@ include 'includes/header.php';
 
             if (state.selectedContact) {
                 selectedContactRef = state.selectedContact;
-                renderHeader(state.selectedContact);
+                var headerSignature = buildHeaderSignature(state.selectedContact);
+                if (contactChanged || headerSignature !== lastHeaderSignature) {
+                    renderHeader(state.selectedContact);
+                    lastHeaderSignature = headerSignature;
+                }
                 if (contactChanged && selectedUserId > 0) {
                     setMobileConversationOpen(true);
                 }
@@ -4139,6 +5187,7 @@ include 'includes/header.php';
                 }
             } else {
                 selectedContactRef = null;
+                lastHeaderSignature = '';
                 setMobileConversationOpen(false);
                 clearReplyTarget();
                 lastMessagesSignature = '';
@@ -4250,16 +5299,17 @@ include 'includes/header.php';
         var emojiTabsEl = document.getElementById('chat-emoji-tabs');
         var emojiEmptyEl = document.getElementById('chat-emoji-empty');
         var activeEmojiCategory = 'smileys';
+        var blockedChatEmojis = ['🖕', '🍆', '🍑', '💦', '👅'];
 
         var emojiCatalog = {
-            smileys: ['ðŸ˜€','ðŸ˜','ðŸ˜‚','ðŸ¤£','ðŸ˜ƒ','ðŸ˜„','ðŸ˜…','ðŸ˜†','ðŸ˜‰','ðŸ˜Š','ðŸ™‚','ðŸ™ƒ','ðŸ˜‹','ðŸ˜Ž','ðŸ¥³','ðŸ˜','ðŸ˜˜','ðŸ˜—','ðŸ˜™','ðŸ˜š','ðŸ¤—','ðŸ¤”','ðŸ˜','ðŸ˜¶','ðŸ™„','ðŸ˜','ðŸ˜£','ðŸ˜¥','ðŸ˜®','ðŸ¤','ðŸ˜¯','ðŸ˜ª','ðŸ˜«','ðŸ¥±','ðŸ˜´','ðŸ˜Œ','ðŸ˜›','ðŸ˜œ','ðŸ˜','ðŸ¤¤','ðŸ˜’','ðŸ˜“','ðŸ˜”','ðŸ˜•','ðŸ™','â˜¹ï¸','ðŸ˜–','ðŸ˜ž','ðŸ˜Ÿ','ðŸ˜¤','ðŸ˜¢','ðŸ˜­','ðŸ˜¦','ðŸ˜§','ðŸ˜¨','ðŸ˜©','ðŸ¤¯','ðŸ˜¬','ðŸ˜°','ðŸ˜±','ðŸ¥µ','ðŸ¥¶','ðŸ˜¡','ðŸ¤¬'],
-            people: ['ðŸ‘','ðŸ‘Ž','ðŸ‘','ðŸ™Œ','ðŸ‘','ðŸ¤','ðŸ™','âœŒï¸','ðŸ¤ž','ðŸ¤Ÿ','ðŸ‘Œ','ðŸ¤Œ','ðŸ¤','ðŸ‘ˆ','ðŸ‘‰','ðŸ‘†','ðŸ‘‡','â˜ï¸','âœ‹','ðŸ¤š','ðŸ–ï¸','ðŸ«¶','ðŸ’ª','ðŸ«µ','ðŸ‘‹','ðŸ§ ','ðŸ‘€','ðŸ«‚','â¤ï¸','ðŸ’›','ðŸ’š','ðŸ’™','ðŸ’œ','ðŸ–¤','ðŸ¤','ðŸ¤Ž'],
-            animals: ['ðŸ¶','ðŸ±','ðŸ­','ðŸ¹','ðŸ°','ðŸ¦Š','ðŸ»','ðŸ¼','ðŸ¨','ðŸ¯','ðŸ¦','ðŸ®','ðŸ·','ðŸ¸','ðŸµ','ðŸ”','ðŸ§','ðŸ¦','ðŸ¤','ðŸ¦†','ðŸ¦‰','ðŸ¦‡','ðŸº','ðŸ—','ðŸ´','ðŸ¦„','ðŸ','ðŸ›','ðŸ¦‹','ðŸŒ','ðŸž','ðŸ¢','ðŸ','ðŸ¦Ž','ðŸ™','ðŸ¦‘'],
-            food: ['ðŸ','ðŸŽ','ðŸ','ðŸŠ','ðŸ‹','ðŸŒ','ðŸ‰','ðŸ‡','ðŸ“','ðŸ«','ðŸˆ','ðŸ’','ðŸ‘','ðŸ¥­','ðŸ','ðŸ¥¥','ðŸ¥','ðŸ…','ðŸ¥‘','ðŸ†','ðŸ¥”','ðŸ¥•','ðŸŒ½','ðŸŒ¶ï¸','ðŸ¥’','ðŸ¥¬','ðŸ¥¦','ðŸ§„','ðŸ§…','ðŸ„','ðŸ¥œ','ðŸž','ðŸ§€','ðŸ—','ðŸ–','ðŸ”','ðŸŸ','ðŸ•','ðŸŒ­','ðŸ¥ª','ðŸŒ®','ðŸŒ¯','ðŸ¥™','ðŸœ','ðŸ','ðŸ£','ðŸ©','ðŸª'],
-            travel: ['ðŸš—','ðŸš•','ðŸš™','ðŸšŒ','ðŸšŽ','ðŸŽï¸','ðŸš“','ðŸš‘','ðŸš’','ðŸšš','ðŸšœ','ðŸ›µ','ðŸï¸','ðŸš²','âœˆï¸','ðŸ›©ï¸','ðŸš','ðŸš€','ðŸ›¸','ðŸš¤','â›µ','ðŸ›¥ï¸','ðŸš¢','âš“','ðŸ—ºï¸','ðŸ§­','ðŸ—½','ðŸ—¼','ðŸ°','ðŸ¯','ðŸ–ï¸','ðŸï¸','ðŸ”ï¸','â›º','ðŸŒ‹','ðŸ›¤ï¸','ðŸŒ‰'],
-            objects: ['âŒš','ðŸ“±','ðŸ’»','âŒ¨ï¸','ðŸ–¥ï¸','ðŸ–¨ï¸','ðŸ–±ï¸','ðŸ“·','ðŸ“¹','ðŸŽ¥','ðŸ“ž','â˜Žï¸','ðŸ“º','ðŸ“»','ðŸŽ™ï¸','â°','â³','ðŸ’¡','ðŸ”¦','ðŸ•¯ï¸','ðŸ§¯','ðŸ§²','ðŸ”‹','ðŸ”Œ','ðŸ§°','ðŸ› ï¸','âš™ï¸','ðŸ”’','ðŸ”“','ðŸ”‘','ðŸª™','ðŸ’°','ðŸ’Ž','ðŸ“Œ','ðŸ“Ž','âœ‚ï¸','ðŸ§ª','ðŸ’Š','ðŸ©¹'],
-            symbols: ['â¤ï¸','ðŸ’”','â£ï¸','ðŸ’•','ðŸ’ž','ðŸ’“','ðŸ’—','ðŸ’–','ðŸ’˜','ðŸ’','âœ”ï¸','âœ–ï¸','âž•','âž–','âž—','â™¾ï¸','â€¼ï¸','â‰ï¸','â“','â—','ðŸ’¯','âœ…','â˜‘ï¸','âš ï¸','ðŸš«','ðŸ”ž','ðŸ”•','ðŸ””','â™»ï¸','ðŸ”','ðŸ”‚','â–¶ï¸','â¸ï¸','â¹ï¸','âºï¸'],
-            flags: ['ðŸ','ðŸš©','ðŸ³ï¸','ðŸ´','ðŸ³ï¸â€ðŸŒˆ','ðŸ³ï¸â€âš§ï¸','ðŸ‡µðŸ‡­','ðŸ‡ºðŸ‡¸','ðŸ‡¬ðŸ‡§','ðŸ‡¯ðŸ‡µ','ðŸ‡°ðŸ‡·','ðŸ‡¨ðŸ‡¦','ðŸ‡¦ðŸ‡º','ðŸ‡«ðŸ‡·','ðŸ‡©ðŸ‡ª','ðŸ‡®ðŸ‡¹','ðŸ‡ªðŸ‡¸','ðŸ‡¸ðŸ‡¬','ðŸ‡²ðŸ‡¾','ðŸ‡¹ðŸ‡­']
+            smileys: ['😀','😁','😂','🤣','😊','🙂','😉','😍','😘','😎','🤔','🙄','😢','😭','😡','🤬'],
+            people: ['👍','👎','👏','🙌','🙏','👌','🤝','💪','👀','🫶','❤️','💔','🔥','✨','🎉','💯'],
+            animals: ['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🦄'],
+            food: ['🍎','🍌','🍇','🍉','🍓','🍍','🥑','🍅','🍔','🍕','🍟','🌮','🍣','🍜','🍩','🍪'],
+            travel: ['🚗','🚌','🚕','🚓','🚑','🚒','🚲','✈️','🚆','🚀','🛳️','🏝️','🏙️','🗺️','🌋','🌉'],
+            objects: ['⌚','📱','💻','⌨️','🖥️','📷','🎥','📞','💡','🔦','🔋','🔌','🧰','⚙️','💰','💎'],
+            symbols: ['❤️','💔','❗','❓','✅','☑️','⚠️','🚫','🔔','🔕','♻️','▶️','⏸️','⏹️','⏺️','🔁'],
+            flags: ['🏁','🚩','🏳️','🏴','🏳️‍🌈','🏳️‍⚧️','🇵🇭','🇺🇸','🇬🇧','🇯🇵','🇰🇷','🇨🇦','🇦🇺','🇫🇷','🇮🇹','🇪🇸']
         };
 
         function emojiMatchesQuery(emoji, query) {
@@ -4268,12 +5318,106 @@ include 'includes/header.php';
             return emoji.indexOf(query) !== -1;
         }
 
+        function getChatModerationError(message) {
+            var text = String(message || '').trim();
+            if (!text) { return ''; }
+
+            for (var i = 0; i < blockedChatEmojis.length; i++) {
+                if (text.indexOf(blockedChatEmojis[i]) !== -1) {
+                    return 'Message blocked due to unsupported or offensive emoji.';
+                }
+            }
+
+            var symbolCompact = text.replace(/\s+/g, '');
+            var symbolCompactLower = symbolCompact.toLowerCase();
+            var blockedSymbolTokens = ['./.', '/./', '.|.', '<==3', '<===3', '<====3', '8==d', '8===d', '8====d', 'b==d', 'b===d', 'b====d'];
+            for (var si = 0; si < blockedSymbolTokens.length; si++) {
+                if (symbolCompactLower.indexOf(blockedSymbolTokens[si]) !== -1) {
+                    return 'Message blocked due to disallowed symbol patterns.';
+                }
+            }
+            if (/(?:<|8|b|c)[=\-~_]{2,}(?:3|d)/.test(symbolCompactLower)) {
+                return 'Message blocked due to disallowed symbol patterns.';
+            }
+
+            var normalized = text
+                .toLowerCase()
+                .replace(/[013457@$]/g, function (char) {
+                    return ({ '0': 'o', '1': 'i', '3': 'e', '4': 'a', '5': 's', '7': 't', '@': 'a', '$': 's' })[char] || char;
+                })
+                .replace(/[^a-z0-9\s]+/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+            var compact = normalized.replace(/\s+/g, '');
+            var blockedTerms = [
+                'fuck', 'fucking', 'shit', 'bitch', 'asshole', 'bastard', 'dick', 'pussy',
+                'nude', 'nudes', 'porn', 'sext', 'blowjob', 'handjob', 'cum', 'kys',
+                'fck', 'fvck', 'phuck', 'btch', 'biatch',
+                'cunt', 'whore', 'slut', 'rape', 'rapist', 'pedo', 'pedophile',
+                'jizz', 'boner', 'wank', 'wanker', 'fap', 'hentai', 'horny',
+                'orgasm', 'masturbate', 'masturbation', 'threesome', 'gangbang', 'creampie',
+                'anal', 'erection', 'ejaculate', 'ejaculation', 'xxx',
+                'putangina', 'potangina', 'puta', 'punyeta', 'gago', 'gaga', 'tangina',
+                'leche', 'buwisit', 'kupal', 'tarantado', 'pakshet', 'pakyu', 'putcha',
+                'kantot', 'iyot', 'jakol', 'tite', 'pekpek', 'ulol', 'bobo',
+                'ptngina', 'tngina', 'ulul',
+                'tanga', 'inutil', 'ogag', 'engot', 'gagu',
+                'putaragis', 'putaena', 'bwiset', 'bwisit', 'bwakanangina', 'bwakananginamo',
+                'hindot', 'libog', 'salsal', 'bayag', 'burat', 'pokpok',
+                'biot', 'bayot', 'bading',
+                'gunggong', 'kolokoy', 'hinayupak', 'lintik', 'demonyo',
+                'punyemas', 'burikat', 'pokpokin',
+                'yawa', 'yawaa', 'buang', 'otin', 'bilat', 'pisti', 'piste', 'atay', 'amaw', 'yati',
+                'cono', 'joder', 'cabron', 'mierda', 'pendejo', 'verga', 'chinga', 'culero',
+                'sibal', 'ssibal', 'gaeseki', 'jiral', 'byeongsin',
+                'kuso', 'kutabare', 'chinko', 'manko'
+            ];
+            var blockedPhrases = [
+                'kill yourself', 'kill ur self', 'kill your self',
+                'putang ina', 'putang ina mo', 'tang ina', 'tangina mo',
+                'anak ng puta', 'anak ka ng puta', 'bwakanang ina', 'bwakanang ina mo',
+                'gago ka', 'ulol ka', 'biot ka', 'bayot ka',
+                'kupal ka', 'tarantado ka',
+                'puta ka', 'gago mo'
+            ];
+            var blockedNativeTerms = [
+                '\uC2DC\uBC1C', '\uC528\uBC1C', '\uAC1C\uC0C8\uB07C', '\uBCD1\uC2E0', '\uC9C0\uB784', '\uCC3D\uB140', '\uBCF4\uC9C0', '\uC790\uC9C0',
+                '\u304F\u305D', '\u304F\u305F\u3070\u308C', '\u3061\u3093\u3053', '\u307E\u3093\u3053', '\u6B7B\u306D', '\u3046\u3093\u3053',
+                '\u64CD\u4F60\u5988', '\u4F60\u5988\u7684', '\u4ED6\u5988\u7684', '\u53BB\u6B7B', '\u50BB\u903C', '\u8349\u6CE5\u9A6C', '\u8085\u4F60',
+                'co\u00F1o', 'cabr\u00F3n'
+            ];
+
+            for (var pi = 0; pi < blockedPhrases.length; pi++) {
+                var phrasePattern = new RegExp('\\b' + blockedPhrases[pi].replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b');
+                if (phrasePattern.test(normalized)) {
+                    return 'Message blocked due to inappropriate language. Please edit and try again.';
+                }
+            }
+
+            var textLower = text.toLowerCase();
+            for (var ni = 0; ni < blockedNativeTerms.length; ni++) {
+                if (textLower.indexOf(blockedNativeTerms[ni].toLowerCase()) !== -1) {
+                    return 'Message blocked due to inappropriate language. Please edit and try again.';
+                }
+            }
+
+            for (var ti = 0; ti < blockedTerms.length; ti++) {
+                var term = blockedTerms[ti];
+                var pattern = new RegExp('\\b' + term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b');
+                if (pattern.test(normalized) || compact.indexOf(term) !== -1) {
+                    return 'Message blocked due to inappropriate language. Please edit and try again.';
+                }
+            }
+
+            return '';
+        }
+
         function renderEmojiPicker() {
             if (!emojiGridEl) { return; }
             var query = emojiSearchEl ? emojiSearchEl.value.trim() : '';
             var source = emojiCatalog[activeEmojiCategory] || [];
             var filtered = source.filter(function (e) {
-                return emojiMatchesQuery(e, query);
+                return blockedChatEmojis.indexOf(e) === -1 && emojiMatchesQuery(e, query);
             });
 
             emojiGridEl.innerHTML = filtered.map(function (emoji) {
@@ -4393,6 +5537,18 @@ include 'includes/header.php';
 
         if (threadEl) {
             threadEl.addEventListener('click', function (event) {
+                var mediaEl = event.target.closest('[data-media-viewer]');
+                if (mediaEl) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    openMediaModal(
+                        mediaEl.getAttribute('data-media-viewer') || '',
+                        mediaEl.getAttribute('src') || '',
+                        mediaEl.getAttribute('data-media-viewer') === 'video' ? 'Video' : 'Image'
+                    );
+                    return;
+                }
+
                 var reactionBtn = event.target.closest('.msg-reaction-badge[data-reaction-mid]');
                 if (reactionBtn) {
                     event.preventDefault();
@@ -4438,11 +5594,8 @@ include 'includes/header.php';
                     updateSendBtn();
                     inputEl.focus();
                 } else if (type === 'pin') {
-                    var pins = getPinnedMap();
-                    var key = String(mid);
-                    if (pins[key]) { delete pins[key]; } else { pins[key] = 1; }
-                    setPinnedMap(pins);
-                    fetchState(false);
+                    var wasPinned = !!msg.is_pinned;
+                    togglePinMessageById(mid, !wasPinned);
                 } else if (type === 'unsend') {
                     if (!msg.is_own) { return; }
                     openConfirmModal(
@@ -4451,8 +5604,24 @@ include 'includes/header.php';
                         function () { unsendMessageById(mid); },
                         'Unsend'
                     );
+                } else if (type === 'remove') {
+                    if (!msg.is_own || !msg.is_unsent) { return; }
+                    openConfirmModal(
+                        'Remove this unsent bubble?',
+                        'This will permanently delete this unsent message.',
+                        function () { removeMessageById(mid); },
+                        'Remove'
+                    );
                 } else if (type === 'report') {
-                    showAlert('success', 'Message reported.');
+                    if (msg.is_own) { return; }
+                    openReportModal(function (selectedReason) {
+                        openConfirmModal(
+                            'Report this message?',
+                            'This will send the message to chat reports for review. Reason: ' + selectedReason,
+                            function () { reportMessageById(mid, selectedReason); },
+                            'Report'
+                        );
+                    });
                 }
             });
         }
@@ -4484,6 +5653,7 @@ include 'includes/header.php';
             inputEl.addEventListener('input', function () {
                 autoGrowInput();
                 updateSendBtn();
+                clearComposeWarning();
             });
             autoGrowInput();
         }
@@ -4498,12 +5668,18 @@ include 'includes/header.php';
                 var normalizedMessage = inputEl.value.replace(/[\r\n\s]+/g, '');
                 var hasMedia = mediaInputEl && mediaInputEl.files && mediaInputEl.files.length > 0;
                 var mode = sendBtnEl && sendBtnEl.dataset ? sendBtnEl.dataset.mode : 'send';
+                var moderationError = getChatModerationError(message);
 
                 if (!hasMedia && normalizedMessage === '') {
                     message = '';
                 }
 
                 if (!message && !hasMedia) {
+                    return;
+                }
+                if (moderationError) {
+                    showComposeWarning(moderationError);
+                    if (inputEl) { inputEl.focus(); }
                     return;
                 }
                 var formData = new FormData(formEl);
@@ -4515,14 +5691,21 @@ include 'includes/header.php';
                 }
                 postChatAction(formData, selectedUserId).then(function (result) {
                     if (result.payload && result.payload.ok) {
+                        clearComposeWarning();
                         applyState(result.payload, { keepInput: false, forceScroll: true });
                         clearReplyTarget();
                         clearMediaPreview();
                         updateSendBtn();
                         autoGrowInput();
                     } else if (result.payload && !result.payload.ok) {
-                        showAlert('error', result.payload.error ? result.payload.error : 'Failed to send.');
+                        var errorMessage = result.payload.error ? result.payload.error : 'Failed to send.';
+                        if (isModerationWarning(errorMessage)) {
+                            showComposeWarning(errorMessage);
+                        } else {
+                            showAlert('error', errorMessage);
+                        }
                     } else if (result.ok) {
+                        clearComposeWarning();
                         fetchState(true, { forceScroll: true });
                     } else {
                         showAlert('error', 'Failed to send.');
@@ -4567,14 +5750,31 @@ include 'includes/header.php';
             if (event.key === 'Escape') {
                 closeHeaderMenus();
                 closeConfirmModal();
+                closeReportModal();
                 closeMessageActionMenu();
                 closeEmojiPicker();
                 closeReactionsModal();
+                closeMediaModal();
             }
         });
 
         if (confirmCancelEl) {
             confirmCancelEl.addEventListener('click', closeConfirmModal);
+        }
+
+        if (reportCancelEl) {
+            reportCancelEl.addEventListener('click', closeReportModal);
+        }
+
+        if (reportOkEl) {
+            reportOkEl.addEventListener('click', function () {
+                var reason = buildReportReason();
+                var fn = pendingReportFn;
+                closeReportModal();
+                if (typeof fn === 'function') {
+                    fn(reason);
+                }
+            });
         }
 
         if (confirmOkEl) {
@@ -4591,6 +5791,14 @@ include 'includes/header.php';
             confirmModalEl.addEventListener('click', function (event) {
                 if (event.target === confirmModalEl) {
                     closeConfirmModal();
+                }
+            });
+        }
+
+        if (reportModalEl) {
+            reportModalEl.addEventListener('click', function (event) {
+                if (event.target === reportModalEl) {
+                    closeReportModal();
                 }
             });
         }
@@ -4612,6 +5820,18 @@ include 'includes/header.php';
             reactionsModalEl.addEventListener('click', function (event) {
                 if (event.target === reactionsModalEl) {
                     closeReactionsModal();
+                }
+            });
+        }
+
+        if (mediaModalCloseEl) {
+            mediaModalCloseEl.addEventListener('click', closeMediaModal);
+        }
+
+        if (mediaModalEl) {
+            mediaModalEl.addEventListener('click', function (event) {
+                if (event.target === mediaModalEl) {
+                    closeMediaModal();
                 }
             });
         }
