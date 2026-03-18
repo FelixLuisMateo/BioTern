@@ -277,60 +277,156 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         @media (max-width: 991.98px) {
+            html,
+            body {
+                min-height: 100vh;
+                min-height: 100dvh;
+                overflow: hidden;
+            }
+
             .auth-cover-content-inner {
                 display: none !important;
             }
 
             .auth-cover-wrapper {
-                display: block;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                min-height: 100vh;
+                min-height: 100dvh;
+                padding: 6px 12px;
+                overflow: hidden;
+            }
+
+            .auth-cover-wrapper .auth-cover-sidebar-inner {
+                padding: 0 !important;
+                margin: 0 !important;
+                border-radius: 0 !important;
+                min-height: auto !important;
+                height: auto !important;
             }
 
             .login-bg-watermark {
-                opacity: 0.12;
+                opacity: 0.16;
                 background-position: center top;
             }
 
-            .auth-cover-content-wrapper,
-            .auth-img {
-                min-height: 0;
+            .auth-cover-sidebar-inner {
+                width: 100%;
+                max-width: 410px;
+                min-height: auto;
+                height: auto;
+                background: transparent;
+                padding: 0;
+                margin: 0;
+                border-radius: 0;
+                box-shadow: none;
+                flex: 0 0 auto;
             }
 
-            .auth-cover-sidebar-inner {
-                min-height: 100vh;
+            .auth-cover-card-wrapper {
                 width: 100%;
                 max-width: 100%;
-                flex: 0 0 100%;
-                background-color: rgba(8, 20, 52, 0.92);
-                padding: 16px 10px;
+                margin: 0;
+                min-height: auto;
+                height: auto;
+            }
+
+            .auth-cover-wrapper .auth-cover-sidebar-inner .auth-cover-card-wrapper {
+                min-height: auto !important;
+                height: auto !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                margin: 0 !important;
+                padding: 0 !important;
             }
 
             .auth-cover-card {
-                padding: 1.15rem 0.95rem !important;
+                width: 100%;
+                max-width: 100%;
+                margin: 0;
+                padding: 18px 16px !important;
+                min-height: auto;
+                border-radius: 12px;
+                background-color: rgba(8, 20, 52, 0.94);
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                box-shadow: 0 8px 26px rgba(0, 0, 0, 0.35);
+            }
+
+            .auth-cover-wrapper .auth-cover-sidebar-inner .auth-cover-card-wrapper .auth-cover-card {
+                margin: 0 !important;
+            }
+
+            .auth-cover-card .wd-50 {
+                width: 64px !important;
+                margin-bottom: 0.9rem !important;
+            }
+
+            .auth-cover-card .wd-50 img {
+                width: 100%;
+                height: auto;
+                display: block;
+                filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.25));
+            }
+
+            .auth-cover-card .mb-5 {
+                margin-bottom: 0.9rem !important;
             }
 
             .auth-cover-card h2 {
-                font-size: 1.35rem;
-                margin-bottom: 0.85rem !important;
+                font-size: 1.6rem;
+                margin-bottom: 0.75rem !important;
             }
 
             .auth-cover-card h4 {
-                font-size: 0.85rem;
-                line-height: 1.35;
+                font-size: 0.92rem;
+                line-height: 1.45;
+                margin-bottom: 0.85rem !important;
+            }
+
+            .auth-cover-card .mb-4 {
+                margin-bottom: 0.85rem !important;
+            }
+
+            .auth-cover-card .mt-4,
+            .auth-cover-card .mt-5 {
+                margin-top: 0.9rem !important;
+            }
+
+            .auth-cover-card .my-4 {
+                margin-top: 0.7rem !important;
+                margin-bottom: 0.7rem !important;
+            }
+
+            .auth-cover-card .pt-2 {
+                padding-top: 0 !important;
             }
 
             .auth-cover-card .form-control,
             .auth-cover-card .btn {
-                font-size: 0.9rem;
+                font-size: 0.93rem;
+            }
+
+            .auth-cover-card .form-control {
+                padding-top: 0.58rem;
+                padding-bottom: 0.58rem;
             }
 
             .auth-cover-card .btn-lg {
-                padding-top: 0.6rem;
-                padding-bottom: 0.6rem;
+                padding-top: 0.65rem;
+                padding-bottom: 0.65rem;
+            }
+
+            .auth-cover-card .fs-11 {
+                font-size: 0.72rem !important;
             }
 
             .auth-cover-card .d-flex.align-items-center.justify-content-between {
-                flex-wrap: wrap;
-                gap: 0.5rem;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 0.6rem;
             }
         }
     </style>
