@@ -52,6 +52,43 @@ function log_login_attempt($mysqli, $userId, $identifier, $role, $status, $reaso
     $stmt->close();
 }
 
+function auth_login_has_column(mysqli $mysqli, string $table, string $column): bool
+{
+    $safeTable = str_replace('`', '``', $table);
+    $stmt = $mysqli->prepare("SHOW COLUMNS FROM `{$safeTable}` LIKE ?");
+    if (!$stmt) {
+        return false;
+    }
+    $stmt->bind_param('s', $column);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    $has = ($res && $res->num_rows > 0);
+    $stmt->close();
+    return $has;
+}
+
+function auth_login_ensure_users_schema(mysqli $mysqli): void
+{
+    $requiredColumns = [
+        'application_status' => "ALTER TABLE users ADD COLUMN application_status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'approved'",
+        'application_submitted_at' => "ALTER TABLE users ADD COLUMN application_submitted_at DATETIME NULL",
+        'approved_by' => "ALTER TABLE users ADD COLUMN approved_by INT NULL",
+        'approved_at' => "ALTER TABLE users ADD COLUMN approved_at DATETIME NULL",
+        'rejected_at' => "ALTER TABLE users ADD COLUMN rejected_at DATETIME NULL",
+        'approval_notes' => "ALTER TABLE users ADD COLUMN approval_notes VARCHAR(255) NULL",
+    ];
+
+    foreach ($requiredColumns as $column => $sql) {
+        try {
+            if (!auth_login_has_column($mysqli, 'users', $column)) {
+                $mysqli->query($sql);
+            }
+        } catch (Throwable $e) {
+            // Ignore schema sync failures so login can continue on restricted DB accounts.
+        }
+    }
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $identifier = isset($_POST['identifier']) ? trim((string)$_POST['identifier']) : '';
     $password = isset($_POST['password']) ? (string)$_POST['password'] : '';
@@ -69,12 +106,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($mysqli->connect_errno) {
             $login_error = 'Database connection failed.';
         } else {
-            $mysqli->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS application_status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'approved'");
-            $mysqli->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS application_submitted_at DATETIME NULL");
-            $mysqli->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS approved_by INT NULL");
-            $mysqli->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS approved_at DATETIME NULL");
-            $mysqli->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS rejected_at DATETIME NULL");
-            $mysqli->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS approval_notes VARCHAR(255) NULL");
+            auth_login_ensure_users_schema($mysqli);
 
             $mysqli->query("CREATE TABLE IF NOT EXISTS login_logs (
                 id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,

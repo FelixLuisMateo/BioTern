@@ -11,24 +11,35 @@ if (!in_array($currentRole, ['admin', 'coordinator', 'supervisor'], true)) {
     exit;
 }
 
-$conn->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS application_status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'approved'");
-$conn->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS application_submitted_at DATETIME NULL");
-$conn->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS approved_by INT NULL");
-$conn->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS approved_at DATETIME NULL");
-$conn->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS rejected_at DATETIME NULL");
-$conn->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS approval_notes VARCHAR(255) NULL");
-$conn->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS disciplinary_remark VARCHAR(255) NULL");
-$conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS internal_total_hours INT(11) DEFAULT NULL");
-$conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS internal_total_hours_remaining INT(11) DEFAULT NULL");
-$conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS external_total_hours INT(11) DEFAULT NULL");
-$conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS external_total_hours_remaining INT(11) DEFAULT NULL");
-$conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS assignment_track VARCHAR(20) NOT NULL DEFAULT 'internal'");
-$conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS address VARCHAR(255) NULL");
-$conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS phone VARCHAR(50) NULL");
-$conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS date_of_birth DATE NULL");
-$conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS gender VARCHAR(30) NULL");
-$conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS emergency_contact VARCHAR(255) NULL");
-$conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS emergency_contact_phone VARCHAR(50) NULL");
+$applicationsUserSchemaColumns = [
+    'application_status' => "application_status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'approved'",
+    'application_submitted_at' => "application_submitted_at DATETIME NULL",
+    'approved_by' => "approved_by INT NULL",
+    'approved_at' => "approved_at DATETIME NULL",
+    'rejected_at' => "rejected_at DATETIME NULL",
+    'approval_notes' => "approval_notes VARCHAR(255) NULL",
+    'disciplinary_remark' => "disciplinary_remark VARCHAR(255) NULL",
+];
+foreach ($applicationsUserSchemaColumns as $column => $definition) {
+    biotern_db_add_column_if_missing($conn, 'users', $column, $definition);
+}
+
+$applicationsStudentSchemaColumns = [
+    'internal_total_hours' => "internal_total_hours INT(11) DEFAULT NULL",
+    'internal_total_hours_remaining' => "internal_total_hours_remaining INT(11) DEFAULT NULL",
+    'external_total_hours' => "external_total_hours INT(11) DEFAULT NULL",
+    'external_total_hours_remaining' => "external_total_hours_remaining INT(11) DEFAULT NULL",
+    'assignment_track' => "assignment_track VARCHAR(20) NOT NULL DEFAULT 'internal'",
+    'address' => "address VARCHAR(255) NULL",
+    'phone' => "phone VARCHAR(50) NULL",
+    'date_of_birth' => "date_of_birth DATE NULL",
+    'gender' => "gender VARCHAR(30) NULL",
+    'emergency_contact' => "emergency_contact VARCHAR(255) NULL",
+    'emergency_contact_phone' => "emergency_contact_phone VARCHAR(50) NULL",
+];
+foreach ($applicationsStudentSchemaColumns as $column => $definition) {
+    biotern_db_add_column_if_missing($conn, 'students', $column, $definition);
+}
 
 $departmentOptions = [];
 $courseOptions = [];

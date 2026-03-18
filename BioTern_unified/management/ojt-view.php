@@ -313,8 +313,18 @@ try {
         PRIMARY KEY (id),
         UNIQUE KEY user_id (user_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
-    $conn->query("ALTER TABLE endorsement_letter ADD COLUMN IF NOT EXISTS recipient_title VARCHAR(20) DEFAULT 'none' AFTER recipient_name");
-    $conn->query("ALTER TABLE endorsement_letter ADD COLUMN IF NOT EXISTS greeting_preference VARCHAR(20) DEFAULT 'either' AFTER students_to_endorse");
+    biotern_db_add_column_if_missing(
+        $conn,
+        'endorsement_letter',
+        'recipient_title',
+        "recipient_title VARCHAR(20) DEFAULT 'none' AFTER recipient_name"
+    );
+    biotern_db_add_column_if_missing(
+        $conn,
+        'endorsement_letter',
+        'greeting_preference',
+        "greeting_preference VARCHAR(20) DEFAULT 'either' AFTER students_to_endorse"
+    );
     $conn->query("CREATE TABLE IF NOT EXISTS dau_moa (
         id INT(11) NOT NULL AUTO_INCREMENT,
         user_id INT(11) NOT NULL,

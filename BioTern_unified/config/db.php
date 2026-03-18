@@ -91,3 +91,38 @@ if ($conn->connect_error) {
 
 // Set charset to utf8mb4
 $conn->set_charset("utf8mb4");
+
+if (!function_exists('biotern_db_has_column')) {
+    function biotern_db_has_column(mysqli $mysqli, string $table, string $column): bool
+    {
+        $safeTable = str_replace('`', '``', $table);
+        $stmt = $mysqli->prepare("SHOW COLUMNS FROM `{$safeTable}` LIKE ?");
+        if (!$stmt) {
+            return false;
+        }
+        $stmt->bind_param('s', $column);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        $has = ($res instanceof mysqli_result) && $res->num_rows > 0;
+        $stmt->close();
+        return $has;
+    }
+}
+
+if (!function_exists('biotern_db_add_column_if_missing')) {
+    function biotern_db_add_column_if_missing(mysqli $mysqli, string $table, string $column, string $columnDefinition): bool
+    {
+        if (biotern_db_has_column($mysqli, $table, $column)) {
+            return true;
+        }
+
+        $safeTable = str_replace('`', '``', $table);
+        $sql = "ALTER TABLE `{$safeTable}` ADD COLUMN {$columnDefinition}";
+
+        try {
+            return (bool)$mysqli->query($sql);
+        } catch (Throwable $e) {
+            return false;
+        }
+    }
+}
