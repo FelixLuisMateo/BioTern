@@ -168,8 +168,20 @@ if ($is_logged_in && $file === 'auth-register-creative.php') {
 
 // Refresh session fields from DB to keep account info consistent across all pages.
 if ($is_logged_in) {
-  $db = @new mysqli(defined('DB_HOST') ? DB_HOST : '127.0.0.1', defined('DB_USER') ? DB_USER : 'root', defined('DB_PASS') ? DB_PASS : '', defined('DB_NAME') ? DB_NAME : 'biotern_db');
-  if (!$db->connect_errno) {
+  $db = null;
+  try {
+    $db = new mysqli(
+      defined('DB_HOST') ? DB_HOST : '127.0.0.1',
+      defined('DB_USER') ? DB_USER : 'root',
+      defined('DB_PASS') ? DB_PASS : '',
+      defined('DB_NAME') ? DB_NAME : 'biotern_db',
+      defined('DB_PORT') ? (int)DB_PORT : 3306
+    );
+  } catch (mysqli_sql_exception $e) {
+    $db = null;
+  }
+
+  if ($db instanceof mysqli && !$db->connect_errno) {
     $stmt = $db->prepare("SELECT id, name, username, email, role, is_active, profile_picture FROM users WHERE id = ? LIMIT 1");
     if ($stmt) {
       $stmt->bind_param('i', $current_user_id);
