@@ -1,14 +1,15 @@
 ﻿<?php
 require_once dirname(__DIR__) . '/config/db.php';
 // Database configuration
-$host = 'localhost';
-$username = 'root';
-$password = '';
+$host = defined('DB_HOST') ? DB_HOST : 'localhost';
+$username = defined('DB_USER') ? DB_USER : 'root';
+$password = defined('DB_PASS') ? DB_PASS : '';
 $database = defined('DB_NAME') ? DB_NAME : 'biotern_db';
+$db_port = defined('DB_PORT') ? (int)DB_PORT : 3306;
 
 try {
     // Create connection
-    $conn = new mysqli($host, $username, $password);
+    $conn = new mysqli($host, $username, $password, '', $db_port);
     
     if ($conn->connect_error) {
         die("Connection failed: " . $conn->connect_error);

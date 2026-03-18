@@ -25,13 +25,14 @@ $current_role = strtolower(trim((string) (
 $is_student_user = ($current_role === 'student');
 
 // Database Connection
-$host = 'localhost';
-$db_user = 'root';
-$db_password = '';
+$host = defined('DB_HOST') ? DB_HOST : 'localhost';
+$db_user = defined('DB_USER') ? DB_USER : 'root';
+$db_password = defined('DB_PASS') ? DB_PASS : '';
 $db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
+$db_port = defined('DB_PORT') ? (int)DB_PORT : 3306;
 
 try {
-    $conn = new mysqli($host, $db_user, $db_password, $db_name);
+    $conn = new mysqli($host, $db_user, $db_password, $db_name, $db_port);
     if ($conn->connect_error) {
         die("Connection failed: " . $conn->connect_error);
     }

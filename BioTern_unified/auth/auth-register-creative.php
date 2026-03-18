@@ -21,12 +21,13 @@ $courseDepartmentMap = [];
 $script_name = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
 $asset_prefix = (strpos($script_name, '/auth/') !== false) ? '../' : '';
 $route_prefix = $asset_prefix;
-$dbHost = '127.0.0.1';
-$dbUser = 'root';
-$dbPass = '';
+$dbHost = defined('DB_HOST') ? DB_HOST : '127.0.0.1';
+$dbUser = defined('DB_USER') ? DB_USER : 'root';
+$dbPass = defined('DB_PASS') ? DB_PASS : '';
 $dbName = defined('DB_NAME') ? DB_NAME : 'biotern_db';
+$dbPort = defined('DB_PORT') ? (int)DB_PORT : 3306;
 
-$departmentsConn = new mysqli($dbHost, $dbUser, $dbPass, $dbName);
+$departmentsConn = new mysqli($dbHost, $dbUser, $dbPass, $dbName, $dbPort);
 if ($departmentsConn && $departmentsConn->connect_errno === 0) {
     $departmentQuery = "SELECT id, code, name FROM departments ORDER BY name ASC";
     $hasIsActive = $departmentsConn->query("SHOW COLUMNS FROM departments LIKE 'is_active'");
@@ -52,7 +53,7 @@ if ($departmentsConn && $departmentsConn->connect_errno === 0) {
     $departmentsConn->close();
 }
 
-$coursesConn = new mysqli($dbHost, $dbUser, $dbPass, $dbName);
+$coursesConn = new mysqli($dbHost, $dbUser, $dbPass, $dbName, $dbPort);
 if ($coursesConn && $coursesConn->connect_errno === 0) {
     $courseQuery = "SELECT id, code, name FROM courses ORDER BY name ASC";
     $hasDeletedAt = $coursesConn->query("SHOW COLUMNS FROM courses LIKE 'deleted_at'");
@@ -78,7 +79,7 @@ if ($coursesConn && $coursesConn->connect_errno === 0) {
     $coursesConn->close();
 }
 
-$relationsConn = new mysqli($dbHost, $dbUser, $dbPass, $dbName);
+$relationsConn = new mysqli($dbHost, $dbUser, $dbPass, $dbName, $dbPort);
 if ($relationsConn && $relationsConn->connect_errno === 0) {
     $sectionQuery = "SELECT id, course_id, department_id, code, name FROM sections WHERE 1=1";
     $hasSectionDeletedAt = $relationsConn->query("SHOW COLUMNS FROM sections LIKE 'deleted_at'");

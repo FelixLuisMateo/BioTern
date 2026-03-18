@@ -3,12 +3,13 @@ require_once dirname(__DIR__) . '/config/db.php';
 // Simple registration handler for demo purposes.
 // IMPORTANT: Review and secure before using in production.
 
-$dbHost = '127.0.0.1';
-$dbUser = 'root';
-$dbPass = '';
+$dbHost = defined('DB_HOST') ? DB_HOST : '127.0.0.1';
+$dbUser = defined('DB_USER') ? DB_USER : 'root';
+$dbPass = defined('DB_PASS') ? DB_PASS : '';
 $dbName = defined('DB_NAME') ? DB_NAME : 'biotern_db';
+$dbPort = defined('DB_PORT') ? (int)DB_PORT : 3306;
 
-$mysqli = new mysqli($dbHost, $dbUser, $dbPass, $dbName);
+$mysqli = new mysqli($dbHost, $dbUser, $dbPass, $dbName, $dbPort);
 if ($mysqli->connect_errno) {
     http_response_code(500);
     echo "DB connection failed: " . $mysqli->connect_error;
