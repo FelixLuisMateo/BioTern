@@ -1017,6 +1017,46 @@ function resolve_profile_image_url(string $profilePath): ?string {
         #editStudentForm .select2-dropdown {
             z-index: 1055 !important;
         }
+
+        /* Datepicker overlay and theme alignment */
+        #editStudentForm .datepicker-dropdown {
+            z-index: 1085 !important;
+        }
+        #editStudentForm .datepicker-picker {
+            border: 1px solid #d6dbe6;
+            border-radius: 10px;
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.2);
+        }
+        html.app-skin-dark #editStudentForm .datepicker-picker {
+            background: #1f2937;
+            border-color: #3a455a;
+            color: #e5ebf7;
+            box-shadow: 0 12px 28px rgba(2, 6, 23, 0.55);
+        }
+        html.app-skin-dark #editStudentForm .datepicker-title,
+        html.app-skin-dark #editStudentForm .datepicker-footer {
+            background: #243142;
+            box-shadow: none;
+            color: #d7e0f2;
+        }
+        html.app-skin-dark #editStudentForm .datepicker-controls .button {
+            background: #1b2533;
+            border-color: #3a455a;
+            color: #d7e0f2;
+        }
+        html.app-skin-dark #editStudentForm .datepicker-controls .button:hover {
+            background: #2a3a50;
+            border-color: #4f6484;
+        }
+        html.app-skin-dark #editStudentForm .datepicker-cell:not(.disabled):hover {
+            background: #2a3a50;
+        }
+        html.app-skin-dark #editStudentForm .datepicker-view .dow {
+            color: #a9b3c8;
+        }
+        html.app-skin-dark #editStudentForm .datepicker-cell.disabled {
+            color: #64748b;
+        }
         @media (max-width: 1200px) {
             #editStudentForm .row > [class*="col-md-6"],
             #editStudentForm .row > [class*="col-md-4"],
@@ -1244,7 +1284,7 @@ function resolve_profile_image_url(string $profilePath): ?string {
                                         <div class="row">
                                             <div class="col-md-6 mb-4">
                                                 <label for="date_of_birth" class="form-label fw-semibold">Date of Birth</label>
-                                                <input type="date" class="form-control" id="date_of_birth" name="date_of_birth" 
+                                                <input type="text" class="form-control" id="date_of_birth" name="date_of_birth" autocomplete="off" placeholder="YYYY-MM-DD"
                                                        value="<?php echo formatDate($student['date_of_birth']); ?>">
                                             </div>
                                             <div class="col-md-6 mb-4">
@@ -1544,11 +1584,19 @@ function resolve_profile_image_url(string $profilePath): ?string {
                 dropdownParent: $('#editStudentForm')
             });
 
-            // Initialize datepicker for date fields
-            $('#date_of_birth').datepicker({
-                format: 'yyyy-mm-dd',
-                autoclose: true
-            });
+            // Initialize custom date picker for Date of Birth.
+            var dobInput = document.getElementById('date_of_birth');
+            if (dobInput && typeof Datepicker === 'function') {
+                new Datepicker(dobInput, {
+                    format: 'yyyy-mm-dd',
+                    autohide: true,
+                    clearBtn: true,
+                    todayBtn: true,
+                    todayBtnMode: 1,
+                    maxDate: new Date(),
+                    container: document.getElementById('editStudentForm')
+                });
+            }
 
             // Form validation
             document.getElementById('editStudentForm').addEventListener('submit', function(e) {

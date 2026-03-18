@@ -1163,29 +1163,51 @@ if ($requestMethod === 'POST' && (string)($_POST['action'] ?? '') === 'send-mess
     if (!empty($_FILES['chat_media']['name'])) {
         $file = $_FILES['chat_media'];
         $imageMime = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-        $videoMime = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime'];
-        $allowedMime = array_merge($imageMime, $videoMime);
+        $allowedMime = $imageMime;
         $maxImageSize = 10 * 1024 * 1024; // 10 MB
-        $maxVideoSize = 50 * 1024 * 1024; // 50 MB
         if ($file['error'] !== UPLOAD_ERR_OK) {
             $mediaUploadError = 'File upload failed (code ' . (int)$file['error'] . ').';
         } else {
             $finfo = new finfo(FILEINFO_MIME_TYPE);
             $mime = $finfo->file($file['tmp_name']);
             if (!in_array($mime, $allowedMime, true)) {
-                $mediaUploadError = 'File type not allowed.';
+                $mediaUploadError = 'Only image files are allowed.';
             } elseif (in_array($mime, $imageMime, true) && $file['size'] > $maxImageSize) {
                 $mediaUploadError = 'Image is too large (max 10 MB).';
-            } elseif (in_array($mime, $videoMime, true) && $file['size'] > $maxVideoSize) {
-                $mediaUploadError = 'Video is too large (max 50 MB).';
             } else {
                 $ext = strtolower(pathinfo((string)$file['name'], PATHINFO_EXTENSION));
                 $safeExt = preg_replace('/[^a-z0-9]/', '', $ext);
+                if ($safeExt === '') {
+                    $mimeToExt = [
+                        'image/jpeg' => 'jpg',
+                        'image/jpg' => 'jpg',
+                        'image/png' => 'png',
+                        'image/gif' => 'gif',
+                        'image/webp' => 'webp',
+                    ];
+                    $safeExt = $mimeToExt[$mime] ?? 'bin';
+                }
+                $originalBase = pathinfo((string)$file['name'], PATHINFO_FILENAME);
+                $originalBase = preg_replace('/[^A-Za-z0-9._-]+/', '_', (string)$originalBase);
+                $originalBase = trim((string)$originalBase, " ._-");
+                if ($originalBase === '') {
+                    $originalBase = 'upload';
+                }
+                if (function_exists('mb_substr')) {
+                    $originalBase = (string)mb_substr($originalBase, 0, 90, 'UTF-8');
+                } else {
+                    $originalBase = substr($originalBase, 0, 90);
+                }
                 $destDir = dirname(__DIR__) . '/uploads/chat_media/';
                 if (!is_dir($destDir)) {
                     mkdir($destDir, 0755, true);
                 }
-                $fileName = 'msg_' . $currentUserId . '_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $safeExt;
+                $fileName = $originalBase . '.' . $safeExt;
+                $suffix = 1;
+                while (is_file($destDir . $fileName) && $suffix < 5000) {
+                    $fileName = $originalBase . '_' . $suffix . '.' . $safeExt;
+                    $suffix++;
+                }
                 $destPath = $destDir . $fileName;
                 if (move_uploaded_file($file['tmp_name'], $destPath)) {
                     $uploadedMediaPath = 'uploads/chat_media/' . $fileName;
@@ -2716,13 +2738,39 @@ include 'includes/header.php';
     .chat-media-overlay {
         position: fixed;
         inset: 0;
-        background: rgba(2, 6, 23, 0.94);
+        width: 100vw;
+        height: 100vh;
+        background: radial-gradient(circle at center, rgba(15, 23, 42, 0.52) 0%, rgba(2, 6, 23, 0.9) 58%, rgba(2, 6, 23, 0.97) 100%);
         display: none;
         align-items: center;
         justify-content: center;
         z-index: 2147483000;
-        padding: clamp(0.35rem, 1vw, 0.8rem);
-        backdrop-filter: blur(14px);
+        padding: clamp(0.45rem, 1.3vw, 0.95rem);
+        backdrop-filter: blur(18px) saturate(92%);
+        overflow: hidden;
+        isolation: isolate;
+    }
+
+    .chat-media-overlay::before,
+    .chat-media-overlay::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: clamp(54px, 11vw, 138px);
+        pointer-events: none;
+        z-index: 1;
+        backdrop-filter: blur(22px);
+    }
+
+    .chat-media-overlay::before {
+        left: 0;
+        background: linear-gradient(90deg, rgba(30, 41, 59, 0.62) 0%, rgba(15, 23, 42, 0.34) 65%, rgba(15, 23, 42, 0) 100%);
+    }
+
+    .chat-media-overlay::after {
+        right: 0;
+        background: linear-gradient(270deg, rgba(30, 41, 59, 0.62) 0%, rgba(15, 23, 42, 0.34) 65%, rgba(15, 23, 42, 0) 100%);
     }
 
     .chat-media-overlay.show {
@@ -2735,6 +2783,7 @@ include 'includes/header.php';
         max-width: none;
         max-height: none;
         position: relative;
+        z-index: 2;
         border-radius: 0;
         border: 0;
         background: transparent;
@@ -2746,61 +2795,74 @@ include 'includes/header.php';
     }
 
     .chat-media-head {
-        display: block;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
         position: absolute;
-        top: 0.45rem;
-        right: 0.45rem;
-        z-index: 4;
+        top: 0.62rem;
+        left: 0.62rem;
+        right: 0.62rem;
+        z-index: 22;
         padding: 0;
+        pointer-events: none;
+    }
+
+    .chat-media-head-left,
+    .chat-media-head-right {
+        display: flex;
+        align-items: center;
+        gap: 0.48rem;
+        pointer-events: auto;
     }
 
     .chat-media-title {
         display: none;
     }
 
-    .chat-media-close {
+    .chat-media-icon-btn {
         border: 0;
-        min-width: 88px;
+        width: 40px;
         height: 40px;
-        padding: 0 0.8rem 0 0.68rem;
-        border-radius: 999px;
-        background: rgba(15, 23, 42, 0.88);
+        padding: 0;
+        border-radius: 50%;
+        background: rgba(15, 23, 42, 0.86);
         color: #f8fafc;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        gap: 0.5rem;
         cursor: pointer;
-        font-size: 0.84rem;
+        font-size: 1rem;
         font-weight: 700;
-        letter-spacing: 0.02em;
         line-height: 1;
-        box-shadow: 0 14px 30px rgba(2, 6, 23, 0.34);
-        backdrop-filter: blur(8px);
-        transition: background 0.16s ease, transform 0.16s ease;
+        box-shadow: 0 10px 24px rgba(2, 6, 23, 0.42);
+        backdrop-filter: blur(7px);
+        transition: background 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease;
     }
 
-    .chat-media-close-icon {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 22px;
-        height: 22px;
-        border-radius: 50%;
-        background: rgba(255, 255, 255, 0.1);
-        font-size: 0.95rem;
-        line-height: 1;
-        flex-shrink: 0;
-    }
-
-    .chat-media-close-label {
-        display: inline-block;
-        white-space: nowrap;
-    }
-
-    .chat-media-close:hover {
+    .chat-media-icon-btn:hover {
         background: rgba(30, 41, 59, 0.96);
-        transform: scale(1.04);
+        transform: translateY(-1px);
+        box-shadow: 0 14px 28px rgba(2, 6, 23, 0.48);
+    }
+
+    .chat-media-icon-btn:focus-visible {
+        outline: 2px solid rgba(148, 163, 184, 0.66);
+        outline-offset: 2px;
+    }
+
+    .chat-media-close {
+        font-size: 1.2rem;
+        padding-top: 1px;
+    }
+
+    .chat-media-icon {
+        width: 18px;
+        height: 18px;
+        stroke: currentColor;
+        stroke-width: 2;
+        fill: none;
+        stroke-linecap: round;
+        stroke-linejoin: round;
     }
 
     .chat-media-body {
@@ -2809,27 +2871,31 @@ include 'includes/header.php';
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: 0.65rem 0;
+        padding: 0;
         overflow: hidden;
         background: transparent;
     }
 
     .chat-media-view {
         display: block;
-        max-width: min(98vw, 1720px);
-        max-height: calc(100vh - 1.4rem);
+        max-width: min(96vw, 1560px);
+        max-height: calc(100vh - 1.2rem);
         width: auto;
         height: auto;
         margin: auto;
         border: 0;
-        border-radius: 18px;
+        border-radius: 8px;
         background: transparent;
-        box-shadow: 0 26px 65px rgba(2, 6, 23, 0.42);
+        box-shadow: 0 18px 40px rgba(2, 6, 23, 0.44);
+        object-fit: contain;
     }
 
     .chat-media-view.video {
-        width: min(98vw, 1580px);
-        aspect-ratio: 16 / 9;
+        max-width: min(94vw, 1380px);
+        max-height: calc(100vh - 1.2rem);
+        width: auto;
+        height: auto;
+        background: #000;
     }
 
     .chat-media-stage {
@@ -2843,11 +2909,43 @@ include 'includes/header.php';
     }
 
     .chat-media-frame {
-        width: 100%;
-        height: 100%;
+        width: auto;
+        height: auto;
+        max-width: calc(100vw - clamp(106px, 22vw, 264px));
+        max-height: calc(100vh - 1.2rem);
         display: flex;
         align-items: center;
         justify-content: center;
+    }
+
+    @media (max-width: 767.98px) {
+        .chat-media-overlay::before,
+        .chat-media-overlay::after {
+            width: 30px;
+        }
+
+        .chat-media-head {
+            top: 0.45rem;
+            left: 0.45rem;
+            right: 0.45rem;
+        }
+
+        .chat-media-icon-btn {
+            width: 38px;
+            height: 38px;
+        }
+
+        .chat-media-frame,
+        .chat-media-view,
+        .chat-media-view.video {
+            max-width: calc(100vw - 1.25rem);
+            max-height: calc(100vh - 1.15rem);
+        }
+    }
+
+    html.chat-media-open,
+    body.chat-media-open {
+        overflow: hidden !important;
     }
 
     .chat-reactions-tabs {
@@ -4021,7 +4119,7 @@ include 'includes/header.php';
                         <input type="hidden" name="action" value="send-message">
                         <input type="hidden" name="user_id" value="<?php echo (int)$selectedUserId; ?>">
                         <input type="hidden" name="reply_to_message_id" id="chat-reply-to-message-id" value="0">
-                        <input type="file" name="chat_media" id="chat-media-input" accept="image/*,video/*" style="display:none">
+                        <input type="file" name="chat_media" id="chat-media-input" accept="image/*" style="display:none">
                         <div id="chat-reply-preview">
                             <span id="chat-reply-label"></span>
                             <button type="button" class="chat-reply-remove" id="chat-reply-remove" title="Cancel reply">&#x2715;</button>
@@ -4164,11 +4262,19 @@ include 'includes/header.php';
 <div class="chat-media-overlay" id="chat-media-modal" aria-hidden="true">
     <div class="chat-media-modal" role="dialog" aria-modal="true" aria-labelledby="chat-media-title">
         <div class="chat-media-head">
-            <h6 class="chat-media-title" id="chat-media-title">Image</h6>
-            <button type="button" class="chat-media-close" id="chat-media-close" aria-label="Close viewer">
-                <span class="chat-media-close-icon" aria-hidden="true">&times;</span>
-                <span class="chat-media-close-label">Close</span>
-            </button>
+            <div class="chat-media-head-left">
+                <h6 class="chat-media-title" id="chat-media-title">Image</h6>
+                <button type="button" class="chat-media-icon-btn chat-media-close" id="chat-media-close" aria-label="Close viewer">&times;</button>
+            </div>
+            <div class="chat-media-head-right">
+                <button type="button" class="chat-media-icon-btn" id="chat-media-download" aria-label="Download media" title="Download media">
+                    <svg class="chat-media-icon" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M12 4v10"></path>
+                        <path d="M8.5 10.5 12 14l3.5-3.5"></path>
+                        <path d="M4 18h16"></path>
+                    </svg>
+                </button>
+            </div>
         </div>
         <div class="chat-media-body" id="chat-media-body"></div>
     </div>
@@ -4252,6 +4358,7 @@ include 'includes/header.php';
         var mediaModalBodyEl = document.getElementById('chat-media-body');
         var mediaModalTitleEl = document.getElementById('chat-media-title');
         var mediaModalCloseEl = document.getElementById('chat-media-close');
+        var mediaModalDownloadEl = document.getElementById('chat-media-download');
         var currentUserId = <?php echo (int)$currentUserId; ?>;
         var selectedUserId = parseInt(app.getAttribute('data-selected-user-id') || '0', 10) || 0;
         var selectedContactRef = null;
@@ -4274,6 +4381,11 @@ include 'includes/header.php';
         var contactModalUserId = 0;
         var suppressHeaderToggleUntil = 0;
         var mobileLayoutQuery = (typeof window.matchMedia === 'function') ? window.matchMedia('(max-width: 991px)') : null;
+
+        // Render media viewer at document level so it is never clipped by app containers.
+        if (mediaModalEl && document.body && mediaModalEl.parentNode !== document.body) {
+            document.body.appendChild(mediaModalEl);
+        }
 
         function escapeHtml(value) {
             return String(value == null ? '' : value)
@@ -4821,12 +4933,51 @@ include 'includes/header.php';
             mediaModalEl.classList.remove('show');
             mediaModalEl.setAttribute('aria-hidden', 'true');
             mediaModalState = null;
+            document.documentElement.classList.remove('chat-media-open');
+            if (document.body) {
+                document.body.classList.remove('chat-media-open');
+            }
             if (mediaModalBodyEl) {
+                var activeVideo = mediaModalBodyEl.querySelector('video');
+                if (activeVideo) {
+                    try {
+                        activeVideo.pause();
+                    } catch (e) {
+                        // Ignore pause issues on detached media nodes.
+                    }
+                }
                 mediaModalBodyEl.innerHTML = '';
             }
             if (mediaModalTitleEl) {
                 mediaModalTitleEl.textContent = 'Image';
             }
+            if (mediaModalDownloadEl) {
+                mediaModalDownloadEl.disabled = true;
+            }
+        }
+
+        function getMediaFilename(src, type) {
+            var fallback = type === 'video' ? 'chat-video' : 'chat-image';
+            if (!src) { return fallback; }
+            var cleanSrc = String(src).split('#')[0].split('?')[0];
+            var parts = cleanSrc.split('/');
+            var name = parts.length ? parts[parts.length - 1] : '';
+            name = name ? name.trim() : '';
+            return name || fallback;
+        }
+
+        function downloadMediaFromModal() {
+            if (!mediaModalState || !mediaModalState.src) {
+                return;
+            }
+            var src = mediaModalState.src;
+            var anchor = document.createElement('a');
+            anchor.href = src;
+            anchor.download = getMediaFilename(src, mediaModalState.type);
+            anchor.rel = 'noopener';
+            document.body.appendChild(anchor);
+            anchor.click();
+            anchor.remove();
         }
 
         function openMediaModal(type, src, label) {
@@ -4839,9 +4990,9 @@ include 'includes/header.php';
             var mediaHtml = '';
 
             if (mediaType === 'video') {
-                mediaHtml = '<video src="' + escapeHtml(src) + '" class="chat-media-view video" controls autoplay playsinline></video>';
+                mediaHtml = '<video src="' + escapeHtml(src) + '" class="chat-media-view video" controls autoplay playsinline preload="auto"></video>';
             } else {
-                mediaHtml = '<img src="' + escapeHtml(src) + '" class="chat-media-view image" alt="' + escapeHtml(title) + '">';
+                mediaHtml = '<img src="' + escapeHtml(src) + '" class="chat-media-view image" alt="' + escapeHtml(title) + '" loading="eager">';
             }
 
             mediaModalState = {
@@ -4854,8 +5005,22 @@ include 'includes/header.php';
             if (mediaModalTitleEl) {
                 mediaModalTitleEl.textContent = title;
             }
+            if (mediaModalDownloadEl) {
+                mediaModalDownloadEl.disabled = false;
+            }
             mediaModalEl.classList.add('show');
             mediaModalEl.setAttribute('aria-hidden', 'false');
+            document.documentElement.classList.add('chat-media-open');
+            if (document.body) {
+                document.body.classList.add('chat-media-open');
+            }
+
+            var loadedMediaEl = mediaModalBodyEl.querySelector('.chat-media-view');
+            if (loadedMediaEl) {
+                loadedMediaEl.addEventListener('error', function () {
+                    mediaModalBodyEl.innerHTML = '<div class="chat-reactions-empty">Failed to load media.</div>';
+                }, { once: true });
+            }
             if (mediaModalCloseEl) {
                 mediaModalCloseEl.focus();
             }
@@ -5902,6 +6067,18 @@ include 'includes/header.php';
             mediaInputEl.addEventListener('change', function () {
                 var file = mediaInputEl.files && mediaInputEl.files[0];
                 if (!file) { clearMediaPreview(); updateSendBtn(); return; }
+                if (file.type.indexOf('image/') !== 0) {
+                    showAlert('error', 'Only image files are allowed.');
+                    clearMediaPreview();
+                    updateSendBtn();
+                    return;
+                }
+                if (file.size > (10 * 1024 * 1024)) {
+                    showAlert('error', 'Image is too large (max 10 MB).');
+                    clearMediaPreview();
+                    updateSendBtn();
+                    return;
+                }
                 if (previewEl) { previewEl.classList.add('has-file'); }
                 if (previewNameEl) { previewNameEl.textContent = file.name; }
                 if (previewThumbEl) {
@@ -6111,7 +6288,7 @@ include 'includes/header.php';
                 var moderationError = getChatModerationError(message);
 
                 if (!hasMedia && normalizedMessage === '') {
-                    message = '';
+                    message = mode === 'like' ? '\uD83D\uDC4D' : '';
                 }
 
                 if (!message && !hasMedia) {
@@ -6126,6 +6303,7 @@ include 'includes/header.php';
                 formData.set('action', 'send-message');
                 formData.set('ajax', '1');
                 formData.set('user_id', String(selectedUserId));
+                formData.set('message', message);
                 if (sendBtnEl) {
                     sendBtnEl.disabled = true;
                 }
@@ -6319,6 +6497,10 @@ include 'includes/header.php';
 
         if (mediaModalCloseEl) {
             mediaModalCloseEl.addEventListener('click', closeMediaModal);
+        }
+
+        if (mediaModalDownloadEl) {
+            mediaModalDownloadEl.addEventListener('click', downloadMediaFromModal);
         }
 
         if (mediaModalEl) {

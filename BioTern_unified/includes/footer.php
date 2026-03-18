@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 require_once dirname(__DIR__) . '/config/db.php';
 // Shared footer include.  It closes main container and adds global scripts.
 ?>
@@ -57,8 +57,10 @@ require_once dirname(__DIR__) . '/config/db.php';
     <script src="assets/vendors/js/dataTables.bs5.min.js"></script>
     <script src="assets/vendors/js/select2.min.js"></script>
     <script src="assets/vendors/js/select2-active.min.js"></script>
+    <script src="assets/vendors/js/datepicker.min.js"></script>
     <!--! END: Vendors JS !-->
     <script src="assets/js/global-ui-helpers.js"></script>
+    <script src="assets/js/global-datepicker-init.js"></script>
     <!--! BEGIN: Apps Init  !-->
     <script src="assets/js/common-init.min.js"></script>
     <script src="assets/js/customers-init.min.js"></script>

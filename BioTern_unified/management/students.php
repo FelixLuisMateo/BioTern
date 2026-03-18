@@ -351,8 +351,10 @@ usort($print_students, function ($a, $b) {
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/dataTables.bs5.min.css">
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2.min.css">
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2-theme.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/vendors/css/datepicker.min.css">
     <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css">
     <link rel="stylesheet" type="text/css" href="assets/css/layout-shared-overrides.css">
+    <link rel="stylesheet" type="text/css" href="assets/css/datepicker-global.css">
     <style>
         html, body {
             height: 100%;
@@ -1621,7 +1623,9 @@ endif; ?>
     <script src="assets/vendors/js/dataTables.bs5.min.js"></script>
     <script src="assets/vendors/js/select2.min.js"></script>
     <script src="assets/vendors/js/select2-active.min.js"></script>
+    <script src="assets/vendors/js/datepicker.min.js"></script>
     <script src="assets/js/global-ui-helpers.js"></script>
+    <script src="assets/js/global-datepicker-init.js"></script>
     <script src="assets/js/common-init.min.js"></script>
     <script src="assets/js/customers-init.min.js"></script>
     <script src="assets/js/theme-customizer-init.min.js"></script>

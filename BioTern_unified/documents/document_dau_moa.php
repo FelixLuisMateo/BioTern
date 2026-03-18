@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 require_once dirname(__DIR__) . '/config/db.php';
 // Documents page - UI to prepare Memorandum of Agreement (MOA)
 

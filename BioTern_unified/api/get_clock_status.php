@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 require_once dirname(__DIR__) . '/config/db.php';
 // Database Connection
 $host = defined('DB_HOST') ? DB_HOST : 'localhost';

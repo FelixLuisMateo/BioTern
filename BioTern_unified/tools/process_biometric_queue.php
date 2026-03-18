@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 require_once dirname(__DIR__) . '/config/db.php';
 require_once __DIR__ . '/../lib/attendance_rules.php';
 require_once __DIR__ . '/../lib/ops_helpers.php';

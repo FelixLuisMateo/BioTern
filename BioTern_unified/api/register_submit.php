@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 require_once dirname(__DIR__) . '/config/db.php';
 // Simple registration handler for demo purposes.
 // IMPORTANT: Review and secure before using in production.
