@@ -167,7 +167,6 @@ if (!function_exists('nav_page_href')) {
                     <ul class="nxl-submenu">
                         <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'apps-chat.php'); ?>">Chat</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'apps-email.php'); ?>">Email</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'apps-tasks.php'); ?>">Tasks</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'apps-notes.php'); ?>">Notes</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'apps-storage.php'); ?>">Storage</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'apps-calendar.php'); ?>">Calendar</a></li>
@@ -185,7 +184,6 @@ if (!function_exists('nav_page_href')) {
                         <span class="nxl-mtext">User Accounts</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                     </a>
                     <ul class="nxl-submenu">
-                        <li class="nxl-item"><a class="nxl-link" href="auth-register-creative.php">User Registration</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="users.php">Users</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="create_admin.php">Create Admin</a></li>
                     </ul>

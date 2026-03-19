@@ -297,6 +297,36 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $assignment_track = 'internal';
     }
 
+    $activity_changes = [];
+    $trackFieldChanges = [
+        'student_id' => (string)$student_id_code,
+        'first_name' => (string)$first_name,
+        'last_name' => (string)$last_name,
+        'middle_name' => (string)$middle_name,
+        'email' => (string)$email,
+        'phone' => (string)$phone,
+        'date_of_birth' => (string)$date_of_birth,
+        'gender' => (string)$gender,
+        'address' => (string)$address,
+        'emergency_contact' => (string)$emergency_contact,
+        'assignment_track' => (string)$assignment_track,
+        'status' => (string)$status,
+        'course_id' => (string)$course_id,
+        'department_id' => (string)$department_id,
+        'section_id' => (string)$section_id,
+        'internal_total_hours' => (string)$internal_total_hours,
+        'internal_total_hours_remaining' => (string)$internal_total_hours_remaining,
+        'external_total_hours' => (string)$external_total_hours,
+        'external_total_hours_remaining' => (string)$external_total_hours_remaining,
+    ];
+
+    foreach ($trackFieldChanges as $field => $newValue) {
+        $oldValue = isset($student[$field]) ? (string)$student[$field] : '';
+        if ($oldValue !== $newValue) {
+            $activity_changes[] = 'students.' . $field . ': ' . $oldValue . ' -> ' . $newValue;
+        }
+    }
+
     $selected_supervisor_name = null;
     if ($supervisor_id !== null) {
         $sup_name_stmt = $conn->prepare("
@@ -333,6 +363,22 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             }
             $coor_name_stmt->close();
         }
+    }
+
+    $oldSupervisorName = (string)($student['supervisor_name'] ?? '');
+    $newSupervisorName = (string)($selected_supervisor_name ?? '');
+    if ($oldSupervisorName !== $newSupervisorName) {
+        $activity_changes[] = 'students.supervisor_name: ' . $oldSupervisorName . ' -> ' . $newSupervisorName;
+    }
+
+    $oldCoordinatorName = (string)($student['coordinator_name'] ?? '');
+    $newCoordinatorName = (string)($selected_coordinator_name ?? '');
+    if ($oldCoordinatorName !== $newCoordinatorName) {
+        $activity_changes[] = 'students.coordinator_name: ' . $oldCoordinatorName . ' -> ' . $newCoordinatorName;
+    }
+
+    if ($profile_picture_uploaded) {
+        $activity_changes[] = 'students.profile_picture updated';
     }
 
     // Map coordinator_id / supervisor_id (which come from coordinators/supervisors tables)
@@ -477,6 +523,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
                     // Keep assignment IDs in internships table as single source of truth.
                     if (!empty($student['internship_id'])) {
+                        $oldInternSup = (int)($student['internship_supervisor_id'] ?? 0);
+                        $oldInternCoor = (int)($student['internship_coordinator_id'] ?? 0);
+                        $newInternSup = (int)($intern_supervisor_user_id ?? 0);
+                        $newInternCoor = (int)($intern_coordinator_user_id ?? 0);
+                        if ($oldInternSup !== $newInternSup) {
+                            $activity_changes[] = 'internships.supervisor_id: ' . $oldInternSup . ' -> ' . $newInternSup;
+                        }
+                        if ($oldInternCoor !== $newInternCoor) {
+                            $activity_changes[] = 'internships.coordinator_id: ' . $oldInternCoor . ' -> ' . $newInternCoor;
+                        }
+
                         $internship_update = $conn->prepare("
                             UPDATE internships
                             SET supervisor_id = ?, coordinator_id = ?, status = 'ongoing', updated_at = NOW()
@@ -567,8 +624,45 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                     );
                                     $insert_intern->execute();
                                     $insert_intern->close();
+                                    $activity_changes[] = 'internships record created and assigned';
                                 }
                             }
+                        }
+                    }
+
+                    if (!empty($activity_changes)) {
+                        $conn->query("CREATE TABLE IF NOT EXISTS ojt_edit_audit (
+                            id INT AUTO_INCREMENT PRIMARY KEY,
+                            student_id INT NOT NULL,
+                            editor_user_id INT NOT NULL DEFAULT 0,
+                            reason VARCHAR(500) NOT NULL,
+                            changes_text TEXT NOT NULL,
+                            diff_json LONGTEXT NULL,
+                            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                            INDEX(student_id)
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
+
+                        $audit_cols = [];
+                        $audit_col_res = $conn->query("SHOW COLUMNS FROM ojt_edit_audit");
+                        if ($audit_col_res instanceof mysqli_result) {
+                            while ($col = $audit_col_res->fetch_assoc()) {
+                                $audit_cols[] = (string)($col['Field'] ?? '');
+                            }
+                        }
+                        if (!in_array('diff_json', $audit_cols, true)) {
+                            $conn->query("ALTER TABLE ojt_edit_audit ADD COLUMN diff_json LONGTEXT NULL AFTER changes_text");
+                        }
+
+                        $editor_user_id = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : 0;
+                        $change_reason = 'Updated student information from Students Edit';
+                        $changes_text = implode("\n", $activity_changes);
+                        $diff_json = json_encode($activity_changes, JSON_UNESCAPED_UNICODE);
+
+                        $audit_stmt = $conn->prepare('INSERT INTO ojt_edit_audit (student_id, editor_user_id, reason, changes_text, diff_json) VALUES (?, ?, ?, ?, ?)');
+                        if ($audit_stmt) {
+                            $audit_stmt->bind_param('iisss', $student_id, $editor_user_id, $change_reason, $changes_text, $diff_json);
+                            $audit_stmt->execute();
+                            $audit_stmt->close();
                         }
                     }
 

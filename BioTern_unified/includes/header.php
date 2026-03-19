@@ -213,7 +213,19 @@ if ($session_avatar !== '') {
 $header_notifications = [];
 $header_notifications_unread = 0;
 $header_notification_return_url = header_notification_safe_target((string)($_SERVER['REQUEST_URI'] ?? ''), 'homepage.php');
+
+$header_profile_url = $base_href . 'profile-details.php';
+$header_activity_url = $base_href . 'activity-feed.php';
+$header_notifications_url = $base_href . 'notifications.php';
+$header_account_settings_url = $base_href . 'profile-details.php#account-settings';
+
 if ($header_user_id_session > 0) {
+    $headerAutoReadNotificationId = (int)($_GET['notif_read'] ?? 0);
+
+    if ($headerAutoReadNotificationId > 0 && !$header_conn->connect_errno) {
+        biotern_notifications_mark_read($header_conn, $header_user_id_session, $headerAutoReadNotificationId);
+    }
+
     if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && isset($_POST['header_notification_action'])) {
         $notificationAction = trim((string)($_POST['header_notification_action'] ?? ''));
         $notificationId = (int)($_POST['header_notification_id'] ?? 0);
@@ -451,18 +463,26 @@ include_once __DIR__ . '/navigation.php'; ?>
                                     $notificationTitle = (string)($n['title'] ?? 'Notification');
                                     $notificationMessage = (string)($n['message'] ?? '');
                                     $notificationCreatedAt = (string)($n['created_at'] ?? '');
+                                    $notificationType = biotern_notification_normalize_type(
+                                        (string)($n['type'] ?? ''),
+                                        $notificationTitle,
+                                        $notificationMessage,
+                                        (string)($n['action_url'] ?? '')
+                                    );
+                                    $notificationMeta = biotern_notification_type_meta($notificationType);
                                     $notificationActionUrl = header_notification_safe_target((string)($n['action_url'] ?? ''), $header_notification_return_url);
+                                    $notificationActionUrl = biotern_notification_open_url($notificationActionUrl, (int)($n['id'] ?? 0), $header_notification_return_url);
                                     $notificationIsUnread = (int)($n['is_read'] ?? 0) === 0;
                                     $notificationOpenLabel = trim((string)($n['action_url'] ?? '')) !== '' ? 'Open' : 'Mark read';
-                                    $notificationBadge = header_notification_badge_text($notificationTitle);
                                     ?>
                                     <div class="notifications-item header-notification-item<?php echo $notificationIsUnread ? ' unread' : ''; ?>">
-                                        <div class="header-notification-badge"><?php echo htmlspecialchars($notificationBadge, ENT_QUOTES, 'UTF-8'); ?></div>
+                                        <div class="header-notification-badge"><i class="<?php echo htmlspecialchars((string)($notificationMeta['icon'] ?? 'feather-bell'), ENT_QUOTES, 'UTF-8'); ?>"></i></div>
                                         <div class="notifications-desc header-notification-desc">
                                             <div class="header-notification-meta-row">
                                                 <div class="header-notification-title"><?php echo htmlspecialchars($notificationTitle, ENT_QUOTES, 'UTF-8'); ?></div>
-                                                <div class="header-notification-time"><?php echo htmlspecialchars($notificationCreatedAt !== '' ? date('M d, Y h:i A', strtotime($notificationCreatedAt)) : 'Just now', ENT_QUOTES, 'UTF-8'); ?></div>
+                                                <div class="header-notification-time" title="<?php echo htmlspecialchars($notificationCreatedAt, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(biotern_notification_time_ago($notificationCreatedAt), ENT_QUOTES, 'UTF-8'); ?></div>
                                             </div>
+                                            <div class="header-notification-message text-muted"><?php echo htmlspecialchars((string)($notificationMeta['label'] ?? 'System'), ENT_QUOTES, 'UTF-8'); ?></div>
                                             <div class="header-notification-message"><?php echo htmlspecialchars($notificationMessage, ENT_QUOTES, 'UTF-8'); ?></div>
                                             <div class="header-notification-actions">
                                                 <form method="post" class="m-0">
@@ -531,19 +551,19 @@ echo htmlspecialchars($header_user_email, ENT_QUOTES, 'UTF-8'); ?></span>
                                 </span>
                             </a>
                             <div class="dropdown-divider"></div>
-                            <a href="javascript:void(0);" class="dropdown-item">
+                            <a href="<?php echo htmlspecialchars($header_profile_url, ENT_QUOTES, 'UTF-8'); ?>" class="dropdown-item">
                                 <i class="feather-user"></i>
                                 <span>Profile Details</span>
                             </a>
-                            <a href="javascript:void(0);" class="dropdown-item">
+                            <a href="<?php echo htmlspecialchars($header_activity_url, ENT_QUOTES, 'UTF-8'); ?>" class="dropdown-item">
                                 <i class="feather-activity"></i>
                                 <span>Activity Feed</span>
                             </a>
-                            <a href="javascript:void(0);" class="dropdown-item">
+                            <a href="<?php echo htmlspecialchars($header_notifications_url, ENT_QUOTES, 'UTF-8'); ?>" class="dropdown-item">
                                 <i class="feather-bell"></i>
                                 <span>Notifications</span>
                             </a>
-                            <a href="settings-general.php" class="dropdown-item">
+                            <a href="<?php echo htmlspecialchars($header_account_settings_url, ENT_QUOTES, 'UTF-8'); ?>" class="dropdown-item">
                                 <i class="feather-settings"></i>
                                 <span>Account Settings</span>
                             </a>
