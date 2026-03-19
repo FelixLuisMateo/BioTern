@@ -129,6 +129,22 @@ if ($theme_scheme === 'gray') {
 }
 $html_class_attr = implode(' ', $html_classes);
 $page_body_class = isset($page_body_class) && is_string($page_body_class) ? trim($page_body_class) : '';
+$header_script_name = (string)($_SERVER['SCRIPT_NAME'] ?? '');
+$header_is_management_page = stripos($header_script_name, '/management/') !== false;
+$header_is_homepage = stripos($header_script_name, 'homepage.php') !== false;
+$header_script_basename = strtolower(basename($header_script_name));
+$header_is_settings_page = stripos($header_script_name, '/settings/') !== false
+    || stripos($header_script_basename, 'settings-') === 0
+    || $header_script_basename === 'theme-customizer.php';
+if ($header_is_management_page) {
+    $page_body_class = trim($page_body_class . ' management-page');
+}
+if ($header_is_settings_page) {
+    $page_body_class = trim($page_body_class . ' settings-page');
+}
+if (!$page_is_public && stripos($page_body_class, 'mobile-bottom-nav') === false) {
+    $page_body_class = trim($page_body_class . ' mobile-bottom-nav');
+}
 
 $header_user_name = 'BioTern User';
 $header_user_email = 'admin@biotern.local';
@@ -298,7 +314,10 @@ if ($header_db instanceof mysqli) {
     <link rel="stylesheet" type="text/css" href="assets/css/core.css" />
     <link rel="stylesheet" type="text/css" href="assets/css/ui.css" />
     <link rel="stylesheet" type="text/css" href="assets/css/theme.css" />
-    <link rel="stylesheet" type="text/css" href="assets/css/mobile.min.css" />
+    <link rel="stylesheet" type="text/css" href="assets/css/mobile.css" />
+    <?php if ($header_is_management_page): ?>
+        <link rel="stylesheet" type="text/css" href="assets/css/managements_mobile.css" />
+    <?php endif; ?>
     <?php if (isset($page_styles) && is_array($page_styles)): ?>
         <?php foreach ($page_styles as $stylesheet): ?>
             <?php if (is_string($stylesheet) && trim($stylesheet) !== ''): ?>
@@ -321,14 +340,19 @@ if ($header_db instanceof mysqli) {
         <header class="nxl-header">
             <div class="header-wrapper">
                 <div class="header-left d-flex align-items-center gap-4">
-                    <a href="javascript:void(0);" class="nxl-head-mobile-toggler" id="mobile-collapse">
+                    <?php if ($header_is_homepage): ?>
+                        <a href="homepage.php" class="d-flex align-items-center d-lg-none" aria-label="BioTern home">
+                            <img src="assets/images/logo-abbr.png" alt="BioTern" class="biotern-mobile-logo">
+                        </a>
+                    <?php endif; ?>
+                    <a href="javascript:void(0);" class="nxl-head-mobile-toggler<?php echo $header_is_homepage ? ' d-none d-lg-inline-flex' : ''; ?>" id="mobile-collapse">
                         <div class="hamburger hamburger--arrowturn">
                             <div class="hamburger-box">
                                 <div class="hamburger-inner"></div>
                             </div>
                         </div>
                     </a>
-                    <div class="nxl-navigation-toggle">
+                    <div class="nxl-navigation-toggle<?php echo $header_is_homepage ? ' d-none d-lg-flex' : ''; ?>">
                         <a href="javascript:void(0);" id="menu-mini-button">
                             <i class="feather-align-left"></i>
                         </a>
@@ -339,116 +363,123 @@ if ($header_db instanceof mysqli) {
                 </div>
                 <div class="header-right ms-auto">
                     <div class="d-flex align-items-center">
-                        <div class="dropdown nxl-h-item nxl-header-search d-none d-sm-flex">
-                            <a href="javascript:void(0);" class="nxl-head-link me-0" data-bs-toggle="dropdown" data-bs-auto-close="outside">
-                                <i class="feather-search"></i>
+                        <?php if ($header_is_homepage): ?>
+                            <a href="javascript:void(0);" class="nxl-head-link me-0 d-lg-none" aria-label="More options">
+                                <i class="feather-more-horizontal"></i>
                             </a>
-                            <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-search-dropdown">
-                                <div class="input-group search-form">
-                                    <span class="input-group-text">
-                                        <i class="feather-search fs-6 text-muted"></i>
-                                    </span>
-                                    <input type="text" id="headerSearchInput" name="header_search" class="form-control search-input-field" placeholder="Search page...">
-                                    <span class="input-group-text">
-                                        <button type="button" class="btn-close" id="headerSearchClear"></button>
-                                    </span>
+                        <?php endif; ?>
+                        <div class="<?php echo $header_is_homepage ? 'd-none d-lg-flex' : 'd-flex'; ?> align-items-center">
+                            <div class="dropdown nxl-h-item nxl-header-search d-none d-sm-flex">
+                                <a href="javascript:void(0);" class="nxl-head-link me-0" data-bs-toggle="dropdown" data-bs-auto-close="outside">
+                                    <i class="feather-search"></i>
+                                </a>
+                                <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-search-dropdown">
+                                    <div class="input-group search-form">
+                                        <span class="input-group-text">
+                                            <i class="feather-search fs-6 text-muted"></i>
+                                        </span>
+                                        <input type="text" id="headerSearchInput" name="header_search" class="form-control search-input-field" placeholder="Search page...">
+                                        <span class="input-group-text">
+                                            <button type="button" class="btn-close" id="headerSearchClear"></button>
+                                        </span>
+                                    </div>
+                                    <div class="dropdown-divider mt-0"></div>
+                                    <div class="px-3 py-2 fs-12 text-muted">Type and press Enter to open first matching menu page.</div>
                                 </div>
-                                <div class="dropdown-divider mt-0"></div>
-                                <div class="px-3 py-2 fs-12 text-muted">Type and press Enter to open first matching menu page.</div>
                             </div>
-                        </div>
-                        <div class="nxl-h-item d-none d-sm-flex">
-                            <div class="full-screen-switcher">
-                                <a href="javascript:void(0);" class="nxl-head-link me-0" onclick="$('body').fullScreenHelper('toggle');">
-                                    <i class="feather-maximize maximize"></i>
-                                    <i class="feather-minimize minimize"></i>
+                            <div class="nxl-h-item d-none d-sm-flex">
+                                <div class="full-screen-switcher">
+                                    <a href="javascript:void(0);" class="nxl-head-link me-0" onclick="$('body').fullScreenHelper('toggle');">
+                                        <i class="feather-maximize maximize"></i>
+                                        <i class="feather-minimize minimize"></i>
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="nxl-h-item dark-light-theme">
+                                <a href="javascript:void(0);" class="nxl-head-link me-0 dark-button">
+                                    <i class="feather-moon"></i>
+                                </a>
+                                <a href="javascript:void(0);" class="nxl-head-link me-0 light-button">
+                                    <i class="feather-sun"></i>
                                 </a>
                             </div>
-                        </div>
-                        <div class="nxl-h-item dark-light-theme">
-                            <a href="javascript:void(0);" class="nxl-head-link me-0 dark-button">
-                                <i class="feather-moon"></i>
-                            </a>
-                            <a href="javascript:void(0);" class="nxl-head-link me-0 light-button">
-                                <i class="feather-sun"></i>
-                            </a>
-                        </div>
-                        <div class="dropdown nxl-h-item click-only-dropdown">
-                            <a class="nxl-head-link me-3" data-bs-toggle="dropdown" href="#" role="button" data-bs-auto-close="outside">
-                                <i class="feather-bell"></i>
-                                <?php if ($header_notifications_unread > 0): ?>
-                                    <span class="badge bg-danger nxl-h-badge"><?php echo (int)$header_notifications_unread; ?></span>
-                                <?php endif; ?>
-                            </a>
-                            <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-notifications-menu">
-                                <div class="d-flex justify-content-between align-items-center notifications-head px-3 py-2 border-bottom">
-                                    <span class="fw-semibold">Notifications</span>
-                                    <span class="badge bg-soft-primary text-primary"><?php echo (int)$header_notifications_unread; ?> unread</span>
+                            <div class="dropdown nxl-h-item click-only-dropdown">
+                                <a class="nxl-head-link me-3" data-bs-toggle="dropdown" href="#" role="button" data-bs-auto-close="outside">
+                                    <i class="feather-bell"></i>
+                                    <?php if ($header_notifications_unread > 0): ?>
+                                        <span class="badge bg-danger nxl-h-badge"><?php echo (int)$header_notifications_unread; ?></span>
+                                    <?php endif; ?>
+                                </a>
+                                <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-notifications-menu">
+                                    <div class="d-flex justify-content-between align-items-center notifications-head px-3 py-2 border-bottom">
+                                        <span class="fw-semibold">Notifications</span>
+                                        <span class="badge bg-soft-primary text-primary"><?php echo (int)$header_notifications_unread; ?> unread</span>
+                                    </div>
+                                    <?php if (!empty($header_notifications)): ?>
+                                        <?php foreach ($header_notifications as $n): ?>
+                                            <div class="notifications-item">
+                                                <img src="assets/images/avatar/1.png" alt="" class="rounded me-3 border">
+                                                <div class="notifications-desc">
+                                                    <a href="javascript:void(0);" class="font-body text-truncate-2-line"><?php echo htmlspecialchars($n['title'], ENT_QUOTES, 'UTF-8'); ?></a>
+                                                    <div class="fs-12 text-muted text-truncate-2-line"><?php echo htmlspecialchars($n['message'], ENT_QUOTES, 'UTF-8'); ?></div>
+                                                    <div class="notifications-date text-muted border-bottom border-bottom-dashed"><?php echo htmlspecialchars($n['created_at'] !== '' ? date('M d, Y h:i A', strtotime($n['created_at'])) : 'Just now', ENT_QUOTES, 'UTF-8'); ?></div>
+                                                </div>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <div class="px-3 py-3 text-muted fs-12">No notifications yet.</div>
+                                    <?php endif; ?>
                                 </div>
-                                <?php if (!empty($header_notifications)): ?>
-                                    <?php foreach ($header_notifications as $n): ?>
-                                        <div class="notifications-item">
-                                            <img src="assets/images/avatar/1.png" alt="" class="rounded me-3 border">
-                                            <div class="notifications-desc">
-                                                <a href="javascript:void(0);" class="font-body text-truncate-2-line"><?php echo htmlspecialchars($n['title'], ENT_QUOTES, 'UTF-8'); ?></a>
-                                                <div class="fs-12 text-muted text-truncate-2-line"><?php echo htmlspecialchars($n['message'], ENT_QUOTES, 'UTF-8'); ?></div>
-                                                <div class="notifications-date text-muted border-bottom border-bottom-dashed"><?php echo htmlspecialchars($n['created_at'] !== '' ? date('M d, Y h:i A', strtotime($n['created_at'])) : 'Just now', ENT_QUOTES, 'UTF-8'); ?></div>
+                            </div>
+                            <div class="dropdown nxl-h-item click-only-dropdown">
+                                <a href="javascript:void(0);" data-bs-toggle="dropdown" role="button" data-bs-auto-close="outside">
+                                    <img src="<?php echo htmlspecialchars($header_avatar, ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar me-0">
+                                </a>
+                                <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-user-dropdown">
+                                    <div class="dropdown-header">
+                                        <div class="d-flex align-items-center">
+                                            <img src="<?php echo htmlspecialchars($header_avatar, ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar">
+                                            <div>
+                                                <h6 class="text-dark mb-0">
+                                                    <?php echo htmlspecialchars($header_user_name, ENT_QUOTES, 'UTF-8'); ?>
+                                                    <?php if ($header_user_role !== ''): ?>
+                                                        <span class="badge bg-soft-success text-success ms-1"><?php echo htmlspecialchars(ucfirst($header_user_role), ENT_QUOTES, 'UTF-8'); ?></span>
+                                                    <?php endif; ?>
+                                                </h6>
+                                                <span class="fs-12 fw-medium text-muted"><?php echo htmlspecialchars($header_user_email, ENT_QUOTES, 'UTF-8'); ?></span>
                                             </div>
                                         </div>
-                                    <?php endforeach; ?>
-                                <?php else: ?>
-                                    <div class="px-3 py-3 text-muted fs-12">No notifications yet.</div>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                        <div class="dropdown nxl-h-item click-only-dropdown">
-                            <a href="javascript:void(0);" data-bs-toggle="dropdown" role="button" data-bs-auto-close="outside">
-                                <img src="<?php echo htmlspecialchars($header_avatar, ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar me-0">
-                            </a>
-                            <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-user-dropdown">
-                                <div class="dropdown-header">
-                                    <div class="d-flex align-items-center">
-                                        <img src="<?php echo htmlspecialchars($header_avatar, ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar">
-                                        <div>
-                                            <h6 class="text-dark mb-0">
-                                                <?php echo htmlspecialchars($header_user_name, ENT_QUOTES, 'UTF-8'); ?>
-                                                <?php if ($header_user_role !== ''): ?>
-                                                    <span class="badge bg-soft-success text-success ms-1"><?php echo htmlspecialchars(ucfirst($header_user_role), ENT_QUOTES, 'UTF-8'); ?></span>
-                                                <?php endif; ?>
-                                            </h6>
-                                            <span class="fs-12 fw-medium text-muted"><?php echo htmlspecialchars($header_user_email, ENT_QUOTES, 'UTF-8'); ?></span>
-                                        </div>
                                     </div>
+                                    <div class="dropdown-divider"></div>
+                                    <a href="javascript:void(0);" class="dropdown-item">
+                                        <span class="hstack">
+                                            <i class="wd-10 ht-10 border border-2 border-gray-1 bg-success rounded-circle me-2"></i>
+                                            <span>Active</span>
+                                        </span>
+                                    </a>
+                                    <div class="dropdown-divider"></div>
+                                    <a href="javascript:void(0);" class="dropdown-item">
+                                        <i class="feather-user"></i>
+                                        <span>Profile Details</span>
+                                    </a>
+                                    <a href="javascript:void(0);" class="dropdown-item">
+                                        <i class="feather-activity"></i>
+                                        <span>Activity Feed</span>
+                                    </a>
+                                    <a href="javascript:void(0);" class="dropdown-item">
+                                        <i class="feather-bell"></i>
+                                        <span>Notifications</span>
+                                    </a>
+                                    <a href="settings-support.php" class="dropdown-item">
+                                        <i class="feather-settings"></i>
+                                        <span>Account Settings</span>
+                                    </a>
+                                    <div class="dropdown-divider"></div>
+                                    <a href="auth-login-cover.php?logout=1" class="dropdown-item">
+                                        <i class="feather-log-out"></i>
+                                        <span>Logout</span>
+                                    </a>
                                 </div>
-                                <div class="dropdown-divider"></div>
-                                <a href="javascript:void(0);" class="dropdown-item">
-                                    <span class="hstack">
-                                        <i class="wd-10 ht-10 border border-2 border-gray-1 bg-success rounded-circle me-2"></i>
-                                        <span>Active</span>
-                                    </span>
-                                </a>
-                                <div class="dropdown-divider"></div>
-                                <a href="javascript:void(0);" class="dropdown-item">
-                                    <i class="feather-user"></i>
-                                    <span>Profile Details</span>
-                                </a>
-                                <a href="javascript:void(0);" class="dropdown-item">
-                                    <i class="feather-activity"></i>
-                                    <span>Activity Feed</span>
-                                </a>
-                                <a href="javascript:void(0);" class="dropdown-item">
-                                    <i class="feather-bell"></i>
-                                    <span>Notifications</span>
-                                </a>
-                                <a href="settings-general.php" class="dropdown-item">
-                                    <i class="feather-settings"></i>
-                                    <span>Account Settings</span>
-                                </a>
-                                <div class="dropdown-divider"></div>
-                                <a href="auth-login-cover.php?logout=1" class="dropdown-item">
-                                    <i class="feather-log-out"></i>
-                                    <span>Logout</span>
-                                </a>
                             </div>
                         </div>
                     </div>

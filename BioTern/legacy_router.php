@@ -61,16 +61,7 @@ $map = [
   'reports-timesheets.php' => 'reports/reports-timesheets.php',
   'reports-attendance-operations.php' => 'reports/reports-attendance-operations.php',
 
-  'settings-general.php' => 'settings/settings-general.php',
-  'settings-seo.php' => 'settings/settings-seo.php',
-  'settings-tags.php' => 'settings/settings-tags.php',
-  'settings-email.php' => 'settings/settings-email.php',
-  'settings-tasks.php' => 'settings/settings-tasks.php',
-  'settings-ojt.php' => 'settings/settings-ojt.php',
   'settings-support.php' => 'settings/settings-support.php',
-  'settings-students.php' => 'settings/settings-students.php',
-  'settings-miscellaneous.php' => 'settings/settings-miscellaneous.php',
-  'settings-localization.php' => 'settings/settings-localization.php',
   'theme-customizer.php' => 'pages/theme-customizer.php',
 
   'widgets-lists.php' => 'widgets/widgets-lists.php',
@@ -219,9 +210,7 @@ if ($is_logged_in) {
   ];
   $system_files = [
     'auth-register-creative.php', 'users.php', 'create_admin.php',
-    'settings-general.php', 'settings-seo.php', 'settings-tags.php', 'settings-email.php',
-    'settings-tasks.php', 'settings-ojt.php', 'settings-support.php', 'settings-students.php',
-    'settings-miscellaneous.php', 'settings-localization.php',
+    'settings-support.php',
   ];
 
   $deny = false;

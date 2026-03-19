@@ -27,27 +27,27 @@ html.app-skin-dark {
 }
 
 html.app-theme-gray {
-  --biotern-primary: #4b5563;
-  --biotern-primary-rgb: 75, 85, 99;
-  --biotern-primary-hover: #374151;
-  --biotern-primary-soft: #e5e7eb;
+  --biotern-primary: #6b7280;
+  --biotern-primary-rgb: 107, 114, 128;
+  --biotern-primary-hover: #4b5563;
+  --biotern-primary-soft: #e6e7ea;
   --biotern-primary-soft-text: #1f2937;
   --biotern-primary-contrast: #ffffff;
-  --biotern-link: #374151;
+  --biotern-link: #4b5563;
   --biotern-link-hover: #111827;
-  --biotern-body-bg: #f3f4f6;
-  --biotern-surface: #ffffff;
-  --biotern-surface-muted: #f8fafc;
-  --biotern-border: #e5e7eb;
+  --biotern-body-bg: #f1f2f4;
+  --biotern-surface: #f7f7f8;
+  --biotern-surface-muted: #eceef1;
+  --biotern-border: #d1d5db;
   --bs-primary: var(--biotern-primary);
   --bs-primary-rgb: var(--biotern-primary-rgb);
   --bs-link-color: var(--biotern-link);
   --bs-link-hover-color: var(--biotern-link-hover);
   --bs-body-bg: var(--biotern-body-bg);
-  --bs-body-color: #111827;
+  --bs-body-color: #1f2937;
   --bs-border-color: var(--biotern-border);
   --bs-light: var(--biotern-surface);
-  --bs-dark: #111827;
+  --bs-dark: #1f2937;
   --bs-secondary: #6b7280;
   --bs-secondary-rgb: 107, 114, 128;
   --bs-info: #6b7280;
@@ -57,18 +57,18 @@ html.app-theme-gray {
 }
 
 html.app-theme-gray.app-skin-dark {
-  --biotern-primary: #111827;
-  --biotern-primary-rgb: 17, 24, 39;
-  --biotern-primary-hover: #0b1220;
-  --biotern-primary-soft: #1f2937;
+  --biotern-primary: #9aa0a6;
+  --biotern-primary-rgb: 154, 160, 166;
+  --biotern-primary-hover: #b4b9be;
+  --biotern-primary-soft: #2a2f35;
   --biotern-primary-soft-text: #e5e7eb;
-  --biotern-primary-contrast: #ffffff;
-  --biotern-link: #cbd5e1;
-  --biotern-link-hover: #f1f5f9;
-  --biotern-body-bg: #07090d;
-  --biotern-surface: #0c1117;
-  --biotern-surface-muted: #11161d;
-  --biotern-border: #1b2430;
+  --biotern-primary-contrast: #0f1113;
+  --biotern-link: #c7ccd1;
+  --biotern-link-hover: #e2e5e8;
+  --biotern-body-bg: #0f1113;
+  --biotern-surface: #15181b;
+  --biotern-surface-muted: #1b1f23;
+  --biotern-border: #2a2f35;
   --bs-primary: var(--biotern-primary);
   --bs-primary-rgb: var(--biotern-primary-rgb);
   --bs-link-color: var(--biotern-link);
@@ -77,13 +77,13 @@ html.app-theme-gray.app-skin-dark {
   --bs-body-color: #e5e7eb;
   --bs-border-color: var(--biotern-border);
   --bs-light: var(--biotern-surface);
-  --bs-dark: #0b1220;
-  --bs-secondary: #3a4252;
-  --bs-secondary-rgb: 58, 66, 82;
-  --bs-info: #4b5563;
-  --bs-info-rgb: 75, 85, 99;
-  --bs-teal: #4b5563;
-  --bs-teal-rgb: 75, 85, 99;
+  --bs-dark: #0b0d10;
+  --bs-secondary: #7b828a;
+  --bs-secondary-rgb: 123, 130, 138;
+  --bs-info: #8b929a;
+  --bs-info-rgb: 139, 146, 154;
+  --bs-teal: #8b929a;
+  --bs-teal-rgb: 139, 146, 154;
 }
 
 body {
@@ -359,6 +359,194 @@ html.app-header-dark .nxl-header .header-wrapper .nxl-h-item i {
   color: #e5e7eb !important;
 }
 
+/* Gray theme: keep independent dark navigation/header truly gray. */
+html.app-theme-gray.app-navigation-dark .nxl-navigation,
+html.app-theme-gray.app-navigation-dark .nxl-navigation .m-header,
+html.app-theme-gray.app-navigation-dark .nxl-navigation .navbar-content {
+  background-color: #15181b !important;
+  border-color: #2a2f35 !important;
+}
+
+html.app-theme-gray.app-navigation-dark .nxl-navigation .m-header {
+  border-bottom-color: #2a2f35 !important;
+}
+
+html.app-theme-gray.app-navigation-dark .nxl-navigation .navbar-content .nxl-caption {
+  color: #9aa0a6 !important;
+}
+
+html.app-theme-gray.app-navigation-dark .nxl-navigation .navbar-content .nxl-link {
+  color: #c7ccd1 !important;
+}
+
+html.app-theme-gray.app-navigation-dark .nxl-navigation .navbar-content .nxl-link:hover,
+html.app-theme-gray.app-navigation-dark .nxl-navigation .navbar-content .nxl-item.active > .nxl-link,
+html.app-theme-gray.app-navigation-dark .nxl-navigation .navbar-content .nxl-navbar > .nxl-item.active > .nxl-link,
+html.app-theme-gray.app-navigation-dark .nxl-navigation .navbar-content .nxl-navbar > .nxl-item:hover > .nxl-link {
+  color: #f1f3f5 !important;
+  background-color: #2a2f35 !important;
+}
+
+html.app-theme-gray.app-navigation-dark .nxl-navigation .navbar-content .nxl-link .nxl-micon i {
+  color: inherit !important;
+}
+
+html.app-theme-gray.app-header-dark .nxl-header,
+html.app-theme-gray.app-header-dark .nxl-header .header-wrapper {
+  background-color: #15181b !important;
+  border-color: #2a2f35 !important;
+  color: #e5e7eb !important;
+}
+
+html.app-theme-gray.app-header-dark .nxl-header .header-wrapper .nxl-head-link,
+html.app-theme-gray.app-header-dark .nxl-header .header-wrapper .nxl-h-item,
+html.app-theme-gray.app-header-dark .nxl-header .header-wrapper .nxl-h-item > a,
+html.app-theme-gray.app-header-dark .nxl-header .header-wrapper .nxl-h-item i {
+  color: #e5e7eb !important;
+}
+
+html.app-theme-gray.app-header-dark .nxl-header .header-wrapper .nxl-head-link:hover,
+html.app-theme-gray.app-header-dark .nxl-header .header-wrapper .nxl-head-link:focus,
+html.app-theme-gray.app-header-dark .nxl-header .header-wrapper .nxl-head-link:active {
+  color: #f8fafc !important;
+  background-color: #2a2f35 !important;
+}
+
+html.app-theme-gray.app-header-dark .nxl-navigation .m-header {
+  background-color: #15181b !important;
+  border-bottom-color: #2a2f35 !important;
+  border-right-color: #2a2f35 !important;
+}
+
+/* Gray theme: light header/navigation should stay neutral even in dark skin. */
+html.app-theme-gray.app-skin-dark:not(.app-navigation-dark) .nxl-navigation,
+html.app-theme-gray.app-skin-dark:not(.app-navigation-dark) .nxl-navigation .m-header,
+html.app-theme-gray.app-skin-dark:not(.app-navigation-dark) .nxl-navigation .navbar-content {
+  background-color: #f2f3f4 !important;
+  border-color: #d1d5db !important;
+}
+
+html.app-theme-gray.app-skin-dark:not(.app-navigation-dark) .nxl-navigation .m-header {
+  border-bottom-color: #d1d5db !important;
+}
+
+html.app-theme-gray.app-skin-dark:not(.app-navigation-dark) .nxl-navigation .navbar-content .nxl-caption {
+  color: #6b7280 !important;
+}
+
+html.app-theme-gray.app-skin-dark:not(.app-navigation-dark) .nxl-navigation .navbar-content .nxl-link {
+  color: #1f2937 !important;
+}
+
+html.app-theme-gray.app-skin-dark:not(.app-navigation-dark) .nxl-navigation .navbar-content .nxl-link:hover,
+html.app-theme-gray.app-skin-dark:not(.app-navigation-dark) .nxl-navigation .navbar-content .nxl-item.active > .nxl-link,
+html.app-theme-gray.app-skin-dark:not(.app-navigation-dark) .nxl-navigation .navbar-content .nxl-navbar > .nxl-item.active > .nxl-link,
+html.app-theme-gray.app-skin-dark:not(.app-navigation-dark) .nxl-navigation .navbar-content .nxl-navbar > .nxl-item:hover > .nxl-link {
+  color: #111827 !important;
+  background-color: #e5e7eb !important;
+}
+
+html.app-theme-gray.app-skin-dark:not(.app-header-dark) .nxl-header,
+html.app-theme-gray.app-skin-dark:not(.app-header-dark) .nxl-header .header-wrapper {
+  background-color: #f2f3f4 !important;
+  border-color: #d1d5db !important;
+}
+
+html.app-theme-gray.app-skin-dark:not(.app-header-dark) .nxl-header .header-wrapper .nxl-head-link,
+html.app-theme-gray.app-skin-dark:not(.app-header-dark) .nxl-header .header-wrapper .nxl-h-item,
+html.app-theme-gray.app-skin-dark:not(.app-header-dark) .nxl-header .header-wrapper .nxl-h-item > a,
+html.app-theme-gray.app-skin-dark:not(.app-header-dark) .nxl-header .header-wrapper .nxl-h-item i {
+  color: #1f2937 !important;
+}
+
+html.app-theme-gray:not(.app-header-dark) .nxl-header .header-wrapper .nxl-head-link:hover,
+html.app-theme-gray:not(.app-header-dark) .nxl-header .header-wrapper .nxl-head-link:focus,
+html.app-theme-gray:not(.app-header-dark) .nxl-header .header-wrapper .nxl-head-link:active {
+  color: #111827 !important;
+  background-color: #e5e7eb !important;
+}
+
+/* Allow light navigation/header even when the overall skin is dark. */
+html.app-skin-dark:not(.app-navigation-dark) .nxl-navigation,
+html.app-skin-dark:not(.app-navigation-dark) .nxl-navigation .m-header,
+html.app-skin-dark:not(.app-navigation-dark) .nxl-navigation .navbar-content {
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+html.app-skin-dark:not(.app-navigation-dark) .nxl-navigation .m-header {
+  border-bottom-color: #e2e8f0 !important;
+}
+
+html.app-skin-dark:not(.app-navigation-dark) .nxl-navigation .navbar-content .nxl-caption {
+  color: #6b7280;
+}
+
+html.app-skin-dark:not(.app-navigation-dark) .nxl-navigation .navbar-content .nxl-link {
+  color: #0f172a !important;
+  opacity: 1;
+}
+
+html.app-skin-dark:not(.app-navigation-dark) .nxl-navigation .navbar-content .nxl-link:hover,
+html.app-skin-dark:not(.app-navigation-dark) .nxl-navigation .navbar-content .nxl-item.active > .nxl-link,
+html.app-skin-dark:not(.app-navigation-dark) .nxl-navigation .navbar-content .nxl-navbar > .nxl-item.active > .nxl-link,
+html.app-skin-dark:not(.app-navigation-dark) .nxl-navigation .navbar-content .nxl-navbar > .nxl-item:hover > .nxl-link {
+  color: #111827;
+  background-color: var(--biotern-primary-soft);
+}
+
+html.app-skin-dark:not(.app-navigation-dark) .nxl-navigation .navbar-content .nxl-link .nxl-mtext,
+html.app-skin-dark:not(.app-navigation-dark) .nxl-navigation .navbar-content .nxl-item .nxl-mtext {
+  color: #0f172a !important;
+  opacity: 1;
+}
+
+html.app-skin-dark:not(.app-navigation-dark) .nxl-navigation .navbar-content .nxl-link .nxl-micon i,
+html.app-skin-dark:not(.app-navigation-dark) .nxl-navigation .navbar-content .nxl-link .nxl-arrow i {
+  color: #475569 !important;
+  opacity: 1;
+}
+
+html.app-skin-dark:not(.app-navigation-dark) .nxl-navigation .navbar-content .nxl-caption {
+  color: #64748b !important;
+  opacity: 1;
+}
+
+html.app-skin-dark:not(.app-navigation-dark) .nxl-navigation .navbar-content .nxl-submenu .nxl-link {
+  color: #334155 !important;
+}
+
+html.app-skin-dark:not(.app-navigation-dark) .nxl-navigation .navbar-content .nxl-submenu .nxl-link:hover,
+html.app-skin-dark:not(.app-navigation-dark) .nxl-navigation .navbar-content .nxl-submenu .nxl-item.active > .nxl-link {
+  color: #0f172a !important;
+}
+
+html:not(.app-navigation-dark) .nxl-navigation .navbar-content .nxl-link .nxl-arrow i {
+  color: #94a3b8;
+  opacity: 1;
+}
+
+html.app-skin-dark:not(.app-header-dark) .nxl-header,
+html.app-skin-dark:not(.app-header-dark) .nxl-header .header-wrapper {
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+html.app-skin-dark:not(.app-header-dark) .nxl-header .header-wrapper,
+html.app-skin-dark:not(.app-header-dark) .nxl-header .header-wrapper .nxl-head-link,
+html.app-skin-dark:not(.app-header-dark) .nxl-header .header-wrapper .nxl-h-item,
+html.app-skin-dark:not(.app-header-dark) .nxl-header .header-wrapper .nxl-h-item > a,
+html.app-skin-dark:not(.app-header-dark) .nxl-header .header-wrapper .nxl-h-item i {
+  color: #0f172a !important;
+}
+
+html.app-skin-dark:not(.app-navigation-dark) .nxl-navigation .m-header .logo,
+html.app-skin-dark:not(.app-navigation-dark) .nxl-navigation .m-header .logo-lg,
+html.app-skin-dark:not(.app-navigation-dark) .nxl-navigation .m-header .logo-sm,
+html.app-skin-dark:not(.app-navigation-dark) .nxl-navigation .m-header .app-logo-lg {
+  filter: none !important;
+}
+
 /* ------------------------------------------------------------------------- */
 /* 4) Gray scheme adjustments                                                 */
 /* ------------------------------------------------------------------------- */
@@ -419,6 +607,79 @@ html.app-theme-gray.app-skin-dark .breadcrumb a {
 
 html.app-theme-gray.app-skin-dark .page-header .breadcrumb .breadcrumb-item:last-child {
   color: #9aa3b2;
+}
+
+/* Gray theme: remove blue-tinted dark overrides */
+html.app-theme-gray.app-skin-dark .content-area,
+html.app-theme-gray.app-skin-dark .content-area .content-area-body,
+html.app-theme-gray.app-skin-dark .main-content,
+html.app-theme-gray.app-skin-dark .nxl-container,
+html.app-theme-gray.app-skin-dark .nxl-content {
+  background-color: var(--biotern-body-bg) !important;
+}
+
+html.app-theme-gray.app-skin-dark .content-area .content-area-header,
+html.app-theme-gray.app-skin-dark .content-sidebar,
+html.app-theme-gray.app-skin-dark .content-sidebar .content-sidebar-header,
+html.app-theme-gray.app-skin-dark .page-header,
+html.app-theme-gray.app-skin-dark .nxl-header,
+html.app-theme-gray.app-skin-dark .nxl-header .header-wrapper,
+html.app-theme-gray.app-skin-dark .nxl-navigation,
+html.app-theme-gray.app-skin-dark .nxl-navigation .m-header,
+html.app-theme-gray.app-skin-dark .nxl-navigation .navbar-content,
+html.app-theme-gray.app-skin-dark .nxl-container .footer {
+  background-color: var(--biotern-surface) !important;
+  border-color: var(--biotern-border) !important;
+}
+
+html.app-theme-gray.app-skin-dark input.form-control,
+html.app-theme-gray.app-skin-dark textarea.form-control,
+html.app-theme-gray.app-skin-dark .form-control[type="text"],
+html.app-theme-gray.app-skin-dark .form-control[type="email"],
+html.app-theme-gray.app-skin-dark .form-control[type="password"],
+html.app-theme-gray.app-skin-dark .form-control[type="number"],
+html.app-theme-gray.app-skin-dark .form-control[type="date"],
+html.app-theme-gray.app-skin-dark .form-control[type="time"],
+html.app-theme-gray.app-skin-dark .form-control[type="search"],
+html.app-theme-gray.app-skin-dark .form-control[type="tel"],
+html.app-theme-gray.app-skin-dark .form-control[type="url"],
+html.app-theme-gray.app-skin-dark select.form-control,
+html.app-theme-gray.app-skin-dark select.form-select {
+  color: #e5e7eb !important;
+  -webkit-text-fill-color: #e5e7eb !important;
+  background-color: var(--biotern-surface-muted) !important;
+  border-color: var(--biotern-border) !important;
+}
+
+html.app-theme-gray.app-skin-dark input.form-control::placeholder,
+html.app-theme-gray.app-skin-dark textarea.form-control::placeholder {
+  color: #9aa3ab !important;
+  opacity: 1 !important;
+}
+
+html.app-theme-gray.app-skin-dark .select2-container--default .select2-selection--single,
+html.app-theme-gray.app-skin-dark .select2-container--default .select2-selection--multiple {
+  color: #e5e7eb !important;
+  background-color: var(--biotern-surface-muted) !important;
+  border-color: var(--biotern-border) !important;
+}
+
+html.app-theme-gray.app-skin-dark .select2-container--default .select2-selection--single .select2-selection__rendered,
+html.app-theme-gray.app-skin-dark .select2-container--default .select2-selection--multiple .select2-selection__rendered,
+html.app-theme-gray.app-skin-dark .select2-container--default .select2-selection__placeholder {
+  color: #e5e7eb !important;
+}
+
+html.app-theme-gray.app-skin-dark .select2-container--default.select2-container--open .select2-dropdown,
+html.app-theme-gray.app-skin-dark .select2-container--default .select2-results__option {
+  color: #e5e7eb !important;
+  background-color: var(--biotern-surface) !important;
+  border-color: var(--biotern-border) !important;
+}
+
+html.app-theme-gray.app-skin-dark .select2-container--default .select2-results__option--highlighted[aria-selected] {
+  color: #0f1113 !important;
+  background-color: #d1d5db !important;
 }
 
 html.app-theme-gray:not(.app-skin-dark) input.form-control,
@@ -676,7 +937,9 @@ html.app-theme-gray .theme-customizer-page .content-sidebar-header {
 }
 
 .theme-customizer-page .content-area-body > .card.mb-0 > .card-body {
-  padding: 0;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0.5rem 0;
 }
 
 .theme-setting-card .card-header {
@@ -735,6 +998,13 @@ html.app-theme-gray .theme-setting-card .badge {
   letter-spacing: 0.02em;
 }
 
+.theme-setting-card .btn-check:checked + .btn,
+.theme-setting-card .btn-check:focus + .btn {
+  color: var(--biotern-primary-contrast) !important;
+  background-color: var(--biotern-primary) !important;
+  border-color: var(--biotern-primary) !important;
+}
+
 .theme-setting-card .form-select {
   min-height: 42px;
 }
@@ -745,7 +1015,13 @@ html.app-theme-gray .theme-setting-card .badge {
 }
 
 .theme-select-wrap {
+  width: 100%;
+  max-width: 320px;
   min-width: 240px;
+}
+
+.theme-customizer-page .theme-setting-card {
+  height: 100%;
 }
 
 html.app-theme-gray.app-skin-dark .theme-customizer-page .content-area,

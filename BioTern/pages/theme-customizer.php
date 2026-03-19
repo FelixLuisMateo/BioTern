@@ -8,44 +8,13 @@ include 'includes/header.php';
 <main class="nxl-container">
     <div class="nxl-content">
 
-<div class="main-content d-flex theme-customizer-page">
-    <div class="content-sidebar content-sidebar-md" data-scrollbar-target="#psScrollbarInit">
-        <div class="content-sidebar-header sticky-top hstack justify-content-between">
-            <h4 class="fw-bolder mb-0">Settings</h4>
-            <a href="javascript:void(0);" class="app-sidebar-close-trigger d-flex">
-                <i class="feather-x"></i>
-            </a>
-        </div>
-        <div class="content-sidebar-body">
-            <ul class="nav flex-column nxl-content-sidebar-item">
-                <li class="nav-item"><a class="nav-link" href="settings-general.php"><i class="feather-airplay"></i><span>General</span></a></li>
-                <li class="nav-item"><a class="nav-link" href="settings-seo.php"><i class="feather-search"></i><span>SEO</span></a></li>
-                <li class="nav-item"><a class="nav-link" href="settings-tags.php"><i class="feather-tag"></i><span>Tags</span></a></li>
-                <li class="nav-item"><a class="nav-link" href="settings-email.php"><i class="feather-mail"></i><span>Email</span></a></li>
-                <li class="nav-item"><a class="nav-link" href="settings-tasks.php"><i class="feather-check-circle"></i><span>Tasks</span></a></li>
-                <li class="nav-item"><a class="nav-link" href="settings-ojt.php"><i class="feather-crosshair"></i><span>Leads</span></a></li>
-                <li class="nav-item"><a class="nav-link" href="settings-support.php"><i class="feather-life-buoy"></i><span>Support</span></a></li>
-                <li class="nav-item"><a class="nav-link" href="settings-students.php"><i class="feather-users"></i><span>Students</span></a></li>
-                <li class="nav-item"><a class="nav-link" href="settings-miscellaneous.php"><i class="feather-cast"></i><span>Miscellaneous</span></a></li>
-                <li class="nav-item"><a class="nav-link active" href="theme-customizer.php"><i class="feather-settings"></i><span>Theme Customizer</span></a></li>
-            </ul>
-        </div>
-    </div>
-
+<div class="main-content theme-customizer-page">
     <div class="content-area" data-scrollbar-target="#psScrollbarInit">
         <div class="content-area-header sticky-top">
             <div class="page-header-left">
-                <a href="javascript:void(0);" class="app-sidebar-open-trigger me-2">
-                    <i class="feather-align-left fs-24"></i>
-                </a>
-            </div>
-            <div class="page-header-right ms-auto">
-                <div class="d-flex align-items-center gap-3 page-header-right-items-wrapper">
-                    <a href="javascript:void(0);" class="text-danger" id="theme-page-cancel-link">Cancel</a>
-                    <a href="javascript:void(0);" class="btn btn-primary" id="theme-page-save-link">
-                        <i class="feather-save me-2"></i>
-                        <span>Save Changes</span>
-                    </a>
+                <div class="d-flex flex-column gap-1">
+                    <h5 class="mb-0">Theme Customizer</h5>
+                    <div class="fs-12 text-muted">Fine-tune colors, navigation, and typography.</div>
                 </div>
             </div>
         </div>
@@ -53,9 +22,9 @@ include 'includes/header.php';
         <div class="content-area-body">
             <div class="card mb-0">
                 <div class="card-body">
-                    <div class="row">
-                        <div class="col-12 col-xl-8">
-                            <div class="card theme-setting-card mb-4">
+                    <div class="row g-4">
+                        <div class="col-12 col-xl-6">
+                            <div class="card theme-setting-card">
                 <div class="card-header d-flex align-items-center justify-content-between">
                     <h5 class="mb-0">Appearance</h5>
                     <span class="badge bg-soft-primary text-primary">Live Preview</span>
@@ -131,12 +100,14 @@ include 'includes/header.php';
                     </div>
 
                     <div class="d-flex gap-2 pt-2">
-                        <button type="button" class="btn btn-primary" id="theme-page-save">Save Changes</button>
                         <button type="button" class="btn btn-light" id="theme-page-reset">Reset Defaults</button>
+                        <div class="d-flex align-items-center text-muted fs-12">Changes save automatically.</div>
                     </div>
                 </div>
             </div>
 
+                        </div>
+                        <div class="col-12 col-xl-6">
                             <div class="card theme-setting-card">
                 <div class="card-header d-flex align-items-center justify-content-between">
                     <h5 class="mb-0">Independent Surfaces</h5>
