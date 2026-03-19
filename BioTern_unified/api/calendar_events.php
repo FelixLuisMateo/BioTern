@@ -1,6 +1,8 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
 
+date_default_timezone_set('Asia/Manila');
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -21,6 +23,7 @@ if (!($conn instanceof mysqli) || $conn->connect_errno) {
 }
 
 $conn->set_charset('utf8mb4');
+$conn->query("SET time_zone = '+08:00'");
 
 $conn->query("CREATE TABLE IF NOT EXISTS calendar_events (
     id INT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -54,17 +57,180 @@ function normalize_datetime(?string $raw): ?string
         return null;
     }
 
-    $ts = strtotime($raw);
-    if ($ts === false) {
-        return null;
+    $manilaTz = new DateTimeZone('Asia/Manila');
+    $raw = str_replace('T', ' ', $raw);
+
+    if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $raw) === 1) {
+        $raw .= ' 00:00:00';
+    } elseif (preg_match('/^\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}$/', $raw) === 1) {
+        $raw .= ':00';
     }
 
-    return date('Y-m-d H:i:s', $ts);
+    try {
+        if (preg_match('/(Z|[+\-]\d{2}:?\d{2})$/', $raw) === 1) {
+            $dt = new DateTimeImmutable($raw);
+            return $dt->setTimezone($manilaTz)->format('Y-m-d H:i:s');
+        }
+
+        $dt = DateTimeImmutable::createFromFormat('Y-m-d H:i:s', $raw, $manilaTz);
+        if ($dt instanceof DateTimeImmutable) {
+            return $dt->format('Y-m-d H:i:s');
+        }
+
+        $fallback = strtotime($raw);
+        if ($fallback === false) {
+            return null;
+        }
+
+        return (new DateTimeImmutable('@' . $fallback))
+            ->setTimezone($manilaTz)
+            ->format('Y-m-d H:i:s');
+    } catch (Throwable $e) {
+        return null;
+    }
+}
+
+function build_ph_celebrations(int $year): array
+{
+    $manilaTz = new DateTimeZone('Asia/Manila');
+    $items = [
+        ['New Year\'s Day', "$year-01-01"],
+        ['EDSA People Power Revolution', "$year-02-25"],
+        ['Araw ng Kagitingan', "$year-04-09"],
+        ['Labor Day', "$year-05-01"],
+        ['Independence Day', "$year-06-12"],
+        ['Ninoy Aquino Day', "$year-08-21"],
+        ['All Saints\' Day', "$year-11-01"],
+        ['All Souls\' Day', "$year-11-02"],
+        ['Bonifacio Day', "$year-11-30"],
+        ['Christmas Eve', "$year-12-24"],
+        ['Christmas Day', "$year-12-25"],
+        ['Rizal Day', "$year-12-30"],
+        ['New Year\'s Eve', "$year-12-31"],
+    ];
+
+    $lastAugustDay = new DateTimeImmutable("$year-08-31", $manilaTz);
+    while ((int)$lastAugustDay->format('N') !== 1) {
+        $lastAugustDay = $lastAugustDay->modify('-1 day');
+    }
+    $items[] = ['National Heroes Day', $lastAugustDay->format('Y-m-d')];
+
+    return array_map(static function (array $item): array {
+        $date = $item[1];
+        return [
+            'title' => 'PH Celebration: ' . $item[0],
+            'location' => 'Philippines',
+            'description' => 'Philippines celebration event',
+            'start_at' => $date . ' 00:00:00',
+            'end_at' => $date . ' 23:59:59',
+            'color' => '#f59e0b',
+            'is_all_day' => 1,
+        ];
+    }, $items);
+}
+
+function easter_sunday_manila(int $year): DateTimeImmutable
+{
+    $base = new DateTimeImmutable("$year-03-21", new DateTimeZone('Asia/Manila'));
+    $offset = easter_days($year);
+    return $base->modify('+' . $offset . ' days');
+}
+
+function build_ph_holidays(int $year): array
+{
+    $easterSunday = easter_sunday_manila($year);
+    $maundyThursday = $easterSunday->modify('-3 days')->format('Y-m-d');
+    $goodFriday = $easterSunday->modify('-2 days')->format('Y-m-d');
+    $blackSaturday = $easterSunday->modify('-1 day')->format('Y-m-d');
+
+    $items = [
+        ['New Year\'s Day', "$year-01-01"],
+        ['Maundy Thursday', $maundyThursday],
+        ['Good Friday', $goodFriday],
+        ['Black Saturday', $blackSaturday],
+        ['Araw ng Kagitingan', "$year-04-09"],
+        ['Labor Day', "$year-05-01"],
+        ['Independence Day', "$year-06-12"],
+        ['National Heroes Day', (function () use ($year) {
+            $lastAugustDay = new DateTimeImmutable("$year-08-31", new DateTimeZone('Asia/Manila'));
+            while ((int)$lastAugustDay->format('N') !== 1) {
+                $lastAugustDay = $lastAugustDay->modify('-1 day');
+            }
+            return $lastAugustDay->format('Y-m-d');
+        })()],
+        ['Bonifacio Day', "$year-11-30"],
+        ['Christmas Day', "$year-12-25"],
+        ['Rizal Day', "$year-12-30"],
+    ];
+
+    return array_map(static function (array $item): array {
+        $date = $item[1];
+        return [
+            'title' => 'PH Holiday: ' . $item[0],
+            'location' => 'Philippines',
+            'description' => 'Philippines holiday',
+            'start_at' => $date . ' 00:00:00',
+            'end_at' => $date . ' 23:59:59',
+            'color' => '#ef4444',
+            'is_all_day' => 1,
+        ];
+    }, $items);
+}
+
+function build_ph_celebrations_and_holidays(int $year): array
+{
+    $merged = array_merge(build_ph_celebrations($year), build_ph_holidays($year));
+    $unique = [];
+    $seen = [];
+
+    foreach ($merged as $event) {
+        $key = strtolower((string)$event['title']) . '|' . (string)$event['start_at'];
+        if (isset($seen[$key])) {
+            continue;
+        }
+        $seen[$key] = true;
+        $unique[] = $event;
+    }
+
+    return $unique;
 }
 
 $method = strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET'));
 
 if ($method === 'GET') {
+    // Check if fetching a single event by ID
+    $eventId = !empty($_GET['id']) ? (int)$_GET['id'] : 0;
+    if ($eventId > 0) {
+        $stmt = $conn->prepare("SELECT id, title, location, description, start_at, end_at, color, is_all_day
+            FROM calendar_events
+            WHERE id = ? AND user_id = ? AND deleted_at IS NULL
+            LIMIT 1");
+        if (!$stmt) {
+            respond_json(500, ['success' => false, 'message' => 'Failed to prepare event query']);
+        }
+        $stmt->bind_param('ii', $eventId, $userId);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $event = $result->fetch_assoc();
+        $stmt->close();
+
+        if (!$event) {
+            respond_json(404, ['success' => false, 'message' => 'Event not found']);
+        }
+
+        respond_json(200, ['success' => true, 'event' => [
+            'id' => (int)$event['id'],
+            'title' => (string)$event['title'],
+            'location' => (string)($event['location'] ?? ''),
+            'description' => (string)($event['description'] ?? ''),
+            'start_at' => (string)$event['start_at'],
+            'end_at' => (string)$event['end_at'],
+            'color' => (string)($event['color'] ?? '#0d6efd'),
+            'is_all_day' => (int)($event['is_all_day'] ?? 0),
+        ]]);
+    }
+
+    // Otherwise, fetch events by date range or all events
     $from = normalize_datetime((string)($_GET['from'] ?? ''));
     $to = normalize_datetime((string)($_GET['to'] ?? ''));
 
@@ -126,6 +292,66 @@ if (!is_array($data)) {
 $action = strtolower(trim((string)($data['action'] ?? '')));
 if ($action === '') {
     respond_json(400, ['success' => false, 'message' => 'Missing action']);
+}
+
+if ($action === 'seed_celebrations' || $action === 'import_celebrations') {
+    $year = (int)($data['year'] ?? date('Y'));
+    if ($year < 2000 || $year > 2100) {
+        respond_json(400, ['success' => false, 'message' => 'Invalid year']);
+    }
+
+    $events = build_ph_celebrations_and_holidays($year);
+    $inserted = 0;
+
+    $checkStmt = $conn->prepare("SELECT id
+        FROM calendar_events
+        WHERE user_id = ? AND title = ? AND start_at = ? AND end_at = ? AND deleted_at IS NULL
+        LIMIT 1");
+    if (!$checkStmt) {
+        respond_json(500, ['success' => false, 'message' => 'Failed to prepare duplicate check']);
+    }
+
+    $insertStmt = $conn->prepare("INSERT INTO calendar_events
+        (user_id, title, location, description, start_at, end_at, color, is_all_day)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+    if (!$insertStmt) {
+        $checkStmt->close();
+        respond_json(500, ['success' => false, 'message' => 'Failed to prepare celebration insert']);
+    }
+
+    foreach ($events as $event) {
+        $title = (string)$event['title'];
+        $location = (string)$event['location'];
+        $description = (string)$event['description'];
+        $startAt = (string)$event['start_at'];
+        $endAt = (string)$event['end_at'];
+        $color = (string)$event['color'];
+        $isAllDay = (int)$event['is_all_day'];
+
+        $checkStmt->bind_param('isss', $userId, $title, $startAt, $endAt);
+        $checkStmt->execute();
+        $existingResult = $checkStmt->get_result();
+        $alreadyExists = $existingResult && $existingResult->num_rows > 0;
+
+        if ($alreadyExists) {
+            continue;
+        }
+
+        $insertStmt->bind_param('issssssi', $userId, $title, $location, $description, $startAt, $endAt, $color, $isAllDay);
+        if ($insertStmt->execute()) {
+            $inserted++;
+        }
+    }
+
+    $checkStmt->close();
+    $insertStmt->close();
+
+    respond_json(200, [
+        'success' => true,
+        'inserted_count' => $inserted,
+        'total_templates' => count($events),
+        'year' => $year,
+    ]);
 }
 
 if ($action === 'create') {
