@@ -52,9 +52,6 @@ $auth_bg_layers = [];
 foreach ($auth_root_candidates as $candidate_prefix) {
     $auth_bg_layers[] = "url('" . $candidate_prefix . "auth/building.png')";
 }
-foreach ($auth_root_candidates as $candidate_prefix) {
-    $auth_bg_layers[] = "url('" . $candidate_prefix . "assets/images/auth/auth-cover-login-bg.png')";
-}
 $auth_bg_css = implode(', ', $auth_bg_layers);
 $route_prefix = $asset_prefix;
 $login_error = '';

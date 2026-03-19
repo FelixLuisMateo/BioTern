@@ -1,6 +1,28 @@
 <?php
 mysqli_report(MYSQLI_REPORT_OFF);
 
+$biotern_project_root = dirname(__DIR__);
+$biotern_include_candidates = [
+    $biotern_project_root,
+    $biotern_project_root . DIRECTORY_SEPARATOR . 'includes',
+    $biotern_project_root . DIRECTORY_SEPARATOR . 'config',
+];
+
+$biotern_include_paths = [];
+foreach ($biotern_include_candidates as $candidate) {
+    if (is_dir($candidate)) {
+        $real_candidate = realpath($candidate);
+        $biotern_include_paths[] = $real_candidate !== false ? $real_candidate : $candidate;
+    }
+}
+
+$existing_include_path = get_include_path();
+if ($existing_include_path !== false && $existing_include_path !== '') {
+    $biotern_include_paths[] = $existing_include_path;
+}
+
+set_include_path(implode(PATH_SEPARATOR, array_values(array_unique($biotern_include_paths))));
+
 if (!function_exists('biotern_env_pick')) {
     function biotern_env_pick(array $keys, string $default = ''): string
     {

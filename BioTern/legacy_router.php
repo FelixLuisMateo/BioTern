@@ -178,6 +178,37 @@ if (!is_file($target)) {
     exit('Not found');
 }
 
+$target_dir = dirname($target);
+$router_include_paths = [
+  __DIR__,
+  __DIR__ . '/includes',
+  __DIR__ . '/config',
+  $target_dir,
+];
+
+$router_existing_include_path = get_include_path();
+if ($router_existing_include_path !== false && $router_existing_include_path !== '') {
+  $router_include_paths[] = $router_existing_include_path;
+}
+
+$router_normalized_paths = [];
+foreach ($router_include_paths as $include_path_entry) {
+  if (!is_string($include_path_entry) || $include_path_entry === '') {
+    continue;
+  }
+
+  if (is_dir($include_path_entry)) {
+    $real_entry = realpath($include_path_entry);
+    $router_normalized_paths[] = $real_entry !== false ? $real_entry : $include_path_entry;
+    continue;
+  }
+
+  $router_normalized_paths[] = $include_path_entry;
+}
+
+set_include_path(implode(PATH_SEPARATOR, array_values(array_unique($router_normalized_paths))));
+@chdir(__DIR__);
+
 // Global auth guard so all routed pages are tied to a logged-in account.
 $public_files = [
   'index.php',

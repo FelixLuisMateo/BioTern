@@ -2,6 +2,10 @@
   "version": 2,
   "builds": [
     {
+      "src": "auth/building.png",
+      "use": "@vercel/static"
+    },
+    {
       "src": "assets/**",
       "use": "@vercel/static"
     },
