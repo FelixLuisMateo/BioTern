@@ -1,4 +1,56 @@
 <?php
+$request_uri_path = (string)(parse_url((string)($_SERVER['REQUEST_URI'] ?? ''), PHP_URL_PATH) ?? '');
+$script_name = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
+$script_dir = rtrim(str_replace('\\', '/', (string)dirname($script_name)), '/');
+$relative_request_path = '/' . ltrim(rawurldecode($request_uri_path), '/');
+
+if ($script_dir !== '' && $script_dir !== '/' && stripos($relative_request_path, $script_dir . '/') === 0) {
+  $relative_request_path = substr($relative_request_path, strlen($script_dir));
+  $relative_request_path = '/' . ltrim((string)$relative_request_path, '/');
+}
+
+if ($relative_request_path !== '/' && $relative_request_path !== '/legacy_router.php') {
+  $static_candidate = realpath(__DIR__ . $relative_request_path);
+  $base_dir_real = realpath(__DIR__);
+  $is_inside_base = ($static_candidate !== false && $base_dir_real !== false)
+    ? str_starts_with(str_replace('\\', '/', $static_candidate), str_replace('\\', '/', $base_dir_real))
+    : false;
+
+  if ($is_inside_base && is_file($static_candidate)) {
+    $ext = strtolower((string)pathinfo($static_candidate, PATHINFO_EXTENSION));
+    if ($ext !== 'php') {
+      $content_types = [
+        'css' => 'text/css; charset=UTF-8',
+        'js' => 'application/javascript; charset=UTF-8',
+        'json' => 'application/json; charset=UTF-8',
+        'png' => 'image/png',
+        'jpg' => 'image/jpeg',
+        'jpeg' => 'image/jpeg',
+        'gif' => 'image/gif',
+        'svg' => 'image/svg+xml',
+        'ico' => 'image/x-icon',
+        'webp' => 'image/webp',
+        'woff' => 'font/woff',
+        'woff2' => 'font/woff2',
+        'ttf' => 'font/ttf',
+        'eot' => 'application/vnd.ms-fontobject',
+        'map' => 'application/json; charset=UTF-8',
+        'txt' => 'text/plain; charset=UTF-8',
+        'pdf' => 'application/pdf',
+      ];
+
+      if (!headers_sent()) {
+        header('Content-Type: ' . ($content_types[$ext] ?? 'application/octet-stream'));
+        header('Content-Length: ' . (string)filesize($static_candidate));
+        header('Cache-Control: public, max-age=3600');
+      }
+
+      readfile($static_candidate);
+      exit;
+    }
+  }
+}
+
 require_once __DIR__ . '/config/db.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
