@@ -1,9 +1,18 @@
 <?php
+require_once dirname(__DIR__) . '/config/db.php';
 // Shared header include.  Sets up HTML <head> and page header/navigation.
 // Pages can set a $page_title variable before including this file.
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+
+$header_script_name = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
+$header_root = '/';
+$header_project_pos = stripos($header_script_name, '/BioTern/BioTern/');
+if ($header_project_pos !== false) {
+    $header_root = substr($header_script_name, 0, $header_project_pos) . '/BioTern/BioTern/';
+}
+$header_login_url = $header_root . 'auth/auth-login-cover.php';
 
 $page_is_public = isset($page_is_public) && $page_is_public === true;
 $page_render_navigation = isset($page_render_navigation) ? (bool)$page_render_navigation : !$page_is_public;
@@ -16,12 +25,18 @@ $header_user_id_session = (int)($_SESSION['user_id'] ?? 0);
 $header_db = null;
 if (!$page_is_public) {
     if ($header_user_id_session <= 0) {
-        header('Location: /BioTern/BioTern/auth/auth-login-cover.php');
+        header('Location: ' . $header_login_url);
         exit;
     }
 
     // Refresh session identity from DB so page access stays connected to current account data.
-    $header_db = @new mysqli('127.0.0.1', 'root', '', 'biotern_db');
+    $header_db = @new mysqli(
+        defined('DB_HOST') ? DB_HOST : '127.0.0.1',
+        defined('DB_USER') ? DB_USER : 'root',
+        defined('DB_PASS') ? DB_PASS : '',
+        defined('DB_NAME') ? DB_NAME : 'biotern_db',
+        defined('DB_PORT') ? (int)DB_PORT : 3306
+    );
     if (!$header_db->connect_errno) {
         $stmt = $header_db->prepare("SELECT id, name, username, email, role, is_active, profile_picture FROM users WHERE id = ? LIMIT 1");
         if ($stmt) {
@@ -37,7 +52,7 @@ if (!$page_is_public) {
                     setcookie(session_name(), '', time() - 42000, $params['path'], $params['domain'], $params['secure'], $params['httponly']);
                 }
                 session_destroy();
-                header('Location: /BioTern/BioTern/auth/auth-login-cover.php');
+                header('Location: ' . $header_login_url);
                 exit;
             }
 
@@ -160,7 +175,13 @@ if ($page_render_header) {
     if ($header_user_id_session > 0) {
         $hdr_db = $header_db;
         if (!$hdr_db) {
-            $hdr_db = @new mysqli('127.0.0.1', 'root', '', 'biotern_db');
+            $hdr_db = @new mysqli(
+                defined('DB_HOST') ? DB_HOST : '127.0.0.1',
+                defined('DB_USER') ? DB_USER : 'root',
+                defined('DB_PASS') ? DB_PASS : '',
+                defined('DB_NAME') ? DB_NAME : 'biotern_db',
+                defined('DB_PORT') ? (int)DB_PORT : 3306
+            );
         }
 
         if ($hdr_db instanceof mysqli && !$hdr_db->connect_errno) {

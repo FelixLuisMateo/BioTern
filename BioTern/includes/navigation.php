@@ -107,7 +107,7 @@ $nav_active_help = biotern_nav_any_active($nav_current_file, [
 <nav class="nxl-navigation">
     <div class="navbar-wrapper">
         <div class="m-header">
-            <a href="/BioTern/BioTern/legacy_router.php?file=homepage.php" class="b-brand">
+            <a href="homepage.php" class="b-brand">
                 <img src="assets/images/logo-full.png" alt="BioTern" class="logo logo-lg app-logo-lg" />
                 <img src="assets/images/logo-abbr.png" alt="" class="logo logo-sm" />
             </a>

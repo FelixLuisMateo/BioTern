@@ -1,8 +1,10 @@
 <?php
-$dbHost = '127.0.0.1';
-$dbUser = 'root';
-$dbPass = '';
-$dbName = 'biotern_db';
+require_once dirname(__DIR__) . '/config/db.php';
+$dbHost = defined('DB_HOST') ? DB_HOST : '127.0.0.1';
+$dbUser = defined('DB_USER') ? DB_USER : 'root';
+$dbPass = defined('DB_PASS') ? DB_PASS : '';
+$dbName = defined('DB_NAME') ? DB_NAME : 'biotern_db';
+$dbPort = defined('DB_PORT') ? (int)DB_PORT : 3306;
 
 function support_h($value) {
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
@@ -44,7 +46,7 @@ $support_settings = $support_defaults;
 $support_success = '';
 $support_error = '';
 
-$conn = @new mysqli($dbHost, $dbUser, $dbPass, $dbName);
+$conn = @new mysqli($dbHost, $dbUser, $dbPass, $dbName, $dbPort);
 if (!$conn->connect_errno) {
     $has_table = $conn->query("SHOW TABLES LIKE 'system_settings'");
     if ($has_table && $has_table->num_rows > 0) {
