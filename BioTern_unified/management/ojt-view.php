@@ -196,16 +196,29 @@ function document_status_label(string $status): string
 
 function app_base_path()
 {
-    $dir = str_replace('\\', '/', dirname($_SERVER['PHP_SELF'] ?? ''));
-    $dir = rtrim($dir, '/');
-    if ($dir === '' || $dir === '.') {
-        $dir = '';
-    }
-    if (preg_match('#/management$#i', $dir)) {
+    $candidates = [
+        (string)($_SERVER['REQUEST_URI'] ?? ''),
+        (string)($_SERVER['PHP_SELF'] ?? ''),
+        (string)($_SERVER['SCRIPT_NAME'] ?? ''),
+    ];
+
+    foreach ($candidates as $candidate) {
+        $path = (string)(parse_url($candidate, PHP_URL_PATH) ?? '');
+        if ($path === '') {
+            continue;
+        }
+
+        $dir = str_replace('\\', '/', dirname($path));
+        $dir = '/' . ltrim(rtrim($dir, '/'), '/');
+
+        $dir = preg_replace('#/(?:legacy_router|index)\.php(?:/.*)?$#i', '', $dir);
         $dir = preg_replace('#/management$#i', '', $dir);
+        $dir = rtrim((string)$dir, '/');
+
+        return $dir === '' ? '/' : ($dir . '/');
     }
-    if ($dir === '') return '/';
-    return $dir . '/';
+
+    return '/';
 }
 
 function status_badge_html($status)

@@ -56,6 +56,10 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+if ((int)($_SESSION['user_id'] ?? 0) <= 0 && isset($conn) && $conn instanceof mysqli && !$conn->connect_errno) {
+  biotern_auth_restore_session_from_cookie($conn);
+}
+
 $map = [
   'students.php' => 'management/students.php',
   'students-create.php' => 'management/students-create.php',
@@ -162,20 +166,71 @@ $map = [
   'setup_db.php' => 'tools/setup_db.php',
   'test_data.php' => 'tools/test_data.php',
   'test_db.php' => 'tools/test_db.php',
+  'import-sql.php' => 'tools/import-sql.php',
   'update_remaining_hours.php' => 'tools/update_remaining_hours.php',
 ];
 
+$slug_to_file = [];
+$file_to_slug = [];
+
+foreach (array_keys($map) as $mapped_file) {
+  $default_slug = strtolower(preg_replace('/\.php$/i', '', (string)$mapped_file));
+  if ($default_slug === '') {
+    continue;
+  }
+  if (!isset($slug_to_file[$default_slug])) {
+    $slug_to_file[$default_slug] = $mapped_file;
+  }
+  if (!isset($file_to_slug[$mapped_file])) {
+    $file_to_slug[$mapped_file] = $default_slug;
+  }
+}
+
+$slug_aliases = [
+  'overview' => 'analytics.php',
+  'student-list' => 'students.php',
+  'dtr' => 'students-dtr.php',
+];
+foreach ($slug_aliases as $slug => $mapped_file) {
+  if (isset($map[$mapped_file])) {
+    $slug_to_file[$slug] = $mapped_file;
+  }
+}
+
+$canonical_slug_overrides = [
+  'analytics.php' => 'overview',
+  'students.php' => 'student-list',
+];
+foreach ($canonical_slug_overrides as $mapped_file => $canonical_slug) {
+  if (isset($map[$mapped_file])) {
+    $file_to_slug[$mapped_file] = $canonical_slug;
+  }
+}
+
 $file = isset($_GET['file']) ? basename((string)$_GET['file']) : '';
+$requested_slug = strtolower(trim((string)($_GET['slug'] ?? '')));
+if ($file === '' && $requested_slug !== '' && isset($slug_to_file[$requested_slug])) {
+  $file = $slug_to_file[$requested_slug];
+}
+
 if ($file === '' || !isset($map[$file])) {
     http_response_code(404);
     exit('Not found');
 }
 
 $request_uri = (string)($_SERVER['REQUEST_URI'] ?? '');
-if ($request_uri !== '' && stripos($request_uri, 'legacy_router.php') !== false) {
+$request_path = (string)(parse_url($request_uri, PHP_URL_PATH) ?? '');
+
+$canonical_slug = $file_to_slug[$file] ?? strtolower(preg_replace('/\.php$/i', '', (string)$file));
+$canonical_path = '/' . ltrim($canonical_slug, '/');
+
+$is_legacy_router_url = ($request_uri !== '' && stripos($request_uri, 'legacy_router.php') !== false);
+$is_php_path = (bool)preg_match('/\.php$/i', (string)$request_path);
+
+if ($is_legacy_router_url || $is_php_path) {
   $query = $_GET;
-  unset($query['file']);
-  $destination = $file;
+  unset($query['file'], $query['slug']);
+  $destination = $canonical_path;
   if (!empty($query)) {
     $destination .= '?' . http_build_query($query);
   }
@@ -300,6 +355,7 @@ if ($is_logged_in) {
   ];
   $system_files = [
     'auth-register-creative.php', 'users.php', 'create_admin.php',
+    'import-sql.php',
     'settings-general.php', 'settings-seo.php', 'settings-tags.php', 'settings-email.php',
     'settings-tasks.php', 'settings-ojt.php', 'settings-support.php', 'settings-students.php',
     'settings-miscellaneous.php', 'settings-localization.php',

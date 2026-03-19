@@ -4,6 +4,65 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+if (!function_exists('biotern_auth_cookie_key')) {
+    function biotern_auth_cookie_key()
+    {
+        $appKey = getenv('APP_KEY');
+        if ($appKey !== false && trim((string)$appKey) !== '') {
+            return (string)$appKey;
+        }
+
+        $dbPassKey = defined('DB_PASS') ? (string)DB_PASS : '';
+        if ($dbPassKey !== '') {
+            return $dbPassKey;
+        }
+
+        return 'biotern-fallback-auth-key';
+    }
+}
+
+if (!function_exists('biotern_auth_cookie_options')) {
+    function biotern_auth_cookie_options($expires)
+    {
+        $isHttps = (!empty($_SERVER['HTTPS']) && strtolower((string)$_SERVER['HTTPS']) !== 'off')
+            || ((int)($_SERVER['SERVER_PORT'] ?? 0) === 443)
+            || (strtolower((string)($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https');
+
+        return [
+            'expires' => (int)$expires,
+            'path' => '/',
+            'secure' => $isHttps,
+            'httponly' => true,
+            'samesite' => 'Lax',
+        ];
+    }
+}
+
+if (!function_exists('biotern_set_auth_cookie')) {
+    function biotern_set_auth_cookie($userId)
+    {
+        $userId = (int)$userId;
+        if ($userId <= 0) {
+            return;
+        }
+
+        $issuedAt = time();
+        $expiresAt = $issuedAt + (60 * 60 * 12);
+        $payload = $userId . '|' . $issuedAt . '|' . $expiresAt;
+        $signature = hash_hmac('sha256', $payload, biotern_auth_cookie_key());
+        $token = base64_encode($payload . '|' . $signature);
+        setcookie('biotern_auth', $token, biotern_auth_cookie_options($expiresAt));
+    }
+}
+
+if (!function_exists('biotern_clear_auth_cookie')) {
+    function biotern_clear_auth_cookie()
+    {
+        setcookie('biotern_auth', '', biotern_auth_cookie_options(time() - 3600));
+        unset($_COOKIE['biotern_auth']);
+    }
+}
+
 if (isset($_GET['logout']) && (string)$_GET['logout'] === '1') {
     $_SESSION = [];
     if (ini_get('session.use_cookies')) {
@@ -12,6 +71,7 @@ if (isset($_GET['logout']) && (string)$_GET['logout'] === '1') {
     }
     session_destroy();
     session_start();
+    biotern_clear_auth_cookie();
 }
 
 $dbHost = defined('DB_HOST') ? DB_HOST : '127.0.0.1';
@@ -79,9 +139,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($identifier === '' || $password === '') {
         $login_error = 'Please enter your username/email and password.';
     } else {
-        $mysqli = new mysqli($dbHost, $dbUser, $dbPass, $dbName, $dbPort);
+        $mysqli = null;
+        if (isset($conn) && $conn instanceof mysqli && !$conn->connect_errno) {
+            $mysqli = $conn;
+        } else {
+            $mysqli = mysqli_init();
+            if ($mysqli instanceof mysqli) {
+                $mysqli->options(MYSQLI_OPT_CONNECT_TIMEOUT, 5);
+                @mysqli_real_connect($mysqli, $dbHost, $dbUser, $dbPass, $dbName, $dbPort);
+            } else {
+                $mysqli = @new mysqli($dbHost, $dbUser, $dbPass, $dbName, $dbPort);
+            }
+        }
+
         if ($mysqli->connect_errno) {
             $login_error = 'Database connection failed.';
+            error_log('BioTern login DB connect failed. host=' . $dbHost . ' db=' . $dbName . ' port=' . $dbPort . ' error=' . $mysqli->connect_error);
         } else {
             $mysqli->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS application_status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'approved'");
             $mysqli->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS application_submitted_at DATETIME NULL");
@@ -118,7 +191,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 } elseif ((int)($user['is_active'] ?? 0) !== 1) {
                     $login_error = 'Your account is inactive.';
                     log_login_attempt($mysqli, (int)$user['id'], $identifier, (string)($user['role'] ?? ''), 'failed', 'inactive_account', $client_ip, $client_user_agent);
-                } elseif (!password_verify($password, (string)$user['password'])) {
+                } else {
+                    $storedPassword = (string)($user['password'] ?? '');
+                    $passwordMatches = password_verify($password, $storedPassword);
+                    $usedLegacyPlaintext = false;
+
+                    if (!$passwordMatches && $storedPassword !== '' && hash_equals($storedPassword, $password)) {
+                        $passwordMatches = true;
+                        $usedLegacyPlaintext = true;
+                    }
+
+                    if ($passwordMatches && $usedLegacyPlaintext) {
+                        $rehash = password_hash($password, PASSWORD_DEFAULT);
+                        if ($rehash !== false) {
+                            $rehashStmt = $mysqli->prepare("UPDATE users SET password = ? WHERE id = ? LIMIT 1");
+                            if ($rehashStmt) {
+                                $rehashUserId = (int)$user['id'];
+                                $rehashStmt->bind_param('si', $rehash, $rehashUserId);
+                                $rehashStmt->execute();
+                                $rehashStmt->close();
+                            }
+                        }
+                    }
+
+                    if (!$passwordMatches) {
                     $login_error = 'Invalid username/email or password.';
                     log_login_attempt($mysqli, (int)$user['id'], $identifier, (string)($user['role'] ?? ''), 'failed', 'invalid_credentials', $client_ip, $client_user_agent);
                 } elseif (strtolower((string)($user['application_status'] ?? 'approved')) === 'pending') {
@@ -128,6 +224,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $login_error = 'Your registration was rejected. Please contact an administrator.';
                     log_login_attempt($mysqli, (int)$user['id'], $identifier, (string)($user['role'] ?? ''), 'failed', 'rejected_application', $client_ip, $client_user_agent);
                 } else {
+                    session_regenerate_id(true);
                     $_SESSION['user_id'] = (int)$user['id'];
                     $_SESSION['name'] = (string)$user['name'];
                     $_SESSION['username'] = (string)$user['username'];
@@ -135,17 +232,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['role'] = (string)$user['role'];
                     $_SESSION['profile_picture'] = (string)($user['profile_picture'] ?? '');
                     $_SESSION['logged_in'] = true;
+                    biotern_set_auth_cookie((int)$user['id']);
 
                     log_login_attempt($mysqli, (int)$user['id'], $identifier, (string)($user['role'] ?? ''), 'success', 'login_success', $client_ip, $client_user_agent);
 
                     $target = $next !== '' ? ($route_prefix . $next) : ($route_prefix . 'homepage.php');
+                    session_write_close();
                     header('Location: ' . $target);
                     exit;
+                }
                 }
             } else {
                 $login_error = 'Login query preparation failed.';
             }
-            $mysqli->close();
+            if (!isset($conn) || !$conn instanceof mysqli || $mysqli !== $conn) {
+                $mysqli->close();
+            }
         }
     }
 }

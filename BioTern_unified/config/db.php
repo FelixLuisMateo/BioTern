@@ -1,4 +1,8 @@
 <?php
+if (function_exists('mysqli_report')) {
+    mysqli_report(MYSQLI_REPORT_OFF);
+}
+
 // Database configuration
 if (!function_exists('biotern_env_first')) {
     function biotern_env_first(array $keys, $default = null)
@@ -29,7 +33,7 @@ if (!function_exists('biotern_mysql_url_parts')) {
             'pass' => null,
         ];
 
-        $url = biotern_env_first(['MYSQL_URL'], '');
+        $url = biotern_env_first(['DATABASE_URL', 'MYSQL_URL', 'DB_URL'], '');
         if (!is_string($url) || trim($url) === '') {
             return $parts;
         }
@@ -64,21 +68,44 @@ if (!function_exists('biotern_mysql_url_parts')) {
 
 $biotern_mysql_url = biotern_mysql_url_parts();
 
+$envHost = (string)biotern_env_first(
+    ['DB_HOST', 'DB_HOST_ONLINE', 'MYSQLHOST', 'RAILWAY_MYSQL_HOST'],
+    (string)($biotern_mysql_url['host'] ?? '127.0.0.1')
+);
+$envUser = (string)biotern_env_first(
+    ['DB_USER', 'DB_USERNAME', 'DB_USERNAME_ONLINE', 'MYSQLUSER', 'RAILWAY_MYSQL_USER'],
+    (string)($biotern_mysql_url['user'] ?? 'root')
+);
+$envPass = (string)biotern_env_first(
+    ['DB_PASS', 'DB_PASSWORD', 'DB_PASSWORD_ONLINE', 'MYSQLPASSWORD', 'RAILWAY_MYSQL_PASSWORD'],
+    (string)($biotern_mysql_url['pass'] ?? '')
+);
+$envName = (string)biotern_env_first(
+    ['DB_NAME', 'DB_DATABASE', 'DB_DATABASE_ONLINE', 'MYSQLDATABASE', 'RAILWAY_MYSQL_DATABASE'],
+    (string)($biotern_mysql_url['database'] ?? 'biotern_db')
+);
+$envPort = (int)biotern_env_first(
+    ['DB_PORT', 'DB_PORT_ONLINE', 'MYSQLPORT', 'RAILWAY_MYSQL_PORT'],
+    (string)($biotern_mysql_url['port'] ?? 3306)
+);
+if ($envPort <= 0) {
+    $envPort = 3306;
+}
+
 if (!defined('DB_HOST')) {
-    define('DB_HOST', (string)biotern_env_first(['DB_HOST', 'DB_HOST_ONLINE'], $biotern_mysql_url['host'] ?? '127.0.0.1'));
+    define('DB_HOST', $envHost);
 }
 if (!defined('DB_USER')) {
-    define('DB_USER', (string)biotern_env_first(['DB_USER', 'DB_USERNAME', 'DB_USERNAME_ONLINE'], $biotern_mysql_url['user'] ?? 'root'));
+    define('DB_USER', $envUser);
 }
 if (!defined('DB_PASS')) {
-    define('DB_PASS', (string)biotern_env_first(['DB_PASS', 'DB_PASSWORD', 'DB_PASSWORD_ONLINE'], $biotern_mysql_url['pass'] ?? ''));
+    define('DB_PASS', $envPass);
 }
 if (!defined('DB_NAME')) {
-    define('DB_NAME', (string)biotern_env_first(['DB_NAME', 'DB_DATABASE', 'DB_DATABASE_ONLINE'], $biotern_mysql_url['database'] ?? 'biotern_db'));
+    define('DB_NAME', $envName);
 }
 if (!defined('DB_PORT')) {
-    $dbPort = biotern_env_first(['DB_PORT', 'DB_PORT_ONLINE'], $biotern_mysql_url['port'] ?? 3306);
-    define('DB_PORT', (int)$dbPort);
+    define('DB_PORT', $envPort);
 }
 
 @ini_set('mysqli.default_host', (string)DB_HOST);
@@ -87,11 +114,31 @@ if (!defined('DB_PORT')) {
 @ini_set('mysqli.default_port', (string)DB_PORT);
 
 // Create connection
-$conn = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME, DB_PORT);
+$conn = null;
+$db_connect_error = '';
+
+try {
+    $mysqli = mysqli_init();
+    if ($mysqli instanceof mysqli) {
+        @mysqli_options($mysqli, MYSQLI_OPT_CONNECT_TIMEOUT, 8);
+        if (@$mysqli->real_connect(DB_HOST, DB_USER, DB_PASS, DB_NAME, (int)DB_PORT)) {
+            $conn = $mysqli;
+        } else {
+            $db_connect_error = (string)($mysqli->connect_error ?: 'Unknown database connection error');
+        }
+    } else {
+        $conn = @new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME, (int)DB_PORT);
+    }
+} catch (Throwable $e) {
+    $db_connect_error = $e->getMessage();
+}
 
 // Check connection
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
+if (!($conn instanceof mysqli) || $conn->connect_error) {
+    $safeHost = DB_HOST !== '' ? DB_HOST : 'unknown-host';
+    $safeDb = DB_NAME !== '' ? DB_NAME : 'unknown-db';
+    $safeError = $db_connect_error !== '' ? $db_connect_error : (string)($conn instanceof mysqli ? $conn->connect_error : 'Unknown database connection error');
+    die('Database connection failed. Please verify DB env variables (DB_HOST/DB_USER/DB_PASS/DB_NAME/DB_PORT or MYSQL*/RAILWAY_MYSQL* vars). Current host=' . $safeHost . ', db=' . $safeDb . '. Error: ' . $safeError);
 }
 
 // Set charset to utf8mb4
