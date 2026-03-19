@@ -204,6 +204,7 @@ if (!function_exists('nav_page_href')) {
                         <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'settings-ojt.php'); ?>">Leads</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'settings-support.php'); ?>">Support</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'settings-students.php'); ?>">Students</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'import-sql.php'); ?>">Data Transfer</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'settings-miscellaneous.php'); ?>">Miscellaneous</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'theme-customizer.php'); ?>">Theme Customizer</a></li>
                     </ul>

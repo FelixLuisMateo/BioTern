@@ -164,6 +164,7 @@ $map = [
   'setup_db.php' => 'tools/setup_db.php',
   'test_data.php' => 'tools/test_data.php',
   'test_db.php' => 'tools/test_db.php',
+  'import-sql.php' => 'tools/import-sql.php',
   'update_remaining_hours.php' => 'tools/update_remaining_hours.php',
 ];
 
@@ -352,6 +353,7 @@ if ($is_logged_in) {
   ];
   $system_files = [
     'auth-register-creative.php', 'users.php', 'create_admin.php',
+    'import-sql.php',
     'settings-general.php', 'settings-seo.php', 'settings-tags.php', 'settings-email.php',
     'settings-tasks.php', 'settings-ojt.php', 'settings-support.php', 'settings-students.php',
     'settings-miscellaneous.php', 'settings-localization.php',
