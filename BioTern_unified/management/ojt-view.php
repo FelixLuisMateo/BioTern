@@ -1158,6 +1158,8 @@ $session_profile_picture_url = $session_profile_picture !== '' ? $session_profil
     <!--! BEGIN: Custom CSS-->
     <script>try{var s=localStorage.getItem('app-skin')||localStorage.getItem('app_skin')||localStorage.getItem('theme'); if(s&&s.indexOf('dark')!==-1)document.documentElement.classList.add('app-skin-dark');}catch(e){};</script>
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_base); ?>/css/theme.min.css">
+    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_base); ?>/css/layout-shared-overrides.css">
+    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_base); ?>/css/management-ojt-view-page.css">
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_base); ?>/css/datepicker-global.css">
     <style>
         body { background: #f5f7fb; }
