@@ -35,12 +35,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['message'])) {
         }
 
         $sender_display = trim((string)($_SESSION['name'] ?? $_SESSION['username'] ?? 'Someone'));
+        $notification_preview = preg_replace('/\s+/', ' ', strip_tags($msg));
+        $notification_preview = trim((string)$notification_preview);
+        if ($notification_preview === '') {
+            $notification_preview = 'You have a new message.';
+        } elseif (strlen($notification_preview) > 160) {
+            $notification_preview = substr($notification_preview, 0, 157) . '...';
+        }
         biotern_notify(
             $conn,
             $receiver_id,
-            'New message',
-            $sender_display . ' sent you a message.',
-            'message'
+            'New message from ' . $sender_display,
+            $notification_preview,
+            'message',
+            'apps-chat.php?user_id=' . $current_user_id
         );
     } elseif ($msg !== '' && $receiver_id <= 0) {
         $messages[] = [

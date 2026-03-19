@@ -87,6 +87,9 @@ $map = [
   'attendance.php' => 'pages/attendance.php',
   'analytics.php' => 'pages/analytics.php',
   'homepage.php' => 'pages/homepage.php',
+  'profile-details.php' => 'pages/profile-details.php',
+  'activity-feed.php' => 'pages/activity-feed.php',
+  'notifications.php' => 'pages/notifications.php',
   'student-profile.php' => 'pages/student-profile.php',
   'student-dtr.php' => 'pages/student-dtr.php',
   'attendance-corrections.php' => 'pages/attendance-corrections.php',
@@ -133,7 +136,6 @@ $map = [
 
   'apps-chat.php' => 'apps/apps-chat.php',
   'apps-email.php' => 'apps/apps-email.php',
-  'apps-tasks.php' => 'apps/apps-tasks.php',
   'apps-notes.php' => 'apps/apps-notes.php',
   'apps-storage.php' => 'apps/apps-storage.php',
   'apps-calendar.php' => 'apps/apps-calendar.php',
@@ -294,7 +296,7 @@ if ($is_logged_in) {
     'supervisors.php', 'supervisors-create.php', 'supervisors-edit.php',
   ];
   $workspace_files = [
-    'apps-chat.php', 'apps-email.php', 'apps-tasks.php', 'apps-notes.php', 'apps-storage.php', 'apps-calendar.php',
+    'apps-chat.php', 'apps-email.php', 'apps-notes.php', 'apps-storage.php', 'apps-calendar.php',
   ];
   $system_files = [
     'auth-register-creative.php', 'users.php', 'create_admin.php',
@@ -320,6 +322,9 @@ if ($is_logged_in) {
   if ($current_role === 'student') {
     $student_allowed_files = [
       'homepage.php',
+      'profile-details.php',
+      'activity-feed.php',
+      'notifications.php',
       'student-profile.php',
       'student-dtr.php',
       'document_application.php',

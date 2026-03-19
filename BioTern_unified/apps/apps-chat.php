@@ -1367,11 +1367,21 @@ if ($requestMethod === 'POST' && (string)($_POST['action'] ?? '') === 'send-mess
                     }
                     if (function_exists('biotern_notify')) {
                         $senderDisplay = $currentUserName !== '' ? $currentUserName : 'A user';
+                        $notificationPreview = preg_replace('/\s+/', ' ', strip_tags($draftMessage));
+                        $notificationPreview = trim((string)$notificationPreview);
+                        if ($notificationPreview === '' && $uploadedMediaPath !== '') {
+                            $notificationPreview = 'Sent an attachment.';
+                        }
+                        if ($notificationPreview === '') {
+                            $notificationPreview = 'You have a new chat message.';
+                        } elseif (strlen($notificationPreview) > 160) {
+                            $notificationPreview = substr($notificationPreview, 0, 157) . '...';
+                        }
                         biotern_notify(
                             $conn,
                             $selectedUserId,
-                            'New chat message',
-                            $senderDisplay . ' sent you a message.',
+                            'New chat message from ' . $senderDisplay,
+                            $notificationPreview,
                             'message',
                             'apps-chat.php?user_id=' . $currentUserId
                         );

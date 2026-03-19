@@ -1,5 +1,8 @@
-﻿<?php
+<?php
 require_once dirname(__DIR__) . '/config/db.php';
+http_response_code(404);
+exit('Not found');
+
 $page_title = 'BioTern || Tasks';
 include 'includes/header.php';
 ?>
