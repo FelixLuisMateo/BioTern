@@ -348,6 +348,16 @@ body { background: #f5f7fb; }
             .filter-form { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
             .nxl-content { padding-left: 10px; padding-right: 10px; }
         }
+        @media (max-width: 991.98px) {
+            body.mobile-bottom-nav .nxl-content {
+                padding-top: 0 !important;
+            }
+
+            body.mobile-bottom-nav .nxl-content > .page-header,
+            body.mobile-bottom-nav .app-ojt-page-header {
+                margin-top: 0 !important;
+            }
+        }
         @media (max-width: 575.98px) {
             .page-header-right,
             .app-ojt-page-header-right { grid-template-columns: 1fr; }

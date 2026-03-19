@@ -1,5 +1,5 @@
 <?php
-header('Location: settings-general.php');
+header('Location: settings-support.php');
 exit;
 
 

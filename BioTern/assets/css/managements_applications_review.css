@@ -280,6 +280,18 @@
     overflow-x: hidden;
 }
 
+.app-applications-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.app-applications-actions-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
 .apps-review-table td[data-label="Status"],
 .apps-review-table th:nth-child(3),
 .apps-review-table td[data-label="Hours (Int/Ext)"],
@@ -451,5 +463,45 @@
         grid-template-columns: 96px minmax(0, 1fr);
         gap: 8px;
         padding: 8px;
+    }
+
+    .app-applications-header-actions {
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .app-applications-actions-toggle {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .app-applications-header-actions .app-applications-actions-panel {
+        position: static !important;
+        width: 100% !important;
+        height: auto !important;
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        transform: none !important;
+        margin-top: 0.5rem;
+    }
+
+    .app-applications-header-actions .app-applications-actions-panel.collapse:not(.show) {
+        display: none !important;
+    }
+
+    .app-applications-header-actions .app-applications-actions-panel.collapse.show {
+        display: block !important;
+    }
+
+    .app-applications-header-actions .app-applications-actions-panel .page-header-right-items-wrapper {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 0;
+    }
+
+    .app-applications-header-actions .app-applications-actions-panel .btn {
+        width: 100%;
     }
 }

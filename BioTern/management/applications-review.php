@@ -408,7 +408,7 @@ include 'includes/header.php';
 <main class="nxl-container">
     <div class="nxl-content">
 <div class="apps-review-shell">
-        <div class="page-header">
+        <header class="page-header app-applications-header">
             <div class="page-header-left d-flex align-items-center">
                 <div class="page-header-title">
                     <h5 class="m-b-10">Applications Review</h5>
@@ -419,13 +419,21 @@ include 'includes/header.php';
                     <li class="breadcrumb-item">Applications Review</li>
                 </ul>
             </div>
-            <div class="page-header-right ms-auto">
-                <div class="d-flex align-items-center gap-2">
-                    <button type="submit" form="applicationsReviewFilters" class="btn btn-sm btn-primary">Apply</button>
-                    <a href="applications-review.php" class="btn btn-sm btn-light-brand">Reset</a>
+            <div class="page-header-right ms-auto app-applications-header-actions">
+                <div class="d-flex d-md-none align-items-center">
+                    <button type="button" class="btn btn-light-brand app-applications-actions-toggle" data-bs-toggle="collapse" data-bs-target="#applicationsReviewActionsCollapse" aria-expanded="false" aria-controls="applicationsReviewActionsCollapse">
+                        <i class="feather-align-right me-2"></i>
+                        <span>Actions</span>
+                    </button>
+                </div>
+                <div class="page-header-right-items collapse d-md-flex app-applications-actions-panel" id="applicationsReviewActionsCollapse">
+                    <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
+                        <button type="submit" form="applicationsReviewFilters" class="btn btn-sm btn-primary">Apply</button>
+                        <a href="applications-review.php" class="btn btn-sm btn-light-brand">Reset</a>
+                    </div>
                 </div>
             </div>
-        </div>
+        </header>
 
         <div class="main-content">
             <?php if ($flashMessage !== ''): ?>

@@ -180,7 +180,7 @@ html.theme-preload .nxl-navigation .nxl-item.nxl-hasmenu.nxl-trigger > .nxl-subm
 
   html.minimenu .nxl-navigation:hover {
     width: 280px !important;
-    z-index: 1027;
+    z-index: 5001;
   }
 
   html.minimenu .nxl-navigation:hover .navbar-wrapper {
@@ -196,5 +196,10 @@ html.theme-preload .nxl-navigation .nxl-item.nxl-hasmenu.nxl-trigger > .nxl-subm
     overflow-x: hidden !important;
     overflow-y: auto !important;
     overscroll-behavior: contain;
+  }
+
+  /* Nudge submenu arrows when the mini sidebar is hovered/expanded. */
+  html.minimenu .nxl-navigation:hover .nxl-arrow {
+    transform: translateX(6px);
   }
 }

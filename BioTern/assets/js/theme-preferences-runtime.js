@@ -32,6 +32,21 @@
     hydrateThemeRuntimeConfigFromBody();
     var serverPrefs = window.__bioternThemePrefs || {};
 
+    function loadLocalThemePrefs() {
+      try {
+        var stored = localStorage.getItem("biotern_theme_preferences");
+        if (!stored) return null;
+        var parsed = JSON.parse(stored);
+        if (parsed && typeof parsed === "object") return parsed;
+      } catch (e) {}
+      return null;
+    }
+
+    var localPrefs = loadLocalThemePrefs();
+    if (localPrefs) {
+      serverPrefs = Object.assign({}, serverPrefs, localPrefs);
+    }
+
     function normalizeMenuPreference(value) {
       return value === "mini" || value === "expanded" ? value : "auto";
     }
@@ -314,13 +329,43 @@
       return next;
     }
 
+    function pickThemePayload(payload) {
+      var src = payload || {};
+      return {
+        skin: src.skin,
+        menu: src.menu,
+        font: src.font,
+        navigation: src.navigation,
+        header: src.header,
+        scheme: src.scheme,
+      };
+    }
+
+    function persistThemeCookie(payload) {
+      try {
+        var jsonValue = JSON.stringify(payload || {});
+        var cookieValue = encodeURIComponent(jsonValue);
+        document.cookie =
+          "biotern_theme_preferences=" +
+          cookieValue +
+          "; path=/; max-age=" +
+          60 * 60 * 24 * 30 +
+          "; samesite=Lax";
+        localStorage.setItem("biotern_theme_preferences", jsonValue);
+      } catch (e) {}
+    }
+
     function saveThemePreferences(payload) {
+      var cleanPayload = pickThemePayload(payload);
+      persistThemeCookie(cleanPayload);
+      serverPrefs = Object.assign({}, serverPrefs, cleanPayload);
       if (!window.fetch) return Promise.resolve({ ok: false });
       var endpoint = window.__bioternThemeApi || "api/theme-customizer.php";
       return fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload || {}),
+        credentials: "same-origin",
+        body: JSON.stringify(cleanPayload),
       })
         .then(function (response) {
           if (!response || !response.ok) {
@@ -529,22 +574,42 @@
 
       if (navLightRadio && pageNavigation) {
         navLightRadio.addEventListener("change", function () {
-          if (navLightRadio.checked) pageNavigation.value = "light";
+          if (navLightRadio.checked) {
+            pageNavigation.value = "light";
+            applyNavigationMode("light");
+            syncCustomizerInputs();
+            scheduleAutoSave();
+          }
         });
       }
       if (navDarkRadio && pageNavigation) {
         navDarkRadio.addEventListener("change", function () {
-          if (navDarkRadio.checked) pageNavigation.value = "dark";
+          if (navDarkRadio.checked) {
+            pageNavigation.value = "dark";
+            applyNavigationMode("dark");
+            syncCustomizerInputs();
+            scheduleAutoSave();
+          }
         });
       }
       if (headerLightRadio && pageHeader) {
         headerLightRadio.addEventListener("change", function () {
-          if (headerLightRadio.checked) pageHeader.value = "light";
+          if (headerLightRadio.checked) {
+            pageHeader.value = "light";
+            applyHeaderMode("light");
+            syncCustomizerInputs();
+            scheduleAutoSave();
+          }
         });
       }
       if (headerDarkRadio && pageHeader) {
         headerDarkRadio.addEventListener("change", function () {
-          if (headerDarkRadio.checked) pageHeader.value = "dark";
+          if (headerDarkRadio.checked) {
+            pageHeader.value = "dark";
+            applyHeaderMode("dark");
+            syncCustomizerInputs();
+            scheduleAutoSave();
+          }
         });
       }
     }
@@ -635,38 +700,85 @@
       return currentSkinValue();
     }
 
+    function resolveSelectedNavigation() {
+      var navLightRadio = document.getElementById("theme-page-navigation-light");
+      var navDarkRadio = document.getElementById("theme-page-navigation-dark");
+      if (navDarkRadio && navDarkRadio.checked) return "dark";
+      if (navLightRadio && navLightRadio.checked) return "light";
+      if (pageNavigation && pageNavigation.value) return pageNavigation.value;
+      return currentNavigationValue();
+    }
+
+    function resolveSelectedHeader() {
+      var headerLightRadio = document.getElementById("theme-page-header-light");
+      var headerDarkRadio = document.getElementById("theme-page-header-dark");
+      if (headerDarkRadio && headerDarkRadio.checked) return "dark";
+      if (headerLightRadio && headerLightRadio.checked) return "light";
+      if (pageHeader && pageHeader.value) return pageHeader.value;
+      return currentHeaderValue();
+    }
+
+    var autoSaveTimer = null;
+
+    function applyAndSavePreferences(showToast) {
+      var skin = resolveSelectedSkin(pageSkinLight, pageSkinDark);
+      var menu = normalizeMenuPreference(pageMenu ? pageMenu.value : getSavedMenuMode());
+      var font = pageFont ? pageFont.value : currentFontValue();
+      var scheme = pageScheme ? pageScheme.value : currentSchemeValue();
+      var navigation = resolveSelectedNavigation();
+      var header = resolveSelectedHeader();
+      if (pageNavigation) pageNavigation.value = navigation;
+      if (pageHeader) pageHeader.value = header;
+      runtimePrefs.menu = menu;
+      setDark(skin === "dark", false);
+      applyMenuMode(menu);
+      font = applyFont(font);
+      scheme = applyScheme(scheme);
+      navigation = applyNavigationMode(navigation);
+      header = applyHeaderMode(header);
+      saveThemePreferences({
+        skin: skin,
+        menu: menu,
+        font: font,
+        scheme: scheme,
+        navigation: navigation,
+        header: header,
+      }).then(function (result) {
+        if (result && result.ok) {
+          if (showToast) {
+            showThemeToast("success", "Theme preferences saved");
+          }
+        } else {
+          showThemeToast("error", "Unable to save preferences");
+        }
+      });
+      syncCustomizerInputs();
+    }
+
+    function scheduleAutoSave() {
+      if (autoSaveTimer) {
+        clearTimeout(autoSaveTimer);
+      }
+      autoSaveTimer = setTimeout(function () {
+        applyAndSavePreferences(false);
+      }, 450);
+    }
+
+    function bindAutoSaveInputs() {
+      var root = document.querySelector(".theme-customizer-page");
+      if (!root) return;
+      var handler = function (event) {
+        var target = event ? event.target : null;
+        if (!target || target.id === "theme-page-reset") return;
+        scheduleAutoSave();
+      };
+      root.addEventListener("change", handler);
+      root.addEventListener("input", handler);
+    }
+
     if (pageSave) {
       pageSave.addEventListener("click", function () {
-        var skin = resolveSelectedSkin(pageSkinLight, pageSkinDark);
-        var menu = normalizeMenuPreference(pageMenu ? pageMenu.value : getSavedMenuMode());
-        var font = pageFont ? pageFont.value : currentFontValue();
-        var scheme = pageScheme ? pageScheme.value : currentSchemeValue();
-        var navigation = pageNavigation
-          ? pageNavigation.value
-          : currentNavigationValue();
-        var header = pageHeader ? pageHeader.value : currentHeaderValue();
-        runtimePrefs.menu = menu;
-        setDark(skin === "dark", false);
-        applyMenuMode(menu);
-        font = applyFont(font);
-        scheme = applyScheme(scheme);
-        navigation = applyNavigationMode(navigation);
-        header = applyHeaderMode(header);
-        saveThemePreferences({
-          skin: skin,
-          menu: menu,
-          font: font,
-          scheme: scheme,
-          navigation: navigation,
-          header: header,
-        }).then(function (result) {
-          if (result && result.ok) {
-            showThemeToast("success", "Theme preferences saved");
-          } else {
-            showThemeToast("error", "Unable to save preferences");
-          }
-        });
-        syncCustomizerInputs();
+        applyAndSavePreferences(true);
       });
     }
 
@@ -675,6 +787,7 @@
         var scheme = pageScheme.value || "blue";
         applyScheme(scheme);
         syncCustomizerInputs();
+        scheduleAutoSave();
       });
     }
 
@@ -683,6 +796,7 @@
         if (!pageSkinLight.checked) return;
         setDark(false, false);
         syncCustomizerInputs();
+        scheduleAutoSave();
       });
     }
 
@@ -691,6 +805,43 @@
         if (!pageSkinDark.checked) return;
         setDark(true, false);
         syncCustomizerInputs();
+        scheduleAutoSave();
+      });
+    }
+
+    if (pageMenu) {
+      pageMenu.addEventListener("change", function () {
+        var menu = normalizeMenuPreference(pageMenu.value);
+        applyMenuMode(menu);
+        syncCustomizerInputs();
+        scheduleAutoSave();
+      });
+    }
+
+    if (pageFont) {
+      pageFont.addEventListener("change", function () {
+        var font = pageFont.value || "default";
+        applyFont(font);
+        syncCustomizerInputs();
+        scheduleAutoSave();
+      });
+    }
+
+    if (pageNavigation) {
+      pageNavigation.addEventListener("change", function () {
+        var navigation = pageNavigation.value || currentNavigationValue();
+        applyNavigationMode(navigation);
+        syncCustomizerInputs();
+        scheduleAutoSave();
+      });
+    }
+
+    if (pageHeader) {
+      pageHeader.addEventListener("change", function () {
+        var header = pageHeader.value || currentHeaderValue();
+        applyHeaderMode(header);
+        syncCustomizerInputs();
+        scheduleAutoSave();
       });
     }
 
@@ -727,6 +878,8 @@
         syncCustomizerInputs();
       });
     }
+
+    bindAutoSaveInputs();
   }
 
   if (document.readyState === "loading") {
