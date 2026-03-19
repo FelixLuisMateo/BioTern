@@ -3112,21 +3112,73 @@ include 'includes/header.php';
     }
 
     .msg-reply-quote {
-        border-left: 3px solid var(--chat-header-border);
-        background: rgba(148, 163, 184, 0.14);
-        border-radius: 8px;
-        padding: 0.35rem 0.5rem;
-        margin-bottom: 0.4rem;
-        font-size: 0.8rem;
-        color: var(--chat-header-sub-color);
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.14rem;
+        max-width: 100%;
+        border: 1px solid color-mix(in srgb, var(--chat-header-border) 42%, transparent);
+        background: color-mix(in srgb, var(--chat-header-bg) 78%, transparent);
+        box-shadow: none;
+        border-radius: 7px;
+        padding: 0.3rem 0.42rem 0.32rem 0.6rem;
+        margin-bottom: 0.36rem;
+        font-size: 0.73rem;
+        line-height: 1.24;
+        color: var(--chat-header-name-color);
+        overflow: hidden;
+    }
+
+    .msg-reply-quote::before {
+        content: '';
+        position: absolute;
+        top: 0.26rem;
+        bottom: 0.26rem;
+        left: 0.24rem;
+        width: 2px;
+        border-radius: 999px;
+        background: linear-gradient(180deg, #38bdf8 0%, #2563eb 100%);
+    }
+
+    .msg-row.own .msg-reply-quote {
+        border-color: color-mix(in srgb, var(--chat-own-bg) 30%, rgba(255, 255, 255, 0.74));
+        background: color-mix(in srgb, var(--chat-own-bg) 10%, #ffffff 90%);
+        box-shadow: none;
+    }
+
+    .msg-row.own .msg-reply-quote::before {
+        background: linear-gradient(180deg, #dbeafe 0%, #ffffff 100%);
     }
 
     .msg-reply-quote strong {
+        display: inline-flex;
+        align-items: center;
+        max-width: 100%;
+        flex-shrink: 0;
+        font-size: 0.58rem;
+        color: var(--chat-header-sub-color);
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        margin: 0;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        opacity: 0.86;
+    }
+
+    .msg-reply-quote-text {
         display: block;
-        font-size: 0.72rem;
+        min-width: 0;
+        width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
         color: var(--chat-header-name-color);
-        margin-bottom: 0.1rem;
-        font-weight: 700;
+        font-size: 0.75rem;
+        font-weight: 600;
+        opacity: 0.93;
     }
 
     .msg-action-menu {
@@ -4134,7 +4186,7 @@ include 'includes/header.php';
                             <div class="msg-row<?php echo !empty($message['is_own']) ? ' own' : ''; ?><?php echo $hasReaction ? ' has-reaction' : ''; ?>">
                                 <div class="msg-bubble<?php echo !empty($message['media_path']) ? ' has-media' : ''; ?>">
                                     <?php if ((string)($message['reply_preview'] ?? '') !== ''): ?>
-                                        <div class="msg-reply-quote"><strong><?php echo chat_esc((string)($message['reply_author'] ?? '')); ?></strong><?php echo chat_esc((string)$message['reply_preview']); ?></div>
+                                        <div class="msg-reply-quote"><strong><?php echo chat_esc((string)($message['reply_author'] ?? '')); ?></strong><span class="msg-reply-quote-text"><?php echo chat_esc((string)$message['reply_preview']); ?></span></div>
                                     <?php endif; ?>
                                     <?php if ((string)$message['media_type'] === 'image'): ?>
                                         <img src="<?php echo chat_esc((string)$message['media_path']); ?>" class="msg-media" alt="image" data-media-viewer="image">
@@ -5770,7 +5822,7 @@ include 'includes/header.php';
                 }
                 html += '<div class="msg-bubble ' + grp + (msg.media_path ? ' has-media' : '') + (isUnsent ? ' is-unsent' : '') + pinnedClass + '"' + bubbleTitle + '>';
                 if (msg.reply_preview && !isUnsent) {
-                    html += '<div class="msg-reply-quote"><strong>' + escapeHtml(msg.reply_author || '') + '</strong>' + escapeHtml(msg.reply_preview) + '</div>';
+                    html += '<div class="msg-reply-quote"><strong>' + escapeHtml(msg.reply_author || '') + '</strong><span class="msg-reply-quote-text">' + escapeHtml(msg.reply_preview) + '</span></div>';
                 }
                 html += mediaHtml;
                 if (displayMsg) { html += nl2br(displayMsg); }
