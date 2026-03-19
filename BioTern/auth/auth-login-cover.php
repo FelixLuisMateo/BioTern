@@ -79,9 +79,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($identifier === '' || $password === '') {
         $login_error = 'Please enter your username/email and password.';
     } else {
-        $mysqli = new mysqli($dbHost, $dbUser, $dbPass, $dbName, $dbPort);
+        $mysqli = null;
+        if (isset($conn) && $conn instanceof mysqli && !$conn->connect_errno) {
+            $mysqli = $conn;
+        } else {
+            $mysqli = mysqli_init();
+            if ($mysqli instanceof mysqli) {
+                $mysqli->options(MYSQLI_OPT_CONNECT_TIMEOUT, 5);
+                @mysqli_real_connect($mysqli, $dbHost, $dbUser, $dbPass, $dbName, $dbPort);
+            } else {
+                $mysqli = @new mysqli($dbHost, $dbUser, $dbPass, $dbName, $dbPort);
+            }
+        }
+
         if ($mysqli->connect_errno) {
             $login_error = 'Database connection failed.';
+            error_log('BioTern login DB connect failed. host=' . $dbHost . ' db=' . $dbName . ' port=' . $dbPort . ' error=' . $mysqli->connect_error);
         } else {
             $mysqli->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS application_status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'approved'");
             $mysqli->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS application_submitted_at DATETIME NULL");
@@ -118,7 +131,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 } elseif ((int)($user['is_active'] ?? 0) !== 1) {
                     $login_error = 'Your account is inactive.';
                     log_login_attempt($mysqli, (int)$user['id'], $identifier, (string)($user['role'] ?? ''), 'failed', 'inactive_account', $client_ip, $client_user_agent);
-                } elseif (!password_verify($password, (string)$user['password'])) {
+                } else {
+                    $storedPassword = (string)($user['password'] ?? '');
+                    $passwordMatches = password_verify($password, $storedPassword);
+                    $usedLegacyPlaintext = false;
+
+                    if (!$passwordMatches && $storedPassword !== '' && hash_equals($storedPassword, $password)) {
+                        $passwordMatches = true;
+                        $usedLegacyPlaintext = true;
+                    }
+
+                    if ($passwordMatches && $usedLegacyPlaintext) {
+                        $rehash = password_hash($password, PASSWORD_DEFAULT);
+                        if ($rehash !== false) {
+                            $rehashStmt = $mysqli->prepare("UPDATE users SET password = ? WHERE id = ? LIMIT 1");
+                            if ($rehashStmt) {
+                                $rehashUserId = (int)$user['id'];
+                                $rehashStmt->bind_param('si', $rehash, $rehashUserId);
+                                $rehashStmt->execute();
+                                $rehashStmt->close();
+                            }
+                        }
+                    }
+
+                    if (!$passwordMatches) {
                     $login_error = 'Invalid username/email or password.';
                     log_login_attempt($mysqli, (int)$user['id'], $identifier, (string)($user['role'] ?? ''), 'failed', 'invalid_credentials', $client_ip, $client_user_agent);
                 } elseif (strtolower((string)($user['application_status'] ?? 'approved')) === 'pending') {
@@ -142,10 +178,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     header('Location: ' . $target);
                     exit;
                 }
+                }
             } else {
                 $login_error = 'Login query preparation failed.';
             }
-            $mysqli->close();
+            if (!isset($conn) || !$conn instanceof mysqli || $mysqli !== $conn) {
+                $mysqli->close();
+            }
         }
     }
 }
