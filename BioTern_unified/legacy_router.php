@@ -131,12 +131,6 @@ $map = [
   'settings-localization.php' => 'settings/settings-localization.php',
   'theme-customizer.php' => 'pages/theme-customizer.php',
 
-  'widgets-lists.php' => 'widgets/widgets-lists.php',
-  'widgets-tables.php' => 'widgets/widgets-tables.php',
-  'widgets-charts.php' => 'widgets/widgets-charts.php',
-  'widgets-statistics.php' => 'widgets/widgets-statistics.php',
-  'widgets-miscellaneous.php' => 'widgets/widgets-miscellaneous.php',
-
   'apps-chat.php' => 'apps/apps-chat.php',
   'apps-email.php' => 'apps/apps-email.php',
   'apps-tasks.php' => 'apps/apps-tasks.php',
@@ -145,6 +139,7 @@ $map = [
   'apps-calendar.php' => 'apps/apps-calendar.php',
 
   'api-biometric-event.php' => 'api/api-biometric-event.php',
+  'calendar_events.php' => 'api/calendar_events.php',
   'get_clock_status.php' => 'api/get_clock_status.php',
   'process_attendance.php' => 'api/process_attendance.php',
   'register_fingerprint.php' => 'api/register_fingerprint.php',
@@ -300,7 +295,6 @@ if ($is_logged_in) {
   ];
   $workspace_files = [
     'apps-chat.php', 'apps-email.php', 'apps-tasks.php', 'apps-notes.php', 'apps-storage.php', 'apps-calendar.php',
-    'widgets-lists.php', 'widgets-tables.php', 'widgets-charts.php', 'widgets-statistics.php', 'widgets-miscellaneous.php',
   ];
   $system_files = [
     'auth-register-creative.php', 'users.php', 'create_admin.php',

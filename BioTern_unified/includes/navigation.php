@@ -173,19 +173,6 @@ if (!function_exists('nav_page_href')) {
                         <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'apps-calendar.php'); ?>">Calendar</a></li>
                     </ul>
                 </li>
-                <li class="nxl-item nxl-hasmenu">
-                    <a href="javascript:void(0);" class="nxl-link">
-                        <span class="nxl-micon"><i class="feather-layout"></i></span>
-                        <span class="nxl-mtext">Widgets</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                    </a>
-                    <ul class="nxl-submenu">
-                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'widgets-lists.php'); ?>">Lists</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'widgets-tables.php'); ?>">Tables</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'widgets-charts.php'); ?>">Charts</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'widgets-statistics.php'); ?>">Statistics</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'widgets-miscellaneous.php'); ?>">Miscellaneous</a></li>
-                    </ul>
-                </li>
                 <?php endif; ?>
 
                 <?php if ($nav_can_system): ?>

@@ -76,7 +76,44 @@ include 'includes/header.php';
                 <!-- [ Content Sidebar  ] end -->
                 <!-- [ Main Area  ] start -->
                 <div class="content-area" data-scrollbar-target="#psScrollbarInit">
-                    <div class="content-area-header sticky-top">
+                    <style>
+                        .calendar-toolbar-pro {
+                            background: linear-gradient(135deg, #f7fafc 0%, #eef6ff 100%);
+                            border-bottom: 1px solid #d7e5ff;
+                            padding: 10px 14px;
+                        }
+
+                        .calendar-toolbar-pro .calendar-dropdown-btn,
+                        .calendar-toolbar-pro .move-today,
+                        .calendar-toolbar-pro .move-day {
+                            border-radius: 10px;
+                            border: 1px solid #cadbff;
+                            background: #ffffff;
+                            color: #0f172a;
+                        }
+
+                        .calendar-toolbar-pro .move-day {
+                            width: 36px;
+                            height: 36px;
+                        }
+
+                        .calendar-toolbar-pro .render-range {
+                            font-weight: 700;
+                            color: #1e293b;
+                        }
+
+                        .calendar-quick-create {
+                            border-radius: 10px;
+                            font-weight: 700;
+                            letter-spacing: 0.01em;
+                        }
+
+                        .calendar-event-status {
+                            min-height: 20px;
+                            font-size: 12px;
+                        }
+                    </style>
+                    <div class="content-area-header sticky-top calendar-toolbar-pro">
                         <div class="page-header-left d-flex align-items-center gap-2">
                             <a href="javascript:void(0);" class="app-sidebar-open-trigger me-2">
                                 <i class="feather-align-left fs-20"></i>
@@ -86,7 +123,7 @@ include 'includes/header.php';
                                     <div class="dropdown me-1">
                                         <button id="dropdownMenu-calendarType" class="dropdown-toggle calendar-dropdown-btn" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" data-bs-offset="0,17">
                                             <i id="calendarTypeIcon" class="feather-grid calendar-icon fs-12 me-1"></i>
-                                            <span id="calendarTypeName">Dropdown</span>
+                                            <span id="calendarTypeName">Monthly</span>
                                         </button>
                                         <ul class="dropdown-menu" role="menu" aria-labelledby="dropdownMenu-calendarType">
                                             <li role="presentation">
@@ -163,6 +200,10 @@ include 'includes/header.php';
                         </div>
                         <div class="page-header-right ms-auto">
                             <div class="hstack gap-2">
+                                <button type="button" id="openEventModalBtn" class="btn btn-primary btn-sm calendar-quick-create">
+                                    <i class="feather-plus me-1"></i>
+                                    Add Event
+                                </button>
                                 <div id="renderRange" class="render-range d-none d-sm-flex"></div>
                                 <div class="btn-group gap-1 menu-navi" role="group">
                                     <button type="button" class="avatar-text avatar-md move-day" data-action="move-prev">
@@ -348,6 +389,64 @@ include 'includes/header.php';
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="calendarEventModal" tabindex="-1" aria-labelledby="calendarEventModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="calendarEventModalLabel">Calendar Event</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="calendarEventForm">
+                    <input type="hidden" id="calendarEventId" value="">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="calendarEventTitle" class="form-label">Title</label>
+                            <input type="text" class="form-control" id="calendarEventTitle" required>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-12 col-md-6">
+                                <label for="calendarEventStart" class="form-label">Start</label>
+                                <input type="datetime-local" class="form-control" id="calendarEventStart" required>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label for="calendarEventEnd" class="form-label">End</label>
+                                <input type="datetime-local" class="form-control" id="calendarEventEnd" required>
+                            </div>
+                        </div>
+                        <div class="mt-3 mb-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="calendarEventAllDay">
+                                <label class="form-check-label" for="calendarEventAllDay">All day</label>
+                            </div>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-12 col-md-8">
+                                <label for="calendarEventLocation" class="form-label">Location</label>
+                                <input type="text" class="form-control" id="calendarEventLocation" placeholder="Optional">
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <label for="calendarEventColor" class="form-label">Color</label>
+                                <input type="color" class="form-control form-control-color w-100" id="calendarEventColor" value="#0d6efd">
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <label for="calendarEventDescription" class="form-label">Description</label>
+                            <textarea id="calendarEventDescription" class="form-control" rows="3" placeholder="Optional"></textarea>
+                        </div>
+                        <div id="calendarEventStatus" class="calendar-event-status mt-2"></div>
+                    </div>
+                    <div class="modal-footer justify-content-between">
+                        <button type="button" id="calendarEventDeleteBtn" class="btn btn-outline-danger d-none">Delete</button>
+                        <div class="d-flex gap-2 ms-auto">
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" id="calendarEventSaveBtn" class="btn btn-primary">Save Event</button>
+                        </div>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -571,6 +670,7 @@ include 'includes/header.php';
     <!--! BEGIN: Apps Init  !-->
     <script src="assets/js/common-init.min.js"></script>
     <script src="assets/js/apps-calendar-init.min.js"></script>
+    <script src="assets/js/apps-calendar-crud.js"></script>
     <!--! END: Apps Init !-->
 </body>
 

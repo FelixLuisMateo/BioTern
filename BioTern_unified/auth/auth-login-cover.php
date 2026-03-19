@@ -140,7 +140,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($identifier === '' || $password === '') {
-        $login_error = 'Please enter your email or student ID and password.';
+        $login_error = 'Please enter your email, student ID, or admin username and password.';
     } else {
         $mysqli = new mysqli($dbHost, $dbUser, $dbPass, $dbName, $dbPort);
         if ($mysqli->connect_errno) {
@@ -162,22 +162,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 INDEX idx_login_logs_status_created (status, created_at)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
-            $stmt = $mysqli->prepare("SELECT u.id, u.name, u.username, u.email, u.password, u.role, u.is_active, u.profile_picture, COALESCE(u.application_status, 'approved') AS application_status FROM users u LEFT JOIN students s ON s.user_id = u.id WHERE (u.email = ? OR s.student_id = ?) LIMIT 1");
+            $stmt = $mysqli->prepare("SELECT u.id, u.name, u.username, u.email, u.password, u.role, u.is_active, u.profile_picture, COALESCE(u.application_status, 'approved') AS application_status FROM users u LEFT JOIN students s ON s.user_id = u.id WHERE (u.email = ? OR s.student_id = ? OR (u.role = 'admin' AND u.username = ?)) LIMIT 1");
 
             if ($stmt) {
-                $stmt->bind_param('ss', $identifier, $identifier);
+                $stmt->bind_param('sss', $identifier, $identifier, $identifier);
                 $stmt->execute();
                 $user = $stmt->get_result()->fetch_assoc();
                 $stmt->close();
 
                 if (!$user) {
-                    $login_error = 'Invalid email, student ID, or password.';
+                    $login_error = 'Invalid email, student ID, admin username, or password.';
                     log_login_attempt($mysqli, 0, $identifier, '', 'failed', 'invalid_credentials', $client_ip, $client_user_agent);
                 } elseif ((int)($user['is_active'] ?? 0) !== 1) {
                     $login_error = 'Your account is inactive.';
                     log_login_attempt($mysqli, (int)$user['id'], $identifier, (string)($user['role'] ?? ''), 'failed', 'inactive_account', $client_ip, $client_user_agent);
                 } elseif (!password_verify($password, (string)$user['password'])) {
-                    $login_error = 'Invalid email, student ID, or password.';
+                    $login_error = 'Invalid email, student ID, admin username, or password.';
                     log_login_attempt($mysqli, (int)$user['id'], $identifier, (string)($user['role'] ?? ''), 'failed', 'invalid_credentials', $client_ip, $client_user_agent);
                 } elseif (strtolower((string)($user['application_status'] ?? 'approved')) === 'pending') {
                     $login_error = 'Your registration is pending approval.';
@@ -546,9 +546,9 @@ endif; ?>
 require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars($next, ENT_QUOTES, 'UTF-8'); ?>">
                         <div class="mb-4">
-                            <input type="text" name="identifier" id="identifier" class="form-control" placeholder="Student ID or Email" value="<?php
+                            <input type="text" name="identifier" id="identifier" class="form-control" placeholder="Student ID, Email, or Admin Username" value="<?php
 require_once dirname(__DIR__) . '/config/db.php';
-echo isset($_POST['identifier']) ? htmlspecialchars((string)$_POST['identifier']) : ''; ?>" required aria-required="true" aria-label="Student ID or Email" autofocus>
+echo isset($_POST['identifier']) ? htmlspecialchars((string)$_POST['identifier']) : ''; ?>" required aria-required="true" aria-label="Student ID, Email, or Admin Username" autofocus>
                         </div>
                         <div class="mb-3 input-group">
                             <input type="password" name="password" id="passwordInput" class="form-control" placeholder="Password" required aria-required="true" aria-label="Password">

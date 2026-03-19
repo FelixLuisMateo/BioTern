@@ -152,19 +152,6 @@ if ($session_avatar !== '') {
                     
                     <li class="nxl-item nxl-hasmenu">
                         <a href="javascript:void(0);" class="nxl-link">
-                            <span class="nxl-micon"><i class="feather-layout"></i></span>
-                            <span class="nxl-mtext">Widgets</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                        </a>
-                        <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="widgets-lists.php">Lists</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="widgets-tables.php">Tables</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="widgets-charts.php">Charts</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="widgets-statistics.php">Statistics</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="widgets-miscellaneous.php">Miscellaneous</a></li>
-                        </ul>
-                    </li>
-                    <li class="nxl-item nxl-hasmenu">
-                        <a href="javascript:void(0);" class="nxl-link">
                             <span class="nxl-micon"><i class="feather-settings"></i></span>
                             <span class="nxl-mtext">Settings</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
