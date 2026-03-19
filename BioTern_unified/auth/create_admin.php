@@ -67,15 +67,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                         $admin_table_exists = $mysqli->query("SHOW TABLES LIKE 'admin'");
                         if ($admin_table_exists && $admin_table_exists->num_rows > 0) {
-                            $next_admin_id = 1;
-                            $next_id_res = $mysqli->query("SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM admin");
-                            if ($next_id_res) {
-                                $row = $next_id_res->fetch_assoc();
-                                if ($row && isset($row['next_id'])) {
-                                    $next_admin_id = (int)$row['next_id'];
-                                }
-                                $next_id_res->close();
-                            }
 
                             $department_id = 1;
                             $dept_res = $mysqli->query("SELECT id FROM departments ORDER BY id ASC LIMIT 1");
@@ -93,16 +84,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $phone_number = '';
                             $stmt_admin = $mysqli->prepare(
                                 "INSERT INTO admin (
-                                    id, user_id, first_name, middle_name, institution_email_address, phone_number,
+                                    user_id, first_name, middle_name, institution_email_address, phone_number,
                                     admin_level, department_id, admin_position, username, password, email
-                                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
                             );
                             if (!$stmt_admin) {
                                 throw new Exception('Admin profile statement preparation failed: ' . $mysqli->error);
                             }
                             $stmt_admin->bind_param(
-                                'iisssssissss',
-                                $next_admin_id,
+                                'isssssissss',
                                 $user_id,
                                 $name,
                                 $middle_name,

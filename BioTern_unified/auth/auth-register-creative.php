@@ -593,7 +593,7 @@ if (isset($_GET['registered'])) {
                             $reg = $_GET['registered'];
                             $msg = isset($_GET['msg']) ? htmlspecialchars($_GET['msg']) : '';
                             if ($reg === 'exists') {
-                                echo '<div class="alert alert-warning" role="alert">' . ($msg ?: 'An account with that email or username already exists.') . '</div>';
+                                echo '<div class="alert alert-warning" role="alert">' . ($msg ?: 'An account with that email already exists.') . '</div>';
                             } elseif ($reg === 'error') {
                                 echo '<div class="alert alert-danger" role="alert">' . ($msg ?: 'An error occurred while registering.') . '</div>';
                             } elseif ($reg === 'pending') {
@@ -891,10 +891,7 @@ endforeach; ?>
                             <div class="mb-4 step-panel" data-step="4">
                                 <h5 class="fs-14 fw-bold mb-3">Account Information</h5>
                                 <div class="row g-3">
-                                    <div class="col-6 mb-2">
-                                        <input type="text" name="username" class="form-control" placeholder="Username" autocomplete="username" required>
-                                    </div>
-                                    <div class="col-6 mb-2">
+                                    <div class="col-12 mb-2">
                                         <input type="email" name="account_email" class="form-control" placeholder="Account Email Address" autocomplete="email" required>
                                     </div>
                                 </div>
@@ -1041,10 +1038,7 @@ endforeach; ?>
                             <div class="mb-4 step-panel" data-step="3">
                                 <h5 class="fs-14 fw-bold mb-3 mt-4">Account Information</h5>
                             <div class="row g-3">
-                                <div class="col-6 mb-2">
-                                    <input type="text" name="username" class="form-control" placeholder="Username" autocomplete="username" required>
-                                </div>
-                                <div class="col-6 mb-2">
+                                <div class="col-12 mb-2">
                                     <input type="email" name="account_email" class="form-control" placeholder="Account Email Address" autocomplete="email" required>
                                 </div>
                             </div>
@@ -1172,10 +1166,7 @@ endforeach; ?>
                             <div class="mb-4 step-panel" data-step="3">
                                 <h5 class="fs-14 fw-bold mb-3 mt-4">Account Information</h5>
                             <div class="row g-3">
-                                <div class="col-6 mb-2">
-                                    <input type="text" name="username" class="form-control" placeholder="Username" autocomplete="username" required>
-                                </div>
-                                <div class="col-6 mb-2">
+                                <div class="col-12 mb-2">
                                     <input type="email" name="account_email" class="form-control" placeholder="Account Email Address" autocomplete="email" required>
                                 </div>
                             </div>
@@ -1305,10 +1296,7 @@ endforeach; ?>
                             <div class="mb-4 step-panel" data-step="3">
                                 <h5 class="fs-14 fw-bold mb-3 mt-4">Account Information</h5>
                             <div class="row g-3">
-                                <div class="col-6 mb-2">
-                                    <input type="text" name="username" class="form-control" placeholder="Username" autocomplete="username" required>
-                                </div>
-                                <div class="col-6 mb-2">
+                                <div class="col-12 mb-2">
                                     <input type="email" name="account_email" class="form-control" placeholder="Account Email Address" autocomplete="email" required>
                                 </div>
                             </div>
