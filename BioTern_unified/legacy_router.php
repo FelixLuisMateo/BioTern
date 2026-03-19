@@ -217,12 +217,9 @@ if ($file === '' || !isset($map[$file])) {
 
 $request_uri = (string)($_SERVER['REQUEST_URI'] ?? '');
 $request_path = (string)(parse_url($request_uri, PHP_URL_PATH) ?? '');
-$script_name_for_base = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
-$script_dir_for_base = rtrim(str_replace('\\', '/', (string)dirname($script_name_for_base)), '/');
-$base_prefix = ($script_dir_for_base === '' || $script_dir_for_base === '.' || $script_dir_for_base === '/') ? '' : $script_dir_for_base;
 
 $canonical_slug = $file_to_slug[$file] ?? strtolower(preg_replace('/\.php$/i', '', (string)$file));
-$canonical_path = ($base_prefix !== '' ? $base_prefix : '') . '/' . ltrim($canonical_slug, '/');
+$canonical_path = '/' . ltrim($canonical_slug, '/');
 
 $is_legacy_router_url = ($request_uri !== '' && stripos($request_uri, 'legacy_router.php') !== false);
 $is_php_path = (bool)preg_match('/\.php$/i', (string)$request_path);
