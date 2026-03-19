@@ -1,6 +1,9 @@
 "use strict";
 
 (function () {
+    var PH_TIMEZONE = "Asia/Manila";
+    var PH_LOCALE = "en-PH";
+
     function onReady(callback) {
         if (document.readyState === "loading") {
             document.addEventListener("DOMContentLoaded", callback);
@@ -9,19 +12,92 @@
         callback();
     }
 
-    function toLocalInputValue(dateLike) {
+    function formatDateTimeParts(dateLike, useInputSeparator) {
         var d = new Date(dateLike);
         if (Number.isNaN(d.getTime())) {
             return "";
         }
 
-        var year = d.getFullYear();
-        var month = String(d.getMonth() + 1).padStart(2, "0");
-        var day = String(d.getDate()).padStart(2, "0");
-        var hour = String(d.getHours()).padStart(2, "0");
-        var minute = String(d.getMinutes()).padStart(2, "0");
+        var formatter = new Intl.DateTimeFormat("en-US", {
+            timeZone: PH_TIMEZONE,
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            hour12: false
+        });
 
-        return year + "-" + month + "-" + day + "T" + hour + ":" + minute;
+        var parts = formatter.formatToParts(d).reduce(function (acc, part) {
+            if (part.type !== "literal") {
+                acc[part.type] = part.value;
+            }
+            return acc;
+        }, {});
+
+        var separator = useInputSeparator ? "T" : " ";
+        return parts.year + "-" + parts.month + "-" + parts.day + separator + parts.hour + ":" + parts.minute + ":" + parts.second;
+    }
+
+    function toLocalInputValue(dateLike) {
+        var value = formatDateTimeParts(dateLike, true);
+        if (!value) {
+            return "";
+        }
+        return value.slice(0, 16);
+    }
+
+    function toPhilippinesDateTime(dateLike) {
+        return formatDateTimeParts(dateLike, false);
+    }
+
+    function toPhilippinesDate(dateLike) {
+        var d = new Date(dateLike);
+        if (Number.isNaN(d.getTime())) {
+            return null;
+        }
+
+        var parts = new Intl.DateTimeFormat(PH_LOCALE, {
+            timeZone: PH_TIMEZONE,
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit"
+        }).formatToParts(d).reduce(function (acc, part) {
+            if (part.type !== "literal") {
+                acc[part.type] = part.value;
+            }
+            return acc;
+        }, {});
+
+        return {
+            year: parts.year,
+            month: parts.month,
+            day: parts.day
+        };
+    }
+
+    function toPhilippinesDisplayTime(dateLike) {
+        var d = new Date(dateLike);
+        if (Number.isNaN(d.getTime())) {
+            return "";
+        }
+
+        return new Intl.DateTimeFormat(PH_LOCALE, {
+            timeZone: PH_TIMEZONE,
+            hour: "numeric",
+            minute: "2-digit",
+            hour12: true
+        }).format(d).toLowerCase();
+    }
+
+    function escapeHtml(value) {
+        return String(value == null ? "" : value)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/\"/g, "&quot;")
+            .replace(/'/g, "&#39;");
     }
 
     function toApiDateTime(localValue, allDay) {
@@ -53,6 +129,7 @@
         var modalEl = document.getElementById("calendarEventModal");
         var eventForm = document.getElementById("calendarEventForm");
         var openBtn = document.getElementById("openEventModalBtn");
+        var importCelebrationsBtn = document.getElementById("importCelebrationsBtn");
         var deleteBtn = document.getElementById("calendarEventDeleteBtn");
         var saveBtn = document.getElementById("calendarEventSaveBtn");
         var statusEl = document.getElementById("calendarEventStatus");
@@ -153,12 +230,65 @@
             };
         }
 
+        function renderSidebarEvents(events) {
+            var sidebarBody = document.querySelector(".content-sidebar-body");
+            if (!sidebarBody) {
+                return;
+            }
+
+            if (!Array.isArray(events) || events.length === 0) {
+                sidebarBody.innerHTML = "<div class=\"p-4 text-muted small\">No events yet. Click Add Event to create one.</div>";
+                return;
+            }
+
+            var sorted = events.slice().sort(function (a, b) {
+                return new Date(a.start_at).getTime() - new Date(b.start_at).getTime();
+            });
+
+            var topEvents = sorted.slice(0, 8);
+            var html = topEvents.map(function (event, idx) {
+                var dateParts = toPhilippinesDate(event.start_at);
+                var monthShort = "";
+                if (dateParts) {
+                    monthShort = new Intl.DateTimeFormat(PH_LOCALE, {
+                        timeZone: PH_TIMEZONE,
+                        month: "short"
+                    }).format(new Date(event.start_at)).toUpperCase();
+                }
+
+                var startTime = Number(event.is_all_day) === 1 ? "All day" : toPhilippinesDisplayTime(event.start_at);
+                var endTime = Number(event.is_all_day) === 1 ? "" : toPhilippinesDisplayTime(event.end_at);
+                var timeLabel = Number(event.is_all_day) === 1 ? "All day" : (startTime + " - " + endTime + (event.location ? ", " + event.location : ""));
+                var color = String(event.color || "#0d6efd");
+                var bgSoft = idx % 2 === 0 ? "bg-soft-primary text-primary" : "bg-soft-danger text-danger";
+
+                return ""
+                    + "<div class=\"p-4 " + (idx > 0 ? "border-top " : "") + "c-pointer single-item schedule-item\" data-event-id=\"" + escapeHtml(String(event.id)) + "\">"
+                    + "<div class=\"d-flex align-items-start\">"
+                    + "<div class=\"wd-50 ht-50 " + bgSoft + " lh-1 d-flex align-items-center justify-content-center flex-column rounded-2 schedule-date\" style=\"border-left:3px solid " + color + ";\">"
+                    + "<span class=\"fs-18 fw-bold mb-1 d-block\">" + (dateParts ? dateParts.day : "--") + "</span>"
+                    + "<span class=\"fs-10 text-semibold text-uppercase d-block\">" + monthShort + "</span>"
+                    + "</div>"
+                    + "<div class=\"ms-3 schedule-body\">"
+                    + "<div class=\"text-dark\">"
+                    + "<h6 class=\"fw-bold my-1 text-truncate-1-line\">" + escapeHtml(String(event.title || "(No title)")) + "</h6>"
+                    + "<span class=\"fs-11 fw-normal text-muted\">" + escapeHtml(timeLabel) + "</span>"
+                    + "<p class=\"fs-12 fw-normal text-muted my-2 text-truncate-2-line\">" + escapeHtml(String(event.description || "No description")) + "</p>"
+                    + "</div>"
+                    + "</div>"
+                    + "</div>"
+                    + "</div>";
+            }).join("");
+
+            sidebarBody.innerHTML = html;
+        }
+
         function fetchEvents() {
             var from = "";
             var to = "";
             if (typeof cal.getDateRangeStart === "function" && typeof cal.getDateRangeEnd === "function") {
-                from = cal.getDateRangeStart().toISOString();
-                to = cal.getDateRangeEnd().toISOString();
+                from = toPhilippinesDateTime(cal.getDateRangeStart());
+                to = toPhilippinesDateTime(cal.getDateRangeEnd());
             }
 
             var url = eventApiUrl + "?from=" + encodeURIComponent(from) + "&to=" + encodeURIComponent(to);
@@ -188,6 +318,7 @@
             return fetchEvents()
                 .then(function (events) {
                     renderEvents(events);
+                    renderSidebarEvents(events);
                 })
                 .catch(function (err) {
                     console.error(err);
@@ -208,6 +339,66 @@
         if (openBtn) {
             openBtn.addEventListener("click", function () {
                 openCreateModalFromRange(new Date(), new Date(Date.now() + 60 * 60 * 1000));
+            });
+        }
+
+        function performCelebrationImport(showAlert) {
+            showAlert = showAlert === undefined ? false : !!showAlert;
+            var year = new Date().getFullYear();
+            if (typeof cal.getDateRangeStart === "function") {
+                var rangeStart = cal.getDateRangeStart();
+                var dateParts = toPhilippinesDate(rangeStart);
+                if (dateParts && dateParts.year) {
+                    year = parseInt(dateParts.year, 10);
+                }
+            }
+
+            if (importCelebrationsBtn) {
+                importCelebrationsBtn.disabled = true;
+            }
+
+            return sendAction({ action: "seed_celebrations", year: year })
+                .then(function (result) {
+                    if (!result || !result.success) {
+                        throw new Error(result && result.message ? result.message : "Failed to import celebration events");
+                    }
+                    return reloadEvents().then(function () {
+                        if (showAlert) {
+                            var inserted = Number(result.inserted_count || 0);
+                            if (inserted > 0) {
+                                window.alert("Added " + inserted + " Philippines holiday/celebration events for " + String(year) + ".");
+                            } else {
+                                window.alert("Philippines holiday/celebration events for " + String(year) + " already exist.");
+                            }
+                        }
+                    });
+                })
+                .catch(function (err) {
+                    if (showAlert) {
+                        window.alert(err && err.message ? err.message : "Failed to import celebration events");
+                    }
+                    console.error("Auto-import error:", err);
+                })
+                .finally(function () {
+                    if (importCelebrationsBtn) {
+                        importCelebrationsBtn.disabled = false;
+                    }
+                });
+        }
+
+        if (importCelebrationsBtn) {
+            importCelebrationsBtn.addEventListener("click", function () {
+                performCelebrationImport(true);
+            });
+        }
+
+        // Auto-import celebrations on first load (only once per year per browser)
+        var storageCelebrationKey = "biotern_celebrations_imported_" + new Date().getFullYear();
+        if (!localStorage.getItem(storageCelebrationKey)) {
+            performCelebrationImport(false).then(function () {
+                localStorage.setItem(storageCelebrationKey, "1");
+            }).catch(function () {
+                // Silent fail on auto-import
             });
         }
 
@@ -297,6 +488,46 @@
                 titleInput.focus();
             });
         }
+
+        document.addEventListener("click", function (event) {
+            var sidebarEventEl = event.target.closest(".schedule-item");
+            if (!sidebarEventEl) {
+                return;
+            }
+
+            var eventId = sidebarEventEl.getAttribute("data-event-id");
+            if (!eventId) {
+                return;
+            }
+
+            setSavingState(true);
+            fetch(eventApiUrl + "?id=" + encodeURIComponent(eventId), { credentials: "same-origin" })
+                .then(function (res) { return res.json(); })
+                .then(function (payload) {
+                    if (!payload || !payload.success || !payload.event) {
+                        throw new Error(payload && payload.message ? payload.message : "Failed to load event");
+                    }
+                    clearForm();
+                    fillFormFromSchedule({
+                        id: payload.event.id,
+                        title: payload.event.title,
+                        location: payload.event.location,
+                        body: payload.event.description,
+                        start: payload.event.start_at,
+                        end: payload.event.end_at,
+                        bgColor: payload.event.color,
+                        category: payload.event.is_all_day === 1 ? "allday" : "time"
+                    });
+                    modal.show();
+                    titleInput.focus();
+                })
+                .catch(function (err) {
+                    window.alert(err && err.message ? err.message : "Failed to load event");
+                })
+                .finally(function () {
+                    setSavingState(false);
+                });
+        });
 
         document.addEventListener("click", function (event) {
             var action = event.target && event.target.getAttribute ? event.target.getAttribute("data-action") : "";
