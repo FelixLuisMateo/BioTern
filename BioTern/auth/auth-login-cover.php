@@ -14,10 +14,11 @@ if (isset($_GET['logout']) && (string)$_GET['logout'] === '1') {
     session_start();
 }
 
-$dbHost = '127.0.0.1';
-$dbUser = 'root';
-$dbPass = '';
+$dbHost = defined('DB_HOST') ? DB_HOST : '127.0.0.1';
+$dbUser = defined('DB_USER') ? DB_USER : 'root';
+$dbPass = defined('DB_PASS') ? DB_PASS : '';
 $dbName = defined('DB_NAME') ? DB_NAME : 'biotern_db';
+$dbPort = defined('DB_PORT') ? (int)DB_PORT : 3306;
 $script_name = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
 $asset_prefix = (strpos($script_name, '/auth/') !== false) ? '../' : '';
 $route_prefix = $asset_prefix;
@@ -78,7 +79,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($identifier === '' || $password === '') {
         $login_error = 'Please enter your username/email and password.';
     } else {
-        $mysqli = new mysqli($dbHost, $dbUser, $dbPass, $dbName);
+        $mysqli = new mysqli($dbHost, $dbUser, $dbPass, $dbName, $dbPort);
         if ($mysqli->connect_errno) {
             $login_error = 'Database connection failed.';
         } else {
@@ -173,7 +174,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="auth-cover-content-inner">
             <div class="auth-cover-content-wrapper">
                 <div class="auth-img">
-                    <img src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/auth/auth-cover-login-bg.png" alt="" class="img-fluid">
+                    <img src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>auth/building.png" alt="" class="img-fluid">
                 </div>
             </div>
         </div>

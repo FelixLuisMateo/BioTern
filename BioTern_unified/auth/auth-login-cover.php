@@ -29,7 +29,33 @@ $dbPort = defined('DB_PORT') ? (int)DB_PORT : 3306;
 $script_name = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
 $asset_prefix = (strpos($script_name, '/auth/') !== false) ? '../' : '';
 $auth_local_prefix = (strpos($script_name, '/auth/') !== false) ? '' : 'auth/';
-$auth_building_href = (strpos($script_name, '/auth/') !== false) ? 'building.png' : 'auth/building.png';
+$script_dir = str_replace('\\', '/', (string)dirname($script_name));
+$script_dir_no_auth = preg_replace('#/auth$#i', '', $script_dir);
+$auth_root_candidates = [];
+
+$auth_add_root_candidate = static function (string $prefix) use (&$auth_root_candidates): void {
+    $normalized = '/' . ltrim(str_replace('\\', '/', trim($prefix)), '/');
+    $normalized = rtrim(preg_replace('#/+#', '/', $normalized), '/') . '/';
+    if (!in_array($normalized, $auth_root_candidates, true)) {
+        $auth_root_candidates[] = $normalized;
+    }
+};
+
+if ($script_dir_no_auth !== '' && $script_dir_no_auth !== '.') {
+    $auth_add_root_candidate($script_dir_no_auth);
+}
+$auth_add_root_candidate('/BioTern_unified/');
+$auth_add_root_candidate('/biotern_unified/');
+$auth_add_root_candidate('/');
+
+$auth_bg_layers = [];
+foreach ($auth_root_candidates as $candidate_prefix) {
+    $auth_bg_layers[] = "url('" . $candidate_prefix . "auth/building.png')";
+}
+foreach ($auth_root_candidates as $candidate_prefix) {
+    $auth_bg_layers[] = "url('" . $candidate_prefix . "assets/images/auth/auth-cover-login-bg.png')";
+}
+$auth_bg_css = implode(', ', $auth_bg_layers);
 $route_prefix = $asset_prefix;
 $login_error = '';
 $next = isset($_GET['next']) ? basename((string)$_GET['next']) : '';
@@ -208,11 +234,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             inset: 0;
             z-index: 0;
             pointer-events: none;
-            background-image: url('<?php echo htmlspecialchars($auth_building_href, ENT_QUOTES, 'UTF-8'); ?>');
+            background-image: <?php echo htmlspecialchars($auth_bg_css, ENT_QUOTES, 'UTF-8'); ?>;
             background-repeat: no-repeat;
             background-position: center center;
             background-size: cover;
-            opacity: 90%;
+            opacity: 0.17;
         }
 
         .auth-cover-wrapper {
@@ -237,6 +263,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .auth-cover-card {
             width: 100%;
             border-radius: 14px;
+            background-color: rgba(255, 255, 255, 0.96);
+            color: #1f2937;
+            border: 1px solid rgba(17, 24, 39, 0.08);
+            box-shadow: 0 12px 30px rgba(15, 23, 42, 0.18);
         }
 
         .auth-cover-card .wd-50 {
@@ -250,9 +280,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             height: auto;
         }
 
-        .auth-cover-content-inner,
+        .auth-cover-content-inner {
+            background-color: rgba(8, 20, 52, 0.84);
+        }
+
         .auth-cover-sidebar-inner {
+            background-color: rgba(248, 250, 252, 0.92);
+        }
+
+        .auth-cover-card h2 {
+            color: #1e293b;
+        }
+
+        .auth-cover-card h4,
+        .auth-cover-card .text-muted,
+        .auth-cover-card .form-check-label {
+            color: #475569 !important;
+        }
+
+        .auth-cover-card .form-control {
+            background-color: #ffffff;
+            border-color: #d0d8e5;
+            color: #111827;
+        }
+
+        .auth-cover-card .form-control::placeholder {
+            color: #8a94a8;
+        }
+
+        html.app-skin-dark .login-bg-watermark {
+            opacity: 0.14;
+        }
+
+        html.app-skin-dark .auth-cover-sidebar-inner {
             background-color: rgba(8, 20, 52, 0.86);
+        }
+
+        html.app-skin-dark .auth-cover-card {
+            background-color: rgba(8, 20, 52, 0.94);
+            color: #e2e8f0;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 26px rgba(0, 0, 0, 0.35);
+        }
+
+        html.app-skin-dark .auth-cover-card h2 {
+            color: #f8fafc;
+        }
+
+        html.app-skin-dark .auth-cover-card h4,
+        html.app-skin-dark .auth-cover-card .text-muted,
+        html.app-skin-dark .auth-cover-card .form-check-label {
+            color: #cbd5e1 !important;
         }
 
         .auth-cover-content-wrapper,
@@ -349,6 +427,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 padding: 18px 16px !important;
                 min-height: auto;
                 border-radius: 12px;
+            }
+
+            html.app-skin-dark .auth-cover-card {
                 background-color: rgba(8, 20, 52, 0.94);
                 border: 1px solid rgba(255, 255, 255, 0.08);
                 box-shadow: 0 8px 26px rgba(0, 0, 0, 0.35);

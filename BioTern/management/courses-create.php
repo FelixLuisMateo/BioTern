@@ -1,19 +1,31 @@
 <?php
-$host = '127.0.0.1';
-$db_user = 'root';
-$db_password = '';
-$db_name = 'biotern_db';
+require_once dirname(__DIR__) . '/config/db.php';
+$host = defined('DB_HOST') ? DB_HOST : '127.0.0.1';
+$db_user = defined('DB_USER') ? DB_USER : 'root';
+$db_password = defined('DB_PASS') ? DB_PASS : '';
+$db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
+$db_port = defined('DB_PORT') ? (int)DB_PORT : 3306;
 
 $message = '';
 $message_type = 'info';
 
 try {
-    $conn = new mysqli($host, $db_user, $db_password, $db_name);
+    $conn = new mysqli($host, $db_user, $db_password, $db_name, $db_port);
     if ($conn->connect_error) {
         throw new Exception("Connection failed: " . $conn->connect_error);
     }
 } catch (Exception $e) {
     die("Database Error: " . $e->getMessage());
+}
+
+if (isset($_GET['saved']) && (string)$_GET['saved'] === '1') {
+    $message = 'Course created successfully.';
+    $message_type = 'success';
+}
+
+if (isset($_GET['duplicate']) && (string)$_GET['duplicate'] === '1') {
+    $message = 'Course code already exists. The course may have been saved already.';
+    $message_type = 'warning';
 }
 
 $courseColumns = [];
@@ -72,12 +84,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!isset($insertStmt) || !$insertStmt) {
                     $message = 'Failed to prepare insert statement.';
                     $message_type = 'danger';
-                } elseif ($insertStmt->execute()) {
-                    $message = 'Course created successfully.';
-                    $message_type = 'success';
                 } else {
-                    $message = 'Failed to create course: ' . $insertStmt->error;
-                    $message_type = 'danger';
+                    try {
+                        if ($insertStmt->execute()) {
+                            $insertStmt->close();
+                            header('Location: courses-create.php?saved=1');
+                            exit;
+                        }
+                        $message = 'Failed to create course: ' . $insertStmt->error;
+                        $message_type = 'danger';
+                    } catch (mysqli_sql_exception $e) {
+                        if ((int)$e->getCode() === 1062) {
+                            $insertStmt->close();
+                            header('Location: courses-create.php?duplicate=1');
+                            exit;
+                        }
+                        $message = 'Failed to create course: ' . $e->getMessage();
+                        $message_type = 'danger';
+                    }
                 }
 
                 if (isset($insertStmt) && $insertStmt) {

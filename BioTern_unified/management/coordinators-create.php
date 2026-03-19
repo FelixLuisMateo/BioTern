@@ -14,6 +14,18 @@ if ($conn->connect_error) {
     die('Connection failed: ' . $conn->connect_error);
 }
 
+$coordinatorColumns = [];
+$coordinatorColumnResult = $conn->query("SHOW COLUMNS FROM coordinators");
+if ($coordinatorColumnResult) {
+    while ($column = $coordinatorColumnResult->fetch_assoc()) {
+        $coordinatorColumns[] = strtolower((string)$column['Field']);
+    }
+}
+
+$hasCoordinatorColumn = function (string $columnName) use ($coordinatorColumns): bool {
+    return in_array(strtolower($columnName), $coordinatorColumns, true);
+};
+
 function h($value): string
 {
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
@@ -173,17 +185,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($message !== '' && $message_type === 'danger') {
             // keep message and do not insert
         } else {
-        $stmt = $conn->prepare('INSERT INTO coordinators (user_id, first_name, last_name, middle_name, email, phone, department_id, office_location, bio, profile_picture, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
-        if ($stmt) {
-            $stmt->bind_param('isssssisssi', $user_id, $first_name, $last_name, $middle_name, $email, $phone, $department_id, $office_location, $bio, $profile_picture, $is_active);
-            if ($stmt->execute()) {
-                header('Location: coordinators.php');
-                exit;
+            $deptForInsert = $department_id ?? 0;
+
+            $insertSql = '';
+            if ($hasCoordinatorColumn('office_location')) {
+                $insertSql = 'INSERT INTO coordinators (user_id, first_name, last_name, middle_name, email, phone, department_id, office_location, bio, profile_picture, is_active) VALUES (?, ?, ?, ?, ?, ?, NULLIF(?, 0), ?, ?, ?, ?)';
+            } elseif ($hasCoordinatorColumn('office')) {
+                $insertSql = 'INSERT INTO coordinators (user_id, first_name, last_name, middle_name, email, phone, department_id, office, bio, profile_picture, is_active) VALUES (?, ?, ?, ?, ?, ?, NULLIF(?, 0), ?, ?, ?, ?)';
+            } else {
+                $insertSql = 'INSERT INTO coordinators (user_id, first_name, last_name, middle_name, email, phone, department_id, bio, profile_picture, is_active) VALUES (?, ?, ?, ?, ?, ?, NULLIF(?, 0), ?, ?, ?)';
             }
-            $message = 'Failed to create coordinator: ' . $stmt->error;
-            $message_type = 'danger';
-            $stmt->close();
-        }
+
+            $stmt = $conn->prepare($insertSql);
+            if ($stmt) {
+                if ($hasCoordinatorColumn('office_location') || $hasCoordinatorColumn('office')) {
+                    $stmt->bind_param('isssssisssi', $user_id, $first_name, $last_name, $middle_name, $email, $phone, $deptForInsert, $office_location, $bio, $profile_picture, $is_active);
+                } else {
+                    $stmt->bind_param('isssssissi', $user_id, $first_name, $last_name, $middle_name, $email, $phone, $deptForInsert, $bio, $profile_picture, $is_active);
+                }
+
+                try {
+                    if ($stmt->execute()) {
+                        $stmt->close();
+                        header('Location: coordinators.php');
+                        exit;
+                    }
+                    $message = 'Failed to create coordinator: ' . $stmt->error;
+                    $message_type = 'danger';
+                } catch (mysqli_sql_exception $e) {
+                    if ((int)$e->getCode() === 1062) {
+                        $message = 'Duplicate coordinator record detected (email/user already used).';
+                        $message_type = 'warning';
+                    } else {
+                        $message = 'Failed to create coordinator: ' . $e->getMessage();
+                        $message_type = 'danger';
+                    }
+                }
+                $stmt->close();
+            } else {
+                $message = 'Failed to prepare coordinator insert statement.';
+                $message_type = 'danger';
+            }
         }
     }
 }
