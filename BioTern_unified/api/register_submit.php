@@ -122,24 +122,53 @@ function tableHasColumn($mysqli, $tableName, $columnName) {
     return $has;
 }
 
-function is_valid_username($username) {
-    return (bool)preg_match('/^[a-zA-Z0-9._-]{4,30}$/', (string)$username);
+function sanitizeUsernameBase($value, $fallback = 'user') {
+    $base = strtolower((string)$value);
+    if (strpos($base, '@') !== false) {
+        $base = explode('@', $base, 2)[0];
+    }
+    $base = preg_replace('/[^a-z0-9._-]+/', '.', $base);
+    $base = preg_replace('/[._-]{2,}/', '.', $base);
+    $base = trim((string)$base, '._-');
+    if ($base === '') {
+        $base = strtolower((string)$fallback);
+    }
+    if (strlen($base) < 4) {
+        $base = str_pad($base, 4, '0');
+    }
+    if (strlen($base) > 30) {
+        $base = substr($base, 0, 30);
+    }
+    return $base;
 }
 
-function has_disallowed_username_term($username) {
-    $check = strtolower((string)$username);
-    $blocked_terms = [
-        'admin', 'root', 'system', 'support', 'moderator', 'owner',
-        'fuck', 'shit', 'bitch', 'asshole', 'nigger', 'porn', 'sex'
-    ];
+function generateUniqueUsername($mysqli, $primarySeed, $fallbackSeed = 'user') {
+    $base = sanitizeUsernameBase($primarySeed, $fallbackSeed);
 
-    foreach ($blocked_terms as $term) {
-        if (strpos($check, $term) !== false) {
-            return true;
-        }
+    $stmt = $mysqli->prepare('SELECT id FROM users WHERE username = ? LIMIT 1');
+    if (!$stmt) {
+        return $base;
     }
 
-    return false;
+    $candidate = $base;
+    $suffix = 1;
+    while (true) {
+        $stmt->bind_param('s', $candidate);
+        $stmt->execute();
+        $exists = $stmt->get_result()->fetch_assoc();
+        if (!$exists) {
+            $stmt->close();
+            return $candidate;
+        }
+
+        $suffixText = (string)$suffix;
+        $maxBaseLen = 30 - strlen($suffixText);
+        if ($maxBaseLen < 1) {
+            $maxBaseLen = 1;
+        }
+        $candidate = substr($base, 0, $maxBaseLen) . $suffixText;
+        $suffix++;
+    }
 }
 
 $registerUserSchemaColumns = [
@@ -275,7 +304,6 @@ if ($role === 'student') {
     $section = getPost('section');
     $department_id_raw = getPost('department_id');
     $department_code = getPost('department_code');
-    $username = getPost('username');
     $account_email = getPost('account_email');
     
     // New fields - now accepting IDs
@@ -302,6 +330,8 @@ if ($role === 'student') {
 
     // Use account_email if provided, otherwise use email
     $final_email = $account_email ?: $email;
+    $username_seed = $student_id ?: ($final_email ?: ($first_name . '.' . $last_name));
+    $username = generateUniqueUsername($mysqli, $username_seed, 'student');
     $course_id = (int)$course_id;
     $department_id = null;
     if ($department_id_raw !== null && $department_id_raw !== '' && ctype_digit((string)$department_id_raw)) {
@@ -518,21 +548,6 @@ if ($role === 'student') {
         $supervisor_name = isset($sup_row['full_name']) ? (string)$sup_row['full_name'] : null;
     }
 
-    // Ensure username is not empty
-    if (!$username) {
-        $username = $first_name . '.' . $last_name;
-    }
-
-    if (!is_valid_username($username)) {
-        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Username must be 4-30 characters and use only letters, numbers, dot, underscore, or hyphen.'));
-        exit;
-    }
-
-    if (has_disallowed_username_term($username)) {
-        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Please choose a more appropriate username.'));
-        exit;
-    }
-
     // Hash password
     $pwdHash = password_hash($password ?: bin2hex(random_bytes(4)), PASSWORD_DEFAULT);
 
@@ -560,7 +575,7 @@ if ($role === 'student') {
             $stmt_user->close();
             // 1062 = duplicate entry
             if ($code === 1062 || strpos($msg, 'Duplicate entry') !== false) {
-                header('Location: auth-register-creative.php?registered=exists&msg=' . urlencode('An account with that email or username already exists'));
+                header('Location: auth-register-creative.php?registered=exists&msg=' . urlencode('An account with that email already exists'));
                 exit;
             }
             header('Location: auth-register-creative.php?registered=error&msg=' . urlencode($msg));
@@ -577,7 +592,7 @@ if ($role === 'student') {
 
     // Now insert into students table using the user_id
     // Note: If emergency_contact_phone column doesn't exist, store phone in emergency_contact or add the column
-    $stmt = $mysqli->prepare("INSERT INTO students (user_id, course_id, student_id, first_name, last_name, middle_name, username, password, email, department_id, section_id, address, phone, date_of_birth, gender, supervisor_id, supervisor_name, coordinator_id, coordinator_name, internal_total_hours, internal_total_hours_remaining, external_total_hours, external_total_hours_remaining, assignment_track, emergency_contact, school_year, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULLIF(?, 0), ?, ?, ?, ?, NULLIF(?, 0), ?, NULLIF(?, 0), ?, ?, ?, ?, ?, ?, ?, ?, NOW())");
+    $stmt = $mysqli->prepare("INSERT INTO students (user_id, course_id, student_id, first_name, last_name, middle_name, password, email, department_id, section_id, address, phone, date_of_birth, gender, supervisor_id, supervisor_name, coordinator_id, coordinator_name, internal_total_hours, internal_total_hours_remaining, external_total_hours, external_total_hours_remaining, assignment_track, emergency_contact, school_year, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULLIF(?, 0), ?, ?, ?, ?, NULLIF(?, 0), ?, NULLIF(?, 0), ?, ?, ?, ?, ?, ?, ?, ?, NOW())");
     
     if (!$stmt) {
         header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Database statement error: ' . $mysqli->error));
@@ -591,7 +606,7 @@ if ($role === 'student') {
     }
     
     // types: user_id(i), course_id(i), student_id(s), first_name(s), last_name(s), middle_name(s),
-    // username(s), password(s), email(s), department_id(s), section_id(i), address(s), phone(s),
+    // password(s), email(s), department_id(s), section_id(i), address(s), phone(s),
     // date_of_birth(s), gender(s), supervisor_id(i), supervisor_name(s), coordinator_id(i),
     // coordinator_name(s), internal_total_hours(i), internal_total_hours_remaining(i),
     // external_total_hours(i), external_total_hours_remaining(i), assignment_track(s), emergency_contact(s), school_year(s)
@@ -601,14 +616,13 @@ if ($role === 'student') {
     $coordinator_id_for_insert = !empty($coordinator_id) ? (int)$coordinator_id : 0;
 
     $stmt->bind_param(
-        'iissssssssissssisisiiiisss',
+        'iisssssssissssisisiiiisss',
         $user_id,
         $course_id,
         $student_id,
         $first_name,
         $last_name,
         $middle_name,
-        $username,
         $pwdHash,
         $final_email,
         $department_id_for_student,
@@ -668,7 +682,6 @@ if ($role === 'coordinator') {
     $office_location = getPost('office_location');
     $department_code = getPost('department_code');
     $department_id = resolveDepartmentIdByCode($mysqli, $department_code);
-    $username = getPost('username');
     $account_email = getPost('account_email');
 
     if (!$department_id) {
@@ -677,11 +690,12 @@ if ($role === 'coordinator') {
     }
 
     $final_email = $account_email ?: $email;
-    $userId = createUser($mysqli, $username ?: ($first_name . ' ' . $last_name), $final_email, $password ?: bin2hex(random_bytes(4)), 'coordinator');
+    $coordinator_username = generateUniqueUsername($mysqli, $final_email ?: ($first_name . '.' . $last_name), 'coordinator');
+    $userId = createUser($mysqli, $coordinator_username, $final_email, $password ?: bin2hex(random_bytes(4)), 'coordinator');
     
     // if createUser() returned null (possible duplicate/email exists), warn and stop
     if (!$userId) {
-        header('Location: auth-register-creative.php?registered=exists&msg=' . urlencode('An account with that email or username already exists'));
+        header('Location: auth-register-creative.php?registered=exists&msg=' . urlencode('An account with that email already exists'));
         exit;
     }
 
@@ -749,22 +763,17 @@ if ($role === 'supervisor') {
     $last_name = getPost('last_name');
     $email = getPost('email');
     $phone = getPost('phone');
-    $officeOrSpecialization = getPost('office');
-    if ($officeOrSpecialization === null || $officeOrSpecialization === '') {
-        $officeOrSpecialization = getPost('specialization');
-    }
-    if ($officeOrSpecialization === null || $officeOrSpecialization === '') {
-        $officeOrSpecialization = getPost('office_location');
-    }
+    $office = getPost('office');
     $username = getPost('username');
     $account_email = getPost('account_email');
 
     $final_email = $account_email ?: $email;
-    $userId = createUser($mysqli, $username ?: ($first_name . ' ' . $last_name), $final_email, $password ?: bin2hex(random_bytes(4)), 'supervisor');
+    $supervisor_username = generateUniqueUsername($mysqli, $final_email ?: ($first_name . '.' . $last_name), 'supervisor');
+    $userId = createUser($mysqli, $supervisor_username, $final_email, $password ?: bin2hex(random_bytes(4)), 'supervisor');
     
     // if createUser() returned null (possible duplicate/email exists), warn and stop
     if (!$userId) {
-        header('Location: auth-register-creative.php?registered=exists&msg=' . urlencode('An account with that email or username already exists'));
+        header('Location: auth-register-creative.php?registered=exists&msg=' . urlencode('An account with that email already exists'));
         exit;
     }
 
@@ -832,7 +841,6 @@ if ($role === 'admin') {
     $last_name = getPost('last_name');
     $email = getPost('email');
     $phone = getPost('phone');
-    $username = getPost('username');
     $account_email = getPost('account_email');
     $admin_level = getPost('admin_level');
     $department_code = getPost('department_code');
@@ -846,12 +854,12 @@ if ($role === 'admin') {
     }
 
     $final_email = $account_email ?: $email;
-    $admin_username = $username ?: ($first_name . ' ' . $last_name);
+    $admin_username = generateUniqueUsername($mysqli, $final_email ?: ($first_name . '.' . $last_name), 'admin');
     $userId = createUser($mysqli, $admin_username, $final_email, $password ?: bin2hex(random_bytes(4)), 'admin');
     
     // if createUser() returned null (possible duplicate/email exists), warn and stop
     if (!$userId) {
-        header('Location: auth-register-creative.php?registered=exists&msg=' . urlencode('An account with that email or username already exists'));
+        header('Location: auth-register-creative.php?registered=exists&msg=' . urlencode('An account with that email already exists'));
         exit;
     }
 
@@ -862,27 +870,16 @@ if ($role === 'admin') {
     $admin_level = $admin_level ?: 'admin';
     $admin_position = $admin_position ?: 'Admin';
 
-    $next_admin_id = 1;
-    $next_id_res = $mysqli->query("SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM admin");
-    if ($next_id_res) {
-        $next_id_row = $next_id_res->fetch_assoc();
-        if ($next_id_row && isset($next_id_row['next_id'])) {
-            $next_admin_id = (int)$next_id_row['next_id'];
-        }
-        $next_id_res->close();
-    }
-
     $stmt_admin = $mysqli->prepare("
         INSERT INTO admin (
-            id, user_id, first_name, middle_name, institution_email_address, phone_number,
+            user_id, first_name, middle_name, institution_email_address, phone_number,
             admin_level, department_id, admin_position, username, password, email
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ");
 
     if ($stmt_admin) {
         $stmt_admin->bind_param(
-            'iisssssissss',
-            $next_admin_id,
+            'isssssissss',
             $userId,
             $first_name,
             $middle_name,
