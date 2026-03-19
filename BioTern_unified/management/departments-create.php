@@ -1,20 +1,49 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
-$host = defined('DB_HOST') ? DB_HOST : 'localhost';
+$host = defined('DB_HOST') ? DB_HOST : '127.0.0.1';
 $db_user = defined('DB_USER') ? DB_USER : 'root';
 $db_password = defined('DB_PASS') ? DB_PASS : ''; 
 $db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
+$db_port = defined('DB_PORT') ? (int)DB_PORT : 3306;
 
-$message = defined('DB_PASS') ? DB_PASS : ''; 
+$message = '';
 $message_type = 'info';
 
 try {
-    $conn = new mysqli($host, $db_user, $db_password, $db_name);
+    $conn = new mysqli($host, $db_user, $db_password, $db_name, $db_port);
     if ($conn->connect_error) {
         throw new Exception("Connection failed: " . $conn->connect_error);
     }
 } catch (Exception $e) {
     die("Database Error: " . $e->getMessage());
+}
+
+$departmentColumns = [];
+$columnResult = $conn->query("SHOW COLUMNS FROM departments");
+if ($columnResult) {
+    while ($column = $columnResult->fetch_assoc()) {
+        $departmentColumns[] = strtolower((string)$column['Field']);
+    }
+}
+
+$hasColumn = function ($columnName) use ($departmentColumns) {
+    return in_array(strtolower($columnName), $departmentColumns, true);
+};
+
+$hasDeletedAt = $hasColumn('deleted_at');
+
+function bindDynamicParams(mysqli_stmt $stmt, string $types, array &$params): bool
+{
+    if ($types === '') {
+        return true;
+    }
+
+    $refs = [$types];
+    foreach ($params as $index => &$value) {
+        $refs[] = &$value;
+    }
+
+    return (bool)call_user_func_array([$stmt, 'bind_param'], $refs);
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -27,7 +56,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $message = 'Department name and code are required.';
         $message_type = 'danger';
     } else {
-        $check_stmt = $conn->prepare("SELECT id FROM departments WHERE code = ? LIMIT 1");
+        $checkQuery = "SELECT id FROM departments WHERE code = ?" . ($hasDeletedAt ? " AND deleted_at IS NULL" : "") . " LIMIT 1";
+        $check_stmt = $conn->prepare($checkQuery);
         $check_stmt->bind_param("s", $code);
         $check_stmt->execute();
         $exists = $check_stmt->get_result()->fetch_assoc();
@@ -37,31 +67,78 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $message = 'Department code already exists.';
             $message_type = 'warning';
         } else {
-            $insert_stmt = $conn->prepare("
-                INSERT INTO departments (name, code, department_head, contact_email, created_at, updated_at)
-                VALUES (?, ?, ?, ?, NOW(), NOW())
-            ");
-            $insert_stmt->bind_param("ssss", $name, $code, $department_head, $contact_email);
-            if ($insert_stmt->execute()) {
-                $message = 'Department created successfully.';
-                $message_type = 'success';
-            } else {
-                $message = 'Failed to create department: ' . $insert_stmt->error;
-                $message_type = 'danger';
+            $columns = ['name', 'code'];
+            $placeholders = ['?', '?'];
+            $types = 'ss';
+            $params = [$name, $code];
+
+            if ($hasColumn('department_head')) {
+                $columns[] = 'department_head';
+                $placeholders[] = '?';
+                $types .= 's';
+                $params[] = $department_head;
             }
-            $insert_stmt->close();
+            if ($hasColumn('contact_email')) {
+                $columns[] = 'contact_email';
+                $placeholders[] = '?';
+                $types .= 's';
+                $params[] = $contact_email;
+            }
+            if ($hasColumn('created_at')) {
+                $columns[] = 'created_at';
+                $placeholders[] = 'NOW()';
+            }
+            if ($hasColumn('updated_at')) {
+                $columns[] = 'updated_at';
+                $placeholders[] = 'NOW()';
+            }
+
+            $insertSql = "INSERT INTO departments (" . implode(', ', $columns) . ") VALUES (" . implode(', ', $placeholders) . ")";
+            $insert_stmt = $conn->prepare($insertSql);
+            if (!$insert_stmt) {
+                $message = 'Failed to prepare insert statement.';
+                $message_type = 'danger';
+            } else {
+                bindDynamicParams($insert_stmt, $types, $params);
+                try {
+                    if ($insert_stmt->execute()) {
+                        $message = 'Department created successfully.';
+                        $message_type = 'success';
+                    } else {
+                        $message = 'Failed to create department: ' . $insert_stmt->error;
+                        $message_type = 'danger';
+                    }
+                } catch (mysqli_sql_exception $e) {
+                    if ((int)$e->getCode() === 1062) {
+                        $message = 'Department code already exists. The department may have been saved already.';
+                        $message_type = 'warning';
+                    } else {
+                        $message = 'Failed to create department: ' . $e->getMessage();
+                        $message_type = 'danger';
+                    }
+                }
+                $insert_stmt->close();
+            }
         }
     }
 }
 
 $departments = [];
-$list_result = $conn->query("
-    SELECT id, name, code, department_head, contact_email, created_at
-    FROM departments
-    WHERE deleted_at IS NULL
-    ORDER BY id DESC
-    LIMIT 50
-");
+$selectFields = ['id', 'name', 'code'];
+if ($hasColumn('department_head')) {
+    $selectFields[] = 'department_head';
+}
+if ($hasColumn('contact_email')) {
+    $selectFields[] = 'contact_email';
+}
+if ($hasColumn('created_at')) {
+    $selectFields[] = 'created_at';
+}
+
+$whereClause = $hasDeletedAt ? ' WHERE deleted_at IS NULL' : '';
+$orderBy = $hasColumn('created_at') ? 'created_at DESC' : 'id DESC';
+$listSql = "SELECT " . implode(', ', $selectFields) . " FROM departments" . $whereClause . " ORDER BY " . $orderBy . " LIMIT 50";
+$list_result = $conn->query($listSql);
 if ($list_result) {
     while ($row = $list_result->fetch_assoc()) {
         $departments[] = $row;

@@ -173,7 +173,13 @@ function createUser($mysqli, $username, $email, $password, $role) {
     if ($res && $res->num_rows > 0) {
         $pwdHash = password_hash($password, PASSWORD_DEFAULT);
         $hasIsActive = tableHasColumn($mysqli, 'users', 'is_active');
-        if ($hasIsActive) {
+        $hasAppStatus = tableHasColumn($mysqli, 'users', 'application_status');
+        $hasSubmittedAt = tableHasColumn($mysqli, 'users', 'application_submitted_at');
+        if ($hasIsActive && $hasAppStatus && $hasSubmittedAt) {
+            $stmt = $mysqli->prepare("INSERT INTO users (name, username, email, password, role, is_active, application_status, application_submitted_at, created_at) VALUES (?, ?, ?, ?, ?, 1, 'approved', NOW(), NOW())");
+        } elseif ($hasIsActive && $hasAppStatus) {
+            $stmt = $mysqli->prepare("INSERT INTO users (name, username, email, password, role, is_active, application_status, created_at) VALUES (?, ?, ?, ?, ?, 1, 'approved', NOW())");
+        } elseif ($hasIsActive) {
             $stmt = $mysqli->prepare("INSERT INTO users (name, username, email, password, role, is_active, created_at) VALUES (?, ?, ?, ?, ?, 1, NOW())");
         } else {
             $stmt = $mysqli->prepare("INSERT INTO users (name, username, email, password, role, created_at) VALUES (?, ?, ?, ?, ?, NOW())");
@@ -378,7 +384,15 @@ if ($role === 'student') {
     $pwdHash = password_hash($password ?: bin2hex(random_bytes(4)), PASSWORD_DEFAULT);
 
     // Create a users record first (required for FK constraint)
-    $stmt_user = $mysqli->prepare("INSERT INTO users (name, username, email, password, role, is_active, created_at) VALUES (?, ?, ?, ?, 'student', 1, NOW())");
+    $hasStudentAppStatus = tableHasColumn($mysqli, 'users', 'application_status');
+    $hasStudentSubmittedAt = tableHasColumn($mysqli, 'users', 'application_submitted_at');
+    if ($hasStudentAppStatus && $hasStudentSubmittedAt) {
+        $stmt_user = $mysqli->prepare("INSERT INTO users (name, username, email, password, role, is_active, application_status, application_submitted_at, created_at) VALUES (?, ?, ?, ?, 'student', 1, 'approved', NOW(), NOW())");
+    } elseif ($hasStudentAppStatus) {
+        $stmt_user = $mysqli->prepare("INSERT INTO users (name, username, email, password, role, is_active, application_status, created_at) VALUES (?, ?, ?, ?, 'student', 1, 'approved', NOW())");
+    } else {
+        $stmt_user = $mysqli->prepare("INSERT INTO users (name, username, email, password, role, is_active, created_at) VALUES (?, ?, ?, ?, 'student', 1, NOW())");
+    }
     $user_id = null;
     if ($stmt_user) {
         $full_name = $first_name . ' ' . $last_name;
@@ -574,14 +588,48 @@ if ($role === 'coordinator') {
         exit;
     }
 
-    // Insert into coordinators table
-    $stmt = $mysqli->prepare("INSERT INTO coordinators (user_id, first_name, last_name, middle_name, email, phone, department_id, office_location, is_active, created_at) VALUES (?, ?, ?, NULL, ?, ?, ?, ?, 1, NOW())");
+    // Insert into coordinators table (schema-aware profile field and created_at)
+    $coordinatorProfileColumn = null;
+    if (tableHasColumn($mysqli, 'coordinators', 'office_location')) {
+        $coordinatorProfileColumn = 'office_location';
+    } elseif (tableHasColumn($mysqli, 'coordinators', 'office')) {
+        $coordinatorProfileColumn = 'office';
+    } elseif (tableHasColumn($mysqli, 'coordinators', 'specialization')) {
+        $coordinatorProfileColumn = 'specialization';
+    }
+
+    $coordinatorHasCreatedAt = tableHasColumn($mysqli, 'coordinators', 'created_at');
+    if ($coordinatorProfileColumn !== null && $coordinatorHasCreatedAt) {
+        $stmt = $mysqli->prepare("INSERT INTO coordinators (user_id, first_name, last_name, middle_name, email, phone, department_id, {$coordinatorProfileColumn}, is_active, created_at) VALUES (?, ?, ?, NULL, ?, ?, ?, ?, 1, NOW())");
+    } elseif ($coordinatorProfileColumn !== null) {
+        $stmt = $mysqli->prepare("INSERT INTO coordinators (user_id, first_name, last_name, middle_name, email, phone, department_id, {$coordinatorProfileColumn}, is_active) VALUES (?, ?, ?, NULL, ?, ?, ?, ?, 1)");
+    } elseif ($coordinatorHasCreatedAt) {
+        $stmt = $mysqli->prepare("INSERT INTO coordinators (user_id, first_name, last_name, middle_name, email, phone, department_id, is_active, created_at) VALUES (?, ?, ?, NULL, ?, ?, ?, 1, NOW())");
+    } else {
+        $stmt = $mysqli->prepare("INSERT INTO coordinators (user_id, first_name, last_name, middle_name, email, phone, department_id, is_active) VALUES (?, ?, ?, NULL, ?, ?, ?, 1)");
+    }
+
     if ($stmt) {
-        $stmt->bind_param('isssiis', $userId, $first_name, $last_name, $final_email, $phone, $department_id, $office_location);
-        if (!$stmt->execute()) {
-            $error = $stmt->error;
+        if ($coordinatorProfileColumn !== null) {
+            $stmt->bind_param('isssiis', $userId, $first_name, $last_name, $final_email, $phone, $department_id, $office_location);
+        } else {
+            $stmt->bind_param('isssii', $userId, $first_name, $last_name, $final_email, $phone, $department_id);
+        }
+
+        try {
+            if (!$stmt->execute()) {
+                $error = $stmt->error;
+                $stmt->close();
+                header('Location: auth-register-creative.php?registered=error&msg=' . urlencode($error));
+                exit;
+            }
+        } catch (mysqli_sql_exception $e) {
             $stmt->close();
-            header('Location: auth-register-creative.php?registered=error&msg=' . urlencode($error));
+            if ((int)$e->getCode() === 1062) {
+                header('Location: auth-register-creative.php?registered=exists&msg=' . urlencode('Coordinator record already exists for this account.'));
+                exit;
+            }
+            header('Location: auth-register-creative.php?registered=error&msg=' . urlencode($e->getMessage()));
             exit;
         }
         $stmt->close();
@@ -604,7 +652,13 @@ if ($role === 'supervisor') {
     $last_name = getPost('last_name');
     $email = getPost('email');
     $phone = getPost('phone');
-    $specialization = getPost('specialization');
+    $officeOrSpecialization = getPost('specialization');
+    if ($officeOrSpecialization === null || $officeOrSpecialization === '') {
+        $officeOrSpecialization = getPost('office');
+    }
+    if ($officeOrSpecialization === null || $officeOrSpecialization === '') {
+        $officeOrSpecialization = getPost('office_location');
+    }
     $username = getPost('username');
     $account_email = getPost('account_email');
 
@@ -617,14 +671,48 @@ if ($role === 'supervisor') {
         exit;
     }
 
-    // Insert into supervisors table
-    $stmt = $mysqli->prepare("INSERT INTO supervisors (user_id, first_name, last_name, middle_name, email, phone, department_id, specialization, is_active, created_at) VALUES (?, ?, ?, NULL, ?, ?, NULL, ?, 1, NOW())");
+    // Insert into supervisors table (schema-aware profile field and created_at)
+    $supervisorProfileColumn = null;
+    if (tableHasColumn($mysqli, 'supervisors', 'specialization')) {
+        $supervisorProfileColumn = 'specialization';
+    } elseif (tableHasColumn($mysqli, 'supervisors', 'office')) {
+        $supervisorProfileColumn = 'office';
+    } elseif (tableHasColumn($mysqli, 'supervisors', 'office_location')) {
+        $supervisorProfileColumn = 'office_location';
+    }
+
+    $supervisorHasCreatedAt = tableHasColumn($mysqli, 'supervisors', 'created_at');
+    if ($supervisorProfileColumn !== null && $supervisorHasCreatedAt) {
+        $stmt = $mysqli->prepare("INSERT INTO supervisors (user_id, first_name, last_name, middle_name, email, phone, department_id, {$supervisorProfileColumn}, is_active, created_at) VALUES (?, ?, ?, NULL, ?, ?, NULL, ?, 1, NOW())");
+    } elseif ($supervisorProfileColumn !== null) {
+        $stmt = $mysqli->prepare("INSERT INTO supervisors (user_id, first_name, last_name, middle_name, email, phone, department_id, {$supervisorProfileColumn}, is_active) VALUES (?, ?, ?, NULL, ?, ?, NULL, ?, 1)");
+    } elseif ($supervisorHasCreatedAt) {
+        $stmt = $mysqli->prepare("INSERT INTO supervisors (user_id, first_name, last_name, middle_name, email, phone, department_id, is_active, created_at) VALUES (?, ?, ?, NULL, ?, ?, NULL, 1, NOW())");
+    } else {
+        $stmt = $mysqli->prepare("INSERT INTO supervisors (user_id, first_name, last_name, middle_name, email, phone, department_id, is_active) VALUES (?, ?, ?, NULL, ?, ?, NULL, 1)");
+    }
+
     if ($stmt) {
-        $stmt->bind_param('isssss', $userId, $first_name, $last_name, $final_email, $phone, $specialization);
-        if (!$stmt->execute()) {
-            $error = $stmt->error;
+        if ($supervisorProfileColumn !== null) {
+            $stmt->bind_param('isssss', $userId, $first_name, $last_name, $final_email, $phone, $officeOrSpecialization);
+        } else {
+            $stmt->bind_param('issss', $userId, $first_name, $last_name, $final_email, $phone);
+        }
+
+        try {
+            if (!$stmt->execute()) {
+                $error = $stmt->error;
+                $stmt->close();
+                header('Location: auth-register-creative.php?registered=error&msg=' . urlencode($error));
+                exit;
+            }
+        } catch (mysqli_sql_exception $e) {
             $stmt->close();
-            header('Location: auth-register-creative.php?registered=error&msg=' . urlencode($error));
+            if ((int)$e->getCode() === 1062) {
+                header('Location: auth-register-creative.php?registered=exists&msg=' . urlencode('Supervisor record already exists for this account.'));
+                exit;
+            }
+            header('Location: auth-register-creative.php?registered=error&msg=' . urlencode($e->getMessage()));
             exit;
         }
         $stmt->close();

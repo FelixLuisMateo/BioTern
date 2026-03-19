@@ -1,16 +1,30 @@
 <?php
-$host = 'localhost';
-$db_user = 'root';
-$db_password = '';
-$db_name = 'biotern_db';
+require_once dirname(__DIR__) . '/config/db.php';
+$host = defined('DB_HOST') ? DB_HOST : '127.0.0.1';
+$db_user = defined('DB_USER') ? DB_USER : 'root';
+$db_password = defined('DB_PASS') ? DB_PASS : '';
+$db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
+$db_port = defined('DB_PORT') ? (int)DB_PORT : 3306;
 
 $message = '';
 $message_type = 'info';
 
-$conn = new mysqli($host, $db_user, $db_password, $db_name);
+$conn = new mysqli($host, $db_user, $db_password, $db_name, $db_port);
 if ($conn->connect_error) {
     die('Connection failed: ' . $conn->connect_error);
 }
+
+$supervisorColumns = [];
+$supervisorColumnResult = $conn->query("SHOW COLUMNS FROM supervisors");
+if ($supervisorColumnResult) {
+    while ($column = $supervisorColumnResult->fetch_assoc()) {
+        $supervisorColumns[] = strtolower((string)$column['Field']);
+    }
+}
+
+$hasSupervisorColumn = function (string $columnName) use ($supervisorColumns): bool {
+    return in_array(strtolower($columnName), $supervisorColumns, true);
+};
 
 function h($value): string
 {
@@ -94,17 +108,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($message !== '' && $message_type === 'danger') {
             // keep message and do not insert
         } else {
-        $stmt = $conn->prepare('INSERT INTO supervisors (user_id, first_name, last_name, middle_name, email, phone, department_id, specialization, bio, profile_picture, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
-        if ($stmt) {
-            $stmt->bind_param('isssssisssi', $user_id, $first_name, $last_name, $middle_name, $email, $phone, $department_id, $specialization, $bio, $profile_picture, $is_active);
-            if ($stmt->execute()) {
-                header('Location: supervisors.php');
-                exit;
+            $deptForInsert = $department_id ?? 0;
+            $profileFieldValue = $specialization;
+
+            $insertSql = '';
+            if ($hasSupervisorColumn('specialization')) {
+                $insertSql = 'INSERT INTO supervisors (user_id, first_name, last_name, middle_name, email, phone, department_id, specialization, bio, profile_picture, is_active) VALUES (?, ?, ?, ?, ?, ?, NULLIF(?, 0), ?, ?, ?, ?)';
+            } elseif ($hasSupervisorColumn('office')) {
+                $insertSql = 'INSERT INTO supervisors (user_id, first_name, last_name, middle_name, email, phone, department_id, office, bio, profile_picture, is_active) VALUES (?, ?, ?, ?, ?, ?, NULLIF(?, 0), ?, ?, ?, ?)';
+                $profileFieldValue = $specialization;
+            } elseif ($hasSupervisorColumn('office_location')) {
+                $insertSql = 'INSERT INTO supervisors (user_id, first_name, last_name, middle_name, email, phone, department_id, office_location, bio, profile_picture, is_active) VALUES (?, ?, ?, ?, ?, ?, NULLIF(?, 0), ?, ?, ?, ?)';
+                $profileFieldValue = $specialization;
+            } else {
+                $insertSql = 'INSERT INTO supervisors (user_id, first_name, last_name, middle_name, email, phone, department_id, bio, profile_picture, is_active) VALUES (?, ?, ?, ?, ?, ?, NULLIF(?, 0), ?, ?, ?)';
             }
-            $message = 'Failed to create supervisor: ' . $stmt->error;
-            $message_type = 'danger';
-            $stmt->close();
-        }
+
+            $stmt = $conn->prepare($insertSql);
+            if ($stmt) {
+                if ($hasSupervisorColumn('specialization') || $hasSupervisorColumn('office') || $hasSupervisorColumn('office_location')) {
+                    $stmt->bind_param('isssssisssi', $user_id, $first_name, $last_name, $middle_name, $email, $phone, $deptForInsert, $profileFieldValue, $bio, $profile_picture, $is_active);
+                } else {
+                    $stmt->bind_param('isssssissi', $user_id, $first_name, $last_name, $middle_name, $email, $phone, $deptForInsert, $bio, $profile_picture, $is_active);
+                }
+
+                try {
+                    if ($stmt->execute()) {
+                        $stmt->close();
+                        header('Location: supervisors.php');
+                        exit;
+                    }
+                    $message = 'Failed to create supervisor: ' . $stmt->error;
+                    $message_type = 'danger';
+                } catch (mysqli_sql_exception $e) {
+                    if ((int)$e->getCode() === 1062) {
+                        $message = 'Duplicate supervisor record detected (email/user already used).';
+                        $message_type = 'warning';
+                    } else {
+                        $message = 'Failed to create supervisor: ' . $e->getMessage();
+                        $message_type = 'danger';
+                    }
+                }
+                $stmt->close();
+            } else {
+                $message = 'Failed to prepare supervisor insert statement.';
+                $message_type = 'danger';
+            }
         }
     }
 }
