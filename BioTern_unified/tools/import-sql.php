@@ -97,6 +97,173 @@ if (!function_exists('transfer_sql_execute_multi')) {
     }
 }
 
+if (!function_exists('transfer_sql_table_exists')) {
+    function transfer_sql_table_exists(mysqli $mysqli, string $tableName): bool
+    {
+        $escaped = $mysqli->real_escape_string($tableName);
+        $res = $mysqli->query("SHOW TABLES LIKE '{$escaped}'");
+        if (!$res) {
+            return false;
+        }
+        $exists = $res->num_rows > 0;
+        $res->free();
+        return $exists;
+    }
+}
+
+if (!function_exists('transfer_sql_column_exists')) {
+    function transfer_sql_column_exists(mysqli $mysqli, string $tableName, string $columnName): bool
+    {
+        $safeTable = str_replace('`', '``', $tableName);
+        $safeColumn = $mysqli->real_escape_string($columnName);
+        $res = $mysqli->query("SHOW COLUMNS FROM `{$safeTable}` LIKE '{$safeColumn}'");
+        if (!$res) {
+            return false;
+        }
+        $exists = $res->num_rows > 0;
+        $res->free();
+        return $exists;
+    }
+}
+
+if (!function_exists('transfer_sql_apply_missing_columns')) {
+    function transfer_sql_apply_missing_columns(mysqli $mysqli, string $tableName, string $createBody, array &$summary): void
+    {
+        $lines = preg_split('/\r\n|\r|\n/', $createBody) ?: [];
+        $safeTable = str_replace('`', '``', $tableName);
+
+        foreach ($lines as $line) {
+            $trimmed = trim((string)$line);
+            if ($trimmed === '' || strpos($trimmed, '`') !== 0) {
+                continue;
+            }
+
+            $trimmed = rtrim($trimmed, ',');
+            if (!preg_match('/^`([^`]+)`\s+(.+)$/', $trimmed, $matches)) {
+                continue;
+            }
+
+            $columnName = (string)$matches[1];
+            $columnDef = (string)$matches[2];
+            if (transfer_sql_column_exists($mysqli, $tableName, $columnName)) {
+                continue;
+            }
+
+            $safeColumn = str_replace('`', '``', $columnName);
+            $alter = "ALTER TABLE `{$safeTable}` ADD COLUMN `{$safeColumn}` {$columnDef}";
+            if ($mysqli->query($alter)) {
+                $summary['added_columns'] = (int)($summary['added_columns'] ?? 0) + 1;
+            }
+        }
+    }
+}
+
+if (!function_exists('transfer_sql_prepare_merge_statements')) {
+    function transfer_sql_prepare_merge_statements(mysqli $mysqli, string $sql, array &$summary): string
+    {
+        $summary['existing_tables_seen'] = 0;
+        $summary['new_tables_seen'] = 0;
+        $summary['added_columns'] = 0;
+
+        $pattern = '/CREATE\s+TABLE\s+`?([A-Za-z0-9_]+)`?\s*\((.*?)\)\s*ENGINE\s*=.*?;/is';
+        $processed = preg_replace_callback($pattern, function (array $m) use ($mysqli, &$summary) {
+            $table = (string)($m[1] ?? '');
+            $body = (string)($m[2] ?? '');
+            if ($table === '') {
+                return (string)$m[0];
+            }
+
+            if (transfer_sql_table_exists($mysqli, $table)) {
+                $summary['existing_tables_seen'] = (int)($summary['existing_tables_seen'] ?? 0) + 1;
+                transfer_sql_apply_missing_columns($mysqli, $table, $body, $summary);
+                return '';
+            }
+
+            $summary['new_tables_seen'] = (int)($summary['new_tables_seen'] ?? 0) + 1;
+            return (string)$m[0];
+        }, $sql);
+
+        return is_string($processed) ? $processed : $sql;
+    }
+}
+
+if (!function_exists('transfer_sql_split_statements')) {
+    function transfer_sql_split_statements(string $sql): array
+    {
+        $statements = [];
+        $buffer = '';
+        $inSingle = false;
+        $inDouble = false;
+        $len = strlen($sql);
+
+        for ($i = 0; $i < $len; $i++) {
+            $ch = $sql[$i];
+            $prev = $i > 0 ? $sql[$i - 1] : '';
+
+            if ($ch === "'" && !$inDouble && $prev !== '\\') {
+                $inSingle = !$inSingle;
+            } elseif ($ch === '"' && !$inSingle && $prev !== '\\') {
+                $inDouble = !$inDouble;
+            }
+
+            if ($ch === ';' && !$inSingle && !$inDouble) {
+                $stmt = trim($buffer);
+                if ($stmt !== '') {
+                    $statements[] = $stmt;
+                }
+                $buffer = '';
+            } else {
+                $buffer .= $ch;
+            }
+        }
+
+        $tail = trim($buffer);
+        if ($tail !== '') {
+            $statements[] = $tail;
+        }
+
+        return $statements;
+    }
+}
+
+if (!function_exists('transfer_sql_execute_merge')) {
+    function transfer_sql_execute_merge(mysqli $mysqli, string $sql, array &$summary, string &$errorMessage): bool
+    {
+        $ignorableCodes = [1050, 1060, 1061, 1062, 1091, 1831];
+        $statements = transfer_sql_split_statements($sql);
+        $summary['executed_statements'] = 0;
+        $summary['ignored_statement_errors'] = 0;
+
+        foreach ($statements as $statement) {
+            $stmt = trim($statement);
+            if ($stmt === '' || strpos($stmt, '--') === 0 || strpos($stmt, '/*') === 0) {
+                continue;
+            }
+
+            if (preg_match('/^INSERT\s+INTO\s+/i', $stmt)) {
+                $stmt = preg_replace('/^INSERT\s+INTO\s+/i', 'INSERT IGNORE INTO ', $stmt);
+            }
+
+            $ok = $mysqli->query($stmt);
+            if ($ok) {
+                $summary['executed_statements'] = (int)($summary['executed_statements'] ?? 0) + 1;
+                continue;
+            }
+
+            $code = (int)$mysqli->errno;
+            if (in_array($code, $ignorableCodes, true)) {
+                $summary['ignored_statement_errors'] = (int)($summary['ignored_statement_errors'] ?? 0) + 1;
+                continue;
+            }
+
+            $errorMessage = 'Statement failed (' . $code . '): ' . $mysqli->error;
+            return false;
+        }
+
+        return true;
+    }
+}
+
 if (!function_exists('transfer_sql_export')) {
     function transfer_sql_export(mysqli $mysqli, string $databaseName): string
     {
@@ -444,6 +611,7 @@ if (strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET')) === 'POST') {
 
         if ($action === 'sql_import') {
             $replaceAll = isset($_POST['replace_all']) && (string)$_POST['replace_all'] === '1';
+            $mergeSchema = !$replaceAll && (!isset($_POST['merge_schema']) || (string)$_POST['merge_schema'] === '1');
             $pastedSql = (string)($_POST['sql_text'] ?? '');
             $sqlContent = '';
 
@@ -490,6 +658,7 @@ if (strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET')) === 'POST') {
 
             if ($statusType === '') {
                 $errorMessage = '';
+                $mergeSummary = [];
 
                 if ($replaceAll && !transfer_sql_drop_all_tables($conn, (string)DB_NAME)) {
                     $statusType = 'danger';
@@ -497,7 +666,20 @@ if (strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET')) === 'POST') {
                 }
 
                 if ($statusType === '') {
-                    if (!transfer_sql_execute_multi($conn, $sqlContent, $errorMessage)) {
+                    if ($mergeSchema) {
+                        $preparedSql = transfer_sql_prepare_merge_statements($conn, $sqlContent, $mergeSummary);
+                        if (!transfer_sql_execute_merge($conn, $preparedSql, $mergeSummary, $errorMessage)) {
+                            $statusType = 'danger';
+                            $statusMessage = 'Merge import failed: ' . $errorMessage;
+                        } else {
+                            $statusType = 'success';
+                            $statusMessage = 'Merge import completed. Existing tables checked: ' . (int)($mergeSummary['existing_tables_seen'] ?? 0)
+                                . ', new tables from SQL: ' . (int)($mergeSummary['new_tables_seen'] ?? 0)
+                                . ', columns added: ' . (int)($mergeSummary['added_columns'] ?? 0)
+                                . ', statements executed: ' . (int)($mergeSummary['executed_statements'] ?? 0)
+                                . ', ignored duplicates: ' . (int)($mergeSummary['ignored_statement_errors'] ?? 0) . '.';
+                        }
+                    } elseif (!transfer_sql_execute_multi($conn, $sqlContent, $errorMessage)) {
                         $statusType = 'danger';
                         $statusMessage = 'Import failed: ' . $errorMessage;
                     } else {
@@ -551,21 +733,10 @@ if (strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET')) === 'POST') {
     }
 }
 
-$assetPrefix = '../';
+ $page_title = 'Data Transfer';
+include dirname(__DIR__) . '/includes/header.php';
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta http-equiv="x-ua-compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>BioTern || Data Transfer</title>
-    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($assetPrefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/bootstrap.min.css">
-    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($assetPrefix, ENT_QUOTES, 'UTF-8'); ?>assets/vendors/css/vendors.min.css">
-    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($assetPrefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/theme.min.css">
-</head>
-<body>
-    <main class="container py-5">
+    <div class="container-xxl py-4">
         <div class="row justify-content-center">
             <div class="col-lg-10">
                 <div class="card mb-4">
@@ -609,6 +780,11 @@ $assetPrefix = '../';
                                 <label class="form-check-label" for="replace_all">Replace existing tables before import</label>
                             </div>
 
+                            <div class="form-check mb-4">
+                                <input class="form-check-input" type="checkbox" value="1" id="merge_schema" name="merge_schema" checked>
+                                <label class="form-check-label" for="merge_schema">Merge schema for existing tables (add missing columns, keep existing data)</label>
+                            </div>
+
                             <button type="submit" class="btn btn-primary">Import SQL</button>
                         </form>
                     </div>
@@ -636,15 +812,11 @@ $assetPrefix = '../';
                             </div>
 
                             <button type="submit" class="btn btn-primary">Import Students CSV</button>
-                            <a href="../homepage.php" class="btn btn-light ms-2">Back to Dashboard</a>
+                            <a href="homepage.php" class="btn btn-light ms-2">Back to Dashboard</a>
                         </form>
                     </div>
                 </div>
             </div>
         </div>
-    </main>
-
-    <script src="<?php echo htmlspecialchars($assetPrefix, ENT_QUOTES, 'UTF-8'); ?>assets/vendors/js/vendors.min.js"></script>
-    <script src="<?php echo htmlspecialchars($assetPrefix, ENT_QUOTES, 'UTF-8'); ?>assets/js/common-init.min.js"></script>
-</body>
-</html>
+    </div>
+<?php include dirname(__DIR__) . '/includes/footer.php'; ?>
