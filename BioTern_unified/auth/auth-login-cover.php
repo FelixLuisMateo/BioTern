@@ -139,9 +139,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($identifier === '' || $password === '') {
         $login_error = 'Please enter your email, student ID, or admin username and password.';
     } else {
-        $mysqli = new mysqli($dbHost, $dbUser, $dbPass, $dbName, $dbPort);
+        $mysqli = null;
+        if (isset($conn) && $conn instanceof mysqli && !$conn->connect_errno) {
+            $mysqli = $conn;
+        } else {
+            $mysqli = mysqli_init();
+            if ($mysqli instanceof mysqli) {
+                $mysqli->options(MYSQLI_OPT_CONNECT_TIMEOUT, 8);
+                @mysqli_real_connect($mysqli, $dbHost, $dbUser, $dbPass, $dbName, $dbPort);
+            } else {
+                $mysqli = @new mysqli($dbHost, $dbUser, $dbPass, $dbName, $dbPort);
+            }
+        }
+
         if ($mysqli->connect_errno) {
             $login_error = 'Database connection failed.';
+            error_log('BioTern unified login DB connect failed. host=' . $dbHost . ' db=' . $dbName . ' port=' . $dbPort . ' error=' . $mysqli->connect_error);
         } else {
             auth_login_ensure_users_schema($mysqli);
 
@@ -202,7 +215,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 $login_error = 'Login query preparation failed.';
             }
-            $mysqli->close();
+            if (!isset($conn) || !$conn instanceof mysqli || $mysqli !== $conn) {
+                $mysqli->close();
+            }
         }
     }
 }
@@ -528,24 +543,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <h2 class="fs-25 fw-bolder mb-4">Login</h2>
                     <h4 class="fs-15 fw-bold mb-2">Log in to your Clark College of Science and Technology internship account.</h4>
 
-                    <?php
-require_once dirname(__DIR__) . '/config/db.php';
-if ($login_error !== ''): ?>
-                        <div class="alert alert-danger" role="alert"><?php
-require_once dirname(__DIR__) . '/config/db.php';
-echo htmlspecialchars($login_error); ?></div>
-                    <?php
-require_once dirname(__DIR__) . '/config/db.php';
-endif; ?>
+                    <?php if ($login_error !== ''): ?>
+                        <div class="alert alert-danger" role="alert"><?php echo htmlspecialchars($login_error); ?></div>
+                    <?php endif; ?>
 
-                    <form action="auth-login-cover.php" method="post" class="w-100 mt-4 pt-2">
-                        <input type="hidden" name="next" value="<?php
-require_once dirname(__DIR__) . '/config/db.php';
-echo htmlspecialchars($next, ENT_QUOTES, 'UTF-8'); ?>">
+                    <form method="post" class="w-100 mt-4 pt-2">
+                        <input type="hidden" name="next" value="<?php echo htmlspecialchars($next, ENT_QUOTES, 'UTF-8'); ?>">
                         <div class="mb-4">
-                            <input type="text" name="identifier" id="identifier" class="form-control" placeholder="Student ID, Email, or Admin Username" value="<?php
-require_once dirname(__DIR__) . '/config/db.php';
-echo isset($_POST['identifier']) ? htmlspecialchars((string)$_POST['identifier']) : ''; ?>" required aria-required="true" aria-label="Student ID, Email, or Admin Username" autofocus>
+                            <input type="text" name="identifier" id="identifier" class="form-control" placeholder="Student ID, Email, or Admin Username" value="<?php echo isset($_POST['identifier']) ? htmlspecialchars((string)$_POST['identifier']) : ''; ?>" required aria-required="true" aria-label="Student ID, Email, or Admin Username" autofocus>
                         </div>
                         <div class="mb-3 input-group">
                             <input type="password" name="password" id="passwordInput" class="form-control" placeholder="Password" required aria-required="true" aria-label="Password">
