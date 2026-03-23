@@ -41,6 +41,81 @@ if (!function_exists('transfer_sql_normalize')) {
     }
 }
 
+if (!function_exists('transfer_sql_inspect')) {
+    function transfer_sql_inspect(mysqli $mysqli, string $sql, string $databaseName): array
+    {
+        preg_match_all('/CREATE\s+DATABASE\b/i', $sql, $mCreateDb);
+        preg_match_all('/USE\s+`?([A-Za-z0-9_\-]+)`?/i', $sql, $mUseDb);
+        preg_match_all('/CREATE\s+TABLE\s+`?([A-Za-z0-9_]+)`?/i', $sql, $mCreateTable);
+        preg_match_all('/DROP\s+TABLE(?:\s+IF\s+EXISTS)?\s+`?([A-Za-z0-9_]+)`?/i', $sql, $mDropTable);
+        preg_match_all('/INSERT\s+INTO\s+`?([A-Za-z0-9_]+)`?/i', $sql, $mInsertInto);
+        preg_match_all('/ALTER\s+TABLE\s+`?([A-Za-z0-9_]+)`?/i', $sql, $mAlterTable);
+
+        $createTables = array_values(array_unique(array_map('strval', $mCreateTable[1] ?? [])));
+        $dropTables = array_values(array_unique(array_map('strval', $mDropTable[1] ?? [])));
+        $insertTables = array_values(array_unique(array_map('strval', $mInsertInto[1] ?? [])));
+        $alterTables = array_values(array_unique(array_map('strval', $mAlterTable[1] ?? [])));
+        $mentionedTables = array_values(array_unique(array_merge($createTables, $dropTables, $insertTables, $alterTables)));
+
+        $safeDb = $mysqli->real_escape_string($databaseName);
+        $currentTableCount = 0;
+        $res = $mysqli->query("SELECT COUNT(*) AS total_count FROM information_schema.tables WHERE table_schema = '{$safeDb}'");
+        if ($res instanceof mysqli_result) {
+            $row = $res->fetch_assoc();
+            $currentTableCount = (int)($row['total_count'] ?? 0);
+            $res->free();
+        }
+
+        $createCount = count($createTables);
+        $dropCount = count($dropTables);
+        $mentionedCount = count($mentionedTables);
+        $hasCreateDatabase = !empty($mCreateDb[0]);
+        $hasUseDatabase = !empty($mUseDb[0]);
+
+        $looksFullDump = false;
+        if ($currentTableCount > 0 && $createCount > 0 && $createCount >= max(3, (int)floor($currentTableCount * 0.6))) {
+            $looksFullDump = true;
+        }
+        if ($hasCreateDatabase && $createCount >= 3) {
+            $looksFullDump = true;
+        }
+        if ($dropCount > 0 && $createCount > 0 && $dropCount >= max(3, (int)floor($createCount * 0.6))) {
+            $looksFullDump = true;
+        }
+
+        $looksPartialDump = false;
+        if ($mentionedCount > 0 && $mentionedCount <= 2 && !$hasCreateDatabase && !$hasUseDatabase) {
+            $looksPartialDump = true;
+        }
+        if ($currentTableCount > 0 && $mentionedCount > 0 && $mentionedCount < max(3, (int)floor($currentTableCount * 0.35))) {
+            $looksPartialDump = true;
+        }
+
+        $riskLevel = 'medium';
+        if ($looksPartialDump) {
+            $riskLevel = 'high';
+        } elseif ($looksFullDump) {
+            $riskLevel = 'low';
+        }
+
+        return [
+            'create_database_count' => count($mCreateDb[0] ?? []),
+            'use_database_count' => count($mUseDb[0] ?? []),
+            'create_table_count' => $createCount,
+            'drop_table_count' => $dropCount,
+            'insert_table_count' => count($insertTables),
+            'alter_table_count' => count($alterTables),
+            'mentioned_table_count' => $mentionedCount,
+            'create_tables' => $createTables,
+            'mentioned_tables' => $mentionedTables,
+            'current_table_count' => $currentTableCount,
+            'looks_full_dump' => $looksFullDump,
+            'looks_partial_dump' => $looksPartialDump,
+            'risk_level' => $riskLevel,
+        ];
+    }
+}
+
 if (!function_exists('transfer_sql_drop_all_tables')) {
     function transfer_sql_drop_all_tables(mysqli $mysqli, string $databaseName, string &$errorMessage = '', array &$summary = []): bool
     {
@@ -672,6 +747,13 @@ $sqlTextValue = (string)($_POST['sql_text'] ?? '');
 $replaceAllChecked = isset($_POST['replace_all']) && (string)$_POST['replace_all'] === '1';
 $mergeSchemaChecked = !isset($_POST['merge_schema']) || (string)($_POST['merge_schema'] ?? '1') === '1';
 $showStudentsEditLink = false;
+$confirmReplaceBackup = isset($_POST['confirm_replace_backup']) && (string)$_POST['confirm_replace_backup'] === '1';
+$confirmReplaceFullDump = isset($_POST['confirm_replace_full_dump']) && (string)$_POST['confirm_replace_full_dump'] === '1';
+$confirmReplaceUnderstand = isset($_POST['confirm_replace_understand']) && (string)$_POST['confirm_replace_understand'] === '1';
+$confirmPartialForce = isset($_POST['confirm_partial_force']) && (string)$_POST['confirm_partial_force'] === '1';
+$replaceConfirmText = (string)($_POST['replace_confirm_text'] ?? '');
+$sqlInspection = null;
+$sqlInspectionRisk = 'medium';
 
 if ($download !== '') {
     if ($download === 'students_template') {
@@ -779,8 +861,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($statusType === '') {
             $errorMessage = '';
             $mergeSummary = [];
+            $sqlInspection = transfer_sql_inspect($conn, $sqlContent, (string)DB_NAME);
+            $sqlInspectionRisk = (string)($sqlInspection['risk_level'] ?? 'medium');
+            $statusDetails[] = 'SQL tables mentioned: ' . (int)($sqlInspection['mentioned_table_count'] ?? 0);
+            $statusDetails[] = 'CREATE TABLE statements: ' . (int)($sqlInspection['create_table_count'] ?? 0);
+            $statusDetails[] = 'Current DB objects: ' . (int)($sqlInspection['current_table_count'] ?? 0);
+            $statusDetails[] = 'Import risk assessment: ' . strtoupper($sqlInspectionRisk);
 
             if ($replaceAllChecked) {
+                $allReplaceChecksPassed =
+                    $confirmReplaceBackup
+                    && $confirmReplaceFullDump
+                    && $confirmReplaceUnderstand
+                    && strtoupper(trim($replaceConfirmText)) === 'REPLACE DATABASE';
+
+                if (!empty($sqlInspection['looks_partial_dump']) && !$confirmPartialForce) {
+                    $statusType = 'danger';
+                    $statusMessage = 'Safety block: this SQL looks like a partial dump, not a full database backup. Replace mode is blocked to prevent wiping the whole database.';
+                } elseif (!$allReplaceChecksPassed) {
+                    $statusType = 'danger';
+                    $statusMessage = 'Safety checklist incomplete. Replace mode is blocked until every confirmation is checked and the confirmation phrase is entered.';
+                }
+            }
+
+            if ($statusType === '' && $replaceAllChecked) {
                 $dropSummary = [];
                 if (!transfer_sql_drop_all_tables($conn, (string)DB_NAME, $errorMessage, $dropSummary)) {
                     $statusType = 'danger';
@@ -794,7 +898,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $statusDetails[] = 'Views dropped: ' . (int)($dropSummary['dropped_views'] ?? 0);
                     $statusDetails[] = 'Tables dropped: ' . (int)($dropSummary['dropped_tables'] ?? 0);
                 }
-            } elseif ($mergeSchemaChecked) {
+            } elseif ($statusType === '' && $mergeSchemaChecked) {
                 $preparedSql = transfer_sql_prepare_merge_statements($conn, $sqlContent, $mergeSummary);
                 if (!transfer_sql_execute_merge($conn, $preparedSql, $mergeSummary, $errorMessage)) {
                     $statusType = 'danger';
@@ -808,7 +912,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $statusDetails[] = 'Statements executed: ' . (int)($mergeSummary['executed_statements'] ?? 0);
                     $statusDetails[] = 'Ignored duplicate/schema conflicts: ' . (int)($mergeSummary['ignored_statement_errors'] ?? 0);
                 }
-            } else {
+            } elseif ($statusType === '') {
                 if (!transfer_sql_execute_multi($conn, $sqlContent, $errorMessage)) {
                     $statusType = 'danger';
                     $statusMessage = 'SQL import failed: ' . $errorMessage;
@@ -1005,6 +1109,30 @@ include dirname(__DIR__) . '/includes/header.php';
     color: #cfe7ff;
     border-color: #45617f;
 }
+.transfer-risk-high {
+    border-color: #f4b5b1;
+    background: #fff6f5;
+}
+.transfer-risk-low {
+    border-color: #b9ebcd;
+    background: #f4fff8;
+}
+.transfer-risk-medium {
+    border-color: #f1deac;
+    background: #fffaf0;
+}
+.app-skin-dark .transfer-risk-high {
+    background: #2f1b1c;
+    border-color: #7a3d40;
+}
+.app-skin-dark .transfer-risk-low {
+    background: #13271d;
+    border-color: #2e6a46;
+}
+.app-skin-dark .transfer-risk-medium {
+    background: #2b2417;
+    border-color: #7e6840;
+}
 @media (max-width: 991.98px) {
     .transfer-grid {
         grid-template-columns: 1fr;
@@ -1136,6 +1264,45 @@ include dirname(__DIR__) . '/includes/header.php';
                                 </div>
                             </div>
 
+                            <div class="transfer-step mb-4 <?php echo $sqlInspectionRisk === 'high' ? 'transfer-risk-high' : ($sqlInspectionRisk === 'low' ? 'transfer-risk-low' : 'transfer-risk-medium'); ?>">
+                                <div class="transfer-step-number">C</div>
+                                <h6>Replace Mode Safety Checklist</h6>
+                                <p class="text-muted mb-3">Replace mode will not run unless this checklist is completed. This helps prevent the exact problem where a single-table SQL file wipes the whole database.</p>
+
+                                <?php if (is_array($sqlInspection)): ?>
+                                    <div class="small mb-3">
+                                        <div><strong>Inspection:</strong> this SQL mentions <?php echo (int)($sqlInspection['mentioned_table_count'] ?? 0); ?> table(s), contains <?php echo (int)($sqlInspection['create_table_count'] ?? 0); ?> `CREATE TABLE` statement(s), and the current database has <?php echo (int)($sqlInspection['current_table_count'] ?? 0); ?> object(s).</div>
+                                        <div><strong>Risk:</strong> <?php echo htmlspecialchars(strtoupper((string)($sqlInspection['risk_level'] ?? 'medium')), ENT_QUOTES, 'UTF-8'); ?></div>
+                                        <div><strong>Assessment:</strong> <?php echo !empty($sqlInspection['looks_full_dump']) ? 'Looks like a fuller database dump.' : (!empty($sqlInspection['looks_partial_dump']) ? 'Looks like a partial export.' : 'Needs manual review before replace mode.'); ?></div>
+                                    </div>
+                                <?php else: ?>
+                                    <div class="small text-muted mb-3">The inspection summary appears after you submit an SQL file or pasted SQL. Merge mode is safer until the dump is confirmed.</div>
+                                <?php endif; ?>
+
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" value="1" id="confirm_replace_backup" name="confirm_replace_backup" <?php echo $confirmReplaceBackup ? 'checked' : ''; ?>>
+                                    <label class="form-check-label" for="confirm_replace_backup">I have a backup of the current database before running replace mode.</label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" value="1" id="confirm_replace_full_dump" name="confirm_replace_full_dump" <?php echo $confirmReplaceFullDump ? 'checked' : ''; ?>>
+                                    <label class="form-check-label" for="confirm_replace_full_dump">I confirmed this SQL file is intended to replace the full database, not just one table.</label>
+                                </div>
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="checkbox" value="1" id="confirm_replace_understand" name="confirm_replace_understand" <?php echo $confirmReplaceUnderstand ? 'checked' : ''; ?>>
+                                    <label class="form-check-label" for="confirm_replace_understand">I understand replace mode can remove existing tables before importing.</label>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="replace_confirm_text" class="form-label fw-semibold">Type <code>REPLACE DATABASE</code> to unlock replace mode</label>
+                                    <input type="text" class="form-control" id="replace_confirm_text" name="replace_confirm_text" value="<?php echo htmlspecialchars($replaceConfirmText, ENT_QUOTES, 'UTF-8'); ?>" placeholder="REPLACE DATABASE">
+                                </div>
+
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="1" id="confirm_partial_force" name="confirm_partial_force" <?php echo $confirmPartialForce ? 'checked' : ''; ?>>
+                                    <label class="form-check-label" for="confirm_partial_force">Emergency override: I still want replace mode even if the SQL inspection says this looks like a partial dump.</label>
+                                </div>
+                            </div>
+
                             <div class="d-flex flex-wrap gap-2">
                                 <button type="submit" class="btn btn-primary px-4">Run SQL Import</button>
                                 <span class="text-muted align-self-center">After importing, read the status message at the top of the page for the exact result.</span>
@@ -1226,6 +1393,7 @@ include dirname(__DIR__) . '/includes/header.php';
                             <li>If the error mentions a missing table or column, compare the source dump with the current Railway schema before retrying.</li>
                         </ul>
                         <div class="mt-3">
+                            <a href="import-students-excel.php" class="btn btn-outline-success me-2">Open Excel Student Import</a>
                             <a href="force-drop-db.php" class="btn btn-outline-danger">Open Force Drop Utility</a>
                         </div>
                     </div>
