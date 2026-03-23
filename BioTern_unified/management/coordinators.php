@@ -10,7 +10,7 @@ if ($conn->connect_error) {
     die('Connection failed: ' . $conn->connect_error);
 }
 
-$message = defined('DB_PASS') ? DB_PASS : ''; 
+$message = '';
 $message_type = 'success';
 
 function h($value): string

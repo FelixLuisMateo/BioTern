@@ -221,6 +221,25 @@ function app_base_path()
     return '/';
 }
 
+function app_route_path(string $file, array $query = []): string
+{
+    $host = strtolower((string)($_SERVER['HTTP_HOST'] ?? ''));
+    $is_vercel = ((string)getenv('VERCEL') !== '') || strpos($host, 'vercel.app') !== false;
+    $base = rtrim(app_base_path(), '/');
+    $path = ltrim($file, '/');
+
+    if ($is_vercel && preg_match('/\.php$/i', $path)) {
+        $path = preg_replace('/\.php$/i', '', $path);
+    }
+
+    $url = ($base !== '' ? $base : '') . '/' . $path;
+    if (!empty($query)) {
+        $url .= '?' . http_build_query($query);
+    }
+
+    return $url;
+}
+
 function status_badge_html($status)
 {
     $raw = trim((string)$status);
@@ -1693,7 +1712,7 @@ require_once dirname(__DIR__) . '/config/db.php';
                                         <span class="d-block mb-2">Student Information :</span>
                                         <span class="fs-12 fw-normal text-muted d-block">Live data from students table</span>
                                     </h5>
-                                    <a href="students-view.php?id=<?php echo intval($student['id']); ?>" class="btn btn-sm btn-light-brand">Open Student View</a>
+                                    <a href="<?php echo htmlspecialchars(app_route_path('students-view.php', ['id' => (int)$student['id']])); ?>" class="btn btn-sm btn-light-brand">Open Student View</a>
                                 </div>
                                 <div class="row mb-4">
                                     <div class="col-lg-2 fw-medium">Profile</div>
@@ -1786,9 +1805,9 @@ require_once dirname(__DIR__) . '/config/db.php';
                                 <div class="d-flex justify-content-between align-items-center mb-3">
                                     <h5 class="fw-bold mb-0">Internship Monitoring Overview</h5>
                                 <div class="d-flex gap-2 overview-actions">
-                                    <a href="ojt-edit.php?id=<?php echo intval($selected_student_id); ?>" class="btn btn-sm btn-outline-primary">Controlled Edit</a>
-                                    <a href="students-dtr.php?id=<?php echo intval($selected_student_id); ?>" class="btn btn-sm btn-outline-success">Attendance History</a>
-                                    <a href="ojt-workflow-board.php" class="btn btn-sm btn-outline-info">Workflow Board</a>
+                                    <a href="<?php echo htmlspecialchars(app_route_path('ojt-edit.php', ['id' => (int)$selected_student_id])); ?>" class="btn btn-sm btn-outline-primary">Controlled Edit</a>
+                                    <a href="<?php echo htmlspecialchars(app_route_path('students-dtr.php', ['id' => (int)$selected_student_id])); ?>" class="btn btn-sm btn-outline-success">Attendance History</a>
+                                    <a href="<?php echo htmlspecialchars(app_route_path('ojt-workflow-board.php')); ?>" class="btn btn-sm btn-outline-info">Workflow Board</a>
                                 </div>
                             </div>
                                 <div class="row g-3 mb-3">
@@ -1849,6 +1868,10 @@ require_once dirname(__DIR__) . '/config/db.php';
                                             <?php endif; ?>
                                         </div>
                                     </div>
+                                </div>
+                                <div class="mt-3 p-3 border rounded">
+                                    <h6 class="fw-bold mb-2">Recommended Workflow</h6>
+                                    <div class="text-muted fs-12">Review profile data first, save each document autofill tab next, then open the actual document page for printing only after the workflow status is ready for review or approval.</div>
                                 </div>
                                 <div class="row g-3 mt-1">
                                     <?php foreach (['application' => 'Application', 'endorsement' => 'Endorsement', 'moa' => 'MOA', 'dau_moa' => 'Dau MOA'] as $doc_key => $doc_label): ?>
@@ -2074,7 +2097,7 @@ require_once dirname(__DIR__) . '/config/db.php';
 
                                     <div class="mt-3 d-flex gap-2 document-form-actions">
                                         <button type="submit" class="btn btn-primary">Save Application Data</button>
-                                        <a href="document_application.php?id=<?php echo intval($selected_student_id); ?>" class="btn btn-success">Open Application Letter</a>
+                                        <a href="<?php echo htmlspecialchars(app_route_path('document_application.php', ['id' => (int)$selected_student_id])); ?>" class="btn btn-success">Open Application Letter</a>
                                     </div>
                                 </form>
                             <?php endif; ?>
@@ -2186,7 +2209,7 @@ require_once dirname(__DIR__) . '/config/db.php';
 
                                     <div class="mt-3 d-flex gap-2 document-form-actions">
                                         <button type="submit" class="btn btn-primary">Save MOA Data</button>
-                                        <a href="document_moa.php?id=<?php echo intval($selected_student_id); ?>" class="btn btn-success">Open MOA</a>
+                                        <a href="<?php echo htmlspecialchars(app_route_path('document_moa.php', ['id' => (int)$selected_student_id])); ?>" class="btn btn-success">Open MOA</a>
                                     </div>
                                 </form>
                             <?php endif; ?>
@@ -2253,7 +2276,7 @@ require_once dirname(__DIR__) . '/config/db.php';
                                     </div>
                                     <div class="mt-3 d-flex gap-2 document-form-actions">
                                         <button type="submit" class="btn btn-primary">Save Endorsement Data</button>
-                                        <a href="document_endorsement.php?id=<?php echo intval($selected_student_id); ?>&greeting_pref=<?php echo urlencode((string)($endorsement_data['greeting_preference'] ?? 'either')); ?>&recipient_title=<?php echo urlencode((string)($endorsement_data['recipient_title'] ?? 'none')); ?>" class="btn btn-success">Open Endorsement Letter</a>
+                                        <a href="<?php echo htmlspecialchars(app_route_path('document_endorsement.php', ['id' => (int)$selected_student_id, 'greeting_pref' => (string)($endorsement_data['greeting_preference'] ?? 'either'), 'recipient_title' => (string)($endorsement_data['recipient_title'] ?? 'none')])); ?>" class="btn btn-success">Open Endorsement Letter</a>
                                     </div>
                                 </form>
                             <?php endif; ?>
@@ -2376,7 +2399,7 @@ require_once dirname(__DIR__) . '/config/db.php';
                                     </div>
                                     <div class="mt-3 d-flex gap-2 document-form-actions">
                                         <button type="submit" class="btn btn-primary">Save Dau MOA Data</button>
-                                        <a href="document_dau_moa.php?id=<?php echo intval($selected_student_id); ?>" class="btn btn-success">Open Dau MOA</a>
+                                        <a href="<?php echo htmlspecialchars(app_route_path('document_dau_moa.php', ['id' => (int)$selected_student_id])); ?>" class="btn btn-success">Open Dau MOA</a>
                                     </div>
                                 </form>
                             <?php endif; ?>
