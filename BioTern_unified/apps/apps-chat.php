@@ -125,6 +125,21 @@ function chat_json_response(array $payload, int $statusCode = 200): void
     exit;
 }
 
+function chat_page_url(int $userId = 0, array $extraQuery = []): string
+{
+    $query = $extraQuery;
+    if ($userId > 0) {
+        $query['user_id'] = $userId;
+    }
+
+    $url = 'apps-chat';
+    if (!empty($query)) {
+        $url .= '?' . http_build_query($query);
+    }
+
+    return $url;
+}
+
 function chat_has_table(mysqli $conn, string $table): bool
 {
     $table = trim($table);
@@ -801,7 +816,7 @@ if ($requestMethod === 'POST' && (string)($_POST['action'] ?? '') === 'delete-co
                 $successMessage = 'Conversation deleted.';
                 if (!$isAjaxRequest) {
                     $_SESSION['chat_flash'] = ['success' => $successMessage];
-                    header('Location: apps-chat.php?user_id=' . $selectedUserId);
+                    header('Location: ' . chat_page_url($selectedUserId));
                     exit;
                 }
             } else {
@@ -1383,11 +1398,11 @@ if ($requestMethod === 'POST' && (string)($_POST['action'] ?? '') === 'send-mess
                             'New chat message from ' . $senderDisplay,
                             $notificationPreview,
                             'message',
-                            'apps-chat.php?user_id=' . $currentUserId
+                            chat_page_url($currentUserId)
                         );
                     }
                     if (!$isAjaxRequest) {
-                        header('Location: apps-chat.php?user_id=' . $selectedUserId);
+                        header('Location: ' . chat_page_url($selectedUserId));
                         exit;
                     }
                 } else {
@@ -1586,7 +1601,7 @@ if ($selectedContact && $messageMeta['is_read_col'] !== '') {
             $notificationSql = 'UPDATE notifications SET is_read = 1 WHERE ' . $notificationWhere;
             $notificationStmt = $conn->prepare($notificationSql);
             if ($notificationStmt) {
-                $chatActionUrl = 'apps-chat.php?user_id=' . $selectedUserId;
+                $chatActionUrl = chat_page_url($selectedUserId);
                 if (isset($notificationColumns['action_url']) && isset($notificationColumns['type'])) {
                     $notificationType = 'message';
                     $notificationStmt->bind_param('iss', $currentUserId, $chatActionUrl, $notificationType);
@@ -4094,7 +4109,7 @@ include 'includes/header.php';
                         $isActiveContact = (int)$contact['id'] === $selectedUserId;
                         $contactName = (string)$contact['name'];
                         ?>
-                        <a class="btchat-item<?php echo $isActiveContact ? ' active' : ''; ?>" href="apps-chat.php?user_id=<?php echo (int)$contact['id']; ?>" data-user-id="<?php echo (int)$contact['id']; ?>">
+                        <a class="btchat-item<?php echo $isActiveContact ? ' active' : ''; ?>" href="<?php echo chat_esc(chat_page_url((int)$contact['id'])); ?>" data-user-id="<?php echo (int)$contact['id']; ?>">
                             <span class="btchat-avatar-wrap">
                                 <img src="<?php echo chat_esc((string)$contact['avatar_path']); ?>" alt="<?php echo chat_esc($contactName); ?>" class="btchat-avatar" onerror="this.style.display='none';var f=this.nextElementSibling;if(f&&f.classList.contains('btchat-avatar-text'))f.style.removeProperty('display');">
                                 <span class="btchat-avatar-text" style="display:none"><?php echo chat_esc((string)$contact['initials']); ?></span>
@@ -4221,7 +4236,7 @@ include 'includes/header.php';
                 </div>
 
                 <div class="btchat-compose">
-                    <form method="post" action="apps-chat.php?user_id=<?php echo (int)$selectedUserId; ?>" id="btchat-compose-form" enctype="multipart/form-data">
+                    <form method="post" action="<?php echo chat_esc(chat_page_url((int)$selectedUserId)); ?>" id="btchat-compose-form" enctype="multipart/form-data">
                         <input type="hidden" name="action" value="send-message">
                         <input type="hidden" name="user_id" value="<?php echo (int)$selectedUserId; ?>">
                         <input type="hidden" name="reply_to_message_id" id="chat-reply-to-message-id" value="0">
@@ -4414,6 +4429,7 @@ include 'includes/header.php';
             return;
         }
 
+        var chatBaseUrl = <?php echo json_encode(chat_page_url(), JSON_UNESCAPED_SLASHES); ?>;
         var listEl = document.getElementById('btchat-list');
         var threadEl = document.getElementById('btchat-thread');
         var headerEl = document.getElementById('btchat-chat-header');
@@ -4558,7 +4574,7 @@ include 'includes/header.php';
         }
 
         function postChatAction(formData, userId) {
-            return fetch('apps-chat.php?user_id=' + encodeURIComponent(userId), {
+            return fetch(chatBaseUrl + '?user_id=' + encodeURIComponent(userId), {
                 method: 'POST',
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest'
@@ -4722,8 +4738,8 @@ include 'includes/header.php';
                 userId: normalizedUserId
             };
             var url = normalizedView === 'conversation' && normalizedUserId > 0
-                ? ('apps-chat.php?user_id=' + normalizedUserId)
-                : 'apps-chat.php';
+                ? (chatBaseUrl + '?user_id=' + normalizedUserId)
+                : chatBaseUrl;
             try {
                 window.history.replaceState(state, '', url);
             } catch (e) {
@@ -4735,7 +4751,7 @@ include 'includes/header.php';
             if (!isMobileLayout() || !window.history || typeof window.history.pushState !== 'function' || !(userId > 0)) {
                 return;
             }
-            var url = 'apps-chat.php?user_id=' + userId;
+            var url = chatBaseUrl + '?user_id=' + userId;
             try {
                 window.history.pushState({ btchatView: 'conversation', userId: userId }, '', url);
             } catch (e) {
@@ -4784,7 +4800,7 @@ include 'includes/header.php';
                 var unread = contact.unread_count > 0 ? '<span class="badge rounded-pill bg-primary">' + contact.unread_count + '</span>' : '';
                 var snippet = contact.last_message ? contact.last_message : 'No messages yet';
                 return '' +
-                    '<a class="btchat-item' + activeClass + '" href="apps-chat.php?user_id=' + contact.id + '" data-user-id="' + contact.id + '">' +
+                    '<a class="btchat-item' + activeClass + '" href="' + chatBaseUrl + '?user_id=' + contact.id + '" data-user-id="' + contact.id + '">' +
                         avatarMarkup(contact) +
                         '<div class="btchat-meta">' +
                             '<div class="btchat-name-row">' +
@@ -5912,7 +5928,7 @@ include 'includes/header.php';
                 lastRenderedUserId = 0;
             }
             if (formEl && selectedUserId > 0) {
-                formEl.setAttribute('action', 'apps-chat.php?user_id=' + selectedUserId);
+                formEl.setAttribute('action', chatBaseUrl + '?user_id=' + selectedUserId);
                 var userField = formEl.querySelector('input[name="user_id"]');
                 if (userField) {
                     userField.value = String(selectedUserId);
@@ -5936,7 +5952,7 @@ include 'includes/header.php';
                 fetchAbortController.abort();
             }
             fetchAbortController = typeof AbortController !== 'undefined' ? new AbortController() : null;
-            var requestUrl = 'apps-chat.php?ajax=1&user_id=' + encodeURIComponent(selectedUserId);
+            var requestUrl = chatBaseUrl + '?ajax=1&user_id=' + encodeURIComponent(selectedUserId);
             return fetch(requestUrl, {
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest'
@@ -5977,7 +5993,7 @@ include 'includes/header.php';
                 event.preventDefault();
                 selectedUserId = parseInt(link.getAttribute('data-user-id') || '0', 10) || 0;
                 if (!selectedUserId) {
-                    window.location.href = link.getAttribute('href') || 'apps-chat.php';
+                    window.location.href = link.getAttribute('href') || chatBaseUrl;
                     return;
                 }
                 var wasMobileConversationOpen = isMobileLayout() && app.classList.contains('btchat-mobile-convo-open');
@@ -5992,12 +6008,12 @@ include 'includes/header.php';
                         pushMobileConversationState(selectedUserId);
                     }
                 } else {
-                    history.replaceState(null, '', 'apps-chat.php?user_id=' + selectedUserId);
+                    history.replaceState(null, '', chatBaseUrl + '?user_id=' + selectedUserId);
                 }
                 fetchState(true, { forceScroll: true }).then(function (payload) {
                     if (!payload || !payload.ok) {
                         setThreadLoading(false);
-                        window.location.href = link.getAttribute('href') || ('apps-chat.php?user_id=' + selectedUserId);
+                        window.location.href = link.getAttribute('href') || (chatBaseUrl + '?user_id=' + selectedUserId);
                     }
                 });
             });
