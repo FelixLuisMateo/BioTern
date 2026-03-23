@@ -486,41 +486,68 @@ if (!function_exists('transfer_bool_from_text')) {
     }
 }
 
+// Add PhpSpreadsheet for .xlsx support
+require_once dirname(__DIR__) . '/vendor/autoload.php';
+use PhpOffice\PhpSpreadsheet\IOFactory;
+
 if (!function_exists('transfer_import_students_csv')) {
-    function transfer_import_students_csv(mysqli $mysqli, string $csvContent, string &$message): bool
+    function transfer_import_students_csv(mysqli $mysqli, string $csvContent, string &$message, $isXlsx = false, $xlsxPath = ''): bool
     {
-        $stream = fopen('php://temp', 'r+');
-        if ($stream === false) {
-            $message = 'Unable to open temporary stream for CSV.';
-            return false;
-        }
-
-        fwrite($stream, $csvContent);
-        rewind($stream);
-
-        $header = fgetcsv($stream);
-        if (!is_array($header) || count($header) === 0) {
+        $rows = [];
+        if ($isXlsx && $xlsxPath !== '' && file_exists($xlsxPath)) {
+            try {
+                $spreadsheet = IOFactory::load($xlsxPath);
+                $sheet = $spreadsheet->getActiveSheet();
+                $header = [];
+                foreach ($sheet->getRowIterator() as $rowIndex => $row) {
+                    $cellIterator = $row->getCellIterator();
+                    $cellIterator->setIterateOnlyExistingCells(false);
+                    $rowData = [];
+                    foreach ($cellIterator as $cell) {
+                        $rowData[] = trim((string)$cell->getValue());
+                    }
+                    if ($rowIndex === 1) {
+                        $header = array_map('strtolower', $rowData);
+                        continue;
+                    }
+                    $rows[] = $rowData;
+                }
+            } catch (Exception $e) {
+                $message = 'Failed to read Excel file: ' . $e->getMessage();
+                return false;
+            }
+        } else {
+            $stream = fopen('php://temp', 'r+');
+            if ($stream === false) {
+                $message = 'Unable to open temporary stream for CSV.';
+                return false;
+            }
+            fwrite($stream, $csvContent);
+            rewind($stream);
+            $header = fgetcsv($stream);
+            if (!is_array($header) || count($header) === 0) {
+                fclose($stream);
+                $message = 'CSV header is missing.';
+                return false;
+            }
+            $header = array_map('strtolower', $header);
+            while (($row = fgetcsv($stream)) !== false) {
+                $rows[] = $row;
+            }
             fclose($stream);
-            $message = 'CSV header is missing.';
-            return false;
-        }
-
-        $normalized = [];
-        foreach ($header as $column) {
-            $normalized[] = strtolower(trim((string)$column));
         }
 
         $required = ['name', 'email'];
         foreach ($required as $field) {
-            if (!in_array($field, $normalized, true)) {
-                fclose($stream);
-                $message = 'CSV must contain required columns: name and email.';
+            if (!in_array($field, $header, true)) {
+                $message = 'Import must contain required columns: name and email.';
                 return false;
             }
         }
-
-        $idx = array_flip($normalized);
+        $idx = array_flip($header);
         $imported = 0;
+        $failed = 0;
+        $failedRows = [];
 
         $sql = "INSERT INTO users (name, username, email, password, role, is_active, application_status, profile_picture, created_at, updated_at)
                 VALUES (?, ?, ?, ?, ?, ?, 'approved', ?, NOW(), NOW())
@@ -535,22 +562,21 @@ if (!function_exists('transfer_import_students_csv')) {
 
         $stmt = $mysqli->prepare($sql);
         if (!$stmt) {
-            fclose($stream);
             $message = 'Failed to prepare import statement: ' . $mysqli->error;
             return false;
         }
 
-        while (($row = fgetcsv($stream)) !== false) {
+        foreach ($rows as $rowNum => $row) {
             if (!is_array($row) || count($row) === 0) {
                 continue;
             }
-
             $name = trim((string)($row[$idx['name']] ?? ''));
             $email = trim((string)($row[$idx['email']] ?? ''));
             if ($name === '' || $email === '') {
+                $failed++;
+                $failedRows[] = $rowNum + 2; // +2 for header and 0-index
                 continue;
             }
-
             $usernameRaw = trim((string)($row[$idx['username']] ?? ''));
             $passwordRaw = (string)($row[$idx['password']] ?? '');
             $roleRaw = strtolower(trim((string)($row[$idx['role']] ?? 'student')));
@@ -566,174 +592,102 @@ if (!function_exists('transfer_import_students_csv')) {
             $stmt->bind_param('sssssis', $name, $username, $email, $passwordHash, $userRole, $isActive, $profilePicture);
             if ($stmt->execute()) {
                 $imported++;
+            } else {
+                $failed++;
+                $failedRows[] = $rowNum + 2;
             }
         }
-
         $stmt->close();
-        fclose($stream);
-        $message = 'Student import completed. Rows processed: ' . $imported . '.';
-        return true;
+        $msg = 'Student import completed. Rows imported: ' . $imported . '.';
+        if ($failed > 0) {
+            $msg .= ' Failed: ' . $failed . ' (rows: ' . implode(', ', $failedRows) . ')';
+        }
+        $msg .= ' <a href="/BioTern_unified/management/students-edit.php" class="btn btn-sm btn-success ms-2">Edit Students</a>';
+        $message = $msg;
+        return $imported > 0;
     }
 }
 
 $download = strtolower(trim((string)($_GET['download'] ?? '')));
-if ($download === 'sql') {
-    $dump = transfer_sql_export($conn, (string)DB_NAME);
-    header('Content-Type: application/sql; charset=UTF-8');
-    header('Content-Disposition: attachment; filename="database-export-' . date('Ymd-His') . '.sql"');
-    echo $dump;
-    exit;
-}
-if ($download === 'students_csv') {
-    transfer_send_students_csv($conn);
-}
-if ($download === 'students_xls') {
-    transfer_send_students_xls($conn);
-}
-if ($download === 'students_word') {
-    transfer_send_students_word($conn);
-}
-if ($download === 'students_template') {
-    transfer_send_students_template();
-}
+if ($action === 'sql_import') {
+    $replaceAll = isset($_POST['replace_all']) && (string)$_POST['replace_all'] === '1';
+    $mergeSchema = !$replaceAll && (!isset($_POST['merge_schema']) || (string)$_POST['merge_schema'] === '1');
+    $pastedSql = (string)($_POST['sql_text'] ?? '');
+    $sqlContent = '';
 
-$csrfToken = transfer_csrf_token();
-$statusType = '';
-$statusMessage = '';
-
-if (strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET')) === 'POST') {
-    $postedToken = (string)($_POST['csrf_token'] ?? '');
-    if (!hash_equals($csrfToken, $postedToken)) {
-        $statusType = 'danger';
-        $statusMessage = 'Invalid request token. Please refresh and try again.';
-    } else {
-        $action = strtolower(trim((string)($_POST['action'] ?? '')));
-
-        if ($action === 'sql_import') {
-            $replaceAll = isset($_POST['replace_all']) && (string)$_POST['replace_all'] === '1';
-            $mergeSchema = !$replaceAll && (!isset($_POST['merge_schema']) || (string)$_POST['merge_schema'] === '1');
-            $pastedSql = (string)($_POST['sql_text'] ?? '');
-            $sqlContent = '';
-
-            if (isset($_FILES['sql_file']) && is_array($_FILES['sql_file']) && (int)($_FILES['sql_file']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
-                $uploadError = (int)($_FILES['sql_file']['error'] ?? UPLOAD_ERR_NO_FILE);
-                if ($uploadError !== UPLOAD_ERR_OK) {
-                    $statusType = 'danger';
-                    $statusMessage = 'SQL file upload failed. Error code: ' . $uploadError;
-                } else {
-                    $tmpName = (string)($_FILES['sql_file']['tmp_name'] ?? '');
-                    $originalName = strtolower((string)($_FILES['sql_file']['name'] ?? ''));
-                    if ($tmpName === '' || !is_uploaded_file($tmpName)) {
-                        $statusType = 'danger';
-                        $statusMessage = 'Uploaded SQL file is invalid.';
-                    } elseif (!str_ends_with($originalName, '.sql')) {
-                        $statusType = 'danger';
-                        $statusMessage = 'Only .sql files are allowed.';
-                    } else {
-                        $loaded = @file_get_contents($tmpName);
-                        if (!is_string($loaded) || $loaded === '') {
-                            $statusType = 'danger';
-                            $statusMessage = 'Uploaded SQL file is empty or unreadable.';
-                        } else {
-                            $sqlContent = $loaded;
-                        }
-                    }
-                }
-            } elseif (trim($pastedSql) !== '') {
-                $sqlContent = $pastedSql;
-            }
-
-            if ($statusType === '' && trim($sqlContent) === '') {
+    // Accept SQL from file upload or textarea
+    if (isset($_FILES['sql_file']) && is_array($_FILES['sql_file']) && (int)($_FILES['sql_file']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
+        $uploadError = (int)($_FILES['sql_file']['error'] ?? UPLOAD_ERR_NO_FILE);
+        if ($uploadError !== UPLOAD_ERR_OK) {
+            $statusType = 'danger';
+            $statusMessage = 'SQL file upload failed. Error code: ' . $uploadError;
+        } else {
+            $tmpName = (string)($_FILES['sql_file']['tmp_name'] ?? '');
+            if ($tmpName === '' || !is_uploaded_file($tmpName)) {
                 $statusType = 'danger';
-                $statusMessage = 'Provide SQL by uploading a .sql file or pasting SQL text.';
-            }
-
-            if ($statusType === '') {
-                $sqlContent = transfer_sql_normalize($sqlContent);
-                if ($sqlContent === '') {
-                    $statusType = 'danger';
-                    $statusMessage = 'SQL content is empty after cleanup.';
-                }
-            }
-
-            if ($statusType === '') {
-                $errorMessage = '';
-                $mergeSummary = [];
-
-                if ($replaceAll && !transfer_sql_drop_all_tables($conn, (string)DB_NAME)) {
-                    $statusType = 'danger';
-                    $statusMessage = 'Could not drop existing tables: ' . $conn->error;
-                }
-
-                if ($statusType === '') {
-                    if ($mergeSchema) {
-                        $preparedSql = transfer_sql_prepare_merge_statements($conn, $sqlContent, $mergeSummary);
-                        if (!transfer_sql_execute_merge($conn, $preparedSql, $mergeSummary, $errorMessage)) {
-                            $statusType = 'danger';
-                            $statusMessage = 'Merge import failed: ' . $errorMessage;
-                        } else {
-                            $statusType = 'success';
-                            $statusMessage = 'Merge import completed. Existing tables checked: ' . (int)($mergeSummary['existing_tables_seen'] ?? 0)
-                                . ', new tables from SQL: ' . (int)($mergeSummary['new_tables_seen'] ?? 0)
-                                . ', columns added: ' . (int)($mergeSummary['added_columns'] ?? 0)
-                                . ', statements executed: ' . (int)($mergeSummary['executed_statements'] ?? 0)
-                                . ', ignored duplicates: ' . (int)($mergeSummary['ignored_statement_errors'] ?? 0) . '.';
-                        }
-                    } elseif (!transfer_sql_execute_multi($conn, $sqlContent, $errorMessage)) {
-                        $statusType = 'danger';
-                        $statusMessage = 'Import failed: ' . $errorMessage;
-                    } else {
-                        $statusType = 'success';
-                        $statusMessage = 'SQL import completed successfully.';
-                    }
-                }
-            }
-        } elseif ($action === 'students_import') {
-            $csvContent = '';
-            if (isset($_FILES['students_file']) && is_array($_FILES['students_file'])) {
-                $uploadError = (int)($_FILES['students_file']['error'] ?? UPLOAD_ERR_NO_FILE);
-                if ($uploadError !== UPLOAD_ERR_OK) {
-                    $statusType = 'danger';
-                    $statusMessage = 'Students file upload failed. Error code: ' . $uploadError;
-                } else {
-                    $tmpName = (string)($_FILES['students_file']['tmp_name'] ?? '');
-                    $originalName = strtolower((string)($_FILES['students_file']['name'] ?? ''));
-                    if ($tmpName === '' || !is_uploaded_file($tmpName)) {
-                        $statusType = 'danger';
-                        $statusMessage = 'Uploaded students file is invalid.';
-                    } elseif (!str_ends_with($originalName, '.csv') && !str_ends_with($originalName, '.txt')) {
-                        $statusType = 'danger';
-                        $statusMessage = 'Students import accepts .csv or .txt files (Excel CSV export).';
-                    } else {
-                        $loaded = @file_get_contents($tmpName);
-                        if (!is_string($loaded) || trim($loaded) === '') {
-                            $statusType = 'danger';
-                            $statusMessage = 'Students file is empty or unreadable.';
-                        } else {
-                            $csvContent = $loaded;
-                        }
-                    }
-                }
+                $statusMessage = 'Uploaded SQL file is invalid.';
             } else {
-                $statusType = 'danger';
-                $statusMessage = 'Please upload a students CSV file.';
+                $sqlContent = file_get_contents($tmpName);
             }
+        }
+    } elseif (trim($pastedSql) !== '') {
+        $sqlContent = $pastedSql;
+    }
 
-            if ($statusType === '') {
-                $importMessage = '';
-                if (!transfer_import_students_csv($conn, $csvContent, $importMessage)) {
-                    $statusType = 'danger';
-                    $statusMessage = $importMessage;
-                } else {
-                    $statusType = 'success';
-                    $statusMessage = $importMessage;
+    if ($statusType === '' && trim($sqlContent) === '') {
+        $statusType = 'danger';
+        $statusMessage = 'Provide SQL by uploading a .sql file or pasting SQL text.';
+    }
+
+    if ($statusType === '') {
+        // Normalize SQL: remove BOM, CRLF, CREATE DATABASE, USE, and optionally explicit id in INSERT
+        $sqlContent = transfer_sql_normalize($sqlContent);
+        // Remove explicit id values from INSERT if present (for compatibility)
+        // This regex will remove id from INSERT INTO ... (id, ...)
+        $sqlContent = preg_replace_callback(
+            '/INSERT\s+INTO\s+`?([a-zA-Z0-9_]+)`?\s*\(([^)]+)\)\s*VALUES\s*\(([^)]+)\)/i',
+            function ($matches) {
+                $columns = array_map('trim', explode(',', $matches[2]));
+                $values = array_map('trim', explode(',', $matches[3]));
+                $idIndex = array_search('id', array_map(function($c){return trim(str_replace('`','',$c));}, $columns));
+                if ($idIndex !== false) {
+                    unset($columns[$idIndex]);
+                    unset($values[$idIndex]);
                 }
+                return 'INSERT INTO ' . $matches[1] . ' (' . implode(', ', $columns) . ') VALUES (' . implode(', ', $values) . ')';
+            },
+            $sqlContent
+        );
+        if ($sqlContent === '') {
+            $statusType = 'danger';
+            $statusMessage = 'SQL content is empty after normalization.';
+        }
+    }
+
+    if ($statusType === '') {
+        $errorMessage = '';
+        $mergeSummary = [];
+
+        // Drop all tables if replaceAll is set
+        if ($replaceAll && !transfer_sql_drop_all_tables($conn, (string)DB_NAME)) {
+            $statusType = 'danger';
+            $statusMessage = 'Failed to drop all tables before import.';
+        }
+
+        if ($statusType === '') {
+            // Use multi_query for bulk import
+            if (!transfer_sql_execute_multi($conn, $sqlContent, $errorMessage)) {
+                $statusType = 'danger';
+                $statusMessage = 'SQL import failed: ' . $errorMessage;
+            } else {
+                $statusType = 'success';
+                $statusMessage = 'SQL import completed successfully.';
             }
         }
     }
 }
 
- $page_title = 'Data Transfer';
+$page_title = 'Data Transfer';
 include dirname(__DIR__) . '/includes/header.php';
 ?>
     <div class="container-xxl py-4">
@@ -743,29 +697,10 @@ include dirname(__DIR__) . '/includes/header.php';
                     <div class="card-body p-4 p-md-5">
                         <h3 class="mb-2">Data Transfer</h3>
                         <p class="text-muted mb-0">Target DB: <strong><?php echo htmlspecialchars((string)DB_NAME, ENT_QUOTES, 'UTF-8'); ?></strong> @ <?php echo htmlspecialchars((string)DB_HOST, ENT_QUOTES, 'UTF-8'); ?>:<?php echo (int)DB_PORT; ?></p>
-                    </div>
-                </div>
-
-                <?php if ($statusMessage !== ''): ?>
-                    <div class="alert alert-<?php echo htmlspecialchars($statusType, ENT_QUOTES, 'UTF-8'); ?>" role="alert">
-                        <?php echo htmlspecialchars($statusMessage, ENT_QUOTES, 'UTF-8'); ?>
-                    </div>
-                <?php endif; ?>
-
-                <div class="card mb-4">
-                    <div class="card-body p-4 p-md-5">
-                        <h5 class="mb-3">SQL Import / Export</h5>
-                        <div class="mb-3 d-flex flex-wrap gap-2">
-                            <a href="?download=sql" class="btn btn-outline-primary">Export SQL (.sql)</a>
-                        </div>
-
-                        <form method="post" enctype="multipart/form-data">
-                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
-                            <input type="hidden" name="action" value="sql_import">
-
+                    }
                             <div class="mb-3">
                                 <label for="sql_file" class="form-label">Upload SQL file</label>
-                                <input class="form-control" type="file" id="sql_file" name="sql_file" accept=".sql,text/sql">
+                                <input class="form-control" type="file" id="sql_file" name="sql_file" accept=".sql,application/sql,text/sql">
                             </div>
 
                             <div class="text-center text-muted my-3">or</div>
@@ -807,8 +742,8 @@ include dirname(__DIR__) . '/includes/header.php';
 
                             <div class="mb-3">
                                 <label for="students_file" class="form-label">Import Students (Excel CSV)</label>
-                                <input class="form-control" type="file" id="students_file" name="students_file" accept=".csv,.txt">
-                                <div class="form-text">Use CSV format from Excel. Required columns: <code>name</code>, <code>email</code>. Optional: <code>username</code>, <code>password</code>, <code>role</code>, <code>is_active</code>, <code>profile_picture</code>.</div>
+                                <input class="form-control" type="file" id="students_file" name="students_file" accept=".csv,.txt,.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+                                <div class="form-text">Use CSV or Excel (.xlsx) format from Excel. Required columns: <code>name</code>, <code>email</code>. Optional: <code>username</code>, <code>password</code>, <code>role</code>, <code>is_active</code>, <code>profile_picture</code>.</div>
                             </div>
 
                             <button type="submit" class="btn btn-primary">Import Students CSV</button>

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Mar 18, 2026 at 03:24 AM
+-- Generation Time: Mar 23, 2026 at 02:51 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -42,6 +42,13 @@ CREATE TABLE `admin` (
   `email` varchar(255) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `admin`
+--
+
+INSERT INTO `admin` (`id`, `user_id`, `first_name`, `middle_name`, `institution_email_address`, `phone_number`, `admin_level`, `department_id`, `admin_position`, `username`, `password`, `email`) VALUES
+(1, 7, 'Tester', '', 'nozomigoodshot@gmail.com', '', 'administrator', 1, 'Administrator', 'Testo', '$/E3oy5mfRyjc6eX1oCG1ROKxFAuyyR0QNVhOi6wYoWfBhOPmNOW3q', 'nozomigoodshot@gmail.com');
+
 -- --------------------------------------------------------
 
 --
@@ -64,6 +71,32 @@ CREATE TABLE `application_letter` (
 
 INSERT INTO `application_letter` (`id`, `user_id`, `date`, `application_person`, `position`, `company_name`, `company_address`) VALUES
 (12, 1, '2026-02-26', 'Ivan Sanchez', 'Human Resources', 'Biotern', 'Aurea St. Samsonville, Dau, Mabalacat City, Pampanga');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `app_emails`
+--
+
+CREATE TABLE `app_emails` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `sender_user_id` bigint(20) UNSIGNED NOT NULL,
+  `recipient_user_id` bigint(20) UNSIGNED NOT NULL,
+  `subject` varchar(255) NOT NULL,
+  `body` text DEFAULT NULL,
+  `is_read` tinyint(1) NOT NULL DEFAULT 0,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `sender_deleted_at` timestamp NULL DEFAULT NULL,
+  `recipient_deleted_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `app_emails`
+--
+
+INSERT INTO `app_emails` (`id`, `sender_user_id`, `recipient_user_id`, `subject`, `body`, `is_read`, `created_at`, `updated_at`, `sender_deleted_at`, `recipient_deleted_at`) VALUES
+(1, 4, 5, 'Document', 'Pass your resume', 0, '2026-03-18 01:08:10', '2026-03-18 01:08:10', NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -109,8 +142,6 @@ INSERT INTO `attendances` (`id`, `student_id`, `internship_id`, `attendance_date
 (7, 1, NULL, '2026-03-03', '11:10:00', '15:54:00', NULL, NULL, '15:55:00', '18:58:00', 7.78, 'manual', 'approved', 4, '2026-03-03 03:58:50', NULL, NULL, NULL, NULL, '2026-03-03 03:10:50', '2026-03-03 10:58:50'),
 (8, 1, NULL, '2026-03-04', '14:24:00', NULL, NULL, NULL, NULL, NULL, NULL, 'manual', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-04 06:24:40', '2026-03-04 06:24:40'),
 (9, 1, NULL, '2026-03-05', '10:46:00', '16:05:00', NULL, NULL, NULL, NULL, 5.32, 'manual', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-05 02:46:19', '2026-03-05 08:05:28'),
-(11, 4, NULL, '2026-03-05', '16:12:00', NULL, NULL, NULL, '16:10:00', NULL, NULL, 'manual', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-05 08:12:21', '2026-03-05 08:12:51'),
-(12, 4, NULL, '2026-03-06', '14:28:00', NULL, NULL, NULL, NULL, NULL, NULL, 'manual', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-06 06:28:54', '2026-03-06 06:28:54'),
 (13, 1, NULL, '2026-03-09', '10:46:00', NULL, NULL, NULL, '10:46:00', NULL, 0.00, 'manual', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-09 02:46:22', '2026-03-09 02:46:31'),
 (14, 1, NULL, '2026-03-11', '08:08:00', NULL, NULL, NULL, NULL, NULL, NULL, 'manual', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-11 00:08:43', '2026-03-11 00:08:43'),
 (15, 1, NULL, '2026-03-17', '15:44:00', NULL, NULL, NULL, NULL, NULL, NULL, 'manual', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-17 07:44:30', '2026-03-17 07:44:30');
@@ -207,7 +238,8 @@ CREATE TABLE `coordinators` (
 --
 
 INSERT INTO `coordinators` (`id`, `user_id`, `first_name`, `last_name`, `middle_name`, `email`, `phone`, `department_id`, `office_location`, `bio`, `profile_picture`, `is_active`, `created_at`, `updated_at`, `deleted_at`) VALUES
-(6, 2, 'Mark', 'Verzon', NULL, 'markverzon@gmail.com', '9091734512', 1, 'IT Faculty', NULL, NULL, 1, '2026-02-24 02:56:30', '2026-02-24 02:56:30', NULL);
+(6, 2, 'Mark', 'Verzon', NULL, 'markverzon@gmail.com', '9091734512', 1, 'IT Faculty', NULL, NULL, 1, '2026-02-24 02:56:30', '2026-02-24 02:56:30', NULL),
+(7, 15, 'Ivans', 'Sanchezss', NULL, 'oistem@gmail.com', '', 1, NULL, NULL, NULL, 1, '2026-03-11 19:52:39', '2026-03-11 19:52:39', NULL);
 
 -- --------------------------------------------------------
 
@@ -511,7 +543,6 @@ CREATE TABLE `internships` (
 INSERT INTO `internships` (`id`, `student_id`, `course_id`, `department_id`, `coordinator_id`, `supervisor_id`, `type`, `company_name`, `company_address`, `position`, `start_date`, `end_date`, `ojt_description`, `status`, `school_year`, `required_hours`, `rendered_hours`, `completion_percentage`, `created_at`, `updated_at`, `deleted_at`) VALUES
 (7, 1, 1, 1, 2, 1, 'internal', NULL, NULL, NULL, '2026-02-24', NULL, NULL, 'ongoing', '2026-2027', 140, 23, 16.49, '2026-02-24 03:05:20', '2026-03-17 07:44:30', NULL),
 (8, 2, 1, 1, 2, 1, 'internal', NULL, NULL, NULL, '2026-02-26', NULL, NULL, 'ongoing', '2026-2027', 140, 2, 1.43, '2026-02-26 06:25:05', '2026-02-26 08:28:05', NULL),
-(9, 4, 1, 1, 2, 1, 'internal', NULL, NULL, NULL, '2026-03-05', NULL, NULL, 'ongoing', '2026-2027', 1, 0, 0.00, '2026-03-05 08:04:24', '2026-03-06 06:28:54', NULL),
 (10, 6, 1, 1, 2, 1, 'internal', NULL, NULL, NULL, '2026-03-10', NULL, NULL, 'ongoing', '2026-2027', 140, 0, 0.00, '2026-03-10 07:18:34', '2026-03-10 07:18:34', NULL),
 (11, 7, 1, 1, 2, 1, 'internal', NULL, NULL, NULL, '2026-03-14', NULL, NULL, 'ongoing', '2025-2026', 140, 0, 0.00, '2026-03-14 11:58:15', '2026-03-14 11:58:15', NULL),
 (12, 8, 1, 1, 2, 1, 'external', NULL, NULL, NULL, '2026-03-17', NULL, NULL, 'ongoing', '2025-2026', 250, 0, 0.00, '2026-03-17 07:40:35', '2026-03-17 07:43:52', NULL);
@@ -630,7 +661,25 @@ INSERT INTO `login_logs` (`id`, `user_id`, `identifier`, `role`, `status`, `reas
 (89, 12, 'work.ivansanchez@gmail.com', 'admin', 'success', 'login_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36', '2026-03-17 16:06:00'),
 (90, 3, 'mateo.felixluis@gmail.com', 'student', 'failed', 'invalid_credentials', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0', '2026-03-17 16:06:02'),
 (91, 4, 'Jomar', 'admin', 'success', 'login_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0', '2026-03-17 16:06:18'),
-(92, 4, 'Jomar', 'admin', 'success', 'login_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0', '2026-03-18 09:59:08');
+(92, 4, 'Jomar', 'admin', 'success', 'login_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0', '2026-03-18 09:59:08'),
+(93, 4, 'Jomar', 'admin', 'success', 'login_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0', '2026-03-18 11:10:35'),
+(94, 4, 'Jomar', 'admin', 'success', 'login_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0', '2026-03-18 11:57:01'),
+(95, 4, 'Jomar', 'admin', 'success', 'login_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0', '2026-03-18 13:05:02'),
+(96, 4, 'Jomar', 'admin', 'success', 'login_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0', '2026-03-18 13:46:17'),
+(97, 4, 'Jomar', 'admin', 'success', 'login_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0', '2026-03-19 09:10:03'),
+(98, NULL, 'Jomar', '', 'failed', 'invalid_credentials', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0', '2026-03-19 11:07:38'),
+(99, NULL, 'Jomar', '', 'failed', 'invalid_credentials', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0', '2026-03-19 11:07:41'),
+(100, NULL, 'Jomar', '', 'failed', 'invalid_credentials', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0', '2026-03-19 11:07:44'),
+(101, NULL, 'Jomar', '', 'failed', 'invalid_credentials', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0', '2026-03-19 11:07:47'),
+(102, NULL, 'Jomar', '', 'failed', 'invalid_credentials', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0', '2026-03-19 11:07:50'),
+(103, NULL, 'Jomar', '', 'failed', 'invalid_credentials', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0', '2026-03-19 11:07:54'),
+(104, NULL, 'Jomar', '', 'failed', 'invalid_credentials', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0', '2026-03-19 11:07:54'),
+(105, NULL, 'Jomar', '', 'failed', 'invalid_credentials', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0', '2026-03-19 11:07:55'),
+(106, NULL, 'Jomar', '', 'failed', 'invalid_credentials', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0', '2026-03-19 11:08:10'),
+(107, NULL, 'Jomar', '', 'failed', 'invalid_credentials', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0', '2026-03-19 11:08:10'),
+(108, NULL, 'Jomar', '', 'failed', 'invalid_credentials', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0', '2026-03-19 11:08:11'),
+(109, NULL, 'Jomar', '', 'failed', 'invalid_credentials', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0', '2026-03-19 11:08:11'),
+(110, 4, 'jomarsangil@gmail.com', 'admin', 'success', 'login_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0', '2026-03-19 11:08:27');
 
 -- --------------------------------------------------------
 
@@ -1133,13 +1182,14 @@ CREATE TABLE `students` (
 --
 
 INSERT INTO `students` (`id`, `user_id`, `course_id`, `student_id`, `first_name`, `last_name`, `middle_name`, `username`, `password`, `email`, `bio`, `department_id`, `section_id`, `supervisor_name`, `coordinator_name`, `supervisor_id`, `coordinator_id`, `phone`, `date_of_birth`, `gender`, `address`, `internal_total_hours_remaining`, `internal_total_hours`, `external_total_hours_remaining`, `external_total_hours`, `emergency_contact`, `profile_picture`, `biometric_registered`, `biometric_registered_at`, `status`, `school_year`, `created_at`, `updated_at`, `deleted_at`, `assignment_track`, `emergency_contact_phone`) VALUES
-(1, 3, 1, '05-8531', 'Felix Luis', 'Mateo', 'Manaloto', 'FelixLuisMateo', '$2y$10$A2YrsP4KvtdM5noZZxOoge4X/48YkAbi7lxDIEb9ACgbO1PqYlDXK', 'mateo.felixluis@gmail.com', 'sadfH', '1', 0, 'Julius Gomez', 'Mark Verzon', 5, 6, '09091783340', '2006-03-16', 'male', '6553 Balaba 2, Dau, Mabalacat City, Pampanga', 117, 140, 0, 0, 'Carlota Manaloto (09385754436)', 'uploads/profile_pictures/student_1_1771902320.png', 0, NULL, '1', '2025-2026', '2026-02-24 02:57:53', '2026-03-17 07:44:30', NULL, 'internal', NULL),
+(1, 3, 1, '05-8531', 'Felix Luis', 'Mateo', 'Manaloto', 'FelixLuisMateo', '$2y$10$A2YrsP4KvtdM5noZZxOoge4X/48YkAbi7lxDIEb9ACgbO1PqYlDXK', 'mateo.felixluis@gmail.com', 'sadfH', '1', 0, 'Julius Gomez', 'Mark Verzon', 5, 6, '09091783340', '2006-03-16', 'male', '6553 Balaba 2, Dau, Mabalacat City, Pampanga', 116, 140, 0, 0, 'Carlota Manaloto (09385754436)', 'uploads/profile_pictures/student_1_1771902320.png', 0, NULL, '0', '2025-2026', '2026-02-24 02:57:53', '2026-03-18 05:06:42', NULL, 'internal', NULL),
 (2, 5, 1, '05-8377', 'Ivan', 'Sanchez', 'Umali', 'IvanSanchez', '$2y$10$G4AcrvLY6tYayygIQhJIfeQNievmy1uMNCLr7eTSi.f/9Ibibu1AW', 'IvanSanchez@gmail.com', '', '1', 0, 'Julius Gomez', 'Mark Verzon', NULL, 6, '09774911238', '2005-07-02', 'male', 'Madadap Mabalacat City, Pampanga', 138, 140, 0, 0, 'Irma U. Sanchez (09511422631)', 'uploads/profile_pictures/student_2_1772087105.jpg', 0, NULL, '0', '2025-2026', '2026-02-26 06:22:05', '2026-03-11 08:23:33', NULL, 'internal', NULL),
-(4, 7, 1, '05-9430', 'Von Ezekiel', 'Lopez', '', 'VonLopez', '$2y$10$ayidEKj38t78PHsPmzISvuEQpxeJYThqMra5yYHwemG8BvhPl6QSy', 'vonlopez@gmail.com', '', '1', 1, 'Julius Gomez', 'Mark Verzon', 5, 6, '09936202254', '2026-09-02', 'male', 'Pineda Subd, Ilang Ilang St, Dau, Mabalacat City, Pampanga', 1, 1, 0, 0, 'Ruby Lopez (09911446820)', NULL, 0, NULL, '0', '2025-2026', '2026-03-05 08:04:24', '2026-03-11 08:23:33', NULL, 'internal', NULL),
 (5, 8, 1, '05-12346', 'Naven', 'Cuenca', 'Mercado', 'NavenCuenca', '$2y$10$YloO960aow.5YHdreGaH6eOGLY2JMcUgTWHwTLjX1THwX9W8x.WfK', 'Naven@gmail.com', '', '1', 1, NULL, NULL, NULL, NULL, '09123479845', '2005-11-20', 'male', 'Duquit, Dau, Mabalacat City, Pampanga', 140, 140, 0, 250, 'Lani Mercado (09478945879)', NULL, 0, NULL, '1', '2025-2026', '2026-03-10 00:33:51', '2026-03-11 08:23:33', NULL, 'internal', NULL),
 (6, 9, 1, '05-8969', 'Jomer', 'De Guzman', 'Rivera', 'JomerDeGuzman', '$2y$10$MWF9iNupm327Aoj0X0/R5.i9ehi9E7e7LBbxYyVnO5qwCYbWKTqwG', 'JomerDeGuzman@gmail.com', '', '1', 1, 'Julius Gomez', 'Mark Verzon', 5, 6, '09147897451', '0000-00-00', 'male', '14th Street, Dapdap, Mabalacat City, Pampanga', 140, 140, 0, 250, 'Mama De Guzman (09784581268)', NULL, 0, NULL, '1', '2025-2026', '2026-03-10 07:18:34', '2026-03-11 08:23:33', NULL, 'internal', NULL),
 (7, 10, 1, '05-7262', 'Lucky', 'Mateo', 'Manaloto', 'Lucky', '$2y$10$SEt5Ou0nZuwXnc2PhHWuG.3XnrUUyzxujnjePuU7hliVNcZzlS3sm', 'luckyluckymateo@gmail.com', '', '1', 1, '0', 'Mark Verzon', 5, 6, '09204098957', '2006-03-16', 'male', '6553 Balaba 2, Dau, Mabalacat City, Pampanga', 140, 140, 0, 250, 'Carlota Mateo (09652062364)', NULL, 0, NULL, '1', '2025-2026', '2026-03-14 11:57:21', '2026-03-14 11:58:15', NULL, 'internal', NULL),
-(8, 12, 1, '05-0702', 'Ivan', '123', 'Pogi', 'ivan', '$2y$10$7TQ3079wW9NkzEi.hTiy6et9gMngPkSLQcc5RMcwXDv7.gNx0b8U6', 'work.ivansanchez@gmail.com', '', '1', 1, 'Julius Gomez', 'Mark Verzon', 5, 6, '09774911238', '2005-07-02', 'male', 'bahay', 0, 140, 250, 250, '09123456789 (09123456789)', '', 0, NULL, '0', '2025-2026', '2026-03-17 07:36:19', '2026-03-17 07:43:52', NULL, 'external', NULL);
+(8, 12, 1, '05-0702', 'Ivan', '123', 'Pogi', 'ivan', '$2y$10$7TQ3079wW9NkzEi.hTiy6et9gMngPkSLQcc5RMcwXDv7.gNx0b8U6', 'work.ivansanchez@gmail.com', '', '1', 1, 'Julius Gomez', 'Mark Verzon', 5, 6, '09774911238', '2005-07-02', 'male', 'bahay', 0, 140, 250, 250, '09123456789 (09123456789)', '', 0, NULL, '0', '2025-2026', '2026-03-17 07:36:19', '2026-03-17 07:43:52', NULL, 'external', NULL),
+(9, 16, 1, '05-0016', 'Ivans', 'tesnosss', NULL, 'Testos', '/i5BtXFqh5CwJAKtaE.RFRh2AycbNqj2TG.7tJK2co8O3tniZa', 'maros@gmail.com', '', '1', 1, NULL, NULL, NULL, NULL, '', NULL, NULL, NULL, 140, 140, 0, 250, '', NULL, 0, NULL, '1', '2025-2026', '2026-03-11 22:07:27', '2026-03-11 22:09:29', NULL, 'internal', NULL),
+(10, 17, 1, '05-0017', 'Rodolfo', 'David', NULL, 'Rodolfo', '/BJMg8MZdZXGywY5u/54gPZ7mdMli2Ym0fvwI0a73nK9Flx.', 'logicalsucks14@gmail.com', '', '1', 1, NULL, NULL, NULL, NULL, '', NULL, NULL, NULL, 140, 140, 0, 250, '', NULL, 0, NULL, '1', '2025-2026', '2026-03-16 18:36:30', '2026-03-16 18:37:11', NULL, 'internal', NULL);
 
 -- --------------------------------------------------------
 
@@ -1293,11 +1343,38 @@ INSERT INTO `users` (`id`, `name`, `username`, `email`, `email_verified_at`, `pa
 (4, 'Jomar', 'Jomar', 'jomarsangil@gmail.com', NULL, '$2y$10$iE4WlTO6Ny3zNcC.v.1Tae04qQtUxcC2f.h9/v7VuKj7q3a4145HO', NULL, 'admin', 1, '', '2026-02-24 03:14:42', '2026-02-24 03:14:42', 'approved', NULL, NULL, NULL, NULL, NULL, NULL),
 (5, 'Ivan Sanchez', 'IvanSanchez', 'IvanSanchez@gmail.com', NULL, '$2y$10$G4AcrvLY6tYayygIQhJIfeQNievmy1uMNCLr7eTSi.f/9Ibibu1AW', NULL, 'student', 1, '', '2026-02-26 06:22:05', '2026-03-03 05:06:17', 'approved', NULL, NULL, NULL, NULL, NULL, NULL),
 (6, 'Tyron Jay Gonzales', 'TyronGonzales', 'Tyron@gmail.com', NULL, '$2y$10$p6uQoFaN6mppBsGGH9iDJOUKVPChh9Oi2T93gUkRFCr/AhAlyLpm2', NULL, 'student', 1, '', '2026-02-26 06:44:27', '2026-03-11 00:20:35', 'approved', NULL, NULL, NULL, NULL, NULL, NULL),
-(7, 'Von Ezekiel Lopez', 'VonLopez', 'vonlopez@gmail.com', NULL, '$2y$10$ayidEKj38t78PHsPmzISvuEQpxeJYThqMra5yYHwemG8BvhPl6QSy', NULL, 'student', 1, '', '2026-03-05 08:04:24', '2026-03-05 08:04:24', 'approved', NULL, NULL, NULL, NULL, NULL, NULL),
+(7, 'Tester Admin', 'Testo', 'nozomigoodshot@gmail.com', NULL, '$/E3oy5mfRyjc6eX1oCG1ROKxFAuyyR0QNVhOi6wYoWfBhOPmNOW3q', NULL, 'admin', 1, 'assets/images/avatar/uploads/user_7_1773023141.jpg', '2026-03-04 21:25:02', '2026-03-08 18:25:41', 'approved', NULL, NULL, NULL, NULL, NULL, NULL),
 (8, 'Naven Cuenca', 'NavenCuenca', 'Naven@gmail.com', NULL, '$2y$10$YloO960aow.5YHdreGaH6eOGLY2JMcUgTWHwTLjX1THwX9W8x.WfK', NULL, 'student', 1, '', '2026-03-10 00:33:51', '2026-03-10 00:33:51', 'pending', '2026-03-10 08:33:51', NULL, NULL, NULL, NULL, NULL),
 (9, 'Jomer De Guzman', 'JomerDeGuzman', 'JomerDeGuzman@gmail.com', NULL, '$2y$10$MWF9iNupm327Aoj0X0/R5.i9ehi9E7e7LBbxYyVnO5qwCYbWKTqwG', NULL, 'student', 1, '', '2026-03-10 07:18:34', '2026-03-10 07:18:34', 'pending', '2026-03-10 15:18:34', NULL, NULL, NULL, NULL, NULL),
 (10, 'Lucky Mateo', 'Lucky', 'luckyluckymateo@gmail.com', NULL, '$2y$10$SEt5Ou0nZuwXnc2PhHWuG.3XnrUUyzxujnjePuU7hliVNcZzlS3sm', NULL, 'admin', 1, '', '2026-03-14 11:57:21', '2026-03-17 05:45:45', 'approved', '2026-03-14 19:57:21', 4, '2026-03-14 19:58:15', NULL, '', ''),
-(12, 'Ivan 123', 'ivan', 'work.ivansanchez@gmail.com', NULL, '$2y$10$N8qGbH2Y0H9pe8oge6wGQ./8deR0/yVJtlhQurNH3wwvFL5VoAFyy', NULL, 'admin', 1, '', '2026-03-17 07:36:19', '2026-03-17 07:45:28', 'approved', '2026-03-17 15:36:19', 4, '2026-03-17 15:40:35', NULL, '', '');
+(12, 'Ivan 123', 'ivan', 'work.ivansanchez@gmail.com', NULL, '$2y$10$N8qGbH2Y0H9pe8oge6wGQ./8deR0/yVJtlhQurNH3wwvFL5VoAFyy', NULL, 'admin', 1, '', '2026-03-17 07:36:19', '2026-03-17 07:45:28', 'approved', '2026-03-17 15:36:19', 4, '2026-03-17 15:40:35', NULL, '', ''),
+(15, 'Ivans Sanchezss', 'oistem', 'oistem@gmail.com', NULL, '', NULL, 'coordinator', 1, '', '2026-03-11 19:52:39', '2026-03-11 19:52:39', 'approved', NULL, NULL, NULL, NULL, NULL, NULL),
+(16, 'Ivans tesnosss', 'Testos', 'maros@gmail.com', NULL, '/i5BtXFqh5CwJAKtaE.RFRh2AycbNqj2TG.7tJK2co8O3tniZa', NULL, 'student', 1, '', '2026-03-11 22:07:27', '2026-03-11 22:09:29', 'approved', '2026-03-12 14:07:27', 7, '2026-03-12 14:09:29', NULL, '', ''),
+(17, 'Rodolfo III David', 'Rodolfo', 'logicalsucks14@gmail.com', NULL, '/BJMg8MZdZXGywY5u/54gPZ7mdMli2Ym0fvwI0a73nK9Flx.', NULL, 'student', 1, '', '2026-03-16 18:36:30', '2026-03-16 18:37:11', 'approved', '2026-03-17 10:36:30', 7, '2026-03-17 10:37:11', NULL, '', '');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `user_auth_tokens`
+--
+
+CREATE TABLE `user_auth_tokens` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `selector` varchar(24) NOT NULL,
+  `token_hash` char(64) NOT NULL,
+  `user_agent` varchar(255) DEFAULT NULL,
+  `ip_address` varchar(45) DEFAULT NULL,
+  `expires_at` datetime NOT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `user_auth_tokens`
+--
+
+INSERT INTO `user_auth_tokens` (`id`, `user_id`, `selector`, `token_hash`, `user_agent`, `ip_address`, `expires_at`, `created_at`) VALUES
+(2, 4, '05aac2cc2a5ece2ee8', '27a3c6449379f9b2ebb913dc0809167f365a1a549263af5bb245f3a9d370d1e8', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0', '::1', '2026-04-18 05:08:27', '2026-03-19 11:08:27');
 
 -- --------------------------------------------------------
 
@@ -1352,6 +1429,15 @@ ALTER TABLE `admin`
 ALTER TABLE `application_letter`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `user_id` (`user_id`);
+
+--
+-- Indexes for table `app_emails`
+--
+ALTER TABLE `app_emails`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_email_sender` (`sender_user_id`,`created_at`),
+  ADD KEY `idx_email_recipient` (`recipient_user_id`,`is_read`,`created_at`),
+  ADD KEY `idx_email_created` (`created_at`);
 
 --
 -- Indexes for table `attendances`
@@ -1642,6 +1728,15 @@ ALTER TABLE `users`
   ADD KEY `idx_role` (`role`);
 
 --
+-- Indexes for table `user_auth_tokens`
+--
+ALTER TABLE `user_auth_tokens`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uniq_user_auth_selector` (`selector`),
+  ADD KEY `idx_user_auth_user` (`user_id`),
+  ADD KEY `idx_user_auth_expires` (`expires_at`);
+
+--
 -- AUTO_INCREMENT for dumped tables
 --
 
@@ -1649,13 +1744,19 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `admin`
 --
 ALTER TABLE `admin`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `application_letter`
 --
 ALTER TABLE `application_letter`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
+
+--
+-- AUTO_INCREMENT for table `app_emails`
+--
+ALTER TABLE `app_emails`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `attendances`
@@ -1679,7 +1780,7 @@ ALTER TABLE `certificates`
 -- AUTO_INCREMENT for table `coordinators`
 --
 ALTER TABLE `coordinators`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- AUTO_INCREMENT for table `coordinator_courses`
@@ -1763,7 +1864,7 @@ ALTER TABLE `internships`
 -- AUTO_INCREMENT for table `login_logs`
 --
 ALTER TABLE `login_logs`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=93;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=111;
 
 --
 -- AUTO_INCREMENT for table `manual_dtr_attachments`
@@ -1841,7 +1942,7 @@ ALTER TABLE `sections`
 -- AUTO_INCREMENT for table `students`
 --
 ALTER TABLE `students`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT for table `supervisors`
@@ -1865,7 +1966,13 @@ ALTER TABLE `upload_settings`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
+
+--
+-- AUTO_INCREMENT for table `user_auth_tokens`
+--
+ALTER TABLE `user_auth_tokens`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- Constraints for dumped tables
