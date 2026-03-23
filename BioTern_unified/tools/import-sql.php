@@ -602,86 +602,162 @@ if (!function_exists('transfer_import_students_csv')) {
         if ($failed > 0) {
             $msg .= ' Failed: ' . $failed . ' (rows: ' . implode(', ', $failedRows) . ')';
         }
-        $msg .= ' <a href="/BioTern_unified/management/students-edit.php" class="btn btn-sm btn-success ms-2">Edit Students</a>';
         $message = $msg;
         return $imported > 0;
     }
 }
 
+$action = strtolower(trim((string)($_POST['action'] ?? $_GET['action'] ?? '')));
 $download = strtolower(trim((string)($_GET['download'] ?? '')));
-if ($action === 'sql_import') {
-    $replaceAll = isset($_POST['replace_all']) && (string)$_POST['replace_all'] === '1';
-    $mergeSchema = !$replaceAll && (!isset($_POST['merge_schema']) || (string)$_POST['merge_schema'] === '1');
-    $pastedSql = (string)($_POST['sql_text'] ?? '');
-    $sqlContent = '';
+$statusType = '';
+$statusMessage = '';
+$statusDetails = [];
+$csrfToken = transfer_csrf_token();
+$sqlTextValue = (string)($_POST['sql_text'] ?? '');
+$replaceAllChecked = isset($_POST['replace_all']) && (string)$_POST['replace_all'] === '1';
+$mergeSchemaChecked = !isset($_POST['merge_schema']) || (string)($_POST['merge_schema'] ?? '1') === '1';
+$showStudentsEditLink = false;
 
-    // Accept SQL from file upload or textarea
-    if (isset($_FILES['sql_file']) && is_array($_FILES['sql_file']) && (int)($_FILES['sql_file']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
-        $uploadError = (int)($_FILES['sql_file']['error'] ?? UPLOAD_ERR_NO_FILE);
-        if ($uploadError !== UPLOAD_ERR_OK) {
+if ($download !== '') {
+    if ($download === 'students_template') {
+        transfer_send_students_template();
+    }
+    if ($download === 'students_csv') {
+        transfer_send_students_csv($conn);
+    }
+    if ($download === 'students_xls') {
+        transfer_send_students_xls($conn);
+    }
+    if ($download === 'students_word') {
+        transfer_send_students_word($conn);
+    }
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $postedCsrf = (string)($_POST['csrf_token'] ?? '');
+    if (!hash_equals($csrfToken, $postedCsrf)) {
+        $statusType = 'danger';
+        $statusMessage = 'Your session token is invalid or expired. Refresh the page and try again.';
+    } elseif ($action === 'students_import') {
+        if (!isset($_FILES['students_file']) || !is_array($_FILES['students_file'])) {
             $statusType = 'danger';
-            $statusMessage = 'SQL file upload failed. Error code: ' . $uploadError;
+            $statusMessage = 'Choose a CSV or XLSX file to import.';
         } else {
-            $tmpName = (string)($_FILES['sql_file']['tmp_name'] ?? '');
-            if ($tmpName === '' || !is_uploaded_file($tmpName)) {
+            $uploadError = (int)($_FILES['students_file']['error'] ?? UPLOAD_ERR_NO_FILE);
+            if ($uploadError !== UPLOAD_ERR_OK) {
                 $statusType = 'danger';
-                $statusMessage = 'Uploaded SQL file is invalid.';
+                $statusMessage = 'Students file upload failed. Error code: ' . $uploadError;
             } else {
-                $sqlContent = file_get_contents($tmpName);
+                $tmpName = (string)($_FILES['students_file']['tmp_name'] ?? '');
+                $originalName = (string)($_FILES['students_file']['name'] ?? '');
+                $extension = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+                $isValidTempFile = $tmpName !== '' && (is_uploaded_file($tmpName) || is_file($tmpName));
+
+                if (!$isValidTempFile) {
+                    $statusType = 'danger';
+                    $statusMessage = 'Uploaded students file is invalid.';
+                } else {
+                    $importMessage = '';
+                    $importOk = false;
+
+                    if ($extension === 'xlsx') {
+                        $importOk = transfer_import_students_csv($conn, '', $importMessage, true, $tmpName);
+                    } else {
+                        $content = file_get_contents($tmpName);
+                        if ($content === false) {
+                            $importMessage = 'Unable to read the uploaded students file.';
+                        } else {
+                            $importOk = transfer_import_students_csv($conn, (string)$content, $importMessage, false, '');
+                        }
+                    }
+
+                    $statusType = $importOk ? 'success' : 'danger';
+                    $statusMessage = $importMessage !== '' ? $importMessage : ($importOk ? 'Student import completed successfully.' : 'Student import failed.');
+                    $showStudentsEditLink = $importOk;
+                }
             }
         }
-    } elseif (trim($pastedSql) !== '') {
-        $sqlContent = $pastedSql;
-    }
+    } elseif ($action === 'sql_import') {
+        $replaceAllChecked = isset($_POST['replace_all']) && (string)$_POST['replace_all'] === '1';
+        $mergeSchemaChecked = !$replaceAllChecked && (!isset($_POST['merge_schema']) || (string)$_POST['merge_schema'] === '1');
+        $pastedSql = (string)($_POST['sql_text'] ?? '');
+        $sqlContent = '';
 
-    if ($statusType === '' && trim($sqlContent) === '') {
-        $statusType = 'danger';
-        $statusMessage = 'Provide SQL by uploading a .sql file or pasting SQL text.';
-    }
-
-    if ($statusType === '') {
-        // Normalize SQL: remove BOM, CRLF, CREATE DATABASE, USE, and optionally explicit id in INSERT
-        $sqlContent = transfer_sql_normalize($sqlContent);
-        // Remove explicit id values from INSERT if present (for compatibility)
-        // This regex will remove id from INSERT INTO ... (id, ...)
-        $sqlContent = preg_replace_callback(
-            '/INSERT\s+INTO\s+`?([a-zA-Z0-9_]+)`?\s*\(([^)]+)\)\s*VALUES\s*\(([^)]+)\)/i',
-            function ($matches) {
-                $columns = array_map('trim', explode(',', $matches[2]));
-                $values = array_map('trim', explode(',', $matches[3]));
-                $idIndex = array_search('id', array_map(function($c){return trim(str_replace('`','',$c));}, $columns));
-                if ($idIndex !== false) {
-                    unset($columns[$idIndex]);
-                    unset($values[$idIndex]);
+        if (isset($_FILES['sql_file']) && is_array($_FILES['sql_file']) && (int)($_FILES['sql_file']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
+            $uploadError = (int)($_FILES['sql_file']['error'] ?? UPLOAD_ERR_NO_FILE);
+            if ($uploadError !== UPLOAD_ERR_OK) {
+                $statusType = 'danger';
+                $statusMessage = 'SQL file upload failed. Error code: ' . $uploadError;
+            } else {
+                $tmpName = (string)($_FILES['sql_file']['tmp_name'] ?? '');
+                $isValidTempFile = $tmpName !== '' && (is_uploaded_file($tmpName) || is_file($tmpName));
+                if (!$isValidTempFile) {
+                    $statusType = 'danger';
+                    $statusMessage = 'Uploaded SQL file is invalid.';
+                } else {
+                    $fileData = file_get_contents($tmpName);
+                    if ($fileData === false) {
+                        $statusType = 'danger';
+                        $statusMessage = 'Unable to read the uploaded SQL file.';
+                    } else {
+                        $sqlContent = (string)$fileData;
+                    }
                 }
-                return 'INSERT INTO ' . $matches[1] . ' (' . implode(', ', $columns) . ') VALUES (' . implode(', ', $values) . ')';
-            },
-            $sqlContent
-        );
-        if ($sqlContent === '') {
-            $statusType = 'danger';
-            $statusMessage = 'SQL content is empty after normalization.';
+            }
+        } elseif (trim($pastedSql) !== '') {
+            $sqlContent = $pastedSql;
         }
-    }
 
-    if ($statusType === '') {
-        $errorMessage = '';
-        $mergeSummary = [];
-
-        // Drop all tables if replaceAll is set
-        if ($replaceAll && !transfer_sql_drop_all_tables($conn, (string)DB_NAME)) {
+        if ($statusType === '' && trim($sqlContent) === '') {
             $statusType = 'danger';
-            $statusMessage = 'Failed to drop all tables before import.';
+            $statusMessage = 'Provide SQL by uploading a .sql file or pasting SQL text.';
         }
 
         if ($statusType === '') {
-            // Use multi_query for bulk import
-            if (!transfer_sql_execute_multi($conn, $sqlContent, $errorMessage)) {
+            $sqlContent = transfer_sql_normalize($sqlContent);
+            if ($sqlContent === '') {
                 $statusType = 'danger';
-                $statusMessage = 'SQL import failed: ' . $errorMessage;
+                $statusMessage = 'SQL content is empty after normalization.';
+            }
+        }
+
+        if ($statusType === '') {
+            $errorMessage = '';
+            $mergeSummary = [];
+
+            if ($replaceAllChecked) {
+                if (!transfer_sql_drop_all_tables($conn, (string)DB_NAME)) {
+                    $statusType = 'danger';
+                    $statusMessage = 'Failed to drop existing tables before import.';
+                } elseif (!transfer_sql_execute_multi($conn, $sqlContent, $errorMessage)) {
+                    $statusType = 'danger';
+                    $statusMessage = 'SQL replace import failed: ' . $errorMessage;
+                } else {
+                    $statusType = 'success';
+                    $statusMessage = 'SQL import completed successfully in replace mode.';
+                }
+            } elseif ($mergeSchemaChecked) {
+                $preparedSql = transfer_sql_prepare_merge_statements($conn, $sqlContent, $mergeSummary);
+                if (!transfer_sql_execute_merge($conn, $preparedSql, $mergeSummary, $errorMessage)) {
+                    $statusType = 'danger';
+                    $statusMessage = 'SQL merge import failed: ' . $errorMessage;
+                } else {
+                    $statusType = 'success';
+                    $statusMessage = 'SQL import completed successfully in merge mode.';
+                    $statusDetails[] = 'Existing tables matched: ' . (int)($mergeSummary['existing_tables_seen'] ?? 0);
+                    $statusDetails[] = 'New tables created: ' . (int)($mergeSummary['new_tables_seen'] ?? 0);
+                    $statusDetails[] = 'Missing columns added: ' . (int)($mergeSummary['added_columns'] ?? 0);
+                    $statusDetails[] = 'Statements executed: ' . (int)($mergeSummary['executed_statements'] ?? 0);
+                    $statusDetails[] = 'Ignored duplicate/schema conflicts: ' . (int)($mergeSummary['ignored_statement_errors'] ?? 0);
+                }
             } else {
-                $statusType = 'success';
-                $statusMessage = 'SQL import completed successfully.';
+                if (!transfer_sql_execute_multi($conn, $sqlContent, $errorMessage)) {
+                    $statusType = 'danger';
+                    $statusMessage = 'SQL import failed: ' . $errorMessage;
+                } else {
+                    $statusType = 'success';
+                    $statusMessage = 'SQL import completed successfully.';
+                }
             }
         }
     }
@@ -690,44 +766,275 @@ if ($action === 'sql_import') {
 $page_title = 'Data Transfer';
 include dirname(__DIR__) . '/includes/header.php';
 ?>
-    <div class="container-xxl py-4">
-        <div class="row justify-content-center">
-            <div class="col-lg-10">
-                <div class="card mb-4">
-                    <div class="card-body p-4 p-md-5">
-                        <h3 class="mb-2">Data Transfer</h3>
-                        <p class="text-muted mb-0">Target DB: <strong><?php echo htmlspecialchars((string)DB_NAME, ENT_QUOTES, 'UTF-8'); ?></strong> @ <?php echo htmlspecialchars((string)DB_HOST, ENT_QUOTES, 'UTF-8'); ?>:<?php echo (int)DB_PORT; ?></p>
-                    }
+<style>
+.transfer-shell {
+    max-width: 1180px;
+    margin: 0 auto;
+}
+.transfer-hero {
+    background: linear-gradient(135deg, #0f4c81 0%, #1f7a8c 48%, #dceff2 100%);
+    color: #fff;
+    border: 0;
+    overflow: hidden;
+}
+.transfer-hero .card-body {
+    padding: 2rem;
+}
+.transfer-kpis {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+.transfer-kpi {
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 1rem;
+    padding: 1rem 1.1rem;
+}
+.transfer-kpi-label {
+    display: block;
+    font-size: 0.76rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    opacity: 0.82;
+}
+.transfer-kpi-value {
+    display: block;
+    font-size: 1rem;
+    font-weight: 700;
+    margin-top: 0.25rem;
+    word-break: break-word;
+}
+.transfer-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.7fr) minmax(290px, 0.95fr);
+    gap: 1.5rem;
+}
+.transfer-stack {
+    display: grid;
+    gap: 1.5rem;
+}
+.transfer-panel {
+    border: 1px solid #e5ebf2;
+    border-radius: 1rem;
+    box-shadow: 0 18px 40px rgba(16, 24, 40, 0.06);
+}
+.transfer-panel .card-body {
+    padding: 1.5rem;
+}
+.transfer-badge {
+    display: inline-flex;
+    align-items: center;
+    background: #edf6ff;
+    color: #0f4c81;
+    border-radius: 999px;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+.transfer-mode {
+    border: 1px solid #e8edf4;
+    border-radius: 0.9rem;
+    padding: 1rem;
+    background: #fff;
+    height: 100%;
+}
+.transfer-step {
+    border: 1px solid #edf1f5;
+    border-radius: 1rem;
+    padding: 1rem;
+    background: #fbfcfe;
+}
+.transfer-step + .transfer-step {
+    margin-top: 0.9rem;
+}
+.transfer-step-number {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    background: #0f4c81;
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+}
+.transfer-divider {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    color: #7b8794;
+    margin: 1.25rem 0;
+}
+.transfer-divider::before,
+.transfer-divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: #e8edf3;
+}
+.transfer-help {
+    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+}
+.transfer-note-list,
+.transfer-checklist {
+    margin: 0;
+    padding-left: 1.1rem;
+}
+.transfer-note-list li,
+.transfer-checklist li {
+    margin-bottom: 0.55rem;
+}
+@media (max-width: 991.98px) {
+    .transfer-grid {
+        grid-template-columns: 1fr;
+    }
+    .transfer-hero .card-body {
+        padding: 1.5rem;
+    }
+}
+</style>
+<div class="container-xxl py-4">
+    <?php if ($statusType !== ''): ?>
+        <div class="alert alert-<?php echo $statusType === 'success' ? 'success' : 'danger'; ?> alert-dismissible fade show mb-4" role="alert">
+            <strong><?php echo $statusType === 'success' ? 'Success:' : 'Import error:'; ?></strong>
+            <?php echo htmlspecialchars($statusMessage, ENT_QUOTES, 'UTF-8'); ?>
+            <?php if ($showStudentsEditLink): ?>
+                <a href="/BioTern_unified/management/students-edit.php" class="btn btn-sm btn-success ms-2">Edit Students</a>
+            <?php endif; ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            <?php if (!empty($statusDetails)): ?>
+                <div class="mt-2 small">
+                    <?php foreach ($statusDetails as $detail): ?>
+                        <div><?php echo htmlspecialchars((string)$detail, ENT_QUOTES, 'UTF-8'); ?></div>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+        </div>
+
+        <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1080;">
+            <div id="importStatusToast" class="toast text-bg-<?php echo $statusType === 'success' ? 'success' : 'danger'; ?> border-0" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="7000">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        <?php echo htmlspecialchars($statusMessage, ENT_QUOTES, 'UTF-8'); ?>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            </div>
+        </div>
+    <?php endif; ?>
+
+    <div class="transfer-shell">
+        <div class="card transfer-hero mb-4">
+            <div class="card-body">
+                <span class="transfer-badge">Railway Database Transfer Center</span>
+                <h2 class="mt-3 mb-2 text-white">Move your data with a clearer step-by-step workflow</h2>
+                <p class="mb-0 text-white-50">This page helps you import SQL into the current database connection, update students from spreadsheet files, and understand which option is safest before you run anything.</p>
+                <div class="transfer-kpis">
+                    <div class="transfer-kpi">
+                        <span class="transfer-kpi-label">Connected Host</span>
+                        <span class="transfer-kpi-value"><?php echo htmlspecialchars((string)DB_HOST, ENT_QUOTES, 'UTF-8'); ?></span>
+                    </div>
+                    <div class="transfer-kpi">
+                        <span class="transfer-kpi-label">Target Database</span>
+                        <span class="transfer-kpi-value"><?php echo htmlspecialchars((string)DB_NAME, ENT_QUOTES, 'UTF-8'); ?></span>
+                    </div>
+                    <div class="transfer-kpi">
+                        <span class="transfer-kpi-label">Port</span>
+                        <span class="transfer-kpi-value"><?php echo (int)DB_PORT; ?></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="transfer-grid">
+            <div class="transfer-stack">
+                <div class="card transfer-panel">
+                    <div class="card-body">
+                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+                            <div>
+                                <span class="transfer-badge">Main Import</span>
+                                <h4 class="mt-3 mb-2">SQL import for Railway or other remote database updates</h4>
+                                <p class="text-muted mb-0">Upload a SQL file for full or partial database updates. If you only need a safer incremental update, start with merge mode.</p>
+                            </div>
+                            <a href="homepage.php" class="btn btn-light">Back to Dashboard</a>
+                        </div>
+
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <div class="transfer-mode">
+                                    <h6>Merge Mode</h6>
+                                    <p class="text-muted mb-0">Recommended for most Railway updates. Existing tables stay intact, missing columns can be added, and duplicate inserts are handled more safely.</p>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="transfer-mode">
+                                    <h6>Replace Mode</h6>
+                                    <p class="text-muted mb-0">Use only when your SQL file is a complete backup. This mode can remove current tables before rebuilding them.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <form method="post" enctype="multipart/form-data">
+                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
+                            <input type="hidden" name="action" value="sql_import">
+
                             <div class="mb-3">
-                                <label for="sql_file" class="form-label">Upload SQL file</label>
+                                <label for="sql_file" class="form-label fw-semibold">1. Upload SQL file</label>
                                 <input class="form-control" type="file" id="sql_file" name="sql_file" accept=".sql,application/sql,text/sql">
+                                <div class="form-text">Best for exports coming from Vercel, phpMyAdmin, Adminer, or another MySQL host. Use file upload for large dumps whenever possible.</div>
                             </div>
 
-                            <div class="text-center text-muted my-3">or</div>
+                            <div class="transfer-divider">or use manual SQL input</div>
 
                             <div class="mb-3">
-                                <label for="sql_text" class="form-label">Paste SQL</label>
-                                <textarea class="form-control" id="sql_text" name="sql_text" rows="9" placeholder="Paste SQL statements here..."></textarea>
+                                <label for="sql_text" class="form-label fw-semibold">2. Paste SQL directly</label>
+                                <textarea class="form-control" id="sql_text" name="sql_text" rows="10" placeholder="Paste SQL statements here..."><?php echo htmlspecialchars($sqlTextValue, ENT_QUOTES, 'UTF-8'); ?></textarea>
+                                <div class="form-text">This is better for smaller SQL snippets, isolated fixes, or quick tests.</div>
                             </div>
 
-                            <div class="form-check mb-4">
-                                <input class="form-check-input" type="checkbox" value="1" id="replace_all" name="replace_all">
-                                <label class="form-check-label" for="replace_all">Replace existing tables before import</label>
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-6">
+                                    <div class="transfer-step h-100">
+                                        <div class="transfer-step-number">A</div>
+                                        <label class="form-check mb-2">
+                                            <input class="form-check-input" type="checkbox" value="1" id="replace_all" name="replace_all" <?php echo $replaceAllChecked ? 'checked' : ''; ?>>
+                                            <span class="form-check-label fw-semibold">Replace existing tables before import</span>
+                                        </label>
+                                        <p class="text-muted mb-0">High risk. Enable only if the SQL dump contains the full schema and all records needed to rebuild the database correctly.</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="transfer-step h-100">
+                                        <div class="transfer-step-number">B</div>
+                                        <label class="form-check mb-2">
+                                            <input class="form-check-input" type="checkbox" value="1" id="merge_schema" name="merge_schema" <?php echo $mergeSchemaChecked ? 'checked' : ''; ?>>
+                                            <span class="form-check-label fw-semibold">Merge schema and keep existing data</span>
+                                        </label>
+                                        <p class="text-muted mb-0">Best choice for routine updates. It tries to preserve current data while applying incoming schema and insert statements more carefully.</p>
+                                    </div>
+                                </div>
                             </div>
 
-                            <div class="form-check mb-4">
-                                <input class="form-check-input" type="checkbox" value="1" id="merge_schema" name="merge_schema" checked>
-                                <label class="form-check-label" for="merge_schema">Merge schema for existing tables (add missing columns, keep existing data)</label>
+                            <div class="d-flex flex-wrap gap-2">
+                                <button type="submit" class="btn btn-primary px-4">Run SQL Import</button>
+                                <span class="text-muted align-self-center">After importing, read the status message at the top of the page for the exact result.</span>
                             </div>
-
-                            <button type="submit" class="btn btn-primary">Import SQL</button>
                         </form>
                     </div>
                 </div>
 
-                <div class="card mb-4">
-                    <div class="card-body p-4 p-md-5">
-                        <h5 class="mb-3">Students Excel / Word Import / Export</h5>
+                <div class="card transfer-panel">
+                    <div class="card-body">
+                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+                            <div>
+                                <span class="transfer-badge">Table-Based Fallback</span>
+                                <h5 class="mt-3 mb-2">Students Excel / Word Import / Export</h5>
+                                <p class="text-muted mb-0">Use this if you only need to update student records or if a full SQL import is not the right tool for the job.</p>
+                            </div>
+                        </div>
 
                         <div class="mb-3 d-flex flex-wrap gap-2">
                             <a href="?download=students_template" class="btn btn-outline-secondary">Download Import Template (.csv)</a>
@@ -741,17 +1048,85 @@ include dirname(__DIR__) . '/includes/header.php';
                             <input type="hidden" name="action" value="students_import">
 
                             <div class="mb-3">
-                                <label for="students_file" class="form-label">Import Students (Excel CSV)</label>
+                                <label for="students_file" class="form-label fw-semibold">Upload students CSV or XLSX file</label>
                                 <input class="form-control" type="file" id="students_file" name="students_file" accept=".csv,.txt,.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
-                                <div class="form-text">Use CSV or Excel (.xlsx) format from Excel. Required columns: <code>name</code>, <code>email</code>. Optional: <code>username</code>, <code>password</code>, <code>role</code>, <code>is_active</code>, <code>profile_picture</code>.</div>
+                                <div class="form-text">Required columns: <code>name</code>, <code>email</code>. Optional columns: <code>username</code>, <code>password</code>, <code>role</code>, <code>is_active</code>, <code>profile_picture</code>.</div>
                             </div>
 
-                            <button type="submit" class="btn btn-primary">Import Students CSV</button>
-                            <a href="homepage.php" class="btn btn-light ms-2">Back to Dashboard</a>
+                            <div class="d-flex flex-wrap gap-2">
+                                <button type="submit" class="btn btn-primary">Import Students</button>
+                            </div>
                         </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="transfer-stack">
+                <div class="card transfer-panel transfer-help">
+                    <div class="card-body">
+                        <span class="transfer-badge">User Guide</span>
+                        <h5 class="mt-3 mb-3">What to do first</h5>
+                        <div class="transfer-step">
+                            <div class="transfer-step-number">1</div>
+                            <h6>Confirm the target database</h6>
+                            <p class="text-muted mb-0">Check the host, database name, and port shown above. Make sure this is the Railway database you actually want to update.</p>
+                        </div>
+                        <div class="transfer-step">
+                            <div class="transfer-step-number">2</div>
+                            <h6>Choose the safer import mode</h6>
+                            <p class="text-muted mb-0">Use merge mode first for existing live databases. Only switch to replace mode when you are restoring a complete known-good backup.</p>
+                        </div>
+                        <div class="transfer-step">
+                            <div class="transfer-step-number">3</div>
+                            <h6>Read the result after every attempt</h6>
+                            <p class="text-muted mb-0">This page now shows both a toast and a message banner. If the import fails, use the shown error to identify what needs fixing in the SQL file.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card transfer-panel">
+                    <div class="card-body">
+                        <span class="transfer-badge">Checklist</span>
+                        <h5 class="mt-3 mb-3">Before running an import</h5>
+                        <ul class="transfer-checklist text-muted">
+                            <li>Keep a backup before using replace mode.</li>
+                            <li>Prefer a `.sql` file over pasted SQL for large imports.</li>
+                            <li>Use merge mode for incremental updates from Vercel to Railway.</li>
+                            <li>Do not retry repeatedly without reading the error message first.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="card transfer-panel">
+                    <div class="card-body">
+                        <span class="transfer-badge">Recommendations</span>
+                        <h5 class="mt-3 mb-3">If the import still fails</h5>
+                        <ul class="transfer-note-list text-muted">
+                            <li>Export a fresh SQL dump from the source system so the schema and data are consistent.</li>
+                            <li>Try merge mode first if the current Railway database already has tables and data.</li>
+                            <li>If the issue is limited to user records, use the students CSV or XLSX import instead of a full SQL restore.</li>
+                            <li>If the error mentions a missing table or column, compare the source dump with the current Railway schema before retrying.</li>
+                        </ul>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+</div>
+
+<?php if ($statusType !== ''): ?>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    if (typeof bootstrap === 'undefined') {
+        return;
+    }
+    var toastEl = document.getElementById('importStatusToast');
+    if (!toastEl) {
+        return;
+    }
+    var toast = new bootstrap.Toast(toastEl);
+    toast.show();
+});
+</script>
+<?php endif; ?>
 <?php include dirname(__DIR__) . '/includes/footer.php'; ?>
