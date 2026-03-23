@@ -245,6 +245,9 @@ include __DIR__ . '/../includes/header.php';
         <div class="col-12">
             <h4>Endorsement Letter</h4>
             <p class="text-muted">Select student and prepare the endorsement letter.</p>
+            <div class="mb-3">
+                <a href="/BioTern_unified/tools/document-word-templates.php" class="btn btn-outline-secondary btn-sm">Open Word Template Tool</a>
+            </div>
         </div>
     </div>
 
