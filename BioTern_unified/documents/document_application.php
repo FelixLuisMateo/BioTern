@@ -266,7 +266,7 @@ include __DIR__ . '/../includes/header.php';
                     <h4>Documents</h4>
                     <p class="text-muted">Select a student to auto-fill the Application Letter template. Click Generate to open a printable document.</p>
                     <div class="mb-3">
-                        <a href="/document-word-templates?template_type=application" class="btn btn-outline-info word-tool-link">
+                        <a id="word_template_link_application" href="/document-word-templates?template_type=application" class="btn btn-outline-info word-tool-link">
                             <span>Open Word Template Tool</span>
                             <small class="text-muted">Upload actual .docx template</small>
                         </a>
@@ -358,6 +358,7 @@ echo intval($prefill_student_id); ?>;
             const inputCompanyAddress = document.getElementById('input_company_address');
             const inputHours = document.getElementById('input_hours');
             const btnFileEdit = document.getElementById('btn_file_edit_application');
+            const wordTemplateLink = document.getElementById('word_template_link_application');
             const letterContent = document.getElementById('letter_content');
             let selectedStudentId = null;
             let isFileEditMode = false;
@@ -607,6 +608,7 @@ echo intval($prefill_student_id); ?>;
                         // update generate link (do not include recipient if empty)
                         updatePreviewFields();
                         updateGenerateLink(id);
+                        updateWordTemplateLink(id);
                     });
             });
 
@@ -623,6 +625,7 @@ echo intval($prefill_student_id); ?>;
                         if (data.date) document.getElementById('ap_date').textContent = data.date;
                         updatePreviewFields();
                         updateGenerateLink(id);
+                        updateWordTemplateLink(id);
                     })
                     .catch(() => {});
             }
@@ -658,6 +661,7 @@ echo intval($prefill_student_id); ?>;
                         loadApplicationLetterData(id);
                         updatePreviewFields();
                         updateGenerateLink(id);
+                        updateWordTemplateLink(id);
                     })
                     .catch(() => {});
             }
@@ -707,6 +711,17 @@ echo intval($prefill_student_id); ?>;
                 return url;
             }
 
+            function updateWordTemplateLink(id){
+                if (!wordTemplateLink) return '';
+                const finalId = id || selectedStudentId || select.val();
+                const params = new URLSearchParams();
+                params.set('template_type', 'application');
+                if (finalId) params.set('student_id', finalId);
+                const url = '/document-word-templates?' + params.toString();
+                wordTemplateLink.href = url;
+                return url;
+            }
+
             inputName.addEventListener('input', function(){ updatePreviewFields(); updateGenerateLink(selectedStudentId); });
             inputPosition.addEventListener('input', function(){ updatePreviewFields(); updateGenerateLink(selectedStudentId); });
             inputCompany.addEventListener('input', function(){ updatePreviewFields(); updateGenerateLink(selectedStudentId); });
@@ -734,6 +749,7 @@ echo intval($prefill_student_id); ?>;
                 document.getElementById('ap_date').textContent = new Date().toLocaleDateString();
             }
             updateGenerateLink(selectedStudentId || select.val());
+            updateWordTemplateLink(selectedStudentId || select.val() || PREFILL_STUDENT_ID || '');
             if (PREFILL_STUDENT_ID > 0) {
                 prefillByStudentId(PREFILL_STUDENT_ID);
             } else {

@@ -204,7 +204,7 @@ include __DIR__ . '/../includes/header.php';
                     <h4>Memorandum of Agreement</h4>
                     <p class="text-muted">Fill the fields below then click Generate MOA to open the printable Memorandum of Agreement.</p>
                     <div class="mb-3">
-                        <a href="/document-word-templates?template_type=moa" class="btn btn-outline-info word-tool-link">
+                        <a id="word_template_link_moa" href="/document-word-templates?template_type=moa" class="btn btn-outline-info word-tool-link">
                             <span>Open Word Template Tool</span>
                             <small class="text-muted">Upload actual .docx template</small>
                         </a>
@@ -460,7 +460,9 @@ echo intval($prefill_student_id); ?>;
             const seriesNo = document.getElementById('moa_series_no');
             const btnFill = document.getElementById('btn_file_edit_moa');
             const btnGenerate = document.getElementById('btn_generate_moa');
+            const wordTemplateLink = document.getElementById('word_template_link_moa');
             const moaContent = document.getElementById('moa_content');
+            let selectedStudentId = PREFILL_STUDENT_ID > 0 ? String(PREFILL_STUDENT_ID) : '';
             let isFileEditMode = false;
             let hasLoadedSavedTemplate = false;
 
@@ -564,6 +566,8 @@ echo intval($prefill_student_id); ?>;
             $('#student_select').on('select2:select', function(e){
                 const id = select.val();
                 if (!id) return;
+                selectedStudentId = String(id);
+                updateWordTemplateLink(id);
                 fetch('documents/document_moa.php?action=get_student&id=' + encodeURIComponent(id))
                     .then(r => r.json())
                     .then(data => {
@@ -625,6 +629,8 @@ echo intval($prefill_student_id); ?>;
 
             function prefillByStudentId(id){
                 if (!id) return;
+                selectedStudentId = String(id);
+                updateWordTemplateLink(id);
                 fetch('documents/document_moa.php?action=get_student&id=' + encodeURIComponent(id))
                     .then(r => r.json())
                     .then(data => {
@@ -716,6 +722,17 @@ echo intval($prefill_student_id); ?>;
                 return url;
             }
 
+            function updateWordTemplateLink(id){
+                if (!wordTemplateLink) return '';
+                const finalId = id || selectedStudentId || select.val();
+                const params = new URLSearchParams();
+                params.set('template_type', 'moa');
+                if (finalId) params.set('student_id', String(finalId));
+                const url = '/document-word-templates?' + params.toString();
+                wordTemplateLink.href = url;
+                return url;
+            }
+
             [
                 partnerName, partnerRep, partnerPosition, partnerAddress, companyReceipt, totalHours, schoolRep, schoolPosition,
                 signedAt, signedDay, signedMonth, signedYear,
@@ -735,6 +752,7 @@ echo intval($prefill_student_id); ?>;
             loadMoaTemplateHtml();
             updatePreview();
             updateGenerateLink();
+            updateWordTemplateLink(selectedStudentId || select.val() || '');
             if (PREFILL_STUDENT_ID > 0) prefillByStudentId(PREFILL_STUDENT_ID);
 
         })();
