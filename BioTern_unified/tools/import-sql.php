@@ -42,29 +42,84 @@ if (!function_exists('transfer_sql_normalize')) {
 }
 
 if (!function_exists('transfer_sql_drop_all_tables')) {
-    function transfer_sql_drop_all_tables(mysqli $mysqli, string $databaseName): bool
+    function transfer_sql_drop_all_tables(mysqli $mysqli, string $databaseName, string &$errorMessage = '', array &$summary = []): bool
     {
         $safeDb = $mysqli->real_escape_string($databaseName);
-        $res = $mysqli->query("SELECT GROUP_CONCAT(CONCAT('`', table_name, '`')) AS tables_list FROM information_schema.tables WHERE table_schema = '{$safeDb}'");
+        $summary['dropped_views'] = 0;
+        $summary['dropped_tables'] = 0;
+        $summary['remaining_objects'] = 0;
+
+        $objects = [];
+        $res = $mysqli->query("SELECT TABLE_NAME, TABLE_TYPE FROM information_schema.tables WHERE table_schema = '{$safeDb}' ORDER BY CASE WHEN TABLE_TYPE = 'VIEW' THEN 0 ELSE 1 END, TABLE_NAME ASC");
         if (!$res) {
+            $errorMessage = 'Unable to read database objects: ' . $mysqli->error;
             return false;
         }
 
-        $row = $res->fetch_assoc();
+        while ($row = $res->fetch_assoc()) {
+            $objects[] = [
+                'name' => (string)($row['TABLE_NAME'] ?? ''),
+                'type' => strtoupper((string)($row['TABLE_TYPE'] ?? 'BASE TABLE')),
+            ];
+        }
         $res->free();
-        $tables = (string)($row['tables_list'] ?? '');
-        if ($tables === '') {
+
+        if (empty($objects)) {
             return true;
         }
 
-        if (!$mysqli->query('SET FOREIGN_KEY_CHECKS = 0')) {
+        $mysqli->query('SET FOREIGN_KEY_CHECKS = 0');
+        $mysqli->query('SET UNIQUE_CHECKS = 0');
+        $mysqli->query('SET SQL_NOTES = 0');
+
+        $errors = [];
+        foreach ($objects as $object) {
+            $name = str_replace('`', '``', (string)($object['name'] ?? ''));
+            if ($name === '') {
+                continue;
+            }
+
+            $type = (string)($object['type'] ?? 'BASE TABLE');
+            $dropSql = $type === 'VIEW'
+                ? "DROP VIEW IF EXISTS `{$name}`"
+                : "DROP TABLE IF EXISTS `{$name}`";
+
+            if ($mysqli->query($dropSql)) {
+                if ($type === 'VIEW') {
+                    $summary['dropped_views'] = (int)($summary['dropped_views'] ?? 0) + 1;
+                } else {
+                    $summary['dropped_tables'] = (int)($summary['dropped_tables'] ?? 0) + 1;
+                }
+                continue;
+            }
+
+            $errors[] = $type . ' `' . $name . '`: ' . $mysqli->error;
+        }
+
+        $mysqli->query('SET SQL_NOTES = 1');
+        $mysqli->query('SET UNIQUE_CHECKS = 1');
+        $mysqli->query('SET FOREIGN_KEY_CHECKS = 1');
+
+        $remainingResult = $mysqli->query("SELECT COUNT(*) AS remaining_count FROM information_schema.tables WHERE table_schema = '{$safeDb}'");
+        if ($remainingResult instanceof mysqli_result) {
+            $remainingRow = $remainingResult->fetch_assoc();
+            $summary['remaining_objects'] = (int)($remainingRow['remaining_count'] ?? 0);
+            $remainingResult->free();
+        }
+
+        if (($summary['remaining_objects'] ?? 0) > 0 || !empty($errors)) {
+            $messageParts = [];
+            if (($summary['remaining_objects'] ?? 0) > 0) {
+                $messageParts[] = 'Remaining objects after force drop: ' . (int)$summary['remaining_objects'];
+            }
+            if (!empty($errors)) {
+                $messageParts[] = 'Drop errors: ' . implode(' | ', array_slice($errors, 0, 3));
+            }
+            $errorMessage = implode('. ', $messageParts);
             return false;
         }
 
-        $dropOk = $mysqli->query('DROP TABLE ' . $tables);
-        $mysqli->query('SET FOREIGN_KEY_CHECKS = 1');
-
-        return (bool)$dropOk;
+        return true;
     }
 }
 
@@ -726,15 +781,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $mergeSummary = [];
 
             if ($replaceAllChecked) {
-                if (!transfer_sql_drop_all_tables($conn, (string)DB_NAME)) {
+                $dropSummary = [];
+                if (!transfer_sql_drop_all_tables($conn, (string)DB_NAME, $errorMessage, $dropSummary)) {
                     $statusType = 'danger';
-                    $statusMessage = 'Failed to drop existing tables before import.';
+                    $statusMessage = 'Failed to drop existing tables before import. ' . $errorMessage;
                 } elseif (!transfer_sql_execute_multi($conn, $sqlContent, $errorMessage)) {
                     $statusType = 'danger';
                     $statusMessage = 'SQL replace import failed: ' . $errorMessage;
                 } else {
                     $statusType = 'success';
                     $statusMessage = 'SQL import completed successfully in replace mode.';
+                    $statusDetails[] = 'Views dropped: ' . (int)($dropSummary['dropped_views'] ?? 0);
+                    $statusDetails[] = 'Tables dropped: ' . (int)($dropSummary['dropped_tables'] ?? 0);
                 }
             } elseif ($mergeSchemaChecked) {
                 $preparedSql = transfer_sql_prepare_merge_statements($conn, $sqlContent, $mergeSummary);
@@ -886,6 +944,66 @@ include dirname(__DIR__) . '/includes/header.php';
 .transfer-note-list li,
 .transfer-checklist li {
     margin-bottom: 0.55rem;
+}
+.app-skin-dark .transfer-panel {
+    background: #16202b;
+    border-color: #253243;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+}
+.app-skin-dark .transfer-panel .text-muted,
+.app-skin-dark .transfer-mode .text-muted,
+.app-skin-dark .transfer-step .text-muted,
+.app-skin-dark .transfer-help .text-muted,
+.app-skin-dark .form-text,
+.app-skin-dark .transfer-divider,
+.app-skin-dark .transfer-checklist,
+.app-skin-dark .transfer-note-list {
+    color: #aab8c5 !important;
+}
+.app-skin-dark .transfer-panel h4,
+.app-skin-dark .transfer-panel h5,
+.app-skin-dark .transfer-panel h6,
+.app-skin-dark .transfer-panel label,
+.app-skin-dark .transfer-panel .form-label,
+.app-skin-dark .transfer-panel .form-check-label {
+    color: #ecf3fb;
+}
+.app-skin-dark .transfer-mode,
+.app-skin-dark .transfer-step {
+    background: #1b2632;
+    border-color: #2a394b;
+}
+.app-skin-dark .transfer-help {
+    background: linear-gradient(180deg, #182330 0%, #131c27 100%);
+}
+.app-skin-dark .transfer-badge {
+    background: rgba(70, 155, 255, 0.14);
+    color: #9fd0ff;
+}
+.app-skin-dark .transfer-divider::before,
+.app-skin-dark .transfer-divider::after {
+    background: #334354;
+}
+.app-skin-dark #sql_text,
+.app-skin-dark #students_file,
+.app-skin-dark #sql_file,
+.app-skin-dark .form-control {
+    background-color: #0f1720;
+    border-color: #334354;
+    color: #edf4fb;
+}
+.app-skin-dark .form-control::placeholder {
+    color: #7e92a8;
+}
+.app-skin-dark .btn-light {
+    background: #243244;
+    border-color: #334354;
+    color: #edf4fb;
+}
+.app-skin-dark .btn-outline-primary,
+.app-skin-dark .btn-outline-secondary {
+    color: #cfe7ff;
+    border-color: #45617f;
 }
 @media (max-width: 991.98px) {
     .transfer-grid {
@@ -1107,6 +1225,9 @@ include dirname(__DIR__) . '/includes/header.php';
                             <li>If the issue is limited to user records, use the students CSV or XLSX import instead of a full SQL restore.</li>
                             <li>If the error mentions a missing table or column, compare the source dump with the current Railway schema before retrying.</li>
                         </ul>
+                        <div class="mt-3">
+                            <a href="force-drop-db.php" class="btn btn-outline-danger">Open Force Drop Utility</a>
+                        </div>
                     </div>
                 </div>
             </div>
