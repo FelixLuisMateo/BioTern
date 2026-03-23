@@ -40,15 +40,44 @@ function word_template_types(): array
 
 function word_template_dirs(): array
 {
-    $base = dirname(__DIR__) . '/uploads/word_templates';
-    $generated = dirname(__DIR__) . '/uploads/generated_word_documents';
-    if (!is_dir($base)) {
-        mkdir($base, 0755, true);
+    static $resolved = null;
+    if (is_array($resolved)) {
+        return $resolved;
     }
-    if (!is_dir($generated)) {
-        mkdir($generated, 0755, true);
+
+    $projectBase = dirname(__DIR__) . '/uploads/word_templates';
+    $projectGenerated = dirname(__DIR__) . '/uploads/generated_word_documents';
+    $projectRoot = dirname(__DIR__) . '/uploads';
+
+    if (is_dir($projectBase) || (is_dir($projectRoot) && is_writable($projectRoot) && @mkdir($projectBase, 0755, true))) {
+        if (!is_dir($projectGenerated) && is_dir($projectRoot) && is_writable($projectRoot)) {
+            @mkdir($projectGenerated, 0755, true);
+        }
+        if (is_dir($projectBase) && is_dir($projectGenerated)) {
+            $resolved = [$projectBase, $projectGenerated];
+            return $resolved;
+        }
     }
-    return [$base, $generated];
+
+    $runtimeRoot = rtrim((string)sys_get_temp_dir(), '\\/') . '/biotern_word_templates';
+    $runtimeBase = $runtimeRoot . '/templates';
+    $runtimeGenerated = $runtimeRoot . '/generated';
+
+    if (!is_dir($runtimeBase)) {
+        @mkdir($runtimeBase, 0755, true);
+    }
+    if (!is_dir($runtimeGenerated)) {
+        @mkdir($runtimeGenerated, 0755, true);
+    }
+
+    $resolved = [$runtimeBase, $runtimeGenerated];
+    return $resolved;
+}
+
+function word_template_uses_runtime_storage(): bool
+{
+    [$base] = word_template_dirs();
+    return strpos(str_replace('\\', '/', $base), str_replace('\\', '/', rtrim((string)sys_get_temp_dir(), '\\/'))) === 0;
 }
 
 function word_template_path(string $type): string
@@ -341,6 +370,7 @@ $templateFiles = word_template_current_files();
 $students = word_template_student_list($conn);
 $selectedType = strtolower(trim((string)($_POST['template_type'] ?? $_GET['template_type'] ?? 'application')));
 $selectedStudentId = (int)($_POST['student_id'] ?? 0);
+$usingRuntimeStorage = word_template_uses_runtime_storage();
 
 if (!isset(word_template_types()[$selectedType])) {
     $selectedType = 'application';
@@ -446,6 +476,13 @@ include dirname(__DIR__) . '/includes/header.php';
                 <p class="mb-0 text-white-50">This adds a separate DOCX template workflow for Application, Endorsement, MOA, and DAU MOA. Your current document pages stay untouched.</p>
             </div>
         </div>
+
+        <?php if ($usingRuntimeStorage): ?>
+            <div class="alert alert-warning mb-4">
+                <strong>Temporary storage mode:</strong>
+                This deployment is using runtime temp storage because Vercel is read-only. Uploads work without filesystem warnings, but uploaded templates may not persist after a cold restart or redeploy.
+            </div>
+        <?php endif; ?>
 
         <div class="row g-4">
             <div class="col-lg-7">
