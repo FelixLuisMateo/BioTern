@@ -239,6 +239,15 @@ include __DIR__ . '/../includes/header.php';
             .select2-container--open,
             .select2-dropdown { z-index: 900 !important; }
         }
+        .word-tool-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            border-radius: 999px;
+            font-weight: 600;
+            border-width: 1px;
+        }
     </style>
     <div class="container">
     <div class="row mt-3">
@@ -246,7 +255,10 @@ include __DIR__ . '/../includes/header.php';
             <h4>Endorsement Letter</h4>
             <p class="text-muted">Select student and prepare the endorsement letter.</p>
             <div class="mb-3">
-                <a href="/BioTern_unified/tools/document-word-templates.php" class="btn btn-outline-secondary btn-sm">Open Word Template Tool</a>
+                <a href="/document-word-templates?template_type=endorsement" class="btn btn-outline-info word-tool-link">
+                    <span>Open Word Template Tool</span>
+                    <small class="text-muted">Upload actual .docx template</small>
+                </a>
             </div>
         </div>
     </div>

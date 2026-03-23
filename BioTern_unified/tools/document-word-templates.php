@@ -339,7 +339,7 @@ $statusDetails = [];
 $csrfToken = word_template_csrf_token();
 $templateFiles = word_template_current_files();
 $students = word_template_student_list($conn);
-$selectedType = strtolower(trim((string)($_POST['template_type'] ?? 'application')));
+$selectedType = strtolower(trim((string)($_POST['template_type'] ?? $_GET['template_type'] ?? 'application')));
 $selectedStudentId = (int)($_POST['student_id'] ?? 0);
 
 if (!isset(word_template_types()[$selectedType])) {
