@@ -44,7 +44,7 @@
       "dest": "/$1"
     },
     {
-      "src": "^/([A-Za-z0-9-]+)/?$",
+      "src": "^/([A-Za-z0-9_-]+)/?$",
       "dest": "/legacy_router.php?slug=$1"
     },
     {

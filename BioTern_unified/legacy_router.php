@@ -166,6 +166,9 @@ $map = [
   'test_data.php' => 'tools/test_data.php',
   'test_db.php' => 'tools/test_db.php',
   'import-sql.php' => 'tools/import-sql.php',
+  'document-word-templates.php' => 'tools/document-word-templates.php',
+  'import-students-excel.php' => 'tools/import-students-excel.php',
+  'force-drop-db.php' => 'tools/force-drop-db.php',
   'update_remaining_hours.php' => 'tools/update_remaining_hours.php',
 ];
 

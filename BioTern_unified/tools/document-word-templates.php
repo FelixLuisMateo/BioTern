@@ -40,21 +40,69 @@ function word_template_types(): array
 
 function word_template_dirs(): array
 {
-    $base = dirname(__DIR__) . '/uploads/word_templates';
-    $generated = dirname(__DIR__) . '/uploads/generated_word_documents';
-    if (!is_dir($base)) {
-        mkdir($base, 0755, true);
+    static $resolved = null;
+    if (is_array($resolved)) {
+        return $resolved;
     }
-    if (!is_dir($generated)) {
-        mkdir($generated, 0755, true);
+
+    $projectBase = dirname(__DIR__) . '/uploads/word_templates';
+    $projectArchive = dirname(__DIR__) . '/uploads/word_templates_archive';
+    $projectGenerated = dirname(__DIR__) . '/uploads/generated_word_documents';
+    $projectRoot = dirname(__DIR__) . '/uploads';
+
+    if (is_dir($projectBase) || (is_dir($projectRoot) && is_writable($projectRoot) && @mkdir($projectBase, 0755, true))) {
+        if (!is_dir($projectArchive) && is_dir($projectRoot) && is_writable($projectRoot)) {
+            @mkdir($projectArchive, 0755, true);
+        }
+        if (!is_dir($projectGenerated) && is_dir($projectRoot) && is_writable($projectRoot)) {
+            @mkdir($projectGenerated, 0755, true);
+        }
+        if (is_dir($projectBase) && is_dir($projectArchive) && is_dir($projectGenerated)) {
+            $resolved = [$projectBase, $projectArchive, $projectGenerated];
+            return $resolved;
+        }
     }
-    return [$base, $generated];
+
+    $runtimeRoot = rtrim((string)sys_get_temp_dir(), '\\/') . '/biotern_word_templates';
+    $runtimeBase = $runtimeRoot . '/templates';
+    $runtimeArchive = $runtimeRoot . '/archive';
+    $runtimeGenerated = $runtimeRoot . '/generated';
+
+    if (!is_dir($runtimeBase)) {
+        @mkdir($runtimeBase, 0755, true);
+    }
+    if (!is_dir($runtimeArchive)) {
+        @mkdir($runtimeArchive, 0755, true);
+    }
+    if (!is_dir($runtimeGenerated)) {
+        @mkdir($runtimeGenerated, 0755, true);
+    }
+
+    $resolved = [$runtimeBase, $runtimeArchive, $runtimeGenerated];
+    return $resolved;
+}
+
+function word_template_uses_runtime_storage(): bool
+{
+    [$base] = word_template_dirs();
+    return strpos(str_replace('\\', '/', $base), str_replace('\\', '/', rtrim((string)sys_get_temp_dir(), '\\/'))) === 0;
 }
 
 function word_template_path(string $type): string
 {
     [$base] = word_template_dirs();
     return $base . '/' . $type . '.docx';
+}
+
+function word_template_archive_path(string $type, string $originalName): string
+{
+    [, $archive] = word_template_dirs();
+    $cleanName = preg_replace('/[^A-Za-z0-9._-]+/', '-', pathinfo($originalName, PATHINFO_FILENAME));
+    $cleanName = trim((string)$cleanName, '-');
+    if ($cleanName === '') {
+        $cleanName = $type . '-template';
+    }
+    return $archive . '/' . $type . '-' . date('Ymd-His') . '-' . $cleanName . '.docx';
 }
 
 function word_template_current_files(): array
@@ -65,6 +113,24 @@ function word_template_current_files(): array
         $files[$type] = is_file($path) ? basename($path) . ' (' . date('Y-m-d H:i', (int)filemtime($path)) . ')' : 'No template uploaded';
     }
     return $files;
+}
+
+function word_template_archive_files(string $type, int $limit = 5): array
+{
+    [, $archive] = word_template_dirs();
+    $pattern = $archive . '/' . $type . '-*.docx';
+    $matches = glob($pattern) ?: [];
+    usort($matches, static function (string $a, string $b): int {
+        return (int)filemtime($b) <=> (int)filemtime($a);
+    });
+    $rows = [];
+    foreach (array_slice($matches, 0, $limit) as $path) {
+        $rows[] = [
+            'name' => basename($path),
+            'time' => date('Y-m-d H:i', (int)filemtime($path)),
+        ];
+    }
+    return $rows;
 }
 
 function word_template_render_value($value): string
@@ -338,9 +404,14 @@ $statusMessage = '';
 $statusDetails = [];
 $csrfToken = word_template_csrf_token();
 $templateFiles = word_template_current_files();
+$templateArchives = [];
+foreach (array_keys(word_template_types()) as $archiveType) {
+    $templateArchives[$archiveType] = word_template_archive_files($archiveType);
+}
 $students = word_template_student_list($conn);
-$selectedType = strtolower(trim((string)($_POST['template_type'] ?? 'application')));
-$selectedStudentId = (int)($_POST['student_id'] ?? 0);
+$selectedType = strtolower(trim((string)($_POST['template_type'] ?? $_GET['template_type'] ?? 'application')));
+$selectedStudentId = (int)($_POST['student_id'] ?? $_GET['student_id'] ?? 0);
+$usingRuntimeStorage = word_template_uses_runtime_storage();
 
 if (!isset(word_template_types()[$selectedType])) {
     $selectedType = 'application';
@@ -373,10 +444,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $statusMessage = 'Uploaded template file is invalid.';
                 } else {
                     $targetPath = word_template_path($selectedType);
-                    if (move_uploaded_file($tmpName, $targetPath) || rename($tmpName, $targetPath)) {
+                    $archivePath = word_template_archive_path($selectedType, $originalName);
+                    if ((move_uploaded_file($tmpName, $archivePath) || rename($tmpName, $archivePath)) && @copy($archivePath, $targetPath)) {
                         $statusType = 'success';
-                        $statusMessage = 'Template uploaded successfully for ' . word_template_types()[$selectedType]['label'] . '.';
+                        $statusMessage = 'Word template archived and set as active for ' . word_template_types()[$selectedType]['label'] . '.';
+                        $statusDetails[] = 'The current HTML/CSS-built document page was not removed or replaced.';
+                        $statusDetails[] = 'Archive copy: ' . basename($archivePath);
                         $templateFiles = word_template_current_files();
+                        $templateArchives[$selectedType] = word_template_archive_files($selectedType);
                     } else {
                         $statusType = 'danger';
                         $statusMessage = 'Failed to save the uploaded template.';
@@ -447,13 +522,20 @@ include dirname(__DIR__) . '/includes/header.php';
             </div>
         </div>
 
+        <?php if ($usingRuntimeStorage): ?>
+            <div class="alert alert-warning mb-4">
+                <strong>Temporary storage mode:</strong>
+                This deployment is using runtime temp storage because Vercel is read-only. Uploads work without filesystem warnings, but uploaded templates may not persist after a cold restart or redeploy.
+            </div>
+        <?php endif; ?>
+
         <div class="row g-4">
             <div class="col-lg-7">
                 <div class="card word-template-card">
                     <div class="card-body p-4 p-md-5">
                         <span class="word-template-badge">Upload Template</span>
-                        <h4 class="mt-3 mb-2">Store one DOCX template per document type</h4>
-                        <p class="text-muted mb-4">You can still use placeholders like <code>{{first_name}}</code> or <code>{{company_name}}</code>, but you do not have to. This tool can also auto-fill underscore blanks like <code>__________</code> based on the current Application, Endorsement, MOA, and DAU MOA document layouts.</p>
+                        <h4 class="mt-3 mb-2">Store one active DOCX template per document type</h4>
+                        <p class="text-muted mb-4">Uploading here does not remove or rewrite your existing HTML/CSS-built document pages. It creates an archived Word template version and updates the active DOCX template used by this separate Word workflow.</p>
 
                         <form method="post" enctype="multipart/form-data" class="mb-4">
                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
@@ -474,7 +556,7 @@ include dirname(__DIR__) . '/includes/header.php';
                             <button type="submit" class="btn btn-primary">Upload Template</button>
                         </form>
 
-                        <h5 class="mb-3">Installed templates</h5>
+                        <h5 class="mb-3">Active templates</h5>
                         <div class="table-responsive">
                             <table class="table table-sm align-middle mb-0">
                                 <thead><tr><th>Type</th><th>Template</th></tr></thead>
@@ -487,6 +569,31 @@ include dirname(__DIR__) . '/includes/header.php';
                                 <?php endforeach; ?>
                                 </tbody>
                             </table>
+                        </div>
+
+                        <div class="mt-4">
+                            <h5 class="mb-3">Recent archive history</h5>
+                            <div class="table-responsive">
+                                <table class="table table-sm align-middle mb-0">
+                                    <thead><tr><th>Type</th><th>Archived versions</th></tr></thead>
+                                    <tbody>
+                                    <?php foreach (word_template_types() as $key => $meta): ?>
+                                        <tr>
+                                            <td><?php echo htmlspecialchars((string)$meta['label'], ENT_QUOTES, 'UTF-8'); ?></td>
+                                            <td>
+                                                <?php if (empty($templateArchives[$key])): ?>
+                                                    <span class="text-muted">No archived uploads yet</span>
+                                                <?php else: ?>
+                                                    <?php foreach ($templateArchives[$key] as $archive): ?>
+                                                        <div class="small"><?php echo htmlspecialchars((string)$archive['name'], ENT_QUOTES, 'UTF-8'); ?> <span class="text-muted">(<?php echo htmlspecialchars((string)$archive['time'], ENT_QUOTES, 'UTF-8'); ?>)</span></div>
+                                                    <?php endforeach; ?>
+                                                <?php endif; ?>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>
