@@ -105,7 +105,6 @@ if ($session_avatar !== '') {
                             <span class="nxl-mtext">Reports</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="reports-sales.php">Sales Report</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="reports-ojt.php">OJT Report</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="reports-project.php">Project Report</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="reports-timesheets.php">Timesheets Report</a></li>
@@ -157,7 +156,6 @@ if ($session_avatar !== '') {
                         </a>
                         <ul class="nxl-submenu">
                             <li class="nxl-item"><a class="nxl-link" href="settings-general.php">General</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="settings-seo.php">SEO</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="settings-tags.php">Tags</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="settings-email.php">Email</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="settings-tasks.php">Tasks</a></li>
@@ -168,7 +166,6 @@ if ($session_avatar !== '') {
                             <li class="nxl-item"><a class="nxl-link" href="settings-students.php">Students</a></li>
 
                             
-                            <li class="nxl-item"><a class="nxl-link" href="settings-miscellaneous.php">Miscellaneous</a></li>
                         </ul>
                     </li>
                     
@@ -212,7 +209,7 @@ if ($session_avatar !== '') {
                     <a href="javascript:void(0);" id="menu-mini-button">
                         <i class="feather-align-left"></i>
                     </a>
-                    <a href="javascript:void(0);" id="menu-expend-button" style="display: none">
+                    <a href="javascript:void(0);" id="menu-expend-button" class="hidden-inline-toggle">
                         <i class="feather-arrow-right"></i>
                     </a>
                 </div>
@@ -1302,6 +1299,7 @@ const html = Prism.highlight(code, Prism.languages.javascript, 'javascript');
 </body>
 
 </html>
+
 
 
 

@@ -1,6 +1,6 @@
 ﻿<?php
 require_once dirname(__DIR__) . '/config/db.php';
-header('Location: reports-sales.php');
+header('Location: reports-ojt.php');
 exit;
 
 

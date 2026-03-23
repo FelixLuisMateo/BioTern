@@ -60,12 +60,48 @@ if ($next !== '' && !preg_match('/^[A-Za-z0-9_-]+\.php$/', $next)) {
     $next = '';
 }
 
+$request_uri = str_replace('\\', '/', (string)($_SERVER['REQUEST_URI'] ?? ''));
+$unified_marker = '/BioTern_unified/';
+$unified_pos = stripos($script_name, $unified_marker);
+if ($unified_pos === false) {
+    $unified_pos = stripos($request_uri, $unified_marker);
+}
+
+if ($unified_pos !== false) {
+    $app_root = substr(($unified_pos === stripos($script_name, $unified_marker) ? $script_name : $request_uri), 0, $unified_pos) . $unified_marker;
+} elseif ($script_dir_no_auth !== '' && $script_dir_no_auth !== '.') {
+    $app_root = rtrim($script_dir_no_auth, '/') . '/';
+} else {
+    $app_root = '/';
+}
+
+$app_root = '/' . ltrim((string)$app_root, '/');
+$app_root = preg_replace('#/+#', '/', $app_root);
+$app_root = rtrim((string)$app_root, '/') . '/';
+
+$resolve_login_target = static function (string $nextFile) use ($app_root, $route_prefix): string {
+    if ($nextFile === '' || strtolower($nextFile) === 'homepage.php') {
+        return $app_root . 'homepage.php';
+    }
+
+    $app_fs_root = dirname(__DIR__) . '/' . $nextFile;
+    if (is_file($app_fs_root)) {
+        return $app_root . $nextFile;
+    }
+
+    if ($nextFile !== '') {
+        return $app_root . 'legacy_router.php?file=' . rawurlencode($nextFile);
+    }
+
+    return $route_prefix . 'homepage.php';
+};
+
 if ((int)($_SESSION['user_id'] ?? 0) <= 0 && $_SERVER['REQUEST_METHOD'] !== 'POST') {
     $restore_conn = @new mysqli($dbHost, $dbUser, $dbPass, $dbName, $dbPort);
     if (!$restore_conn->connect_errno) {
         if (biotern_auth_restore_session_from_cookie($restore_conn)) {
             $restore_conn->close();
-            $target = $next !== '' ? ($route_prefix . $next) : ($route_prefix . 'homepage.php');
+            $target = $resolve_login_target($next);
             header('Location: ' . $target);
             exit;
         }
@@ -208,7 +244,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     log_login_attempt($mysqli, (int)$user['id'], $identifier, (string)($user['role'] ?? ''), 'success', 'login_success', $client_ip, $client_user_agent);
 
-                    $target = $next !== '' ? ($route_prefix . $next) : ($route_prefix . 'homepage.php');
+                    $target = $resolve_login_target($next);
                     header('Location: ' . $target);
                     exit;
                 }

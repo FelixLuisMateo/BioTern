@@ -20,9 +20,7 @@ if ((int)($_SESSION['user_id'] ?? 0) <= 0) {
 
 $landing_user_id = (int)($_SESSION['user_id'] ?? 0);
 $landing_logged_in = $landing_user_id > 0 || !empty($_SESSION['logged_in']);
-$landing_signin_href = $landing_logged_in ? '/homepage' : '/auth-login-cover';
 $landing_signin_label = $landing_logged_in ? 'Dashboard' : 'Sign In';
-$landing_hero_href = $landing_logged_in ? '/homepage' : '/auth-login-cover';
 $landing_hero_label = $landing_logged_in ? 'Go to Dashboard' : 'Go to Dashboard Login';
 
 $year = date('Y');
@@ -53,6 +51,14 @@ $favicon_ico_version = ($favicon_ico_mtime !== false) ? (string)$favicon_ico_mti
 $favicon_png_version = ($favicon_png_mtime !== false) ? (string)$favicon_png_mtime : '20260310';
 $favicon_ico_href = $favicon_root . 'assets/images/favicon.ico?v=' . rawurlencode($favicon_ico_version);
 $favicon_png_href = $favicon_root . 'assets/images/favicon-rounded.png?v=' . rawurlencode($favicon_png_version);
+
+$landing_app_root = rtrim($favicon_root, '/');
+$landing_apply_href = $landing_app_root . '/auth/auth-register-creative.php?role=student';
+$landing_start_href = $landing_app_root . '/auth/auth-register-creative.php?role=student';
+$landing_signin_href = $landing_logged_in
+    ? ($landing_app_root . '/homepage.php')
+    : ($landing_app_root . '/auth/auth-login-cover.php');
+$landing_hero_href = $landing_signin_href;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -375,7 +381,7 @@ $favicon_png_href = $favicon_root . 'assets/images/favicon-rounded.png?v=' . raw
                             <i class="feather-sun"></i>
                         </a>
                     </div>
-                    <a href="/auth-register-creative?role=student" class="btn btn-sm btn-light-brand">Apply</a>
+                    <a href="<?php echo htmlspecialchars($landing_apply_href, ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-sm btn-light-brand">Apply</a>
                     <a href="<?php echo htmlspecialchars($landing_signin_href, ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-sm btn-primary"><?php echo htmlspecialchars($landing_signin_label, ENT_QUOTES, 'UTF-8'); ?></a>
                 </div>
             </div>
@@ -394,7 +400,7 @@ $favicon_png_href = $favicon_root . 'assets/images/favicon-rounded.png?v=' . raw
                             <p class="hero-subtitle mb-4">Track attendance with biometric confidence, monitor internship progress, and generate key documents and reports without juggling multiple systems.</p>
                             <div class="hero-cta">
                                 <a href="<?php echo htmlspecialchars($landing_hero_href, ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-primary btn-lg"><?php echo htmlspecialchars($landing_hero_label, ENT_QUOTES, 'UTF-8'); ?></a>
-                                <a href="/auth-register-creative" class="btn btn-light-brand btn-lg">Start Application</a>
+                                <a href="<?php echo htmlspecialchars($landing_start_href, ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-light-brand btn-lg">Start Application</a>
                             </div>
                         </div>
                     </div>

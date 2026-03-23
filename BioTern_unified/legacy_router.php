@@ -118,23 +118,22 @@ $map = [
   'document_dau_moa.php' => 'documents/document_dau_moa.php',
 
   'reports-sales.php' => 'reports/reports-sales.php',
+
+  'reports-attendance-operations.php' => 'reports/reports-attendance-operations.php',
   'reports-ojt.php' => 'reports/reports-ojt.php',
   'reports-project.php' => 'reports/reports-project.php',
   'reports-timesheets.php' => 'reports/reports-timesheets.php',
-  'reports-attendance-operations.php' => 'reports/reports-attendance-operations.php',
   'reports-login-logs.php' => 'reports/reports-login-logs.php',
   'reports-chat-logs.php' => 'reports/reports-chat-logs.php',
   'reports-chat-reports.php' => 'reports/reports-chat-reports.php',
 
   'settings-general.php' => 'settings/settings-general.php',
-  'settings-seo.php' => 'settings/settings-seo.php',
   'settings-tags.php' => 'settings/settings-tags.php',
   'settings-email.php' => 'settings/settings-email.php',
   'settings-tasks.php' => 'settings/settings-tasks.php',
   'settings-ojt.php' => 'settings/settings-ojt.php',
   'settings-support.php' => 'settings/settings-support.php',
   'settings-students.php' => 'settings/settings-students.php',
-  'settings-miscellaneous.php' => 'settings/settings-miscellaneous.php',
   'settings-localization.php' => 'settings/settings-localization.php',
   'theme-customizer.php' => 'pages/theme-customizer.php',
 
@@ -221,13 +220,15 @@ if ($file === '' || !isset($map[$file])) {
 $request_uri = (string)($_SERVER['REQUEST_URI'] ?? '');
 $request_path = (string)(parse_url($request_uri, PHP_URL_PATH) ?? '');
 
-$canonical_slug = $file_to_slug[$file] ?? strtolower(preg_replace('/\.php$/i', '', (string)$file));
-$canonical_path = '/' . ltrim($canonical_slug, '/');
+$router_base = ($script_dir !== '' && $script_dir !== '/') ? $script_dir : '';
+$canonical_path = $router_base . '/' . ltrim((string)$file, '/');
+$canonical_path = preg_replace('#/+#', '/', $canonical_path);
+$canonical_path = $canonical_path !== '' ? $canonical_path : '/';
 
 $is_legacy_router_url = ($request_uri !== '' && stripos($request_uri, 'legacy_router.php') !== false);
 $is_php_path = (bool)preg_match('/\.php$/i', (string)$request_path);
 
-if ($is_legacy_router_url || $is_php_path) {
+if ($is_legacy_router_url || ($is_php_path && strcasecmp(rtrim($request_path, '/'), rtrim($canonical_path, '/')) !== 0)) {
   $query = $_GET;
   unset($query['file'], $query['slug']);
   $destination = $canonical_path;
@@ -341,7 +342,7 @@ if ($is_logged_in) {
     'attendance.php', 'attendance-corrections.php', 'edit_attendance.php', 'print_attendance.php',
     'demo-biometric.php',
     'ojt.php', 'ojt-create.php', 'ojt-edit.php', 'ojt-view.php', 'ojt-workflow-board.php',
-    'reports-sales.php', 'reports-ojt.php', 'reports-project.php', 'reports-timesheets.php', 'reports-attendance-operations.php', 'reports-login-logs.php', 'reports-chat-logs.php', 'reports-chat-reports.php',
+    'reports-sales.php', 'reports-attendance-operations.php', 'reports-ojt.php', 'reports-project.php', 'reports-timesheets.php', 'reports-login-logs.php', 'reports-chat-logs.php', 'reports-chat-reports.php',
   ];
   $academic_files = [
     'courses.php', 'courses-create.php', 'courses-edit.php',
@@ -356,9 +357,9 @@ if ($is_logged_in) {
   $system_files = [
     'auth-register-creative.php', 'users.php', 'create_admin.php',
     'import-sql.php',
-    'settings-general.php', 'settings-seo.php', 'settings-tags.php', 'settings-email.php',
+    'settings-general.php', 'settings-tags.php', 'settings-email.php',
     'settings-tasks.php', 'settings-ojt.php', 'settings-support.php', 'settings-students.php',
-    'settings-miscellaneous.php', 'settings-localization.php',
+    'settings-localization.php',
   ];
 
   $deny = false;

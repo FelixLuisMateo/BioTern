@@ -1,6 +1,6 @@
-﻿<?php
+<?php
 require_once dirname(__DIR__) . '/config/db.php';
-$page_title = 'General Settings';
+$page_title = 'Tasks Settings';
 $page_styles = ['assets/css/settings-customizer-like.css'];
 include 'includes/header.php';
 ?>
@@ -16,15 +16,9 @@ include 'includes/header.php';
                     <div class="content-sidebar-body">
                         <ul class="nav flex-column nxl-content-sidebar-item">
                             <li class="nav-item">
-                                <a class="nav-link active" href="settings-general.php">
+                                <a class="nav-link" href="settings-general.php">
                                     <i class="feather-airplay"></i>
                                     <span>General</span>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="settings-seo.php">
-                                    <i class="feather-search"></i>
-                                    <span>SEO</span>
                                 </a>
                             </li>
                             <li class="nav-item">
@@ -40,7 +34,7 @@ include 'includes/header.php';
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" href="settings-tasks.php">
+                                <a class="nav-link active" href="settings-tasks.php">
                                     <i class="feather-check-circle"></i>
                                     <span>Tasks</span>
                                 </a>
@@ -66,12 +60,6 @@ include 'includes/header.php';
                             </li>
 
 
-                            <li class="nav-item">
-                                <a class="nav-link" href="settings-miscellaneous.php">
-                                    <i class="feather-cast"></i>
-                                    <span>Miscellaneous</span>
-                                </a>
-                            </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="theme-customizer.php">
                                     <i class="feather-settings"></i>
@@ -104,78 +92,97 @@ include 'includes/header.php';
                         <div class="card mb-0">
                             <div class="card-body">
                                 <div class="mb-5">
-                                    <div class="wd-100 ht-100 position-relative overflow-hidden border border-gray-2 rounded">
-                                        <img src="assets/images/logo-abbr.png" class="upload-pic img-fluid rounded h-100 w-100" alt="">
-                                        <div class="position-absolute start-50 top-50 end-0 bottom-0 translate-middle h-100 w-100 hstack align-items-center justify-content-center c-pointer upload-button">
-                                            <i class="feather feather-camera" aria-hidden="true"></i>
-                                        </div>
-                                        <input class="file-upload" type="file" accept="image/*">
-                                    </div>
+                                    <label class="form-label">Allow all staff to see all tasks related to projects (includes non-staff)</label>
+                                    <select class="form-select" data-select2-selector="icon">
+                                        <option value="" data-icon="feather-check text-success" selected>Yes</option>
+                                        <option value="" data-icon="feather-x text-danger">No</option>
+                                    </select>
+                                    <small class="form-text text-muted">Allow all staff to see all tasks related to projects (includes non-staff) [Ex: Yes/No]</small>
                                 </div>
                                 <div class="mb-5">
-                                    <label class="form-label">Name</label>
-                                    <input type="text" class="form-control" placeholder="Company Name">
-                                    <small class="form-text text-muted">Your company name [Ex: theme_ocean]</small>
+                                    <label class="form-label">Allow customer/staff to add/edit task comments only in the first hour (administrators not applied) </label>
+                                    <select class="form-select" data-select2-selector="icon">
+                                        <option value="" data-icon="feather-check text-success">Yes</option>
+                                        <option value="" data-icon="feather-x text-danger" selected>No</option>
+                                    </select>
+                                    <small class="form-text text-muted">Allow customer/staff to add/edit task comments only in the first hour (administrators not applied) [Ex: Yes/No]</small>
+                                </div>
+
+                                <div class="mb-5">
+                                    <label class="form-label"> Auto assign task creator when new task is created </label>
+                                    <select class="form-select" data-select2-selector="icon">
+                                        <option value="" data-icon="feather-check text-success" selected>Yes</option>
+                                        <option value="" data-icon="feather-x text-danger">No</option>
+                                    </select>
+                                    <small class="form-text text-muted"> Auto assign task creator when new task is created [Ex: Yes/No]</small>
+                                </div>
+
+                                <div class="mb-5">
+                                    <label class="form-label">Auto add task creator as task follower when new task is created </label>
+                                    <select class="form-select" data-select2-selector="icon">
+                                        <option value="" data-icon="feather-check text-success">Yes</option>
+                                        <option value="" data-icon="feather-x text-danger" selected>No</option>
+                                    </select>
+                                    <small class="form-text text-muted">Auto add task creator as task follower when new task is created [Ex: Yes/No]</small>
+                                </div>
+
+                                <div class="mb-5">
+                                    <label class="form-label">Stop all other started timers when starting new timer </label>
+                                    <select class="form-select" data-select2-selector="icon">
+                                        <option value="" data-icon="feather-check text-success" selected>Yes</option>
+                                        <option value="" data-icon="feather-x text-danger">No</option>
+                                    </select>
+                                    <small class="form-text text-muted">Stop all other started timers when starting new timer [Ex: Yes/No]</small>
+                                </div>
+
+                                <div class="mb-5">
+                                    <label class="form-label">Change task status to In Progress on timer started (valid only if task status is Not Started) </label>
+                                    <select class="form-select" data-select2-selector="icon">
+                                        <option value="" data-icon="feather-check text-success">Yes</option>
+                                        <option value="" data-icon="feather-x text-danger" selected>No</option>
+                                    </select>
+                                    <small class="form-text text-muted">Change task status to In Progress on timer started (valid only if task status is Not Started) [Ex: Yes/No]</small>
                                 </div>
                                 <div class="mb-5">
-                                    <label class="form-label">Address</label>
-                                    <input type="text" class="form-control" placeholder="Company Address">
-                                    <small class="form-text text-muted">Your company address [Ex: 708 Heavner Court]</small>
+                                    <label class="form-label">Billable option is by default checked when new task is created? (only from admin area) </label>
+                                    <select class="form-select" data-select2-selector="icon">
+                                        <option value="" data-icon="feather-check text-success" selected>Yes</option>
+                                        <option value="" data-icon="feather-x text-danger">No</option>
+                                    </select>
+                                    <small class="form-text text-muted">Billable option is by default checked when new task is created? (only from admin area) [Ex: Yes/No]</small>
                                 </div>
                                 <div class="mb-5">
-                                    <label class="form-label">City</label>
-                                    <input type="text" class="form-control" placeholder="Company City">
-                                    <small class="form-text text-muted">Your company city [Ex: Levittown]</small>
+                                    <label class="form-label">Round off task timer</label>
+                                    <select class="form-select" data-select2-selector="default">
+                                        <option value="">Don't Round Up</option>
+                                        <option selected>Round Up</option>
+                                        <option value="">Round Down</option>
+                                        <option value="">Round to Nearest</option>
+                                    </select>
+                                    <small class="form-text text-muted">Applied to the Timesheets overview report and when invoicing a task/project.</small>
                                 </div>
                                 <div class="mb-5">
-                                    <label class="form-label">State</label>
-                                    <input type="text" class="form-control" placeholder="Company State">
-                                    <small class="form-text text-muted">Your company state [Ex: NY 11756]</small>
-                                </div>
-                                <div class="mb-5">
-                                    <label class="form-label">Zip</label>
-                                    <input type="number" class="form-control" placeholder="Zip Code">
-                                    <small class="form-text text-muted">Zip Code [Ex: 11756]</small>
-                                </div>
-                                <div class="mb-5">
-                                    <label class="form-label">Phone</label>
-                                    <input type="tel" class="form-control" placeholder="Phone">
-                                    <small class="form-text text-muted">Phone [Ex: +1 (375) 2589 654]</small>
-                                </div>
-                                <div class="mb-5">
-                                    <label class="form-label">TIN Number</label>
-                                    <input type="number" class="form-control" placeholder="TIN Number">
-                                    <small class="form-text text-muted">TIN Number [Ex: 987-6985-9658-654]</small>
-                                </div>
-                                <div class="mb-5">
-                                    <label class="form-label">Domain</label>
-                                    <input type="url" class="form-control" placeholder="Company Main Domain">
-                                    <small class="form-text text-muted"> Company main domain [Ex: https://themewagon.com]</small>
-                                </div>
-                                <div class="mb-5">
-                                    <label class="form-label">Allowed</label>
-                                    <input class="form-control" placeholder="Allowed file types">
-                                    <small class="form-text text-muted">Allowed file types [Ex: .png,.jpg,.pdf,.doc,.docx,.xls,.xlsx,.zip,.rar,.txt]</small>
-                                </div>
-                                <div class="mb-5">
-                                    <label class="form-label">Direction</label>
-                                    <div class="form-check">
-                                        <label class="form-check-label" for="LRTdirection">LRT Direction (Left to Right)</label>
-                                        <input class="form-check-input" type="radio" name="site-direction" id="LRTdirection" checked>
-                                    </div>
-                                    <div class="form-check">
-                                        <label class="form-check-label" for="RTLdirection">RTL Direction (Right to Left)</label>
-                                        <input class="form-check-input" type="radio" name="site-direction" id="RTLdirection">
-                                    </div>
+                                    <label class="form-label">Default status when new task is created </label>
+                                    <select class="form-select" data-select2-selector="status">
+                                        <option value="" data-bg="bg-dark" selected>Auto</option>
+                                        <option value="" data-bg="bg-warning">Testing</option>
+                                        <option value="" data-bg="bg-success">Completed</option>
+                                        <option value="" data-bg="bg-primary">In Progress</option>
+                                        <option value="" data-bg="bg-danger">Not Started</option>
+                                        <option value="" data-bg="bg-indigo">Awaiting Feedback</option>
+                                    </select>
+                                    <small class="form-text text-muted">Default status when new task is created [Ex: Auto/Testing/Completed]</small>
                                 </div>
                                 <div class="mb-0">
-                                    <label class="form-label">Information (PDF and HTML)</label>
-                                    <textarea class="form-control" cols="30" rows="10" placeholder="{company_name}
-{address}
-{city} {state}
-{country_code} {zip_code}
-{vat_number_with_label}"></textarea>
-                                    <small class="form-text text-muted">Company Information Format [Ex: {company_name} {address}, {city}, {state}, {zip_code}, {country_code}, {phone}, {vat_number}, {vat_number_with_label}]</small>
+                                    <label class="form-label">Default Priority </label>
+                                    <select class="form-select" data-select2-selector="priority">
+                                        <option value="primary" data-bg="bg-primary">Low</option>
+                                        <option value="teal" data-bg="bg-teal">Medium</option>
+                                        <option value="success" data-bg="bg-success">Updates</option>
+                                        <option value="warning" data-bg="bg-warning">High</option>
+                                        <option value="danger" data-bg="bg-danger">Urgent</option>
+                                    </select>
+                                    <small class="form-text text-muted">Default Priority [Ex: Low/Medium/High/Urgent]</small>
                                 </div>
                             </div>
                         </div>
@@ -183,7 +190,7 @@ include 'includes/header.php';
                     <!-- [ Footer ] start -->
                     <footer class="footer">
                         <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
-                            <span>Copyright ï¿½</span>
+                            <span>Copyright �</span>
                             <script>
                                 document.write(new Date().getFullYear());
                             </script>

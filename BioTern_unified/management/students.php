@@ -999,7 +999,7 @@ include_once dirname(__DIR__) . '/includes/navigation.php'; ?>
                     <a href="javascript:void(0);" id="menu-mini-button">
                         <i class="feather-align-left"></i>
                     </a>
-                    <a href="javascript:void(0);" id="menu-expend-button" style="display: none">
+                    <a href="javascript:void(0);" id="menu-expend-button" class="hidden-inline-toggle">
                         <i class="feather-arrow-right"></i>
                     </a>
                 </div>
@@ -1900,6 +1900,7 @@ endif; ?>
     </script>
 </body>
 </html>
+
 
 
 

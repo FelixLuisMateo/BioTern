@@ -453,7 +453,7 @@ if ($student_id > 0 && ojt_edit_table_exists($conn, 'ojt_supervisor_reviews')) {
             </a>
             <div class="nxl-navigation-toggle">
                 <a href="javascript:void(0);" id="menu-mini-button"><i class="feather-align-left"></i></a>
-                <a href="javascript:void(0);" id="menu-expend-button" style="display: none"><i class="feather-arrow-right"></i></a>
+                <a href="javascript:void(0);" id="menu-expend-button" class="hidden-inline-toggle"><i class="feather-arrow-right"></i></a>
             </div>
         </div>
         <div class="header-right ms-auto">
@@ -716,6 +716,7 @@ require_once dirname(__DIR__) . '/config/db.php';
 </body>
 </html>
 <?php $conn->close(); ?>
+
 
 
 

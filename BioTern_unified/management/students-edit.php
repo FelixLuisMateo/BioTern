@@ -1183,7 +1183,7 @@ function resolve_profile_image_url(string $profilePath): ?string {
                     <a href="javascript:void(0);" id="menu-mini-button">
                         <i class="feather-align-left"></i>
                     </a>
-                    <a href="javascript:void(0);" id="menu-expend-button" style="display: none">
+                    <a href="javascript:void(0);" id="menu-expend-button" class="hidden-inline-toggle">
                         <i class="feather-arrow-right"></i>
                     </a>
                 </div>
@@ -1734,6 +1734,7 @@ function resolve_profile_image_url(string $profilePath): ?string {
 <?php
 $conn->close();
 ?>
+
 
 
 
