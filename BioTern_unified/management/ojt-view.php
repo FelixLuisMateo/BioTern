@@ -1478,7 +1478,7 @@ $session_profile_picture_url = $session_profile_picture !== '' ? $session_profil
                     <a href="javascript:void(0);" id="menu-mini-button">
                         <i class="feather-align-left"></i>
                     </a>
-                    <a href="javascript:void(0);" id="menu-expend-button" style="display: none">
+                    <a href="javascript:void(0);" id="menu-expend-button" class="hidden-inline-toggle">
                         <i class="feather-arrow-right"></i>
                     </a>
                 </div>
@@ -2585,6 +2585,7 @@ require_once dirname(__DIR__) . '/config/db.php';
 </body>
 
 </html>
+
 
 
 

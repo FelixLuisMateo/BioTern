@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 require_once dirname(__DIR__) . '/config/db.php';
 $page_title = 'Tasks Settings';
 $page_styles = ['assets/css/settings-customizer-like.css'];
@@ -19,12 +19,6 @@ include 'includes/header.php';
                                 <a class="nav-link" href="settings-general.php">
                                     <i class="feather-airplay"></i>
                                     <span>General</span>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="settings-seo.php">
-                                    <i class="feather-search"></i>
-                                    <span>SEO</span>
                                 </a>
                             </li>
                             <li class="nav-item">
@@ -66,12 +60,6 @@ include 'includes/header.php';
                             </li>
 
 
-                            <li class="nav-item">
-                                <a class="nav-link" href="settings-miscellaneous.php">
-                                    <i class="feather-cast"></i>
-                                    <span>Miscellaneous</span>
-                                </a>
-                            </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="theme-customizer.php">
                                     <i class="feather-settings"></i>
@@ -202,7 +190,7 @@ include 'includes/header.php';
                     <!-- [ Footer ] start -->
                     <footer class="footer">
                         <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
-                            <span>Copyright ï¿½</span>
+                            <span>Copyright �</span>
                             <script>
                                 document.write(new Date().getFullYear());
                             </script>

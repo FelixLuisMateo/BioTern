@@ -16,6 +16,52 @@ $nav_can_workspace = ($nav_is_admin || $nav_is_coordinator);
 $nav_can_system = $nav_is_admin;
 $nav_can_reports = ($nav_is_admin || $nav_is_coordinator || $nav_is_supervisor);
 $nav_root = isset($base_href) && is_string($base_href) ? $base_href : '';
+
+if (!function_exists('biotern_normalize_web_root')) {
+    function biotern_normalize_web_root(string $root): string
+    {
+        $root = str_replace('\\', '/', trim($root));
+        if ($root === '') {
+            return '';
+        }
+
+        // If a filesystem path leaks into href generation, convert it to a web path.
+        if (preg_match('#^/?[A-Za-z]:/#', $root) === 1) {
+            $htdocs_pos = stripos($root, '/htdocs/');
+            if ($htdocs_pos !== false) {
+                $root = substr($root, $htdocs_pos + strlen('/htdocs'));
+            }
+        }
+
+        if ($root !== '' && $root[0] !== '/') {
+            $root = '/' . $root;
+        }
+
+        $root = preg_replace('#/+#', '/', $root);
+        return rtrim((string)$root, '/') . '/';
+    }
+}
+
+if (!function_exists('biotern_resolve_nav_root')) {
+    function biotern_resolve_nav_root(string $root): string
+    {
+        $root = biotern_normalize_web_root($root);
+        if ($root !== '') {
+            return $root;
+        }
+
+        $script_name = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
+        $project_segment = '/' . basename(dirname(__DIR__)) . '/';
+        $project_pos = stripos($script_name, $project_segment);
+        if ($project_pos !== false) {
+            return substr($script_name, 0, $project_pos) . $project_segment;
+        }
+
+        return '/';
+    }
+}
+
+$nav_root = biotern_resolve_nav_root($nav_root);
 if ($nav_root !== '' && substr($nav_root, -1) !== '/') {
     $nav_root .= '/';
 }
@@ -105,7 +151,6 @@ if (!function_exists('nav_page_href')) {
                         <span class="nxl-mtext">Reports</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                     </a>
                     <ul class="nxl-submenu">
-                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'reports-sales.php'); ?>">Sales Report</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'reports-ojt.php'); ?>">OJT Report</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'reports-project.php'); ?>">Project Report</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'reports-timesheets.php'); ?>">Timesheets Report</a></li>
@@ -203,7 +248,6 @@ if (!function_exists('nav_page_href')) {
                     </a>
                     <ul class="nxl-submenu">
                         <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'settings-general.php'); ?>">General</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'settings-seo.php'); ?>">SEO</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'settings-tags.php'); ?>">Tags</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'settings-email.php'); ?>">Email</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'settings-tasks.php'); ?>">Tasks</a></li>
@@ -211,7 +255,6 @@ if (!function_exists('nav_page_href')) {
                         <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'settings-support.php'); ?>">Support</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'settings-students.php'); ?>">Students</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'import-sql.php'); ?>">Data Transfer</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'settings-miscellaneous.php'); ?>">Miscellaneous</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'theme-customizer.php'); ?>">Theme Customizer</a></li>
                     </ul>
                 </li>

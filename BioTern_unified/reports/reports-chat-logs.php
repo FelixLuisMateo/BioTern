@@ -73,12 +73,20 @@ $schemaError = $schemaReady ? '' : 'The messages table is missing required chat 
 
 $dateFrom = trim((string)($_GET['from'] ?? date('Y-m-d', strtotime('-7 days'))));
 $dateTo = trim((string)($_GET['to'] ?? date('Y-m-d')));
+$search = trim((string)($_GET['search'] ?? ''));
+$export = strtolower(trim((string)($_GET['export'] ?? '')));
+$isExportCsv = ($export === 'csv');
 $limit = (int)($_GET['limit'] ?? 300);
 if ($limit <= 0) {
     $limit = 300;
 }
 if ($limit > 1000) {
     $limit = 1000;
+}
+
+$page = (int)($_GET['page'] ?? 1);
+if ($page <= 0) {
+    $page = 1;
 }
 
 if (!chatlogs_is_valid_date($dateFrom)) {
@@ -102,7 +110,18 @@ if ($createdCol !== '') {
     $bindValues[] = $dateFrom;
     $bindValues[] = $dateTo;
 }
+
+if ($search !== '') {
+    $whereParts[] = '(m.message LIKE ? OR COALESCE(s.name, s.username, CONCAT("User #", m.' . $senderCol . ')) LIKE ? OR COALESCE(r.name, r.username, CONCAT("User #", m.' . $recipientCol . ')) LIKE ?)';
+    $searchLike = '%' . $search . '%';
+    $bindTypes .= 'sss';
+    $bindValues[] = $searchLike;
+    $bindValues[] = $searchLike;
+    $bindValues[] = $searchLike;
+}
 $whereSql = !empty($whereParts) ? ('WHERE ' . implode(' AND ', $whereParts)) : '';
+
+$offset = ($page - 1) * $limit;
 
 $summary = [
     'total_messages' => 0,
@@ -111,6 +130,8 @@ $summary = [
     'active_conversations' => 0,
 ];
 $rows = [];
+$totalRecords = 0;
+$totalPages = 1;
 
 if ($schemaReady) {
     $readExpr = $isReadCol !== '' ? ('COALESCE(m.' . $isReadCol . ', 0)') : '0';
@@ -146,6 +167,27 @@ if ($schemaReady) {
     $readSelect = $isReadCol !== '' ? ('COALESCE(m.' . $isReadCol . ', 0)') : '0';
     $readAtSelect = $readAtCol !== '' ? ('m.' . $readAtCol) : 'NULL';
 
+    $countSql = 'SELECT COUNT(*) AS total_records
+        FROM messages m
+        LEFT JOIN users s ON s.id = m.' . $senderCol . '
+        LEFT JOIN users r ON r.id = m.' . $recipientCol . '
+        ' . $whereSql;
+    $countStmt = $conn->prepare($countSql);
+    if ($countStmt) {
+        if ($bindTypes !== '') {
+            $countStmt->bind_param($bindTypes, ...$bindValues);
+        }
+        $countStmt->execute();
+        $countRow = $countStmt->get_result()->fetch_assoc();
+        $countStmt->close();
+        $totalRecords = (int)($countRow['total_records'] ?? 0);
+    }
+    $totalPages = max(1, (int)ceil($totalRecords / $limit));
+    if ($page > $totalPages) {
+        $page = $totalPages;
+        $offset = ($page - 1) * $limit;
+    }
+
     $logsSql = 'SELECT
             m.' . $idCol . ' AS message_id,
             m.' . $senderCol . ' AS sender_id,
@@ -162,13 +204,15 @@ if ($schemaReady) {
         LEFT JOIN users r ON r.id = m.' . $recipientCol . '
         ' . $whereSql . '
         ORDER BY ' . $orderExpr . '
-        LIMIT ' . $limit;
+        LIMIT ? OFFSET ?';
 
     $logsStmt = $conn->prepare($logsSql);
     if ($logsStmt) {
-        if ($bindTypes !== '') {
-            $logsStmt->bind_param($bindTypes, ...$bindValues);
-        }
+        $listBindTypes = $bindTypes . 'ii';
+        $listBindValues = $bindValues;
+        $listBindValues[] = $limit;
+        $listBindValues[] = $offset;
+        $logsStmt->bind_param($listBindTypes, ...$listBindValues);
         $logsStmt->execute();
         $res = $logsStmt->get_result();
         while ($row = $res->fetch_assoc()) {
@@ -185,11 +229,84 @@ if ($schemaReady) {
         }
         $logsStmt->close();
     }
+
+    if ($isExportCsv) {
+        $exportLimit = 10000;
+        $exportSql = 'SELECT
+                m.' . $idCol . ' AS message_id,
+                COALESCE(s.name, s.username, CONCAT("User #", m.' . $senderCol . ')) AS sender_name,
+                COALESCE(r.name, r.username, CONCAT("User #", m.' . $recipientCol . ')) AS recipient_name,
+                m.message,
+                ' . $mediaSelect . ' AS media_path,
+                ' . $readSelect . ' AS is_read,
+                ' . $readAtSelect . ' AS read_at,
+                ' . $createdExpr . ' AS created_at
+            FROM messages m
+            LEFT JOIN users s ON s.id = m.' . $senderCol . '
+            LEFT JOIN users r ON r.id = m.' . $recipientCol . '
+            ' . $whereSql . '
+            ORDER BY ' . $orderExpr . '
+            LIMIT ?';
+
+        $exportStmt = $conn->prepare($exportSql);
+        $exportRows = [];
+        if ($exportStmt) {
+            $exportBindTypes = $bindTypes . 'i';
+            $exportBindValues = $bindValues;
+            $exportBindValues[] = $exportLimit;
+            $exportStmt->bind_param($exportBindTypes, ...$exportBindValues);
+            $exportStmt->execute();
+            $exportRes = $exportStmt->get_result();
+            while ($er = $exportRes->fetch_assoc()) {
+                $exportRows[] = $er;
+            }
+            $exportStmt->close();
+        }
+
+        $safeFrom = preg_replace('/[^0-9\-]/', '', $dateFrom);
+        $safeTo = preg_replace('/[^0-9\-]/', '', $dateTo);
+        $filename = 'chat-logs-' . ($safeFrom !== '' ? $safeFrom : 'from') . '-to-' . ($safeTo !== '' ? $safeTo : 'to') . '.csv';
+        header('Content-Type: text/csv; charset=UTF-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+
+        $out = fopen('php://output', 'w');
+        if ($out !== false) {
+            fputcsv($out, ['Message ID', 'Created At', 'Sender', 'Recipient', 'Message', 'Has Media', 'Read', 'Read At']);
+            foreach ($exportRows as $er) {
+                $hasMedia = trim((string)($er['media_path'] ?? '')) !== '' ? 'Yes' : 'No';
+                $isRead = (int)($er['is_read'] ?? 0) === 1 ? 'Yes' : 'No';
+                fputcsv($out, [
+                    (int)($er['message_id'] ?? 0),
+                    (string)($er['created_at'] ?? ''),
+                    (string)($er['sender_name'] ?? ''),
+                    (string)($er['recipient_name'] ?? ''),
+                    (string)($er['message'] ?? ''),
+                    $hasMedia,
+                    $isRead,
+                    (string)($er['read_at'] ?? ''),
+                ]);
+            }
+            fclose($out);
+        }
+        exit;
+    }
 }
 
 $readRate = $summary['total_messages'] > 0
     ? round(($summary['read_messages'] / $summary['total_messages']) * 100, 1)
     : 0;
+
+$queryBase = [
+    'from' => $dateFrom,
+    'to' => $dateTo,
+    'limit' => $limit,
+];
+if ($search !== '') {
+    $queryBase['search'] = $search;
+}
+$exportQuery = http_build_query(array_merge($queryBase, ['export' => 'csv']));
+$prevUrl = 'reports-chat-logs.php?' . http_build_query(array_merge($queryBase, ['page' => max(1, $page - 1)]));
+$nextUrl = 'reports-chat-logs.php?' . http_build_query(array_merge($queryBase, ['page' => min($totalPages, $page + 1)]));
 
 $page_title = 'BioTern || Chat Logs';
 include 'includes/header.php';
@@ -298,6 +415,48 @@ include 'includes/header.php';
 
     .chatlogs-filter .form-control::placeholder {
         color: var(--chatlogs-muted);
+    }
+
+    .chatlogs-pagination {
+        border: 1px solid var(--chatlogs-border);
+        border-radius: 12px;
+        background: var(--chatlogs-surface);
+        padding: 0.65rem 0.8rem;
+        margin-top: 0.85rem;
+    }
+
+    .chatlogs-pagination .pagination {
+        margin-bottom: 0;
+    }
+
+    .chatlogs-pagination .page-link {
+        background: var(--chatlogs-input-bg);
+        border-color: var(--chatlogs-input-border);
+        color: var(--chatlogs-text);
+    }
+
+    .chatlogs-pagination .page-link:hover {
+        background: var(--chatlogs-row-hover);
+        border-color: var(--chatlogs-input-border);
+        color: var(--chatlogs-text);
+    }
+
+    .chatlogs-pagination .page-item.disabled .page-link {
+        background: var(--chatlogs-surface-soft);
+        color: var(--chatlogs-muted);
+        border-color: var(--chatlogs-input-border);
+    }
+
+    .chatlogs-page-jump {
+        min-width: 120px;
+        background: var(--chatlogs-input-bg) !important;
+        border-color: var(--chatlogs-input-border) !important;
+        color: var(--chatlogs-text) !important;
+    }
+
+    .chatlogs-page-jump:focus {
+        border-color: #3b82f6 !important;
+        box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.2) !important;
     }
 
     .chatlogs-filter .btn-light {
@@ -438,6 +597,27 @@ include 'includes/header.php';
         font-size: 0.68rem;
         color: var(--chatlogs-muted);
         flex-wrap: wrap;
+    }
+
+    .chatlogs-convo-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+
+    .chatlogs-toggle-btn {
+        border-color: var(--chatlogs-input-border) !important;
+        background: var(--chatlogs-input-bg) !important;
+        color: var(--chatlogs-text) !important;
+        font-size: 0.72rem;
+        line-height: 1.2;
+    }
+
+    .chatlogs-toggle-btn:hover {
+        background: var(--chatlogs-row-hover) !important;
+        color: var(--chatlogs-text) !important;
     }
 
     .chatlogs-thread {
@@ -607,8 +787,14 @@ include 'includes/header.php';
                         <label class="form-label mb-1">Limit</label>
                         <input type="number" min="1" max="1000" name="limit" class="form-control" value="<?php echo (int)$limit; ?>">
                     </div>
-                    <div class="col-md-4 d-flex gap-2">
+                    <div class="col-md-4">
+                        <label class="form-label mb-1">Search</label>
+                        <input type="text" name="search" class="form-control" placeholder="Message or user name" value="<?php echo chatlogs_esc($search); ?>">
+                    </div>
+                    <div class="col-md-12 d-flex gap-2">
+                        <input type="hidden" name="page" value="1">
                         <button type="submit" class="btn btn-primary"><i class="feather-filter me-1"></i>Apply</button>
+                        <a href="reports-chat-logs.php?<?php echo chatlogs_esc($exportQuery); ?>" class="btn btn-success"><i class="feather-download me-1"></i>Export CSV</a>
                         <a href="reports-chat-logs.php" class="btn btn-light">Reset</a>
                     </div>
                 </form>
@@ -640,6 +826,11 @@ include 'includes/header.php';
                                     $readCount = count(array_filter($msgs, fn($m) => $m['is_read']));
                                     $firstMsg = end($msgs); // oldest (rows are DESC)
                                     $lastMsg = reset($msgs); // newest
+                                    $threadRows = array_reverse($msgs); // oldest -> newest for readable thread timeline
+                                    $previewCount = 3;
+                                    $collapseThreshold = max(0, count($threadRows) - $previewCount);
+                                    $hiddenCount = $collapseThreshold;
+                                    $convoId = 'convo-' . substr(md5((string)$key), 0, 10);
                                     $firstTime = $firstMsg['created_at'] !== '' ? date('M d, Y', strtotime($firstMsg['created_at'])) : '-';
                                     $lastTime = $lastMsg['created_at'] !== '' ? date('M d, Y h:i A', strtotime($lastMsg['created_at'])) : '-';
                                     $initA = chatlogs_initial($nameA);
@@ -660,13 +851,28 @@ include 'includes/header.php';
                                                 <span>Last <?php echo chatlogs_esc($lastTime); ?></span>
                                             </div>
                                         </div>
-                                        <div class="chatlogs-convo-meta">
-                                            <span><i class="feather-message-square me-1"></i><?php echo $msgCount; ?> msg<?php echo $msgCount !== 1 ? 's' : ''; ?></span>
-                                            <span class="text-success"><i class="feather-check-circle me-1"></i><?php echo $readCount; ?> read</span>
+                                        <div class="chatlogs-convo-actions">
+                                            <div class="chatlogs-convo-meta">
+                                                <span><i class="feather-message-square me-1"></i><?php echo $msgCount; ?> msg<?php echo $msgCount !== 1 ? 's' : ''; ?></span>
+                                                <span class="text-success"><i class="feather-check-circle me-1"></i><?php echo $readCount; ?> read</span>
+                                            </div>
+                                            <?php if ($hiddenCount > 0): ?>
+                                                <button
+                                                    type="button"
+                                                    class="btn btn-sm chatlogs-toggle-btn"
+                                                    data-target="<?php echo chatlogs_esc($convoId); ?>"
+                                                    data-state="collapsed"
+                                                    data-hidden-count="<?php echo (int)$hiddenCount; ?>"
+                                                >
+                                                    <i class="feather-chevron-down me-1"></i>
+                                                    <span>Show <?php echo (int)$hiddenCount; ?> older</span>
+                                                </button>
+                                            <?php endif; ?>
                                         </div>
                                     </div>
-                                    <div class="chatlogs-thread">
-                                        <?php foreach (array_reverse($msgs) as $row):
+                                    <div id="<?php echo chatlogs_esc($convoId); ?>" class="chatlogs-thread">
+                                        <?php foreach ($threadRows as $idx => $row):
+                                            $isCollapsedRow = ($hiddenCount > 0 && $idx < $collapseThreshold);
                                             $createdAt = trim((string)$row['created_at']);
                                             $timeLabel = $createdAt !== '' ? date('M d, h:i A', strtotime($createdAt)) : '-';
                                             $messageText = trim((string)$row['message']);
@@ -685,7 +891,7 @@ include 'includes/header.php';
                                                 $pillClass = 'bg-soft-warning text-warning';
                                             }
                                         ?>
-                                            <div class="chatlogs-thread-row">
+                                            <div class="chatlogs-thread-row<?php echo $isCollapsedRow ? ' chatlogs-thread-extra d-none' : ''; ?>">
                                                 <div class="chatlogs-thread-time"><?php echo chatlogs_esc($timeLabel); ?></div>
                                                 <div class="chatlogs-thread-sender"><span class="<?php echo $senderClass; ?>"><?php echo chatlogs_esc($row['sender_name']); ?></span></div>
                                                 <div class="chatlogs-thread-main">
@@ -705,5 +911,91 @@ include 'includes/header.php';
                             <?php endforeach; ?>
                             <?php endif; ?>
             </div>
+
+            <div class="chatlogs-pagination d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <div class="text-muted small">
+                    Showing page <?php echo (int)$page; ?> of <?php echo (int)$totalPages; ?>
+                    (<?php echo number_format($totalRecords); ?> total records)
+                </div>
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <form method="get" class="d-flex align-items-center gap-2 mb-0">
+                        <input type="hidden" name="from" value="<?php echo chatlogs_esc($dateFrom); ?>">
+                        <input type="hidden" name="to" value="<?php echo chatlogs_esc($dateTo); ?>">
+                        <input type="hidden" name="limit" value="<?php echo (int)$limit; ?>">
+                        <?php if ($search !== ''): ?>
+                            <input type="hidden" name="search" value="<?php echo chatlogs_esc($search); ?>">
+                        <?php endif; ?>
+                        <label for="pageJump" class="small text-muted mb-0">Go to page</label>
+                        <select id="pageJump" name="page" class="form-select form-select-sm chatlogs-page-jump" onchange="this.form.submit()">
+                            <?php for ($p = 1; $p <= $totalPages; $p++): ?>
+                                <option value="<?php echo (int)$p; ?>" <?php echo $p === $page ? 'selected' : ''; ?>>
+                                    Page <?php echo (int)$p; ?>
+                                </option>
+                            <?php endfor; ?>
+                        </select>
+                    </form>
+                    <nav aria-label="Chat logs pagination">
+                    <ul class="pagination pagination-sm">
+                        <li class="page-item <?php echo $page <= 1 ? 'disabled' : ''; ?>">
+                            <a class="page-link" href="<?php echo chatlogs_esc($prevUrl); ?>">Prev</a>
+                        </li>
+                        <li class="page-item <?php echo $page >= $totalPages ? 'disabled' : ''; ?>">
+                            <a class="page-link" href="<?php echo chatlogs_esc($nextUrl); ?>">Next</a>
+                        </li>
+                    </ul>
+                </nav>
+                </div>
+            </div>
+
+<script>
+document.addEventListener('click', function (event) {
+    var toggleBtn = event.target.closest('.chatlogs-toggle-btn');
+    if (!toggleBtn) {
+        return;
+    }
+
+    var targetId = toggleBtn.getAttribute('data-target');
+    var container = document.getElementById(targetId);
+    if (!container) {
+        return;
+    }
+
+    var extraRows = container.querySelectorAll('.chatlogs-thread-extra');
+    if (!extraRows.length) {
+        return;
+    }
+
+    var currentlyExpanded = toggleBtn.getAttribute('data-state') === 'expanded';
+    var hiddenCount = parseInt(toggleBtn.getAttribute('data-hidden-count') || '0', 10);
+    var labelNode = toggleBtn.querySelector('span');
+    var iconNode = toggleBtn.querySelector('i');
+
+    extraRows.forEach(function (row) {
+        row.classList.toggle('d-none', currentlyExpanded);
+    });
+
+    if (currentlyExpanded) {
+        toggleBtn.setAttribute('data-state', 'collapsed');
+        if (labelNode) {
+            labelNode.textContent = 'Show ' + hiddenCount + ' older';
+        }
+        if (iconNode) {
+            iconNode.className = 'feather-chevron-down me-1';
+        }
+    } else {
+        toggleBtn.setAttribute('data-state', 'expanded');
+        if (labelNode) {
+            labelNode.textContent = 'Hide older';
+        }
+        if (iconNode) {
+            iconNode.className = 'feather-chevron-up me-1';
+        }
+    }
+
+    if (window.feather && typeof window.feather.replace === 'function') {
+        window.feather.replace();
+    }
+});
+</script>
 
 <?php include 'includes/footer.php'; ?>

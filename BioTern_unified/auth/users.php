@@ -1,5 +1,6 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
+require_once dirname(__DIR__) . '/includes/avatar.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -29,7 +30,7 @@ function table_exists(mysqli $conn, string $table): bool
 
 function normalized_upload_path(string $path): string
 {
-    return ltrim(str_replace('\\', '/', trim($path)), '/');
+    return biotern_avatar_normalize_path($path);
 }
 
 function sync_profile_picture_to_role_tables(mysqli $conn, int $user_id, string $profile_path): void
@@ -254,6 +255,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     exit;
 }
 
+$normalized_count = 0;
+if (!isset($_SESSION['users_avatar_paths_normalized'])) {
+    $normalized_count = biotern_avatar_normalize_all_users($conn);
+    $_SESSION['users_avatar_paths_normalized'] = 1;
+}
+
 $flash_message = (string)($_SESSION['users_flash_message'] ?? '');
 $flash_type = (string)($_SESSION['users_flash_type'] ?? 'success');
 unset($_SESSION['users_flash_message'], $_SESSION['users_flash_type']);
@@ -342,6 +349,11 @@ if ($stats_res) {
 $page_title = 'Users Account';
 $base_href = defined('DB_PASS') ? DB_PASS : ''; 
 include __DIR__ . '/../includes/header.php';
+
+if ($normalized_count > 0 && $flash_message === '') {
+    $flash_message = 'Normalized ' . $normalized_count . ' stored profile picture path(s).';
+    $flash_type = 'info';
+}
 ?>
 
 <style>
@@ -414,6 +426,14 @@ include __DIR__ . '/../includes/header.php';
     }
     .users-admin-page .users-table .email-cell {
         max-width: 220px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .users-admin-page .avatar-diagnostic {
+        font-size: 11px;
+        color: #64748b;
+        max-width: 320px;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -681,25 +701,26 @@ require_once dirname(__DIR__) . '/config/db.php';
                                 $id = (int)$r['id'];
                                 $is_active = (int)($r['is_active'] ?? 0) === 1;
                                 $role = strtolower((string)($r['role'] ?? 'student'));
-                                $pp = normalized_upload_path((string)($r['profile_picture'] ?? ''));
-                                $pp_url = defined('DB_PASS') ? DB_PASS : ''; 
-                                if ($pp !== '' && file_exists(dirname(__DIR__) . '/' . $pp)) {
-                                    $mtime = @filemtime(dirname(__DIR__) . '/' . $pp);
-                                    $pp_url = $pp . ($mtime ? ('?v=' . $mtime) : '');
-                                }
+                                $raw_profile_path = (string)($r['profile_picture'] ?? '');
+                                $normalized_profile_path = biotern_avatar_normalize_path($raw_profile_path);
+                                $resolved_profile_path = biotern_avatar_resolve_existing_path($normalized_profile_path);
+                                $avatar_base_path = $resolved_profile_path !== ''
+                                    ? $resolved_profile_path
+                                    : biotern_avatar_default_path($id);
+                                $mtime = @filemtime(dirname(__DIR__) . '/' . $avatar_base_path);
+                                $pp_url = $avatar_base_path . ($mtime ? ('?v=' . $mtime) : '');
+                                $avatar_file_state = $resolved_profile_path !== '' ? 'found' : 'fallback';
+                                $avatar_diag_value = $normalized_profile_path !== '' ? $normalized_profile_path : '(empty)';
                             ?>
                             <tr>
                                 <td><?php echo $id; ?></td>
                                 <td class="user-cell">
                                     <div class="d-flex align-items-center gap-2">
-                                        <?php if ($pp_url !== ''): ?>
-                                            <img src="<?php echo e($pp_url); ?>" alt="avatar" class="user-avatar">
-                                        <?php else: ?>
-                                            <img src="../assets/images/avatar/<?php echo ($id % 5) + 1; ?>.png" alt="avatar" class="user-avatar">
-                                        <?php endif; ?>
+                                        <img src="<?php echo e($pp_url); ?>" alt="avatar" class="user-avatar">
                                         <div>
                                             <div class="fw-semibold"><?php echo e($r['name'] ?? '-'); ?></div>
                                             <div class="text-muted small">@<?php echo e($r['username'] ?? '-'); ?></div>
+                                            <div class="avatar-diagnostic">Path: <?php echo e($avatar_diag_value); ?> | File: <?php echo e($avatar_file_state); ?></div>
                                         </div>
                                     </div>
                                 </td>

@@ -2,6 +2,10 @@ DirectoryIndex index.php
 <IfModule mod_rewrite.c>
 RewriteEngine On
 
+# Canonicalize direct subfolder PHP access to flat root routes
+# (e.g. /pages/homepage.php -> /homepage.php) so relative includes remain stable.
+RewriteRule ^(?:pages|management|reports|settings|apps|documents|auth|tools|api|public)/([A-Za-z0-9_-]+\.php)$ $1 [R=302,L,NC]
+
 # Keep existing files/directories working directly.
 RewriteCond %{REQUEST_FILENAME} -f [OR]
 RewriteCond %{REQUEST_FILENAME} -d

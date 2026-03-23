@@ -1,6 +1,7 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/notifications.php';
+require_once __DIR__ . '/avatar.php';
 // Shared header include.  Sets up HTML <head> and page header/navigation.
 // Pages can set a $page_title variable before including this file.
 if (session_status() === PHP_SESSION_NONE) {
@@ -49,6 +50,24 @@ $_header_login_url = ($_header_unified_pos !== false)
 
 // Enforce authenticated session for all pages using the shared app header.
 $header_user_id_session = (int)($_SESSION['user_id'] ?? 0);
+$header_account_status_text = 'Active';
+$header_member_since_text = 'Unknown';
+$header_last_login_text = 'No login record';
+
+// Helper function to get role badge colors
+if (!function_exists('get_role_badge_color')) {
+    function get_role_badge_color(string $role = ''): string {
+        $role = strtolower(trim($role));
+        return match($role) {
+            'admin' => 'bg-soft-success text-success',
+            'supervisor' => 'bg-soft-warning text-warning',
+            'coordinator' => 'bg-soft-info text-info',
+            'student' => 'bg-soft-secondary text-secondary',
+            default => 'bg-soft-primary text-primary'
+        };
+    }
+}
+
 $header_conn = @new mysqli(
     defined('DB_HOST') ? DB_HOST : '127.0.0.1',
     defined('DB_USER') ? DB_USER : 'root',
@@ -69,7 +88,7 @@ if ($header_user_id_session <= 0) {
 
 // Refresh session identity from DB so page access stays connected to current account data.
 if (!$header_conn->connect_errno) {
-    $stmt = $header_conn->prepare("SELECT id, name, username, email, role, is_active, profile_picture FROM users WHERE id = ? LIMIT 1");
+    $stmt = $header_conn->prepare("SELECT id, name, username, email, role, is_active, profile_picture, created_at FROM users WHERE id = ? LIMIT 1");
     if ($stmt) {
         $stmt->bind_param('i', $header_user_id_session);
         $stmt->execute();
@@ -94,6 +113,32 @@ if (!$header_conn->connect_errno) {
         $_SESSION['role'] = (string)($header_user['role'] ?? '');
         $_SESSION['profile_picture'] = (string)($header_user['profile_picture'] ?? '');
         $_SESSION['logged_in'] = true;
+
+        $header_account_status_text = ((int)($header_user['is_active'] ?? 0) === 1) ? 'Active' : 'Inactive';
+        $header_created_at_raw = (string)($header_user['created_at'] ?? '');
+        if ($header_created_at_raw !== '') {
+            $header_created_at_ts = strtotime($header_created_at_raw);
+            if ($header_created_at_ts !== false) {
+                $header_member_since_text = date('M d, Y', $header_created_at_ts);
+            }
+        }
+
+        $header_last_login_stmt = $header_conn->prepare('SELECT created_at FROM login_logs WHERE user_id = ? AND status = ? ORDER BY created_at DESC LIMIT 1');
+        if ($header_last_login_stmt) {
+            $header_login_success = 'success';
+            $header_last_login_stmt->bind_param('is', $header_user_id_session, $header_login_success);
+            $header_last_login_stmt->execute();
+            $header_last_login_row = $header_last_login_stmt->get_result()->fetch_assoc();
+            $header_last_login_stmt->close();
+
+            $header_last_login_raw = (string)($header_last_login_row['created_at'] ?? '');
+            if ($header_last_login_raw !== '') {
+                $header_last_login_ts = strtotime($header_last_login_raw);
+                if ($header_last_login_ts !== false) {
+                    $header_last_login_text = date('M d, Y h:i A', $header_last_login_ts);
+                }
+            }
+        }
     }
 }
 
@@ -130,6 +175,21 @@ if ($base_href === '') {
     }
 
     $base_href = $resolved_base_href;
+}
+
+$base_href = str_replace('\\', '/', (string)$base_href);
+if (preg_match('#^/?[A-Za-z]:/#', $base_href) === 1) {
+    $htdocs_pos = stripos($base_href, '/htdocs/');
+    if ($htdocs_pos !== false) {
+        $base_href = substr($base_href, $htdocs_pos + strlen('/htdocs'));
+    }
+}
+if ($base_href !== '' && $base_href[0] !== '/') {
+    $base_href = '/' . $base_href;
+}
+$base_href = preg_replace('#/+#', '/', (string)$base_href);
+if ($base_href === '' || substr($base_href, -1) !== '/') {
+    $base_href .= '/';
 }
 
 $favicon_root = $base_href;
@@ -200,15 +260,8 @@ if ($header_user_email === '') {
 }
 $header_user_role = strtolower(trim((string)($_SESSION['role'] ?? '')));
 
-$header_avatar = 'assets/images/avatar/1.png';
-$session_avatar = trim((string)($_SESSION['profile_picture'] ?? ''));
-if ($session_avatar !== '') {
-    $normalized_avatar = ltrim(str_replace('\\', '/', $session_avatar), '/');
-    $avatar_fs_path = dirname(__DIR__) . '/' . $normalized_avatar;
-    if (is_file($avatar_fs_path)) {
-        $header_avatar = $normalized_avatar;
-    }
-}
+$session_avatar = (string)($_SESSION['profile_picture'] ?? '');
+$header_avatar = biotern_avatar_public_src($session_avatar, $header_user_id_session);
 
 $header_notifications = [];
 $header_notifications_unread = 0;
@@ -530,7 +583,7 @@ echo htmlspecialchars($header_user_name, ENT_QUOTES, 'UTF-8'); ?>
                                             <?php
 require_once dirname(__DIR__) . '/config/db.php';
 if ($header_user_role !== ''): ?>
-                                                <span class="badge bg-soft-success text-success ms-1"><?php
+                                                <span class="badge <?php echo get_role_badge_color($header_user_role); ?> ms-1"><?php
 require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars(ucfirst($header_user_role), ENT_QUOTES, 'UTF-8'); ?></span>
                                             <?php
@@ -544,12 +597,39 @@ echo htmlspecialchars($header_user_email, ENT_QUOTES, 'UTF-8'); ?></span>
                                 </div>
                             </div>
                             <div class="dropdown-divider"></div>
-                            <a href="javascript:void(0);" class="dropdown-item">
-                                <span class="hstack">
-                                    <i class="wd-10 ht-10 border border-2 border-gray-1 bg-success rounded-circle me-2"></i>
-                                    <span>Active</span>
+                            <div class="dropdown-item-text pb-1">
+                                <div class="fs-11 fw-semibold text-muted text-uppercase">Status</div>
+                            </div>
+                            <div class="dropdown-item-text pt-1 pb-1">
+                                <span class="hstack justify-content-between gap-2">
+                                    <span class="d-inline-flex align-items-center text-nowrap fw-medium text-light"><i class="wd-10 ht-10 border border-2 border-gray-1 <?php echo $header_account_status_text === 'Active' ? 'bg-success' : 'bg-secondary'; ?> rounded-circle me-2"></i>Account</span>
+                                    <span class="badge <?php echo $header_account_status_text === 'Active' ? 'bg-soft-success text-success' : 'bg-soft-secondary text-secondary'; ?>"><?php echo htmlspecialchars($header_account_status_text, ENT_QUOTES, 'UTF-8'); ?></span>
                                 </span>
-                            </a>
+                            </div>
+                            <div class="dropdown-item-text pt-1 pb-1">
+                                <span class="hstack justify-content-between gap-2">
+                                    <span class="d-inline-flex align-items-center text-nowrap fw-medium text-light"><i class="feather-shield me-2"></i>Role</span>
+                                    <span class="badge <?php echo get_role_badge_color($header_user_role); ?>"><?php echo htmlspecialchars($header_user_role !== '' ? ucfirst($header_user_role) : 'User', ENT_QUOTES, 'UTF-8'); ?></span>
+                                </span>
+                            </div>
+                            <div class="dropdown-item-text pt-1 pb-1">
+                                <span class="hstack justify-content-between gap-2">
+                                    <span class="d-inline-flex align-items-center text-nowrap fw-medium text-light"><i class="feather-calendar me-2"></i>Member Since</span>
+                                    <span class="fs-12 text-light"><?php echo htmlspecialchars($header_member_since_text, ENT_QUOTES, 'UTF-8'); ?></span>
+                                </span>
+                            </div>
+                            <div class="dropdown-item-text pt-1 pb-1">
+                                <span class="hstack justify-content-between gap-2">
+                                    <span class="d-inline-flex align-items-center text-nowrap fw-medium text-light"><i class="feather-clock me-2"></i>Last Login</span>
+                                    <span class="fs-12 text-light text-end"><?php echo htmlspecialchars($header_last_login_text, ENT_QUOTES, 'UTF-8'); ?></span>
+                                </span>
+                            </div>
+                            <div class="dropdown-item-text pt-1 pb-2">
+                                <span class="hstack justify-content-between gap-2">
+                                    <span class="d-inline-flex align-items-center text-nowrap fw-medium text-light"><i class="feather-bell me-2"></i>Notifications</span>
+                                    <span class="badge <?php echo (int)$header_notifications_unread > 0 ? 'bg-soft-warning text-warning' : 'bg-soft-secondary text-secondary'; ?>"><?php echo (int)$header_notifications_unread > 0 ? ((int)$header_notifications_unread . ' unread') : 'All read'; ?></span>
+                                </span>
+                            </div>
                             <div class="dropdown-divider"></div>
                             <a href="<?php echo htmlspecialchars($header_profile_url, ENT_QUOTES, 'UTF-8'); ?>" class="dropdown-item">
                                 <i class="feather-user"></i>

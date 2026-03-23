@@ -1,6 +1,6 @@
-﻿<?php
+<?php
 require_once dirname(__DIR__) . '/config/db.php';
-$page_title = 'Tags Settings';
+$page_title = 'Tasks Settings';
 $page_styles = ['assets/css/settings-customizer-like.css'];
 include 'includes/header.php';
 ?>
@@ -22,13 +22,7 @@ include 'includes/header.php';
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" href="settings-seo.php">
-                                    <i class="feather-search"></i>
-                                    <span>SEO</span>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link active" href="settings-tags.php">
+                                <a class="nav-link" href="settings-tags.php">
                                     <i class="feather-tag"></i>
                                     <span>Tags</span>
                                 </a>
@@ -40,7 +34,7 @@ include 'includes/header.php';
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" href="settings-tasks.php">
+                                <a class="nav-link active" href="settings-tasks.php">
                                     <i class="feather-check-circle"></i>
                                     <span>Tasks</span>
                                 </a>
@@ -66,12 +60,6 @@ include 'includes/header.php';
                             </li>
 
 
-                            <li class="nav-item">
-                                <a class="nav-link" href="settings-miscellaneous.php">
-                                    <i class="feather-cast"></i>
-                                    <span>Miscellaneous</span>
-                                </a>
-                            </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="theme-customizer.php">
                                     <i class="feather-settings"></i>
@@ -103,278 +91,98 @@ include 'includes/header.php';
                     <div class="content-area-body">
                         <div class="card mb-0">
                             <div class="card-body">
-                                <div class="input-group dropdown mb-4">
-                                    <span class="input-group-text text-success">
-                                        <i class="feather-tag"></i>
-                                    </span>
-                                    <input type="text" class="form-control" aria-label="Text input with segmented dropdown button" value="VIP">
-                                    <button type="button" class="btn btn-light-brand dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown"></button>
-                                    <ul class="dropdown-menu dropdown-menu-end">
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Edit</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Color</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Order</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Status</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Priority</a></li>
-                                        <li>
-                                            <hr class="dropdown-divider">
-                                        </li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Delete</a></li>
-                                    </ul>
-                                    <button type="button" class="btn btn-light-brand">
-                                        <i class="feather-x"></i>
-                                    </button>
+                                <div class="mb-5">
+                                    <label class="form-label">Allow all staff to see all tasks related to projects (includes non-staff)</label>
+                                    <select class="form-select" data-select2-selector="icon">
+                                        <option value="" data-icon="feather-check text-success" selected>Yes</option>
+                                        <option value="" data-icon="feather-x text-danger">No</option>
+                                    </select>
+                                    <small class="form-text text-muted">Allow all staff to see all tasks related to projects (includes non-staff) [Ex: Yes/No]</small>
                                 </div>
-                                <div class="input-group dropdown mb-4">
-                                    <span class="input-group-text text-danger">
-                                        <i class="feather-tag"></i>
-                                    </span>
-                                    <input type="text" class="form-control" aria-label="Text input with segmented dropdown button" value="Bugs">
-                                    <button type="button" class="btn btn-light-brand dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown"></button>
-                                    <ul class="dropdown-menu dropdown-menu-end">
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Edit</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Color</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Order</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Status</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Priority</a></li>
-                                        <li>
-                                            <hr class="dropdown-divider">
-                                        </li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Delete</a></li>
-                                    </ul>
-                                    <button type="button" class="btn btn-light-brand">
-                                        <i class="feather-x"></i>
-                                    </button>
+                                <div class="mb-5">
+                                    <label class="form-label">Allow customer/staff to add/edit task comments only in the first hour (administrators not applied) </label>
+                                    <select class="form-select" data-select2-selector="icon">
+                                        <option value="" data-icon="feather-check text-success">Yes</option>
+                                        <option value="" data-icon="feather-x text-danger" selected>No</option>
+                                    </select>
+                                    <small class="form-text text-muted">Allow customer/staff to add/edit task comments only in the first hour (administrators not applied) [Ex: Yes/No]</small>
                                 </div>
-                                <div class="input-group dropdown mb-4">
-                                    <span class="input-group-text text-primary">
-                                        <i class="feather-tag"></i>
-                                    </span>
-                                    <input type="text" class="form-control" aria-label="Text input with segmented dropdown button" value="Team">
-                                    <button type="button" class="btn btn-light-brand dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown"></button>
-                                    <ul class="dropdown-menu dropdown-menu-end">
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Edit</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Color</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Order</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Status</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Priority</a></li>
-                                        <li>
-                                            <hr class="dropdown-divider">
-                                        </li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Delete</a></li>
-                                    </ul>
-                                    <button type="button" class="btn btn-light-brand">
-                                        <i class="feather-x"></i>
-                                    </button>
+
+                                <div class="mb-5">
+                                    <label class="form-label"> Auto assign task creator when new task is created </label>
+                                    <select class="form-select" data-select2-selector="icon">
+                                        <option value="" data-icon="feather-check text-success" selected>Yes</option>
+                                        <option value="" data-icon="feather-x text-danger">No</option>
+                                    </select>
+                                    <small class="form-text text-muted"> Auto assign task creator when new task is created [Ex: Yes/No]</small>
                                 </div>
-                                <div class="input-group dropdown mb-4">
-                                    <span class="input-group-text text-primary">
-                                        <i class="feather-tag"></i>
-                                    </span>
-                                    <input type="text" class="form-control" aria-label="Text input with segmented dropdown button" value="Primary">
-                                    <button type="button" class="btn btn-light-brand dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown"></button>
-                                    <ul class="dropdown-menu dropdown-menu-end">
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Edit</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Color</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Order</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Status</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Priority</a></li>
-                                        <li>
-                                            <hr class="dropdown-divider">
-                                        </li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Delete</a></li>
-                                    </ul>
-                                    <button type="button" class="btn btn-light-brand">
-                                        <i class="feather-x"></i>
-                                    </button>
+
+                                <div class="mb-5">
+                                    <label class="form-label">Auto add task creator as task follower when new task is created </label>
+                                    <select class="form-select" data-select2-selector="icon">
+                                        <option value="" data-icon="feather-check text-success">Yes</option>
+                                        <option value="" data-icon="feather-x text-danger" selected>No</option>
+                                    </select>
+                                    <small class="form-text text-muted">Auto add task creator as task follower when new task is created [Ex: Yes/No]</small>
                                 </div>
-                                <div class="input-group dropdown mb-4">
-                                    <span class="input-group-text text-success">
-                                        <i class="feather-tag"></i>
-                                    </span>
-                                    <input type="text" class="form-control" aria-label="Text input with segmented dropdown button" value="Updates">
-                                    <button type="button" class="btn btn-light-brand dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown"></button>
-                                    <ul class="dropdown-menu dropdown-menu-end">
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Edit</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Color</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Order</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Status</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Priority</a></li>
-                                        <li>
-                                            <hr class="dropdown-divider">
-                                        </li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Delete</a></li>
-                                    </ul>
-                                    <button type="button" class="btn btn-light-brand">
-                                        <i class="feather-x"></i>
-                                    </button>
+
+                                <div class="mb-5">
+                                    <label class="form-label">Stop all other started timers when starting new timer </label>
+                                    <select class="form-select" data-select2-selector="icon">
+                                        <option value="" data-icon="feather-check text-success" selected>Yes</option>
+                                        <option value="" data-icon="feather-x text-danger">No</option>
+                                    </select>
+                                    <small class="form-text text-muted">Stop all other started timers when starting new timer [Ex: Yes/No]</small>
                                 </div>
-                                <div class="input-group dropdown mb-4">
-                                    <span class="input-group-text text-warning">
-                                        <i class="feather-tag"></i>
-                                    </span>
-                                    <input type="text" class="form-control" aria-label="Text input with segmented dropdown button" value="Personal">
-                                    <button type="button" class="btn btn-light-brand dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown"></button>
-                                    <ul class="dropdown-menu dropdown-menu-end">
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Edit</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Color</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Order</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Status</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Priority</a></li>
-                                        <li>
-                                            <hr class="dropdown-divider">
-                                        </li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Delete</a></li>
-                                    </ul>
-                                    <button type="button" class="btn btn-light-brand">
-                                        <i class="feather-x"></i>
-                                    </button>
+
+                                <div class="mb-5">
+                                    <label class="form-label">Change task status to In Progress on timer started (valid only if task status is Not Started) </label>
+                                    <select class="form-select" data-select2-selector="icon">
+                                        <option value="" data-icon="feather-check text-success">Yes</option>
+                                        <option value="" data-icon="feather-x text-danger" selected>No</option>
+                                    </select>
+                                    <small class="form-text text-muted">Change task status to In Progress on timer started (valid only if task status is Not Started) [Ex: Yes/No]</small>
                                 </div>
-                                <div class="input-group dropdown mb-4">
-                                    <span class="input-group-text text-danger">
-                                        <i class="feather-tag"></i>
-                                    </span>
-                                    <input type="text" class="form-control" aria-label="Text input with segmented dropdown button" value="Promotion">
-                                    <button type="button" class="btn btn-light-brand dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown"></button>
-                                    <ul class="dropdown-menu dropdown-menu-end">
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Edit</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Color</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Order</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Status</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Priority</a></li>
-                                        <li>
-                                            <hr class="dropdown-divider">
-                                        </li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Delete</a></li>
-                                    </ul>
-                                    <button type="button" class="btn btn-light-brand">
-                                        <i class="feather-x"></i>
-                                    </button>
+                                <div class="mb-5">
+                                    <label class="form-label">Billable option is by default checked when new task is created? (only from admin area) </label>
+                                    <select class="form-select" data-select2-selector="icon">
+                                        <option value="" data-icon="feather-check text-success" selected>Yes</option>
+                                        <option value="" data-icon="feather-x text-danger">No</option>
+                                    </select>
+                                    <small class="form-text text-muted">Billable option is by default checked when new task is created? (only from admin area) [Ex: Yes/No]</small>
                                 </div>
-                                <div class="input-group dropdown mb-4">
-                                    <span class="input-group-text text-teal">
-                                        <i class="feather-tag"></i>
-                                    </span>
-                                    <input type="text" class="form-control" aria-label="Text input with segmented dropdown button" value="Custom">
-                                    <button type="button" class="btn btn-light-brand dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown"></button>
-                                    <ul class="dropdown-menu dropdown-menu-end">
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Edit</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Color</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Order</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Status</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Priority</a></li>
-                                        <li>
-                                            <hr class="dropdown-divider">
-                                        </li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Delete</a></li>
-                                    </ul>
-                                    <button type="button" class="btn btn-light-brand">
-                                        <i class="feather-x"></i>
-                                    </button>
+                                <div class="mb-5">
+                                    <label class="form-label">Round off task timer</label>
+                                    <select class="form-select" data-select2-selector="default">
+                                        <option value="">Don't Round Up</option>
+                                        <option selected>Round Up</option>
+                                        <option value="">Round Down</option>
+                                        <option value="">Round to Nearest</option>
+                                    </select>
+                                    <small class="form-text text-muted">Applied to the Timesheets overview report and when invoicing a task/project.</small>
                                 </div>
-                                <div class="input-group dropdown mb-4">
-                                    <span class="input-group-text text-indigo">
-                                        <i class="feather-tag"></i>
-                                    </span>
-                                    <input type="text" class="form-control" aria-label="Text input with segmented dropdown button" value="Wholesale">
-                                    <button type="button" class="btn btn-light-brand dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown"></button>
-                                    <ul class="dropdown-menu dropdown-menu-end">
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Edit</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Color</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Order</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Status</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Priority</a></li>
-                                        <li>
-                                            <hr class="dropdown-divider">
-                                        </li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Delete</a></li>
-                                    </ul>
-                                    <button type="button" class="btn btn-light-brand">
-                                        <i class="feather-x"></i>
-                                    </button>
+                                <div class="mb-5">
+                                    <label class="form-label">Default status when new task is created </label>
+                                    <select class="form-select" data-select2-selector="status">
+                                        <option value="" data-bg="bg-dark" selected>Auto</option>
+                                        <option value="" data-bg="bg-warning">Testing</option>
+                                        <option value="" data-bg="bg-success">Completed</option>
+                                        <option value="" data-bg="bg-primary">In Progress</option>
+                                        <option value="" data-bg="bg-danger">Not Started</option>
+                                        <option value="" data-bg="bg-indigo">Awaiting Feedback</option>
+                                    </select>
+                                    <small class="form-text text-muted">Default status when new task is created [Ex: Auto/Testing/Completed]</small>
                                 </div>
-                                <div class="input-group dropdown mb-4">
-                                    <span class="input-group-text text-danger">
-                                        <i class="feather-tag"></i>
-                                    </span>
-                                    <input type="text" class="form-control" aria-label="Text input with segmented dropdown button" value="Low Budgets">
-                                    <button type="button" class="btn btn-light-brand dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown"></button>
-                                    <ul class="dropdown-menu dropdown-menu-end">
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Edit</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Color</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Order</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Status</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Priority</a></li>
-                                        <li>
-                                            <hr class="dropdown-divider">
-                                        </li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Delete</a></li>
-                                    </ul>
-                                    <button type="button" class="btn btn-light-brand">
-                                        <i class="feather-x"></i>
-                                    </button>
-                                </div>
-                                <div class="input-group dropdown mb-4">
-                                    <span class="input-group-text text-success">
-                                        <i class="feather-tag"></i>
-                                    </span>
-                                    <input type="text" class="form-control" aria-label="Text input with segmented dropdown button" value="High Budgets">
-                                    <button type="button" class="btn btn-light-brand dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown"></button>
-                                    <ul class="dropdown-menu dropdown-menu-end">
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Edit</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Color</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Order</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Status</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Priority</a></li>
-                                        <li>
-                                            <hr class="dropdown-divider">
-                                        </li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Delete</a></li>
-                                    </ul>
-                                    <button type="button" class="btn btn-light-brand">
-                                        <i class="feather-x"></i>
-                                    </button>
-                                </div>
-                                <div class="input-group dropdown mb-4">
-                                    <span class="input-group-text text-dark">
-                                        <i class="feather-tag"></i>
-                                    </span>
-                                    <input type="text" class="form-control" aria-label="Text input with segmented dropdown button" value="Important">
-                                    <button type="button" class="btn btn-light-brand dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown"></button>
-                                    <ul class="dropdown-menu dropdown-menu-end">
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Edit</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Color</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Order</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Status</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Priority</a></li>
-                                        <li>
-                                            <hr class="dropdown-divider">
-                                        </li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Delete</a></li>
-                                    </ul>
-                                    <button type="button" class="btn btn-light-brand">
-                                        <i class="feather-x"></i>
-                                    </button>
-                                </div>
-                                <div class="input-group dropdown mb-0">
-                                    <span class="input-group-text text-warning">
-                                        <i class="feather-tag"></i>
-                                    </span>
-                                    <input type="text" class="form-control" aria-label="Text input with segmented dropdown button" value="Review">
-                                    <button type="button" class="btn btn-light-brand dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown"></button>
-                                    <ul class="dropdown-menu dropdown-menu-end">
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Edit</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Color</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Order</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Status</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Priority</a></li>
-                                        <li>
-                                            <hr class="dropdown-divider">
-                                        </li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);">Delete</a></li>
-                                    </ul>
-                                    <button type="button" class="btn btn-light-brand">
-                                        <i class="feather-x"></i>
-                                    </button>
+                                <div class="mb-0">
+                                    <label class="form-label">Default Priority </label>
+                                    <select class="form-select" data-select2-selector="priority">
+                                        <option value="primary" data-bg="bg-primary">Low</option>
+                                        <option value="teal" data-bg="bg-teal">Medium</option>
+                                        <option value="success" data-bg="bg-success">Updates</option>
+                                        <option value="warning" data-bg="bg-warning">High</option>
+                                        <option value="danger" data-bg="bg-danger">Urgent</option>
+                                    </select>
+                                    <small class="form-text text-muted">Default Priority [Ex: Low/Medium/High/Urgent]</small>
                                 </div>
                             </div>
                         </div>
@@ -382,7 +190,7 @@ include 'includes/header.php';
                     <!-- [ Footer ] start -->
                     <footer class="footer">
                         <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
-                            <span>Copyright ï¿½</span>
+                            <span>Copyright �</span>
                             <script>
                                 document.write(new Date().getFullYear());
                             </script>
@@ -400,4 +208,5 @@ include 'includes/header.php';
             <?php
 require_once dirname(__DIR__) . '/config/db.php';
 include 'includes/footer.php'; ?>
+
 

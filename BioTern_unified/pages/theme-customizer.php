@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 require_once dirname(__DIR__) . '/config/db.php';
 $page_title = 'BioTern || Theme Customizer';
 include 'includes/header.php';
@@ -86,14 +86,12 @@ include 'includes/header.php';
         <div class="content-sidebar-body">
             <ul class="nav flex-column nxl-content-sidebar-item">
                 <li class="nav-item"><a class="nav-link" href="settings-general.php"><i class="feather-airplay"></i><span>General</span></a></li>
-                <li class="nav-item"><a class="nav-link" href="settings-seo.php"><i class="feather-search"></i><span>SEO</span></a></li>
                 <li class="nav-item"><a class="nav-link" href="settings-tags.php"><i class="feather-tag"></i><span>Tags</span></a></li>
                 <li class="nav-item"><a class="nav-link" href="settings-email.php"><i class="feather-mail"></i><span>Email</span></a></li>
                 <li class="nav-item"><a class="nav-link" href="settings-tasks.php"><i class="feather-check-circle"></i><span>Tasks</span></a></li>
                 <li class="nav-item"><a class="nav-link" href="settings-ojt.php"><i class="feather-crosshair"></i><span>Leads</span></a></li>
                 <li class="nav-item"><a class="nav-link" href="settings-support.php"><i class="feather-life-buoy"></i><span>Support</span></a></li>
                 <li class="nav-item"><a class="nav-link" href="settings-students.php"><i class="feather-users"></i><span>Students</span></a></li>
-                <li class="nav-item"><a class="nav-link" href="settings-miscellaneous.php"><i class="feather-cast"></i><span>Miscellaneous</span></a></li>
                 <li class="nav-item"><a class="nav-link active" href="theme-customizer.php"><i class="feather-settings"></i><span>Theme Customizer</span></a></li>
             </ul>
         </div>

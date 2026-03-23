@@ -1,5 +1,6 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
+require_once dirname(__DIR__) . '/includes/avatar.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -11,7 +12,7 @@ if ($userId <= 0) {
 }
 
 $user = null;
-$stmt = $conn->prepare('SELECT id, name, username, email, role, is_active, profile_picture, created_at FROM users WHERE id = ? LIMIT 1');
+$stmt = $conn->prepare('SELECT id, name, username, email, password, role, is_active, profile_picture, created_at FROM users WHERE id = ? LIMIT 1');
 if ($stmt) {
     $stmt->bind_param('i', $userId);
     $stmt->execute();
@@ -22,6 +23,119 @@ if ($stmt) {
 if (!$user) {
     header('Location: auth-login-cover.php?logout=1');
     exit;
+}
+
+$profile_flash_message = '';
+$profile_flash_type = 'success';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $profile_action = (string)($_POST['action'] ?? '');
+
+    if ($profile_action === 'upload_profile_picture') {
+        if (!isset($_FILES['profile_picture']) || !is_array($_FILES['profile_picture'])) {
+            $profile_flash_message = 'Please choose an image file.';
+            $profile_flash_type = 'warning';
+        } else {
+            $file = $_FILES['profile_picture'];
+            if ((int)($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+                $profile_flash_message = 'Upload failed. Please try again.';
+                $profile_flash_type = 'danger';
+            } else {
+                $tmp = (string)($file['tmp_name'] ?? '');
+                $size = (int)($file['size'] ?? 0);
+                $name = (string)($file['name'] ?? '');
+                $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+                $allowedExt = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+                $allowedMime = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+
+                $finfo = function_exists('finfo_open') ? finfo_open(FILEINFO_MIME_TYPE) : null;
+                $mime = $finfo ? (string)finfo_file($finfo, $tmp) : '';
+                if ($finfo) {
+                    finfo_close($finfo);
+                }
+
+                if ($size <= 0 || $size > (3 * 1024 * 1024)) {
+                    $profile_flash_message = 'Image must be less than 3MB.';
+                    $profile_flash_type = 'warning';
+                } elseif (!in_array($ext, $allowedExt, true) || ($mime !== '' && !in_array($mime, $allowedMime, true))) {
+                    $profile_flash_message = 'Only JPG, PNG, WEBP, or GIF images are allowed.';
+                    $profile_flash_type = 'warning';
+                } else {
+                    $uploadDirFs = dirname(__DIR__) . '/assets/images/avatar/uploads';
+                    if (!is_dir($uploadDirFs)) {
+                        @mkdir($uploadDirFs, 0777, true);
+                    }
+
+                    $safeName = 'user_' . $userId . '_' . time() . '.' . $ext;
+                    $destFs = $uploadDirFs . '/' . $safeName;
+                    $destRel = 'assets/images/avatar/uploads/' . $safeName;
+
+                    if (!@move_uploaded_file($tmp, $destFs)) {
+                        $profile_flash_message = 'Failed to save uploaded file.';
+                        $profile_flash_type = 'danger';
+                    } else {
+                        $oldPath = biotern_avatar_normalize_path((string)($user['profile_picture'] ?? ''));
+                        biotern_avatar_sync_profile_path($conn, $userId, $destRel);
+
+                        $_SESSION['profile_picture'] = $destRel;
+                        $user['profile_picture'] = $destRel;
+                        $profile_flash_message = 'Profile picture updated successfully.';
+                        $profile_flash_type = 'success';
+
+                        if ($oldPath !== '' && strpos($oldPath, 'assets/images/avatar/uploads/') === 0) {
+                            $oldFs = dirname(__DIR__) . '/' . $oldPath;
+                            if (is_file($oldFs)) {
+                                @unlink($oldFs);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    } elseif ($profile_action === 'change_password') {
+        $currentPassword = (string)($_POST['current_password'] ?? '');
+        $newPassword = (string)($_POST['new_password'] ?? '');
+        $confirmPassword = (string)($_POST['confirm_password'] ?? '');
+        $storedPasswordHash = (string)($user['password'] ?? '');
+
+        if ($currentPassword === '' || $newPassword === '' || $confirmPassword === '') {
+            $profile_flash_message = 'Please fill in all password fields.';
+            $profile_flash_type = 'warning';
+        } elseif (!password_verify($currentPassword, $storedPasswordHash)) {
+            $profile_flash_message = 'Current password is incorrect.';
+            $profile_flash_type = 'danger';
+        } elseif ($newPassword !== $confirmPassword) {
+            $profile_flash_message = 'New password and confirmation do not match.';
+            $profile_flash_type = 'warning';
+        } elseif (strlen($newPassword) < 8) {
+            $profile_flash_message = 'New password must be at least 8 characters.';
+            $profile_flash_type = 'warning';
+        } elseif (!preg_match('/[A-Z]/', $newPassword) || !preg_match('/[a-z]/', $newPassword) || !preg_match('/\d/', $newPassword)) {
+            $profile_flash_message = 'Use at least one uppercase letter, one lowercase letter, and one number.';
+            $profile_flash_type = 'warning';
+        } elseif (password_verify($newPassword, $storedPasswordHash)) {
+            $profile_flash_message = 'New password must be different from your current password.';
+            $profile_flash_type = 'warning';
+        } else {
+            $newPasswordHash = password_hash($newPassword, PASSWORD_DEFAULT);
+            $passwordStmt = $conn->prepare('UPDATE users SET password = ? WHERE id = ? LIMIT 1');
+            if (!$passwordStmt) {
+                $profile_flash_message = 'Could not prepare password update. Please try again.';
+                $profile_flash_type = 'danger';
+            } else {
+                $passwordStmt->bind_param('si', $newPasswordHash, $userId);
+                if ($passwordStmt->execute()) {
+                    $user['password'] = $newPasswordHash;
+                    $profile_flash_message = 'Password changed successfully.';
+                    $profile_flash_type = 'success';
+                } else {
+                    $profile_flash_message = 'Failed to update password. Please try again.';
+                    $profile_flash_type = 'danger';
+                }
+                $passwordStmt->close();
+            }
+        }
+    }
 }
 
 $studentProfile = null;
@@ -71,6 +185,9 @@ if ($initials === '') {
     $initials = 'BT';
 }
 
+$profile_picture_src = biotern_avatar_resolve_existing_path((string)($user['profile_picture'] ?? ''));
+$profile_avatar_src = biotern_avatar_public_src((string)($user['profile_picture'] ?? ''), $userId);
+
 $memberSinceDisplay = '-';
 if (!empty($user['created_at'])) {
     $ts = strtotime((string)$user['created_at']);
@@ -112,42 +229,72 @@ include 'includes/header.php';
     }
 
     .profile-hero {
-        border: 1px solid rgba(37, 99, 235, 0.18);
-        border-radius: 16px;
-        background: linear-gradient(135deg, #f8fbff 0%, #eef6ff 55%, #f2fcff 100%);
-        padding: 22px;
-        margin-bottom: 16px;
+        border: 2px solid rgba(37, 99, 235, 0.22);
+        border-radius: 18px;
+        background: linear-gradient(135deg, #f8fbff 0%, #eef6ff 50%, #f0f9ff 100%);
+        padding: 28px;
+        margin-bottom: 24px;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 18px;
+        gap: 24px;
         flex-wrap: wrap;
+        box-shadow: 0 4px 20px rgba(37, 99, 235, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .profile-hero::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -10%;
+        width: 300px;
+        height: 300px;
+        background: radial-gradient(circle, rgba(59, 130, 246, 0.08) 0%, transparent 70%);
+        border-radius: 50%;
+        pointer-events: none;
+        z-index: 0;
     }
 
     .profile-persona {
         display: flex;
         align-items: center;
-        gap: 14px;
+        gap: 16px;
+        position: relative;
+        z-index: 1;
     }
 
     .profile-avatar {
-        width: 66px;
-        height: 66px;
-        border-radius: 18px;
+        width: 80px;
+        height: 80px;
+        border-radius: 16px;
         background: linear-gradient(135deg, #1d4ed8, #0891b2);
         color: #ffffff;
         font-weight: 700;
-        font-size: 22px;
+        font-size: 26px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        box-shadow: 0 12px 24px rgba(29, 78, 216, 0.25);
+        box-shadow: 0 8px 24px rgba(29, 78, 216, 0.3), inset -2px -2px 6px rgba(0, 0, 0, 0.15);
+        overflow: hidden;
+        flex-shrink: 0;
+        border: 3px solid rgba(255, 255, 255, 0.7);
+    }
+
+    .profile-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
     }
 
     .profile-name {
         margin: 0;
-        font-size: 1.1rem;
-        font-weight: 700;
+        font-size: 1.3rem;
+        font-weight: 800;
+        color: #0f172a;
+        letter-spacing: -0.3px;
     }
 
     .profile-role {
@@ -167,41 +314,60 @@ include 'includes/header.php';
     .profile-kpis {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 10px;
-        min-width: 260px;
+        gap: 12px;
+        min-width: 280px;
     }
 
     .profile-kpi {
-        border: 1px solid rgba(15, 23, 42, 0.08);
-        background: #ffffff;
+        border: 1px solid rgba(15, 23, 42, 0.1);
+        background: rgba(255, 255, 255, 0.7);
         border-radius: 12px;
-        padding: 10px 12px;
+        padding: 12px 14px;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+        backdrop-filter: blur(10px);
     }
 
     .profile-kpi-label {
-        color: #64748b;
-        font-size: 11px;
+        color: #7c8db0;
+        font-size: 10px;
         text-transform: uppercase;
-        letter-spacing: 0.04em;
+        letter-spacing: 0.06em;
+        font-weight: 600;
     }
 
     .profile-kpi-value {
-        margin-top: 3px;
-        font-size: 13px;
-        font-weight: 600;
-        color: #0f172a;
+        margin-top: 4px;
+        font-size: 14px;
+        font-weight: 700;
+        color: #1f2937;
     }
 
     .profile-panel {
-        border: 1px solid rgba(15, 23, 42, 0.08);
+        border: 1px solid rgba(15, 23, 42, 0.1);
         border-radius: 14px;
         overflow: hidden;
-        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.05);
+        box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+        transition: box-shadow 0.3s ease, border-color 0.3s ease;
+    }
+    
+    .profile-panel:hover {
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+        border-color: rgba(37, 99, 235, 0.15);
     }
 
     .profile-panel .card-header {
-        border-bottom: 1px solid rgba(15, 23, 42, 0.06);
-        background: #ffffff;
+        border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        padding: 16px 20px;
+    }
+    
+    .profile-panel .card-header h6 {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 1rem;
+        font-weight: 700;
+        color: #1f2937;
     }
 
     .profile-grid {
@@ -239,11 +405,195 @@ include 'includes/header.php';
     .profile-action-btn {
         border-radius: 10px;
         font-weight: 600;
+        transition: all 0.3s ease;
+        padding: 10px 16px;
+        font-size: 14px;
+    }
+    
+    .profile-action-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    }
+    
+    .profile-action-btn.btn-primary {
+        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        border: none;
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+    }
+    
+    .profile-action-btn.btn-primary:hover {
+        background: linear-gradient(135deg, #1d4ed8 0%, #1e3a8a 100%);
     }
 
     .profile-action-note {
         font-size: 12px;
         color: #64748b;
+    }
+    
+    .form-label span {
+        font-size: 1.1em;
+        display: inline-flex;
+        align-items: center;
+    }
+
+    .profile-upload-input {
+        font-size: 13px;
+        border: 2px solid rgba(37, 99, 235, 0.2);
+        background: linear-gradient(135deg, #f8fbff 0%, #f0f7ff 100%);
+        padding: 12px 14px;
+        transition: all 0.3s ease;
+    }
+    
+    .profile-upload-input:hover {
+        border-color: rgba(37, 99, 235, 0.35);
+        background: linear-gradient(135deg, #f0f7ff 0%, #e8f2ff 100%);
+    }
+    
+    .profile-upload-input:focus {
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+    }
+
+    .profile-upload-input::file-selector-button {
+        border: 1px solid rgba(37, 99, 235, 0.3);
+        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        color: #ffffff;
+        border-radius: 8px;
+        padding: 8px 12px;
+        margin-right: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .profile-upload-input::file-selector-button:hover {
+        background: linear-gradient(135deg, #1d4ed8 0%, #1e3a8a 100%);
+        box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+    }
+
+    .profile-upload-input::-webkit-file-upload-button {
+        border: 1px solid rgba(37, 99, 235, 0.3);
+        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        color: #ffffff;
+        border-radius: 8px;
+        padding: 8px 12px;
+        margin-right: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .profile-upload-input::-webkit-file-upload-button:hover {
+        background: linear-gradient(135deg, #1d4ed8 0%, #1e3a8a 100%);
+        box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+    }
+
+    .profile-upload-status {
+        font-size: 12px;
+        color: #64748b;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 12px;
+        background: rgba(37, 99, 235, 0.05);
+        border-radius: 8px;
+        border: 1px solid rgba(37, 99, 235, 0.1);
+    }
+    
+    .profile-upload-status::before {
+        content: '✓';
+        color: #16a34a;
+        font-weight: 700;
+    }
+
+    .profile-section-divider {
+        margin: 16px 0;
+        border-top: 1px solid rgba(148, 163, 184, 0.25);
+    }
+
+    .profile-subtitle {
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #64748b;
+        margin-bottom: 10px;
+    }
+
+    .profile-password-input {
+        font-size: 13px;
+        padding: 10px 12px;
+    }
+
+    .profile-password-hint {
+        font-size: 11px;
+        color: #64748b;
+        margin-top: 8px;
+    }
+
+    .profile-password-toggle {
+        display: inline-flex;
+        align-items: center;
+        margin: 8px 0 12px;
+        user-select: none;
+    }
+
+    .profile-password-toggle-input {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .profile-password-toggle-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        cursor: pointer;
+        margin: 0;
+        color: #475569;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .profile-password-toggle-switch {
+        width: 38px;
+        height: 22px;
+        border-radius: 999px;
+        background: #cbd5e1;
+        border: 1px solid #b8c4d6;
+        position: relative;
+        transition: all 0.25s ease;
+        box-shadow: inset 0 1px 3px rgba(15, 23, 42, 0.16);
+    }
+
+    .profile-password-toggle-switch::after {
+        content: "";
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: #ffffff;
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.24);
+        transition: transform 0.25s ease;
+    }
+
+    .profile-password-toggle-input:checked + .profile-password-toggle-label .profile-password-toggle-switch {
+        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        border-color: #1d4ed8;
+    }
+
+    .profile-password-toggle-input:checked + .profile-password-toggle-label .profile-password-toggle-switch::after {
+        transform: translateX(16px);
+    }
+
+    .profile-password-toggle-input:focus-visible + .profile-password-toggle-label .profile-password-toggle-switch {
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
+    }
+
+    .profile-password-toggle-text {
+        line-height: 1;
     }
 
     @media (max-width: 991.98px) {
@@ -272,8 +622,9 @@ include 'includes/header.php';
     }
 
     html.app-skin-dark .profile-hero {
-        border-color: rgba(96, 165, 250, 0.26);
-        background: linear-gradient(135deg, #132544 0%, #0f2942 55%, #113347 100%);
+        border-color: rgba(96, 165, 250, 0.3);
+        background: linear-gradient(135deg, #0f1f3c 0%, #0f2847 50%, #132549 100%);
+        box-shadow: 0 4px 20px rgba(13, 110, 253, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.08);
     }
 
     html.app-skin-dark .profile-name,
@@ -286,14 +637,106 @@ include 'includes/header.php';
     html.app-skin-dark .profile-field,
     html.app-skin-dark .profile-panel .card-header,
     html.app-skin-dark .profile-panel .card-body {
-        background: #10203a;
-        border-color: rgba(148, 163, 184, 0.22);
+        background: #0f1f3c;
+        border-color: rgba(148, 163, 184, 0.18);
+    }
+    
+    html.app-skin-dark .profile-panel {
+        border-color: rgba(148, 163, 184, 0.15);
+    }
+    
+    html.app-skin-dark .profile-panel .card-header {
+        border-bottom-color: rgba(148, 163, 184, 0.12);
+        background: linear-gradient(135deg, #0f1f3c 0%, #0d1929 100%);
+    }
+    
+    html.app-skin-dark .profile-panel .card-header h6 {
+        color: #e0e8fa;
     }
 
-    html.app-skin-dark .profile-field-label,
-    html.app-skin-dark .profile-kpi-label,
-    html.app-skin-dark .profile-action-note {
+    html.app-skin-dark .profile-action-note,
+    html.app-skin-dark .profile-upload-status {
         color: #94a3b8;
+    }
+    
+    html.app-skin-dark .form-label {
+        color: #e0e8fa;
+    }
+
+    html.app-skin-dark .profile-upload-input {
+        color: #e0e8fa;
+        background: linear-gradient(135deg, #0d1929 0%, #091223 100%);
+        border-color: rgba(96, 165, 250, 0.25);
+    }
+    
+    html.app-skin-dark .profile-upload-input:hover {
+        border-color: rgba(96, 165, 250, 0.4);
+        background: linear-gradient(135deg, #091223 0%, #050f1a 100%);
+    }
+
+    html.app-skin-dark .profile-upload-input::file-selector-button {
+        border-color: rgba(96, 165, 250, 0.4);
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        color: #ffffff;
+    }
+    
+    html.app-skin-dark .profile-upload-input::file-selector-button:hover {
+        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+    }
+
+    html.app-skin-dark .profile-upload-input::-webkit-file-upload-button {
+        border-color: rgba(96, 165, 250, 0.4);
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        color: #ffffff;
+    }
+    
+    html.app-skin-dark .profile-upload-input::-webkit-file-upload-button:hover {
+        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+    }
+    
+    html.app-skin-dark .profile-upload-status {
+        background: rgba(59, 130, 246, 0.1);
+        border-color: rgba(59, 130, 246, 0.2);
+        color: #a5cbff;
+    }
+
+    html.app-skin-dark .profile-section-divider {
+        border-top-color: rgba(148, 163, 184, 0.22);
+    }
+
+    html.app-skin-dark .profile-subtitle,
+    html.app-skin-dark .profile-password-hint {
+        color: #94a3b8;
+    }
+
+    html.app-skin-dark .profile-password-toggle {
+        color: #a9b7d0;
+    }
+
+    html.app-skin-dark .profile-password-toggle-label {
+        color: #a9b7d0;
+    }
+
+    html.app-skin-dark .profile-password-toggle-switch {
+        background: #25324a;
+        border-color: rgba(148, 163, 184, 0.42);
+    }
+
+    html.app-skin-dark .profile-password-toggle-switch::after {
+        background: #e2e8f0;
+    }
+
+    html.app-skin-dark .profile-password-input {
+        background-color: #0d1929;
+        border-color: rgba(148, 163, 184, 0.28);
+        color: #e2e8f0;
+    }
+
+    html.app-skin-dark .profile-password-input:focus {
+        border-color: rgba(96, 165, 250, 0.45);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
     }
     
 </style>
@@ -348,6 +791,43 @@ include 'includes/header.php';
 
 <script>
     document.body.classList.add('apps-account-page');
+
+    var initProfilePasswordToggle = function () {
+        var toggle = document.getElementById('toggle-password-visibility');
+        if (!toggle) {
+            return;
+        }
+
+        var form = toggle.closest('form');
+        if (!form) {
+            return;
+        }
+
+        var passwordFields = form.querySelectorAll('input[name="current_password"], input[name="new_password"], input[name="confirm_password"]');
+        var toggleText = form.querySelector('.profile-password-toggle-text');
+        var syncFieldTypes = function (show) {
+            var type = show ? 'text' : 'password';
+            passwordFields.forEach(function (field) {
+                field.type = type;
+            });
+
+            if (toggleText) {
+                toggleText.textContent = show ? 'Hide passwords' : 'Show passwords';
+            }
+        };
+
+        toggle.addEventListener('change', function () {
+            syncFieldTypes(toggle.checked);
+        });
+
+        syncFieldTypes(toggle.checked);
+    };
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initProfilePasswordToggle);
+    } else {
+        initProfilePasswordToggle();
+    }
 </script>
 
 <div class="main-content d-flex">
@@ -359,9 +839,15 @@ include 'includes/header.php';
         </div>
 
         <div class="content-area-body p-3 profile-shell">
+            <?php if ($profile_flash_message !== ''): ?>
+            <div class="alert alert-<?php echo htmlspecialchars($profile_flash_type, ENT_QUOTES, 'UTF-8'); ?> py-2 mb-3">
+                <?php echo htmlspecialchars($profile_flash_message, ENT_QUOTES, 'UTF-8'); ?>
+            </div>
+            <?php endif; ?>
+
             <div class="profile-hero">
                 <div class="profile-persona">
-                    <div class="profile-avatar"><?php echo htmlspecialchars($initials, ENT_QUOTES, 'UTF-8'); ?></div>
+                    <div class="profile-avatar"><?php if ($profile_avatar_src !== ''): ?><img src="<?php echo htmlspecialchars($profile_avatar_src, ENT_QUOTES, 'UTF-8'); ?>" alt="Profile Picture"><?php else: ?><?php echo htmlspecialchars($initials, ENT_QUOTES, 'UTF-8'); ?><?php endif; ?></div>
                     <div>
                         <h6 class="profile-name"><?php echo htmlspecialchars($displayName, ENT_QUOTES, 'UTF-8'); ?></h6>
                         <span class="profile-role"><?php echo htmlspecialchars(ucfirst((string)($user['role'] ?? '')), ENT_QUOTES, 'UTF-8'); ?></span>
@@ -392,7 +878,7 @@ include 'includes/header.php';
                 <div class="col-lg-7">
                     <div class="card profile-panel">
                         <div class="card-header">
-                            <h6 class="mb-0">My Account</h6>
+                            <h6 class="mb-0"><span>💼</span> My Account</h6>
                         </div>
                         <div class="card-body">
                             <div class="profile-grid">
@@ -428,10 +914,23 @@ include 'includes/header.php';
                         </div>
                     </div>
 
+                    <div class="card profile-panel mt-3">
+                        <div class="card-header">
+                            <h6 class="mb-0"><span>🔗</span> Quick Access</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-grid gap-2">
+                                <a class="btn btn-outline-primary profile-action-btn" href="notifications.php">Open My Notifications</a>
+                                <a class="btn btn-outline-secondary profile-action-btn" href="activity-feed.php">Open My Activity Feed</a>
+                                <a class="btn btn-outline-dark profile-action-btn" href="auth-login-cover.php?logout=1">Logout</a>
+                            </div>
+                        </div>
+                    </div>
+
                     <?php if (is_array($studentProfile)): ?>
                     <div class="card profile-panel mt-3">
                         <div class="card-header">
-                            <h6 class="mb-0">Student Profile</h6>
+                            <h6 class="mb-0"><span>🎓</span> Student Profile</h6>
                         </div>
                         <div class="card-body">
                             <div class="profile-grid">
@@ -468,15 +967,40 @@ include 'includes/header.php';
                 <div class="col-lg-5" id="account-settings">
                     <div class="card profile-panel">
                         <div class="card-header">
-                            <h6 class="mb-0">Individual Account Settings</h6>
+                            <h6 class="mb-0"><span>⚙️</span> Individual Account Settings</h6>
                         </div>
                         <div class="card-body">
                             <p class="profile-action-note mb-3">Quick actions for your own account.</p>
-                            <div class="d-grid gap-2">
-                                <a class="btn btn-outline-primary profile-action-btn" href="notifications.php">Open My Notifications</a>
-                                <a class="btn btn-outline-secondary profile-action-btn" href="activity-feed.php">Open My Activity Feed</a>
-                                <a class="btn btn-outline-dark profile-action-btn" href="auth-login-cover.php?logout=1">Logout</a>
-                            </div>
+                            <form method="post" enctype="multipart/form-data" class="mb-3">
+                                <input type="hidden" name="action" value="upload_profile_picture">
+                                <label class="form-label mb-2" style="font-weight: 600; display: flex; align-items: center; gap: 6px;"><span>📷</span>Update Profile Photo</label>
+                                <input type="file" name="profile_picture" class="form-control profile-upload-input mb-3" accept="image/*" required>
+                                <button type="submit" class="btn btn-primary profile-action-btn w-100 mb-3">
+                                    <span style="margin-right: 6px;">⬆️</span>Upload Photo
+                                </button>
+                                <div class="profile-upload-status">
+                                    Current source: <?php echo htmlspecialchars($profile_picture_src !== '' ? $profile_picture_src : 'Default avatar', ENT_QUOTES, 'UTF-8'); ?>
+                                </div>
+                            </form>
+
+                            <div class="profile-section-divider"></div>
+
+                            <form method="post" class="mb-3">
+                                <input type="hidden" name="action" value="change_password">
+                                <div class="profile-subtitle">Change Password</div>
+                                <input type="password" name="current_password" class="form-control profile-password-input mb-2" placeholder="Current password" autocomplete="current-password" required>
+                                <input type="password" name="new_password" class="form-control profile-password-input mb-2" placeholder="New password" autocomplete="new-password" minlength="8" required>
+                                <input type="password" name="confirm_password" class="form-control profile-password-input mb-2" placeholder="Confirm new password" autocomplete="new-password" minlength="8" required>
+                                <div class="profile-password-toggle">
+                                    <input type="checkbox" id="toggle-password-visibility" class="profile-password-toggle-input">
+                                    <label for="toggle-password-visibility" class="profile-password-toggle-label">
+                                        <span class="profile-password-toggle-switch" aria-hidden="true"></span>
+                                        <span class="profile-password-toggle-text">Show passwords</span>
+                                    </label>
+                                </div>
+                                <button type="submit" class="btn btn-outline-primary profile-action-btn w-100">Change Password</button>
+                                <div class="profile-password-hint">Use at least 8 characters with uppercase, lowercase, and a number.</div>
+                            </form>
                         </div>
                     </div>
                 </div>
