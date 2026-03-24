@@ -1,5 +1,6 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
+require_once dirname(__DIR__) . '/lib/ojt_masterlist.php';
 $host = defined('DB_HOST') ? DB_HOST : 'localhost';
 $db_user = defined('DB_USER') ? DB_USER : 'root';
 $db_password = defined('DB_PASS') ? DB_PASS : '';
@@ -21,6 +22,25 @@ if (!in_array($prefill_greeting_pref, ['sir', 'maam', 'either'], true)) {
 $prefill_recipient_title = strtolower(trim((string)($_GET['recipient_title'] ?? 'auto')));
 if (!in_array($prefill_recipient_title, ['auto', 'mr', 'ms', 'none'], true)) {
     $prefill_recipient_title = 'auto';
+}
+
+function endorsement_document_student(mysqli $conn, int $id): array
+{
+    if ($id <= 0) {
+        return [];
+    }
+
+    $stmt = $conn->prepare("SELECT s.*, c.name as course_name FROM students s LEFT JOIN courses c ON s.course_id = c.id WHERE s.id = ? LIMIT 1");
+    if (!$stmt) {
+        return [];
+    }
+
+    $stmt->bind_param('i', $id);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
+    return is_array($row) ? $row : [];
 }
 
 if (isset($_GET['action'])) {
@@ -49,25 +69,29 @@ if (isset($_GET['action'])) {
 
     if ($action === 'get_student' && isset($_GET['id'])) {
         $id = intval($_GET['id']);
-        $stmt = $conn->prepare("SELECT s.*, c.name as course_name FROM students s LEFT JOIN courses c ON s.course_id = c.id WHERE s.id = ? LIMIT 1");
-        $stmt->bind_param('i', $id);
-        $stmt->execute();
-        $row = $stmt->get_result()->fetch_assoc();
+        $row = endorsement_document_student($conn, $id);
         echo json_encode($row ?: new stdClass());
         exit;
     }
 
     if ($action === 'get_endorsement' && isset($_GET['id'])) {
         $id = intval($_GET['id']);
+        $student = endorsement_document_student($conn, $id);
+        $masterlist = !empty($student) ? biotern_masterlist_fetch_for_student($conn, $student) : [];
+        $row = !empty($masterlist) ? biotern_masterlist_endorsement_defaults($masterlist, $student) : [];
         $exists = $conn->query("SHOW TABLES LIKE 'endorsement_letter'");
-        if (!$exists || $exists->num_rows === 0) {
-            echo json_encode(new stdClass());
-            exit;
+        if ($exists && $exists->num_rows > 0) {
+            $stmt = $conn->prepare("SELECT * FROM endorsement_letter WHERE user_id = ? LIMIT 1");
+            if ($stmt) {
+                $stmt->bind_param('i', $id);
+                $stmt->execute();
+                $saved = $stmt->get_result()->fetch_assoc();
+                $stmt->close();
+                if (is_array($saved) && !empty($saved)) {
+                    $row = array_merge($row, array_filter($saved, static fn($value) => $value !== null && $value !== ''));
+                }
+            }
         }
-        $stmt = $conn->prepare("SELECT * FROM endorsement_letter WHERE user_id = ? LIMIT 1");
-        $stmt->bind_param('i', $id);
-        $stmt->execute();
-        $row = $stmt->get_result()->fetch_assoc();
         echo json_encode($row ?: new stdClass());
         exit;
     }

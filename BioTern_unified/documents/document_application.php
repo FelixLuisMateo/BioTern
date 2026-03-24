@@ -1,5 +1,6 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
+require_once dirname(__DIR__) . '/lib/ojt_masterlist.php';
 // Documents page - provides UI to generate student documents (Application Letter etc.)
 
 $host = defined('DB_HOST') ? DB_HOST : 'localhost';
@@ -15,6 +16,26 @@ try {
     die('Database error: ' . $e->getMessage());
 }
 $prefill_student_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
+
+function application_document_student(mysqli $conn, int $id): array
+{
+    if ($id <= 0) {
+        return [];
+    }
+
+    $stmt = $conn->prepare("SELECT s.*, c.name as course_name FROM students s LEFT JOIN courses c ON s.course_id = c.id WHERE s.id = ? LIMIT 1");
+    if (!$stmt) {
+        return [];
+    }
+
+    $stmt->bind_param('i', $id);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    $data = $res ? $res->fetch_assoc() : [];
+    $stmt->close();
+
+    return is_array($data) ? $data : [];
+}
 
 // Simple AJAX endpoints served by this file
 if (isset($_GET['action'])) {
@@ -38,27 +59,32 @@ if (isset($_GET['action'])) {
 
     if ($action === 'get_student' && isset($_GET['id'])) {
         $id = intval($_GET['id']);
-        $stmt = $conn->prepare("SELECT s.*, c.name as course_name FROM students s LEFT JOIN courses c ON s.course_id = c.id WHERE s.id = ? LIMIT 1");
-        $stmt->bind_param('i', $id);
-        $stmt->execute();
-        $res = $stmt->get_result();
-        $data = $res->fetch_assoc();
+        $data = application_document_student($conn, $id);
         echo json_encode($data ?: new stdClass());
         exit;
     }
 
     if ($action === 'get_application_letter' && isset($_GET['id'])) {
         $id = intval($_GET['id']);
+        $student = application_document_student($conn, $id);
+        $masterlist = !empty($student) ? biotern_masterlist_fetch_for_student($conn, $student) : [];
+        $data = !empty($masterlist) ? biotern_masterlist_application_defaults($masterlist) : [];
+
         $exists = $conn->query("SHOW TABLES LIKE 'application_letter'");
-        if (!$exists || $exists->num_rows === 0) {
-            echo json_encode(new stdClass());
-            exit;
+        if ($exists && $exists->num_rows > 0) {
+            $stmt = $conn->prepare("SELECT * FROM application_letter WHERE user_id = ? LIMIT 1");
+            if ($stmt) {
+                $stmt->bind_param('i', $id);
+                $stmt->execute();
+                $res = $stmt->get_result();
+                $saved = $res ? $res->fetch_assoc() : [];
+                $stmt->close();
+                if (is_array($saved) && !empty($saved)) {
+                    $data = array_merge($data, array_filter($saved, static fn($value) => $value !== null && $value !== ''));
+                }
+            }
         }
-        $stmt = $conn->prepare("SELECT * FROM application_letter WHERE user_id = ? LIMIT 1");
-        $stmt->bind_param('i', $id);
-        $stmt->execute();
-        $res = $stmt->get_result();
-        $data = $res->fetch_assoc();
+
         echo json_encode($data ?: new stdClass());
         exit;
     }
