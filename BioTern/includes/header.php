@@ -337,7 +337,7 @@ if ($header_db instanceof mysqli) {
     <link rel="stylesheet" type="text/css" href="assets/css/theme.css" />
     <link rel="stylesheet" type="text/css" href="assets/css/mobile.css" />
     <?php if ($header_is_management_page): ?>
-        <link rel="stylesheet" type="text/css" href="assets/css/managements_mobile.css" />
+        <link rel="stylesheet" type="text/css" href="assets/css/management/managements_mobile.css" />
     <?php endif; ?>
     <?php if (isset($page_styles) && is_array($page_styles)): ?>
         <?php foreach ($page_styles as $stylesheet): ?>

@@ -392,8 +392,8 @@ if ($student_id > 0 && ojt_edit_table_exists($conn, 'ojt_supervisor_reviews')) {
 
 $page_title = 'BioTern || OJT Edit';
 $page_styles = [
-    'assets/css/managements_ojt_shared.css',
-    'assets/css/managements_ojt_edit.css',
+    'assets/css/management/managements_ojt_shared.css',
+    'assets/css/management/managements_ojt_edit.css',
 ];
 $page_scripts = [
     'assets/js/theme-customizer-init.min.js',

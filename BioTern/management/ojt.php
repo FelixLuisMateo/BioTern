@@ -383,12 +383,12 @@ $print_section_label = $section_filter !== '' ? $section_filter : 'ALL';
 
 $page_title = 'BioTern || OJT Dashboard';
 $page_styles = [
-    'assets/css/managements_filters.css',
-    'assets/css/managements_ojt_shared.css',
-    'assets/css/managements_ojt.css',
+    'assets/css/management/managements_filters.css',
+    'assets/css/management/managements_ojt_shared.css',
+    'assets/css/management/managements_ojt.css',
 ];
 $page_scripts = [
-    'assets/js/ojt-dashboard-runtime.js',
+    'assets/js/management/ojt-dashboard-runtime.js',
     'assets/js/theme-customizer-init.min.js',
 ];
 include 'includes/header.php';

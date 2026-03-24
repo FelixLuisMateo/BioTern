@@ -32,7 +32,7 @@ if ($res) {
 
 $page_title = 'BioTern || Attendance Corrections';
 $page_styles = [
-    'assets/css/pages-attendance-page.css',
+    'assets/css/pages/pages-attendance-page.css',
 ];
 $page_scripts = [
     'assets/js/theme-customizer-init.min.js',

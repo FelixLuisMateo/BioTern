@@ -357,10 +357,10 @@ foreach ($today_records as $tr) {
 
 $page_title = 'BioTern || Biometric Demo';
 $page_styles = [
-    'assets/css/demo-biometric-page.css',
+    'assets/css/pages/demo-biometric-page.css',
 ];
 $page_scripts = [
-    'assets/js/demo-biometric-runtime.js',
+    'assets/js/pages/demo-biometric-runtime.js',
     'assets/js/theme-customizer-init.min.js',
 ];
 

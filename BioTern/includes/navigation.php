@@ -77,7 +77,8 @@ $nav_active_documents = biotern_nav_any_active($nav_current_file, [
     'document_dtr.php', 'document_resume.php', 'document_waiver.php',
 ]);
 $nav_active_reports = biotern_nav_any_active($nav_current_file, [
-    'reports-sales.php', 'reports-ojt.php', 'reports-project.php', 'reports-timesheets.php', 'reports-attendance-operations.php',
+    'reports-ojt.php', 'reports-project.php', 'reports-timesheets.php', 'reports-attendance-operations.php',
+    'reports-chat-logs.php', 'reports-chat-reports.php', 'reports-login-logs.php',
 ]);
 $nav_active_academic = biotern_nav_any_active($nav_current_file, [
     'courses.php', 'courses-create.php', 'courses-edit.php',
@@ -88,9 +89,6 @@ $nav_active_academic = biotern_nav_any_active($nav_current_file, [
 ]);
 $nav_active_apps = biotern_nav_any_active($nav_current_file, [
     'apps-chat.php', 'apps-email.php', 'apps-tasks.php', 'apps-notes.php', 'apps-storage.php', 'apps-calendar.php',
-]);
-$nav_active_widgets = biotern_nav_any_active($nav_current_file, [
-    'widgets-lists.php', 'widgets-tables.php', 'widgets-charts.php', 'widgets-statistics.php', 'widgets-miscellaneous.php',
 ]);
 $nav_active_users = biotern_nav_any_active($nav_current_file, [
     'auth-register-creative.php', 'users.php', 'create_admin.php',
@@ -170,10 +168,13 @@ $nav_active_help = biotern_nav_any_active($nav_current_file, [
                         <span class="nxl-mtext">Reports</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                     </a>
                     <ul class="nxl-submenu">
-                        <li class="nxl-item<?php echo biotern_nav_is_active('reports-sales.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-sales.php">Sales Report</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('reports-ojt.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-ojt.php">OJT Report</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('reports-project.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-project.php">Project Report</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('reports-timesheets.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-timesheets.php">Timesheets Report</a></li>
+                        <li class="nxl-item<?php echo biotern_nav_is_active('reports-attendance-operations.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-attendance-operations.php">Attendance Operations</a></li>
+                        <li class="nxl-item<?php echo biotern_nav_is_active('reports-chat-logs.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-chat-logs.php">Chat Logs</a></li>
+                        <li class="nxl-item<?php echo biotern_nav_is_active('reports-chat-reports.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-chat-reports.php">Reported Chats</a></li>
+                        <li class="nxl-item<?php echo biotern_nav_is_active('reports-login-logs.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-login-logs.php">Login Logs</a></li>
                     </ul>
                 </li>
                 <?php endif; ?>
@@ -215,19 +216,6 @@ $nav_active_help = biotern_nav_any_active($nav_current_file, [
                         <li class="nxl-item<?php echo biotern_nav_is_active('apps-calendar.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="apps-calendar.php">Calendar</a></li>
                     </ul>
                 </li>
-                <li class="nxl-item nxl-hasmenu<?php echo $nav_active_widgets ? ' active nxl-trigger' : ''; ?>">
-                    <a href="javascript:void(0);" class="nxl-link">
-                        <span class="nxl-micon"><i class="feather-layout"></i></span>
-                        <span class="nxl-mtext">Widgets</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                    </a>
-                    <ul class="nxl-submenu">
-                        <li class="nxl-item<?php echo biotern_nav_is_active('widgets-lists.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="widgets-lists.php">Lists</a></li>
-                        <li class="nxl-item<?php echo biotern_nav_is_active('widgets-tables.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="widgets-tables.php">Tables</a></li>
-                        <li class="nxl-item<?php echo biotern_nav_is_active('widgets-charts.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="widgets-charts.php">Charts</a></li>
-                        <li class="nxl-item<?php echo biotern_nav_is_active('widgets-statistics.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="widgets-statistics.php">Statistics</a></li>
-                        <li class="nxl-item<?php echo biotern_nav_is_active('widgets-miscellaneous.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="widgets-miscellaneous.php">Miscellaneous</a></li>
-                    </ul>
-                </li>
                 <?php endif; ?>
 
                 <?php if ($nav_can_system): ?>
@@ -263,7 +251,6 @@ $nav_active_help = biotern_nav_any_active($nav_current_file, [
                     <ul class="nxl-submenu">
                         <li class="nxl-item<?php echo biotern_nav_is_active('settings-support.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="settings-support.php">Support</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('help-knowledgebase.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="help-knowledgebase.php">Knowledge Base</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="/docs/documentations">Documentations</a></li>
                     </ul>
                 </li>
                 <?php endif; ?>

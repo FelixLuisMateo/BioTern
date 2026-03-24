@@ -1,11 +1,18 @@
 <?php
+require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/ops_helpers.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 require_roles_page(['admin', 'coordinator', 'supervisor']);
 
-$conn = new mysqli('localhost', 'root', '', 'biotern_db');
+$conn = new mysqli(
+    defined('DB_HOST') ? DB_HOST : 'localhost',
+    defined('DB_USER') ? DB_USER : 'root',
+    defined('DB_PASS') ? DB_PASS : '',
+    defined('DB_NAME') ? DB_NAME : 'biotern_db',
+    defined('DB_PORT') ? (int)DB_PORT : 3306
+);
 if ($conn->connect_error) {
     die("DB connection failed");
 }
@@ -39,38 +46,66 @@ if (table_exists($conn, 'biometric_event_queue')) {
     }
 }
 
+$page_body_class = trim(($page_body_class ?? '') . ' reports-page');
+$page_styles = array_merge($page_styles ?? [], ['assets/css/reports/reports-shell.css']);
 $page_title = 'BioTern || Attendance Operations Report';
 include 'includes/header.php';
 ?>
 <main class="nxl-container">
-    <div class="nxl-content">
-    <div class="container py-4">
-        <h3 class="mb-3">Attendance Operations Report</h3>
-        <div class="row mb-4">
-            <div class="col-md-4"><div class="card"><div class="card-body"><strong>Pending Corrections:</strong> <?php echo $pendingCorrections; ?></div></div></div>
-            <div class="col-md-4"><div class="card"><div class="card-body"><strong>Pending Queue Events:</strong> <?php echo $pendingQueue; ?></div></div></div>
-            <div class="col-md-4"><div class="card"><div class="card-body"><strong>Failed Queue Events:</strong> <?php echo $failedQueue; ?></div></div></div>
+<div class="nxl-content">
+<div class="main-content">
+    <div class="page-header">
+        <div class="page-header-left d-flex align-items-center">
+            <div class="page-header-title">
+                <h5 class="m-b-10">Reports - Attendance Operations</h5>
+                <p class="text-muted mb-0">Operational visibility for attendance correction and biometric queue health.</p>
+            </div>
         </div>
+    </div>
 
-        <div class="card">
-            <div class="card-header">Daily Operational Summary (Last 30 days)</div>
-            <div class="card-body p-0">
-                <table class="table table-striped mb-0">
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Total</th>
-                            <th>Approved</th>
-                            <th>Pending</th>
-                            <th>Rejected</th>
-                            <th>Zero Hours</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php if (empty($rows)): ?>
-                            <tr><td colspan="6" class="text-center">No data. Run `db_updates_operations.sql` if needed.</td></tr>
-                        <?php else: ?>
-                            <?php foreach ($rows as $row): ?>
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <strong>Pending Corrections:</strong> <?php echo $pendingCorrections; ?>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <strong>Pending Queue Events:</strong> <?php echo $pendingQueue; ?>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <strong>Failed Queue Events:</strong> <?php echo $failedQueue; ?>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">Daily Operational Summary (Last 30 days)</div>
+        <div class="card-body p-0">
+            <table class="table table-striped mb-0">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Total</th>
+                        <th>Approved</th>
+                        <th>Pending</th>
+                        <th>Rejected</th>
+                        <th>Zero Hours</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if (empty($rows)): ?>
+                        <tr><td colspan="6" class="text-center">No data. Run `db_updates_operations.sql` if needed.</td></tr>
+                    <?php else: ?>
+                        <?php foreach ($rows as $row): ?>
                             <tr>
                                 <td><?php echo htmlspecialchars($row['attendance_date']); ?></td>
                                 <td><?php echo (int)$row['total_records']; ?></td>
@@ -79,19 +114,13 @@ include 'includes/header.php';
                                 <td><?php echo (int)$row['rejected_records']; ?></td>
                                 <td><?php echo (int)$row['zero_hour_records']; ?></td>
                             </tr>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
-            </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </tbody>
+            </table>
         </div>
     </div>
-
-
+</div>
 </div> <!-- .nxl-content -->
 </main>
 <?php include 'includes/footer.php'; ?>
-
-
-
-

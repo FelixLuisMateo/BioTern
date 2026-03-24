@@ -200,7 +200,7 @@ include 'includes/header.php';
 ?>
 <main class="nxl-container">
     <div class="nxl-content">
-<link rel="stylesheet" type="text/css" href="assets/css/managements_create_shared.css">
+<link rel="stylesheet" type="text/css" href="assets/css/management/managements_create_shared.css">
 <div class="page-header">
     <div class="page-header-left d-flex align-items-center">
         <div class="page-header-title">
@@ -270,7 +270,7 @@ include 'includes/header.php';
         </div>
     </div>
 </div>
-<script src="assets/js/management-sections-create-runtime.js"></script>
+<script src="assets/js/management/management-sections-create-runtime.js"></script>
 </div> <!-- .nxl-content -->
 </main>
 <?php

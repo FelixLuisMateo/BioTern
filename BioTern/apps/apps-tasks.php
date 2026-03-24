@@ -1770,7 +1770,7 @@ include 'includes/header.php';
     <!--! END: Vendors JS !-->
     <!--! BEGIN: Apps Init  !-->
     <script src="assets/js/common-init.min.js"></script>
-    <script src="assets/js/apps-tasks-init.min.js"></script>
+    <script src="assets/js/apps/apps-tasks-init.min.js"></script>
     <!--! END: Apps Init !-->
     <!--! BEGIN: Theme Customizer  !-->
     <script src="assets/js/theme-customizer-init.min.js"></script>

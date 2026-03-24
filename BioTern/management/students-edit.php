@@ -578,13 +578,13 @@ function formatDateTime($date) {
 $page_title = 'BioTern || Edit Student - ' . $student['first_name'] . ' ' . $student['last_name'];
 $page_styles = array(
     'assets/vendors/css/datepicker.min.css',
-    'assets/css/page_shell.css',
-    'assets/css/managements_students_shared.css',
-    'assets/css/managements_students_edit.css',
+    'assets/css/layout/page_shell.css',
+    'assets/css/management/managements_students_shared.css',
+    'assets/css/management/managements_students_edit.css',
 );
 $page_vendor_scripts = array('assets/vendors/js/datepicker.min.js');
 $page_scripts = array(
-    'assets/js/students-edit-runtime.js',
+    'assets/js/management/students-edit-runtime.js',
     'assets/js/theme-customizer-init.min.js',
 );
 include 'includes/header.php';

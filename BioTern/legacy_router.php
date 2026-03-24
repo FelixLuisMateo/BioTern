@@ -211,20 +211,17 @@ $map = [
   'document_moa.php' => 'documents/document_moa.php',
   'document_dau_moa.php' => 'documents/document_dau_moa.php',
 
-  'reports-sales.php' => 'reports/reports-sales.php',
   'reports-ojt.php' => 'reports/reports-ojt.php',
   'reports-project.php' => 'reports/reports-project.php',
   'reports-timesheets.php' => 'reports/reports-timesheets.php',
   'reports-attendance-operations.php' => 'reports/reports-attendance-operations.php',
+  'reports-login-logs.php' => 'reports/reports-login-logs.php',
+  'reports-chat-logs.php' => 'reports/reports-chat-logs.php',
+  'reports-chat-reports.php' => 'reports/reports-chat-reports.php',
 
   'settings-support.php' => 'settings/settings-support.php',
   'theme-customizer.php' => 'pages/theme-customizer.php',
 
-  'widgets-lists.php' => 'widgets/widgets-lists.php',
-  'widgets-tables.php' => 'widgets/widgets-tables.php',
-  'widgets-charts.php' => 'widgets/widgets-charts.php',
-  'widgets-statistics.php' => 'widgets/widgets-statistics.php',
-  'widgets-miscellaneous.php' => 'widgets/widgets-miscellaneous.php',
 
   'apps-chat.php' => 'apps/apps-chat.php',
   'apps-email.php' => 'apps/apps-email.php',
@@ -250,11 +247,6 @@ $map = [
   'auth-reset-cover.php' => 'auth/auth-reset-cover.php',
   'auth-resetting-minimal.php' => 'auth/auth-resetting-minimal.php',
   'auth-verify-cover.php' => 'auth/auth-verify-cover.php',
-  'diagnose.php' => 'tools/diagnose.php',
-  'setup_db.php' => 'tools/setup_db.php',
-  'test_data.php' => 'tools/test_data.php',
-  'test_db.php' => 'tools/test_db.php',
-  'update_remaining_hours.php' => 'tools/update_remaining_hours.php',
 ];
 
 $file = isset($_GET['file']) ? basename((string)$_GET['file']) : '';
@@ -406,7 +398,8 @@ if ($is_logged_in) {
     'attendance.php', 'attendance-corrections.php', 'edit_attendance.php', 'print_attendance.php',
     'demo-biometric.php',
     'ojt.php', 'ojt-create.php', 'ojt-edit.php', 'ojt-view.php', 'ojt-workflow-board.php',
-    'reports-sales.php', 'reports-ojt.php', 'reports-project.php', 'reports-timesheets.php', 'reports-attendance-operations.php',
+    'reports-ojt.php', 'reports-project.php', 'reports-timesheets.php', 'reports-attendance-operations.php',
+    'reports-login-logs.php', 'reports-chat-logs.php', 'reports-chat-reports.php',
   ];
   $academic_files = [
     'courses.php', 'courses-create.php', 'courses-edit.php',
@@ -417,7 +410,6 @@ if ($is_logged_in) {
   ];
   $workspace_files = [
     'apps-chat.php', 'apps-email.php', 'apps-tasks.php', 'apps-notes.php', 'apps-storage.php', 'apps-calendar.php',
-    'widgets-lists.php', 'widgets-tables.php', 'widgets-charts.php', 'widgets-statistics.php', 'widgets-miscellaneous.php',
   ];
   $system_files = [
     'auth-register-creative.php', 'users.php', 'create_admin.php',

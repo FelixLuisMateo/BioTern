@@ -67,8 +67,8 @@ if (isset($_GET['action'])) {
 
 $page_title = 'MOA';
 $base_href = '../';
-$page_styles = ['assets/css/page_shell.css', 'assets/css/documents.css'];
-$page_scripts = ['assets/js/documents-page-runtime.js'];
+$page_styles = ['assets/css/layout/page_shell.css', 'assets/css/documents/documents.css'];
+$page_scripts = ['assets/js/documents/documents-page-runtime.js'];
 include __DIR__ . '/../includes/header.php';
 ?>
 <main class="nxl-container">

@@ -34,7 +34,7 @@ function dtr_fmt_time($value): string {
 <head>
     <meta charset="UTF-8">
     <title>DTR - <?php echo dtr_h($student_name); ?></title>
-    <link rel="stylesheet" href="../assets/css/document-dtr.css">
+    <link rel="stylesheet" href="../assets/css/documents/document-dtr.css">
 </head>
 <body>
     <h1>Daily Time Record (DTR)</h1>

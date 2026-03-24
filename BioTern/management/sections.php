@@ -172,8 +172,8 @@ include 'includes/header.php';
 ?>
 <main class="nxl-container">
     <div class="nxl-content">
-<link rel="stylesheet" type="text/css" href="assets/css/managements_filters.css">
-<link rel="stylesheet" type="text/css" href="assets/css/managements_sections.css">
+<link rel="stylesheet" type="text/css" href="assets/css/management/managements_filters.css">
+<link rel="stylesheet" type="text/css" href="assets/css/management/managements_sections.css">
 <div class="page-header">
     <div class="page-header-left d-flex align-items-center">
         <div class="page-header-title">
@@ -315,7 +315,7 @@ include 'includes/header.php';
 </div> <!-- .nxl-content -->
 </main>
 <?php include 'includes/footer.php'; ?>
-<script src="assets/js/management-sections-runtime.js"></script>
+<script src="assets/js/management/management-sections-runtime.js"></script>
 
 
 

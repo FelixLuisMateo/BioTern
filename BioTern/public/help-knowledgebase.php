@@ -2,7 +2,7 @@
 $page_title = 'Knowledge Base';
 $base_href = '../';
 $page_styles = [
-    'assets/css/help-knowledgebase-page.css',
+    'assets/css/pages/help-knowledgebase-page.css',
 ];
 
 include __DIR__ . '/../includes/header.php';
