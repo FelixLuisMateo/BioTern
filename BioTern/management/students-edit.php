@@ -579,12 +579,12 @@ $page_title = 'BioTern || Edit Student - ' . $student['first_name'] . ' ' . $stu
 $page_styles = array(
     'assets/vendors/css/datepicker.min.css',
     'assets/css/layout/page_shell.css',
-    'assets/css/management/managements_students_shared.css',
-    'assets/css/management/managements_students_edit.css',
+    'assets/css/modules/management/management-students-shared.css',
+    'assets/css/modules/management/management-students-edit.css',
 );
 $page_vendor_scripts = array('assets/vendors/js/datepicker.min.js');
 $page_scripts = array(
-    'assets/js/management/students-edit-runtime.js',
+    'assets/js/modules/management/students-edit-runtime.js',
     'assets/js/theme-customizer-init.min.js',
 );
 include 'includes/header.php';

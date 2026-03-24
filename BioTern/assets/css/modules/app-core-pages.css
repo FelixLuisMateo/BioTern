@@ -1,0 +1,92 @@
+/* SMACSS Module: page-scoped styles extracted from core.css */
+
+/* pages/analytics.php */
+.page-analytics .analytics-hero .card-body {
+  background: linear-gradient(
+    95deg,
+    rgba(var(--bs-primary-rgb), 0.95),
+    rgba(31, 90, 166, 0.84)
+  );
+}
+
+.page-analytics .analytics-chart-panel {
+  border: 1px dashed rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  padding: 10px;
+}
+
+.page-analytics .app-chart-240 {
+  height: 240px;
+}
+
+.page-analytics .app-chart-260 {
+  height: 260px;
+}
+
+/* pages/attendance.php */
+.page-attendance .app-bulk-toolbar {
+  display: none;
+}
+
+.page-attendance .app-remarks-hidden {
+  display: none;
+  margin-top: 10px;
+}
+
+/* pages/homepage.php */
+.app-scroll-y-400 {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.app-activity-bg-student {
+  background-color: #e3f2fd;
+}
+
+.app-activity-bg-attendance {
+  background-color: #f3e5f5;
+}
+
+.app-activity-bg-default {
+  background-color: #e8f5e9;
+}
+
+.app-icon-14 {
+  font-size: 14px;
+}
+
+.app-max-w-340 {
+  max-width: 340px;
+}
+
+.app-status-dot-position {
+  top: 76%;
+  right: 10px;
+}
+
+.app-thumb-150 {
+  max-width: 150px;
+  max-height: 150px;
+}
+
+.app-avatar-42 {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.app-progress-6 {
+  height: 6px;
+}
+
+.app-avatar-56 {
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+}
+
+/* Print/document pages */
+.print-doc .app-center-title {
+  text-align: center;
+}

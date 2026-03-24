@@ -47,7 +47,7 @@ if (table_exists($conn, 'biometric_event_queue')) {
 }
 
 $page_body_class = trim(($page_body_class ?? '') . ' reports-page');
-$page_styles = array_merge($page_styles ?? [], ['assets/css/reports/reports-shell.css']);
+$page_styles = array_merge($page_styles ?? [], ['assets/css/modules/reports/reports-shell.css']);
 $page_title = 'BioTern || Attendance Operations Report';
 include 'includes/header.php';
 ?>

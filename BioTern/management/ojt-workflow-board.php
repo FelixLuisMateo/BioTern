@@ -124,9 +124,9 @@ function status_label(string $s): string {
 
 $page_title = 'BioTern || OJT Workflow Board';
 $page_styles = [
-    'assets/css/management/managements_filters.css',
-    'assets/css/management/managements_ojt_shared.css',
-    'assets/css/management/managements_ojt_workflow_board.css',
+    'assets/css/modules/management/management-filters.css',
+    'assets/css/modules/management/management-ojt-shared.css',
+    'assets/css/modules/management/management-ojt-workflow-board.css',
 ];
 $page_scripts = [
     'assets/js/theme-customizer-init.min.js',

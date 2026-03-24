@@ -1,0 +1,211 @@
+.chatreports-hero {
+        border: 1px solid rgba(80, 102, 144, 0.15);
+        background: #ffffff;
+        border-radius: 14px;
+        padding: 1.1rem 1.25rem;
+        margin-bottom: 1rem;
+    }
+
+    .chatreports-summary-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+    }
+
+    .chatreports-kpi {
+        border: 1px solid rgba(80, 102, 144, 0.14);
+        border-radius: 12px;
+        padding: 0.85rem 1rem;
+        background: #fff;
+    }
+
+    .chatreports-kpi-label {
+        font-size: 0.75rem;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #6b7280;
+        margin-bottom: 0.25rem;
+    }
+
+    .chatreports-kpi-value {
+        font-size: 1.4rem;
+        font-weight: 700;
+        line-height: 1.1;
+        color: #1e3a8a;
+    }
+
+    .chatreports-filter-wrap {
+        border: 1px solid rgba(80, 102, 144, 0.14);
+        border-radius: 12px;
+        padding: 0.9rem;
+        background: #fff;
+        margin-bottom: 1rem;
+    }
+
+    .chatreports-table-card {
+        border: 1px solid rgba(80, 102, 144, 0.14);
+        border-radius: 12px;
+        overflow: hidden;
+        background: #fff;
+    }
+
+    .chatreports-table-card thead th {
+        font-size: 0.76rem;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #64748b;
+        background: #f8fafc;
+        border-bottom: 1px solid #e2e8f0;
+        white-space: nowrap;
+    }
+
+    .chatreports-message {
+        max-width: 340px;
+        white-space: normal;
+        word-break: break-word;
+    }
+
+    .chatreports-status-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.3rem 0.55rem;
+        border-radius: 999px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+        border: 1px solid transparent;
+    }
+
+    .chatreports-status-open {
+        background: #eaf2ff;
+        border-color: #bfdbfe;
+        color: #1d4ed8;
+    }
+
+    .chatreports-status-under_review {
+        background: #fff7e6;
+        border-color: #fed7aa;
+        color: #c2410c;
+    }
+
+    .chatreports-status-resolved {
+        background: #ecfdf3;
+        border-color: #a7f3d0;
+        color: #047857;
+    }
+
+    .chatreports-status-dismissed {
+        background: #f4f4f5;
+        border-color: #d4d4d8;
+        color: #3f3f46;
+    }
+
+    .chatreports-action-form {
+        min-width: 210px;
+        display: grid;
+        gap: 0.35rem;
+    }
+
+    .chatreports-action-form textarea {
+        min-height: 58px;
+        resize: vertical;
+    }
+
+    html.app-skin-dark .chatreports-hero {
+        border-color: rgba(129, 153, 199, 0.25);
+        background: #0f172a;
+    }
+
+    html.app-skin-dark .chatreports-kpi,
+    html.app-skin-dark .chatreports-filter-wrap,
+    html.app-skin-dark .chatreports-table-card {
+        background: #0f172a;
+        border-color: rgba(129, 153, 199, 0.24);
+    }
+
+    html.app-skin-dark .chatreports-table-card table,
+    html.app-skin-dark .chatreports-table-card tbody,
+    html.app-skin-dark .chatreports-table-card tr,
+    html.app-skin-dark .chatreports-table-card td {
+        background-color: #0f172a;
+        border-color: rgba(129, 153, 199, 0.18);
+    }
+
+    html.app-skin-dark .chatreports-table-card thead th {
+        background: #111c34;
+        border-bottom-color: rgba(129, 153, 199, 0.24);
+    }
+
+    html.app-skin-dark .chatreports-table-card .table-hover tbody tr:hover {
+        background-color: #13203b;
+    }
+
+    html.app-skin-dark .chatreports-filter-wrap .form-control {
+        background-color: #0b1328;
+        border-color: rgba(129, 153, 199, 0.24);
+        color: #d7e3ff;
+    }
+
+    html.app-skin-dark .chatreports-filter-wrap .form-select,
+    html.app-skin-dark .chatreports-action-form .form-select,
+    html.app-skin-dark .chatreports-action-form .form-control {
+        background-color: #0b1328;
+        border-color: rgba(129, 153, 199, 0.24);
+        color: #d7e3ff;
+    }
+
+    html.app-skin-dark .chatreports-filter-wrap .form-control:focus {
+        background-color: #0b1328;
+        border-color: rgba(96, 165, 250, 0.8);
+        color: #e6eeff;
+        box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.18);
+    }
+
+    html.app-skin-dark .chatreports-filter-wrap .form-control::-webkit-calendar-picker-indicator {
+        filter: invert(0.85);
+    }
+
+    html.app-skin-dark .chatreports-status-open {
+        background: rgba(37, 99, 235, 0.18);
+        border-color: rgba(96, 165, 250, 0.42);
+        color: #bfdbfe;
+    }
+
+    html.app-skin-dark .chatreports-status-under_review {
+        background: rgba(217, 119, 6, 0.2);
+        border-color: rgba(251, 191, 36, 0.4);
+        color: #fcd34d;
+    }
+
+    html.app-skin-dark .chatreports-status-resolved {
+        background: rgba(5, 150, 105, 0.2);
+        border-color: rgba(52, 211, 153, 0.4);
+        color: #86efac;
+    }
+
+    html.app-skin-dark .chatreports-status-dismissed {
+        background: rgba(148, 163, 184, 0.18);
+        border-color: rgba(148, 163, 184, 0.4);
+        color: #cbd5e1;
+    }
+
+    html.app-skin-dark .chatreports-kpi-label,
+    html.app-skin-dark .chatreports-hero p,
+    html.app-skin-dark .chatreports-table-card thead th,
+    html.app-skin-dark .chatreports-table-card tbody td {
+        color: #c3d2ee;
+    }
+
+    @media (max-width: 991px) {
+        .chatreports-summary-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 576px) {
+        .chatreports-summary-grid {
+            grid-template-columns: repeat(1, minmax(0, 1fr));
+        }
+    }

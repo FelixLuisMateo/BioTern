@@ -59,12 +59,12 @@ $page_title = 'BioTern || Application Letter - ' . (trim(($student['first_name']
 $base_href = $asset_prefix;
 $page_body_class = 'app-generate-page';
 $page_styles = [
-    'assets/css/documents/generate-shell-clean.css',
-    'assets/css/documents/generate-letter-shared.css',
-    'assets/css/documents/generate-application-letter-page.css',
+    'assets/css/modules/documents/generate-shell-clean.css',
+    'assets/css/modules/documents/generate-letter-shared.css',
+    'assets/css/modules/documents/generate-application-letter-page.css',
 ];
 $page_scripts = [
-    'assets/js/documents/generate-application-letter-runtime.js',
+    'assets/js/modules/documents/generate-application-letter-runtime.js',
 ];
 
 include __DIR__ . '/../includes/header.php';

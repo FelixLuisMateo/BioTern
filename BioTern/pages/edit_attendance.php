@@ -174,7 +174,7 @@ $conn->close();
 
 $page_title = 'BioTern || Edit Attendance';
 $page_styles = [
-    'assets/css/documents/edit-attendance-page.css',
+    'assets/css/modules/documents/edit-attendance-page.css',
 ];
 $page_scripts = [
     'assets/js/theme-customizer-init.min.js',

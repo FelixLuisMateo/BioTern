@@ -362,66 +362,7 @@ div.nxl-content { padding-bottom: 24px; }
 .endorsement-page .ross-signatory-text { position: relative; z-index: 1; }
 .endorsement-page .card .btn { z-index: 5; pointer-events: auto; }
 
-/* Dark mode */
-html.app-skin-dark .form-control,
-body.app-skin-dark .form-control,
-.app-skin-dark .form-control {
-    color: #dbe5f1 !important;
-    -webkit-text-fill-color: #dbe5f1 !important;
-}
-html.app-skin-dark input.form-control::-webkit-input-placeholder,
-html.app-skin-dark textarea.form-control::-webkit-input-placeholder,
-body.app-skin-dark input.form-control::-webkit-input-placeholder,
-body.app-skin-dark textarea.form-control::-webkit-input-placeholder,
-.app-skin-dark input.form-control::-webkit-input-placeholder,
-.app-skin-dark textarea.form-control::-webkit-input-placeholder,
-html.app-skin-dark input.form-control::-moz-placeholder,
-html.app-skin-dark textarea.form-control::-moz-placeholder,
-body.app-skin-dark input.form-control::-moz-placeholder,
-body.app-skin-dark textarea.form-control::-moz-placeholder,
-.app-skin-dark input.form-control::-moz-placeholder,
-.app-skin-dark textarea.form-control::-moz-placeholder,
-html.app-skin-dark input.form-control:-ms-input-placeholder,
-html.app-skin-dark textarea.form-control:-ms-input-placeholder,
-body.app-skin-dark input.form-control:-ms-input-placeholder,
-body.app-skin-dark textarea.form-control:-ms-input-placeholder,
-.app-skin-dark input.form-control:-ms-input-placeholder,
-.app-skin-dark textarea.form-control:-ms-input-placeholder,
-html.app-skin-dark input.form-control::placeholder,
-html.app-skin-dark textarea.form-control::placeholder,
-body.app-skin-dark input.form-control::placeholder,
-body.app-skin-dark textarea.form-control::placeholder,
-.app-skin-dark input.form-control::placeholder,
-.app-skin-dark textarea.form-control::placeholder {
-    color: #9fb0c6 !important;
-    opacity: 1 !important;
-    -webkit-text-fill-color: #9fb0c6 !important;
-}
-html.app-skin-dark .form-control:placeholder-shown,
-body.app-skin-dark .form-control:placeholder-shown,
-.app-skin-dark .form-control:placeholder-shown {
-    color: #9fb0c6 !important;
-    -webkit-text-fill-color: #9fb0c6 !important;
-}
-html.app-skin-dark .select2-container--default .select2-selection--single {
-    background: #0f172a !important;
-    border-color: #1b2436 !important;
-    color: #dbe5f1 !important;
-}
-html.app-skin-dark .select2-overlay-input { color: #dbe5f1 !important; }
-html.app-skin-dark .select2-overlay-input::placeholder { color: #9fb0c6 !important; }
-html.app-skin-dark .select2-container--default.select2-container--open .select2-dropdown {
-    background: #0f172a !important;
-    border-color: #1b2436 !important;
-}
-html.app-skin-dark .select2-results__option {
-    background: #0f172a !important;
-    color: #dbe5f1 !important;
-}
-html.app-skin-dark .select2-results__option--highlighted[aria-selected] {
-    background: #1f2b44 !important;
-    color: #ffffff !important;
-}
+/* Dark mode: shared form/select2 behavior moved to assets/css/theme/forms-dark.css. */
 html.app-skin-dark .doc-preview {
     background: #fff !important;
     border-color: #e5e7eb !important;

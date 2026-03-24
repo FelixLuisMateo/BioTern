@@ -53,8 +53,8 @@ if ($summary_result && $summary_result->num_rows > 0) {
 $total_projects = array_sum($status_summary);
 
 $page_body_class = trim(($page_body_class ?? '') . ' reports-page');
-$page_styles = array_merge($page_styles ?? [], ['assets/css/reports/reports-project-page.css', 'assets/css/reports/reports-shell.css']);
-$page_scripts = array_merge($page_scripts ?? [], ['assets/js/reports/reports-progress-bars.js']);
+$page_styles = array_merge($page_styles ?? [], ['assets/css/modules/reports/reports-project-page.css', 'assets/css/modules/reports/reports-shell.css']);
+$page_scripts = array_merge($page_scripts ?? [], ['assets/js/modules/reports/reports-progress-bars.js']);
 $page_title = 'BioTern || Project Report';
 include 'includes/header.php';
 ?>

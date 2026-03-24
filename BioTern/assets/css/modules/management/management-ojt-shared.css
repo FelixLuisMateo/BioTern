@@ -5,10 +5,6 @@
  * - management/ojt-edit.php
  */
 
-.app-skin-dark body {
-    background: #0b1220;
-}
-
 .form-label,
 .app-ojt-create-form-label,
 .app-ojt-edit-form-label,
@@ -18,23 +14,15 @@
     letter-spacing: 0.2px;
 }
 
-.app-skin-dark .form-control,
-.app-skin-dark .form-select {
-    background: #0f172a;
-    border-color: #2a3a57;
-    color: #d8e2f4;
-}
-
-.app-skin-dark .card,
+/* Shared dark form colors are centralized in theme/forms-dark.css. */
 .app-skin-dark .app-ojt-create-surface-card,
 .app-skin-dark .app-ojt-edit-surface-card,
 .app-skin-dark .app-ojt-view-surface-card,
 .app-skin-dark .app-ojt-dashboard-card,
-.app-skin-dark .filter-card,
 .app-skin-dark .app-ojt-filter-card,
 .app-skin-dark .app-ojt-workflow-surface-card {
-    background: #111a2e;
-    border-color: #253252;
+    background: var(--biotern-surface);
+    border-color: var(--biotern-border);
 }
 
 @media (max-width: 991.98px) {

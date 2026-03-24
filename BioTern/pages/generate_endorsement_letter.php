@@ -129,12 +129,12 @@ $page_title = 'BioTern || Endorsement Letter';
 $base_href = $asset_prefix;
 $page_body_class = 'app-generate-page';
 $page_styles = [
-    'assets/css/documents/generate-shell-clean.css',
-    'assets/css/documents/generate-letter-shared.css',
-    'assets/css/documents/generate-endorsement-letter-page.css',
+    'assets/css/modules/documents/generate-shell-clean.css',
+    'assets/css/modules/documents/generate-letter-shared.css',
+    'assets/css/modules/documents/generate-endorsement-letter-page.css',
 ];
 $page_scripts = [
-    'assets/js/documents/generate-endorsement-letter-runtime.js',
+    'assets/js/modules/documents/generate-endorsement-letter-runtime.js',
 ];
 
 include __DIR__ . '/../includes/header.php';

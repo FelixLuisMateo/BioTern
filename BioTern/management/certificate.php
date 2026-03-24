@@ -67,7 +67,7 @@ if (!$student || !$evaluation || !$can_access_certificate) {
 }
 
 $page_title = 'Certificate of Completion';
-$page_scripts = array('assets/js/management/certificate-runtime.js');
+$page_scripts = array('assets/js/modules/management/certificate-runtime.js');
 include 'includes/header.php';
 ?>
 <main class="nxl-container">

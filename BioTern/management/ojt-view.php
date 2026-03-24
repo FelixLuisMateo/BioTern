@@ -1109,13 +1109,13 @@ $dau_print_url = $app_base . 'pages/generate_dau_moa.php?' . http_build_query([
 ]);
 $page_title = 'BioTern || OJT View';
 $page_styles = [
-    'assets/css/management/managements_ojt_shared.css',
-    'assets/css/management/managements_ojt_view.css',
+    'assets/css/modules/management/management-ojt-shared.css',
+    'assets/css/modules/management/management-ojt-view.css',
 ];
 $page_scripts = [
     'assets/js/theme-customizer-init.min.js',
     'assets/js/page-init-noop.min.js',
-    'assets/js/management/ojt-view-runtime.js',
+    'assets/js/modules/management/ojt-view-runtime.js',
 ];
 
 include 'includes/header.php';
@@ -1877,7 +1877,7 @@ include 'includes/header.php';
     <div id="ojt-view-runtime-config"
          data-active-tab="<?php echo htmlspecialchars((string)$active_tab, ENT_QUOTES, 'UTF-8'); ?>"
          hidden></div>
-    <!-- OJT view runtime moved to assets/js/management/ojt-view-runtime.js -->
+    <!-- OJT view runtime moved to assets/js/modules/management/ojt-view-runtime.js -->
 
 </div> <!-- .nxl-content -->
 </main>

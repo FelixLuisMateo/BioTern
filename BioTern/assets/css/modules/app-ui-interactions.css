@@ -1,0 +1,277 @@
+/* SMACSS Module: shared UI layout + interaction overrides (non-theme). */
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+/* Keep app header fixed flush to top across pages. */
+.nxl-header {
+  top: 0 !important;
+  z-index: 1050;
+}
+
+.nxl-header .header-wrapper {
+  margin-top: 0 !important;
+}
+
+/* Ensure header toggles remain clickable above overlays */
+.nxl-header .header-left,
+.nxl-header .nxl-navigation-toggle,
+#menu-mini-button,
+#menu-expend-button {
+  pointer-events: auto;
+}
+
+@media (min-width: 1025px) {
+  .nxl-header .nxl-md-overlay {
+    pointer-events: none;
+  }
+}
+
+/* Force click-only behavior for selected header dropdowns (no hover-open). */
+.click-only-dropdown > .dropdown-menu {
+  display: none !important;
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.click-only-dropdown > .dropdown-menu.show {
+  display: block !important;
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Ensure header user dropdown anchors under the avatar */
+.nxl-header .dropdown.nxl-h-item {
+  position: relative;
+}
+
+.nxl-header .dropdown-menu.nxl-user-dropdown {
+  top: 100% !important;
+  right: 0 !important;
+  left: auto !important;
+  margin-top: 10px !important;
+  transform: none !important;
+}
+
+.hidden-inline-toggle {
+  display: none;
+}
+
+/* Keep header mini/expand toggles in sync with sidebar state on desktop. */
+@media (min-width: 1025px) {
+  html.minimenu #menu-mini-button {
+    display: none !important;
+  }
+
+  html.minimenu #menu-expend-button {
+    display: inline-flex !important;
+  }
+
+  html:not(.minimenu) #menu-mini-button {
+    display: inline-flex !important;
+  }
+
+  html:not(.minimenu) #menu-expend-button {
+    display: none !important;
+  }
+}
+
+.toast-fixed {
+  right: 5px;
+  bottom: 5px;
+  z-index: 999999;
+}
+
+.toast-progress-thin {
+  height: 5px;
+}
+
+.nxl-navigation .m-header .logo.logo-lg,
+.logo-lg-contained {
+  width: 210px;
+  height: auto;
+  object-fit: contain;
+}
+
+.nxl-navigation .m-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nxl-navigation .m-header .b-brand {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nxl-navigation .m-header .logo.logo-lg,
+.nxl-navigation .m-header .logo.logo-sm {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Navigation include rules migrated from includes/navigation.php */
+html.theme-preload .nxl-navigation .nxl-submenu {
+  display: none !important;
+}
+
+html.theme-preload .nxl-navigation .nxl-item.nxl-hasmenu.open > .nxl-submenu,
+html.theme-preload .nxl-navigation .nxl-item.nxl-hasmenu.nxl-trigger > .nxl-submenu {
+  display: block !important;
+}
+
+/* Keep submenus collapsed by default; JS will open on click. */
+.nxl-navigation .nxl-submenu {
+  display: none;
+}
+
+.nxl-navigation .nxl-item.nxl-hasmenu.open > .nxl-submenu,
+.nxl-navigation .nxl-item.nxl-hasmenu.nxl-trigger > .nxl-submenu {
+  display: block;
+}
+
+/* Shared Select2 UI layout normalization */
+.select2-container {
+  width: 100% !important;
+  max-width: 100%;
+}
+
+.select2-container--default .select2-selection--single {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 6px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+  background-color: #fff;
+  color: #333;
+}
+
+.select2-container--default.select2-container--open .select2-selection--single {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  border-color: var(--biotern-primary);
+  box-shadow: 0 0 0 0.2rem rgba(var(--bs-primary-rgb), 0.15);
+}
+
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+  display: flex;
+  align-items: center;
+  line-height: 38px;
+  padding-left: 0.75rem;
+  padding-right: 2rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: calc(100% - 80px);
+}
+
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 38px;
+}
+
+.select2-container--default .select2-dropdown {
+  border: 1px solid #e5e7eb;
+  border-radius: 0 0 0.375rem 0.375rem;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1060;
+}
+
+.select2-selection__clear {
+  position: absolute;
+  right: 36px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 3px;
+  border: 1px solid #e0e0e0;
+  background: #fff;
+  color: #6b7280;
+  box-shadow: none;
+  font-size: 12px;
+}
+
+@media (min-width: 1025px) {
+  html.minimenu .nxl-navigation .navbar-content .nxl-caption {
+    display: block !important;
+    padding: 10px 8px 6px;
+    text-align: center;
+  }
+
+  html.minimenu .nxl-navigation .navbar-content .nxl-caption:before {
+    content: none !important;
+    display: none !important;
+  }
+
+  html.minimenu .nxl-navigation .navbar-content .nxl-caption span,
+  html.minimenu .nxl-navigation .navbar-content .nxl-caption label {
+    display: block !important;
+  }
+
+  html.minimenu .nxl-navigation:hover .navbar-content .nxl-caption span {
+    display: block !important;
+  }
+
+  html.minimenu .nxl-navigation:hover .m-header {
+    padding-left: 20px;
+    padding-right: 20px;
+    justify-content: center;
+  }
+
+  html.minimenu .nxl-navigation:hover .m-header .logo.logo-lg {
+    display: block !important;
+    width: 210px !important;
+    height: auto !important;
+  }
+
+  html.minimenu .nxl-navigation:hover .m-header .logo.logo-sm {
+    display: none !important;
+  }
+
+  html.minimenu .nxl-navigation {
+    overflow: visible;
+  }
+
+  html.minimenu .nxl-navigation:hover {
+    width: 280px !important;
+    z-index: 5001;
+  }
+
+  html.minimenu .nxl-navigation:hover .navbar-wrapper {
+    position: relative !important;
+    width: 280px;
+    height: 100vh;
+  }
+
+  html.minimenu .nxl-navigation:hover .navbar-content {
+    position: relative !important;
+    width: 280px !important;
+    height: calc(100vh - 80px);
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+  }
+
+  /* Nudge submenu arrows when the mini sidebar is hovered/expanded. */
+  html.minimenu .nxl-navigation:hover .nxl-arrow {
+    transform: translateX(6px);
+  }
+}

@@ -1,0 +1,117 @@
+/* Theme overrides: skins, schemes, and customizer surfaces. */
+
+/* ------------------------------------------------------------------------- */
+/* 1) Theme tokens + scheme variables                                         */
+/* ------------------------------------------------------------------------- */
+
+:root {
+  --biotern-primary: #3454d1;
+  --biotern-primary-rgb: 52, 84, 209;
+  --biotern-primary-hover: #2f46b8;
+  --biotern-primary-soft: #c6cff2;
+  --biotern-primary-soft-text: #2b3a7a;
+  --biotern-primary-contrast: #ffffff;
+  --biotern-link: #3454d1;
+  --biotern-link-hover: #2f46b8;
+  --biotern-body-bg: #f3f4f6;
+  --biotern-surface: #ffffff;
+  --biotern-surface-muted: #f8fafc;
+  --biotern-border: #e5e7eb;
+}
+
+html.app-skin-dark {
+  --biotern-body-bg: #0b1220;
+  --biotern-surface: #0f172a;
+  --biotern-surface-muted: #111827;
+  --biotern-border: #1b2436;
+}
+
+html.app-theme-gray {
+  --biotern-primary: #6b7280;
+  --biotern-primary-rgb: 107, 114, 128;
+  --biotern-primary-hover: #4b5563;
+  --biotern-primary-soft: #e6e7ea;
+  --biotern-primary-soft-text: #1f2937;
+  --biotern-primary-contrast: #ffffff;
+  --biotern-link: #4b5563;
+  --biotern-link-hover: #111827;
+  --biotern-body-bg: #f1f2f4;
+  --biotern-surface: #f7f7f8;
+  --biotern-surface-muted: #eceef1;
+  --biotern-border: #d1d5db;
+  --bs-primary: var(--biotern-primary);
+  --bs-primary-rgb: var(--biotern-primary-rgb);
+  --bs-link-color: var(--biotern-link);
+  --bs-link-hover-color: var(--biotern-link-hover);
+  --bs-body-bg: var(--biotern-body-bg);
+  --bs-body-color: #1f2937;
+  --bs-border-color: var(--biotern-border);
+  --bs-light: var(--biotern-surface);
+  --bs-dark: #1f2937;
+  --bs-secondary: #6b7280;
+  --bs-secondary-rgb: 107, 114, 128;
+  --bs-info: #6b7280;
+  --bs-info-rgb: 107, 114, 128;
+  --bs-teal: #6b7280;
+  --bs-teal-rgb: 107, 114, 128;
+}
+
+html.app-theme-gray.app-skin-dark {
+  --biotern-primary: #9aa0a6;
+  --biotern-primary-rgb: 154, 160, 166;
+  --biotern-primary-hover: #b4b9be;
+  --biotern-primary-soft: #2a2f35;
+  --biotern-primary-soft-text: #e5e7eb;
+  --biotern-primary-contrast: #0f1113;
+  --biotern-link: #c7ccd1;
+  --biotern-link-hover: #e2e5e8;
+  --biotern-body-bg: #0f1113;
+  --biotern-surface: #15181b;
+  --biotern-surface-muted: #1b1f23;
+  --biotern-border: #2a2f35;
+  --bs-primary: var(--biotern-primary);
+  --bs-primary-rgb: var(--biotern-primary-rgb);
+  --bs-link-color: var(--biotern-link);
+  --bs-link-hover-color: var(--biotern-link-hover);
+  --bs-body-bg: var(--biotern-body-bg);
+  --bs-body-color: #e5e7eb;
+  --bs-border-color: var(--biotern-border);
+  --bs-light: var(--biotern-surface);
+  --bs-dark: #0b0d10;
+  --bs-secondary: #7b828a;
+  --bs-secondary-rgb: 123, 130, 138;
+  --bs-info: #8b929a;
+  --bs-info-rgb: 139, 146, 154;
+  --bs-teal: #8b929a;
+  --bs-teal-rgb: 139, 146, 154;
+}
+
+body {
+  background-color: var(--biotern-body-bg) !important;
+}
+
+html.app-theme-gray.app-skin-dark body {
+  color: #e5e7eb;
+}
+
+html.app-theme-gray.app-skin-dark h1,
+html.app-theme-gray.app-skin-dark h2,
+html.app-theme-gray.app-skin-dark h3,
+html.app-theme-gray.app-skin-dark h4,
+html.app-theme-gray.app-skin-dark h5,
+html.app-theme-gray.app-skin-dark h6 {
+  color: #f8fafc;
+}
+
+html.app-theme-gray.app-skin-dark .text-muted,
+html.app-theme-gray.app-skin-dark .text-secondary,
+html.app-theme-gray.app-skin-dark .text-soft-dark {
+  color: #9aa3b2 !important;
+}
+
+html.app-theme-gray:not(.app-skin-dark) .text-muted,
+html.app-theme-gray:not(.app-skin-dark) .text-secondary,
+html.app-theme-gray:not(.app-skin-dark) .text-soft-dark {
+  color: #6b7280 !important;
+}
+

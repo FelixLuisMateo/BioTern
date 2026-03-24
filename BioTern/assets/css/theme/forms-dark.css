@@ -1,0 +1,462 @@
+/* ------------------------------------------------------------------------- */
+/* 3) Form + select2 dark mode overrides                                      */
+/* ------------------------------------------------------------------------- */
+
+/* Shared base select/select2 tones (light mode). */
+select.form-control,
+select.form-select,
+.select2-container--default .select2-selection--single,
+.select2-container--default .select2-selection--multiple {
+  color: #333;
+  background-color: #ffffff;
+}
+
+html.app-skin-dark input.form-control,
+html.app-skin-dark textarea.form-control,
+html.app-skin-dark .form-control[type="text"],
+html.app-skin-dark .form-control[type="email"],
+html.app-skin-dark .form-control[type="password"],
+html.app-skin-dark .form-control[type="number"],
+html.app-skin-dark .form-control[type="date"],
+html.app-skin-dark .form-control[type="time"],
+html.app-skin-dark .form-control[type="search"],
+html.app-skin-dark .form-control[type="tel"],
+html.app-skin-dark .form-control[type="url"] {
+  color: #ffffff;
+  -webkit-text-fill-color: #ffffff !important;
+  background-color: #0f172a !important;
+  border-color: #4a5568 !important;
+}
+
+html.app-skin-dark input.form-control::placeholder,
+html.app-skin-dark textarea.form-control::placeholder {
+  color: #d1dcf0;
+  opacity: 1;
+}
+
+html.app-skin-dark .form-control:placeholder-shown {
+  color: #d1dcf0 !important;
+  -webkit-text-fill-color: #d1dcf0 !important;
+}
+
+html.app-skin-dark input.form-control:-webkit-autofill,
+html.app-skin-dark input.form-control:-webkit-autofill:hover,
+html.app-skin-dark input.form-control:-webkit-autofill:focus,
+html.app-skin-dark textarea.form-control:-webkit-autofill,
+html.app-skin-dark textarea.form-control:-webkit-autofill:hover,
+html.app-skin-dark textarea.form-control:-webkit-autofill:focus {
+  -webkit-text-fill-color: #ffffff !important;
+  caret-color: #ffffff;
+  box-shadow: 0 0 0 1000px #0f172a inset !important;
+  -webkit-box-shadow: 0 0 0 1000px #0f172a inset !important;
+  border-color: #4a5568 !important;
+  transition: background-color 9999s ease-out 0s;
+}
+
+html.app-skin-dark input.form-control:autofill,
+html.app-skin-dark textarea.form-control:autofill {
+  color: #ffffff;
+  background-color: #0f172a !important;
+}
+
+html.app-skin-dark select.form-control,
+html.app-skin-dark select.form-select,
+html.app-skin-dark select.form-control option,
+html.app-skin-dark select.form-select option {
+  color: #ffffff;
+  background-color: #0f172a !important;
+  border-color: #4a5568 !important;
+}
+
+html.app-skin-dark input[type="file"].form-control {
+  color: #ffffff !important;
+  background-color: #0f172a !important;
+  border-color: #4a5568 !important;
+}
+
+html.app-skin-dark input[type="file"].form-control::file-selector-button,
+html.app-skin-dark input[type="file"].form-control::-webkit-file-upload-button {
+  color: #ffffff !important;
+  background: var(--biotern-surface-muted) !important;
+  border: 1px solid #4a5568 !important;
+}
+
+html.app-skin-dark .select2-container--default .select2-selection--single,
+html.app-skin-dark .select2-container--default .select2-selection--multiple {
+  color: #ffffff;
+  background-color: #0f172a !important;
+  border-color: #4a5568 !important;
+}
+
+html.app-skin-dark .select2-container--default.select2-container--focus .select2-selection--single,
+html.app-skin-dark .select2-container--default.select2-container--focus .select2-selection--multiple {
+  color: #ffffff;
+  background-color: #0f172a !important;
+  border-color: var(--biotern-primary) !important;
+}
+
+html.app-skin-dark .select2-container--default .select2-selection--single .select2-selection__rendered,
+html.app-skin-dark .select2-container--default .select2-selection--multiple .select2-selection__rendered,
+html.app-skin-dark .select2-container--default .select2-selection__placeholder {
+  color: #ffffff;
+}
+
+html.app-skin-dark .select2-container--default.select2-container--open .select2-dropdown,
+html.app-skin-dark .select2-container--default .select2-results__option {
+  color: #ffffff;
+  background-color: #0f172a !important;
+  border-color: #4a5568 !important;
+}
+
+html.app-skin-dark .select2-container--default .select2-results__option--highlighted[aria-selected] {
+  color: #ffffff;
+  background-color: var(--biotern-primary);
+}
+
+html.app-skin-dark .select2-container--default {
+  background-color: #0f172a !important;
+}
+
+html.app-skin-dark .select2-results {
+  background-color: #0f172a !important;
+}
+
+html.app-skin-dark .select2-overlay-input {
+  color: #dbe5f1 !important;
+}
+
+html.app-skin-dark .select2-overlay-input::placeholder {
+  color: #9fb0c6 !important;
+}
+
+html.app-skin-dark .select2-container--bootstrap-5 .select2-selection,
+html.app-skin-dark .select2-container--bootstrap-5 .select2-selection--single,
+html.app-skin-dark .select2-container--bootstrap-5 .select2-selection--multiple {
+  color: #ffffff !important;
+  background-color: #0f172a !important;
+  border-color: #4a5568 !important;
+}
+
+html.app-skin-dark .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered,
+html.app-skin-dark .select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__rendered,
+html.app-skin-dark .select2-container--bootstrap-5 .select2-selection__placeholder {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+html.app-skin-dark .select2-container--bootstrap-5 .select2-dropdown .select2-results__option {
+  color: #ffffff !important;
+  background-color: #0f172a !important;
+}
+
+html.app-skin-dark .select2-container--bootstrap-5 .select2-results__option--highlighted[aria-selected] {
+  color: #ffffff !important;
+  background-color: var(--biotern-primary) !important;
+}
+
+/* Compatibility for legacy body-driven dark toggles. */
+body.dark .select2-container--default .select2-selection--single,
+body.dark .select2-container--default .select2-selection--multiple,
+body[data-bs-theme="dark"] .select2-container--default .select2-selection--single,
+body[data-bs-theme="dark"] .select2-container--default .select2-selection--multiple {
+  color: #ffffff;
+  background-color: #2d3748;
+  border-color: #4a5568 !important;
+}
+
+body.dark .select2-container--default .select2-selection--single .select2-selection__rendered,
+body[data-bs-theme="dark"] .select2-container--default .select2-selection--single .select2-selection__rendered {
+  color: #ffffff;
+}
+
+body.dark .select2-container--default.select2-container--open .select2-dropdown,
+body[data-bs-theme="dark"] .select2-container--default.select2-container--open .select2-dropdown {
+  background-color: #2d3748;
+  border-color: #4a5568;
+}
+
+body.dark .select2-results__option,
+body[data-bs-theme="dark"] .select2-results__option {
+  color: #ffffff;
+  background-color: #2d3748;
+}
+
+body.dark .select2-results__option--highlighted[aria-selected],
+body[data-bs-theme="dark"] .select2-results__option--highlighted[aria-selected] {
+  background-color: var(--biotern-primary);
+  color: #ffffff;
+}
+
+body.dark select.form-control,
+body.dark select.form-select,
+body[data-bs-theme="dark"] select.form-control,
+body[data-bs-theme="dark"] select.form-select {
+  color: #ffffff;
+  background-color: #2d3748;
+  border-color: #4a5568;
+}
+
+body.dark select.form-control option,
+body.dark select.form-select option,
+body[data-bs-theme="dark"] select.form-control option,
+body[data-bs-theme="dark"] select.form-select option {
+  color: #ffffff;
+  background-color: #2d3748;
+}
+
+html.app-skin-dark .filter-form input.form-control,
+html.app-skin-dark .filter-form select.form-control,
+html.app-skin-dark .filter-form select.form-select,
+html.app-skin-dark .filter-form .select2-container--default .select2-selection--single,
+html.app-skin-dark .filter-form .select2-container--default .select2-selection--multiple {
+  color: #ffffff;
+}
+
+html.app-skin-dark .filter-form input.form-control::placeholder {
+  color: #d1dcf0;
+  opacity: 1;
+}
+
+html.app-skin-dark .filter-form .select2-container--default .select2-selection--single .select2-selection__rendered,
+html.app-skin-dark .filter-form .select2-container--default .select2-selection--multiple .select2-selection__rendered {
+  color: #ffffff;
+}
+
+html.app-skin-dark .filter-form .select2-container--default .select2-selection--single .select2-selection__arrow b {
+  border-top-color: #ffffff;
+}
+
+/* Independent surfaces: navigation + header dark mode (separate from full dark skin). */
+html.app-navigation-dark .nxl-navigation,
+html.app-navigation-dark .nxl-navigation .m-header,
+html.app-navigation-dark .nxl-navigation .navbar-content {
+  background-color: #0f172a !important;
+  border-color: #1b2436 !important;
+}
+
+html.app-navigation-dark .nxl-navigation .m-header {
+  border-bottom-color: #1b2436 !important;
+}
+
+html.app-navigation-dark .nxl-navigation .navbar-content .nxl-caption {
+  color: #9aa3b2;
+}
+
+html.app-navigation-dark .nxl-navigation .navbar-content .nxl-link {
+  color: #d1d5db;
+}
+
+html.app-navigation-dark .nxl-navigation .navbar-content .nxl-link:hover,
+html.app-navigation-dark .nxl-navigation .navbar-content .nxl-item.active > .nxl-link,
+html.app-navigation-dark .nxl-navigation .navbar-content .nxl-navbar > .nxl-item.active > .nxl-link,
+html.app-navigation-dark .nxl-navigation .navbar-content .nxl-navbar > .nxl-item:hover > .nxl-link {
+  color: #ffffff;
+  background-color: #1c2438;
+}
+
+html.app-navigation-dark .nxl-navigation .navbar-content .nxl-link .nxl-micon i {
+  color: inherit;
+}
+
+html.app-header-dark .nxl-header,
+html.app-header-dark .nxl-header .header-wrapper {
+  background-color: #0f172a !important;
+  border-color: #1b2436 !important;
+}
+
+html.app-header-dark .nxl-header .header-wrapper,
+html.app-header-dark .nxl-header .header-wrapper .nxl-head-link,
+html.app-header-dark .nxl-header .header-wrapper .nxl-h-item,
+html.app-header-dark .nxl-header .header-wrapper .nxl-h-item > a,
+html.app-header-dark .nxl-header .header-wrapper .nxl-h-item i {
+  color: #e5e7eb !important;
+}
+
+/* Gray theme: keep independent dark navigation/header truly gray. */
+html.app-theme-gray.app-navigation-dark .nxl-navigation,
+html.app-theme-gray.app-navigation-dark .nxl-navigation .m-header,
+html.app-theme-gray.app-navigation-dark .nxl-navigation .navbar-content {
+  background-color: #15181b !important;
+  border-color: #2a2f35 !important;
+}
+
+html.app-theme-gray.app-navigation-dark .nxl-navigation .m-header {
+  border-bottom-color: #2a2f35 !important;
+}
+
+html.app-theme-gray.app-navigation-dark .nxl-navigation .navbar-content .nxl-caption {
+  color: #9aa0a6 !important;
+}
+
+html.app-theme-gray.app-navigation-dark .nxl-navigation .navbar-content .nxl-link {
+  color: #c7ccd1 !important;
+}
+
+html.app-theme-gray.app-navigation-dark .nxl-navigation .navbar-content .nxl-link:hover,
+html.app-theme-gray.app-navigation-dark .nxl-navigation .navbar-content .nxl-item.active > .nxl-link,
+html.app-theme-gray.app-navigation-dark .nxl-navigation .navbar-content .nxl-navbar > .nxl-item.active > .nxl-link,
+html.app-theme-gray.app-navigation-dark .nxl-navigation .navbar-content .nxl-navbar > .nxl-item:hover > .nxl-link {
+  color: #f1f3f5 !important;
+  background-color: #2a2f35 !important;
+}
+
+html.app-theme-gray.app-navigation-dark .nxl-navigation .navbar-content .nxl-link .nxl-micon i {
+  color: inherit;
+}
+
+html.app-theme-gray.app-header-dark .nxl-header,
+html.app-theme-gray.app-header-dark .nxl-header .header-wrapper {
+  background-color: #15181b !important;
+  border-color: #2a2f35 !important;
+  color: #e5e7eb !important;
+}
+
+html.app-theme-gray.app-header-dark .nxl-header .header-wrapper .nxl-head-link,
+html.app-theme-gray.app-header-dark .nxl-header .header-wrapper .nxl-h-item,
+html.app-theme-gray.app-header-dark .nxl-header .header-wrapper .nxl-h-item > a,
+html.app-theme-gray.app-header-dark .nxl-header .header-wrapper .nxl-h-item i {
+  color: #e5e7eb !important;
+}
+
+html.app-theme-gray.app-header-dark .nxl-header .header-wrapper .nxl-head-link:hover,
+html.app-theme-gray.app-header-dark .nxl-header .header-wrapper .nxl-head-link:focus,
+html.app-theme-gray.app-header-dark .nxl-header .header-wrapper .nxl-head-link:active {
+  color: #f8fafc !important;
+  background-color: #2a2f35 !important;
+}
+
+html.app-theme-gray.app-header-dark .nxl-navigation .m-header {
+  background-color: #15181b !important;
+  border-bottom-color: #2a2f35 !important;
+  border-right-color: #2a2f35 !important;
+}
+
+/* Gray theme: light header/navigation should stay neutral even in dark skin. */
+html.app-theme-gray.app-skin-dark:not(.app-navigation-dark) .nxl-navigation,
+html.app-theme-gray.app-skin-dark:not(.app-navigation-dark) .nxl-navigation .m-header,
+html.app-theme-gray.app-skin-dark:not(.app-navigation-dark) .nxl-navigation .navbar-content {
+  background-color: #f2f3f4 !important;
+  border-color: #d1d5db !important;
+}
+
+html.app-theme-gray.app-skin-dark:not(.app-navigation-dark) .nxl-navigation .m-header {
+  border-bottom-color: #d1d5db !important;
+}
+
+html.app-theme-gray.app-skin-dark:not(.app-navigation-dark) .nxl-navigation .navbar-content .nxl-caption {
+  color: #6b7280 !important;
+}
+
+html.app-theme-gray.app-skin-dark:not(.app-navigation-dark) .nxl-navigation .navbar-content .nxl-link {
+  color: #1f2937 !important;
+}
+
+html.app-theme-gray.app-skin-dark:not(.app-navigation-dark) .nxl-navigation .navbar-content .nxl-link:hover,
+html.app-theme-gray.app-skin-dark:not(.app-navigation-dark) .nxl-navigation .navbar-content .nxl-item.active > .nxl-link,
+html.app-theme-gray.app-skin-dark:not(.app-navigation-dark) .nxl-navigation .navbar-content .nxl-navbar > .nxl-item.active > .nxl-link,
+html.app-theme-gray.app-skin-dark:not(.app-navigation-dark) .nxl-navigation .navbar-content .nxl-navbar > .nxl-item:hover > .nxl-link {
+  color: #111827 !important;
+  background-color: #e5e7eb !important;
+}
+
+html.app-theme-gray.app-skin-dark:not(.app-header-dark) .nxl-header,
+html.app-theme-gray.app-skin-dark:not(.app-header-dark) .nxl-header .header-wrapper {
+  background-color: #f2f3f4 !important;
+  border-color: #d1d5db !important;
+}
+
+html.app-theme-gray.app-skin-dark:not(.app-header-dark) .nxl-header .header-wrapper .nxl-head-link,
+html.app-theme-gray.app-skin-dark:not(.app-header-dark) .nxl-header .header-wrapper .nxl-h-item,
+html.app-theme-gray.app-skin-dark:not(.app-header-dark) .nxl-header .header-wrapper .nxl-h-item > a,
+html.app-theme-gray.app-skin-dark:not(.app-header-dark) .nxl-header .header-wrapper .nxl-h-item i {
+  color: #1f2937 !important;
+}
+
+html.app-theme-gray:not(.app-header-dark) .nxl-header .header-wrapper .nxl-head-link:hover,
+html.app-theme-gray:not(.app-header-dark) .nxl-header .header-wrapper .nxl-head-link:focus,
+html.app-theme-gray:not(.app-header-dark) .nxl-header .header-wrapper .nxl-head-link:active {
+  color: #111827 !important;
+  background-color: #e5e7eb !important;
+}
+
+/* Allow light navigation/header even when the overall skin is dark. */
+html.app-skin-dark:not(.app-navigation-dark) .nxl-navigation,
+html.app-skin-dark:not(.app-navigation-dark) .nxl-navigation .m-header,
+html.app-skin-dark:not(.app-navigation-dark) .nxl-navigation .navbar-content {
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+html.app-skin-dark:not(.app-navigation-dark) .nxl-navigation .m-header {
+  border-bottom-color: #e2e8f0 !important;
+}
+
+html.app-skin-dark:not(.app-navigation-dark) .nxl-navigation .navbar-content .nxl-caption {
+  color: #6b7280;
+}
+
+html.app-skin-dark:not(.app-navigation-dark) .nxl-navigation .navbar-content .nxl-link {
+  color: #0f172a !important;
+  opacity: 1;
+}
+
+html.app-skin-dark:not(.app-navigation-dark) .nxl-navigation .navbar-content .nxl-link:hover,
+html.app-skin-dark:not(.app-navigation-dark) .nxl-navigation .navbar-content .nxl-item.active > .nxl-link,
+html.app-skin-dark:not(.app-navigation-dark) .nxl-navigation .navbar-content .nxl-navbar > .nxl-item.active > .nxl-link,
+html.app-skin-dark:not(.app-navigation-dark) .nxl-navigation .navbar-content .nxl-navbar > .nxl-item:hover > .nxl-link {
+  color: #111827;
+  background-color: var(--biotern-primary-soft);
+}
+
+html.app-skin-dark:not(.app-navigation-dark) .nxl-navigation .navbar-content .nxl-link .nxl-mtext,
+html.app-skin-dark:not(.app-navigation-dark) .nxl-navigation .navbar-content .nxl-item .nxl-mtext {
+  color: #0f172a !important;
+  opacity: 1;
+}
+
+html.app-skin-dark:not(.app-navigation-dark) .nxl-navigation .navbar-content .nxl-link .nxl-micon i,
+html.app-skin-dark:not(.app-navigation-dark) .nxl-navigation .navbar-content .nxl-link .nxl-arrow i {
+  color: #475569 !important;
+  opacity: 1;
+}
+
+html.app-skin-dark:not(.app-navigation-dark) .nxl-navigation .navbar-content .nxl-caption {
+  color: #64748b !important;
+  opacity: 1;
+}
+
+html.app-skin-dark:not(.app-navigation-dark) .nxl-navigation .navbar-content .nxl-submenu .nxl-link {
+  color: #334155 !important;
+}
+
+html.app-skin-dark:not(.app-navigation-dark) .nxl-navigation .navbar-content .nxl-submenu .nxl-link:hover,
+html.app-skin-dark:not(.app-navigation-dark) .nxl-navigation .navbar-content .nxl-submenu .nxl-item.active > .nxl-link {
+  color: #0f172a !important;
+}
+
+html:not(.app-navigation-dark) .nxl-navigation .navbar-content .nxl-link .nxl-arrow i {
+  color: #94a3b8;
+  opacity: 1;
+}
+
+html.app-skin-dark:not(.app-header-dark) .nxl-header,
+html.app-skin-dark:not(.app-header-dark) .nxl-header .header-wrapper {
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+html.app-skin-dark:not(.app-header-dark) .nxl-header .header-wrapper,
+html.app-skin-dark:not(.app-header-dark) .nxl-header .header-wrapper .nxl-head-link,
+html.app-skin-dark:not(.app-header-dark) .nxl-header .header-wrapper .nxl-h-item,
+html.app-skin-dark:not(.app-header-dark) .nxl-header .header-wrapper .nxl-h-item > a,
+html.app-skin-dark:not(.app-header-dark) .nxl-header .header-wrapper .nxl-h-item i {
+  color: #0f172a !important;
+}
+
+html.app-skin-dark:not(.app-navigation-dark) .nxl-navigation .m-header .logo,
+html.app-skin-dark:not(.app-navigation-dark) .nxl-navigation .m-header .logo-lg,
+html.app-skin-dark:not(.app-navigation-dark) .nxl-navigation .m-header .logo-sm,
+html.app-skin-dark:not(.app-navigation-dark) .nxl-navigation .m-header .app-logo-lg {
+  filter: none;
+}
+

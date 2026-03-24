@@ -6,7 +6,7 @@ $student_name = trim((string)(($student['first_name'] ?? '') . ' ' . ($student['
 <head>
     <meta charset="utf-8">
     <title>Resume</title>
-    <link rel="stylesheet" href="../assets/css/documents/document-resume.css">
+    <link rel="stylesheet" href="../assets/css/modules/documents/document-resume.css">
 </head>
 <body>
     <h1><?php echo htmlspecialchars($student_name !== '' ? $student_name : 'Student Name'); ?></h1>

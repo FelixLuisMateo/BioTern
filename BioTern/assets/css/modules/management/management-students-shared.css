@@ -1,0 +1,13 @@
+/*
+ * Class: module.management.students.shared
+ * Used by:
+ * - management/students.php
+ * - management/students-view.php
+ * - management/students-edit.php
+ *
+ * Theme/UI select + Select2 rules were merged into shared theme files:
+ * - assets/css/theme/forms-dark.css
+ * - assets/css/theme/scheme-gray.css
+ *
+ * Keep this file as a compatibility stub during migration.
+ */

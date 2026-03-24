@@ -1,65 +1,29 @@
 "use strict";
 
-(function () {
-    var KEY_SCROLL = "biotern.sidebar.scrollTop";
-
-    function getRouteKeyFromUrl(urlObj) {
-        var qp = (urlObj.searchParams.get("file") || "").toLowerCase();
-        if (qp) {
-            qp = qp.replace(/\\/g, "/");
-            var qpParts = qp.split("/");
-            var qpLast = qpParts[qpParts.length - 1] || qp;
-            if (qpLast && qpLast.endsWith(".php")) return qpLast;
-        }
-
-        var path = (urlObj.pathname || "").toLowerCase();
-        var parts = path.split("/");
-        var last = parts[parts.length - 1] || "";
-        if (last.endsWith(".php")) return last;
-        return "";
+(function (global) {
+    function SidebarNavigationState(options) {
+        this.options = options || {};
+        this.routeResolver = this.options.routeResolver;
+        this.storage = this.options.storage;
     }
 
-    function getCurrentRouteKey() {
-        try {
-            return getRouteKeyFromUrl(new URL(window.location.href));
-        } catch (e) {
-            return "";
-        }
-    }
-
-    function getLinkRouteKey(href) {
-        try {
-            return getRouteKeyFromUrl(new URL(href, window.location.origin));
-        } catch (e) {
-            return "";
-        }
-    }
-
-    function getNav() {
+    SidebarNavigationState.prototype.getNav = function () {
         return document.querySelector(".nxl-navigation .nxl-navbar");
-    }
+    };
 
-    function getScrollContainer() {
+    SidebarNavigationState.prototype.getScrollContainer = function () {
         return document.querySelector(".nxl-navigation .navbar-content");
-    }
+    };
 
-    function persistState() {
-        var nav = getNav();
-        if (!nav) return;
+    SidebarNavigationState.prototype.persistScroll = function () {
+        var scrollContainer = this.getScrollContainer();
+        if (!scrollContainer) {
+            return;
+        }
+        this.storage.set(this.options.scrollStorageKey, scrollContainer.scrollTop || 0);
+    };
 
-        try {
-            var sc = getScrollContainer();
-            if (sc) localStorage.setItem(KEY_SCROLL, String(sc.scrollTop || 0));
-        } catch (e) {}
-    }
-
-    function restoreState() {
-        var nav = getNav();
-        if (!nav) return;
-
-        var isMiniMenu = document.documentElement.classList.contains("minimenu");
-        var currentRoute = getCurrentRouteKey();
-
+    SidebarNavigationState.prototype.clearActiveState = function (nav) {
         nav.querySelectorAll(".nxl-item.active").forEach(function (item) {
             item.classList.remove("active");
         });
@@ -71,41 +35,120 @@
         nav.querySelectorAll(".nxl-submenu").forEach(function (submenu) {
             submenu.style.display = "none";
         });
+    };
 
-        nav.querySelectorAll(".nxl-item .nxl-link[href]").forEach(function (a) {
-            var linkKey = getLinkRouteKey(a.getAttribute("href") || "");
-            if (linkKey && currentRoute && linkKey === currentRoute) {
-                var item = a.closest(".nxl-item");
-                if (item) item.classList.add("active");
+    SidebarNavigationState.prototype.applyRouteActiveState = function (nav) {
+        var currentRoute = this.routeResolver.currentRouteKey();
+        if (!currentRoute) {
+            return;
+        }
 
-                var parentMenu = a.closest(".nxl-item.nxl-hasmenu");
-                if (parentMenu) {
-                    parentMenu.classList.add("active");
-                    if (!isMiniMenu) {
-                        parentMenu.classList.add("nxl-trigger");
-                        var submenu = parentMenu.querySelector(":scope > .nxl-submenu");
-                        if (submenu) submenu.style.display = "block";
-                    }
-                }
+        var isMiniMenu = document.documentElement.classList.contains("minimenu");
+        var self = this;
+
+        nav.querySelectorAll(".nxl-item .nxl-link[href]").forEach(function (link) {
+            var linkKey = self.routeResolver.routeKeyFromHref(link.getAttribute("href") || "");
+            if (!linkKey || linkKey !== currentRoute) {
+                return;
+            }
+
+            var item = link.closest(".nxl-item");
+            if (item) {
+                item.classList.add("active");
+            }
+
+            var parentMenu = link.closest(".nxl-item.nxl-hasmenu");
+            if (!parentMenu) {
+                return;
+            }
+
+            parentMenu.classList.add("active");
+            if (isMiniMenu) {
+                return;
+            }
+
+            parentMenu.classList.add("nxl-trigger");
+            var submenu = parentMenu.querySelector(":scope > .nxl-submenu");
+            if (submenu) {
+                submenu.style.display = "block";
             }
         });
+    };
 
-        try {
-            var sc = getScrollContainer();
-            var savedTop = parseInt(localStorage.getItem(KEY_SCROLL) || "0", 10);
-            if (sc && !isNaN(savedTop) && savedTop > 0) {
-                requestAnimationFrame(function () {
-                    sc.scrollTop = savedTop;
-                });
-            }
-        } catch (e) {}
+    SidebarNavigationState.prototype.restoreScroll = function () {
+        var scrollContainer = this.getScrollContainer();
+        if (!scrollContainer) {
+            return;
+        }
+
+        var savedTop = this.storage.getNumber(this.options.scrollStorageKey, 0);
+        if (!savedTop || savedTop < 1) {
+            return;
+        }
+
+        requestAnimationFrame(function () {
+            scrollContainer.scrollTop = savedTop;
+        });
+    };
+
+    SidebarNavigationState.prototype.bindEvents = function () {
+        var self = this;
+        document.querySelectorAll(".nxl-navigation .nxl-item.nxl-hasmenu > .nxl-link").forEach(function (trigger) {
+            trigger.addEventListener("click", function () {
+                setTimeout(function () {
+                    self.persistScroll();
+                }, 0);
+            });
+        });
+    };
+
+    SidebarNavigationState.prototype.init = function () {
+        var nav = this.getNav();
+        if (!nav) {
+            return;
+        }
+
+        this.clearActiveState(nav);
+        this.applyRouteActiveState(nav);
+        this.restoreScroll();
+        this.bindEvents();
+    };
+
+    function boot() {
+        var core = global.BioTernNavCore;
+        if (!core || !core.RouteResolver || !core.Storage) {
+            return;
+        }
+
+        var state = new SidebarNavigationState({
+            scrollStorageKey: "biotern.sidebar.scrollTop",
+            routeResolver: core.RouteResolver,
+            storage: core.Storage
+        });
+
+        function runSidebarState() {
+            state.init();
+        }
+
+        if (global.BioTernRuntimeBoot && typeof global.BioTernRuntimeBoot.boot === "function") {
+            global.BioTernRuntimeBoot.boot({
+                name: "navigation-state",
+                run: runSidebarState
+            });
+            return;
+        }
+
+        if (core.Dom && typeof core.Dom.onDomReady === "function") {
+            core.Dom.onDomReady(runSidebarState);
+            return;
+        }
+
+        if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", runSidebarState);
+        } else {
+            runSidebarState();
+        }
     }
 
-    restoreState();
-
-    document.querySelectorAll(".nxl-navigation .nxl-item.nxl-hasmenu > .nxl-link").forEach(function (trigger) {
-        trigger.addEventListener("click", function () {
-            setTimeout(persistState, 0);
-        });
-    });
-})();
+    boot();
+})(window);

@@ -2,6 +2,73 @@
 (function () {
   "use strict";
 
+  var uiStateCore = window.BioTernUiStateCore || null;
+  var themeStateCore = window.BioTernThemeStateCore || null;
+
+  function storageGet(key, fallbackValue) {
+    if (uiStateCore && uiStateCore.storage && typeof uiStateCore.storage.get === "function") {
+      return uiStateCore.storage.get(key, fallbackValue);
+    }
+    try {
+      var value = localStorage.getItem(key);
+      return value === null ? fallbackValue : value;
+    } catch (e) {
+      return fallbackValue;
+    }
+  }
+
+  function storageSet(key, value) {
+    if (uiStateCore && uiStateCore.storage && typeof uiStateCore.storage.set === "function") {
+      return uiStateCore.storage.set(key, value);
+    }
+    try {
+      localStorage.setItem(key, String(value));
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function storageRemove(key) {
+    if (uiStateCore && uiStateCore.storage && typeof uiStateCore.storage.remove === "function") {
+      return uiStateCore.storage.remove(key);
+    }
+    try {
+      localStorage.removeItem(key);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function storageHasAny(keys) {
+    if (uiStateCore && uiStateCore.storage && typeof uiStateCore.storage.hasAny === "function") {
+      return uiStateCore.storage.hasAny(keys);
+    }
+    try {
+      for (var i = 0; i < keys.length; i += 1) {
+        if (localStorage.getItem(keys[i]) !== null) {
+          return true;
+        }
+      }
+    } catch (e) {
+      return false;
+    }
+    return false;
+  }
+
+  function onDomReady(callback) {
+    if (uiStateCore && uiStateCore.dom && typeof uiStateCore.dom.onReady === "function") {
+      uiStateCore.dom.onReady(callback);
+      return;
+    }
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", callback);
+    } else {
+      callback();
+    }
+  }
+
   function hydrateThemeRuntimeConfigFromBody() {
     if (!document || !document.body) {
       return;
@@ -34,7 +101,7 @@
 
     function loadLocalThemePrefs() {
       try {
-        var stored = localStorage.getItem("biotern_theme_preferences");
+        var stored = storageGet("biotern_theme_preferences", null);
         if (!stored) return null;
         var parsed = JSON.parse(stored);
         if (parsed && typeof parsed === "object") return parsed;
@@ -48,11 +115,20 @@
     }
 
     function normalizeMenuPreference(value) {
+      if (
+        themeStateCore &&
+        typeof themeStateCore.normalizeMenuPreference === "function"
+      ) {
+        return themeStateCore.normalizeMenuPreference(value);
+      }
       return value === "mini" || value === "expanded" ? value : "auto";
     }
 
     function normalizeScheme(value) {
-      return value === "gray" ? "gray" : "blue";
+      if (themeStateCore && typeof themeStateCore.normalizeScheme === "function") {
+        return themeStateCore.normalizeScheme(value);
+      }
+      return value === "blue" || value === "gray" ? value : "gray";
     }
 
     var runtimePrefs = {
@@ -67,7 +143,7 @@
       scheme:
         typeof serverPrefs.scheme === "string"
           ? normalizeScheme(serverPrefs.scheme)
-          : "blue",
+          : "gray",
     };
 
     var darkBtn =
@@ -87,30 +163,33 @@
     var pageHeader = document.getElementById("theme-page-header");
     var pageSave = document.getElementById("theme-page-save");
     var pageReset = document.getElementById("theme-page-reset");
-    var allowedFonts = [
-      "app-font-family-inter",
-      "app-font-family-lato",
-      "app-font-family-rubik",
-      "app-font-family-cinzel",
-      "app-font-family-nunito",
-      "app-font-family-roboto",
-      "app-font-family-ubuntu",
-      "app-font-family-poppins",
-      "app-font-family-raleway",
-      "app-font-family-system-ui",
-      "app-font-family-noto-sans",
-      "app-font-family-fira-sans",
-      "app-font-family-work-sans",
-      "app-font-family-open-sans",
-      "app-font-family-montserrat",
-      "app-font-family-maven-pro",
-      "app-font-family-quicksand",
-      "app-font-family-josefin-sans",
-      "app-font-family-ibm-plex-sans",
-      "app-font-family-montserrat-alt",
-      "app-font-family-roboto-slab",
-      "app-font-family-source-sans-pro",
-    ];
+    var allowedFonts =
+      themeStateCore && Array.isArray(themeStateCore.allowedFonts)
+        ? themeStateCore.allowedFonts.slice()
+        : [
+            "app-font-family-inter",
+            "app-font-family-lato",
+            "app-font-family-rubik",
+            "app-font-family-cinzel",
+            "app-font-family-nunito",
+            "app-font-family-roboto",
+            "app-font-family-ubuntu",
+            "app-font-family-poppins",
+            "app-font-family-raleway",
+            "app-font-family-system-ui",
+            "app-font-family-noto-sans",
+            "app-font-family-fira-sans",
+            "app-font-family-work-sans",
+            "app-font-family-open-sans",
+            "app-font-family-montserrat",
+            "app-font-family-maven-pro",
+            "app-font-family-quicksand",
+            "app-font-family-josefin-sans",
+            "app-font-family-ibm-plex-sans",
+            "app-font-family-source-sans-pro",
+            "app-font-family-montserrat-alt",
+            "app-font-family-roboto-slab",
+          ];
 
     function syncMenuToggleButtons() {
       var miniBtn = document.getElementById("menu-mini-button");
@@ -139,13 +218,13 @@
         return serverPrefs.skin === "dark" ? "app-skin-dark" : "";
       }
       try {
-        var primary = localStorage.getItem("app-skin");
+        var primary = storageGet("app-skin", null);
         if (primary !== null) return primary;
-        var alt = localStorage.getItem("app_skin");
+        var alt = storageGet("app_skin", null);
         if (alt !== null) return alt;
-        var theme = localStorage.getItem("theme");
+        var theme = storageGet("theme", null);
         if (theme !== null) return theme;
-        var legacy = localStorage.getItem("app-skin-dark");
+        var legacy = storageGet("app-skin-dark", null);
         if (legacy !== null) return legacy;
       } catch (e) {
         return runtimePrefs.skin === "dark" ? "app-skin-dark" : "";
@@ -159,21 +238,17 @@
     }
 
     function hasExplicitLocalSkinPreference() {
-      try {
-        return (
-          localStorage.getItem("app-skin") !== null ||
-          localStorage.getItem("app_skin") !== null ||
-          localStorage.getItem("theme") !== null ||
-          localStorage.getItem("app-skin-dark") !== null
-        );
-      } catch (e) {
-        return false;
-      }
+      return storageHasAny(["app-skin", "app_skin", "theme", "app-skin-dark"]);
     }
 
     function getSavedMenuMode() {
+      var fallbackMenu = runtimePrefs && runtimePrefs.menu ? runtimePrefs.menu : serverPrefs.menu;
+      if (themeStateCore && typeof themeStateCore.getSavedMenuMode === "function") {
+        return themeStateCore.getSavedMenuMode(storageGet, fallbackMenu);
+      }
+
       try {
-        var menuState = localStorage.getItem(
+        var menuState = storageGet(
           "nexel-classic-dashboard-menu-mini-theme"
         );
         if (menuState === "menu-mini-theme") return "mini";
@@ -199,7 +274,7 @@
 
     function getSavedFont() {
       try {
-        var legacyFont = localStorage.getItem("font-family");
+        var legacyFont = storageGet("font-family", null);
         if (legacyFont !== null && legacyFont !== "") {
           return legacyFont;
         }
@@ -218,7 +293,7 @@
 
     function getSavedNavigationMode() {
       try {
-        var nav = localStorage.getItem("app-navigation");
+        var nav = storageGet("app-navigation", null);
         if (nav === "app-navigation-dark") return "dark";
         if (nav === "app-navigation-light") return "light";
       } catch (e) {}
@@ -234,18 +309,18 @@
 
     function getSavedScheme() {
       try {
-        var stored = localStorage.getItem("app-theme-scheme");
+        var stored = storageGet("app-theme-scheme", null);
         if (stored) return normalizeScheme(stored);
       } catch (e) {}
 
       if (runtimePrefs.scheme) return normalizeScheme(runtimePrefs.scheme);
       if (serverPrefs.scheme) return normalizeScheme(serverPrefs.scheme);
-      return "blue";
+      return "gray";
     }
 
     function getSavedHeaderMode() {
       try {
-        var hdr = localStorage.getItem("app-header");
+        var hdr = storageGet("app-header", null);
         if (hdr === "app-header-dark") return "dark";
         if (hdr === "app-header-light") return "light";
       } catch (e) {}
@@ -260,6 +335,10 @@
     }
 
     function clearFontClasses() {
+      if (themeStateCore && typeof themeStateCore.clearFontClasses === "function") {
+        themeStateCore.clearFontClasses(document.documentElement);
+        return;
+      }
       var classes = document.documentElement.className || "";
       document.documentElement.className = classes
         .replace(/\bapp-font-family-[^\s]+\b/g, "")
@@ -270,15 +349,19 @@
     function applyFont(fontClass) {
       var nextFont = allowedFonts.indexOf(fontClass) !== -1 ? fontClass : "default";
       runtimePrefs.font = nextFont;
-      clearFontClasses();
-      if (nextFont !== "default") {
-        document.documentElement.classList.add(nextFont);
+      if (themeStateCore && typeof themeStateCore.applyFontClass === "function") {
+        nextFont = themeStateCore.applyFontClass(document.documentElement, nextFont);
+      } else {
+        clearFontClasses();
+        if (nextFont !== "default") {
+          document.documentElement.classList.add(nextFont);
+        }
       }
       try {
         if (nextFont === "default") {
-          localStorage.removeItem("font-family");
+          storageRemove("font-family");
         } else {
-          localStorage.setItem("font-family", nextFont);
+          storageSet("font-family", nextFont);
         }
       } catch (e) {}
       return nextFont;
@@ -292,7 +375,7 @@
         document.documentElement.classList.add("app-navigation-dark");
       }
       try {
-        localStorage.setItem(
+        storageSet(
           "app-navigation",
           next === "dark" ? "app-navigation-dark" : "app-navigation-light"
         );
@@ -308,7 +391,7 @@
         document.documentElement.classList.add("app-header-dark");
       }
       try {
-        localStorage.setItem(
+        storageSet(
           "app-header",
           next === "dark" ? "app-header-dark" : "app-header-light"
         );
@@ -324,7 +407,7 @@
         document.documentElement.classList.add("app-theme-gray");
       }
       try {
-        localStorage.setItem("app-theme-scheme", next);
+        storageSet("app-theme-scheme", next);
       } catch (e) {}
       return next;
     }
@@ -351,7 +434,7 @@
           "; path=/; max-age=" +
           60 * 60 * 24 * 30 +
           "; samesite=Lax";
-        localStorage.setItem("biotern_theme_preferences", jsonValue);
+        storageSet("biotern_theme_preferences", jsonValue);
       } catch (e) {}
     }
 
@@ -435,25 +518,35 @@
       runtimePrefs.menu = nextMode;
       var width = window.innerWidth || document.documentElement.clientWidth || 0;
       if (nextMode === "mini") {
-        document.documentElement.classList.add("minimenu");
+        if (themeStateCore && typeof themeStateCore.applyMenuModeToRoot === "function") {
+          themeStateCore.applyMenuModeToRoot(document.documentElement, "mini", width);
+        } else {
+          document.documentElement.classList.add("minimenu");
+        }
         try {
-          localStorage.setItem("nexel-classic-dashboard-menu-mini-theme", "menu-mini-theme");
+          storageSet("nexel-classic-dashboard-menu-mini-theme", "menu-mini-theme");
         } catch (e) {}
         syncMenuToggleButtons();
         return;
       }
       if (nextMode === "expanded") {
-        document.documentElement.classList.remove("minimenu");
+        if (themeStateCore && typeof themeStateCore.applyMenuModeToRoot === "function") {
+          themeStateCore.applyMenuModeToRoot(document.documentElement, "expanded", width);
+        } else {
+          document.documentElement.classList.remove("minimenu");
+        }
         try {
-          localStorage.setItem("nexel-classic-dashboard-menu-mini-theme", "menu-expend-theme");
+          storageSet("nexel-classic-dashboard-menu-mini-theme", "menu-expend-theme");
         } catch (e) {}
         syncMenuToggleButtons();
         return;
       }
       try {
-        localStorage.removeItem("nexel-classic-dashboard-menu-mini-theme");
+        storageRemove("nexel-classic-dashboard-menu-mini-theme");
       } catch (e) {}
-      if (width >= 1024 && width <= 1600) {
+      if (themeStateCore && typeof themeStateCore.applyMenuModeToRoot === "function") {
+        themeStateCore.applyMenuModeToRoot(document.documentElement, "auto", width);
+      } else if (width >= 1024 && width <= 1600) {
         document.documentElement.classList.add("minimenu");
       } else {
         document.documentElement.classList.remove("minimenu");
@@ -499,10 +592,10 @@
         runtimePrefs.skin = "dark";
         document.documentElement.classList.add("app-skin-dark");
         try {
-          localStorage.setItem("app-skin", "app-skin-dark");
-          localStorage.setItem("app-skin-dark", "app-skin-dark");
-          localStorage.setItem("app_skin", "app-skin-dark");
-          localStorage.setItem("theme", "dark");
+          storageSet("app-skin", "app-skin-dark");
+          storageSet("app-skin-dark", "app-skin-dark");
+          storageSet("app_skin", "app-skin-dark");
+          storageSet("theme", "dark");
         } catch (e) {}
         if (darkBtn) darkBtn.style.display = "none";
         if (lightBtn) lightBtn.style.display = "inline-flex";
@@ -520,10 +613,10 @@
         runtimePrefs.skin = "light";
         document.documentElement.classList.remove("app-skin-dark");
         try {
-          localStorage.setItem("app-skin", "");
-          localStorage.setItem("app-skin-dark", "");
-          localStorage.setItem("app_skin", "");
-          localStorage.setItem("theme", "light");
+          storageSet("app-skin", "");
+          storageSet("app-skin-dark", "");
+          storageSet("app_skin", "");
+          storageSet("theme", "light");
         } catch (e) {}
         if (darkBtn) darkBtn.style.display = "inline-flex";
         if (lightBtn) lightBtn.style.display = "none";
@@ -784,7 +877,7 @@
 
     if (pageScheme) {
       pageScheme.addEventListener("change", function () {
-        var scheme = pageScheme.value || "blue";
+        var scheme = pageScheme.value || "gray";
         applyScheme(scheme);
         syncCustomizerInputs();
         scheduleAutoSave();
@@ -851,21 +944,21 @@
           skin: "light",
           menu: "auto",
           font: "default",
-          scheme: "blue",
+          scheme: "gray",
           navigation: "light",
           header: "light",
         };
         setDark(false, false);
         applyMenuMode("auto");
         applyFont("default");
-        applyScheme("blue");
+        applyScheme("gray");
         applyNavigationMode("light");
         applyHeaderMode("light");
         saveThemePreferences({
           skin: "light",
           menu: "auto",
           font: "default",
-          scheme: "blue",
+          scheme: "gray",
           navigation: "light",
           header: "light",
         }).then(function (result) {
@@ -882,9 +975,5 @@
     bindAutoSaveInputs();
   }
 
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", initFooterThemeRuntime);
-  } else {
-    initFooterThemeRuntime();
-  }
+  onDomReady(initFooterThemeRuntime);
 })();

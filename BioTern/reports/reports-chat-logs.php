@@ -309,8 +309,8 @@ $prevUrl = 'reports-chat-logs.php?' . http_build_query(array_merge($queryBase, [
 $nextUrl = 'reports-chat-logs.php?' . http_build_query(array_merge($queryBase, ['page' => min($totalPages, $page + 1)]));
 
 $page_body_class = trim(($page_body_class ?? '') . ' reports-page');
-$page_styles = array_merge($page_styles ?? [], ['assets/css/reports/reports-chat-logs-page.css', 'assets/css/reports/reports-shell.css']);
-$page_scripts = array_merge($page_scripts ?? [], ['assets/js/reports/reports-chat-logs-page.js']);
+$page_styles = array_merge($page_styles ?? [], ['assets/css/modules/reports/reports-chat-logs-page.css', 'assets/css/modules/reports/reports-shell.css']);
+$page_scripts = array_merge($page_scripts ?? [], ['assets/js/modules/reports/reports-chat-logs-page.js']);
 $page_title = 'BioTern || Chat Logs';
 include 'includes/header.php';
 ?>

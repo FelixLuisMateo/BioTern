@@ -1,0 +1,165 @@
+.logs-page-title {
+        border-right: 0 !important;
+        padding-right: 0 !important;
+        margin-right: 0 !important;
+    }
+
+    .logs-hero {
+        border: 1px solid rgba(80, 102, 144, 0.15);
+        background: linear-gradient(135deg, rgba(26, 64, 132, 0.08), rgba(24, 153, 132, 0.08));
+        border-radius: 14px;
+        padding: 1.1rem 1.25rem;
+        margin-bottom: 1rem;
+    }
+
+    .logs-summary-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+    }
+
+    .logs-kpi {
+        border: 1px solid rgba(80, 102, 144, 0.14);
+        border-radius: 12px;
+        padding: 0.85rem 1rem;
+        background: #fff;
+    }
+
+    .logs-kpi-label {
+        font-size: 0.75rem;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #6b7280;
+        margin-bottom: 0.25rem;
+    }
+
+    .logs-kpi-value {
+        font-size: 1.4rem;
+        font-weight: 700;
+        line-height: 1.1;
+    }
+
+    .logs-kpi.total .logs-kpi-value { color: #2563eb; }
+    .logs-kpi.success .logs-kpi-value { color: #059669; }
+    .logs-kpi.failed .logs-kpi-value { color: #dc2626; }
+
+    .logs-filter-wrap {
+        border: 1px solid rgba(80, 102, 144, 0.14);
+        border-radius: 12px;
+        padding: 0.9rem;
+        background: #fff;
+        margin-bottom: 1rem;
+    }
+
+    .logs-table-card {
+        border: 1px solid rgba(80, 102, 144, 0.14);
+        border-radius: 12px;
+        overflow: hidden;
+        background: #fff;
+    }
+
+    .logs-table-card .table {
+        margin-bottom: 0;
+    }
+
+    .logs-table-card thead th {
+        font-size: 0.76rem;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #64748b;
+        background: #f8fafc;
+        border-bottom: 1px solid #e2e8f0;
+        padding-top: 0.78rem;
+        padding-bottom: 0.78rem;
+        white-space: nowrap;
+    }
+
+    .logs-identifier {
+        max-width: 220px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        display: inline-block;
+        vertical-align: middle;
+    }
+
+    .logs-pill {
+        border-radius: 999px;
+        padding: 0.34rem 0.62rem;
+        font-size: 0.73rem;
+        font-weight: 600;
+        line-height: 1;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+
+    html.app-skin-dark .logs-hero {
+        border-color: rgba(129, 153, 199, 0.25);
+        background: linear-gradient(135deg, rgba(32, 65, 124, 0.28), rgba(18, 101, 89, 0.28));
+    }
+
+    html.app-skin-dark .logs-hero h6 {
+        color: #e5edff;
+    }
+
+    html.app-skin-dark .logs-hero p {
+        color: #a9b7d6 !important;
+    }
+
+    html.app-skin-dark .logs-kpi,
+    html.app-skin-dark .logs-filter-wrap,
+    html.app-skin-dark .logs-table-card {
+        background: #0f172a;
+        border-color: rgba(129, 153, 199, 0.24);
+    }
+
+    html.app-skin-dark .logs-kpi-label {
+        color: #9fb0d3;
+    }
+
+    html.app-skin-dark .logs-filter-wrap .form-label {
+        color: #c0ccec;
+    }
+
+    html.app-skin-dark .logs-filter-wrap .btn-outline-secondary {
+        color: #d7e2ff;
+        border-color: rgba(129, 153, 199, 0.35);
+        background: transparent;
+    }
+
+    html.app-skin-dark .logs-filter-wrap .btn-outline-secondary:hover {
+        background: rgba(129, 153, 199, 0.16);
+        border-color: rgba(129, 153, 199, 0.5);
+    }
+
+    html.app-skin-dark .logs-table-card .table {
+        color: #dce7ff;
+        --bs-table-bg: #0f172a;
+        --bs-table-hover-bg: #18243d;
+        --bs-table-hover-color: #f3f7ff;
+        --bs-table-border-color: rgba(129, 153, 199, 0.2);
+    }
+
+    html.app-skin-dark .logs-table-card thead th {
+        color: #9fb0d3;
+        background: #111f36;
+        border-bottom-color: rgba(129, 153, 199, 0.25);
+    }
+
+    html.app-skin-dark .logs-table-card small.text-muted,
+    html.app-skin-dark .logs-table-card .text-muted {
+        color: #9fb0d3 !important;
+    }
+
+    html.app-skin-dark .logs-pill.bg-soft-primary {
+        background-color: rgba(37, 99, 235, 0.22) !important;
+        color: #8eb8ff !important;
+    }
+
+    @media (max-width: 991.98px) {
+        .logs-summary-grid {
+            grid-template-columns: 1fr;
+        }
+    }

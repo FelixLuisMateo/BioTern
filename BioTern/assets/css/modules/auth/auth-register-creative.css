@@ -43,8 +43,8 @@
 
     /* Dark mode support using html.app-skin-dark */
     html.app-skin-dark .role-card {
-        background: #001033;
-        border-color: #444444;
+        background: #15181b;
+        border-color: #2a2f35;
         color: #e0e0e0;
     }
 
@@ -134,7 +134,7 @@
         content: "";
         position: absolute;
         inset: 0;
-        background: rgba(59, 130, 246, 0.4);
+        background: rgba(120, 128, 140, 0.5);
         transform: scaleX(0);
         transform-origin: left;
         transition: transform 200ms ease;
@@ -143,7 +143,7 @@
     .step-dot.active::after,
     .step-dot.done::after {
         transform: scaleX(1);
-        background: rgba(59, 130, 246, 0.8);
+        background: rgba(120, 128, 140, 0.9);
     }
 
     .stepper-meta {
@@ -151,7 +151,7 @@
         align-items: center;
         justify-content: space-between;
         font-size: 12px;
-        color: #cbd5f5;
+        color: #9ca3af;
     }
 
     .step-actions {
@@ -262,76 +262,10 @@
         .role-icon { font-size: 34px; }
     }
 
-/* Ensure select text and option text are visible (black) */
-        select.form-control {
-            color: #000 !important;
-            background-color: #fff !important;
-        }
-        select.form-control option {
-            color: #000 !important;
-        }
-
-        /* Dark mode form field readability */
-        html.app-skin-dark input.form-control,
-        html.app-skin-dark textarea.form-control,
-        html.app-skin-dark .form-control[type="text"],
-        html.app-skin-dark .form-control[type="email"],
-        html.app-skin-dark .form-control[type="password"],
-        html.app-skin-dark .form-control[type="number"],
-        html.app-skin-dark .form-control[type="date"],
-        html.app-skin-dark .form-control[type="time"],
-        html.app-skin-dark .form-control[type="search"],
-        html.app-skin-dark .form-control[type="tel"],
-        html.app-skin-dark .form-control[type="url"] {
-            color: #ffffff !important;
-            -webkit-text-fill-color: #ffffff !important;
-            background-color: #0f172a !important;
-            border-color: #4a5568 !important;
-        }
-
-        html.app-skin-dark input.form-control::placeholder,
-        html.app-skin-dark textarea.form-control::placeholder {
-            color: #d1dcf0 !important;
-            opacity: 1 !important;
-        }
-
-        html.app-skin-dark select.form-control,
-        html.app-skin-dark select.form-control option {
-            color: #ffffff !important;
-            background-color: #0f172a !important;
-            border-color: #4a5568 !important;
-        }
-
-        /* Keep browser suggestion/autofill values readable in dark mode */
-        html.app-skin-dark input.form-control:-webkit-autofill,
-        html.app-skin-dark input.form-control:-webkit-autofill:hover,
-        html.app-skin-dark input.form-control:-webkit-autofill:focus,
-        html.app-skin-dark textarea.form-control:-webkit-autofill,
-        html.app-skin-dark textarea.form-control:-webkit-autofill:hover,
-        html.app-skin-dark textarea.form-control:-webkit-autofill:focus {
-            -webkit-text-fill-color: #ffffff !important;
-            caret-color: #ffffff !important;
-            box-shadow: 0 0 0 1000px #0f172a inset !important;
-            -webkit-box-shadow: 0 0 0 1000px #0f172a inset !important;
-            border-color: #4a5568 !important;
-            transition: background-color 9999s ease-out 0s;
-        }
-
-        .select2-container--default .select2-selection--single {
-            height: calc(2.25rem + 2px);
-            border: 1px solid #d9d9d9;
-            border-radius: 6px;
-        }
-
-        .select2-container--default .select2-selection--single .select2-selection__rendered {
-            line-height: calc(2.25rem + 0px);
-            padding-left: 12px;
-        }
-
-        .select2-container--default .select2-selection--single .select2-selection__arrow {
-            height: calc(2.25rem + 0px);
-            right: 8px;
-        }
+/* Shared form/select2 theme rules moved to:
+ * - assets/css/theme/forms-dark.css
+ * - assets/css/modules/app-ui-interactions.css
+ */
 
 /* Center main card vertically and horizontally */
         .auth-minimal-wrapper {
@@ -346,3 +280,102 @@
         .card.p-sm-5 {
             box-sizing: border-box;
         }
+
+/* Auth register page: responsive shell + scheme-aware surfaces */
+body {
+    background-color: var(--biotern-body-bg, #0f172a);
+    color: var(--bs-body-color, #1f2937);
+}
+
+.register-auth-card {
+    width: min(100%, 1100px);
+    margin: 40px auto;
+    border-radius: 14px;
+    border: 1px solid var(--biotern-border, #d1d5db);
+    background: var(--biotern-surface, #ffffff);
+    box-shadow: 0 20px 42px rgba(15, 23, 42, 0.2);
+}
+
+.register-auth-card .card-body {
+    padding: 50px !important;
+    min-height: auto;
+}
+
+html.app-skin-dark .register-auth-card {
+    background: var(--biotern-surface, #15181b);
+    border-color: var(--biotern-border, #2a2f35);
+    box-shadow: 0 22px 46px rgba(0, 0, 0, 0.48);
+}
+
+html.app-skin-dark .register-auth-card h2,
+html.app-skin-dark .register-auth-card h3,
+html.app-skin-dark .register-auth-card h4,
+html.app-skin-dark .register-auth-card h5 {
+    color: #e5e7eb;
+}
+
+html.app-skin-dark .register-auth-card .text-muted,
+html.app-skin-dark .register-auth-card .form-label {
+    color: #b8c0ca !important;
+}
+
+html.app-skin-dark .register-auth-card .form-control,
+html.app-skin-dark .register-auth-card .form-select,
+html.app-skin-dark .register-auth-card .input-group-text {
+    background-color: var(--biotern-surface-muted, #1b1f23);
+    border-color: var(--biotern-border, #2a2f35);
+    color: #e5e7eb;
+}
+
+html.app-theme-gray:not(.app-skin-dark) .register-auth-card h2,
+html.app-theme-gray:not(.app-skin-dark) .register-auth-card h3,
+html.app-theme-gray:not(.app-skin-dark) .register-auth-card h4,
+html.app-theme-gray:not(.app-skin-dark) .register-auth-card h5 {
+    color: #111827;
+}
+
+html.app-theme-gray.app-skin-dark .register-auth-card h2,
+html.app-theme-gray.app-skin-dark .register-auth-card h3,
+html.app-theme-gray.app-skin-dark .register-auth-card h4,
+html.app-theme-gray.app-skin-dark .register-auth-card h5 {
+    color: #f3f4f6;
+}
+
+html.app-theme-gray .step-dot::after {
+    background: rgba(107, 114, 128, 0.65);
+}
+
+html.app-theme-gray .step-dot.active::after,
+html.app-theme-gray .step-dot.done::after {
+    background: rgba(107, 114, 128, 0.95);
+}
+
+@media (max-width: 1199.98px) {
+    .register-auth-card {
+        width: 100%;
+        margin: 20px auto;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .auth-minimal-wrapper {
+        padding: 10px !important;
+    }
+
+    .register-auth-card .card-body {
+        padding: 1.2rem !important;
+    }
+
+    .register-auth-card .row > [class*="col-"] {
+        width: 100%;
+    }
+
+    .step-actions {
+        flex-wrap: wrap;
+    }
+
+    .step-actions .btn {
+        min-width: 0;
+        width: 100%;
+    }
+}

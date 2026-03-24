@@ -373,11 +373,11 @@ $page_title = 'BioTern || Student Attendance';
 $page_body_class = 'page-attendance';
 $page_styles = array(
     'assets/css/layout/page_shell.css',
-    'assets/css/pages/pages-attendance-page.css'
+    'assets/css/modules/pages/page-attendance.css'
 );
 $page_scripts = array(
     'assets/js/theme-customizer-init.min.js',
-    'assets/js/pages/pages-attendance-runtime.js',
+    'assets/js/modules/pages/pages-attendance-runtime.js',
 );
 include 'includes/header.php';
 ?>
@@ -885,7 +885,6 @@ include 'includes/header.php';
 </div> <!-- .nxl-content -->
 </main>
 <?php include 'includes/footer.php'; ?>
-
 
 
 

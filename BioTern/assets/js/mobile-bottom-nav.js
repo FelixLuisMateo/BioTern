@@ -1,128 +1,169 @@
-(function () {
-    function normalize(value) {
-        return (value || '').toLowerCase().trim();
+"use strict";
+
+(function (global) {
+    function BottomNavigationState(options) {
+        this.options = options || {};
+        this.routeResolver = this.options.routeResolver;
     }
 
-    function getCurrentRoute() {
-        var path = window.location.pathname || '';
-        var parts = path.split('/');
-        return normalize(parts[parts.length - 1]);
-    }
+    BottomNavigationState.prototype.getNav = function () {
+        return document.querySelector(".biotern-bottom-nav");
+    };
 
-    function applyActiveState(nav) {
-        var current = getCurrentRoute();
-        if (!current) return;
+    BottomNavigationState.prototype.getSheet = function () {
+        return document.getElementById("bioternBottomSheet");
+    };
 
-        var links = nav.querySelectorAll('.biotern-bottom-link[data-routes]');
-        links.forEach(function (link) {
-            var raw = link.getAttribute('data-routes') || '';
-            var routes = raw
-                .split(',')
-                .map(function (route) {
-                    return normalize(route);
-                })
-                .filter(Boolean);
+    BottomNavigationState.prototype.setActiveRoute = function (nav) {
+        var currentRoute = this.routeResolver.currentRouteKey();
+        if (!currentRoute) {
+            return;
+        }
 
-            if (!routes.length) return;
-            if (routes.indexOf(current) === -1) return;
+        var resolver = this.routeResolver;
+        nav.querySelectorAll(".biotern-bottom-link[data-routes]").forEach(function (link) {
+            var routes = resolver.routeListFromCsv(link.getAttribute("data-routes") || "");
+            if (!routes.length || routes.indexOf(currentRoute) === -1) {
+                return;
+            }
 
-            nav.querySelectorAll('.biotern-bottom-link.active').forEach(function (activeLink) {
+            nav.querySelectorAll(".biotern-bottom-link.active").forEach(function (activeLink) {
                 if (activeLink !== link) {
-                    activeLink.classList.remove('active');
-                    activeLink.removeAttribute('aria-current');
+                    activeLink.classList.remove("active");
+                    activeLink.removeAttribute("aria-current");
                 }
             });
 
-            link.classList.add('active');
-            link.setAttribute('aria-current', 'page');
+            link.classList.add("active");
+            link.setAttribute("aria-current", "page");
         });
-    }
+    };
 
-    function initSheet(nav) {
-        var sheet = document.getElementById('bioternBottomSheet');
-        if (!sheet) return;
+    BottomNavigationState.prototype.setPanel = function (sheet, nav, target, trigger) {
+        if (!target) {
+            return;
+        }
 
-        var contentPanels = sheet.querySelectorAll('.biotern-bottom-sheet-content[data-panel]');
+        sheet.dataset.activePanel = target;
+        sheet.querySelectorAll(".biotern-bottom-sheet-content[data-panel]").forEach(function (panel) {
+            panel.classList.toggle("is-active", panel.getAttribute("data-panel") === target);
+        });
 
-        function setPanel(target, trigger) {
-            if (!target) return;
-            sheet.dataset.activePanel = target;
-
-            contentPanels.forEach(function (panel) {
-                var isActive = panel.getAttribute('data-panel') === target;
-                panel.classList.toggle('is-active', isActive);
-            });
-
-            nav.querySelectorAll('.biotern-bottom-link.is-open').forEach(function (btn) {
-                if (btn !== trigger) {
-                    btn.classList.remove('is-open');
-                }
-            });
-
-            if (trigger) {
-                trigger.classList.add('is-open');
+        nav.querySelectorAll(".biotern-bottom-link.is-open").forEach(function (button) {
+            if (button !== trigger) {
+                button.classList.remove("is-open");
             }
-        }
+        });
 
-        function openSheet(target, trigger) {
-            setPanel(target, trigger);
-            sheet.classList.add('is-open');
-            sheet.setAttribute('aria-hidden', 'false');
+        if (trigger) {
+            trigger.classList.add("is-open");
         }
+    };
 
-        function closeSheet() {
-            sheet.classList.remove('is-open');
-            sheet.setAttribute('aria-hidden', 'true');
-            nav.querySelectorAll('.biotern-bottom-link.is-open').forEach(function (btn) {
-                btn.classList.remove('is-open');
-            });
-        }
+    BottomNavigationState.prototype.openSheet = function (sheet, nav, target, trigger) {
+        this.setPanel(sheet, nav, target, trigger);
+        sheet.classList.add("is-open");
+        sheet.setAttribute("aria-hidden", "false");
+    };
 
-        nav.querySelectorAll('.biotern-bottom-link[data-panel-target]').forEach(function (btn) {
-            btn.addEventListener('click', function (event) {
+    BottomNavigationState.prototype.closeSheet = function (sheet, nav) {
+        sheet.classList.remove("is-open");
+        sheet.setAttribute("aria-hidden", "true");
+        nav.querySelectorAll(".biotern-bottom-link.is-open").forEach(function (button) {
+            button.classList.remove("is-open");
+        });
+    };
+
+    BottomNavigationState.prototype.bindSheetEvents = function (sheet, nav) {
+        var self = this;
+
+        nav.querySelectorAll(".biotern-bottom-link[data-panel-target]").forEach(function (button) {
+            button.addEventListener("click", function (event) {
                 event.preventDefault();
-                var target = btn.getAttribute('data-panel-target') || '';
-                if (!target) return;
-                var isOpen = sheet.classList.contains('is-open');
-                var isSame = sheet.dataset.activePanel === target;
-                if (isOpen && isSame) {
-                    closeSheet();
-                } else {
-                    openSheet(target, btn);
+
+                var target = button.getAttribute("data-panel-target") || "";
+                if (!target) {
+                    return;
                 }
+
+                var isOpen = sheet.classList.contains("is-open");
+                var isSamePanel = sheet.dataset.activePanel === target;
+                if (isOpen && isSamePanel) {
+                    self.closeSheet(sheet, nav);
+                    return;
+                }
+                self.openSheet(sheet, nav, target, button);
             });
         });
 
-        var backdrop = sheet.querySelector('[data-sheet-close]');
+        var backdrop = sheet.querySelector("[data-sheet-close]");
         if (backdrop) {
-            backdrop.addEventListener('click', function () {
-                closeSheet();
+            backdrop.addEventListener("click", function () {
+                self.closeSheet(sheet, nav);
             });
         }
 
-        document.addEventListener('keydown', function (event) {
-            if (event.key === 'Escape') {
-                closeSheet();
+        document.addEventListener("keydown", function (event) {
+            if (event.key === "Escape") {
+                self.closeSheet(sheet, nav);
             }
         });
 
-        sheet.querySelectorAll('.biotern-bottom-sheet-link').forEach(function (link) {
-            link.addEventListener('click', function () {
-                closeSheet();
+        sheet.querySelectorAll(".biotern-bottom-sheet-link").forEach(function (link) {
+            link.addEventListener("click", function () {
+                self.closeSheet(sheet, nav);
             });
         });
+    };
+
+    BottomNavigationState.prototype.init = function () {
+        var nav = this.getNav();
+        if (!nav) {
+            return;
+        }
+
+        this.setActiveRoute(nav);
+
+        var sheet = this.getSheet();
+        if (!sheet) {
+            return;
+        }
+        this.bindSheetEvents(sheet, nav);
+    };
+
+    function boot() {
+        var core = global.BioTernNavCore;
+        if (!core || !core.RouteResolver) {
+            return;
+        }
+
+        var state = new BottomNavigationState({
+            routeResolver: core.RouteResolver
+        });
+
+        function runBottomNavState() {
+            state.init();
+        }
+
+        if (global.BioTernRuntimeBoot && typeof global.BioTernRuntimeBoot.boot === "function") {
+            global.BioTernRuntimeBoot.boot({
+                name: "mobile-bottom-nav",
+                run: runBottomNavState
+            });
+            return;
+        }
+
+        if (core.Dom && typeof core.Dom.onDomReady === "function") {
+            core.Dom.onDomReady(runBottomNavState);
+            return;
+        }
+
+        if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", runBottomNavState);
+        } else {
+            runBottomNavState();
+        }
     }
 
-    function init() {
-        var nav = document.querySelector('.biotern-bottom-nav');
-        if (!nav) return;
-        applyActiveState(nav);
-        initSheet(nav);
-    }
-
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
-    } else {
-        init();
-    }
-})();
+    boot();
+})(window);

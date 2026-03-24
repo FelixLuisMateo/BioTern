@@ -146,11 +146,11 @@ if ($list_result) {
 }
 
 $page_title = 'Create Department';
+$page_styles = ['assets/css/modules/management/management-create-shared.css'];
 include 'includes/header.php';
 ?>
 <main class="nxl-container">
     <div class="nxl-content">
-<link rel="stylesheet" type="text/css" href="assets/css/management/managements_create_shared.css">
 <div class="page-header">
     <div class="page-header-left d-flex align-items-center">
         <div class="page-header-title">
