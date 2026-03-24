@@ -1,0 +1,36 @@
+/* BioTern SMACSS entrypoint
+ *
+ * Transitional layer:
+ * - Keeps the current cascade intact to avoid regressions.
+ * - Provides one import target for ongoing SMACSS migration.
+ *
+ * Load order (compatibility-first):
+ * 1) Base (vendor foundation)
+ * 2) Layout (app shell and shared structure)
+ * 3) Module (interactive shared UI patterns)
+ * 4) Theme (skin/scheme overrides)
+ * 5) State (responsive/mobile overrides)
+ */
+
+/* 1) Base */
+@import url("./theme.min.css");
+
+/* 2) Core Split (legacy order preserved): utilities + layout */
+@import url("./modules/app-core-utilities.css");
+@import url("./layout/app-core-shell.css");
+
+/* 3) Core modules */
+@import url("./modules/app-core-pages.css");
+@import url("./modules/app-ui-interactions.css");
+
+/* 4) Theme */
+@import url("./theme/tokens.css");
+@import url("./theme/surfaces.css");
+@import url("./theme/forms-dark.css");
+@import url("./theme/scheme-gray.css");
+@import url("./theme/customizer.css");
+@import url("./theme/template-print-lock.css");
+
+/* 5) State */
+@import url("./state/mobile-layout.css");
+@import url("./state/mobile-components.css");

@@ -2,7 +2,7 @@
 $page_title = 'Knowledge Base';
 $base_href = '../';
 $page_styles = [
-    'assets/css/pages/help-knowledgebase-page.css',
+    'assets/css/modules/pages/page-help-knowledgebase.css',
 ];
 
 include __DIR__ . '/../includes/header.php';
@@ -897,7 +897,6 @@ const html = Prism.highlight(code, Prism.languages.javascript, 'javascript');
 </div> <!-- .nxl-content -->
 </main>
 <?php include __DIR__ . '/../includes/footer.php'; ?>
-
 
 
 

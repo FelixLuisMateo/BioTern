@@ -1015,3 +1015,31 @@ html.app-theme-gray:not(.app-skin-dark) {
 }
 
 /* Collapse toggles are available on all viewports. */
+
+/* Gray scheme polish: remove remaining blue hardcoded accents on dashboard UI */
+html.app-theme-gray .dashboard-movable.drag-before::before,
+html.app-theme-gray .dashboard-movable.drag-after::after {
+    background: linear-gradient(
+        90deg,
+        rgba(var(--bs-primary-rgb), 0.2),
+        rgba(var(--bs-primary-rgb), 0.9),
+        rgba(var(--bs-primary-rgb), 0.2)
+    );
+    box-shadow: 0 0 18px rgba(var(--bs-primary-rgb), 0.45);
+}
+
+html.app-theme-gray .activity-icon,
+html.app-theme-gray .activity-icon--application-submitted,
+html.app-theme-gray .activity-icon--default {
+    color: var(--biotern-primary-soft-text);
+}
+
+html.app-theme-gray .activity-icon--application-submitted,
+html.app-theme-gray .activity-icon--default {
+    background-color: var(--biotern-primary-soft);
+}
+
+html.app-theme-gray.app-skin-dark .dashboard-actions-panel {
+    background: rgba(24, 27, 31, 0.92);
+    border-color: rgba(255, 255, 255, 0.1);
+}

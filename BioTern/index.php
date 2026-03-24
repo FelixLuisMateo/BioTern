@@ -15,7 +15,7 @@ $page_title = 'BioTern || Internship Monitoring';
 $page_body_class = 'landing-public';
 $page_is_public = true;
 $page_styles = [
-    'assets/css/pages/landing-page.css',
+    'assets/css/modules/pages/page-landing.css',
 ];
 $page_scripts = [
     'assets/js/theme-customizer-init.min.js',
@@ -114,8 +114,6 @@ $page_scripts = [
             </div>
         </div>
     </footer>
-</div> <!-- .nxl-content -->
-</main>
 <?php include __DIR__ . '/includes/footer.php'; ?>
 
 

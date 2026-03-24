@@ -7,13 +7,11 @@ $nav_role = strtolower(trim((string)($_SESSION['role'] ?? $_SESSION['user_role']
 $nav_is_admin = ($nav_role === 'admin');
 $nav_is_coordinator = ($nav_role === 'coordinator');
 $nav_is_supervisor = ($nav_role === 'supervisor');
-$nav_is_student = ($nav_role === 'student');
 
 $nav_can_internship = ($nav_is_admin || $nav_is_coordinator || $nav_is_supervisor);
 $nav_can_academic = ($nav_is_admin || $nav_is_coordinator);
 $nav_can_workspace = ($nav_is_admin || $nav_is_coordinator);
 $nav_can_system = $nav_is_admin;
-$nav_can_reports = ($nav_is_admin || $nav_is_coordinator || $nav_is_supervisor);
 
 $nav_current_file = '';
 if (isset($_GET['file'])) {
@@ -258,6 +256,5 @@ $nav_active_help = biotern_nav_any_active($nav_current_file, [
         </div>
     </div>
 </nav>
-<script src="assets/js/navigation-state.js"></script>
 
 

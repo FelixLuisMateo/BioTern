@@ -401,8 +401,8 @@ $sql .= " ORDER BY COALESCE(u.application_submitted_at, u.created_at) DESC, u.id
 $applications = $conn->query($sql);
 
 $page_title = 'BioTern || Student Applications';
-$page_styles = array('assets/css/management/managements_applications_review.css');
-$page_scripts = array('assets/js/management/applications-review-runtime.js');
+$page_styles = array('assets/css/modules/management/management-applications-review.css');
+$page_scripts = array('assets/js/modules/management/applications-review-runtime.js');
 include 'includes/header.php';
 ?>
 <main class="nxl-container">

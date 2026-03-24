@@ -84,10 +84,10 @@ $asset_prefix = (strpos($script_name, '/pages/') !== false) ? '../' : '';
 $page_title = 'BioTern || Print Attendance';
 $base_href = $asset_prefix;
 $page_styles = [
-    'assets/css/pages/print-attendance-page.css',
+    'assets/css/modules/pages/page-print-attendance.css',
 ];
 $page_scripts = [
-    'assets/js/pages/print-attendance-runtime.js',
+    'assets/js/modules/pages/print-attendance-runtime.js',
 ];
 
 include 'includes/header.php';
@@ -228,7 +228,6 @@ include 'includes/header.php';
 </div> <!-- .nxl-content -->
 </main>
 <?php include 'includes/footer.php'; ?>
-
 
 
 

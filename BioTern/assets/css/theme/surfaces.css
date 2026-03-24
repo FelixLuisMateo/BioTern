@@ -1,0 +1,95 @@
+/* ------------------------------------------------------------------------- */
+/* 2) Global surfaces and component tones                                    */
+/* ------------------------------------------------------------------------- */
+
+.nxl-container,
+.nxl-content,
+.main-content,
+.content-area,
+.content-area-header,
+.content-area-body,
+.page-header,
+.nxl-container .nxl-content .main-content,
+.nxl-container .nxl-content .main-content .content-area,
+.nxl-container .nxl-content .main-content .content-area .content-area-header,
+.nxl-container .nxl-content .main-content .content-sidebar {
+  background-color: var(--biotern-body-bg);
+}
+
+.card,
+.modal-content,
+.dropdown-menu,
+.nxl-header,
+.nxl-header .header-wrapper,
+.nxl-navigation,
+.nxl-navigation .m-header,
+.nxl-navigation .navbar-content,
+.nxl-container .footer,
+.content-sidebar,
+.content-sidebar .content-sidebar-header,
+.content-area .content-area-header,
+.content-area .content-area-body,
+.page-header {
+  background-color: var(--biotern-surface);
+  border-color: var(--biotern-border) !important;
+}
+
+.table,
+.table > :not(caption) > * > *,
+.list-group-item {
+  background-color: var(--biotern-surface);
+  border-color: var(--biotern-border) !important;
+}
+
+.table.table-striped > tbody > tr:nth-of-type(odd) > * {
+  background-color: var(--biotern-surface-muted);
+}
+
+.content-area-header,
+.content-sidebar-header,
+.page-header,
+.nxl-navigation .m-header,
+.nxl-header .header-wrapper,
+.nxl-container .footer {
+  border-color: var(--biotern-border) !important;
+}
+
+.nxl-navigation .navbar-content .nxl-item.active > .nxl-link,
+.nxl-navigation .navbar-content .nxl-item:hover > .nxl-link,
+.nxl-navigation .navbar-content .nxl-navbar > .nxl-item.active > .nxl-link,
+.nxl-navigation .navbar-content .nxl-navbar > .nxl-item:hover > .nxl-link,
+.content-sidebar .nav-link.active,
+.content-sidebar .nav-link:hover {
+  background-color: var(--biotern-primary-soft);
+  color: var(--biotern-primary-soft-text);
+}
+
+html.app-skin-dark .card,
+html.app-skin-dark .modal-content,
+html.app-skin-dark .dropdown-menu,
+html.app-skin-dark .nxl-header,
+html.app-skin-dark .nxl-header .header-wrapper,
+html.app-skin-dark .nxl-navigation,
+html.app-skin-dark .nxl-navigation .m-header,
+html.app-skin-dark .nxl-navigation .navbar-content,
+html.app-skin-dark .nxl-container .footer,
+html.app-skin-dark .content-sidebar,
+html.app-skin-dark .content-sidebar .content-sidebar-header,
+html.app-skin-dark .content-area .content-area-header,
+html.app-skin-dark .content-area .content-area-body,
+html.app-skin-dark .page-header {
+  background-color: var(--biotern-surface) !important;
+  border-color: var(--biotern-border) !important;
+}
+
+html.app-skin-dark .table,
+html.app-skin-dark .table > :not(caption) > * > *,
+html.app-skin-dark .list-group-item {
+  background-color: var(--biotern-surface) !important;
+  border-color: var(--biotern-border) !important;
+}
+
+html.app-skin-dark .table.table-striped > tbody > tr:nth-of-type(odd) > * {
+  background-color: var(--biotern-surface-muted) !important;
+}
+

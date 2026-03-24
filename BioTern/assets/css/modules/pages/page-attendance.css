@@ -254,75 +254,10 @@ html.app-skin-dark .filter-toggle-btn:focus {
         }
         /* Section: filter/select controls */
         /* Used by pages/attendance.php: #attendanceFilterForm filter controls */
-        .app-attendance-filter-form select.form-control,
-        .app-attendance-filter-form select.form-select,
-        select.form-control,
-        select.form-select,
-        .select2-container--default .select2-selection--single,
-        .select2-container--default .select2-selection--multiple {
-            color: #333 !important;
-            background-color: #ffffff !important;
-        }
-        
-        /* Dark mode support for Select2 - using app-skin-dark class */
-        html.app-skin-dark .select2-container--default .select2-selection--single,
-        html.app-skin-dark .select2-container--default .select2-selection--multiple {
-            color: #f0f0f0 !important;
-            background-color: #0f172a !important;
-            border-color: #4a5568 !important;
-        }
-        
-        html.app-skin-dark .select2-container--default.select2-container--focus .select2-selection--single,
-        html.app-skin-dark .select2-container--default.select2-container--focus .select2-selection--multiple {
-            color: #f0f0f0 !important;
-            background-color: #0f172a !important;
-            border-color: #4a5568 !important;
-        }
-        
-        html.app-skin-dark .select2-container--default .select2-selection--single .select2-selection__rendered {
-            color: #ffffff !important;
-        }
-        
-        html.app-skin-dark .select2-container--default .select2-selection__placeholder {
-            color: #ffffff !important;
-        }
-        
-        /* Dark mode dropdown menu */
-        html.app-skin-dark .select2-container--default.select2-container--open .select2-dropdown {
-            background-color: #0f172a !important;
-            border-color: #4a5568 !important;
-        }
-        
-        html.app-skin-dark .select2-results {
-            background-color: #0f172a !important;
-        }
-        
-        html.app-skin-dark .select2-results__option {
-            color: #ffffff !important;
-            background-color: #0f172a !important;
-        }
-        
-        html.app-skin-dark .select2-results__option--highlighted[aria-selected] {
-            background-color: #667eea !important;
-            color: #ffffff !important;
-        }
-        
-        html.app-skin-dark .select2-container--default {
-            background-color: #0f172a !important;
-        }
-        
-        html.app-skin-dark select.form-control,
-        html.app-skin-dark select.form-select {
-            color: #ffffff !important;
-            background-color: #0f172a !important;
-            border-color: #4a5568 !important;
-        }
-        
-        html.app-skin-dark select.form-control option,
-        html.app-skin-dark select.form-select option {
-            color: #ffffff !important;
-            background-color: #2d3748 !important;
-        }
+        /* Shared select/select2 light+dark behavior is centralized in:
+         * - assets/css/modules/app-ui-interactions.css
+         * - assets/css/theme/forms-dark.css
+         */
 
         .app-attendance-filter-form select.form-control,
         .filter-form select.form-control {
@@ -346,7 +281,7 @@ html.app-skin-dark .filter-toggle-btn:focus {
         .filter-form select.form-control,
         .filter-form .select2-container--bootstrap-5 .select2-selection,
         .filter-form .select2-container--default .select2-selection--single {
-            border-color: #4e6283 !important;
+            border-color: var(--biotern-border) !important;
             border-width: 1px !important;
         }
 
@@ -358,50 +293,8 @@ html.app-skin-dark .filter-toggle-btn:focus {
         .filter-form select.form-control:focus,
         .filter-form .select2-container--bootstrap-5.select2-container--focus .select2-selection,
         .filter-form .select2-container--default.select2-container--focus .select2-selection--single {
-            border-color: #7f9ecf !important;
-            box-shadow: 0 0 0 0.15rem rgba(127, 158, 207, 0.22) !important;
-        }
-
-        /* Force white text for Select2 Bootstrap-5 themed filter dropdowns */
-        .app-attendance-filter-form .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered,
-        .app-attendance-filter-form .select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__rendered,
-        .app-attendance-filter-form .select2-container--bootstrap-5 .select2-selection__placeholder,
-        .filter-form .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered,
-        .filter-form .select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__rendered,
-        .filter-form .select2-container--bootstrap-5 .select2-selection__placeholder {
-            color: #ffffff !important;
-            -webkit-text-fill-color: #ffffff !important;
-            opacity: 1 !important;
-        }
-
-        .app-attendance-filter-form .select2-container--bootstrap-5 .select2-dropdown .select2-results__option,
-        .filter-form .select2-container--bootstrap-5 .select2-dropdown .select2-results__option {
-            color: #ffffff !important;
-        }
-
-        /* Light mode: keep Select2 text readable on white backgrounds */
-        .filter-form .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered,
-        .filter-form .select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__rendered,
-        .filter-form .select2-container--bootstrap-5 .select2-selection__placeholder {
-            color: #283c50 !important;
-            -webkit-text-fill-color: #283c50 !important;
-            opacity: 1 !important;
-        }
-
-        .filter-form .select2-container--bootstrap-5 .select2-dropdown .select2-results__option {
-            color: #283c50 !important;
-        }
-
-        /* Dark mode: use white text for Select2 Bootstrap-5 theme */
-        html.app-skin-dark .filter-form .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered,
-        html.app-skin-dark .filter-form .select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__rendered,
-        html.app-skin-dark .filter-form .select2-container--bootstrap-5 .select2-selection__placeholder {
-            color: #ffffff !important;
-            -webkit-text-fill-color: #ffffff !important;
-        }
-
-        html.app-skin-dark .filter-form .select2-container--bootstrap-5 .select2-dropdown .select2-results__option {
-            color: #ffffff !important;
+            border-color: var(--biotern-primary) !important;
+            box-shadow: 0 0 0 0.15rem rgba(var(--bs-primary-rgb), 0.22) !important;
         }
 
 /* Section: table/dropdown stacking and clipping fixes */

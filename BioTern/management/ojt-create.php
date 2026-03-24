@@ -478,11 +478,11 @@ if ($recentRes) {
 
 $page_title = 'BioTern || OJT Create';
 $page_styles = [
-    'assets/css/management/managements_ojt_shared.css',
-    'assets/css/management/managements_ojt_create.css',
+    'assets/css/modules/management/management-ojt-shared.css',
+    'assets/css/modules/management/management-ojt-create.css',
 ];
 $page_scripts = [
-    'assets/js/management/ojt-create-runtime.js',
+    'assets/js/modules/management/ojt-create-runtime.js',
     'assets/js/theme-customizer-init.min.js',
 ];
 include 'includes/header.php';

@@ -1,0 +1,54 @@
+/* SMACSS Module: shared utility-like classes extracted from core.css */
+
+.app-avatar-40 {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.app-logo-lg {
+  width: 210px;
+  height: auto;
+  object-fit: contain;
+}
+
+.app-hidden-toggle {
+  display: none;
+}
+
+.app-toast-fixed {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 99999;
+  max-width: 400px;
+}
+
+.app-progress-thin {
+  height: 5px;
+}
+
+.app-floating-corner {
+  position: fixed;
+  right: 5px;
+  bottom: 5px;
+  z-index: 999999;
+}
+
+.app-options-label-offset {
+  top: -12px;
+}
+
+/*
+  During migration, add only reusable utility classes here.
+  Remove one-off helpers once pages are fully normalized.
+*/
+
+.app-fs-085 {
+  font-size: 0.85rem;
+}
+
+.app-minw-72 {
+  min-width: 72px;
+}

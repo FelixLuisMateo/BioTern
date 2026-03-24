@@ -36,11 +36,11 @@ $page_title = 'BioTern || Resume - ' . $full_name;
 $base_href = $asset_prefix;
 $page_body_class = 'app-generate-page';
 $page_styles = [
-    'assets/css/documents/generate-shell-clean.css',
-    'assets/css/documents/generate-resume-page.css',
+    'assets/css/modules/documents/generate-shell-clean.css',
+    'assets/css/modules/documents/generate-resume-page.css',
 ];
 $page_scripts = [
-    'assets/js/documents/generate-resume-runtime.js',
+    'assets/js/modules/documents/generate-resume-runtime.js',
 ];
 
 include __DIR__ . '/../includes/header.php';

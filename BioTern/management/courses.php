@@ -57,11 +57,11 @@ if ($listResult) {
 $colCount = count($selectFields) + 1; // +1 for Actions column
 
 $page_title = 'Courses';
+$page_styles = ['assets/css/modules/management/management-courses.css'];
 include 'includes/header.php';
 ?>
 <main class="nxl-container">
     <div class="nxl-content">
-<link rel="stylesheet" type="text/css" href="assets/css/management/managements_courses.css">
 <div class="page-header">
     <div class="page-header-left d-flex align-items-center">
         <div class="page-header-title">

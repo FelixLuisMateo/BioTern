@@ -44,12 +44,12 @@ $page_title = 'BioTern || DAU Memorandum of Agreement';
 $base_href = $asset_prefix;
 $page_body_class = 'app-generate-page';
 $page_styles = [
-    'assets/css/documents/generate-shell-clean.css',
-    'assets/css/documents/generate-moa-common-page.css',
-    'assets/css/documents/generate-dau-moa-page.css',
+    'assets/css/modules/documents/generate-shell-clean.css',
+    'assets/css/modules/documents/generate-moa-common-page.css',
+    'assets/css/modules/documents/generate-dau-moa-page.css',
 ];
 $page_scripts = [
-    'assets/js/documents/generate-dau-moa-runtime.js',
+    'assets/js/modules/documents/generate-dau-moa-runtime.js',
 ];
 
 include __DIR__ . '/../includes/header.php';

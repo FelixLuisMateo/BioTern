@@ -369,15 +369,15 @@ $dashboard_can_review_applications = in_array($dashboard_role, ['admin', 'coordi
 
 $page_title = 'BioTern || Dashboard';
 $page_body_class = 'dashboard-home';
-$page_styles = array('assets/css/pages/homepage-dashboard.css');
+$page_styles = array('assets/css/modules/pages/page-home-dashboard.css');
 $page_vendor_scripts = array(
     'assets/vendors/js/daterangepicker.min.js',
     'assets/vendors/js/apexcharts.min.js',
     'assets/vendors/js/circle-progress.min.js',
 );
 $page_scripts = array(
-    'assets/js/pages/dashboard-init.min.js',
-    'assets/js/pages/homepage-movable.js',
+    'assets/js/modules/pages/dashboard-init.min.js',
+    'assets/js/modules/pages/homepage-movable.js',
     'assets/js/theme-customizer-init.min.js',
 );
 include 'includes/header.php';
@@ -834,7 +834,6 @@ include 'includes/header.php';
 </div> <!-- .nxl-content -->
 </main>
 <?php include 'includes/footer.php'; ?>
-
 
 
 

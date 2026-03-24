@@ -1,0 +1,28 @@
+/* SMACSS Layout: shared application shell */
+
+/* Footer layout stickiness */
+.nxl-container {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 80px);
+}
+
+.nxl-container .nxl-content {
+  flex: 1 0 auto;
+}
+
+.nxl-container .footer {
+  margin-top: auto;
+}
+
+/* Avatar consistency in header/dropdown */
+.nxl-header .user-avtar,
+.nxl-user-dropdown .user-avtar {
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+  min-height: 40px !important;
+  border-radius: 50% !important;
+  object-fit: cover !important;
+  object-position: center !important;
+}

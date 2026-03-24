@@ -3,8 +3,21 @@
   "use strict";
 
   var imageErrorHandlerBound = false;
+  var uiStateCore = window.BioTernUiStateCore || null;
+
+  function hasSharedStorage() {
+    return (
+      uiStateCore &&
+      uiStateCore.storage &&
+      typeof uiStateCore.storage.get === "function" &&
+      typeof uiStateCore.storage.set === "function"
+    );
+  }
 
   function safeStorageGet(keys) {
+    if (hasSharedStorage() && typeof uiStateCore.storage.getFirst === "function") {
+      return uiStateCore.storage.getFirst(keys);
+    }
     try {
       for (var i = 0; i < keys.length; i += 1) {
         var value = localStorage.getItem(keys[i]);
@@ -59,6 +72,9 @@
     if (!key) {
       return null;
     }
+    if (hasSharedStorage()) {
+      return uiStateCore.storage.get(key, null);
+    }
     try {
       return localStorage.getItem(key);
     } catch (err) {
@@ -70,8 +86,26 @@
     if (!key) {
       return false;
     }
+    if (hasSharedStorage()) {
+      return uiStateCore.storage.set(key, value);
+    }
     try {
       localStorage.setItem(key, String(value));
+      return true;
+    } catch (err) {
+      return false;
+    }
+  }
+
+  function removeStorageItem(key) {
+    if (!key) {
+      return false;
+    }
+    if (hasSharedStorage() && typeof uiStateCore.storage.remove === "function") {
+      return uiStateCore.storage.remove(key);
+    }
+    try {
+      localStorage.removeItem(key);
       return true;
     } catch (err) {
       return false;
@@ -343,16 +377,7 @@
       if (!cfg.storageKey) {
         return false;
       }
-      var storageApi = window.AppCore && window.AppCore.Storage ? window.AppCore.Storage : null;
-      var ok = storageApi ? storageApi.set(cfg.storageKey, editor.innerHTML) : false;
-      if (!ok) {
-        try {
-          localStorage.setItem(cfg.storageKey, editor.innerHTML);
-          ok = true;
-        } catch (err) {
-          ok = false;
-        }
-      }
+      var ok = setStorageItem(cfg.storageKey, editor.innerHTML);
       setStatus(ok ? cfg.savedMessage || "Saved" : cfg.saveFailedMessage || "Save failed");
       if (typeof cfg.onAfterSave === "function") {
         cfg.onAfterSave(editor, getApi(), ok);
@@ -510,15 +535,7 @@
       if (!cfg.storageKey) {
         return null;
       }
-      var storageApi = window.AppCore && window.AppCore.Storage ? window.AppCore.Storage : null;
-      var saved = storageApi ? storageApi.get(cfg.storageKey) : null;
-      if (!saved) {
-        try {
-          saved = localStorage.getItem(cfg.storageKey);
-        } catch (err) {
-          saved = null;
-        }
-      }
+      var saved = getStorageItem(cfg.storageKey);
       return saved && saved.trim() ? saved : null;
     }
 
@@ -687,9 +704,7 @@
 
           if (cfg.resetMode === "storage-or-default") {
             if (cfg.storageKey) {
-              try {
-                localStorage.removeItem(cfg.storageKey);
-              } catch (err) {}
+              removeStorageItem(cfg.storageKey);
             }
             editor.innerHTML = getDefaultTemplateHtml();
             setStatus(cfg.resetStatusMessage || "Reset to default");
@@ -918,6 +933,7 @@
   window.AppCore.Storage = {
     get: getStorageItem,
     set: setStorageItem,
+    remove: removeStorageItem,
   };
   window.AppCore.Documents = {
     bindPrintButton: bindPrintButton,
@@ -938,13 +954,24 @@
     attachLogoDrag: attachLogoDrag,
   };
 
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", function () {
-      applyCurrentYear();
-      initDelegatedUiHandlers();
-    });
-  } else {
+  function runGlobalUiHelpersInit() {
     applyCurrentYear();
     initDelegatedUiHandlers();
+  }
+
+  if (window.BioTernRuntimeBoot && typeof window.BioTernRuntimeBoot.boot === "function") {
+    window.BioTernRuntimeBoot.boot({
+      name: "global-ui-helpers",
+      run: runGlobalUiHelpersInit,
+    });
+    return;
+  }
+
+  if (uiStateCore && uiStateCore.dom && typeof uiStateCore.dom.onReady === "function") {
+    uiStateCore.dom.onReady(runGlobalUiHelpersInit);
+  } else if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", runGlobalUiHelpersInit);
+  } else {
+    runGlobalUiHelpersInit();
   }
 })();

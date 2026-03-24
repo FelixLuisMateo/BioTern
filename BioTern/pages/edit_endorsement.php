@@ -7,10 +7,10 @@ $base_href = $asset_prefix;
 $page_body_class = 'app-editor-page';
 $page_styles = [
     'assets/css/layout/page-editor-shell.css',
-    'assets/css/documents/edit-endorsement-template-page.css',
+    'assets/css/modules/documents/edit-endorsement-template-page.css',
 ];
 $page_scripts = [
-    'assets/js/documents/template-editor-page-runtime.js',
+    'assets/js/modules/documents/template-editor-page-runtime.js',
 ];
 
 include __DIR__ . '/../includes/header.php';

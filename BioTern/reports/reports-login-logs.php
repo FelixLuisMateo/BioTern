@@ -106,7 +106,7 @@ if ($summaryResult) {
 }
 
 $page_body_class = trim(($page_body_class ?? '') . ' reports-page');
-$page_styles = array_merge($page_styles ?? [], ['assets/css/reports/reports-login-logs-page.css', 'assets/css/reports/reports-shell.css']);
+$page_styles = array_merge($page_styles ?? [], ['assets/css/modules/reports/reports-login-logs-page.css', 'assets/css/modules/reports/reports-shell.css']);
 $page_title = 'BioTern || Login Logs';
 include 'includes/header.php';
 ?>

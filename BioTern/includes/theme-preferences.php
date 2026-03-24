@@ -9,7 +9,7 @@ if (!function_exists('biotern_theme_defaults')) {
             'font' => 'default',
             'navigation' => 'light',
             'header' => 'light',
-            'scheme' => 'blue',
+            'scheme' => 'gray',
         ];
     }
 }

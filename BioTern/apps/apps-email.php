@@ -2034,7 +2034,7 @@ include 'includes/header.php';
     <!--! END: Vendors JS !-->
     <!--! BEGIN: Apps Init  !-->
     <script src="assets/js/common-init.min.js"></script>
-    <script src="assets/js/apps/apps-email-init.min.js"></script>
+    <script src="assets/js/modules/apps/apps-email-init.min.js"></script>
     <!--! END: Apps Init !-->
     <!--! BEGIN: Theme Customizer  !-->
     <script src="assets/js/theme-customizer-init.min.js"></script>

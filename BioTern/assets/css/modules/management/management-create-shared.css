@@ -26,15 +26,4 @@
     align-items: center;
 }
 
-/* Dark mode file input controls (applies only when present) */
-html.app-skin-dark input[type="file"].form-control {
-    color: #ffffff !important;
-    background-color: #0f172a !important;
-    border-color: #4a5568 !important;
-}
-
-html.app-skin-dark input[type="file"].form-control::file-selector-button {
-    color: #ffffff !important;
-    background: #1e293b !important;
-    border: 1px solid #4a5568 !important;
-}
+/* Shared dark file-input styling moved to assets/css/theme/forms-dark.css. */

@@ -32,7 +32,7 @@ if ($res) {
 
 $page_title = 'BioTern || Attendance Corrections';
 $page_styles = [
-    'assets/css/pages/pages-attendance-page.css',
+    'assets/css/modules/pages/page-attendance.css',
 ];
 $page_scripts = [
     'assets/js/theme-customizer-init.min.js',
@@ -95,7 +95,6 @@ include 'includes/header.php';
 </div> <!-- .nxl-content -->
 </main>
 <?php include 'includes/footer.php'; ?>
-
 
 
 

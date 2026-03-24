@@ -1,0 +1,15 @@
+/*
+ * Class: module.management.sections.list
+ * Used by:
+ * - management/sections.php
+ */
+
+    html.app-skin-dark #filter-q {
+        color: #ffffff !important;
+        -webkit-text-fill-color: #ffffff !important;
+    }
+
+    html.app-skin-dark #filter-q::placeholder {
+        color: #ffffff !important;
+        opacity: 0.95;
+    }

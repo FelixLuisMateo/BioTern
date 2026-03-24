@@ -116,6 +116,73 @@ function tableHasColumn($mysqli, $tableName, $columnName) {
     return $has;
 }
 
+function tableColumnIsAutoIncrement($mysqli, $tableName, $columnName) {
+    $table = trim((string)$tableName);
+    $column = trim((string)$columnName);
+    if ($table === '' || $column === '') {
+        return false;
+    }
+
+    $sql = "
+        SELECT EXTRA
+        FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = ?
+          AND COLUMN_NAME = ?
+        LIMIT 1
+    ";
+    $stmt = $mysqli->prepare($sql);
+    if (!$stmt) {
+        return false;
+    }
+    $stmt->bind_param('ss', $table, $column);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    if (!$row) {
+        return false;
+    }
+    return stripos((string)($row['EXTRA'] ?? ''), 'auto_increment') !== false;
+}
+
+function nextTableId($mysqli, $tableName) {
+    $table = trim((string)$tableName);
+    if ($table === '') {
+        return 1;
+    }
+    $safeTable = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
+    if ($safeTable === '') {
+        return 1;
+    }
+
+    $sql = "SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM {$safeTable}";
+    $res = $mysqli->query($sql);
+    if ($res) {
+        $row = $res->fetch_assoc();
+        $res->close();
+        if ($row && isset($row['next_id'])) {
+            return (int)$row['next_id'];
+        }
+    }
+    return 1;
+}
+
+function bindDynamicParams($stmt, $types, &$values) {
+    if (!($stmt instanceof mysqli_stmt)) {
+        return false;
+    }
+    if (!is_array($values) || $types === '') {
+        return true;
+    }
+
+    $bind = [$types];
+    foreach (array_keys($values) as $idx) {
+        $bind[] = &$values[$idx];
+    }
+
+    return call_user_func_array([$stmt, 'bind_param'], $bind);
+}
+
 function ensureSectionId($mysqli, $sectionValue, $courseId, $departmentId) {
     $sectionRaw = trim((string)$sectionValue);
     $courseId = (int)$courseId;
@@ -166,7 +233,10 @@ if (!$role) {
 }
 
 // Create a user record if `users` table exists
-function createUser($mysqli, $username, $email, $password, $role) {
+function createUser($mysqli, $username, $email, $password, $role, $displayName = null, &$errorCode = null, &$errorMessage = null) {
+    $errorCode = null;
+    $errorMessage = null;
+
     // check users table
     $res = $mysqli->query("SHOW TABLES LIKE 'users'");
     $userId = null;
@@ -175,28 +245,102 @@ function createUser($mysqli, $username, $email, $password, $role) {
         $hasIsActive = tableHasColumn($mysqli, 'users', 'is_active');
         $hasAppStatus = tableHasColumn($mysqli, 'users', 'application_status');
         $hasSubmittedAt = tableHasColumn($mysqli, 'users', 'application_submitted_at');
-        if ($hasIsActive && $hasAppStatus && $hasSubmittedAt) {
-            $stmt = $mysqli->prepare("INSERT INTO users (name, username, email, password, role, is_active, application_status, application_submitted_at, created_at) VALUES (?, ?, ?, ?, ?, 1, 'approved', NOW(), NOW())");
-        } elseif ($hasIsActive && $hasAppStatus) {
-            $stmt = $mysqli->prepare("INSERT INTO users (name, username, email, password, role, is_active, application_status, created_at) VALUES (?, ?, ?, ?, ?, 1, 'approved', NOW())");
-        } elseif ($hasIsActive) {
-            $stmt = $mysqli->prepare("INSERT INTO users (name, username, email, password, role, is_active, created_at) VALUES (?, ?, ?, ?, ?, 1, NOW())");
-        } else {
-            $stmt = $mysqli->prepare("INSERT INTO users (name, username, email, password, role, created_at) VALUES (?, ?, ?, ?, ?, NOW())");
+
+        $manualId = tableHasColumn($mysqli, 'users', 'id') && !tableColumnIsAutoIncrement($mysqli, 'users', 'id');
+        $hasCreatedAt = tableHasColumn($mysqli, 'users', 'created_at');
+        $name = trim((string)$displayName);
+        if ($name === '') {
+            $name = (string)$username;
         }
+
+        $columns = [];
+        $values = [];
+        $types = '';
+        $placeholders = [];
+
+        if ($manualId) {
+            $columns[] = 'id';
+            $values[] = nextTableId($mysqli, 'users');
+            $types .= 'i';
+            $placeholders[] = '?';
+        }
+
+        $columns[] = 'name';
+        $values[] = $name;
+        $types .= 's';
+        $placeholders[] = '?';
+
+        $columns[] = 'username';
+        $values[] = (string)$username;
+        $types .= 's';
+        $placeholders[] = '?';
+
+        $columns[] = 'email';
+        $values[] = (string)$email;
+        $types .= 's';
+        $placeholders[] = '?';
+
+        $columns[] = 'password';
+        $values[] = $pwdHash;
+        $types .= 's';
+        $placeholders[] = '?';
+
+        $columns[] = 'role';
+        $values[] = (string)$role;
+        $types .= 's';
+        $placeholders[] = '?';
+
+        if ($hasIsActive) {
+            $columns[] = 'is_active';
+            $values[] = 1;
+            $types .= 'i';
+            $placeholders[] = '?';
+        }
+
+        if ($hasAppStatus) {
+            $columns[] = 'application_status';
+            $values[] = 'approved';
+            $types .= 's';
+            $placeholders[] = '?';
+        }
+
+        if ($hasSubmittedAt) {
+            $columns[] = 'application_submitted_at';
+            $values[] = date('Y-m-d H:i:s');
+            $types .= 's';
+            $placeholders[] = '?';
+        }
+
+        if ($hasCreatedAt) {
+            $columns[] = 'created_at';
+            $values[] = date('Y-m-d H:i:s');
+            $types .= 's';
+            $placeholders[] = '?';
+        }
+
+        $sql = "INSERT INTO users (" . implode(', ', $columns) . ") VALUES (" . implode(', ', $placeholders) . ")";
+        $stmt = $mysqli->prepare($sql);
         if ($stmt) {
-            $name = $username;
-            $stmt->bind_param('sssss', $name, $username, $email, $pwdHash, $role);
+            bindDynamicParams($stmt, $types, $values);
             try {
                 $stmt->execute();
-                $userId = $mysqli->insert_id;
+                if ($manualId) {
+                    $userId = (int)$values[0];
+                } else {
+                    $userId = (int)$mysqli->insert_id;
+                }
             } catch (mysqli_sql_exception $e) {
-                $code = $e->getCode();
+                $errorCode = (int)$e->getCode();
+                $errorMessage = (string)$e->getMessage();
                 $stmt->close();
                 // Duplicate entry (1062) or other SQL error - return null so callers can handle it
                 return null;
             }
             $stmt->close();
+        } else {
+            $errorCode = -1;
+            $errorMessage = (string)$mysqli->error;
+            return null;
         }
     }
     return $userId;
@@ -235,8 +379,10 @@ if ($role === 'student') {
     $phone = getPost('phone');
     $date_of_birth = getPost('date_of_birth');
     $gender = getPost('gender');
-    $supervisor_id = getPost('supervisor_id') ? (int)getPost('supervisor_id') : null;
-    $coordinator_id = getPost('coordinator_id') ? (int)getPost('coordinator_id') : null;
+    $supervisor_id_raw = getPost('supervisor_id');
+    $coordinator_id_raw = getPost('coordinator_id');
+    $supervisor_id = (is_string($supervisor_id_raw) && ctype_digit($supervisor_id_raw)) ? (int)$supervisor_id_raw : 0;
+    $coordinator_id = (is_string($coordinator_id_raw) && ctype_digit($coordinator_id_raw)) ? (int)$coordinator_id_raw : 0;
     $internal_total_hours = getPost('internal_total_hours');
     if ($internal_total_hours === null || $internal_total_hours === '') {
         // Backward compatibility for older forms still posting total_hours.
@@ -250,15 +396,38 @@ if ($role === 'student') {
     // Use account_email if provided, otherwise use email
     $final_email = $account_email ?: $email;
     $course_id = (int)$course_id;
-    $department_id = null;
+    $department_id = 0;
     if ($department_id_raw !== null && $department_id_raw !== '' && ctype_digit((string)$department_id_raw)) {
         $department_id = (int)$department_id_raw;
     } else {
-        $department_id = resolveDepartmentIdByCode($mysqli, $department_code);
+        $resolved_department = resolveDepartmentIdByCode($mysqli, $department_code);
+        if ($resolved_department !== null) {
+            $department_id = (int)$resolved_department;
+        }
     }
     $section_id = resolveSectionId($mysqli, $section, $course_id);
-    if ($section_id <= 0 && !empty($department_id)) {
+    if ($section_id <= 0 && $department_id > 0) {
         $section_id = ensureSectionId($mysqli, $section, $course_id, (int)$department_id);
+    }
+    if ($section_id > 0 && $department_id <= 0) {
+        $section_department_stmt = $mysqli->prepare("
+            SELECT department_id
+            FROM sections
+            WHERE id = ?
+              AND course_id = ?
+              AND is_active = 1
+              AND deleted_at IS NULL
+            LIMIT 1
+        ");
+        if ($section_department_stmt) {
+            $section_department_stmt->bind_param('ii', $section_id, $course_id);
+            $section_department_stmt->execute();
+            $section_department_row = $section_department_stmt->get_result()->fetch_assoc();
+            $section_department_stmt->close();
+            if ($section_department_row && isset($section_department_row['department_id'])) {
+                $department_id = (int)$section_department_row['department_id'];
+            }
+        }
     }
     $internal_total_hours = $internal_total_hours ? (int)$internal_total_hours : 0;
     $external_total_hours = $external_total_hours ? (int)$external_total_hours : 0;
@@ -272,8 +441,12 @@ if ($role === 'student') {
     $supervisor_name = null;
 
     // Strict server-side integrity checks for tampered submissions.
-    if ($course_id <= 0 || empty($department_id) || $section_id <= 0 || empty($coordinator_id) || empty($supervisor_id)) {
-        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Invalid academic assignment selection. Please choose course, department, section, coordinator, and supervisor.'));
+    if ($course_id <= 0 || $section_id <= 0) {
+        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Invalid academic assignment selection. Please choose a valid course and section.'));
+        exit;
+    }
+    if ($department_id <= 0) {
+        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Unable to determine department for the selected section.'));
         exit;
     }
 
@@ -329,122 +502,115 @@ if ($role === 'student') {
         exit;
     }
 
-    $coord_check = $mysqli->prepare("
-        SELECT CONCAT(first_name, ' ', last_name) AS full_name
-        FROM coordinators
-        WHERE id = ?
-          AND department_id = ?
-          AND is_active = 1
-          AND deleted_at IS NULL
-        LIMIT 1
-    ");
-    if (!$coord_check) {
-        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Unable to validate selected coordinator.'));
-        exit;
+    if ($coordinator_id > 0) {
+        $coord_check = $mysqli->prepare("
+            SELECT CONCAT(first_name, ' ', last_name) AS full_name
+            FROM coordinators
+            WHERE id = ?
+              AND department_id = ?
+              AND is_active = 1
+              AND deleted_at IS NULL
+            LIMIT 1
+        ");
+        if (!$coord_check) {
+            header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Unable to validate selected coordinator.'));
+            exit;
+        }
+        $coord_check->bind_param('ii', $coordinator_id, $department_id_int);
+        $coord_check->execute();
+        $coord_row = $coord_check->get_result()->fetch_assoc();
+        $coord_check->close();
+        if (!$coord_row) {
+            header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Selected coordinator is not valid for the chosen department.'));
+            exit;
+        }
+        $coordinator_name = isset($coord_row['full_name']) ? (string)$coord_row['full_name'] : null;
     }
-    $coord_check->bind_param('ii', $coordinator_id, $department_id_int);
-    $coord_check->execute();
-    $coord_row = $coord_check->get_result()->fetch_assoc();
-    $coord_check->close();
-    if (!$coord_row) {
-        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Selected coordinator is not valid for the chosen department.'));
-        exit;
-    }
-    $coordinator_name = isset($coord_row['full_name']) ? (string)$coord_row['full_name'] : null;
 
-    $sup_check = $mysqli->prepare("
-        SELECT CONCAT(first_name, ' ', last_name) AS full_name
-        FROM supervisors
-        WHERE id = ?
-          AND department_id = ?
-          AND is_active = 1
-          AND deleted_at IS NULL
-        LIMIT 1
-    ");
-    if (!$sup_check) {
-        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Unable to validate selected supervisor.'));
-        exit;
+    if ($supervisor_id > 0) {
+        $sup_check = $mysqli->prepare("
+            SELECT CONCAT(first_name, ' ', last_name) AS full_name
+            FROM supervisors
+            WHERE id = ?
+              AND department_id = ?
+              AND is_active = 1
+              AND deleted_at IS NULL
+            LIMIT 1
+        ");
+        if (!$sup_check) {
+            header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Unable to validate selected supervisor.'));
+            exit;
+        }
+        $sup_check->bind_param('ii', $supervisor_id, $department_id_int);
+        $sup_check->execute();
+        $sup_row = $sup_check->get_result()->fetch_assoc();
+        $sup_check->close();
+        if (!$sup_row) {
+            header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Selected supervisor is not valid for the chosen department.'));
+            exit;
+        }
+        $supervisor_name = isset($sup_row['full_name']) ? (string)$sup_row['full_name'] : null;
     }
-    $sup_check->bind_param('ii', $supervisor_id, $department_id_int);
-    $sup_check->execute();
-    $sup_row = $sup_check->get_result()->fetch_assoc();
-    $sup_check->close();
-    if (!$sup_row) {
-        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Selected supervisor is not valid for the chosen department.'));
-        exit;
-    }
-    $supervisor_name = isset($sup_row['full_name']) ? (string)$sup_row['full_name'] : null;
 
     // Ensure username is not empty
     if (!$username) {
         $username = $first_name . '.' . $last_name;
     }
 
-    // Hash password
+    // Hash password (also used in students.password legacy field)
     $pwdHash = password_hash($password ?: bin2hex(random_bytes(4)), PASSWORD_DEFAULT);
 
     // Create a users record first (required for FK constraint)
-    $hasStudentAppStatus = tableHasColumn($mysqli, 'users', 'application_status');
-    $hasStudentSubmittedAt = tableHasColumn($mysqli, 'users', 'application_submitted_at');
-    if ($hasStudentAppStatus && $hasStudentSubmittedAt) {
-        $stmt_user = $mysqli->prepare("INSERT INTO users (name, username, email, password, role, is_active, application_status, application_submitted_at, created_at) VALUES (?, ?, ?, ?, 'student', 1, 'approved', NOW(), NOW())");
-    } elseif ($hasStudentAppStatus) {
-        $stmt_user = $mysqli->prepare("INSERT INTO users (name, username, email, password, role, is_active, application_status, created_at) VALUES (?, ?, ?, ?, 'student', 1, 'approved', NOW())");
-    } else {
-        $stmt_user = $mysqli->prepare("INSERT INTO users (name, username, email, password, role, is_active, created_at) VALUES (?, ?, ?, ?, 'student', 1, NOW())");
-    }
-    $user_id = null;
-    if ($stmt_user) {
-        $full_name = $first_name . ' ' . $last_name;
-        $stmt_user->bind_param('ssss', $full_name, $username, $final_email, $pwdHash);
-        try {
-            if ($stmt_user->execute()) {
-                $user_id = $mysqli->insert_id;
-            }
-        } catch (mysqli_sql_exception $e) {
-            $code = $e->getCode();
-            $msg = $e->getMessage();
-            $stmt_user->close();
-            // 1062 = duplicate entry
-            if ($code === 1062 || strpos($msg, 'Duplicate entry') !== false) {
-                header('Location: auth-register-creative.php?registered=exists&msg=' . urlencode('An account with that email or username already exists'));
-                exit;
-            }
-            header('Location: auth-register-creative.php?registered=error&msg=' . urlencode($msg));
+    $full_name = trim($first_name . ' ' . $last_name);
+    $userCreateErrorCode = null;
+    $userCreateErrorMessage = null;
+    $user_id = createUser(
+        $mysqli,
+        $username,
+        $final_email,
+        $password ?: bin2hex(random_bytes(4)),
+        'student',
+        $full_name,
+        $userCreateErrorCode,
+        $userCreateErrorMessage
+    );
+    if (!$user_id) {
+        if ((int)$userCreateErrorCode === 1062 || stripos((string)$userCreateErrorMessage, 'Duplicate entry') !== false) {
+            header('Location: auth-register-creative.php?registered=exists&msg=' . urlencode('An account with that email or username already exists'));
             exit;
         }
-        $stmt_user->close();
-    }
-
-    // Validate that user_id was created successfully
-    if (!$user_id) {
-        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Failed to create user account'));
+        $fallbackMessage = $userCreateErrorMessage ? $userCreateErrorMessage : 'Failed to create user account';
+        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode($fallbackMessage));
         exit;
     }
 
-    // Now insert into students table using the user_id
-    // Note: If emergency_contact_phone column doesn't exist, store phone in emergency_contact or add the column
-    $stmt = $mysqli->prepare("INSERT INTO students (user_id, course_id, student_id, first_name, last_name, middle_name, username, password, email, department_id, section_id, address, phone, date_of_birth, gender, supervisor_id, supervisor_name, coordinator_id, coordinator_name, internal_total_hours, internal_total_hours_remaining, external_total_hours, external_total_hours_remaining, assignment_track, emergency_contact, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())");
-    
-    if (!$stmt) {
-        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Database statement error: ' . $mysqli->error));
-        exit;
-    }
-    
-    // Combine emergency contact info for storage (Name: Phone format for display)
-    $emergency_contact_full = $emergency_contact;
-    if ($emergency_contact_phone) {
-        $emergency_contact_full = $emergency_contact . ' (' . $emergency_contact_phone . ')';
-    }
-    
-    // types: user_id(i), course_id(i), student_id(s), first_name(s), last_name(s), middle_name(s),
-    // username(s), password(s), email(s), department_id(s), section_id(i), address(s), phone(s),
-    // date_of_birth(s), gender(s), supervisor_id(i), supervisor_name(s), coordinator_id(i),
-    // coordinator_name(s), internal_total_hours(i), internal_total_hours_remaining(i),
-    // external_total_hours(i), external_total_hours_remaining(i), assignment_track(s), emergency_contact(s)
-    $department_id_for_student = $department_id !== null ? (string)$department_id : null;
-    $stmt->bind_param(
-        'iissssssssissssisisiiiiss',
+    // Now insert into students table using the user_id (schema-aware for unified DB variants).
+    $studentColumns = [
+        'user_id',
+        'course_id',
+        'student_id',
+        'first_name',
+        'last_name',
+        'middle_name',
+        'username',
+        'password',
+        'email',
+        'department_id',
+        'section_id',
+        'address',
+        'phone',
+        'date_of_birth',
+        'gender',
+        'internal_total_hours',
+        'internal_total_hours_remaining',
+        'external_total_hours',
+        'external_total_hours_remaining',
+        'assignment_track',
+        'emergency_contact'
+    ];
+    $studentTypes = 'iissssssssissssiiiiss';
+    $department_id_for_student = $department_id !== null ? (string)$department_id : '';
+    $studentValues = [
         $user_id,
         $course_id,
         $student_id,
@@ -460,17 +626,63 @@ if ($role === 'student') {
         $phone,
         $date_of_birth,
         $gender,
-        $supervisor_id,
-        $supervisor_name,
-        $coordinator_id,
-        $coordinator_name,
         $internal_total_hours,
         $internal_total_hours_remaining,
         $external_total_hours,
         $external_total_hours_remaining,
         $assignment_track,
-        $emergency_contact_full
-    );
+        $emergency_contact
+    ];
+
+    if ($supervisor_id > 0) {
+        $studentColumns[] = 'supervisor_id';
+        $studentTypes .= 'i';
+        $studentValues[] = $supervisor_id;
+        if ($supervisor_name !== null && $supervisor_name !== '') {
+            $studentColumns[] = 'supervisor_name';
+            $studentTypes .= 's';
+            $studentValues[] = $supervisor_name;
+        }
+    }
+
+    if ($coordinator_id > 0) {
+        $studentColumns[] = 'coordinator_id';
+        $studentTypes .= 'i';
+        $studentValues[] = $coordinator_id;
+        if ($coordinator_name !== null && $coordinator_name !== '') {
+            $studentColumns[] = 'coordinator_name';
+            $studentTypes .= 's';
+            $studentValues[] = $coordinator_name;
+        }
+    }
+
+    // Unified schema: students.bio can be required without default.
+    if (tableHasColumn($mysqli, 'students', 'bio')) {
+        $studentColumns[] = 'bio';
+        $studentTypes .= 's';
+        $studentValues[] = '';
+    }
+
+    if (tableHasColumn($mysqli, 'students', 'emergency_contact_phone')) {
+        $studentColumns[] = 'emergency_contact_phone';
+        $studentTypes .= 's';
+        $studentValues[] = (string)$emergency_contact_phone;
+    }
+
+    $studentPlaceholders = array_fill(0, count($studentColumns), '?');
+    if (tableHasColumn($mysqli, 'students', 'created_at')) {
+        $studentColumns[] = 'created_at';
+        $studentPlaceholders[] = 'NOW()';
+    }
+
+    $studentSql = "INSERT INTO students (" . implode(', ', $studentColumns) . ") VALUES (" . implode(', ', $studentPlaceholders) . ")";
+    $stmt = $mysqli->prepare($studentSql);
+    if (!$stmt) {
+        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Database statement error: ' . $mysqli->error));
+        exit;
+    }
+
+    bindDynamicParams($stmt, $studentTypes, $studentValues);
     
     try {
         if (!$stmt->execute()) {
@@ -489,7 +701,7 @@ if ($role === 'student') {
     $stmt->close();
 
     // Best-effort internship row creation so coordinator/supervisor/department linkage is complete.
-    if ($new_student_id > 0 && $course_id > 0 && !empty($department_id) && !empty($coordinator_id) && !empty($supervisor_id)) {
+    if ($new_student_id > 0 && $course_id > 0 && $department_id > 0 && $coordinator_id > 0 && $supervisor_id > 0) {
         $intern_coordinator_user_id = null;
         $intern_supervisor_user_id = null;
 

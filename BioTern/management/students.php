@@ -341,12 +341,12 @@ usort($print_students, function ($a, $b) {
 $page_title = 'BioTern || Students';
 $page_styles = array(
     'assets/css/layout/page_shell.css',
-    'assets/css/management/managements_filters.css',
-    'assets/css/management/managements_students_shared.css',
-    'assets/css/management/managements_students.css'
+    'assets/css/modules/management/management-filters.css',
+    'assets/css/modules/management/management-students-shared.css',
+    'assets/css/modules/management/management-students.css'
 );
 $page_scripts = array(
-    'assets/js/management/students-page-runtime.js',
+    'assets/js/modules/management/students-page-runtime.js',
     'assets/js/theme-customizer-init.min.js',
 );
 include 'includes/header.php';

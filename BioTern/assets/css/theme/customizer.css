@@ -1,0 +1,288 @@
+/* ------------------------------------------------------------------------- */
+/* 5) Theme customizer + settings customizer surfaces                         */
+/* ------------------------------------------------------------------------- */
+
+/* Force customizer surfaces to follow active theme tokens (wins template specificity). */
+.nxl-container .nxl-content .main-content.theme-customizer-page .content-area,
+.nxl-container .nxl-content .main-content.theme-customizer-page .content-area .content-area-body,
+.nxl-container .nxl-content .main-content.theme-customizer-page .content-area .content-area-header,
+.nxl-container .nxl-content .main-content.settings-theme-customizer .content-area,
+.nxl-container .nxl-content .main-content.settings-theme-customizer .content-area .content-area-body,
+.nxl-container .nxl-content .main-content.settings-theme-customizer .content-area .content-area-header {
+  background-color: var(--biotern-body-bg) !important;
+  background-image: none !important;
+}
+
+.nxl-container .nxl-content .main-content.theme-customizer-page .content-area .content-area-header,
+.nxl-container .nxl-content .main-content.settings-theme-customizer .content-area .content-area-header,
+.nxl-container .nxl-content .main-content.settings-theme-customizer .content-sidebar-header {
+  background-color: var(--biotern-surface) !important;
+  border-color: var(--biotern-border) !important;
+}
+
+.nxl-container .nxl-content .main-content.theme-customizer-page .theme-setting-card,
+.nxl-container .nxl-content .main-content.settings-theme-customizer .theme-setting-card,
+.nxl-container .nxl-content .main-content.theme-customizer-page .theme-setting-card .card-header,
+.nxl-container .nxl-content .main-content.settings-theme-customizer .theme-setting-card .card-header,
+.nxl-container .nxl-content .main-content.theme-customizer-page .theme-setting-card .option-row,
+.nxl-container .nxl-content .main-content.settings-theme-customizer .theme-setting-card .option-row {
+  background-image: none !important;
+  border-color: var(--biotern-border) !important;
+}
+
+.nxl-container .nxl-content .main-content.theme-customizer-page .theme-setting-card,
+.nxl-container .nxl-content .main-content.settings-theme-customizer .theme-setting-card,
+.nxl-container .nxl-content .main-content.theme-customizer-page .theme-setting-card .card-header,
+.nxl-container .nxl-content .main-content.settings-theme-customizer .theme-setting-card .card-header {
+  background-color: var(--biotern-surface) !important;
+}
+
+.nxl-container .nxl-content .main-content.theme-customizer-page .theme-setting-card .option-row,
+.nxl-container .nxl-content .main-content.settings-theme-customizer .theme-setting-card .option-row {
+  background-color: var(--biotern-surface-muted) !important;
+}
+
+/* Gray scheme hard override: match/exceed theme.min dark selector specificity. */
+html.app-theme-gray.app-skin-dark .nxl-container .nxl-content .main-content.theme-customizer-page .content-area,
+html.app-theme-gray.app-skin-dark .nxl-container .nxl-content .main-content.theme-customizer-page .content-area .content-area-body,
+html.app-theme-gray.app-skin-dark .nxl-container .nxl-content .main-content.settings-theme-customizer .content-area,
+html.app-theme-gray.app-skin-dark .nxl-container .nxl-content .main-content.settings-theme-customizer .content-area .content-area-body {
+  background-color: var(--biotern-body-bg) !important;
+  background-image: none !important;
+}
+
+html.app-theme-gray.app-skin-dark .nxl-container .nxl-content .main-content.theme-customizer-page .content-area .content-area-header,
+html.app-theme-gray.app-skin-dark .nxl-container .nxl-content .main-content.settings-theme-customizer .content-area .content-area-header,
+html.app-theme-gray.app-skin-dark .nxl-container .nxl-content .main-content.settings-theme-customizer .content-sidebar .content-sidebar-header,
+html.app-theme-gray.app-skin-dark .nxl-container .nxl-content .main-content.theme-customizer-page .content-area .content-area-header .search-form .search-form-inner,
+html.app-theme-gray.app-skin-dark .nxl-container .nxl-content .main-content.settings-theme-customizer .content-area .content-area-header .search-form .search-form-inner {
+  background-color: var(--biotern-surface) !important;
+  background-image: none !important;
+  border-color: var(--biotern-border) !important;
+}
+
+html.app-theme-gray.app-skin-dark .nxl-container .nxl-content .main-content.theme-customizer-page .theme-setting-card,
+html.app-theme-gray.app-skin-dark .nxl-container .nxl-content .main-content.settings-theme-customizer .theme-setting-card,
+html.app-theme-gray.app-skin-dark .nxl-container .nxl-content .main-content.theme-customizer-page .theme-setting-card .card-header,
+html.app-theme-gray.app-skin-dark .nxl-container .nxl-content .main-content.settings-theme-customizer .theme-setting-card .card-header,
+html.app-theme-gray.app-skin-dark .nxl-container .nxl-content .main-content.theme-customizer-page .theme-setting-card .option-row,
+html.app-theme-gray.app-skin-dark .nxl-container .nxl-content .main-content.settings-theme-customizer .theme-setting-card .option-row {
+  border-color: var(--biotern-border) !important;
+  background-image: none !important;
+}
+
+html.app-theme-gray.app-skin-dark .nxl-container .nxl-content .main-content.theme-customizer-page .theme-setting-card,
+html.app-theme-gray.app-skin-dark .nxl-container .nxl-content .main-content.settings-theme-customizer .theme-setting-card,
+html.app-theme-gray.app-skin-dark .nxl-container .nxl-content .main-content.theme-customizer-page .theme-setting-card .card-header,
+html.app-theme-gray.app-skin-dark .nxl-container .nxl-content .main-content.settings-theme-customizer .theme-setting-card .card-header {
+  background-color: var(--biotern-surface) !important;
+}
+
+html.app-theme-gray.app-skin-dark .nxl-container .nxl-content .main-content.theme-customizer-page .theme-setting-card .option-row,
+html.app-theme-gray.app-skin-dark .nxl-container .nxl-content .main-content.settings-theme-customizer .theme-setting-card .option-row {
+  background-color: var(--biotern-surface-muted) !important;
+}
+
+.theme-customizer-page .content-area-body {
+  padding: 1.75rem;
+}
+
+.theme-customizer-page .content-sidebar-header,
+.theme-customizer-page .content-area-header {
+  background-color: var(--biotern-surface);
+  background-image: none !important;
+  border-bottom: 1px dashed var(--biotern-border);
+}
+
+.theme-customizer-page .content-area-body > .card.mb-0 {
+  border: 0;
+  background: transparent;
+}
+
+.theme-customizer-page .content-area-body > .card.mb-0 > .card-body {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0.5rem 0;
+}
+
+.theme-setting-card .card-header {
+  padding: 1rem 1.25rem;
+  background: var(--biotern-surface);
+  background-image: none !important;
+  border-bottom: 1px dashed var(--bs-border-color);
+}
+
+.theme-setting-card {
+  border: 1px solid var(--biotern-border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--biotern-surface);
+}
+
+.theme-setting-card .card-body {
+  padding: 1rem;
+}
+
+.theme-setting-card .option-row {
+  padding: 16px;
+  border: 1px solid var(--biotern-border);
+  border-radius: 10px;
+  margin-bottom: 14px;
+  background: var(--biotern-surface-muted);
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.theme-setting-card .option-row:hover {
+  border-color: var(--biotern-primary);
+  transform: translateY(-1px);
+}
+
+html.app-skin-dark .theme-setting-card .option-row {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+html.app-theme-gray .theme-setting-card,
+html.app-theme-gray .theme-setting-card .option-row {
+  background: var(--biotern-surface);
+  border-color: var(--biotern-border);
+}
+
+html.app-theme-gray .theme-setting-card .option-row {
+  background: var(--biotern-surface-muted);
+}
+
+html.app-theme-gray .theme-setting-card .badge {
+  border-color: var(--biotern-border);
+  color: var(--biotern-primary);
+}
+
+.theme-setting-card .btn-check + .btn {
+  min-width: 110px;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.02em;
+}
+
+.theme-setting-card .btn-check:checked + .btn,
+.theme-setting-card .btn-check:focus + .btn {
+  color: var(--biotern-primary-contrast);
+  background-color: var(--biotern-primary);
+  border-color: var(--biotern-primary);
+}
+
+.theme-setting-card .form-select {
+  min-height: 42px;
+}
+
+.theme-setting-card .badge {
+  border: 1px solid var(--bs-border-color);
+  font-weight: 600;
+}
+
+.theme-select-wrap {
+  width: 100%;
+  max-width: 320px;
+  min-width: 240px;
+}
+
+.theme-customizer-page .theme-setting-card {
+  height: 100%;
+}
+
+html.app-theme-gray.app-skin-dark .theme-customizer-page .content-area,
+html.app-theme-gray.app-skin-dark .theme-customizer-page .content-area-body {
+  background-color: var(--biotern-body-bg);
+}
+
+html.app-theme-gray.app-skin-dark .theme-customizer-page .content-sidebar,
+html.app-theme-gray.app-skin-dark .theme-customizer-page .content-sidebar .content-sidebar-header,
+html.app-theme-gray.app-skin-dark .theme-customizer-page .content-area .content-area-header {
+  background-color: var(--biotern-surface);
+  border-color: var(--biotern-border);
+}
+
+html.app-theme-gray.app-skin-dark .theme-customizer-page .content-sidebar {
+  border-right-color: var(--biotern-border);
+}
+
+html.app-theme-gray.app-skin-dark .theme-customizer-page .content-sidebar .nav-link {
+  color: var(--bs-body-color);
+}
+
+html.app-theme-gray.app-skin-dark .theme-customizer-page .content-sidebar .nav-link.active,
+html.app-theme-gray.app-skin-dark .theme-customizer-page .content-sidebar .nav-link:hover {
+  background-color: var(--biotern-primary-soft);
+  color: var(--biotern-primary-soft-text);
+}
+
+.settings-theme-customizer .content-sidebar-header,
+.settings-theme-customizer .content-area-header {
+  background-color: var(--biotern-surface);
+  background-image: none !important;
+  border-bottom: 1px dashed var(--biotern-border);
+}
+
+.settings-theme-customizer .content-area-body {
+  padding: 1.75rem;
+}
+
+.settings-theme-customizer .content-area-body > .card.mb-0 {
+  border: 0;
+  background: transparent;
+}
+
+.settings-theme-customizer .content-area-body > .card.mb-0 > .card-body {
+  max-width: 980px;
+  margin: 0;
+  padding: 0.25rem 0;
+}
+
+.settings-theme-customizer .content-area-body .card-body > .mb-5,
+.settings-theme-customizer .content-area-body .card-body > .mb-4,
+.settings-theme-customizer .content-area-body .card-body > .mb-0 {
+  padding: 16px;
+  border: 1px solid var(--biotern-border);
+  border-radius: 10px;
+  margin-bottom: 16px !important;
+  background: var(--biotern-surface-muted);
+}
+
+html.app-skin-dark .settings-theme-customizer .content-area-body .card-body > .mb-5,
+html.app-skin-dark .settings-theme-customizer .content-area-body .card-body > .mb-4,
+html.app-skin-dark .settings-theme-customizer .content-area-body .card-body > .mb-0 {
+  background: var(--biotern-surface-muted);
+}
+
+.settings-theme-customizer .content-area-body .card-body > hr.my-5 {
+  margin: 1rem 0 !important;
+  border-top: 1px dashed var(--bs-border-color);
+  opacity: 1;
+}
+
+.settings-theme-customizer .content-area-body .form-label {
+  font-weight: 600;
+  margin-bottom: 0.45rem;
+}
+
+.settings-theme-customizer .content-area-body .card-body .form-control,
+.settings-theme-customizer .content-area-body .card-body .form-select,
+.settings-theme-customizer .content-area-body .card-body .select2-container--default .select2-selection {
+  background-color: var(--biotern-surface);
+  border-color: var(--biotern-border);
+  min-height: 40px;
+}
+
+.settings-theme-customizer .content-area-body .card-body .form-control:focus,
+.settings-theme-customizer .content-area-body .card-body .form-select:focus,
+.settings-theme-customizer .content-area-body .card-body .select2-container--default.select2-container--focus .select2-selection {
+  border-color: var(--bs-primary);
+}
+
+.settings-theme-customizer .theme-progress-thin {
+  height: 5px;
+}
+
+.settings-theme-customizer .theme-options-label-offset {
+  top: -12px;
+}
+

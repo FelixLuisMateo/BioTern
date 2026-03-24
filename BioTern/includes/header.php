@@ -17,8 +17,6 @@ $header_login_url = $header_root . 'auth/auth-login-cover.php';
 $page_is_public = isset($page_is_public) && $page_is_public === true;
 $page_render_navigation = isset($page_render_navigation) ? (bool)$page_render_navigation : !$page_is_public;
 $page_render_header = isset($page_render_header) ? (bool)$page_render_header : !$page_is_public;
-$page_render_container = isset($page_render_container) ? (bool)$page_render_container : !$page_is_public;
-$page_render_footer = isset($page_render_footer) ? (bool)$page_render_footer : !$page_is_public;
 
 // Enforce authenticated session for all non-public pages using the shared app header.
 $header_user_id_session = (int)($_SESSION['user_id'] ?? 0);
@@ -92,6 +90,36 @@ if ($favicon_logo_version === false) {
     $favicon_logo_version = '20260318';
 }
 
+if (!function_exists('header_asset_versioned_href')) {
+    function header_asset_versioned_href(string $href): string
+    {
+        $trimmed = trim($href);
+        if ($trimmed === '') {
+            return $trimmed;
+        }
+
+        // Skip external/data URIs.
+        if (preg_match('/^(?:[a-z]+:)?\\/\\//i', $trimmed) || stripos($trimmed, 'data:') === 0) {
+            return $trimmed;
+        }
+
+        $parts = explode('?', $trimmed, 2);
+        $relative = ltrim(str_replace('\\', '/', $parts[0]), '/');
+        if ($relative === '') {
+            return $trimmed;
+        }
+
+        $absolute = dirname(__DIR__) . '/' . $relative;
+        $mtime = @filemtime($absolute);
+        if ($mtime === false) {
+            return $trimmed;
+        }
+
+        $separator = strpos($trimmed, '?') !== false ? '&' : '?';
+        return $trimmed . $separator . 'v=' . rawurlencode((string)$mtime);
+    }
+}
+
 $biotern_theme_api_endpoint = $base_href . 'api/theme-customizer.php';
 require_once __DIR__ . '/theme-preferences.php';
 
@@ -101,7 +129,7 @@ $default_theme_prefs = [
     'font' => 'default',
     'navigation' => 'light',
     'header' => 'light',
-    'scheme' => 'blue',
+    'scheme' => 'gray',
 ];
 
 if (isset($page_theme_preferences) && is_array($page_theme_preferences)) {
@@ -138,7 +166,7 @@ if (($biotern_theme_preferences['navigation'] ?? 'light') === 'dark') {
 if (($biotern_theme_preferences['header'] ?? 'light') === 'dark') {
     $html_classes[] = 'app-header-dark';
 }
-$theme_scheme = strtolower(trim((string)($biotern_theme_preferences['scheme'] ?? 'blue')));
+$theme_scheme = strtolower(trim((string)($biotern_theme_preferences['scheme'] ?? 'gray')));
 if ($theme_scheme === 'gray') {
     $html_classes[] = 'app-theme-gray';
 }
@@ -315,6 +343,7 @@ if ($header_db instanceof mysqli) {
     <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico?v=<?php echo rawurlencode((string)$favicon_ico_version); ?>">
     <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico?v=<?php echo rawurlencode((string)$favicon_ico_version); ?>">
     <!--! END: Favicon-->
+    <script src="assets/js/modules/shared/theme-state-core.js"></script>
     <!-- paceOptions are configured in assets/js/theme-preload-init.min.js -->
     <script src="assets/js/theme-preload-init.min.js"></script>
     <!--! BEGIN: Bootstrap CSS-->
@@ -328,21 +357,17 @@ if ($header_db instanceof mysqli) {
     <!--! END: Vendors CSS-->
     <!-- Theme runtime config moved to body data attributes -->
     <!--! BEGIN: Early Skin Script -->
-    <!-- moved to assets/js/theme-preload-init.min.js, assets/js/global-ui-helpers.js, and assets/js/theme-preferences-runtime.js -->
+    <!-- moved to assets/js/modules/shared/theme-state-core.js, assets/js/theme-preload-init.min.js, assets/js/global-ui-helpers.js, and assets/js/theme-preferences-runtime.js -->
     <!--! END: Early Skin Script -->
     <!--! BEGIN: Custom CSS-->
-    <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css" />
-    <link rel="stylesheet" type="text/css" href="assets/css/core.css" />
-    <link rel="stylesheet" type="text/css" href="assets/css/ui.css" />
-    <link rel="stylesheet" type="text/css" href="assets/css/theme.css" />
-    <link rel="stylesheet" type="text/css" href="assets/css/mobile.css" />
+    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars(header_asset_versioned_href('assets/css/smacss.css'), ENT_QUOTES, 'UTF-8'); ?>" />
     <?php if ($header_is_management_page): ?>
-        <link rel="stylesheet" type="text/css" href="assets/css/management/managements_mobile.css" />
+        <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars(header_asset_versioned_href('assets/css/modules/management/management-mobile.css'), ENT_QUOTES, 'UTF-8'); ?>" />
     <?php endif; ?>
     <?php if (isset($page_styles) && is_array($page_styles)): ?>
         <?php foreach ($page_styles as $stylesheet): ?>
             <?php if (is_string($stylesheet) && trim($stylesheet) !== ''): ?>
-                <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($stylesheet, ENT_QUOTES, 'UTF-8'); ?>" />
+                <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars(header_asset_versioned_href($stylesheet), ENT_QUOTES, 'UTF-8'); ?>" />
             <?php endif; ?>
         <?php endforeach; ?>
     <?php endif; ?>
@@ -510,7 +535,5 @@ if ($header_db instanceof mysqli) {
         <!--! ================================================================ !-->
         <!--! [End] Header !-->
         <!--! ================================================================ !-->
-    <?php endif; ?>
-    <?php if ($page_render_container): ?>
     <?php endif; ?>
 

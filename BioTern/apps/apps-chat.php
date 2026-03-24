@@ -1827,11 +1827,11 @@ $page_body_class = isset($page_body_class) && is_string($page_body_class)
     : 'chat-app-page';
 
 $page_styles = isset($page_styles) && is_array($page_styles) ? $page_styles : [];
-$page_styles[] = 'assets/css/apps/apps-chat-page.css';
+$page_styles[] = 'assets/css/modules/apps/apps-chat-page.css';
 $page_styles = array_values(array_unique($page_styles));
 
 $page_scripts = isset($page_scripts) && is_array($page_scripts) ? $page_scripts : [];
-$page_scripts[] = 'assets/js/apps/apps-chat-page.js';
+$page_scripts[] = 'assets/js/modules/apps/apps-chat-page.js';
 $page_scripts = array_values(array_unique($page_scripts));
 
 include 'includes/header.php';
