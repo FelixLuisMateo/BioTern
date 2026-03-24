@@ -547,7 +547,7 @@ echo ($internship_count > 0) ? round(($completed_internships / $internship_count
                             <div class="card-footer d-flex flex-wrap gap-2">
                                 <a href="attendance.php" class="btn btn-sm btn-light-brand"><i class="feather-check-circle me-1"></i> Process Attendance</a>
                                 <a href="students.php" class="btn btn-sm btn-light-brand"><i class="feather-users me-1"></i> View Students</a>
-                                <a href="demo-biometric.php" class="btn btn-sm btn-light-brand"><i class="feather-activity me-1"></i> Biometric Queue</a>
+                                <a href="legacy_router.php?file=fingerprint_mapping.php" class="btn btn-sm btn-light-brand"><i class="feather-activity me-1"></i> Biometric Mapping</a>
                             </div>
                         </div>
                     </div>
@@ -802,8 +802,8 @@ echo $qa_attendance_today; ?></span>
                                         </a>
                                     </div>
                                     <div class="col-6">
-                                        <a href="demo-biometric.php" class="btn btn-secondary btn-lg w-100 d-flex align-items-center justify-content-center">
-                                            <i class="feather-activity me-2"></i> Biometric Demo
+                                        <a href="legacy_router.php?file=fingerprint_mapping.php" class="btn btn-secondary btn-lg w-100 d-flex align-items-center justify-content-center">
+                                            <i class="feather-activity me-2"></i> Biometric Mapping
                                             <span class="badge bg-white text-dark ms-3"><?php
 require_once dirname(__DIR__) . '/config/db.php';
 echo $qa_biometric_registered; ?></span>
@@ -1024,7 +1024,7 @@ echo $biometric_registered; ?></span>
                                                 <span class="fs-10 fw-semibold text-uppercase d-block">Registered</span>
                                             </div>
                                             <div class="text-dark">
-                                                <a href="demo-biometric.php" class="fw-bold mb-2 text-truncate-1-line">Students Registered</a>
+                                                <a href="legacy_router.php?file=fingerprint_mapping.php" class="fw-bold mb-2 text-truncate-1-line">Students Registered</a>
                                                 <span class="fs-11 fw-normal text-muted text-truncate-1-line"><?php
 require_once dirname(__DIR__) . '/config/db.php';
 echo ($student_count > 0) ? round(($biometric_registered / $student_count) * 100) : 0; ?>% of total</span>
@@ -1042,7 +1042,7 @@ echo ($student_count - $biometric_registered); ?></span>
                                                 <span class="fs-10 fw-semibold text-uppercase d-block">Pending</span>
                                             </div>
                                             <div class="text-dark">
-                                                <a href="demo-biometric.php" class="fw-bold mb-2 text-truncate-1-line">Awaiting Registration</a>
+                                                <a href="legacy_router.php?file=fingerprint_mapping.php" class="fw-bold mb-2 text-truncate-1-line">Awaiting Registration</a>
                                                 <span class="fs-11 fw-normal text-muted text-truncate-1-line"><?php
 require_once dirname(__DIR__) . '/config/db.php';
 echo ($student_count > 0) ? round((($student_count - $biometric_registered) / $student_count) * 100) : 0; ?>% pending</span>
@@ -1057,7 +1057,7 @@ echo ($student_count > 0) ? round(($biometric_registered / $student_count) * 100
                                 </div>
                                 <p class="text-muted text-center fs-12 mb-0">Overall Biometric Registration Progress</p>
                             </div>
-                            <a href="demo-biometric.php" class="card-footer fs-11 fw-bold text-uppercase text-center py-4">Manage Biometric</a>
+                            <a href="legacy_router.php?file=fingerprint_mapping.php" class="card-footer fs-11 fw-bold text-uppercase text-center py-4">Manage Biometric</a>
                         </div>
                     </div>
                     <!--! END: [Biometric Registration Status] !-->

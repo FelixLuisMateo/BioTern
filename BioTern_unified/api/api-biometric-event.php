@@ -30,7 +30,7 @@ $student_id = isset($_POST['student_id']) ? (int)$_POST['student_id'] : 0;
 $attendance_date = isset($_POST['attendance_date']) ? trim((string)$_POST['attendance_date']) : date('Y-m-d');
 $clock_type = isset($_POST['clock_type']) ? trim((string)$_POST['clock_type']) : '';
 $clock_time = isset($_POST['clock_time']) ? trim((string)$_POST['clock_time']) : date('H:i:s');
-$source = isset($_POST['source']) ? trim((string)$_POST['source']) : 'device';
+$source = isset($_POST['source']) ? trim((string)$_POST['source']) : 'biometric-machine';
 
 $column = attendance_action_to_column($clock_type);
 if ($student_id <= 0 || $column === null) {
@@ -73,6 +73,6 @@ insert_audit_log(
     $_SERVER['HTTP_USER_AGENT'] ?? ''
 );
 
-echo json_encode(['success' => true, 'queue_id' => $queue_id, 'message' => 'Biometric event queued']);
+echo json_encode(['success' => true, 'queue_id' => $queue_id, 'message' => 'Biometric machine event queued']);
 
 

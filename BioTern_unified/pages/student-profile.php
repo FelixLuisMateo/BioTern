@@ -50,7 +50,7 @@ include 'includes/header.php';
                     </div>
 
                     <div class="mt-4 d-flex flex-wrap gap-2">
-                        <a href="student-dtr.php" class="btn btn-primary">View My DTR</a>
+                        <a href="attendance.php" class="btn btn-primary">View My DTR</a>
                         <a href="document_application.php" class="btn btn-outline-secondary">My Documents</a>
                     </div>
                 </div>

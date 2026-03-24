@@ -1,10 +1,15 @@
 <?php
-require_once dirname(__DIR__) . '/config/db.php';
-require_once dirname(__DIR__) . '/lib/attendance_rules.php';
-require_once dirname(__DIR__) . '/lib/ops_helpers.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+
+$demoBiometricTarget = 'legacy_router.php?file=fingerprint_mapping.php';
+header('Location: ' . $demoBiometricTarget, true, 302);
+exit;
+
+require_once dirname(__DIR__) . '/config/db.php';
+require_once dirname(__DIR__) . '/lib/attendance_rules.php';
+require_once dirname(__DIR__) . '/lib/ops_helpers.php';
 require_roles_page(['admin', 'coordinator', 'supervisor', 'student']);
 // Database Connection
 $host = defined('DB_HOST') ? DB_HOST : 'localhost';

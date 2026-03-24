@@ -55,10 +55,10 @@ include 'includes/header.php';
             <div class="col-md-4"><div class="card"><div class="card-body"><strong>Pending Corrections:</strong> <?php
 require_once dirname(__DIR__) . '/config/db.php';
 echo $pendingCorrections; ?></div></div></div>
-            <div class="col-md-4"><div class="card"><div class="card-body"><strong>Pending Queue Events:</strong> <?php
+            <div class="col-md-4"><div class="card"><div class="card-body"><strong>Pending Machine Events:</strong> <?php
 require_once dirname(__DIR__) . '/config/db.php';
 echo $pendingQueue; ?></div></div></div>
-            <div class="col-md-4"><div class="card"><div class="card-body"><strong>Failed Queue Events:</strong> <?php
+            <div class="col-md-4"><div class="card"><div class="card-body"><strong>Failed Machine Events:</strong> <?php
 require_once dirname(__DIR__) . '/config/db.php';
 echo $failedQueue; ?></div></div></div>
         </div>
