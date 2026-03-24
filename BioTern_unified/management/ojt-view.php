@@ -1,5 +1,6 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
+require_once dirname(__DIR__) . '/lib/ojt_masterlist.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -96,6 +97,7 @@ $workflow = [
     'dau_moa' => ['status' => 'draft', 'review_notes' => '', 'approved_by' => 0, 'approved_at' => ''],
 ];
 $review_notes = [];
+$masterlist_row = [];
 $current_user_id = intval($_SESSION['user_id'] ?? 0);
 $current_role = strtolower((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? ''));
 $can_approve_docs = in_array($current_role, ['admin', 'coordinator'], true);
@@ -804,6 +806,14 @@ try {
         }
         $selected_student_id = intval($student['id'] ?? $view_user_id);
         $selected_user_id = intval($student['user_id'] ?? 0);
+        $masterlist_row = biotern_masterlist_fetch_for_student($conn, $student);
+
+        if (!empty($masterlist_row)) {
+            $app_letter = array_merge($app_letter, biotern_masterlist_application_defaults($masterlist_row));
+            $moa_data = array_merge($moa_data, biotern_masterlist_moa_defaults($masterlist_row, $student));
+            $endorsement_data = array_merge($endorsement_data, biotern_masterlist_endorsement_defaults($masterlist_row, $student));
+            $dau_moa_data = array_merge($dau_moa_data, biotern_masterlist_dau_moa_defaults($masterlist_row, $student));
+        }
 
         $doc_lookup_ids = array_values(array_unique(array_filter([
             $selected_student_id,
@@ -821,11 +831,11 @@ try {
             if ($row) break;
         }
         if ($row) {
-            $app_letter['date'] = $row['date'] ?? '';
-            $app_letter['application_person'] = $row['application_person'] ?? '';
-            $app_letter['position'] = $row['position'] ?? '';
-            $app_letter['company_name'] = isset($row['company_name']) ? (string)$row['company_name'] : '';
-            $app_letter['company_address'] = $row['company_address'] ?? '';
+            $app_letter['date'] = $row['date'] ?? $app_letter['date'];
+            $app_letter['application_person'] = $row['application_person'] ?? $app_letter['application_person'];
+            $app_letter['position'] = $row['position'] ?? $app_letter['position'];
+            $app_letter['company_name'] = isset($row['company_name']) && $row['company_name'] !== '' ? (string)$row['company_name'] : $app_letter['company_name'];
+            $app_letter['company_address'] = $row['company_address'] ?? $app_letter['company_address'];
             $document_completion['application'] = document_completion_status($row, ['application_person', 'position', 'company_name', 'company_address']);
             $document_last_saved['application'] = (string)($row['updated_at'] ?? ($row['date'] ?? ''));
         }
@@ -844,7 +854,9 @@ try {
                 $moa_row['school_position'] = $moa_row['school_posistion'] ?? '';
             }
             foreach ($moa_data as $k => $v) {
-                $moa_data[$k] = isset($moa_row[$k]) ? (string)$moa_row[$k] : '';
+                if (isset($moa_row[$k]) && $moa_row[$k] !== null && $moa_row[$k] !== '') {
+                    $moa_data[$k] = (string)$moa_row[$k];
+                }
             }
             $document_completion['moa'] = document_completion_status($moa_row, ['company_name', 'company_address', 'partner_representative', 'position', 'total_hours']);
             $document_last_saved['moa'] = (string)($moa_row['updated_at'] ?? ($moa_row['moa_date'] ?? ''));
@@ -861,7 +873,9 @@ try {
         }
         if ($endorsement_row) {
             foreach ($endorsement_data as $k => $v) {
-                $endorsement_data[$k] = isset($endorsement_row[$k]) ? (string)$endorsement_row[$k] : '';
+                if (isset($endorsement_row[$k]) && $endorsement_row[$k] !== null && $endorsement_row[$k] !== '') {
+                    $endorsement_data[$k] = (string)$endorsement_row[$k];
+                }
             }
             $document_completion['endorsement'] = document_completion_status($endorsement_row, ['recipient_name', 'recipient_position', 'company_name', 'company_address', 'students_to_endorse']);
             $document_last_saved['endorsement'] = (string)($endorsement_row['updated_at'] ?? ($endorsement_row['created_at'] ?? ''));
@@ -878,7 +892,9 @@ try {
         }
         if ($dau_row) {
             foreach ($dau_moa_data as $k => $v) {
-                $dau_moa_data[$k] = isset($dau_row[$k]) ? (string)$dau_row[$k] : '';
+                if (isset($dau_row[$k]) && $dau_row[$k] !== null && $dau_row[$k] !== '') {
+                    $dau_moa_data[$k] = (string)$dau_row[$k];
+                }
             }
             $document_completion['dau_moa'] = document_completion_status($dau_row, ['company_name', 'company_address', 'partner_representative', 'position', 'total_hours']);
             $document_last_saved['dau_moa'] = (string)($dau_row['updated_at'] ?? ($dau_row['created_at'] ?? ''));

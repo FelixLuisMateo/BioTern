@@ -1,5 +1,6 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
+require_once dirname(__DIR__) . '/lib/ojt_masterlist.php';
 // Documents page - UI to prepare Memorandum of Agreement (MOA)
 
 $host = defined('DB_HOST') ? DB_HOST : 'localhost';
@@ -15,6 +16,26 @@ try {
     die('Database error: ' . $e->getMessage());
 }
 $prefill_student_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
+
+function dau_moa_document_student(mysqli $conn, int $id): array
+{
+    if ($id <= 0) {
+        return [];
+    }
+
+    $stmt = $conn->prepare("SELECT s.*, c.name as course_name FROM students s LEFT JOIN courses c ON s.course_id = c.id WHERE s.id = ? LIMIT 1");
+    if (!$stmt) {
+        return [];
+    }
+
+    $stmt->bind_param('i', $id);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    $data = $res ? $res->fetch_assoc() : [];
+    $stmt->close();
+
+    return is_array($data) ? $data : [];
+}
 
 // Simple AJAX endpoints served by this file (reuse same endpoints as application document)
 if (isset($_GET['action'])) {
@@ -38,25 +59,27 @@ if (isset($_GET['action'])) {
 
     if ($action === 'get_student' && isset($_GET['id'])) {
         $id = intval($_GET['id']);
-        $stmt = $conn->prepare("SELECT s.*, c.name as course_name FROM students s LEFT JOIN courses c ON s.course_id = c.id WHERE s.id = ? LIMIT 1");
-        $stmt->bind_param('i', $id);
-        $stmt->execute();
-        $res = $stmt->get_result();
-        $data = $res->fetch_assoc();
+        $data = dau_moa_document_student($conn, $id);
         echo json_encode($data ?: new stdClass());
         exit;
     }
 
     if ($action === 'get_moa' && isset($_GET['id'])) {
         $id = intval($_GET['id']);
-        $data = null;
+        $student = dau_moa_document_student($conn, $id);
+        $masterlist = !empty($student) ? biotern_masterlist_fetch_for_student($conn, $student) : [];
+        $data = !empty($masterlist) ? biotern_masterlist_dau_moa_defaults($masterlist, $student) : null;
         $exists_dau = $conn->query("SHOW TABLES LIKE 'dau_moa'");
         if ($exists_dau && $exists_dau->num_rows > 0) {
             $stmt = $conn->prepare("SELECT * FROM dau_moa WHERE user_id = ? LIMIT 1");
             $stmt->bind_param('i', $id);
             $stmt->execute();
             $res = $stmt->get_result();
-            $data = $res ? $res->fetch_assoc() : null;
+            $saved = $res ? $res->fetch_assoc() : null;
+            if (is_array($saved) && !empty($saved)) {
+                $data = array_merge(is_array($data) ? $data : [], array_filter($saved, static fn($value) => $value !== null && $value !== ''));
+            }
+            $stmt->close();
         }
         if (!$data) {
             $exists = $conn->query("SHOW TABLES LIKE 'moa'");
@@ -65,7 +88,12 @@ if (isset($_GET['action'])) {
                 $stmt->bind_param('i', $id);
                 $stmt->execute();
                 $res = $stmt->get_result();
-                $data = $res ? $res->fetch_assoc() : null;
+                $saved = $res ? $res->fetch_assoc() : null;
+                if (is_array($saved) && !empty($saved)) {
+                    $fallback = !empty($masterlist) ? biotern_masterlist_dau_moa_defaults($masterlist, $student) : [];
+                    $data = array_merge($fallback, array_filter($saved, static fn($value) => $value !== null && $value !== ''));
+                }
+                $stmt->close();
             }
         }
         echo json_encode($data ?: new stdClass());
