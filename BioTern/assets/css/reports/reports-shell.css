@@ -1,0 +1,120 @@
+/* Shared shell/theme alignment for all reports pages */
+body.reports-page {
+    --report-surface: var(--biotern-surface, #ffffff);
+    --report-surface-soft: var(--biotern-surface-muted, #f8fafc);
+    --report-border: color-mix(in srgb, var(--biotern-border, #e2e8f0) 86%, transparent);
+    --report-text: var(--bs-body-color, #0f172a);
+    --report-muted: color-mix(in srgb, var(--bs-body-color, #0f172a) 66%, transparent);
+    --report-hero-bg: linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--biotern-primary, #2563eb) 10%, transparent),
+        color-mix(in srgb, var(--biotern-secondary, #0ea5e9) 8%, transparent)
+    );
+}
+
+html.app-theme-gray body.reports-page {
+    --report-hero-bg: linear-gradient(
+        135deg,
+        color-mix(in srgb, #64748b 14%, transparent),
+        color-mix(in srgb, #94a3b8 10%, transparent)
+    );
+}
+
+html.app-skin-dark body.reports-page {
+    --report-surface: var(--biotern-surface, #0f172a);
+    --report-surface-soft: color-mix(in srgb, var(--biotern-surface, #0f172a) 86%, #1e293b 14%);
+    --report-border: color-mix(in srgb, var(--biotern-border, #334155) 82%, transparent);
+    --report-text: var(--bs-body-color, #dbe7ff);
+    --report-muted: color-mix(in srgb, var(--bs-body-color, #dbe7ff) 72%, transparent);
+    --report-hero-bg: linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--biotern-primary, #3b82f6) 22%, #0f172a 78%),
+        color-mix(in srgb, var(--biotern-secondary, #14b8a6) 16%, #0f172a 84%)
+    );
+}
+
+body.reports-page .nxl-content {
+    min-height: calc(100vh - 76px);
+}
+
+body.reports-page .main-content {
+    padding-top: 0.25rem;
+}
+
+body.reports-page .report-hero,
+body.reports-page .logs-hero,
+body.reports-page .chatreports-hero {
+    background: var(--report-hero-bg) !important;
+    border-color: var(--report-border) !important;
+}
+
+body.reports-page .report-kpi,
+body.reports-page .logs-kpi,
+body.reports-page .chatreports-kpi,
+body.reports-page .chatlogs-kpi,
+body.reports-page .report-filter-wrap,
+body.reports-page .logs-filter-wrap,
+body.reports-page .chatreports-filter-wrap,
+body.reports-page .chatlogs-filter,
+body.reports-page .chatlogs-pagination,
+body.reports-page .report-table-card,
+body.reports-page .logs-table-card,
+body.reports-page .chatreports-table-card,
+body.reports-page .chatlogs-table-card,
+body.reports-page .chatlogs-convo {
+    background: var(--report-surface) !important;
+    border-color: var(--report-border) !important;
+    color: var(--report-text);
+}
+
+body.reports-page .report-table-card thead th,
+body.reports-page .logs-table-card thead th,
+body.reports-page .chatreports-table-card thead th,
+body.reports-page .chatlogs-table-card thead th,
+body.reports-page .chatlogs-convo-header {
+    background: var(--report-surface-soft) !important;
+    border-color: var(--report-border) !important;
+    color: var(--report-muted) !important;
+}
+
+body.reports-page .report-kpi-label,
+body.reports-page .logs-kpi-label,
+body.reports-page .chatreports-kpi-label,
+body.reports-page .chatlogs-kpi-label,
+body.reports-page .chatlogs-filter .form-label,
+body.reports-page .chatlogs-thread-time,
+body.reports-page .chatlogs-convo-meta,
+body.reports-page .chatlogs-convo-participants .sep {
+    color: var(--report-muted) !important;
+}
+
+body.reports-page .text-muted,
+body.reports-page small.text-muted {
+    color: var(--report-muted) !important;
+}
+
+body.reports-page .chatlogs-filter .form-control,
+body.reports-page .chatlogs-page-jump,
+body.reports-page .chatreports-filter-wrap .form-control,
+body.reports-page .chatreports-filter-wrap .form-select,
+body.reports-page .chatreports-action-form .form-control,
+body.reports-page .chatreports-action-form .form-select {
+    background: var(--report-surface-soft) !important;
+    border-color: var(--report-border) !important;
+    color: var(--report-text) !important;
+}
+
+body.reports-page .chatlogs-thread-row,
+body.reports-page .chatlogs-thread-row:nth-child(even),
+body.reports-page .chatlogs-table-card tbody tr:nth-child(even) {
+    background: var(--report-surface-soft);
+}
+
+body.reports-page .chatlogs-table-card tbody tr:nth-child(odd) {
+    background: var(--report-surface);
+}
+
+body.reports-page .chatlogs-thread-row:hover,
+body.reports-page .chatlogs-table-card .table-hover > tbody > tr:hover > * {
+    background: color-mix(in srgb, var(--report-surface-soft) 74%, var(--biotern-primary, #2563eb) 8%) !important;
+}

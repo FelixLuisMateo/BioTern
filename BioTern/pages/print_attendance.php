@@ -84,10 +84,10 @@ $asset_prefix = (strpos($script_name, '/pages/') !== false) ? '../' : '';
 $page_title = 'BioTern || Print Attendance';
 $base_href = $asset_prefix;
 $page_styles = [
-    'assets/css/print-attendance-page.css',
+    'assets/css/pages/print-attendance-page.css',
 ];
 $page_scripts = [
-    'assets/js/print-attendance-runtime.js',
+    'assets/js/pages/print-attendance-runtime.js',
 ];
 
 include 'includes/header.php';

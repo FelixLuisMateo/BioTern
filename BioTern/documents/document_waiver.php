@@ -7,7 +7,7 @@ $today = date('F d, Y');
 <head>
     <meta charset="utf-8">
     <title>Waiver</title>
-    <link rel="stylesheet" href="../assets/css/document-waiver.css">
+    <link rel="stylesheet" href="../assets/css/documents/document-waiver.css">
 </head>
 <body>
     <h2>Internship Waiver</h2>

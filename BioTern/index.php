@@ -15,7 +15,7 @@ $page_title = 'BioTern || Internship Monitoring';
 $page_body_class = 'landing-public';
 $page_is_public = true;
 $page_styles = [
-    'assets/css/landing-page.css',
+    'assets/css/pages/landing-page.css',
 ];
 $page_scripts = [
     'assets/js/theme-customizer-init.min.js',

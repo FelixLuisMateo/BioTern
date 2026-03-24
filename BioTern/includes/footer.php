@@ -62,7 +62,8 @@ $page_render_footer = isset($page_render_footer) ? (bool)$page_render_footer : !
                 'ojt.php', 'ojt-create.php', 'ojt-edit.php', 'ojt-view.php', 'ojt-workflow-board.php',
                 'document_application.php', 'document_endorsement.php', 'document_moa.php', 'document_dau_moa.php', 'document_dtr.php',
                 'document_resume.php', 'document_waiver.php',
-                'reports-sales.php', 'reports-ojt.php', 'reports-project.php', 'reports-timesheets.php', 'reports-attendance-operations.php',
+                'reports-ojt.php', 'reports-project.php', 'reports-timesheets.php', 'reports-attendance-operations.php',
+                'reports-chat-logs.php', 'reports-chat-reports.php', 'reports-login-logs.php',
             ],
             'sections' => [
                 [
@@ -98,11 +99,13 @@ $page_render_footer = isset($page_render_footer) ? (bool)$page_render_footer : !
                 [
                     'title' => 'Reports',
                     'items' => [
-                        ['label' => 'Sales Report', 'href' => 'reports-sales.php', 'icon' => 'feather-bar-chart-2'],
                         ['label' => 'OJT Report', 'href' => 'reports-ojt.php', 'icon' => 'feather-pie-chart'],
                         ['label' => 'Project Report', 'href' => 'reports-project.php', 'icon' => 'feather-activity'],
                         ['label' => 'Timesheets Report', 'href' => 'reports-timesheets.php', 'icon' => 'feather-clock'],
                         ['label' => 'Attendance Operations', 'href' => 'reports-attendance-operations.php', 'icon' => 'feather-clipboard'],
+                        ['label' => 'Chat Logs', 'href' => 'reports-chat-logs.php', 'icon' => 'feather-message-circle'],
+                        ['label' => 'Reported Chats', 'href' => 'reports-chat-reports.php', 'icon' => 'feather-flag'],
+                        ['label' => 'Login Logs', 'href' => 'reports-login-logs.php', 'icon' => 'feather-log-in'],
                     ],
                 ],
             ],
@@ -143,7 +146,6 @@ $page_render_footer = isset($page_render_footer) ? (bool)$page_render_footer : !
             'icon' => 'feather-layers',
             'routes' => [
                 'apps-chat.php', 'apps-email.php', 'apps-tasks.php', 'apps-notes.php', 'apps-storage.php', 'apps-calendar.php',
-                'widgets-lists.php', 'widgets-tables.php', 'widgets-charts.php', 'widgets-statistics.php', 'widgets-miscellaneous.php',
             ],
             'sections' => [
                 [
@@ -155,16 +157,6 @@ $page_render_footer = isset($page_render_footer) ? (bool)$page_render_footer : !
                         ['label' => 'Notes', 'href' => 'apps-notes.php', 'icon' => 'feather-edit-2'],
                         ['label' => 'Storage', 'href' => 'apps-storage.php', 'icon' => 'feather-hard-drive'],
                         ['label' => 'Calendar', 'href' => 'apps-calendar.php', 'icon' => 'feather-calendar'],
-                    ],
-                ],
-                [
-                    'title' => 'Widgets',
-                    'items' => [
-                        ['label' => 'Lists', 'href' => 'widgets-lists.php', 'icon' => 'feather-list'],
-                        ['label' => 'Tables', 'href' => 'widgets-tables.php', 'icon' => 'feather-grid'],
-                        ['label' => 'Charts', 'href' => 'widgets-charts.php', 'icon' => 'feather-bar-chart'],
-                        ['label' => 'Statistics', 'href' => 'widgets-statistics.php', 'icon' => 'feather-trending-up'],
-                        ['label' => 'Miscellaneous', 'href' => 'widgets-miscellaneous.php', 'icon' => 'feather-package'],
                     ],
                 ],
             ],

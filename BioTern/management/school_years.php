@@ -90,7 +90,7 @@ if ($res) {
 }
 
 $page_title = 'School Years';
-$page_scripts = array('assets/js/school-years-runtime.js');
+$page_scripts = array('assets/js/management/school-years-runtime.js');
 include 'includes/header.php';
 ?>
 <main class="nxl-container">

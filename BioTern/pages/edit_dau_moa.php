@@ -5,11 +5,11 @@ $page_title = 'BioTern || Edit DAU MOA';
 $base_href = $asset_prefix;
 $page_body_class = 'app-editor-page';
 $page_styles = [
-    'assets/css/page-editor-shell.css',
-    'assets/css/edit-moa-dau-template-page.css',
+    'assets/css/layout/page-editor-shell.css',
+    'assets/css/documents/edit-moa-dau-template-page.css',
 ];
 $page_scripts = [
-    'assets/js/template-editor-page-runtime.js',
+    'assets/js/documents/template-editor-page-runtime.js',
 ];
 
 include __DIR__ . '/../includes/header.php';

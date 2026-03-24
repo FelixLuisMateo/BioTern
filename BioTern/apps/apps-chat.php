@@ -1,2517 +1,2180 @@
 <?php
+require_once dirname(__DIR__) . '/config/db.php';
+require_once dirname(__DIR__) . '/lib/notifications.php';
+
+if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
+    session_start();
+}
+
+function chat_esc($value): string
+{
+    return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
+}
+
+function chat_supported_reactions(): array
+{
+    static $reactions = null;
+    if ($reactions !== null) {
+        return $reactions;
+    }
+
+    $reactions = [
+        'Like' => html_entity_decode('&#128077;', ENT_QUOTES, 'UTF-8'),
+        'Love' => html_entity_decode('&#10084;&#65039;', ENT_QUOTES, 'UTF-8'),
+        'Haha' => html_entity_decode('&#128514;', ENT_QUOTES, 'UTF-8'),
+        'Wow' => html_entity_decode('&#128558;', ENT_QUOTES, 'UTF-8'),
+        'Sad' => html_entity_decode('&#128546;', ENT_QUOTES, 'UTF-8'),
+        'Angry' => html_entity_decode('&#128545;', ENT_QUOTES, 'UTF-8'),
+    ];
+
+    return $reactions;
+}
+
+function chat_normalize_reaction_emoji(string $emoji): string
+{
+    $emoji = trim($emoji);
+    if ($emoji === '') {
+        return '';
+    }
+
+    $reactions = chat_supported_reactions();
+    $aliases = [
+        'ðŸ‘' => $reactions['Like'],
+        $reactions['Like'] => $reactions['Like'],
+        'â¤ï¸' => $reactions['Love'],
+        html_entity_decode('&#10084;', ENT_QUOTES, 'UTF-8') => $reactions['Love'],
+        $reactions['Love'] => $reactions['Love'],
+        'ðŸ˜‚' => $reactions['Haha'],
+        $reactions['Haha'] => $reactions['Haha'],
+        'ðŸ˜®' => $reactions['Wow'],
+        $reactions['Wow'] => $reactions['Wow'],
+        'ðŸ˜¢' => $reactions['Sad'],
+        $reactions['Sad'] => $reactions['Sad'],
+        'ðŸ˜¡' => $reactions['Angry'],
+        $reactions['Angry'] => $reactions['Angry'],
+    ];
+
+    return $aliases[$emoji] ?? $emoji;
+}
+
+function chat_initials(string $name): string
+{
+    $parts = preg_split('/\s+/', trim($name)) ?: [];
+    $initials = '';
+
+    foreach ($parts as $part) {
+        if ($part === '') {
+            continue;
+        }
+
+        $initials .= strtoupper(substr($part, 0, 1));
+        if (strlen($initials) >= 2) {
+            break;
+        }
+    }
+
+    return $initials !== '' ? $initials : 'BT';
+}
+
+function chat_time_label(?string $value): string
+{
+    if (!$value) {
+        return 'No messages yet';
+    }
+
+    $timestamp = strtotime($value);
+    if ($timestamp === false) {
+        return $value;
+    }
+
+    $delta = time() - $timestamp;
+    if ($delta < 60) {
+        return 'Just now';
+    }
+    if ($delta < 3600) {
+        return floor($delta / 60) . ' min ago';
+    }
+    if ($delta < 86400) {
+        return floor($delta / 3600) . ' hr ago';
+    }
+    if ($delta < 604800) {
+        $days = (int)floor($delta / 86400);
+        return $days . ' day' . ($days > 1 ? 's' : '') . ' ago';
+    }
+
+    return date('M j, Y g:i A', $timestamp);
+}
+
+function chat_avatar_path(string $profilePicture, int $userId = 0): string
+{
+    $normalized = ltrim(str_replace('\\', '/', trim($profilePicture)), '/');
+    if ($normalized !== '') {
+        return $normalized;
+    }
+
+    // No picture stored â€“ use a numbered default avatar so different users look distinct
+    $num = $userId > 0 ? (($userId % 12) + 1) : 1;
+    return 'assets/images/avatar/' . $num . '.png';
+}
+
+function chat_json_response(array $payload, int $statusCode = 200): void
+{
+    http_response_code($statusCode);
+    header('Content-Type: application/json; charset=UTF-8');
+    echo json_encode($payload, JSON_UNESCAPED_SLASHES);
+    exit;
+}
+
+function chat_page_url(int $userId = 0, array $extraQuery = []): string
+{
+    $query = $extraQuery;
+    if ($userId > 0) {
+        $query['user_id'] = $userId;
+    }
+
+    $url = 'apps-chat.php';
+    if (!empty($query)) {
+        $url .= '?' . http_build_query($query);
+    }
+
+    return $url;
+}
+
+function chat_has_table(mysqli $conn, string $table): bool
+{
+    $table = trim($table);
+    if ($table === '') {
+        return false;
+    }
+
+    $safeTable = $conn->real_escape_string($table);
+    $result = $conn->query("SHOW TABLES LIKE '" . $safeTable . "'");
+    return $result instanceof mysqli_result && $result->num_rows > 0;
+}
+
+function chat_fetch_recent_login_user_ids(mysqli $conn): array
+{
+    if (!chat_has_table($conn, 'login_logs')) {
+        return [];
+    }
+
+    $ids = [];
+    $sql = "SELECT DISTINCT user_id FROM login_logs WHERE status = 'success' AND user_id IS NOT NULL AND created_at >= (NOW() - INTERVAL 15 MINUTE)";
+    $res = $conn->query($sql);
+    if ($res instanceof mysqli_result) {
+        while ($row = $res->fetch_assoc()) {
+            $userId = (int)($row['user_id'] ?? 0);
+            if ($userId > 0) {
+                $ids[$userId] = true;
+            }
+        }
+        $res->free();
+    }
+
+    return $ids;
+}
+
+function chat_is_online(array $recentLoginUserIds, int $userId, ?string $lastActivityAt): bool
+{
+    if ($userId > 0 && isset($recentLoginUserIds[$userId])) {
+        return true;
+    }
+
+    if (!$lastActivityAt) {
+        return false;
+    }
+
+    $timestamp = strtotime($lastActivityAt);
+    if ($timestamp === false) {
+        return false;
+    }
+
+    return (time() - $timestamp) <= 300;
+}
+
+function chat_media_kind_from_path(string $path): string
+{
+    $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+    if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'], true)) {
+        return 'image';
+    }
+    if (in_array($ext, ['mp4', 'webm', 'ogg', 'mov'], true)) {
+        return 'video';
+    }
+
+    return '';
+}
+
+function chat_unsent_marker(): string
+{
+    return '__btchat_unsent__';
+}
+
+function chat_blocked_message_emojis(): array
+{
+    return [
+        html_entity_decode('&#128405;', ENT_QUOTES, 'UTF-8'),
+        html_entity_decode('&#127814;', ENT_QUOTES, 'UTF-8'),
+        html_entity_decode('&#127825;', ENT_QUOTES, 'UTF-8'),
+        html_entity_decode('&#128166;', ENT_QUOTES, 'UTF-8'),
+        html_entity_decode('&#128069;', ENT_QUOTES, 'UTF-8'),
+    ];
+}
+
+function chat_moderation_payload(string $text): array
+{
+    $clean = preg_replace('/[\x{200B}-\x{200D}\x{FEFF}]+/u', '', $text);
+    if (!is_string($clean)) {
+        $clean = $text;
+    }
+
+    $lower = function_exists('mb_strtolower') ? mb_strtolower($clean, 'UTF-8') : strtolower($clean);
+    $lower = strtr($lower, [
+        '0' => 'o',
+        '1' => 'i',
+        '3' => 'e',
+        '4' => 'a',
+        '5' => 's',
+        '7' => 't',
+        '@' => 'a',
+        '$' => 's',
+    ]);
+
+    $normalized = preg_replace('/[^\p{L}\p{N}\s]+/u', ' ', $lower);
+    if (!is_string($normalized)) {
+        $normalized = $lower;
+    }
+    $normalized = trim((string)(preg_replace('/\s+/u', ' ', $normalized) ?? $normalized));
+
+    $compact = preg_replace('/[^\p{L}\p{N}]+/u', '', $lower);
+    if (!is_string($compact)) {
+        $compact = '';
+    }
+
+    $symbolCompact = trim((string)(preg_replace('/\s+/u', '', $clean) ?? $clean));
+
+    return [
+        'clean' => $clean,
+        'normalized' => $normalized,
+        'compact' => $compact,
+        'symbol_compact' => $symbolCompact,
+    ];
+}
+
+function chat_moderation_error(string $text): string
+{
+    if (trim($text) === '') {
+        return '';
+    }
+
+    foreach (chat_blocked_message_emojis() as $emoji) {
+        if ($emoji !== '' && str_contains($text, $emoji)) {
+            return 'Message blocked due to unsupported or offensive emoji.';
+        }
+    }
+
+    $payload = chat_moderation_payload($text);
+    $normalized = $payload['normalized'];
+    $compact = $payload['compact'];
+    $symbolCompact = $payload['symbol_compact'];
+
+    $symbolCompactLower = function_exists('mb_strtolower') ? mb_strtolower($symbolCompact, 'UTF-8') : strtolower($symbolCompact);
+    foreach (['./.', '/./', '.|.', '<==3', '<===3', '<====3', '8==d', '8===d', '8====d', 'b==d', 'b===d', 'b====d'] as $token) {
+        if ($symbolCompactLower !== '' && str_contains($symbolCompactLower, $token)) {
+            return 'Message blocked due to disallowed symbol patterns.';
+        }
+    }
+    if ($symbolCompactLower !== '' && preg_match('/(?:<|8|b|c)[=\-~_]{2,}(?:3|d)/u', $symbolCompactLower) === 1) {
+        return 'Message blocked due to disallowed symbol patterns.';
+    }
+
+    foreach ([
+        'kill yourself', 'kill ur self', 'kill your self',
+        'putang ina', 'putang ina mo', 'tang ina', 'tangina mo',
+        'anak ng puta', 'anak ka ng puta', 'bwakanang ina', 'bwakanang ina mo',
+        'gago ka', 'ulol ka', 'biot ka', 'bayot ka',
+        'kupal ka', 'tarantado ka', 'hayop ka', 'hayup ka',
+        'puta ka', 'gago mo',
+    ] as $phrase) {
+        $pattern = '/\b' . preg_quote($phrase, '/') . '\b/u';
+        if ($normalized !== '' && preg_match($pattern, $normalized) === 1) {
+            return 'Message blocked due to inappropriate language. Please edit and try again.';
+        }
+    }
+
+    $blockedTerms = [
+        // English
+        'fuck', 'fucking', 'shit', 'bitch', 'asshole', 'bastard', 'dick', 'pussy',
+        'nude', 'nudes', 'porn', 'sext', 'blowjob', 'handjob', 'cum', 'kys',
+        'fck', 'fvck', 'phuck', 'btch', 'biatch',
+        'cunt', 'whore', 'slut', 'rape', 'rapist', 'pedo', 'pedophile',
+        'jizz', 'boner', 'wank', 'wanker', 'fap', 'hentai', 'horny',
+        'orgasm', 'masturbate', 'masturbation', 'threesome', 'gangbang', 'creampie',
+        'anal', 'erection', 'ejaculate', 'ejaculation', 'xxx',
+        // Filipino / Tagalog
+        'putangina', 'potangina', 'puta', 'punyeta', 'gago', 'gaga', 'tangina',
+        'leche', 'buwisit', 'kupal', 'tarantado', 'pakshet', 'pakyu', 'putcha',
+        'kantot', 'iyot', 'jakol', 'tite', 'pekpek', 'ulol', 'bobo',
+        'ptngina', 'tngina', 'ulul',
+        'tanga', 'inutil', 'ogag', 'engot', 'gagu',
+        'putaragis', 'putaena', 'bwiset', 'bwisit', 'bwakanangina', 'bwakananginamo',
+        'hindot', 'libog', 'salsal', 'bayag', 'burat', 'pokpok',
+        'biot', 'bayot', 'bading',
+        'gunggong', 'kolokoy', 'hinayupak',  'lintik', 'demonyo',
+        'punyemas', 'burikat', 'pokpokin',
+        // Cebuano / Visayan
+        'yawa', 'yawaa', 'buang', 'otin', 'bilat', 'pisti', 'piste', 'atay',
+        'amaw', 'yati',
+        // Spanish
+        'cono', 'coño', 'joder', 'cabron', 'cabrón', 'mierda', 'pendejo',
+        'verga', 'chinga', 'culero',
+        // Korean (romanized)
+        'sibal', 'ssibal', 'gaeseki', 'jiral', 'byeongsin',
+        // Japanese (romanized)
+        'kuso', 'kutabare', 'chinko', 'manko',
+    ];
+
+    foreach ($blockedTerms as $term) {
+        $pattern = '/\b' . preg_quote($term, '/') . '\b/u';
+        if ($normalized !== '' && preg_match($pattern, $normalized) === 1) {
+            return 'Message blocked due to inappropriate language. Please edit and try again.';
+        }
+        if ($compact !== '' && str_contains($compact, str_replace(' ', '', $term))) {
+            return 'Message blocked due to inappropriate language. Please edit and try again.';
+        }
+    }
+
+    // Native-script check — Korean Hangul, Japanese, Chinese, accented Spanish
+    $blockedNativeTerms = [
+        '시발', '씨발', '개새끼', '병신', '지랄', '창녀', '보지', '자지',
+        'くそ', 'くたばれ', 'ちんこ', 'まんこ', '死ね', 'うんこ',
+        '操你妈', '你妈的', '他妈的', '去死', '傻逼', '草泥马', '肏你',
+    ];
+    foreach ($blockedNativeTerms as $native) {
+        if (str_contains($text, $native)) {
+            return 'Message blocked due to inappropriate language. Please edit and try again.';
+        }
+    }
+
+    return '';
+}
+
+function chat_contains_inappropriate(string $text): bool
+{
+    return chat_moderation_error($text) !== '';
+}
+
+function chat_normalize_contact(array $contact, array $recentLoginUserIds): array
+{
+    $name = trim((string)($contact['name'] ?? ''));
+    if ($name === '') {
+        $name = (string)($contact['username'] ?? 'Unknown User');
+    }
+
+    $profilePicture = (string)($contact['profile_picture'] ?? '');
+    $hasCustomAvatar = trim($profilePicture) !== '';
+    $userId = (int)($contact['id'] ?? 0);
+    $avatarPath = chat_avatar_path($profilePicture, $userId);
+    $lastMessage = trim((string)($contact['last_message'] ?? ''));
+    $lastMediaPath = trim((string)($contact['last_media_path'] ?? ''));
+    $lastMessageAt = (string)($contact['last_message_at'] ?? '');
+
+    if ($lastMessage === chat_unsent_marker()) {
+        $lastMessage = 'Message was unsent';
+    }
+
+    // Replace raw media filenames with a readable contact list preview.
+    $previewMediaKind = '';
+    if ($lastMediaPath !== '') {
+        $previewMediaKind = chat_media_kind_from_path($lastMediaPath);
+    }
+    if ($previewMediaKind === '' && $lastMessage !== '') {
+        $candidate = basename($lastMessage);
+        if (preg_match('/^msg_\d+_\d+_[a-f0-9]{8}\.[a-z0-9]+$/i', $candidate)) {
+            $previewMediaKind = chat_media_kind_from_path($candidate);
+        }
+    }
+    if ($previewMediaKind === 'image') {
+        $lastMessage = 'Sent an image';
+    } elseif ($previewMediaKind === 'video') {
+        $lastMessage = 'Sent a video';
+    }
+
+    return [
+        'id' => $userId,
+        'name' => $name,
+        'username' => (string)($contact['username'] ?? ''),
+        'email' => (string)($contact['email'] ?? ''),
+        'avatar_path' => $avatarPath,
+        'has_custom_avatar' => $hasCustomAvatar,
+        'initials' => chat_initials($name),
+        'last_message' => $lastMessage,
+        'last_message_at' => $lastMessageAt,
+        'last_message_label' => chat_time_label($lastMessageAt),
+        'unread_count' => (int)($contact['unread_count'] ?? 0),
+        'message_count' => (int)($contact['message_count'] ?? 0),
+        'is_online' => chat_is_online($recentLoginUserIds, $userId, $lastMessageAt),
+    ];
+}
+
+function chat_normalize_messages(array $messages, int $currentUserId): array
+{
+    $items = [];
+    $messagesById = [];
+    foreach ($messages as $message) {
+        $messagesById[(int)($message['message_id'] ?? 0)] = $message;
+    }
+    $todayDate = date('Y-m-d');
+    foreach ($messages as $message) {
+        $createdAt = (string)($message['created_at'] ?? '');
+        $ts = $createdAt !== '' ? strtotime($createdAt) : 0;
+        $timeExact = $ts > 0
+            ? (date('Y-m-d', $ts) === $todayDate ? date('g:i A', $ts) : date('M j Â· g:i A', $ts))
+            : '';
+        $timeFull = $ts > 0 ? date('F j, Y \a\t g:i A', $ts) : '';
+        $readAt = (string)($message['read_at'] ?? '');
+        $readTs = $readAt !== '' ? strtotime($readAt) : 0;
+        $readTimeExact = $readTs > 0
+            ? (date('Y-m-d', $readTs) === $todayDate ? date('g:i A', $readTs) : date('M j, Y g:i A', $readTs))
+            : '';
+        $rawMedia = trim((string)($message['media_path'] ?? ''));
+        $mediaType = $rawMedia !== '' ? chat_media_kind_from_path($rawMedia) : '';
+        $messageTextRaw = (string)($message['message'] ?? '');
+        $unsentAt = trim((string)($message['unsent_at'] ?? ''));
+        $isOwn = (int)($message['sender_id'] ?? 0) === $currentUserId;
+        $isUnsent = $unsentAt !== '' || trim($messageTextRaw) === chat_unsent_marker();
+        $isPinned = (int)($message['is_pinned'] ?? 0) === 1;
+        if ($isUnsent) {
+            $rawMedia = '';
+            $mediaType = '';
+            $isPinned = false;
+        }
+        $replyToId = (int)($message['reply_to_message_id'] ?? 0);
+        $replyPreview = '';
+        $replyAuthor = '';
+        if ($replyToId > 0 && isset($messagesById[$replyToId])) {
+            $replyMessage = $messagesById[$replyToId];
+            $replyUnsentAt = trim((string)($replyMessage['unsent_at'] ?? ''));
+            $replyAuthor = ((int)($replyMessage['sender_id'] ?? 0) === $currentUserId) ? 'You' : 'Them';
+            $replyText = trim((string)($replyMessage['message'] ?? ''));
+            $replyMediaPath = trim((string)($replyMessage['media_path'] ?? ''));
+            if ($replyUnsentAt !== '') {
+                $replyText = '[Message unsent]';
+            } elseif ($replyMediaPath !== '' && ($replyText === '' || $replyText === basename($replyMediaPath))) {
+                $replyMediaType = chat_media_kind_from_path($replyMediaPath);
+                $replyText = $replyMediaType === 'video' ? '[Video]' : '[Image]';
+            }
+            $replyPreview = $replyText;
+            if (function_exists('mb_strlen') && function_exists('mb_substr')) {
+                if (mb_strlen($replyPreview) > 90) {
+                    $replyPreview = mb_substr($replyPreview, 0, 87) . '...';
+                }
+            } elseif (strlen($replyPreview) > 90) {
+                $replyPreview = substr($replyPreview, 0, 87) . '...';
+            }
+        }
+        $rawReactionSummary = (isset($message['reaction_summary']) && is_array($message['reaction_summary'])) ? $message['reaction_summary'] : [];
+        $reactionSummary = [];
+        foreach ($rawReactionSummary as $reactionItem) {
+            if (!is_array($reactionItem)) {
+                continue;
+            }
+            $reactionEmoji = chat_normalize_reaction_emoji((string)($reactionItem['emoji'] ?? ''));
+            $reactionCount = (int)($reactionItem['count'] ?? 0);
+            if ($reactionEmoji === '' || $reactionCount <= 0) {
+                continue;
+            }
+            $reactionSummary[] = [
+                'emoji' => $reactionEmoji,
+                'count' => $reactionCount,
+            ];
+        }
+
+        $rawReactionUsers = (isset($message['reaction_users']) && is_array($message['reaction_users'])) ? $message['reaction_users'] : [];
+        $reactionUsers = [];
+        foreach ($rawReactionUsers as $reactionUser) {
+            if (!is_array($reactionUser)) {
+                continue;
+            }
+            $reactionEmoji = chat_normalize_reaction_emoji((string)($reactionUser['emoji'] ?? ''));
+            if ($reactionEmoji === '') {
+                continue;
+            }
+            $reactionUserName = trim((string)($reactionUser['name'] ?? ''));
+            if ($reactionUserName === '') {
+                $reactionUserName = 'Unknown user';
+            }
+            $reactionUserId = (int)($reactionUser['user_id'] ?? 0);
+            $reactionUsers[] = [
+                'user_id' => $reactionUserId,
+                'name' => $reactionUserName,
+                'avatar_path' => chat_avatar_path((string)($reactionUser['profile_picture'] ?? ''), $reactionUserId),
+                'initials' => chat_initials($reactionUserName),
+                'emoji' => $reactionEmoji,
+                'is_own' => $reactionUserId === $currentUserId,
+            ];
+        }
+
+        $reactionTotal = max(0, (int)($message['reaction_count'] ?? 0));
+        if ($reactionTotal <= 0) {
+            foreach ($reactionSummary as $reactionItem) {
+                $reactionTotal += (int)($reactionItem['count'] ?? 0);
+            }
+        }
+
+        $topReactionEmoji = chat_normalize_reaction_emoji((string)($message['reaction_emoji'] ?? ''));
+        if (!empty($reactionSummary)) {
+            $topReactionEmoji = (string)($reactionSummary[0]['emoji'] ?? $topReactionEmoji);
+        }
+        if ($topReactionEmoji !== '' && empty($reactionSummary) && $reactionTotal > 0) {
+            $reactionSummary[] = [
+                'emoji' => $topReactionEmoji,
+                'count' => $reactionTotal,
+            ];
+        }
+
+        if ($isUnsent) {
+            $reactionSummary = [];
+            $reactionUsers = [];
+            $reactionTotal = 0;
+            $topReactionEmoji = '';
+            $replyToId = 0;
+            $replyPreview = '';
+            $replyAuthor = '';
+        }
+
+        $messageText = $messageTextRaw;
+        if ($isUnsent) {
+            $messageText = $isOwn ? 'You unsent a message' : 'This message was unsent';
+        }
+
+        $items[] = [
+            'message_id' => (int)($message['message_id'] ?? 0),
+            'sender_id' => (int)($message['sender_id'] ?? 0),
+            'recipient_id' => (int)($message['recipient_id'] ?? 0),
+            'reply_to_message_id' => $replyToId,
+            'reply_preview' => $replyPreview,
+            'reply_author' => $replyAuthor,
+            'reaction_emoji' => $topReactionEmoji,
+            'reaction_by_user_id' => (int)($message['reaction_by_user_id'] ?? 0),
+            'reaction_count' => $reactionTotal,
+            'reaction_summary' => $reactionSummary,
+            'reaction_users' => $reactionUsers,
+            'message' => $messageText,
+            'subject' => (string)($message['subject'] ?? ''),
+            'media_path' => $rawMedia,
+            'media_type' => $mediaType,
+            'created_at' => $createdAt,
+            'time_label' => chat_time_label($createdAt),
+            'time_exact' => $timeExact,
+            'time_full' => $timeFull,
+            'is_read' => (int)($message['is_read'] ?? 0) === 1,
+            'read_at' => $readAt,
+            'read_time_label' => $readAt !== '' ? chat_time_label($readAt) : '',
+            'read_time_exact' => $readTimeExact,
+            'date_key' => $ts > 0 ? date('Y-m-d', $ts) : '',
+            'is_own' => $isOwn,
+            'is_pinned' => $isPinned,
+            'is_unsent' => $isUnsent,
+            'unsent_at' => $unsentAt,
+        ];
+    }
+
+    return $items;
+}
+
+function chat_ensure_messages_table(mysqli $conn): void
+{
+    $conn->query(
+        "CREATE TABLE IF NOT EXISTS messages (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            from_user_id BIGINT UNSIGNED NOT NULL,
+            to_user_id BIGINT UNSIGNED NOT NULL,
+            subject VARCHAR(255) NULL,
+            message LONGTEXT NOT NULL,
+            reply_to_message_id BIGINT UNSIGNED NULL DEFAULT NULL,
+            media_path VARCHAR(512) NULL DEFAULT NULL,
+            reaction_emoji VARCHAR(32) NULL DEFAULT NULL,
+            reaction_by_user_id BIGINT UNSIGNED NULL DEFAULT NULL,
+            is_read TINYINT(1) NOT NULL DEFAULT 0,
+            created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            deleted_at TIMESTAMP NULL DEFAULT NULL,
+            INDEX idx_messages_pair (from_user_id, to_user_id),
+            INDEX idx_messages_created (created_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci"
+    );
+    // Add media_path to existing tables that were created before this column existed
+    $cols = [];
+    $cr = $conn->query('SHOW COLUMNS FROM messages');
+    if ($cr instanceof mysqli_result) {
+        while ($row = $cr->fetch_assoc()) {
+            $cols[] = strtolower((string)($row['Field'] ?? ''));
+        }
+        $cr->free();
+    }
+    if (!in_array('media_path', $cols, true)) {
+        $conn->query("ALTER TABLE messages ADD COLUMN media_path VARCHAR(512) NULL DEFAULT NULL AFTER message");
+    }
+    if (!in_array('reply_to_message_id', $cols, true)) {
+        $conn->query("ALTER TABLE messages ADD COLUMN reply_to_message_id BIGINT UNSIGNED NULL DEFAULT NULL AFTER message");
+    }
+    if (!in_array('reaction_emoji', $cols, true)) {
+        $conn->query("ALTER TABLE messages ADD COLUMN reaction_emoji VARCHAR(32) NULL DEFAULT NULL AFTER media_path");
+    }
+    if (!in_array('reaction_by_user_id', $cols, true)) {
+        $conn->query("ALTER TABLE messages ADD COLUMN reaction_by_user_id BIGINT UNSIGNED NULL DEFAULT NULL AFTER reaction_emoji");
+    }
+}
+
+function chat_ensure_message_reactions_table(mysqli $conn): void
+{
+    $conn->query(
+        "CREATE TABLE IF NOT EXISTS message_reactions (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            message_id BIGINT UNSIGNED NOT NULL,
+            user_id BIGINT UNSIGNED NOT NULL,
+            emoji VARCHAR(32) NOT NULL,
+            created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            UNIQUE KEY uq_message_user (message_id, user_id),
+            INDEX idx_message_emoji (message_id, emoji),
+            INDEX idx_reaction_user (user_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci"
+    );
+}
+
+function chat_ensure_message_pins_table(mysqli $conn): void
+{
+    $conn->query(
+        "CREATE TABLE IF NOT EXISTS message_pins (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            message_id BIGINT UNSIGNED NOT NULL,
+            pinned_by_user_id BIGINT UNSIGNED NOT NULL,
+            created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            UNIQUE KEY uq_message_pin (message_id),
+            INDEX idx_pinned_by_user (pinned_by_user_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci"
+    );
+}
+
+function chat_ensure_message_reports_table(mysqli $conn): void
+{
+    $conn->query(
+        "CREATE TABLE IF NOT EXISTS message_reports (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            message_id BIGINT UNSIGNED NOT NULL,
+            reporter_user_id BIGINT UNSIGNED NOT NULL,
+            reported_user_id BIGINT UNSIGNED NOT NULL,
+            reason VARCHAR(255) NOT NULL DEFAULT 'Inappropriate message',
+            status VARCHAR(20) NOT NULL DEFAULT 'open',
+            moderator_note VARCHAR(255) NULL DEFAULT NULL,
+            reviewed_by_user_id BIGINT UNSIGNED NULL DEFAULT NULL,
+            reviewed_at TIMESTAMP NULL DEFAULT NULL,
+            created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            UNIQUE KEY uq_reporter_message (message_id, reporter_user_id),
+            INDEX idx_reported_user (reported_user_id),
+            INDEX idx_report_status (status),
+            INDEX idx_report_reviewed_at (reviewed_at),
+            INDEX idx_report_created (created_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci"
+    );
+
+    $reportCols = [];
+    $res = $conn->query('SHOW COLUMNS FROM message_reports');
+    if ($res instanceof mysqli_result) {
+        while ($row = $res->fetch_assoc()) {
+            $field = strtolower((string)($row['Field'] ?? ''));
+            if ($field !== '') {
+                $reportCols[$field] = true;
+            }
+        }
+        $res->free();
+    }
+
+    if (!isset($reportCols['status'])) {
+        $conn->query("ALTER TABLE message_reports ADD COLUMN status VARCHAR(20) NOT NULL DEFAULT 'open' AFTER reason");
+    }
+    if (!isset($reportCols['moderator_note'])) {
+        $conn->query("ALTER TABLE message_reports ADD COLUMN moderator_note VARCHAR(255) NULL DEFAULT NULL AFTER status");
+    }
+    if (!isset($reportCols['reviewed_by_user_id'])) {
+        $conn->query("ALTER TABLE message_reports ADD COLUMN reviewed_by_user_id BIGINT UNSIGNED NULL DEFAULT NULL AFTER moderator_note");
+    }
+    if (!isset($reportCols['reviewed_at'])) {
+        $conn->query("ALTER TABLE message_reports ADD COLUMN reviewed_at TIMESTAMP NULL DEFAULT NULL AFTER reviewed_by_user_id");
+    }
+}
+
+function chat_message_meta(mysqli $conn): array
+{
+    chat_ensure_messages_table($conn);
+    chat_ensure_message_reactions_table($conn);
+    chat_ensure_message_pins_table($conn);
+    chat_ensure_message_reports_table($conn);
+
+    $columns = [];
+    $res = $conn->query('SHOW COLUMNS FROM messages');
+    if ($res instanceof mysqli_result) {
+        while ($row = $res->fetch_assoc()) {
+            $field = strtolower((string)($row['Field'] ?? ''));
+            if ($field !== '') {
+                $columns[$field] = true;
+            }
+        }
+        $res->free();
+    }
+
+    $senderCol = isset($columns['from_user_id']) ? 'from_user_id' : (isset($columns['sender_id']) ? 'sender_id' : '');
+    $recipientCol = isset($columns['to_user_id']) ? 'to_user_id' : (isset($columns['recipient_id']) ? 'recipient_id' : '');
+
+    return [
+        'ready' => $senderCol !== '' && $recipientCol !== '' && isset($columns['message']) && isset($columns['id']),
+        'sender_col' => $senderCol,
+        'recipient_col' => $recipientCol,
+        'id_col' => isset($columns['id']) ? 'id' : '',
+        'subject_col' => isset($columns['subject']) ? 'subject' : '',
+        'message_type_col' => isset($columns['message_type']) ? 'message_type' : '',
+        'reply_to_col' => isset($columns['reply_to_message_id']) ? 'reply_to_message_id' : '',
+        'media_path_col' => isset($columns['media_path']) ? 'media_path' : '',
+        'reaction_emoji_col' => isset($columns['reaction_emoji']) ? 'reaction_emoji' : '',
+        'reaction_by_col' => isset($columns['reaction_by_user_id']) ? 'reaction_by_user_id' : '',
+        'is_read_col' => isset($columns['is_read']) ? 'is_read' : '',
+        'read_at_col' => isset($columns['read_at']) ? 'read_at' : '',
+        'created_at_col' => isset($columns['created_at']) ? 'created_at' : '',
+        'updated_at_col' => isset($columns['updated_at']) ? 'updated_at' : '',
+        'deleted_at_col' => isset($columns['deleted_at']) ? 'deleted_at' : '',
+        'reactions_ready' => chat_has_table($conn, 'message_reactions'),
+        'pins_ready' => chat_has_table($conn, 'message_pins'),
+        'reports_ready' => chat_has_table($conn, 'message_reports'),
+    ];
+}
+
+$currentUserId = (int)($_SESSION['user_id'] ?? 0);
+$currentUserName = trim((string)($_SESSION['name'] ?? $_SESSION['username'] ?? 'BioTern User'));
+$currentUserRole = strtolower(trim((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? '')));
+$isStudentChatUser = ($currentUserRole === 'student');
+$currentStudentCourseId = 0;
+$studentScopeErrorMessage = 'Students can only chat with students from the same course.';
+
+if ($isStudentChatUser && $currentUserId > 0) {
+    $studentCourseStmt = $conn->prepare('SELECT course_id FROM students WHERE user_id = ? LIMIT 1');
+    if ($studentCourseStmt) {
+        $studentCourseStmt->bind_param('i', $currentUserId);
+        $studentCourseStmt->execute();
+        $studentCourseRow = $studentCourseStmt->get_result()->fetch_assoc();
+        $studentCourseStmt->close();
+        $currentStudentCourseId = (int)($studentCourseRow['course_id'] ?? 0);
+    }
+}
+
 $page_title = 'BioTern || Chat';
+$requestMethod = (string)($_SERVER['REQUEST_METHOD'] ?? 'GET');
+$isAjaxRequest = ((string)($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'XMLHttpRequest') || ((string)($_REQUEST['ajax'] ?? '') === '1');
+
+$messageMeta = chat_message_meta($conn);
+$selectedUserId = isset($_POST['user_id']) ? (int)$_POST['user_id'] : (int)($_GET['user_id'] ?? 0);
+$draftMessage = '';
+$errorMessage = '';
+$successMessage = '';
+$composeWarningMessage = '';
+
+if (isset($_SESSION['chat_flash']) && is_array($_SESSION['chat_flash'])) {
+    $successMessage = (string)($_SESSION['chat_flash']['success'] ?? '');
+    $errorMessage = (string)($_SESSION['chat_flash']['error'] ?? '');
+    unset($_SESSION['chat_flash']);
+}
+
+if ($requestMethod === 'POST' && (string)($_POST['action'] ?? '') === 'delete-conversation' && $messageMeta['ready']) {
+    $selectedUserId = (int)($_POST['user_id'] ?? 0);
+
+    if ($selectedUserId <= 0) {
+        $errorMessage = 'Select a conversation first.';
+    } else {
+        if ($messageMeta['deleted_at_col'] !== '') {
+            $deleteSql = 'UPDATE messages
+                SET ' . $messageMeta['deleted_at_col'] . ' = NOW()' . ($messageMeta['updated_at_col'] !== '' ? ', ' . $messageMeta['updated_at_col'] . ' = NOW()' : '') . '
+                WHERE ((' . $messageMeta['sender_col'] . ' = ? AND ' . $messageMeta['recipient_col'] . ' = ?)
+                    OR (' . $messageMeta['sender_col'] . ' = ? AND ' . $messageMeta['recipient_col'] . ' = ?))
+                  AND ' . $messageMeta['deleted_at_col'] . ' IS NULL';
+        } else {
+            $deleteSql = 'DELETE FROM messages
+                WHERE ((' . $messageMeta['sender_col'] . ' = ? AND ' . $messageMeta['recipient_col'] . ' = ?)
+                    OR (' . $messageMeta['sender_col'] . ' = ? AND ' . $messageMeta['recipient_col'] . ' = ?))';
+        }
+
+        $deleteStmt = $conn->prepare($deleteSql);
+        if (!$deleteStmt) {
+            $errorMessage = 'Failed to prepare delete query.';
+        } else {
+            $deleteStmt->bind_param('iiii', $currentUserId, $selectedUserId, $selectedUserId, $currentUserId);
+            $ok = $deleteStmt->execute();
+            $deleteStmt->close();
+            if ($ok) {
+                $successMessage = 'Conversation deleted.';
+                if (!$isAjaxRequest) {
+                    $_SESSION['chat_flash'] = ['success' => $successMessage];
+                    header('Location: ' . chat_page_url($selectedUserId));
+                    exit;
+                }
+            } else {
+                $errorMessage = 'Failed to delete conversation.';
+            }
+        }
+    }
+}
+
+if ($requestMethod === 'POST' && (string)($_POST['action'] ?? '') === 'unsend-message' && $messageMeta['ready']) {
+    $selectedUserId = (int)($_POST['user_id'] ?? 0);
+    $messageId = (int)($_POST['message_id'] ?? 0);
+
+    if ($selectedUserId <= 0 || $messageId <= 0) {
+        $errorMessage = 'Invalid message request.';
+    } else {
+        if ($messageMeta['deleted_at_col'] !== '') {
+            $unsendSql = 'UPDATE messages
+                SET ' . $messageMeta['deleted_at_col'] . ' = NOW()' . ($messageMeta['updated_at_col'] !== '' ? ', ' . $messageMeta['updated_at_col'] . ' = NOW()' : '') . '
+                WHERE ' . $messageMeta['id_col'] . ' = ?
+                                    AND ' . $messageMeta['sender_col'] . ' = ?
+                  AND ' . $messageMeta['deleted_at_col'] . ' IS NULL';
+        } else {
+                        $unsetMediaSql = $messageMeta['media_path_col'] !== '' ? ', ' . $messageMeta['media_path_col'] . ' = NULL' : '';
+                        $unsetReplySql = $messageMeta['reply_to_col'] !== '' ? ', ' . $messageMeta['reply_to_col'] . ' = NULL' : '';
+                        $unsetSubjectSql = $messageMeta['subject_col'] !== '' ? ', ' . $messageMeta['subject_col'] . ' = NULL' : '';
+                        $unsendSql = 'UPDATE messages
+                                SET message = ?' . $unsetMediaSql . $unsetReplySql . $unsetSubjectSql . ($messageMeta['updated_at_col'] !== '' ? ', ' . $messageMeta['updated_at_col'] . ' = NOW()' : '') . '
+                                WHERE ' . $messageMeta['id_col'] . ' = ?
+                                    AND ' . $messageMeta['sender_col'] . ' = ?';
+        }
+
+        $unsendStmt = $conn->prepare($unsendSql);
+        if (!$unsendStmt) {
+            $errorMessage = 'Failed to prepare unsend query.';
+        } else {
+            if ($messageMeta['deleted_at_col'] !== '') {
+                $unsendStmt->bind_param('ii', $messageId, $currentUserId);
+            } else {
+                $unsentMarker = chat_unsent_marker();
+                $unsendStmt->bind_param('sii', $unsentMarker, $messageId, $currentUserId);
+            }
+            $ok = $unsendStmt->execute();
+            $affected = $unsendStmt->affected_rows;
+            $unsendStmt->close();
+
+            if ($ok && $affected > 0) {
+                if (!empty($messageMeta['pins_ready'])) {
+                    $cleanupPinStmt = $conn->prepare('DELETE FROM message_pins WHERE message_id = ?');
+                    if ($cleanupPinStmt) {
+                        $cleanupPinStmt->bind_param('i', $messageId);
+                        $cleanupPinStmt->execute();
+                        $cleanupPinStmt->close();
+                    }
+                }
+                $successMessage = 'Message unsent.';
+            } else {
+                $errorMessage = 'Unable to unsend this message.';
+            }
+        }
+    }
+}
+
+if ($requestMethod === 'POST' && (string)($_POST['action'] ?? '') === 'remove-message' && $messageMeta['ready']) {
+    $selectedUserId = (int)($_POST['user_id'] ?? 0);
+    $messageId = (int)($_POST['message_id'] ?? 0);
+
+    if ($selectedUserId <= 0 || $messageId <= 0) {
+        $errorMessage = 'Invalid message request.';
+    } else {
+        if ($messageMeta['deleted_at_col'] !== '') {
+            $removeSql = 'DELETE FROM messages
+                WHERE ' . $messageMeta['id_col'] . ' = ?
+                  AND ' . $messageMeta['sender_col'] . ' = ?
+                  AND ' . $messageMeta['deleted_at_col'] . ' IS NOT NULL';
+            $removeStmt = $conn->prepare($removeSql);
+            if (!$removeStmt) {
+                $errorMessage = 'Failed to prepare remove query.';
+            } else {
+                $removeStmt->bind_param('ii', $messageId, $currentUserId);
+                $ok = $removeStmt->execute();
+                $affected = $removeStmt->affected_rows;
+                $removeStmt->close();
+                if ($ok && $affected > 0) {
+                    if (!empty($messageMeta['pins_ready'])) {
+                        $cleanupPinStmt = $conn->prepare('DELETE FROM message_pins WHERE message_id = ?');
+                        if ($cleanupPinStmt) {
+                            $cleanupPinStmt->bind_param('i', $messageId);
+                            $cleanupPinStmt->execute();
+                            $cleanupPinStmt->close();
+                        }
+                    }
+                    if (!empty($messageMeta['reactions_ready'])) {
+                        $cleanupStmt = $conn->prepare('DELETE FROM message_reactions WHERE message_id = ?');
+                        if ($cleanupStmt) {
+                            $cleanupStmt->bind_param('i', $messageId);
+                            $cleanupStmt->execute();
+                            $cleanupStmt->close();
+                        }
+                    }
+                    $successMessage = 'Message removed.';
+                } else {
+                    $errorMessage = 'Unable to remove this message.';
+                }
+            }
+        } else {
+            $removeSql = 'DELETE FROM messages
+                WHERE ' . $messageMeta['id_col'] . ' = ?
+                  AND ' . $messageMeta['sender_col'] . ' = ?
+                  AND message = ?';
+            $removeStmt = $conn->prepare($removeSql);
+            if (!$removeStmt) {
+                $errorMessage = 'Failed to prepare remove query.';
+            } else {
+                $unsentMarker = chat_unsent_marker();
+                $removeStmt->bind_param('iis', $messageId, $currentUserId, $unsentMarker);
+                $ok = $removeStmt->execute();
+                $affected = $removeStmt->affected_rows;
+                $removeStmt->close();
+                if ($ok && $affected > 0) {
+                    if (!empty($messageMeta['pins_ready'])) {
+                        $cleanupPinStmt = $conn->prepare('DELETE FROM message_pins WHERE message_id = ?');
+                        if ($cleanupPinStmt) {
+                            $cleanupPinStmt->bind_param('i', $messageId);
+                            $cleanupPinStmt->execute();
+                            $cleanupPinStmt->close();
+                        }
+                    }
+                    if (!empty($messageMeta['reactions_ready'])) {
+                        $cleanupStmt = $conn->prepare('DELETE FROM message_reactions WHERE message_id = ?');
+                        if ($cleanupStmt) {
+                            $cleanupStmt->bind_param('i', $messageId);
+                            $cleanupStmt->execute();
+                            $cleanupStmt->close();
+                        }
+                    }
+                    $successMessage = 'Message removed.';
+                } else {
+                    $errorMessage = 'Unable to remove this message.';
+                }
+            }
+        }
+    }
+}
+
+if ($requestMethod === 'POST' && (string)($_POST['action'] ?? '') === 'react-message' && $messageMeta['ready']) {
+    $selectedUserId = (int)($_POST['user_id'] ?? 0);
+    $messageId = (int)($_POST['message_id'] ?? 0);
+    $reactionEmoji = trim((string)($_POST['reaction_emoji'] ?? ''));
+
+    if ($selectedUserId <= 0 || $messageId <= 0) {
+        $errorMessage = 'Invalid reaction request.';
+    } elseif (empty($messageMeta['reactions_ready'])) {
+        $errorMessage = 'Reactions are not available.';
+    } else {
+        if (function_exists('mb_substr')) {
+            $reactionEmoji = mb_substr($reactionEmoji, 0, 8);
+        } else {
+            $reactionEmoji = substr($reactionEmoji, 0, 16);
+        }
+        $reactionEmoji = chat_normalize_reaction_emoji($reactionEmoji);
+        $supportedReactionEmoji = array_values(chat_supported_reactions());
+
+        if ($reactionEmoji !== '' && !in_array($reactionEmoji, $supportedReactionEmoji, true)) {
+            $errorMessage = 'Only the standard chat reactions are allowed.';
+        }
+
+        $checkSql = 'SELECT ' . $messageMeta['id_col'] . ' AS message_id
+            FROM messages
+            WHERE ' . $messageMeta['id_col'] . ' = ?
+              AND ((' . $messageMeta['sender_col'] . ' = ? AND ' . $messageMeta['recipient_col'] . ' = ?)
+                OR (' . $messageMeta['sender_col'] . ' = ? AND ' . $messageMeta['recipient_col'] . ' = ?))'
+              . ($messageMeta['deleted_at_col'] !== '' ? ' AND ' . $messageMeta['deleted_at_col'] . ' IS NULL' : '') . '
+            LIMIT 1';
+        $checkStmt = $errorMessage === '' ? $conn->prepare($checkSql) : null;
+        if ($errorMessage === '' && !$checkStmt) {
+            $errorMessage = 'Failed to validate reaction target.';
+        } elseif ($errorMessage === '') {
+            $checkStmt->bind_param('iiiii', $messageId, $currentUserId, $selectedUserId, $selectedUserId, $currentUserId);
+            $checkStmt->execute();
+            $hasMessage = (bool)$checkStmt->get_result()->fetch_assoc();
+            $checkStmt->close();
+
+            if (!$hasMessage) {
+                $errorMessage = 'Message not found in this conversation.';
+            } else {
+                $existingEmoji = '';
+                $existingStmt = $conn->prepare('SELECT emoji FROM message_reactions WHERE message_id = ? AND user_id = ? LIMIT 1');
+                if ($existingStmt) {
+                    $existingStmt->bind_param('ii', $messageId, $currentUserId);
+                    $existingStmt->execute();
+                    $existingRow = $existingStmt->get_result()->fetch_assoc();
+                    $existingStmt->close();
+                    $existingEmoji = chat_normalize_reaction_emoji((string)($existingRow['emoji'] ?? ''));
+                }
+
+                if ($reactionEmoji === '' || $reactionEmoji === $existingEmoji) {
+                    $deleteReactionStmt = $conn->prepare('DELETE FROM message_reactions WHERE message_id = ? AND user_id = ?');
+                    if (!$deleteReactionStmt) {
+                        $errorMessage = 'Failed to remove reaction.';
+                    } else {
+                        $deleteReactionStmt->bind_param('ii', $messageId, $currentUserId);
+                        $ok = $deleteReactionStmt->execute();
+                        $deleteReactionStmt->close();
+                        if ($ok) {
+                            $successMessage = 'Reaction removed.';
+                        } else {
+                            $errorMessage = 'Failed to remove reaction.';
+                        }
+                    }
+                } else {
+                    $upsertReactionStmt = $conn->prepare('INSERT INTO message_reactions (message_id, user_id, emoji, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW()) ON DUPLICATE KEY UPDATE emoji = VALUES(emoji), updated_at = NOW()');
+                    if (!$upsertReactionStmt) {
+                        $errorMessage = 'Failed to save reaction.';
+                    } else {
+                        $upsertReactionStmt->bind_param('iis', $messageId, $currentUserId, $reactionEmoji);
+                        $ok = $upsertReactionStmt->execute();
+                        $upsertReactionStmt->close();
+                        if ($ok) {
+                            $successMessage = 'Reaction sent.';
+                        } else {
+                            $errorMessage = 'Failed to save reaction.';
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+if ($requestMethod === 'POST' && (string)($_POST['action'] ?? '') === 'toggle-pin' && $messageMeta['ready']) {
+    $selectedUserId = (int)($_POST['user_id'] ?? 0);
+    $messageId = (int)($_POST['message_id'] ?? 0);
+    $pinState = trim(strtolower((string)($_POST['pin_state'] ?? '')));
+    $shouldPin = $pinState !== '0' && $pinState !== 'false' && $pinState !== 'off' && $pinState !== 'unpin';
+
+    if ($selectedUserId <= 0 || $messageId <= 0) {
+        $errorMessage = 'Invalid pin request.';
+    } elseif (empty($messageMeta['pins_ready'])) {
+        $errorMessage = 'Pinning is not available.';
+    } else {
+        $checkSql = 'SELECT ' . $messageMeta['id_col'] . ' AS message_id
+            FROM messages
+            WHERE ' . $messageMeta['id_col'] . ' = ?
+              AND ((' . $messageMeta['sender_col'] . ' = ? AND ' . $messageMeta['recipient_col'] . ' = ?)
+                OR (' . $messageMeta['sender_col'] . ' = ? AND ' . $messageMeta['recipient_col'] . ' = ?))'
+              . ($messageMeta['deleted_at_col'] !== '' ? ' AND ' . $messageMeta['deleted_at_col'] . ' IS NULL' : ' AND message <> ?') . '
+            LIMIT 1';
+        $checkStmt = $conn->prepare($checkSql);
+        if (!$checkStmt) {
+            $errorMessage = 'Failed to validate pin target.';
+        } else {
+            if ($messageMeta['deleted_at_col'] !== '') {
+                $checkStmt->bind_param('iiiii', $messageId, $currentUserId, $selectedUserId, $selectedUserId, $currentUserId);
+            } else {
+                $unsentMarker = chat_unsent_marker();
+                $checkStmt->bind_param('iiiiis', $messageId, $currentUserId, $selectedUserId, $selectedUserId, $currentUserId, $unsentMarker);
+            }
+            $checkStmt->execute();
+            $hasMessage = (bool)$checkStmt->get_result()->fetch_assoc();
+            $checkStmt->close();
+
+            if (!$hasMessage) {
+                $errorMessage = 'Message not found in this conversation.';
+            } elseif ($shouldPin) {
+                $pinStmt = $conn->prepare('INSERT INTO message_pins (message_id, pinned_by_user_id, created_at, updated_at) VALUES (?, ?, NOW(), NOW()) ON DUPLICATE KEY UPDATE pinned_by_user_id = VALUES(pinned_by_user_id), updated_at = NOW()');
+                if (!$pinStmt) {
+                    $errorMessage = 'Failed to pin message.';
+                } else {
+                    $pinStmt->bind_param('ii', $messageId, $currentUserId);
+                    $ok = $pinStmt->execute();
+                    $pinStmt->close();
+                    if ($ok) {
+                        $successMessage = 'Message pinned.';
+                    } else {
+                        $errorMessage = 'Failed to pin message.';
+                    }
+                }
+            } else {
+                $unpinStmt = $conn->prepare('DELETE FROM message_pins WHERE message_id = ?');
+                if (!$unpinStmt) {
+                    $errorMessage = 'Failed to unpin message.';
+                } else {
+                    $unpinStmt->bind_param('i', $messageId);
+                    $ok = $unpinStmt->execute();
+                    $unpinStmt->close();
+                    if ($ok) {
+                        $successMessage = 'Message unpinned.';
+                    } else {
+                        $errorMessage = 'Failed to unpin message.';
+                    }
+                }
+            }
+        }
+    }
+}
+
+if ($requestMethod === 'POST' && (string)($_POST['action'] ?? '') === 'report-message' && $messageMeta['ready']) {
+    $messageId = (int)($_POST['message_id'] ?? 0);
+    $reportReason = trim((string)($_POST['reason'] ?? ''));
+
+    if ($messageId <= 0) {
+        $errorMessage = 'Invalid report request.';
+    } elseif (empty($messageMeta['reports_ready'])) {
+        $errorMessage = 'Reporting is not available.';
+    } else {
+        $checkSql = 'SELECT ' . $messageMeta['id_col'] . ' AS message_id, ' . $messageMeta['sender_col'] . ' AS sender_id, ' . $messageMeta['recipient_col'] . ' AS recipient_id
+            FROM messages
+            WHERE ' . $messageMeta['id_col'] . ' = ?
+              AND (' . $messageMeta['sender_col'] . ' = ? OR ' . $messageMeta['recipient_col'] . ' = ?)'
+              . ($messageMeta['deleted_at_col'] !== '' ? ' AND ' . $messageMeta['deleted_at_col'] . ' IS NULL' : ' AND message <> ?') . '
+            LIMIT 1';
+        $checkStmt = $conn->prepare($checkSql);
+        if (!$checkStmt) {
+            $errorMessage = 'Failed to validate report target.';
+        } else {
+            if ($messageMeta['deleted_at_col'] !== '') {
+                $checkStmt->bind_param('iii', $messageId, $currentUserId, $currentUserId);
+            } else {
+                $unsentMarker = chat_unsent_marker();
+                $checkStmt->bind_param('iiis', $messageId, $currentUserId, $currentUserId, $unsentMarker);
+            }
+            $checkStmt->execute();
+            $targetRow = $checkStmt->get_result()->fetch_assoc();
+            $checkStmt->close();
+
+            if (!$targetRow) {
+                $errorMessage = 'Message not found in this conversation.';
+            } else {
+                $reportedUserId = (int)($targetRow['sender_id'] ?? 0);
+                if ($reportedUserId <= 0 || $reportedUserId === $currentUserId) {
+                    $errorMessage = 'This message cannot be reported.';
+                } else {
+                    if ($reportReason === '') {
+                        $reportReason = 'Inappropriate message';
+                    }
+                    if (function_exists('mb_substr')) {
+                        $reportReason = mb_substr($reportReason, 0, 255, 'UTF-8');
+                    } else {
+                        $reportReason = substr($reportReason, 0, 255);
+                    }
+
+                    $reportStmt = $conn->prepare("INSERT INTO message_reports (message_id, reporter_user_id, reported_user_id, reason, status, moderator_note, reviewed_by_user_id, reviewed_at, created_at, updated_at) VALUES (?, ?, ?, ?, 'open', NULL, NULL, NULL, NOW(), NOW()) ON DUPLICATE KEY UPDATE reason = VALUES(reason), status = 'open', moderator_note = NULL, reviewed_by_user_id = NULL, reviewed_at = NULL, updated_at = NOW()");
+                    if (!$reportStmt) {
+                        $errorMessage = 'Failed to submit report.';
+                    } else {
+                        $reportStmt->bind_param('iiis', $messageId, $currentUserId, $reportedUserId, $reportReason);
+                        $ok = $reportStmt->execute();
+                        $reportStmt->close();
+                        if ($ok) {
+                            $successMessage = 'Message reported.';
+                        } else {
+                            $errorMessage = 'Failed to submit report.';
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+if ($requestMethod === 'POST' && (string)($_POST['action'] ?? '') === 'send-message' && $messageMeta['ready']) {
+    $selectedUserId = (int)($_POST['user_id'] ?? 0);
+    $plainDraftMessage = trim((string)($_POST['message'] ?? ''));
+    $draftMessage = $plainDraftMessage;
+    $replyToMessageId = (int)($_POST['reply_to_message_id'] ?? 0);
+    $messageModerationError = $plainDraftMessage !== '' ? chat_moderation_error($plainDraftMessage) : '';
+    $composeWarningMessage = '';
+
+    // Handle optional media upload
+    $uploadedMediaPath = '';
+    $mediaUploadError = '';
+    if (!empty($_FILES['chat_media']['name'])) {
+        $file = $_FILES['chat_media'];
+        $imageMime = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+        $allowedMime = $imageMime;
+        $maxImageSize = 10 * 1024 * 1024; // 10 MB
+        if ($file['error'] !== UPLOAD_ERR_OK) {
+            $mediaUploadError = 'File upload failed (code ' . (int)$file['error'] . ').';
+        } else {
+            $finfo = new finfo(FILEINFO_MIME_TYPE);
+            $mime = $finfo->file($file['tmp_name']);
+            if (!in_array($mime, $allowedMime, true)) {
+                $mediaUploadError = 'Only image files are allowed.';
+            } elseif (in_array($mime, $imageMime, true) && $file['size'] > $maxImageSize) {
+                $mediaUploadError = 'Image is too large (max 10 MB).';
+            } else {
+                $ext = strtolower(pathinfo((string)$file['name'], PATHINFO_EXTENSION));
+                $safeExt = preg_replace('/[^a-z0-9]/', '', $ext);
+                if ($safeExt === '') {
+                    $mimeToExt = [
+                        'image/jpeg' => 'jpg',
+                        'image/jpg' => 'jpg',
+                        'image/png' => 'png',
+                        'image/gif' => 'gif',
+                        'image/webp' => 'webp',
+                    ];
+                    $safeExt = $mimeToExt[$mime] ?? 'bin';
+                }
+                $originalBase = pathinfo((string)$file['name'], PATHINFO_FILENAME);
+                $originalBase = preg_replace('/[^A-Za-z0-9._-]+/', '_', (string)$originalBase);
+                $originalBase = trim((string)$originalBase, " ._-");
+                if ($originalBase === '') {
+                    $originalBase = 'upload';
+                }
+                if (function_exists('mb_substr')) {
+                    $originalBase = (string)mb_substr($originalBase, 0, 90, 'UTF-8');
+                } else {
+                    $originalBase = substr($originalBase, 0, 90);
+                }
+                $destDir = dirname(__DIR__) . '/uploads/chat_media/';
+                if (!is_dir($destDir)) {
+                    mkdir($destDir, 0755, true);
+                }
+                $fileName = $originalBase . '.' . $safeExt;
+                $suffix = 1;
+                while (is_file($destDir . $fileName) && $suffix < 5000) {
+                    $fileName = $originalBase . '_' . $suffix . '.' . $safeExt;
+                    $suffix++;
+                }
+                $destPath = $destDir . $fileName;
+                if (move_uploaded_file($file['tmp_name'], $destPath)) {
+                    $uploadedMediaPath = 'uploads/chat_media/' . $fileName;
+                    if ($draftMessage === '') {
+                        $draftMessage = $fileName; // non-empty placeholder so NOT NULL constraint is satisfied
+                    }
+                } else {
+                    $mediaUploadError = 'Could not save the uploaded file.';
+                }
+            }
+        }
+        if ($mediaUploadError !== '') {
+            $errorMessage = $mediaUploadError;
+        }
+    }
+
+    if ($selectedUserId <= 0) {
+        $errorMessage = 'Select a recipient before sending a message.';
+    } elseif ($messageModerationError !== '') {
+        $errorMessage = $messageModerationError;
+        $composeWarningMessage = $messageModerationError;
+    } elseif ($draftMessage === '' && $uploadedMediaPath === '') {
+        $errorMessage = 'Message cannot be empty.';
+    } elseif ($errorMessage === '') {
+        $recipientStmt = $conn->prepare("SELECT id, name FROM users WHERE id = ? AND (is_active = 1 OR is_active IS NULL) LIMIT 1");
+        $recipient = null;
+        if ($recipientStmt) {
+            $recipientStmt->bind_param('i', $selectedUserId);
+            $recipientStmt->execute();
+            $recipient = $recipientStmt->get_result()->fetch_assoc();
+            $recipientStmt->close();
+        }
+
+        if (!$recipient) {
+            $errorMessage = 'The selected recipient was not found.';
+        } elseif ($isStudentChatUser && $selectedUserId !== $currentUserId) {
+            if ($currentStudentCourseId <= 0) {
+                $errorMessage = $studentScopeErrorMessage;
+            } else {
+                $sameCourseStmt = $conn->prepare('SELECT 1 FROM students WHERE user_id = ? AND course_id = ? LIMIT 1');
+                $isSameCourseRecipient = false;
+                if ($sameCourseStmt) {
+                    $sameCourseStmt->bind_param('ii', $selectedUserId, $currentStudentCourseId);
+                    $sameCourseStmt->execute();
+                    $isSameCourseRecipient = (bool)$sameCourseStmt->get_result()->fetch_assoc();
+                    $sameCourseStmt->close();
+                }
+                if (!$isSameCourseRecipient) {
+                    $errorMessage = $studentScopeErrorMessage;
+                }
+            }
+        } else {
+            if ($replyToMessageId > 0 && $messageMeta['id_col'] !== '') {
+                $replyCheckSql = 'SELECT ' . $messageMeta['id_col'] . ' AS id FROM messages
+                    WHERE ' . $messageMeta['id_col'] . ' = ?
+                      AND ((' . $messageMeta['sender_col'] . ' = ? AND ' . $messageMeta['recipient_col'] . ' = ?)
+                        OR (' . $messageMeta['sender_col'] . ' = ? AND ' . $messageMeta['recipient_col'] . ' = ?))'
+                      . ($messageMeta['deleted_at_col'] !== '' ? ' AND ' . $messageMeta['deleted_at_col'] . ' IS NULL' : '') . '
+                    LIMIT 1';
+                $replyCheckStmt = $conn->prepare($replyCheckSql);
+                if ($replyCheckStmt) {
+                    $replyCheckStmt->bind_param('iiiii', $replyToMessageId, $currentUserId, $selectedUserId, $selectedUserId, $currentUserId);
+                    $replyCheckStmt->execute();
+                    $replyFound = (bool)$replyCheckStmt->get_result()->fetch_assoc();
+                    $replyCheckStmt->close();
+                    if (!$replyFound) {
+                        $replyToMessageId = 0;
+                    }
+                } else {
+                    $replyToMessageId = 0;
+                }
+            }
+
+            $insertColumns = [$messageMeta['sender_col'], $messageMeta['recipient_col'], 'message'];
+            $insertValues = ['?', '?', '?'];
+            $bindTypes = 'iis';
+            $bindValues = [$currentUserId, $selectedUserId, $draftMessage];
+
+            if ($messageMeta['reply_to_col'] !== '' && $replyToMessageId > 0) {
+                $insertColumns[] = $messageMeta['reply_to_col'];
+                $insertValues[] = '?';
+                $bindTypes .= 'i';
+                $bindValues[] = $replyToMessageId;
+            }
+
+            if ($messageMeta['media_path_col'] !== '' && $uploadedMediaPath !== '') {
+                $insertColumns[] = $messageMeta['media_path_col'];
+                $insertValues[] = '?';
+                $bindTypes .= 's';
+                $bindValues[] = $uploadedMediaPath;
+            }
+
+            if ($messageMeta['subject_col'] !== '') {
+                $insertColumns[] = $messageMeta['subject_col'];
+                $insertValues[] = '?';
+                $bindTypes .= 's';
+                $bindValues[] = 'BioTern Chat';
+            }
+
+            if ($messageMeta['message_type_col'] !== '') {
+                $insertColumns[] = $messageMeta['message_type_col'];
+                $insertValues[] = '?';
+                $bindTypes .= 's';
+                $bindValues[] = 'general';
+            }
+
+            if ($messageMeta['is_read_col'] !== '') {
+                $insertColumns[] = $messageMeta['is_read_col'];
+                $insertValues[] = '0';
+            }
+
+            if ($messageMeta['read_at_col'] !== '') {
+                $insertColumns[] = $messageMeta['read_at_col'];
+                $insertValues[] = 'NULL';
+            }
+
+            if ($messageMeta['created_at_col'] !== '') {
+                $insertColumns[] = $messageMeta['created_at_col'];
+                $insertValues[] = 'NOW()';
+            }
+
+            if ($messageMeta['updated_at_col'] !== '') {
+                $insertColumns[] = $messageMeta['updated_at_col'];
+                $insertValues[] = 'NOW()';
+            }
+
+            $insertSql = 'INSERT INTO messages (' . implode(', ', $insertColumns) . ') VALUES (' . implode(', ', $insertValues) . ')';
+            $insertStmt = $conn->prepare($insertSql);
+
+            if (!$insertStmt) {
+                $errorMessage = 'Failed to prepare the message insert query.';
+            } else {
+                $insertStmt->bind_param($bindTypes, ...$bindValues);
+                $executed = $insertStmt->execute();
+                $insertErrNo = (int)$insertStmt->errno;
+                $insertError = (string)$insertStmt->error;
+                $insertStmt->close();
+
+                if ($executed) {
+                    $successMessage = 'Message sent.';
+                    if (!$isAjaxRequest) {
+                        $_SESSION['chat_flash'] = ['success' => $successMessage];
+                    }
+                    if (function_exists('biotern_notify')) {
+                        $senderDisplay = $currentUserName !== '' ? $currentUserName : 'A user';
+                        $notificationPreview = preg_replace('/\s+/', ' ', strip_tags($draftMessage));
+                        $notificationPreview = trim((string)$notificationPreview);
+                        if ($notificationPreview === '' && $uploadedMediaPath !== '') {
+                            $notificationPreview = 'Sent an attachment.';
+                        }
+                        if ($notificationPreview === '') {
+                            $notificationPreview = 'You have a new chat message.';
+                        } elseif (strlen($notificationPreview) > 160) {
+                            $notificationPreview = substr($notificationPreview, 0, 157) . '...';
+                        }
+                        biotern_notify(
+                            $conn,
+                            $selectedUserId,
+                            'New chat message from ' . $senderDisplay,
+                            $notificationPreview,
+                            'message',
+                            chat_page_url($currentUserId)
+                        );
+                    }
+                    if (!$isAjaxRequest) {
+                        header('Location: ' . chat_page_url($selectedUserId));
+                        exit;
+                    }
+                } else {
+                    error_log('[BioTern Chat] send-message failed: sender=' . $currentUserId . ' recipient=' . $selectedUserId . ' errno=' . $insertErrNo . ' error=' . $insertError);
+                    $errorMessage = 'Failed to send the message.';
+                }
+            }
+        }
+    }
+}
+
+$deletedMessageFilter = $messageMeta['deleted_at_col'] !== '' ? ' AND m.' . $messageMeta['deleted_at_col'] . ' IS NULL' : '';
+$deletedConversationFilter = $messageMeta['deleted_at_col'] !== '' ? ' AND ' . $messageMeta['deleted_at_col'] . ' IS NULL' : '';
+
+$contacts = [];
+if ($currentUserId > 0 && $messageMeta['ready']) {
+    $orderExpr = $messageMeta['created_at_col'] !== '' ? 'm.' . $messageMeta['created_at_col'] : 'm.' . $messageMeta['id_col'];
+    $unreadSelect = '0 AS unread_count';
+    $lastMediaSelect = "'' AS last_media_path";
+    $contactTypes = 'iiiiii';
+    $contactParams = [$currentUserId, $currentUserId, $currentUserId, $currentUserId, $currentUserId, $currentUserId];
+
+    if ($messageMeta['media_path_col'] !== '') {
+        $lastMediaSelect = '(
+                SELECT m.' . $messageMeta['media_path_col'] . '
+                FROM messages m
+                WHERE ((m.' . $messageMeta['sender_col'] . ' = ? AND m.' . $messageMeta['recipient_col'] . ' = u.id)
+                    OR (m.' . $messageMeta['sender_col'] . ' = u.id AND m.' . $messageMeta['recipient_col'] . ' = ?))' . $deletedMessageFilter . '
+                ORDER BY ' . $orderExpr . ' DESC, m.' . $messageMeta['id_col'] . ' DESC
+                LIMIT 1
+            ) AS last_media_path';
+        $contactTypes .= 'ii';
+        $contactParams[] = $currentUserId;
+        $contactParams[] = $currentUserId;
+    }
+
+    if ($messageMeta['is_read_col'] !== '') {
+        $unreadSelect = '(
+                SELECT COUNT(*)
+                FROM messages m
+                WHERE m.' . $messageMeta['sender_col'] . ' = u.id
+                  AND m.' . $messageMeta['recipient_col'] . ' = ?
+                  AND COALESCE(m.' . $messageMeta['is_read_col'] . ', 0) = 0' . $deletedMessageFilter . '
+            ) AS unread_count';
+        $contactTypes .= 'i';
+        $contactParams[] = $currentUserId;
+    }
+
+    $studentScopeFilterSql = '';
+    if ($isStudentChatUser) {
+        $studentScopeFilterSql = ' AND (u.id = ? OR EXISTS (SELECT 1 FROM students su WHERE su.user_id = u.id AND su.course_id = ?))';
+        $contactTypes .= 'ii';
+        $contactParams[] = $currentUserId;
+        $contactParams[] = $currentStudentCourseId;
+    }
+
+    $contactsSql = '
+        SELECT
+            u.id,
+            u.name,
+            u.username,
+            u.email,
+            u.profile_picture,
+            (
+                SELECT m.message
+                FROM messages m
+                WHERE ((m.' . $messageMeta['sender_col'] . ' = ? AND m.' . $messageMeta['recipient_col'] . ' = u.id)
+                    OR (m.' . $messageMeta['sender_col'] . ' = u.id AND m.' . $messageMeta['recipient_col'] . ' = ?))' . $deletedMessageFilter . '
+                ORDER BY ' . $orderExpr . ' DESC, m.' . $messageMeta['id_col'] . ' DESC
+                LIMIT 1
+            ) AS last_message,
+            (
+                SELECT ' . ($messageMeta['created_at_col'] !== '' ? 'm.' . $messageMeta['created_at_col'] : 'm.' . $messageMeta['id_col']) . '
+                FROM messages m
+                WHERE ((m.' . $messageMeta['sender_col'] . ' = ? AND m.' . $messageMeta['recipient_col'] . ' = u.id)
+                    OR (m.' . $messageMeta['sender_col'] . ' = u.id AND m.' . $messageMeta['recipient_col'] . ' = ?))' . $deletedMessageFilter . '
+                ORDER BY ' . $orderExpr . ' DESC, m.' . $messageMeta['id_col'] . ' DESC
+                LIMIT 1
+            ) AS last_message_at,
+            (
+                SELECT COUNT(*)
+                FROM messages m
+                WHERE ((m.' . $messageMeta['sender_col'] . ' = ? AND m.' . $messageMeta['recipient_col'] . ' = u.id)
+                    OR (m.' . $messageMeta['sender_col'] . ' = u.id AND m.' . $messageMeta['recipient_col'] . ' = ?))' . $deletedMessageFilter . '
+            ) AS message_count,
+            ' . $lastMediaSelect . ',
+            ' . $unreadSelect . '
+        FROM users u
+            WHERE (u.is_active = 1 OR u.is_active IS NULL)' . $studentScopeFilterSql . '
+        ORDER BY
+            CASE WHEN last_message_at IS NULL THEN 1 ELSE 0 END,
+            last_message_at DESC,
+            u.name ASC';
+
+    $contactsStmt = $conn->prepare($contactsSql);
+    if ($contactsStmt) {
+        $contactsStmt->bind_param($contactTypes, ...$contactParams);
+        $contactsStmt->execute();
+        $contactsRes = $contactsStmt->get_result();
+        while ($row = $contactsRes->fetch_assoc()) {
+            $contacts[] = [
+                'id' => (int)($row['id'] ?? 0),
+                'name' => (string)($row['name'] ?? $row['username'] ?? 'Unknown User'),
+                'username' => (string)($row['username'] ?? ''),
+                'email' => (string)($row['email'] ?? ''),
+                'profile_picture' => (string)($row['profile_picture'] ?? ''),
+                'last_message' => (string)($row['last_message'] ?? ''),
+                'last_media_path' => (string)($row['last_media_path'] ?? ''),
+                'last_message_at' => (string)($row['last_message_at'] ?? ''),
+                'message_count' => (int)($row['message_count'] ?? 0),
+                'unread_count' => (int)($row['unread_count'] ?? 0),
+            ];
+        }
+        $contactsStmt->close();
+    }
+}
+
+$recentLoginUserIds = chat_fetch_recent_login_user_ids($conn);
+
+if ($selectedUserId <= 0 && !empty($contacts)) {
+    $selectedUserId = (int)$contacts[0]['id'];
+}
+
+$selectedContact = null;
+if ($selectedUserId > 0) {
+    foreach ($contacts as $contact) {
+        if ((int)$contact['id'] === $selectedUserId) {
+            $selectedContact = $contact;
+            break;
+        }
+    }
+
+    if ($isStudentChatUser && $selectedContact === null) {
+        $selectedUserId = 0;
+        if ($errorMessage === '') {
+            $errorMessage = $studentScopeErrorMessage;
+        }
+    }
+
+    if ($selectedContact === null) {
+        $selectedStmt = $conn->prepare('SELECT id, name, username, email, profile_picture FROM users WHERE id = ? LIMIT 1');
+        if ($selectedStmt) {
+            $selectedStmt->bind_param('i', $selectedUserId);
+            $selectedStmt->execute();
+            $selectedRow = $selectedStmt->get_result()->fetch_assoc();
+            $selectedStmt->close();
+            if ($selectedRow) {
+                $selectedContact = [
+                    'id' => (int)($selectedRow['id'] ?? 0),
+                    'name' => (string)($selectedRow['name'] ?? $selectedRow['username'] ?? 'Unknown User'),
+                    'username' => (string)($selectedRow['username'] ?? ''),
+                    'email' => (string)($selectedRow['email'] ?? ''),
+                    'profile_picture' => (string)($selectedRow['profile_picture'] ?? ''),
+                    'last_message' => '',
+                    'last_media_path' => '',
+                    'last_message_at' => '',
+                    'message_count' => 0,
+                    'unread_count' => 0,
+                ];
+                array_unshift($contacts, $selectedContact);
+            }
+        }
+    }
+}
+
+if ($selectedContact && $messageMeta['is_read_col'] !== '') {
+    $markReadSql = 'UPDATE messages SET ' . $messageMeta['is_read_col'] . ' = 1';
+    if ($messageMeta['read_at_col'] !== '') {
+        $markReadSql .= ', ' . $messageMeta['read_at_col'] . ' = NOW()';
+    }
+    $markReadSql .= ' WHERE ' . $messageMeta['sender_col'] . ' = ? AND ' . $messageMeta['recipient_col'] . ' = ? AND COALESCE(' . $messageMeta['is_read_col'] . ', 0) = 0' . $deletedConversationFilter;
+
+    $markReadStmt = $conn->prepare($markReadSql);
+    if ($markReadStmt) {
+        $markReadStmt->bind_param('ii', $selectedUserId, $currentUserId);
+        $markReadStmt->execute();
+        $markReadStmt->close();
+    }
+
+    if (function_exists('biotern_notification_columns')) {
+        $notificationColumns = biotern_notification_columns($conn);
+        if (!empty($notificationColumns)) {
+            $notificationWhere = 'user_id = ? AND is_read = 0';
+            if (isset($notificationColumns['action_url'])) {
+                $notificationWhere .= ' AND action_url = ?';
+            }
+            if (isset($notificationColumns['type'])) {
+                $notificationWhere .= ' AND type = ?';
+            } elseif (isset($notificationColumns['title'])) {
+                $notificationWhere .= ' AND title = ?';
+            }
+            if (isset($notificationColumns['deleted_at'])) {
+                $notificationWhere .= ' AND deleted_at IS NULL';
+            }
+
+            $notificationSql = 'UPDATE notifications SET is_read = 1 WHERE ' . $notificationWhere;
+            $notificationStmt = $conn->prepare($notificationSql);
+            if ($notificationStmt) {
+                $chatActionUrl = chat_page_url($selectedUserId);
+                if (isset($notificationColumns['action_url']) && isset($notificationColumns['type'])) {
+                    $notificationType = 'message';
+                    $notificationStmt->bind_param('iss', $currentUserId, $chatActionUrl, $notificationType);
+                } elseif (isset($notificationColumns['action_url']) && isset($notificationColumns['title'])) {
+                    $notificationTitle = 'New chat message';
+                    $notificationStmt->bind_param('iss', $currentUserId, $chatActionUrl, $notificationTitle);
+                } elseif (isset($notificationColumns['action_url'])) {
+                    $notificationStmt->bind_param('is', $currentUserId, $chatActionUrl);
+                } elseif (isset($notificationColumns['type'])) {
+                    $notificationType = 'message';
+                    $notificationStmt->bind_param('is', $currentUserId, $notificationType);
+                } elseif (isset($notificationColumns['title'])) {
+                    $notificationTitle = 'New chat message';
+                    $notificationStmt->bind_param('is', $currentUserId, $notificationTitle);
+                } else {
+                    $notificationStmt->bind_param('i', $currentUserId);
+                }
+                $notificationStmt->execute();
+                $notificationStmt->close();
+            }
+        }
+    }
+}
+
+$conversationMessages = [];
+if ($selectedContact && $messageMeta['ready']) {
+    $orderPrimary = $messageMeta['created_at_col'] !== '' ? $messageMeta['created_at_col'] : $messageMeta['id_col'];
+    $outerMessageIdExpr = 'messages.' . $messageMeta['id_col'];
+    $legacyReactionCol = $messageMeta['reaction_emoji_col'] !== '' ? $messageMeta['reaction_emoji_col'] : 'NULL';
+    $reactionEmojiSelect = ($messageMeta['reactions_ready'] ?? false)
+        ? '(SELECT mr.emoji
+            FROM message_reactions mr
+            WHERE mr.message_id = ' . $outerMessageIdExpr . '
+            GROUP BY mr.emoji
+            ORDER BY COUNT(*) DESC, mr.emoji ASC
+            LIMIT 1)'
+        : $legacyReactionCol;
+    $reactionCountSelect = ($messageMeta['reactions_ready'] ?? false)
+        ? '(SELECT COUNT(*) FROM message_reactions mr_cnt WHERE mr_cnt.message_id = ' . $outerMessageIdExpr . ')'
+        : '(CASE WHEN ' . $legacyReactionCol . ' IS NULL OR ' . $legacyReactionCol . " = '' THEN 0 ELSE 1 END)";
+    $reactionBySelect = ($messageMeta['reactions_ready'] ?? false)
+        ? '0'
+        : ($messageMeta['reaction_by_col'] !== '' ? $messageMeta['reaction_by_col'] : 'NULL');
+
+    $conversationSql = 'SELECT
+            ' . $messageMeta['id_col'] . ' AS message_id,
+            ' . $messageMeta['sender_col'] . ' AS sender_id,
+            ' . $messageMeta['recipient_col'] . ' AS recipient_id,
+            message,
+            ' . ($messageMeta['reply_to_col'] !== '' ? $messageMeta['reply_to_col'] : 'NULL') . ' AS reply_to_message_id,
+            ' . ($messageMeta['subject_col'] !== '' ? $messageMeta['subject_col'] : 'NULL') . ' AS subject,
+            ' . ($messageMeta['media_path_col'] !== '' ? $messageMeta['media_path_col'] : 'NULL') . ' AS media_path,
+            ' . $reactionEmojiSelect . ' AS reaction_emoji,
+            ' . $reactionBySelect . ' AS reaction_by_user_id,
+            ' . $reactionCountSelect . ' AS reaction_count,
+            ' . (!empty($messageMeta['pins_ready']) ? '(CASE WHEN EXISTS (SELECT 1 FROM message_pins mp WHERE mp.message_id = ' . $outerMessageIdExpr . ') THEN 1 ELSE 0 END)' : '0') . ' AS is_pinned,
+            ' . ($messageMeta['is_read_col'] !== '' ? $messageMeta['is_read_col'] : '0') . ' AS is_read,
+            ' . ($messageMeta['read_at_col'] !== '' ? $messageMeta['read_at_col'] : 'NULL') . ' AS read_at,
+            ' . ($messageMeta['created_at_col'] !== '' ? $messageMeta['created_at_col'] : 'NULL') . ' AS created_at,
+            ' . ($messageMeta['deleted_at_col'] !== '' ? $messageMeta['deleted_at_col'] : 'NULL') . ' AS unsent_at
+        FROM messages
+        WHERE ((' . $messageMeta['sender_col'] . ' = ? AND ' . $messageMeta['recipient_col'] . ' = ?)
+            OR (' . $messageMeta['sender_col'] . ' = ? AND ' . $messageMeta['recipient_col'] . ' = ?))
+        ORDER BY ' . $orderPrimary . ' ASC, ' . $messageMeta['id_col'] . ' ASC
+        LIMIT 200';
+
+    $conversationStmt = $conn->prepare($conversationSql);
+    if ($conversationStmt) {
+        $conversationStmt->bind_param('iiii', $currentUserId, $selectedUserId, $selectedUserId, $currentUserId);
+        $conversationStmt->execute();
+        $conversationRes = $conversationStmt->get_result();
+        while ($row = $conversationRes->fetch_assoc()) {
+            $conversationMessages[] = [
+                'message_id' => (int)($row['message_id'] ?? 0),
+                'sender_id' => (int)($row['sender_id'] ?? 0),
+                'recipient_id' => (int)($row['recipient_id'] ?? 0),
+                'reply_to_message_id' => (int)($row['reply_to_message_id'] ?? 0),
+                'message' => (string)($row['message'] ?? ''),
+                'subject' => (string)($row['subject'] ?? ''),
+                'media_path' => (string)($row['media_path'] ?? ''),
+                'reaction_emoji' => chat_normalize_reaction_emoji((string)($row['reaction_emoji'] ?? '')),
+                'reaction_by_user_id' => (int)($row['reaction_by_user_id'] ?? 0),
+                'reaction_count' => (int)($row['reaction_count'] ?? 0),
+                'is_pinned' => (int)($row['is_pinned'] ?? 0),
+                'is_read' => (int)($row['is_read'] ?? 0),
+                'read_at' => (string)($row['read_at'] ?? ''),
+                'created_at' => (string)($row['created_at'] ?? ''),
+                'unsent_at' => (string)($row['unsent_at'] ?? ''),
+            ];
+        }
+        $conversationStmt->close();
+    }
+
+    if (!empty($messageMeta['reactions_ready']) && !empty($conversationMessages)) {
+        $messageIds = [];
+        foreach ($conversationMessages as $conversationMessage) {
+            $messageId = (int)($conversationMessage['message_id'] ?? 0);
+            if ($messageId > 0) {
+                $messageIds[$messageId] = $messageId;
+            }
+        }
+
+        if (!empty($messageIds)) {
+            $messageIds = array_values($messageIds);
+            $placeholders = implode(', ', array_fill(0, count($messageIds), '?'));
+            $reactionSql = 'SELECT mr.message_id, mr.user_id, mr.emoji, mr.updated_at, u.name, u.username, u.profile_picture
+                FROM message_reactions mr
+                LEFT JOIN users u ON u.id = mr.user_id
+                WHERE mr.message_id IN (' . $placeholders . ')
+                ORDER BY mr.message_id ASC, mr.updated_at ASC, mr.id ASC';
+            $reactionStmt = $conn->prepare($reactionSql);
+            if ($reactionStmt) {
+                $reactionStmt->bind_param(str_repeat('i', count($messageIds)), ...$messageIds);
+                $reactionStmt->execute();
+                $reactionRes = $reactionStmt->get_result();
+
+                $reactionSummaryByMessage = [];
+                $reactionUsersByMessage = [];
+                while ($reactionRow = $reactionRes->fetch_assoc()) {
+                    $messageId = (int)($reactionRow['message_id'] ?? 0);
+                    $emoji = chat_normalize_reaction_emoji((string)($reactionRow['emoji'] ?? ''));
+                    if ($messageId <= 0 || $emoji === '') {
+                        continue;
+                    }
+
+                    if (!isset($reactionSummaryByMessage[$messageId])) {
+                        $reactionSummaryByMessage[$messageId] = [];
+                    }
+                    if (!isset($reactionSummaryByMessage[$messageId][$emoji])) {
+                        $reactionSummaryByMessage[$messageId][$emoji] = 0;
+                    }
+                    $reactionSummaryByMessage[$messageId][$emoji]++;
+
+                    $reactionUserId = (int)($reactionRow['user_id'] ?? 0);
+                    $reactionUserName = trim((string)($reactionRow['name'] ?? ''));
+                    if ($reactionUserName === '') {
+                        $reactionUserName = trim((string)($reactionRow['username'] ?? ''));
+                    }
+                    if ($reactionUserName === '') {
+                        $reactionUserName = 'Unknown user';
+                    }
+
+                    if (!isset($reactionUsersByMessage[$messageId])) {
+                        $reactionUsersByMessage[$messageId] = [];
+                    }
+                    $reactionUsersByMessage[$messageId][] = [
+                        'user_id' => $reactionUserId,
+                        'name' => $reactionUserName,
+                        'profile_picture' => (string)($reactionRow['profile_picture'] ?? ''),
+                        'emoji' => $emoji,
+                    ];
+                }
+                $reactionStmt->close();
+
+                foreach ($conversationMessages as &$conversationMessage) {
+                    $messageId = (int)($conversationMessage['message_id'] ?? 0);
+                    $emojiCounts = $reactionSummaryByMessage[$messageId] ?? [];
+
+                    arsort($emojiCounts);
+                    $reactionSummary = [];
+                    $reactionTotal = 0;
+                    foreach ($emojiCounts as $emoji => $count) {
+                        $count = (int)$count;
+                        if ($count <= 0) {
+                            continue;
+                        }
+                        $reactionSummary[] = [
+                            'emoji' => (string)$emoji,
+                            'count' => $count,
+                        ];
+                        $reactionTotal += $count;
+                    }
+
+                    $conversationMessage['reaction_summary'] = $reactionSummary;
+                    $conversationMessage['reaction_users'] = $reactionUsersByMessage[$messageId] ?? [];
+                    $conversationMessage['reaction_count'] = $reactionTotal;
+                    $conversationMessage['reaction_emoji'] = !empty($reactionSummary) ? (string)$reactionSummary[0]['emoji'] : '';
+                    $conversationMessage['reaction_by_user_id'] = 0;
+                }
+                unset($conversationMessage);
+            }
+        }
+    }
+}
+
+$normalizedContacts = [];
+foreach ($contacts as $contact) {
+    $normalizedContacts[] = chat_normalize_contact($contact, $recentLoginUserIds);
+}
+
+$normalizedSelectedContact = null;
+if ($selectedContact) {
+    $normalizedSelectedContact = chat_normalize_contact($selectedContact, $recentLoginUserIds);
+}
+
+$normalizedMessages = chat_normalize_messages($conversationMessages, $currentUserId);
+
+if ($isAjaxRequest) {
+    if ($errorMessage !== '') {
+        chat_json_response([
+            'ok' => false,
+            'error' => $errorMessage,
+            'contacts' => $normalizedContacts,
+            'selectedUserId' => $selectedUserId,
+            'selectedContact' => $normalizedSelectedContact,
+            'messages' => $normalizedMessages,
+        ], 400);
+    }
+
+    chat_json_response([
+        'ok' => true,
+        'success' => $successMessage,
+        'contacts' => $normalizedContacts,
+        'selectedUserId' => $selectedUserId,
+        'selectedContact' => $normalizedSelectedContact,
+        'messages' => $normalizedMessages,
+    ]);
+}
+
+$page_title = 'BioTern || Chat';
+$page_body_class = isset($page_body_class) && is_string($page_body_class)
+    ? trim($page_body_class . ' chat-app-page')
+    : 'chat-app-page';
+
+$page_styles = isset($page_styles) && is_array($page_styles) ? $page_styles : [];
+$page_styles[] = 'assets/css/apps/apps-chat-page.css';
+$page_styles = array_values(array_unique($page_styles));
+
+$page_scripts = isset($page_scripts) && is_array($page_scripts) ? $page_scripts : [];
+$page_scripts[] = 'assets/js/apps/apps-chat-page.js';
+$page_scripts = array_values(array_unique($page_scripts));
+
 include 'includes/header.php';
 ?>
-<main class="nxl-container">
+
+<main class="nxl-container btchat-page-wrap">
     <div class="nxl-content">
-            <!-- [ Main Content ] start -->
-            <div class="main-content d-flex">
-                <!-- [ Content Sidebar ] start -->
-                <div class="content-sidebar content-sidebar-xl" data-scrollbar-target="#psScrollbarInit">
-                    <div class="content-sidebar-header bg-white sticky-top hstack justify-content-between">
-                        <h4 class="fw-bolder mb-0">Chat</h4>
-                        <a href="javascript:void(0);" class="app-sidebar-close-trigger d-flex">
-                            <i class="feather-x"></i>
-                        </a>
-                    </div>
-                    <div class="content-sidebar-body">
-                        <div class="py-0 px-4 d-flex align-items-center justify-content-between border-bottom">
-                            <form class="sidebar-search">
-                                <input type="search" class="py-3 px-0 border-0" id="chattingSearch" placeholder="Search...">
-                            </form>
-                            <div class="dropdown sidebar-filter">
-                                <a href="javascript:void(0)" data-bs-toggle="dropdown" class="d-flex align-items-center justify-content-center dropdown-toggle" data-bs-offset="0, 15"> Newest </a>
-                                <ul class="dropdown-menu dropdown-menu-end overflow-auto">
-                                    <li>
-                                        <a href="javascript:void(0)" class="dropdown-item">Oldest</a>
-                                    </li>
-                                    <li>
-                                        <a href="javascript:void(0)" class="dropdown-item active">Newest</a>
-                                    </li>
-                                    <li>
-                                        <a href="javascript:void(0)" class="dropdown-item">Replied</a>
-                                    </li>
-                                    <li>
-                                        <a href="javascript:void(0)" class="dropdown-item">Snoozed</a>
-                                    </li>
-                                    <li class="dropdown-divider"></li>
-                                    <li>
-                                        <a href="javascript:void(0)" class="dropdown-item">Ascending</a>
-                                    </li>
-                                    <li>
-                                        <a href="javascript:void(0)" class="dropdown-item">Descending</a>
-                                    </li>
-                                    <li class="dropdown-divider"></li>
-                                    <li>
-                                        <a href="javascript:void(0)" class="dropdown-item">Mute Conversion</a>
-                                    </li>
-                                    <li>
-                                        <a href="javascript:void(0)" class="dropdown-item">Block Conversion</a>
-                                    </li>
-                                    <li>
-                                        <a href="javascript:void(0)" class="dropdown-item">Delete Conversion</a>
-                                    </li>
-                                </ul>
-                            </div>
-                        </div>
-                        <div class="content-sidebar-items">
-                            <div class="p-4 d-flex position-relative border-bottom c-pointer single-item">
-                                <div class="avatar-image">
-                                    <img src="assets/images/avatar/10.png" class="img-fluid" alt="image">
-                                </div>
-                                <div class="ms-3 item-desc">
-                                    <div class="w-100 d-flex align-items-center justify-content-between">
-                                        <a href="javascript:void(0);" class="hstack gap-2 me-2">
-                                            <span>Erna Serpa</span>
-                                            <div class="wd-5 ht-5 rounded-circle opacity-75 me-1 bg-success"></div>
-                                            <span class="fs-10 fw-medium text-muted text-uppercase d-none d-sm-block">2 min ago</span>
-                                        </a>
-                                        <div class="dropdown">
-                                            <a href="javascript:void(0)" class="avatar-text avatar-sm" data-bs-toggle="dropdown">
-                                                <i class="feather-more-vertical"></i>
-                                            </a>
-                                            <ul class="dropdown-menu dropdown-menu-end overflow-auto">
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-check-circle me-3"></i>
-                                                        <span>Make as Read</span>
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-star me-3"></i>
-                                                        <span>Add to Favorite</span>
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-bell-off me-3"></i>
-                                                        <span>Mute Notifications</span>
-                                                    </a>
-                                                </li>
-                                                <li class="dropdown-divider"></li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#voiceCallingModalScreen">
-                                                        <i class="feather-phone-call me-3"></i>
-                                                        <span>Audio Call</span>
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#videoCallingModalScreen">
-                                                        <i class="feather-video me-3"></i>
-                                                        <span>Video Call</span>
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-mail me-3"></i>
-                                                        <span>Send eMail</span>
-                                                    </a>
-                                                </li>
-                                                <li class="dropdown-divider"></li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-alert-triangle me-3"></i>
-                                                        <span>Report Chat</span>
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-trash-2 me-3"></i>
-                                                        <span>Delete Chat</span>
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-archive me-3"></i>
-                                                        <span>Archive Chat</span>
-                                                    </a>
-                                                </li>
-                                            </ul>
-                                        </div>
-                                    </div>
-                                    <p class="fs-12 fw-semibold text-dark mt-2 mb-0 text-truncate-2-line">Lorem ipsum dolor sit amet, consec tetuer adipi scing elit aenean commodo ipsum dolor sit amet, consec tetuer adipi scing elit aenean commodo</p>
-                                </div>
-                            </div>
-                            <div class="p-4 d-flex position-relative border-bottom c-pointer single-item">
-                                <div class="bg-success text-white avatar-text">N</div>
-                                <div class="ms-3 item-desc">
-                                    <div class="w-100 d-flex align-items-center justify-content-between">
-                                        <a href="javascript:void(0);" class="hstack gap-2 me-2">
-                                            <span>Norman Byrd</span>
-                                            <div class="wd-5 ht-5 rounded-circle opacity-75 me-1 bg-danger"></div>
-                                            <span class="fs-10 fw-medium text-muted text-uppercase d-none d-sm-block">5 min ago</span>
-                                        </a>
-                                        <div class="dropdown">
-                                            <a href="javascript:void(0)" class="avatar-text avatar-sm" data-bs-toggle="dropdown">
-                                                <i class="feather-more-vertical"></i>
-                                            </a>
-                                            <ul class="dropdown-menu dropdown-menu-end overflow-auto">
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-check-circle me-3"></i>
-                                                        <span>Make as Read</span>
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-star me-3"></i>
-                                                        <span>Add to Favorite</span>
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-bell-off me-3"></i>
-                                                        <span>Mute Notifications</span>
-                                                    </a>
-                                                </li>
-                                                <li class="dropdown-divider"></li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#voiceCallingModalScreen">
-                                                        <i class="feather-phone-call me-3"></i>
-                                                        <span>Audio Call</span>
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#videoCallingModalScreen">
-                                                        <i class="feather-video me-3"></i>
-                                                        <span>Video Call</span>
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-mail me-3"></i>
-                                                        <span>Send eMail</span>
-                                                    </a>
-                                                </li>
-                                                <li class="dropdown-divider"></li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-alert-triangle me-3"></i>
-                                                        <span>Report Chat</span>
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-trash-2 me-3"></i>
-                                                        <span>Delete Chat</span>
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-archive me-3"></i>
-                                                        <span>Archive Chat</span>
-                                                    </a>
-                                                </li>
-                                            </ul>
-                                        </div>
-                                    </div>
-                                    <p class="fs-12 fw-semibold text-dark mt-2 mb-0 text-truncate-2-line">Lorem ipsum dolor sit amet, consec tetuer adipi scing elit aenean commodo ipsum dolor sit amet, consec tetuer adipi scing elit aenean commodo</p>
-                                </div>
-                            </div>
-                            <div class="p-4 d-flex position-relative border-bottom c-pointer single-item">
-                                <div class="avatar-image">
-                                    <img src="assets/images/avatar/11.png" class="img-fluid" alt="image">
-                                </div>
-                                <div class="ms-3 item-desc">
-                                    <div class="w-100 d-flex align-items-center justify-content-between">
-                                        <a href="javascript:void(0);" class="hstack gap-2 me-2">
-                                            <span>Laura Foreman</span>
-                                            <div class="wd-5 ht-5 rounded-circle opacity-75 me-1 bg-success"></div>
-                                            <span class="fs-10 fw-medium text-muted text-uppercase d-none d-sm-block">7 min ago</span>
-                                        </a>
-                                        <div class="dropdown">
-                                            <a href="javascript:void(0)" class="avatar-text avatar-sm" data-bs-toggle="dropdown">
-                                                <i class="feather-more-vertical"></i>
-                                            </a>
-                                            <ul class="dropdown-menu dropdown-menu-end overflow-auto">
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-check-circle me-3"></i>
-                                                        <span>Make as Read</span>
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-star me-3"></i>
-                                                        <span>Add to Favorite</span>
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-bell-off me-3"></i>
-                                                        <span>Mute Notifications</span>
-                                                    </a>
-                                                </li>
-                                                <li class="dropdown-divider"></li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#voiceCallingModalScreen">
-                                                        <i class="feather-phone-call me-3"></i>
-                                                        <span>Audio Call</span>
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#videoCallingModalScreen">
-                                                        <i class="feather-video me-3"></i>
-                                                        <span>Video Call</span>
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-mail me-3"></i>
-                                                        <span>Send eMail</span>
-                                                    </a>
-                                                </li>
-                                                <li class="dropdown-divider"></li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-alert-triangle me-3"></i>
-                                                        <span>Report Chat</span>
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-trash-2 me-3"></i>
-                                                        <span>Delete Chat</span>
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-archive me-3"></i>
-                                                        <span>Archive Chat</span>
-                                                    </a>
-                                                </li>
-                                            </ul>
-                                        </div>
-                                    </div>
-                                    <p class="fs-12 text-muted mt-2 mb-0 text-truncate-2-line">Lorem ipsum dolor sit amet, consec tetuer adipi scing elit aenean commodo ipsum dolor sit amet, consec tetuer adipi scing elit aenean commodo</p>
-                                </div>
-                            </div>
-                            <div class="p-4 d-flex position-relative border-bottom c-pointer single-item">
-                                <div class="bg-warning text-white avatar-text">B</div>
-                                <div class="ms-3 item-desc">
-                                    <div class="w-100 d-flex align-items-center justify-content-between">
-                                        <a href="javascript:void(0);" class="hstack gap-2 me-2">
-                                            <span>Bryan Waters</span>
-                                            <div class="wd-5 ht-5 rounded-circle opacity-75 me-1 bg-gray-500"></div>
-                                            <span class="fs-10 fw-medium text-muted text-uppercase d-none d-sm-block">10 min ago</span>
-                                        </a>
-                                        <div class="dropdown">
-                                            <a href="javascript:void(0)" class="avatar-text avatar-sm" data-bs-toggle="dropdown">
-                                                <i class="feather-more-vertical"></i>
-                                            </a>
-                                            <ul class="dropdown-menu dropdown-menu-end overflow-auto">
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-check-circle me-3"></i>
-                                                        <span>Make as Read</span>
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-star me-3"></i>
-                                                        <span>Add to Favorite</span>
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-bell-off me-3"></i>
-                                                        <span>Mute Notifications</span>
-                                                    </a>
-                                                </li>
-                                                <li class="dropdown-divider"></li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#voiceCallingModalScreen">
-                                                        <i class="feather-phone-call me-3"></i>
-                                                        <span>Audio Call</span>
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#videoCallingModalScreen">
-                                                        <i class="feather-video me-3"></i>
-                                                        <span>Video Call</span>
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-mail me-3"></i>
-                                                        <span>Send eMail</span>
-                                                    </a>
-                                                </li>
-                                                <li class="dropdown-divider"></li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-alert-triangle me-3"></i>
-                                                        <span>Report Chat</span>
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-trash-2 me-3"></i>
-                                                        <span>Delete Chat</span>
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-archive me-3"></i>
-                                                        <span>Archive Chat</span>
-                                                    </a>
-                                                </li>
-                                            </ul>
-                                        </div>
-                                    </div>
-                                    <p class="fs-12 text-muted mt-2 mb-0 text-truncate-2-line">Lorem ipsum dolor sit amet, consec tetuer adipi scing elit aenean commodo ipsum dolor sit amet, consec tetuer adipi scing elit aenean commodo</p>
-                                </div>
-                            </div>
-                            <div class="p-4 d-flex position-relative border-bottom c-pointer single-item">
-                                <div class="avatar-image">
-                                    <img src="assets/images/avatar/12.png" class="img-fluid" alt="image">
-                                </div>
-                                <div class="ms-3 item-desc">
-                                    <div class="w-100 d-flex align-items-center justify-content-between">
-                                        <a href="javascript:void(0);" class="hstack gap-2 me-2">
-                                            <span>Ursula Sanders</span>
-                                            <div class="wd-5 ht-5 rounded-circle opacity-75 me-1 bg-success"></div>
-                                            <span class="fs-10 fw-medium text-muted text-uppercase d-none d-sm-block">9 min ago</span>
-                                        </a>
-                                        <div class="dropdown">
-                                            <a href="javascript:void(0)" class="avatar-text avatar-sm" data-bs-toggle="dropdown">
-                                                <i class="feather-more-vertical"></i>
-                                            </a>
-                                            <ul class="dropdown-menu dropdown-menu-end overflow-auto">
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-check-circle me-3"></i>
-                                                        <span>Make as Read</span>
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-star me-3"></i>
-                                                        <span>Add to Favorite</span>
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-bell-off me-3"></i>
-                                                        <span>Mute Notifications</span>
-                                                    </a>
-                                                </li>
-                                                <li class="dropdown-divider"></li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#voiceCallingModalScreen">
-                                                        <i class="feather-phone-call me-3"></i>
-                                                        <span>Audio Call</span>
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#videoCallingModalScreen">
-                                                        <i class="feather-video me-3"></i>
-                                                        <span>Video Call</span>
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-mail me-3"></i>
-                                                        <span>Send eMail</span>
-                                                    </a>
-                                                </li>
-                                                <li class="dropdown-divider"></li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-alert-triangle me-3"></i>
-                                                        <span>Report Chat</span>
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-trash-2 me-3"></i>
-                                                        <span>Delete Chat</span>
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-archive me-3"></i>
-                                                        <span>Archive Chat</span>
-                                                    </a>
-                                                </li>
-                                            </ul>
-                                        </div>
-                                    </div>
-                                    <p class="fs-12 text-muted mt-2 mb-0 text-truncate-2-line">Lorem ipsum dolor sit amet, consec tetuer adipi scing elit aenean commodo ipsum dolor sit amet, consec tetuer adipi scing elit aenean commodo</p>
-                                </div>
-                            </div>
-                            <div class="p-4 d-flex position-relative border-bottom c-pointer single-item">
-                                <div class="bg-danger text-white avatar-text">E</div>
-                                <div class="ms-3 item-desc">
-                                    <div class="w-100 d-flex align-items-center justify-content-between">
-                                        <a href="javascript:void(0);" class="hstack gap-2 me-2">
-                                            <span>Edward Andrade</span>
-                                            <div class="wd-5 ht-5 rounded-circle opacity-75 me-1 bg-success"></div>
-                                            <span class="fs-10 fw-medium text-muted text-uppercase d-none d-sm-block">13 min ago</span>
-                                        </a>
-                                        <div class="dropdown">
-                                            <a href="javascript:void(0)" class="avatar-text avatar-sm" data-bs-toggle="dropdown">
-                                                <i class="feather-more-vertical"></i>
-                                            </a>
-                                            <ul class="dropdown-menu dropdown-menu-end overflow-auto">
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-check-circle me-3"></i>
-                                                        <span>Make as Read</span>
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-star me-3"></i>
-                                                        <span>Add to Favorite</span>
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-bell-off me-3"></i>
-                                                        <span>Mute Notifications</span>
-                                                    </a>
-                                                </li>
-                                                <li class="dropdown-divider"></li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#voiceCallingModalScreen">
-                                                        <i class="feather-phone-call me-3"></i>
-                                                        <span>Audio Call</span>
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#videoCallingModalScreen">
-                                                        <i class="feather-video me-3"></i>
-                                                        <span>Video Call</span>
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-mail me-3"></i>
-                                                        <span>Send eMail</span>
-                                                    </a>
-                                                </li>
-                                                <li class="dropdown-divider"></li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-alert-triangle me-3"></i>
-                                                        <span>Report Chat</span>
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-trash-2 me-3"></i>
-                                                        <span>Delete Chat</span>
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-archive me-3"></i>
-                                                        <span>Archive Chat</span>
-                                                    </a>
-                                                </li>
-                                            </ul>
-                                        </div>
-                                    </div>
-                                    <p class="fs-12 text-muted mt-2 mb-0 text-truncate-2-line">Lorem ipsum dolor sit amet, consec tetuer adipi scing elit aenean commodo ipsum dolor sit amet, consec tetuer adipi scing elit aenean commodo</p>
-                                </div>
-                            </div>
-                            <div class="p-4 d-flex position-relative border-bottom c-pointer single-item">
-                                <div class="avatar-image">
-                                    <img src="assets/images/avatar/1.png" class="img-fluid" alt="image">
-                                </div>
-                                <div class="ms-3 item-desc">
-                                    <div class="w-100 d-flex align-items-center justify-content-between">
-                                        <a href="javascript:void(0);" class="hstack gap-2 me-2">
-                                            <span>Felix Luis Mateo</span>
-                                            <div class="wd-5 ht-5 rounded-circle opacity-75 me-1 bg-success"></div>
-                                            <span class="fs-10 fw-medium text-muted text-uppercase d-none d-sm-block">15 min ago</span>
-                                        </a>
-                                        <div class="dropdown">
-                                            <a href="javascript:void(0)" class="avatar-text avatar-sm" data-bs-toggle="dropdown">
-                                                <i class="feather-more-vertical"></i>
-                                            </a>
-                                            <ul class="dropdown-menu dropdown-menu-end overflow-auto">
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-check-circle me-3"></i>
-                                                        <span>Make as Read</span>
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-star me-3"></i>
-                                                        <span>Add to Favorite</span>
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-bell-off me-3"></i>
-                                                        <span>Mute Notifications</span>
-                                                    </a>
-                                                </li>
-                                                <li class="dropdown-divider"></li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#voiceCallingModalScreen">
-                                                        <i class="feather-phone-call me-3"></i>
-                                                        <span>Audio Call</span>
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#videoCallingModalScreen">
-                                                        <i class="feather-video me-3"></i>
-                                                        <span>Video Call</span>
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-mail me-3"></i>
-                                                        <span>Send eMail</span>
-                                                    </a>
-                                                </li>
-                                                <li class="dropdown-divider"></li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-alert-triangle me-3"></i>
-                                                        <span>Report Chat</span>
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-trash-2 me-3"></i>
-                                                        <span>Delete Chat</span>
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-archive me-3"></i>
-                                                        <span>Archive Chat</span>
-                                                    </a>
-                                                </li>
-                                            </ul>
-                                        </div>
-                                    </div>
-                                    <p class="fs-12 text-muted mt-2 mb-0 text-truncate-2-line">Lorem ipsum dolor sit amet, consec tetuer adipi scing elit aenean commodo ipsum dolor sit amet, consec tetuer adipi scing elit aenean commodo</p>
-                                </div>
-                            </div>
-                            <div class="p-4 d-flex position-relative border-bottom c-pointer single-item">
-                                <div class="bg-gray-200 text-dark avatar-text">T</div>
-                                <div class="ms-3 item-desc">
-                                    <div class="w-100 d-flex align-items-center justify-content-between">
-                                        <a href="javascript:void(0);" class="hstack gap-2 me-2">
-                                            <span>Timothy Boyd</span>
-                                            <div class="wd-5 ht-5 rounded-circle opacity-75 me-1 bg-success"></div>
-                                            <span class="fs-10 fw-medium text-muted text-uppercase d-none d-sm-block">13 min ago</span>
-                                        </a>
-                                        <div class="dropdown">
-                                            <a href="javascript:void(0)" class="avatar-text avatar-sm" data-bs-toggle="dropdown">
-                                                <i class="feather-more-vertical"></i>
-                                            </a>
-                                            <ul class="dropdown-menu dropdown-menu-end overflow-auto">
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-check-circle me-3"></i>
-                                                        <span>Make as Read</span>
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-star me-3"></i>
-                                                        <span>Add to Favorite</span>
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-bell-off me-3"></i>
-                                                        <span>Mute Notifications</span>
-                                                    </a>
-                                                </li>
-                                                <li class="dropdown-divider"></li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#voiceCallingModalScreen">
-                                                        <i class="feather-phone-call me-3"></i>
-                                                        <span>Audio Call</span>
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#videoCallingModalScreen">
-                                                        <i class="feather-video me-3"></i>
-                                                        <span>Video Call</span>
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-mail me-3"></i>
-                                                        <span>Send eMail</span>
-                                                    </a>
-                                                </li>
-                                                <li class="dropdown-divider"></li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-alert-triangle me-3"></i>
-                                                        <span>Report Chat</span>
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-trash-2 me-3"></i>
-                                                        <span>Delete Chat</span>
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-archive me-3"></i>
-                                                        <span>Archive Chat</span>
-                                                    </a>
-                                                </li>
-                                            </ul>
-                                        </div>
-                                    </div>
-                                    <p class="fs-12 text-muted mt-2 mb-0 text-truncate-2-line">Lorem ipsum dolor sit amet, consec tetuer adipi scing elit aenean commodo ipsum dolor sit amet, consec tetuer adipi scing elit aenean commodo</p>
-                                </div>
-                            </div>
-                            <div class="p-4 d-flex position-relative border-bottom c-pointer single-item">
-                                <div class="avatar-image">
-                                    <img src="assets/images/avatar/2.png" class="img-fluid" alt="image">
-                                </div>
-                                <div class="ms-3 item-desc">
-                                    <div class="w-100 d-flex align-items-center justify-content-between">
-                                        <a href="javascript:void(0);" class="hstack gap-2 me-2">
-                                            <span>Curtis Green</span>
-                                            <div class="wd-5 ht-5 rounded-circle opacity-75 me-1 bg-success"></div>
-                                            <span class="fs-10 fw-medium text-muted text-uppercase d-none d-sm-block">20 min ago</span>
-                                        </a>
-                                        <div class="dropdown">
-                                            <a href="javascript:void(0)" class="avatar-text avatar-sm" data-bs-toggle="dropdown">
-                                                <i class="feather-more-vertical"></i>
-                                            </a>
-                                            <ul class="dropdown-menu dropdown-menu-end overflow-auto">
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-check-circle me-3"></i>
-                                                        <span>Make as Read</span>
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-star me-3"></i>
-                                                        <span>Add to Favorite</span>
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-bell-off me-3"></i>
-                                                        <span>Mute Notifications</span>
-                                                    </a>
-                                                </li>
-                                                <li class="dropdown-divider"></li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#voiceCallingModalScreen">
-                                                        <i class="feather-phone-call me-3"></i>
-                                                        <span>Audio Call</span>
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#videoCallingModalScreen">
-                                                        <i class="feather-video me-3"></i>
-                                                        <span>Video Call</span>
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-mail me-3"></i>
-                                                        <span>Send eMail</span>
-                                                    </a>
-                                                </li>
-                                                <li class="dropdown-divider"></li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-alert-triangle me-3"></i>
-                                                        <span>Report Chat</span>
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-trash-2 me-3"></i>
-                                                        <span>Delete Chat</span>
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a href="javascript:void(0)" class="dropdown-item">
-                                                        <i class="feather-archive me-3"></i>
-                                                        <span>Archive Chat</span>
-                                                    </a>
-                                                </li>
-                                            </ul>
-                                        </div>
-                                    </div>
-                                    <p class="fs-12 text-muted mt-2 mb-0 text-truncate-2-line">Lorem ipsum dolor sit amet, consec tetuer adipi scing elit aenean commodo ipsum dolor sit amet, consec tetuer adipi scing elit aenean commodo</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <a href="javascript:void(0);" class="content-sidebar-footer px-4 py-3 fs-11 text-uppercase d-block text-center">Load More</a>
-                </div>
-                <!-- [ Content Sidebar  ] end -->
-                <!-- [ Main Area  ] start -->
-                <div class="content-area" data-scrollbar-target="#psScrollbarInit">
-                    <div class="content-area-header sticky-top">
-                        <div class="page-header-left hstack gap-4">
-                            <a href="javascript:void(0);" class="app-sidebar-open-trigger">
-                                <i class="feather-align-left fs-20"></i>
-                            </a>
-                            <a href="javascript:void(0);" class="d-flex align-items-center justify-content-center gap-3" data-bs-toggle="offcanvas" data-bs-target="#userProfileDetails">
-                                <div class="avatar-image">
-                                    <img src="assets/images/avatar/1.png" class="img-fluid" alt="image">
-                                </div>
-                                <div class="d-none d-sm-block">
-                                    <div class="fw-bold d-flex align-items-center">Felix Luis Mateo</div>
-                                    <div class="d-flex align-items-center mt-1">
-                                        <span class="wd-7 ht-7 rounded-circle opacity-75 me-2 bg-success"></span>
-                                        <span class="fs-9 text-uppercase fw-bold text-success">Active Now</span>
-                                    </div>
-                                </div>
-                            </a>
-                        </div>
-                        <div class="page-header-right ms-auto">
-                            <div class="d-flex align-items-center justify-content-center gap-2">
-                                <a href="javascript:void(0)" class="d-flex" data-bs-toggle="modal" data-bs-target="#voiceCallingModalScreen">
-                                    <div class="avatar-text avatar-md" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Voice Call">
-                                        <i class="feather-phone-call"></i>
-                                    </div>
-                                </a>
-                                <a href="javascript:void(0)" class="d-flex d-flex" data-bs-toggle="modal" data-bs-target="#videoCallingModalScreen">
-                                    <div class="avatar-text avatar-md" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Video Call">
-                                        <i class="feather-video"></i>
-                                    </div>
-                                </a>
-                                <a href="javascript:void(0)" class="d-flex d-none d-sm-block successAlertMessage">
-                                    <div class="avatar-text avatar-md" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Add to Favorite">
-                                        <i class="feather-star"></i>
-                                    </div>
-                                </a>
-                                <a href="javascript:void(0)" class="ac-info-sidebar-open-trigger" data-bs-toggle="offcanvas" data-bs-target="#userProfileDetails">
-                                    <div class="avatar-text avatar-md" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Profile Info">
-                                        <i class="feather-info"></i>
-                                    </div>
-                                </a>
-                                <div class="dropdown">
-                                    <a href="javascript:void(0);" class="avatar-text avatar-md" data-bs-toggle="dropdown" data-bs-offset="0,22">
-                                        <i class="feather-more-vertical"></i>
-                                    </a>
-                                    <div class="dropdown-menu">
-                                        <a href="javascript:void(0);" class="dropdown-item">
-                                            <i class="feather-plus me-3"></i>
-                                            <span> Join Group</span>
-                                        </a>
-                                        <a href="javascript:void(0);" class="dropdown-item">
-                                            <i class="feather-user-plus me-3"></i>
-                                            <span>Invite People</span>
-                                        </a>
-                                        <a href="javascript:void(0);" class="dropdown-item">
-                                            <i class="feather-star me-3"></i>
-                                            <span>Add to Favorite</span>
-                                        </a>
-                                        <a href="javascript:void(0);" class="dropdown-item">
-                                            <i class="feather-bell-off me-3"></i>
-                                            <span>Mute Conversion</span>
-                                        </a>
-                                        <div class="dropdown-divider"></div>
-                                        <a href="javascript:void(0);" class="dropdown-item">
-                                            <i class="feather-phone-call me-3"></i>
-                                            <span>Group Audio Call</span>
-                                        </a>
-                                        <a href="javascript:void(0);" class="dropdown-item">
-                                            <i class="feather-video me-3"></i>
-                                            <span>Group Video Call</span>
-                                        </a>
-                                        <div class="dropdown-divider"></div>
-                                        <a href="javascript:void(0);" class="dropdown-item">
-                                            <i class="feather-slash me-3"></i>
-                                            <span>Block Conversion</span>
-                                        </a>
-                                        <a href="javascript:void(0);" class="dropdown-item">
-                                            <i class="feather-trash-2 me-3"></i>
-                                            <span>Delete Conversion</span>
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="content-area-body">
-                        <!--! BEGIN: Single Message [start] !-->
-                        <div class="single-chat-item mb-5">
-                            <div class="d-flex align-items-center gap-3 mb-3">
-                                <a href="javascript:void(0)" class="avatar-image">
-                                    <img src="assets/images/avatar/1.png" class="img-fluid rounded-circle" alt="image">
-                                </a>
-                                <div class="d-flex align-items-center gap-2">
-                                    <a href="javascript:void(0);">Felix Luis Mateo</a>
-                                    <span class="wd-5 ht-5 bg-gray-400 rounded-circle"></span>
-                                    <span class="fs-11 text-muted">10:32 PM</span>
-                                </div>
-                            </div>
-                            <div class="wd-500 p-3 rounded-5 bg-gray-200">
-                                <p class="py-2 px-3 rounded-5 bg-white">Hi,</p>
-                                <p class="py-2 px-3 rounded-5 bg-white mb-0">How are you?</p>
-                            </div>
-                        </div>
-                        <!--! END: Single Message  [start] !-->
-                        <!--! BEGIN: Single Message [Reply] !-->
-                        <div class="single-chat-item mb-5">
-                            <div class="d-flex flex-row-reverse align-items-center gap-3 mb-3">
-                                <a href="javascript:void(0)" class="avatar-image">
-                                    <img src="assets/images/avatar/2.png" class="img-fluid rounded-circle" alt="image">
-                                </a>
-                                <div class="d-flex flex-row-reverse align-items-center gap-2">
-                                    <a href="javascript:void(0);">Green Cute</a>
-                                    <span class="wd-5 ht-5 bg-gray-400 rounded-circle"></span>
-                                    <span class="fs-11 text-muted">10:35 PM</span>
-                                </div>
-                            </div>
-                            <div class="wd-500 p-3 rounded-5 bg-gray-200 ms-auto">
-                                <p class="py-2 px-3 rounded-5 bg-white">Hello Alex!!! Welcome to Live Chat!!!</p>
-                                <p class="py-2 px-3 rounded-5 bg-white mb-0">My name is Green & How can I help you today???</p>
-                            </div>
-                        </div>
-                        <!--! END: Single Message [Reply] !-->
-                        <!--! BEGIN: Single Message [start] !-->
-                        <div class="single-chat-item mb-5">
-                            <div class="d-flex align-items-center gap-3 mb-3">
-                                <a href="javascript:void(0)" class="avatar-image">
-                                    <img src="assets/images/avatar/1.png" class="img-fluid rounded-circle" alt="image">
-                                </a>
-                                <div class="d-flex align-items-center gap-2">
-                                    <a href="javascript:void(0);">Felix Luis Mateo</a>
-                                    <span class="wd-5 ht-5 bg-gray-400 rounded-circle"></span>
-                                    <span class="fs-11 text-muted">10:40 PM</span>
-                                </div>
-                            </div>
-                            <div class="wd-500 p-3 rounded-5 bg-gray-200">
-                                <p class="py-2 px-3 rounded-5 bg-white">Hi, I wanted to check my order status....</p>
-                                <p class="py-2 px-3 rounded-5 bg-white mb-0">My order number is <a href="javascript:void(0);">#NXL0458</a></p>
-                            </div>
-                        </div>
-                        <!--! END: Single Message  [start] !-->
-                        <!--! BEGIN: Single Message [Reply] !-->
-                        <div class="single-chat-item mb-5">
-                            <div class="d-flex flex-row-reverse align-items-center gap-3 mb-3">
-                                <a href="javascript:void(0)" class="avatar-image">
-                                    <img src="assets/images/avatar/2.png" class="img-fluid rounded-circle" alt="image">
-                                </a>
-                                <div class="d-flex flex-row-reverse align-items-center gap-2">
-                                    <a href="javascript:void(0);">Green Cute</a>
-                                    <span class="wd-5 ht-5 bg-gray-400 rounded-circle"></span>
-                                    <span class="fs-11 text-muted">10:42 PM</span>
-                                </div>
-                            </div>
-                            <div class="wd-500 p-3 rounded-5 bg-gray-200 ms-auto">
-                                <p class="py-2 px-3 rounded-5 bg-white">No problem, let me check that for you.</p>
-                                <p class="py-2 px-3 rounded-5 bg-white">Thanks for the information!!! Give me one moment please while I check on that for you.</p>
-                                <p class="py-2 px-3 rounded-5 bg-white mb-0">Thanks for your times, Your order <a href="javascript:void(0);">#NXL0458</a> will arive on this weekend.</p>
-                            </div>
-                        </div>
-                        <!--! END: Single Message [Reply] !-->
-                        <!--! BEGIN: Single Message [start] !-->
-                        <div class="single-chat-item mb-5">
-                            <div class="d-flex align-items-center gap-3 mb-3">
-                                <a href="javascript:void(0)" class="avatar-image">
-                                    <img src="assets/images/avatar/1.png" class="img-fluid rounded-circle" alt="image">
-                                </a>
-                                <div class="d-flex align-items-center gap-2">
-                                    <a href="javascript:void(0);">Felix Luis Mateo</a>
-                                    <span class="wd-5 ht-5 bg-gray-400 rounded-circle"></span>
-                                    <span class="fs-11 text-muted">10:45 PM</span>
-                                </div>
-                            </div>
-                            <div class="wd-500 p-3 rounded-5 bg-gray-200">
-                                <p class="py-2 px-3 rounded-5 bg-white">Thanks. I'm worried it won't arrive in time for my daughter's birthday� party this weekend.</p>
-                                <p class="py-2 px-3 rounded-5 bg-white mb-0">Order tracking number is: <a href="javascript:void(0);">#698745</a></p>
-                            </div>
-                        </div>
-                        <!--! END: Single Message  [start] !-->
-                        <!--! BEGIN: Single Message [Reply] !-->
-                        <div class="single-chat-item mb-5">
-                            <div class="d-flex flex-row-reverse align-items-center gap-3 mb-3">
-                                <a href="javascript:void(0)" class="avatar-image">
-                                    <img src="assets/images/avatar/2.png" class="img-fluid rounded-circle" alt="image">
-                                </a>
-                                <div class="d-flex flex-row-reverse align-items-center gap-2">
-                                    <a href="javascript:void(0);">Green Cute</a>
-                                    <span class="wd-5 ht-5 bg-gray-400 rounded-circle"></span>
-                                    <span class="fs-11 text-muted">10:48 PM</span>
-                                </div>
-                            </div>
-                            <div class="wd-500 p-3 rounded-5 bg-gray-200 ms-auto">
-                                <p class="py-2 px-3 rounded-5 bg-white">I understand your concern I wouldn't want my child's gift to arrive late either.</p>
-                                <p class="py-2 px-3 rounded-5 bg-white">It looks like your order is set to arrive in 2 business days, so it should arrive by Friday, just in time!</p>
-                                <div class="mb-3 d-flex align-items-center justify-content-between bg-white border rounded-3">
-                                    <div class="d-flex align-items-center">
-                                        <a href="javascript:void(0)" class="p-3 d-flex align-items-center border-end wd-70 ht-70">
-                                            <img src="assets/images/file-icons/zip.png" class="img-fluid" alt="image">
-                                        </a>
-                                        <div class="d-block ms-3">
-                                            <a href="javascript:void(0)" class="fs-13 fw-700 text-dark d-block">Order.zip</a>
-                                            <small class="fw-300 text-dark">402.65/KB</small>
-                                        </div>
-                                    </div>
-                                    <div class="d-flex align-items-center p-3 border-start">
-                                        <a href="javascript:void(0)" class="avatar-text file-download">
-                                            <i class="feather-download"></i>
-                                        </a>
-                                    </div>
-                                </div>
-                                <div class="mb-3 d-flex align-items-center justify-content-between bg-white border rounded-3">
-                                    <div class="d-flex align-items-center">
-                                        <a href="javascript:void(0)" class="p-3 d-flex align-items-center border-end wd-70 ht-70">
-                                            <img src="assets/images/file-icons/png.png" class="img-fluid" alt="image">
-                                        </a>
-                                        <div class="d-block ms-3">
-                                            <a href="javascript:void(0)" class="fs-13 fw-700 text-dark d-block">Document.png</a>
-                                            <small class="fw-300 text-dark">480.14/KB</small>
-                                        </div>
-                                    </div>
-                                    <div class="d-flex align-items-center p-3 border-start">
-                                        <a href="javascript:void(0)" class="avatar-text file-download">
-                                            <i class="feather-download"></i>
-                                        </a>
-                                    </div>
-                                </div>
-                                <div class="d-flex align-items-center justify-content-between bg-white border rounded-3">
-                                    <div class="d-flex align-items-center">
-                                        <a href="javascript:void(0)" class="p-3 d-flex align-items-center border-end wd-70 ht-70">
-                                            <img src="assets/images/file-icons/psd.png" class="img-fluid" alt="image">
-                                        </a>
-                                        <div class="d-block ms-3">
-                                            <a href="javascript:void(0)" class="fs-13 fw-700 text-dark d-block">Photos.psd</a>
-                                            <small class="fw-300 text-dark">248.54/KB</small>
-                                        </div>
-                                    </div>
-                                    <div class="d-flex align-items-center p-3 border-start">
-                                        <a href="javascript:void(0)" class="avatar-text file-download">
-                                            <i class="feather-download"></i>
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <!--! END: Single Message [Reply] !-->
-                        <!--! BEGIN: Single Message [start] !-->
-                        <div class="single-chat-item mb-5">
-                            <div class="d-flex align-items-center gap-3 mb-3">
-                                <a href="javascript:void(0)" class="avatar-image">
-                                    <img src="assets/images/avatar/1.png" class="img-fluid rounded-circle" alt="image">
-                                </a>
-                                <div class="d-flex align-items-center gap-2">
-                                    <a href="javascript:void(0);">Felix Luis Mateo</a>
-                                    <span class="wd-5 ht-5 bg-gray-400 rounded-circle"></span>
-                                    <span class="fs-11 text-muted">10:50 PM</span>
-                                </div>
-                            </div>
-                            <div class="wd-500 p-3 rounded-5 bg-gray-200">
-                                <p class="py-2 px-3 rounded-5 bg-white">The birthday🎂 ceremony preparation almost completed</p>
-                                <p class="py-2 px-3 rounded-5 bg-white mb-0">Thank your so much.....!!!!</p>
-                            </div>
-                        </div>
-                        <!--! END: Single Message  [start] !-->
-                        <!--! BEGIN: Single Message [Reply] !-->
-                        <div class="single-chat-item mb-5">
-                            <div class="d-flex flex-row-reverse align-items-center gap-3 mb-3">
-                                <a href="javascript:void(0)" class="avatar-image">
-                                    <img src="assets/images/avatar/2.png" class="img-fluid rounded-circle" alt="image">
-                                </a>
-                                <div class="d-flex flex-row-reverse align-items-center gap-2">
-                                    <a href="javascript:void(0);">Green Cute</a>
-                                    <span class="wd-5 ht-5 bg-gray-400 rounded-circle"></span>
-                                    <span class="fs-11 text-muted">10:53 PM</span>
-                                </div>
-                            </div>
-                            <div class="wd-500 p-3 rounded-5 bg-gray-200 ms-auto">
-                                <p class="py-2 px-3 rounded-5 bg-white">I understand your concern......!!</p>
-                                <p class="py-2 px-3 rounded-5 bg-white mb-0">Anything else can I help you???</p>
-                            </div>
-                        </div>
-                        <!--! END: Single Message [Reply] !-->
-                        <!--! BEGIN: Single Message [start] !-->
-                        <div class="single-chat-item mb-0">
-                            <div class="d-flex align-items-center gap-3 mb-3">
-                                <a href="javascript:void(0)" class="avatar-image">
-                                    <img src="assets/images/avatar/1.png" class="img-fluid rounded-circle" alt="image">
-                                </a>
-                                <div class="d-flex align-items-center gap-2">
-                                    <a href="javascript:void(0);">Felix Luis Mateo</a>
-                                    <span class="wd-5 ht-5 bg-gray-400 rounded-circle"></span>
-                                    <span class="fs-11 text-muted">00:00 AM/PM</span>
-                                </div>
-                            </div>
-                            <div class="wd-500 p-3 rounded-5 bg-gray-200">
-                                <div class="py-2 px-3 rounded-5 bg-white d-flex align-items-center text typing chat-message-items">
-                                    <div class="fs-12 fw-semibold text-success">Typing</div>
-                                    <div class="wave">
-                                        <span class="dot"></span>
-                                        <span class="dot"></span>
-                                        <span class="dot"></span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <!--! END: Single Message  [start] !-->
-                    </div>
-                    <!--! BEGIN: Message Editor !-->
-                    <div class="d-flex align-items-center justify-content-between border-top border-gray-5 bg-white sticky-bottom">
-                        <div class="d-flex align-center">
-                            <div class="dropdown border-end border-gray-5">
-                                <a href="javascript:void(0)" data-bs-toggle="dropdown">
-                                    <div class="wd-60 d-flex align-items-center justify-content-center" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Pick Template" style="height: 59px"><i class="feather-hash"></i></div>
-                                </a>
-                                <ul class="dropdown-menu wd-300">
-                                    <li>
-                                        <a href="javascript:void(0)" class="dropdown-item"><i class="feather-file-text me-3"></i>Welcome you message</a>
-                                    </li>
-                                    <li>
-                                        <a href="javascript:void(0)" class="dropdown-item"><i class="feather-file-text me-3"></i>Your issues solved</a>
-                                    </li>
-                                    <li>
-                                        <a href="javascript:void(0)" class="dropdown-item"><i class="feather-file-text me-3"></i>Thank you message</a>
-                                    </li>
-                                    <li>
-                                        <a href="javascript:void(0)" class="dropdown-item"><i class="feather-file-text me-3"></i>Make a offer message</a>
-                                    </li>
-                                    <li>
-                                        <a href="javascript:void(0)" class="dropdown-item"><i class="feather-file-text me-3"></i>Add the Unsubscribe option</a>
-                                    </li>
-                                    <li>
-                                        <a href="javascript:void(0)" class="dropdown-item"><i class="feather-file-text me-3"></i>Thank your customer for joining</a>
-                                    </li>
-                                    <li class="dropdown-divider"></li>
-                                    <li>
-                                        <a href="javascript:void(0)" class="dropdown-item"><i class="feather-save me-3"></i>Save as Template</a>
-                                    </li>
-                                    <li>
-                                        <a href="javascript:void(0)" class="dropdown-item"><i class="feather-sun me-3"></i>Manage Template</a>
-                                    </li>
-                                </ul>
-                            </div>
-                            <div class="dropdown border-end border-gray-5">
-                                <a href="javascript:void(0)" data-bs-toggle="dropdown">
-                                    <div class="wd-60 d-flex align-items-center justify-content-center" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Upload Attachments" style="height: 59px"><i class="feather-link"></i></div>
-                                </a>
-                                <ul class="dropdown-menu">
-                                    <li>
-                                        <a href="javascript:void(0)" class="dropdown-item"><i class="feather-image me-3"></i>Upload Images</a>
-                                    </li>
-                                    <li>
-                                        <a href="javascript:void(0)" class="dropdown-item"><i class="feather-mic me-3"></i>Upload Audios</a>
-                                    </li>
-                                    <li>
-                                        <a href="javascript:void(0)" class="dropdown-item"><i class="feather-video me-3"></i>Upload Videos</a>
-                                    </li>
-                                    <li>
-                                        <a href="javascript:void(0)" class="dropdown-item"><i class="feather-file me-3"></i>Upload Documents</a>
-                                    </li>
-                                </ul>
-                            </div>
-                            <div class="dropdown border-end border-gray-5 d-none d-sm-block">
-                                <a href="javascript:void(0)" data-bs-toggle="dropdown">
-                                    <div class="wd-60 d-flex align-items-center justify-content-center" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Calling Options" style="height: 59px"><i class="feather-phone-call"></i></div>
-                                </a>
-                                <ul class="dropdown-menu">
-                                    <li>
-                                        <a href="javascript:void(0)" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#voiceCallingModalScreen"><i class="feather-phone-call me-3"></i>Audio Call</a>
-                                    </li>
-                                    <li>
-                                        <a href="javascript:void(0)" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#videoCallingModalScreen"><i class="feather-video me-3"></i>Video Call</a>
-                                    </li>
-                                </ul>
-                            </div>
-                        </div>
-                        <input class="form-control border-0 emoji-picker" placeholder="Type your message here...">
-                        <div class="border-start border-gray-5 send-message">
-                            <a href="javascript:void(0)" class="wd-60 d-flex align-items-center justify-content-center" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Send Message" style="height: 59px"><i class="feather-send"></i></a>
-                        </div>
-                    </div>
-                    <!--! END: Message Editor !-->
-                </div>
-                <!-- [ Content Area ] end -->
-            </div>
-            <!-- [ Main Content ] end -->
-        </div>
-    </main>
-</div> <!-- .nxl-content -->
-</main>
-<?php include 'includes/footer.php'; ?>
+<div class="main-content btchat-main-content">
+    <?php if ($errorMessage !== ''): ?>
+        <div class="alert alert-danger btchat-page-alert"><?php echo chat_esc($errorMessage); ?></div>
+    <?php endif; ?>
+    <?php if ($successMessage !== ''): ?>
+        <div class="alert alert-success btchat-page-alert"><?php echo chat_esc($successMessage); ?></div>
+    <?php endif; ?>
 
-    <!--! ================================================================ !-->
-    <!--! [End] Main Content !-->
-    <!--! ================================================================ !-->
-    <!--! ================================================================ !-->
-    <!--! [Start] User Profile Info !-->
-    <!--! ================================================================ !-->
-    <div class="offcanvas offcanvas-end" id="userProfileDetails" aria-hidden="true" tabindex="-1">
-        <div class="offcanvas-header border-bottom">
-            <h5 class="offcanvas-title">Profile Info</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
-        </div>
-        <div class="offcanvas-body p-0">
-            <div class="p-4 text-center position-relative">
-                <img src="assets/images/avatar/1.png" alt="" class="wd-100 ht-100 rounded-circle border border-5 img-fluid">
-                <h2 class="text-dark fs-13 fw-bold mt-3 mb-0">Felix Luis Mateo <i class="bi bi-patch-check text-success fs-11 ms-1" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Verified"></i><i class="bi bi-patch-question text-warning fs-11 ms-1" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Feedback"></i><i class="bi bi-patch-plus text-primary fs-11 ms-1" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Milestone"></i></h2>
-                <span class="fs-12 text-muted d-block mb-3">felixluismateo@example.com</span>
-                <a href="javascript:void(0)" class="btn btn-sm btn-primary d-inline-block rounded-pill">Software Engineer</a>
-                <div class="d-flex justify-content-center mt-3 social-profile">
-                    <a href="javascript:void(0)" class="avatar-text avatar-md me-1" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Github" aria-label="Github"><i class="feather-github"></i></a>
-                    <a href="javascript:void(0)" class="avatar-text avatar-md me-1" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Codepen" aria-label="Codepen"><i class="feather-codepen"></i></a>
-                    <a href="javascript:void(0)" class="avatar-text avatar-md me-1" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Gitlab" aria-label="Gitlab"><i class="feather-gitlab"></i></a>
-                    <a href="javascript:void(0)" class="avatar-text avatar-md me-1" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Linkdein" aria-label="Linkdein"><i class="feather-linkedin"></i></a>
-                    <a href="javascript:void(0)" class="avatar-text avatar-md me-1" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Instagram" aria-label="Instagram"><i class="feather-instagram"></i></a>
-                </div>
+    <div class="btchat-shell" id="btchat-app" data-selected-user-id="<?php echo (int)$selectedUserId; ?>" data-chat-base-url="<?php echo chat_esc(chat_page_url()); ?>" data-current-user-id="<?php echo (int)$currentUserId; ?>">
+        <aside class="btchat-left">
+            <div class="btchat-left-header">
+                <h2 class="btchat-left-title">Inbox</h2>
             </div>
-            <!-- Info -->
-            <a class="py-2 px-4 fs-12 fw-bold d-block bg-gray-200 border-top border-bottom sticky-top sticky-bar" data-bs-toggle="collapse" href="#PersonalInfo">Personal</a>
-            <div class="p-4 fs-13 collapse show" id="PersonalInfo">
-                <div class="d-flex align-items-start mb-3">
-                    <div class="me-3">
-                        <i class="feather-clock"></i>
-                    </div>
-                    <div class="d-flex align-items-center">
-                        <span class="wd-10 ht-10 rounded-circle opacity-75 me-1 bg-success"></span>
-                        <span class="fs-9 text-uppercase fw-bold text-success">Active Now</span>
-                    </div>
-                </div>
-                <div class="d-flex align-items-start mb-3">
-                    <div class="me-3">
-                        <i class="feather-calendar"></i>
-                    </div>
-                    <a href="javascript:void(0)">26 Mar, 2022</a>
-                </div>
-                <div class="d-flex align-items-start mb-3">
-                    <div class="me-3">
-                        <i class="feather-phone"></i>
-                    </div>
-                    <a href="javascript:void(0)">759-479-5968</a>
-                </div>
-                <div class="d-flex align-items-start mb-3">
-                    <div class="me-3">
-                        <i class="feather-globe"></i>
-                    </div>
-                    <a href="javascript:void(0)">GMT: +06, 12:56 PM</a>
-                </div>
-                <div class="d-flex align-items-start mb-3">
-                    <div class="me-3">
-                        <i class="feather-map-pin"></i>
-                    </div>
-                    <a href="javascript:void(0)">San Diego, California</a>
-                </div>
-                <div class="d-flex align-items-start mb-3">
-                    <div class="me-3">
-                        <i class="feather-mail"></i>
-                    </div>
-                    <a href="javascript:void(0)">felixluismateo@example.com</a>
-                </div>
-                <div class="d-flex align-items-start mb-3">
-                    <div class="me-3">
-                        <i class="feather-external-link"></i>
-                    </div>
-                    <a href="javascript:void(0)">https://www.themewagon.com</a>
-                </div>
-                <div class="d-flex align-items-start mb-3">
-                    <div class="me-3">
-                        <i class="feather-activity"></i>
-                    </div>
-                    <div><span class="fw-medium text-muted">Recent activity by </span> <a href="javascript:void(0)" class="ac-info-sidebar-open-trigger">Felix Luis Mateo</a></div>
-                </div>
-                <div class="d-flex align-items-center mb-3">
-                    <div class="me-3"><i class="feather-users"></i></div>
-                    <div class="img-group lh-0 ms-3">
-                        <a href="javascript:void(0)" class="avatar-image avatar-sm" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Janette Dalton">
-                            <img src="assets/images/avatar/2.png" class="img-fluid" alt="image">
+            <div class="btchat-search-wrap">
+                <input type="search" class="btchat-search" id="btchat-search" placeholder="Search contacts">
+            </div>
+            <div class="btchat-list" id="btchat-list">
+                <?php if (empty($contacts)): ?>
+                    <div class="px-3 py-4 text-white-50">No users available.</div>
+                <?php else: ?>
+                    <?php foreach ($normalizedContacts as $contact): ?>
+                        <?php
+                        $isActiveContact = (int)$contact['id'] === $selectedUserId;
+                        $contactName = (string)$contact['name'];
+                        ?>
+                        <a class="btchat-item<?php echo $isActiveContact ? ' active' : ''; ?>" href="<?php echo chat_esc(chat_page_url((int)$contact['id'])); ?>" data-user-id="<?php echo (int)$contact['id']; ?>">
+                            <span class="btchat-avatar-wrap">
+                                <img src="<?php echo chat_esc((string)$contact['avatar_path']); ?>" alt="<?php echo chat_esc($contactName); ?>" class="btchat-avatar js-avatar-fallback">
+                                <span class="btchat-avatar-text chat-avatar-fallback-hidden"><?php echo chat_esc((string)$contact['initials']); ?></span>
+                                <span class="btchat-status-dot<?php echo !empty($contact['is_online']) ? ' online' : ''; ?>"></span>
+                            </span>
+                            <div class="btchat-meta">
+                                <div class="btchat-name-row">
+                                    <span class="btchat-name"><?php echo chat_esc($contactName); ?></span>
+                                    <span class="btchat-time"><?php echo chat_esc((string)$contact['last_message_label']); ?></span>
+                                </div>
+                                <div class="btchat-snippet-row">
+                                    <span class="btchat-snippet"><?php echo chat_esc((string)($contact['last_message'] !== '' ? $contact['last_message'] : 'No messages yet')); ?></span>
+                                    <?php if ((int)($contact['unread_count'] ?? 0) > 0): ?>
+                                        <span class="badge rounded-pill bg-primary"><?php echo (int)$contact['unread_count']; ?></span>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
                         </a>
-                        <a href="javascript:void(0)" class="avatar-image avatar-sm" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Michael Ksen">
-                            <img src="assets/images/avatar/3.png" class="img-fluid" alt="image">
-                        </a>
-                        <a href="javascript:void(0)" class="avatar-image avatar-sm" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Socrates Itumay">
-                            <img src="assets/images/avatar/4.png" class="img-fluid" alt="image">
-                        </a>
-                        <a href="javascript:void(0)" class="avatar-image avatar-sm" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Marianne Audrey">
-                            <img src="assets/images/avatar/5.png" class="img-fluid" alt="image">
-                        </a>
-                        <a href="javascript:void(0)" class="avatar-image avatar-sm" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Marianne Audrey">
-                            <img src="assets/images/avatar/6.png" class="img-fluid" alt="image">
-                        </a>
-                        <a href="javascript:void(0)" class="avatar-text avatar-sm" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Explorer More">
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
+        </aside>
+
+        <section class="btchat-main">
+            <div id="btchat-alert" class="btchat-system-alert"></div>
+            <button id="chat-scroll-btn" type="button" aria-label="Scroll to bottom">
+                &#8595;<span class="scroll-btn-badge chat-init-hidden"></span>
+            </button>
+            <?php if ($normalizedSelectedContact): ?>
+                <?php
+                $selectedName = (string)$normalizedSelectedContact['name'];
+                ?>
+                <div class="btchat-chat-header" id="btchat-chat-header">
+                    <div class="btchat-chat-title">
+                        <button type="button" class="btchat-back-btn" id="btchat-mobile-back" aria-label="Back to conversations" title="Back">&#8592;</button>
+                        <span class="btchat-avatar-wrap">
+                            <img src="<?php echo chat_esc((string)$normalizedSelectedContact['avatar_path']); ?>" alt="<?php echo chat_esc($selectedName); ?>" class="btchat-avatar js-avatar-fallback">
+                            <span class="btchat-avatar-text chat-avatar-fallback-hidden"><?php echo chat_esc((string)$normalizedSelectedContact['initials']); ?></span>
+                            <span class="btchat-status-dot<?php echo !empty($normalizedSelectedContact['is_online']) ? ' online' : ''; ?>"></span>
+                        </span>
+                        <div class="min-w-0">
+                            <div class="btchat-chat-name"><?php echo chat_esc($selectedName); ?></div>
+                            <div class="btchat-chat-sub"><?php echo chat_esc(!empty($normalizedSelectedContact['is_online']) ? 'Online' : ((string)($normalizedSelectedContact['email'] ?? $normalizedSelectedContact['username'] ?? ''))); ?></div>
+                        </div>
+                    </div>
+                    <div class="btchat-actions">
+                        <button type="button" class="btchat-menu-toggle">
                             <i class="feather-more-horizontal"></i>
-                        </a>
-                        <span class="text-muted fs-12 ms-3">886+ members connections</span>
+                        </button>
+                        <div class="btchat-menu" role="menu">
+                            <button type="button" class="btchat-menu-item" data-action="view-contact">Contact details</button>
+                            <button type="button" class="btchat-menu-item" data-action="mute-conversation">Mute conversation</button>
+                            <div class="btchat-menu-divider" role="separator"></div>
+                            <button type="button" class="btchat-menu-item" data-action="refresh-chat">Refresh chat</button>
+                            <button type="button" class="btchat-menu-item" data-action="scroll-bottom">Jump to recent</button>
+                            <div class="btchat-menu-divider" role="separator"></div>
+                            <button type="button" class="btchat-menu-item danger" data-action="delete-conversation">Delete conversation</button>
+                        </div>
                     </div>
                 </div>
-                <div class="d-flex align-items-start about-text">
-                    <div class="me-3">
-                        <i class="feather-user"></i>
-                    </div>
-                    <p class="fs-12 text-muted mb-0 text-truncate-2-line">The story is about a weary detective who can"t resist a fight. It takes place in a jungle commonwealth on a world of forbidden magic. The threat of bioterrorism plays a major part in this story.</p>
-                </div>
-            </div>
-            <!-- / Info -->
-            <!-- Experience -->
-            <a class="py-2 px-4 fs-12 fw-bold d-block bg-gray-200 border-top border-bottom sticky-top sticky-bar" data-bs-toggle="collapse" href="#ExperienceInfo">Experience</a>
-            <div class="p-4 collapse show" id="ExperienceInfo">
-                <div class="d-flex align-items-center mb-3">
-                    <div class="bg-gray-200 wd-60 ht-60 d-flex align-items-center justify-content-center rounded-3">
-                        <i class="feather-briefcase"></i>
-                    </div>
-                    <div class="ms-3">
-                        <h6 class="fs-13 fw-bold mb-1">Sr. Web Designer</h6>
-                        <span class="fs-12 text-muted text-truncate-1-line">Gaibandha Computer &amp; IT Education, Bangladesh</span>
-                        <span class="fs-11 fw-medium text-muted d-block">2014 - 2016</span>
-                    </div>
-                </div>
-                <hr>
-                <div class="d-flex align-items-center mb-3">
-                    <div class="bg-gray-200 wd-60 ht-60 d-flex align-items-center justify-content-center rounded-3">
-                        <i class="feather-briefcase"></i>
-                    </div>
-                    <div class="ms-3">
-                        <h6 class="fs-13 fw-bold mb-1">Jr. Web Desinger &amp; Developer</h6>
-                        <span class="fs-12 text-muted text-truncate-1-line">Gaibandha Computer &amp; IT Education, Bangladesh</span>
-                        <span class="fs-11 fw-medium text-muted d-block">2016 - 2019</span>
-                    </div>
-                </div>
-                <hr>
-                <div class="d-flex align-items-center">
-                    <div class="bg-gray-200 wd-60 ht-60 d-flex align-items-center justify-content-center rounded-3">
-                        <i class="feather-briefcase"></i>
-                    </div>
-                    <div class="ms-3">
-                        <h6 class="fs-13 fw-bold mb-1">Full-Stack Desinger &amp; Developer</h6>
-                        <span class="fs-12 text-muted text-truncate-1-line">Gaibandha Computer &amp; IT Education, Bangladesh</span>
-                        <span class="fs-11 fw-medium text-muted d-block">2019 - Present</span>
-                    </div>
-                </div>
-            </div>
-            <!--/ Experience -->
-            <!-- Skills -->
-            <a class="py-2 px-4 fs-12 fw-bold d-block bg-gray-200 border-top border-bottom sticky-top sticky-bar" data-bs-toggle="collapse" href="#SkillsInfo">Skills</a>
-            <div class="p-4 collapse show" id="SkillsInfo">
-                <div class="mb-4">
-                    <div class="d-flex align-items-center mb-1 fs-11 fw-medium text-uppercase">HTML <span class="ms-auto">80%</span></div>
-                    <div class="progress ht-3 mb-4">
-                        <div class="progress-bar bg-secondary" style="width: 80%"></div>
-                    </div>
-                </div>
-                <div class="mb-4">
-                    <div class="d-flex align-items-center mb-1 fs-11 fw-medium text-uppercase">CSS <span class="ms-auto">90%</span></div>
-                    <div class="progress ht-3 mb-4">
-                        <div class="progress-bar bg-success" style="width: 90%"></div>
-                    </div>
-                </div>
-                <div class="mb-4">
-                    <div class="d-flex align-items-center mb-1 fs-11 fw-medium text-uppercase">UI/UX <span class="ms-auto">80%</span></div>
-                    <div class="progress ht-3 mb-4">
-                        <div class="progress-bar bg-danger" style="width: 80%"></div>
-                    </div>
-                </div>
-                <div class="mb-4">
-                    <div class="d-flex align-items-center mb-1 fs-11 fw-medium text-uppercase">JavaScript <span class="ms-auto">90%</span></div>
-                    <div class="progress ht-3 mb-4">
-                        <div class="progress-bar bg-warning" style="width: 90%"></div>
-                    </div>
-                </div>
-                <div class="mb-0">
-                    <div class="d-flex align-items-center mb-1 fs-11 fw-medium text-uppercase">Communication <span class="ms-auto">95%</span></div>
-                    <div class="progress ht-3">
-                        <div class="progress-bar bg-primary" style="width: 95%"></div>
-                    </div>
-                </div>
-            </div>
-            <!-- / Skills -->
-            <!-- Followers -->
-            <a class="py-2 px-4 fs-12 fw-bold d-block bg-gray-200 border-top border-bottom sticky-top sticky-bar" data-bs-toggle="collapse" href="#FollowersInfo">Followers</a>
-            <div class="p-4 collapse show" id="FollowersInfo">
-                <ul class="list-unstyled mb-0">
-                    <li class="d-flex align-items-center justify-content-between mb-4">
-                        <div class="d-flex align-items-center">
-                            <div class="avatar-text me-3 bg-info text-white">G</div>
-                            <div class="lh-sm">
-                                <h2 class="fs-13 fw-bold mb-0"><a href="javascript:void(0);">Gregory Miller</a></h2>
-                                <span class="fs-12 text-muted">gregory.miller@live.com</span>
+
+                <div class="btchat-thread" id="btchat-thread">
+                    <?php if (empty($normalizedMessages)): ?>
+                        <div class="btchat-empty">
+                            <div>
+                                <h6 class="mb-2 text-white">No messages yet</h6>
+                                <div class="text-white-50">Start the conversation with <?php echo chat_esc($selectedName); ?>.</div>
                             </div>
                         </div>
-                        <a href="javascript:void(0);" class="btn btn-sm btn-light-brand ml-auto d-none d-sm-block successAlertMessage">Follow</a>
-                    </li>
-                    <li class="d-flex align-items-center justify-content-between mb-4">
-                        <div class="d-flex align-items-center">
-                            <div class="avatar-image me-3">
-                                <img src="assets/images/avatar/5.png" alt="" class="img-fluid rounded-circle">
+                    <?php else: ?>
+                        <?php foreach ($normalizedMessages as $message): ?>
+                            <?php
+                            $reactionSummary = (isset($message['reaction_summary']) && is_array($message['reaction_summary'])) ? $message['reaction_summary'] : [];
+                            $reactionTotal = (int)($message['reaction_count'] ?? 0);
+                            if ($reactionTotal <= 0) {
+                                foreach ($reactionSummary as $reactionItem) {
+                                    $reactionTotal += (int)($reactionItem['count'] ?? 0);
+                                }
+                            }
+                            if (empty($reactionSummary) && (string)($message['reaction_emoji'] ?? '') !== '' && $reactionTotal > 0) {
+                                $reactionSummary[] = [
+                                    'emoji' => (string)$message['reaction_emoji'],
+                                    'count' => $reactionTotal,
+                                ];
+                            }
+                            $reactionIcons = [];
+                            foreach ($reactionSummary as $reactionItem) {
+                                $reactionEmoji = trim((string)($reactionItem['emoji'] ?? ''));
+                                if ($reactionEmoji === '') {
+                                    continue;
+                                }
+                                $reactionIcons[] = $reactionEmoji;
+                                if (count($reactionIcons) >= 2) {
+                                    break;
+                                }
+                            }
+                            $hasReaction = $reactionTotal > 0 && !empty($reactionIcons);
+                            ?>
+                            <div class="msg-row<?php echo !empty($message['is_own']) ? ' own' : ''; ?><?php echo $hasReaction ? ' has-reaction' : ''; ?>">
+                                <div class="msg-bubble<?php echo !empty($message['media_path']) ? ' has-media' : ''; ?>">
+                                    <?php if ((string)($message['reply_preview'] ?? '') !== ''): ?>
+                                        <div class="msg-reply-quote"><strong><?php echo chat_esc((string)($message['reply_author'] ?? '')); ?></strong><span class="msg-reply-quote-text"><?php echo chat_esc((string)$message['reply_preview']); ?></span></div>
+                                    <?php endif; ?>
+                                    <?php if ((string)$message['media_type'] === 'image'): ?>
+                                        <img src="<?php echo chat_esc((string)$message['media_path']); ?>" class="msg-media" alt="image" data-media-viewer="image">
+                                    <?php elseif ((string)$message['media_type'] === 'video'): ?>
+                                        <video src="<?php echo chat_esc((string)$message['media_path']); ?>" class="msg-media-video" controls preload="metadata" data-media-viewer="video"></video>
+                                    <?php endif; ?>
+                                    <?php $displayMsg = (string)$message['message']; if (!empty($message['media_path']) && $displayMsg === basename((string)$message['media_path'])) $displayMsg = ''; ?>
+                                    <?php if ($displayMsg !== ''): ?><?php echo nl2br(chat_esc($displayMsg)); ?><?php endif; ?>
+                                    <div class="msg-meta" title="<?php echo chat_esc((string)$message['time_full']); ?>">
+                                        <?php echo chat_esc((string)$message['time_label']); ?><?php if ((string)$message['time_exact'] !== ''): ?> &middot; <span class="msg-time-exact"><?php echo chat_esc((string)$message['time_exact']); ?></span><?php endif; ?>
+                                    </div>
+                                    <?php if ($hasReaction): ?>
+                                        <button type="button" class="msg-reaction-badge" data-reaction-mid="<?php echo (int)($message['message_id'] ?? 0); ?>" aria-label="View reactions">
+                                            <span class="msg-reaction-icons"><?php foreach ($reactionIcons as $reactionIcon): ?><span class="msg-reaction-icon"><?php echo chat_esc((string)$reactionIcon); ?></span><?php endforeach; ?></span>
+                                            <span class="msg-reaction-count"><?php echo $reactionTotal; ?></span>
+                                        </button>
+                                    <?php endif; ?>
+                                </div>
                             </div>
-                            <div class="lh-sm">
-                                <h2 class="fs-13 fw-bold mb-0"><a href="javascript:void(0);">Olive Delarosa</a></h2>
-                                <span class="fs-12 text-muted">olive.delarosa@hotmail.com</span>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </div>
+
+                <div class="btchat-compose">
+                    <form method="post" action="<?php echo chat_esc(chat_page_url((int)$selectedUserId)); ?>" id="btchat-compose-form" enctype="multipart/form-data">
+                        <input type="hidden" name="action" value="send-message">
+                        <input type="hidden" name="user_id" value="<?php echo (int)$selectedUserId; ?>">
+                        <input type="hidden" name="reply_to_message_id" id="chat-reply-to-message-id" value="0">
+                        <input type="file" name="chat_media" id="chat-media-input" accept="image/*" class="btchat-file-input">
+                        <div id="chat-reply-preview">
+                            <span id="chat-reply-label"></span>
+                            <button type="button" class="chat-reply-remove" id="chat-reply-remove" title="Cancel reply">&#x2715;</button>
+                        </div>
+                        <div id="chat-emoji-picker">
+                            <div class="chat-emoji-search-wrap">
+                                <input type="search" id="chat-emoji-search" class="chat-emoji-search" placeholder="Search emoji">
+                            </div>
+                            <div class="chat-emoji-grid" id="chat-emoji-grid"></div>
+                            <div class="chat-emoji-empty chat-init-hidden" id="chat-emoji-empty">No emoji found</div>
+                            <div class="chat-emoji-tabs" id="chat-emoji-tabs">
+                                <button type="button" class="chat-emoji-tab active" data-emoji-cat="smileys" title="Smileys">&#128512;</button>
+                                <button type="button" class="chat-emoji-tab" data-emoji-cat="people" title="People">&#129489;</button>
+                                <button type="button" class="chat-emoji-tab" data-emoji-cat="animals" title="Animals">&#128049;</button>
+                                <button type="button" class="chat-emoji-tab" data-emoji-cat="food" title="Food">&#127828;</button>
+                                <button type="button" class="chat-emoji-tab" data-emoji-cat="travel" title="Travel">&#128663;</button>
+                                <button type="button" class="chat-emoji-tab" data-emoji-cat="objects" title="Objects">&#128161;</button>
+                                <button type="button" class="chat-emoji-tab" data-emoji-cat="symbols" title="Symbols">&#10133;</button>
+                                <button type="button" class="chat-emoji-tab" data-emoji-cat="flags" title="Flags">&#127937;</button>
                             </div>
                         </div>
-                        <a href="javascript:void(0);" class="btn btn-sm btn-light-brand ml-auto d-none d-sm-block successAlertMessage">Follow</a>
-                    </li>
-                    <li class="d-flex align-items-center justify-content-between mb-4">
-                        <div class="d-flex align-items-center">
-                            <div class="avatar-text me-3 bg-warning text-white">N</div>
-                            <div class="lh-sm">
-                                <h2 class="fs-13 fw-bold mb-0"><a href="javascript:void(0);">Nancy Elliot</a></h2>
-                                <span class="fs-12 text-muted">nancy.elliot@yahoo.com</span>
-                            </div>
+                        <div id="chat-media-preview">
+                            <img id="chat-preview-thumb" class="chat-preview-thumb chat-init-hidden" src="" alt="">
+                            <span id="chat-preview-name"></span>
+                            <button type="button" class="chat-preview-remove" id="chat-preview-remove" title="Remove">&#x2715;</button>
                         </div>
-                        <a href="javascript:void(0);" class="btn btn-sm btn-light-brand ml-auto d-none d-sm-block successAlertMessage">Follow</a>
-                    </li>
-                    <li class="d-flex align-items-center justify-content-between mb-4">
-                        <div class="d-flex align-items-center">
-                            <div class="avatar-image me-3">
-                                <img src="assets/images/avatar/6.png" alt="" class="img-fluid rounded-circle">
-                            </div>
-                            <div class="lh-sm">
-                                <h2 class="fs-13 fw-bold mb-0"><a href="javascript:void(0);">Daniel Khoury</a></h2>
-                                <span class="fs-12 text-muted">daniel.khoury@gmail.com</span>
-                            </div>
+                        <?php $composeWarningText = trim((string)$composeWarningMessage); ?>
+                        <div class="btchat-compose-warning<?php echo $composeWarningText !== '' ? ' show' : ''; ?>" id="btchat-compose-warning" data-warning-visible="<?php echo $composeWarningText !== '' ? '1' : '0'; ?>"<?php echo $composeWarningText === '' ? ' aria-hidden="true"' : ''; ?>>
+                            <span class="btchat-compose-warning-icon" aria-hidden="true">!</span>
+                            <span class="btchat-compose-warning-text" id="btchat-compose-warning-text"><?php echo chat_esc($composeWarningText); ?></span>
                         </div>
-                        <a href="javascript:void(0);" class="btn btn-sm btn-light-brand ml-auto d-none d-sm-block successAlertMessage">Follow</a>
-                    </li>
-                    <li class="d-flex align-items-center justify-content-between mb-4">
-                        <div class="d-flex align-items-center">
-                            <div class="avatar-text me-3 bg-teal text-white">H</div>
-                            <div class="lh-sm">
-                                <h2 class="fs-13 fw-bold mb-0"><a href="javascript:void(0);">Henry Leach</a></h2>
-                                <span class="fs-12 text-muted">henry.leach@live.com</span>
-                            </div>
+                        <div class="btchat-compose-inner">
+                            <button type="button" class="btchat-attach-btn" id="chat-attach-btn" title="Send image or video">
+                                <i class="feather-paperclip"></i>
+                            </button>
+                            <button type="button" class="btchat-emoji-btn" id="chat-emoji-btn" title="Emoji">
+                                <i class="feather-smile"></i>
+                            </button>
+                            <textarea class="btchat-compose-input" id="btchat-message-input" name="message" placeholder="Aa" rows="1"><?php echo chat_esc($draftMessage); ?></textarea>
+                            <button type="submit" class="btchat-send-btn" id="btchat-send-btn" aria-label="Send" data-mode="send">
+                                <i class="feather-send"></i>
+                            </button>
                         </div>
-                        <a href="javascript:void(0);" class="btn btn-sm btn-light-brand ml-auto d-none d-sm-block successAlertMessage">Follow</a>
-                    </li>
-                    <li class="d-flex align-items-center justify-content-between mb-0">
-                        <div class="d-flex align-items-center">
-                            <div class="avatar-image me-3">
-                                <img src="assets/images/avatar/7.png" alt="" class="img-fluid rounded-circle">
-                            </div>
-                            <div class="lh-sm">
-                                <h2 class="fs-13 fw-bold mb-0"><a href="javascript:void(0);">Angie Miller</a></h2>
-                                <span class="fs-12 text-muted">angie.miller@hotmail.com</span>
-                            </div>
-                        </div>
-                        <a href="javascript:void(0)" class="btn btn-sm btn-light-brand ml-auto d-none d-sm-block successAlertMessage">Follow</a>
-                    </li>
-                </ul>
-            </div>
-            <!-- / Followers -->
-            <!-- Attachments -->
-            <a class="py-2 px-4 fs-12 fw-bold d-block bg-gray-200 border-top border-bottom sticky-top sticky-bar" data-bs-toggle="collapse" href="#Attachments">Attachments</a>
-            <div class="p-4 collapse show" id="Attachments">
-                <div class="mb-4 text-dark d-flex align-items-center justify-content-between border rounded-3">
-                    <div class="d-flex align-items-center">
-                        <a href="javascript:void(0)" class="p-3 d-flex align-items-center border-end wd-70 ht-70">
-                            <img src="assets/images/file-icons/zip.png" class="img-fluid" alt="image">
-                        </a>
-                        <div class="d-block ms-3">
-                            <a href="javascript:void(0)" class="fs-13 fw-bold d-block">Projects.zip</a>
-                            <small class="fw-300 text-muted">40.65/MB</small>
-                        </div>
-                    </div>
-                    <div class="d-flex align-items-center p-3 border-start">
-                        <a href="javascript:void(0)" class="avatar-text file-download">
-                            <i class="feather-download"></i>
-                        </a>
+                    </form>
+                </div>
+            <?php else: ?>
+                <div class="btchat-empty">
+                    <div>
+                        <h5 class="mb-2 text-white">Choose a conversation</h5>
+                        <div class="text-white-50">Select someone from the left to start chatting.</div>
                     </div>
                 </div>
-                <div class="mb-4 text-dark d-flex align-items-center justify-content-between border rounded-3">
-                    <div class="d-flex align-items-center">
-                        <a href="javascript:void(0)" class="p-3 d-flex align-items-center border-end wd-70 ht-70">
-                            <img src="assets/images/file-icons/png.png" class="img-fluid" alt="image">
-                        </a>
-                        <div class="d-block ms-3">
-                            <a href="javascript:void(0)" class="fs-13 fw-bold d-block">Document.png</a>
-                            <small class="fw-300 text-muted">480.148/KB</small>
-                        </div>
-                    </div>
-                    <div class="d-flex align-items-center p-3 border-start">
-                        <a href="javascript:void(0)" class="avatar-text file-download">
-                            <i class="feather-download"></i>
-                        </a>
-                    </div>
-                </div>
-                <div class="mb-4 text-dark d-flex align-items-center justify-content-between border rounded-3">
-                    <div class="d-flex align-items-center">
-                        <a href="javascript:void(0)" class="p-3 d-flex align-items-center border-end wd-70 ht-70">
-                            <img src="assets/images/file-icons/psd.png" class="img-fluid" alt="image">
-                        </a>
-                        <div class="d-block ms-3">
-                            <a href="javascript:void(0)" class="fs-13 fw-bold d-block">Project.psd</a>
-                            <small class="fw-300 text-muted">32.423/MB</small>
-                        </div>
-                    </div>
-                    <div class="d-flex align-items-center p-3 border-start">
-                        <a href="javascript:void(0)" class="avatar-text file-download">
-                            <i class="feather-download"></i>
-                        </a>
-                    </div>
-                </div>
-                <div class="text-dark d-flex align-items-center justify-content-between border rounded-3">
-                    <div class="d-flex align-items-center">
-                        <a href="javascript:void(0)" class="p-3 d-flex align-items-center border-end wd-70 ht-70">
-                            <img src="assets/images/file-icons/pdf.png" class="img-fluid" alt="image">
-                        </a>
-                        <div class="d-block ms-3">
-                            <a href="javascript:void(0)" class="fs-13 fw-bold d-block">Photos.pdf</a>
-                            <small class="fw-300 text-muted">48.254/MB</small>
-                        </div>
-                    </div>
-                    <div class="d-flex align-items-center p-3 border-start">
-                        <a href="javascript:void(0)" class="avatar-text file-download">
-                            <i class="feather-download"></i>
-                        </a>
-                    </div>
-                </div>
-            </div>
-            <!-- / Attachments -->
-            <!-- Medias -->
-            <a class="py-2 px-4 fs-12 fw-bold d-block bg-gray-200 border-top border-bottom sticky-top sticky-bar" data-bs-toggle="collapse" href="#MediasInfo">Medias</a>
-            <div class="p-4 collapse show" id="MediasInfo">
-                <div class="row g-3 media-list">
-                    <div class="col-4">
-                        <a href="javascript:void(0)" class="d-block px-3 py-2 border rounded">
-                            <img src="assets/images/gallery/1.png" class="img-fluid" alt="image">
-                        </a>
-                    </div>
-                    <div class="col-4">
-                        <a href="javascript:void(0)" class="d-block px-3 py-2 border rounded">
-                            <img src="assets/images/gallery/2.png" class="img-fluid" alt="image">
-                        </a>
-                    </div>
-                    <div class="col-4">
-                        <a href="javascript:void(0)" class="d-block px-3 py-2 border rounded">
-                            <img src="assets/images/gallery/3.png" class="img-fluid" alt="image">
-                        </a>
-                    </div>
-                    <div class="col-4">
-                        <a href="javascript:void(0)" class="d-block px-3 py-2 border rounded">
-                            <img src="assets/images/gallery/4.png" class="img-fluid" alt="image">
-                        </a>
-                    </div>
-                    <div class="col-4">
-                        <a href="javascript:void(0)" class="d-block px-3 py-2 border rounded">
-                            <img src="assets/images/gallery/5.png" class="img-fluid" alt="image">
-                        </a>
-                    </div>
-                    <div class="col-4">
-                        <a href="javascript:void(0)" class="d-block px-3 py-2 border rounded">
-                            <img src="assets/images/gallery/6.png" class="img-fluid" alt="image">
-                        </a>
-                    </div>
-                    <div class="col-4">
-                        <a href="javascript:void(0)" class="d-block px-3 py-2 border rounded">
-                            <img src="assets/images/gallery/7.png" class="img-fluid" alt="image">
-                        </a>
-                    </div>
-                    <div class="col-4">
-                        <a href="javascript:void(0)" class="d-block px-3 py-2 border rounded">
-                            <img src="assets/images/gallery/8.png" class="img-fluid" alt="image">
-                        </a>
-                    </div>
-                    <div class="col-4">
-                        <a href="javascript:void(0)" class="d-block px-3 py-2 border rounded">
-                            <img src="assets/images/gallery/9.png" class="img-fluid" alt="image">
-                        </a>
-                    </div>
-                    <div class="col-4">
-                        <a href="javascript:void(0)" class="d-block px-3 py-2 border rounded">
-                            <img src="assets/images/gallery/10.png" class="img-fluid" alt="image">
-                        </a>
-                    </div>
-                    <div class="col-4">
-                        <a href="javascript:void(0)" class="d-block px-3 py-2 border rounded">
-                            <img src="assets/images/gallery/11.png" class="img-fluid" alt="image">
-                        </a>
-                    </div>
-                    <div class="col-4">
-                        <a href="javascript:void(0)" class="d-block px-3 py-2 border rounded">
-                            <img src="assets/images/gallery/12.png" class="img-fluid" alt="image">
-                        </a>
-                    </div>
-                </div>
-            </div>
-            <!-- / Medias -->
+            <?php endif; ?>
+        </section>
+    </div>
+</div>
+    </div>
+</main>
+
+<div class="chat-confirm-overlay" id="chat-confirm-modal" aria-hidden="true">
+    <div class="chat-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="chat-confirm-title">
+        <h6 class="chat-confirm-title" id="chat-confirm-title">Confirm action</h6>
+        <p class="chat-confirm-text" id="chat-confirm-text">Are you sure?</p>
+        <div class="chat-confirm-actions">
+            <button type="button" class="chat-confirm-btn" id="chat-confirm-cancel">Cancel</button>
+            <button type="button" class="chat-confirm-btn danger" id="chat-confirm-ok">Confirm</button>
         </div>
     </div>
-    <!--! ================================================================ !-->
-    <!--! [End] User Profile Info !-->
-    <!--! ================================================================ !-->
-    <!--! ================================================================ !-->
-    <!--! BEGIN: Calling Modal [Voice] !-->
-    <!--! ================================================================ !-->
-    <div class="modal fade calling-modal-screen" id="voiceCallingModalScreen" data-bs-backdrop="static" aria-hidden="true" aria-labelledby="voiceCallingModalScreen" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered modal-fullscreen" role="document">
-            <div class="modal-content rounded-0">
-                <div class="h-100 d-flex aling-items-center justify-content-center">
-                    <div class="w-100 chat-calling-content">
-                        <!--! BEGIN: [chat-calling-info] !-->
-                        <div class="d-flex align-items-center justify-content-between px-4 py-3">
-                            <div class="d-flex align-items-center justify-content-center content-sub-header-left chat-calling-info">
-                                <div class="avatar-image me-3">
-                                    <img src="assets/images/avatar/10.png" class="img-fluid" alt="image">
-                                </div>
-                                <div>
-                                    <a href="javascript:void(0)" class="fs-13 fw-bold d-flex align-items-center">Erna Serpa</a>
-                                    <div class="text typing">
-                                        <div class="ringing active">
-                                            <div class="d-flex align-items-baseline">
-                                                <div class="fs-11 fw-semibold text-success">Contacting</div>
-                                                <div class="wave">
-                                                    <span class="dot"></span>
-                                                    <span class="dot"></span>
-                                                    <span class="dot"></span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="fs-12 fw-medium text-success timetracker">00:00:00</div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="d-flex align-items-center">
-                                <a href="javascript:void(0)" class="avatar-text avatar-md me-2 d-none d-lg-flex chat-message-sidebar-toggle" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Text Message"><i class="feather-message-circle fs-11"></i></a>
-                                <a href="javascript:void(0)" class="avatar-text avatar-md bg-soft-danger d-flex close-icon call-ended" data-bs-dismiss="modal" onClick="javascript:$('.timetracker').timetracker('reset');">
-                                    <i class="feather-x text-danger"></i>
-                                </a>
-                            </div>
-                        </div>
-                        <!--! END: [chat-calling-info] !-->
-                        <!--! BEGIN: [voice-call-content] !-->
-                        <div class="d-flex align-items-center justify-content-center flex-column voice-call-content">
-                            <div class="wd-150 ht-150">
-                                <img src="assets/images/avatar/1.png" class="rounded-circle border border-5 img-fluid animation-infinite" alt="image">
-                            </div>
-                            <div class="my-4 text-center">
-                                <h2 class="fs-13 fw-bold text-dark mb-1">Felix Luis Mateo</h2>
-                                <span class="fs-12 text-muted d-block">felixluismateo@example.com</span>
-                            </div>
-                            <div class="gap-2 d-flex align-items-center justify-content-center calling-receiver-action">
-                                <a href="javascript:void(0)" class="btn btn-icon bg-white rounded-circle rounded-circle" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Mute Call"><i class="feather-mic-off fs-12"></i></a>
-                                <a href="javascript:void(0)" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Switch Video">
-                                    <span class="btn btn-icon bg-white rounded-circle rounded-circle" data-bs-target="#videoCallingModalScreen" data-bs-toggle="modal" data-bs-dismiss="modal"><i class="feather-video fs-12"></i></span>
-                                </a>
-                                <a href="javascript:void(0)" class="call-received btn btn-icon btn-success rounded-circle" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Received Call" onClick="javascript:$('.timetracker').timetracker('start');"><i class="feather-phone-call fs-12"></i></a>
-                                <a href="javascript:void(0)" class="btn btn-icon btn-danger rounded-circle call-ended" data-bs-toggle="tooltip" data-bs-trigger="hover" title="End Call" data-bs-dismiss="modal" style="display: none" onClick="javascript:$('.timetracker').timetracker('reset');"><i class="feather-phone-off fs-12"></i></a>
-                                <a href="javascript:void(0)" class="btn btn-icon bg-white rounded-circle rounded-circle" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Add Calls"><i class="feather-plus fs-12"></i></a>
-                                <a href="javascript:void(0)" class="btn btn-icon bg-white rounded-circle rounded-circle" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Hold Call" onClick="javascript:$('.timetracker').timetracker('stop');"><i class="feather-pause fs-12"></i></a>
-                            </div>
-                        </div>
-                        <!--! END: [voice-call-content] !-->
-                    </div>
-                    <!--! BEGIN: [chat-calling-text-message-sidebar] !-->
-                    <div class="d-none d-lg-block chat-calling-text-message-sidebar active">
-                        <div class="p-4 fs-16 fw-bold text-dark border-bottom">In-call messages</div>
-                        <div class="d-flex flex-column position-relative in-call-messages-items" data-scrollbar-target="#psScrollbarInit">
-                            <div class="p-4 text-dark border-bottom single-item">
-                                <div class="w-100 d-flex align-items-start justify-content-between">
-                                    <div class="d-flex align-items-start">
-                                        <div class="avatar-image me-3">
-                                            <img src="assets/images/avatar/1.png" class="img-fluid" alt="image">
-                                        </div>
-                                        <div>
-                                            <a href="javascript:void(0)" class="fs-13 fw-bold d-flex align-items-center mb-1">Felix Luis Mateo</a>
-                                            <div class="fs-12 fw-normal text-muted text-truncate-2-line">Hello Erna!!! Welcome to Live Chat!!!</div>
-                                        </div>
-                                    </div>
-                                    <div class="dropdown ms-3">
-                                        <a href="javascript:void(0);" class="avatar-text avatar-sm" data-bs-toggle="dropdown">
-                                            <i class="feather-more-vertical"></i>
-                                        </a>
-                                        <ul class="dropdown-menu dropdown-menu-end">
-                                            <li>
-                                                <a href="javascript:void(0);" class="dropdown-item"><i class="feather-eye-off me-3"></i>Hide Message</a>
-                                            </li>
-                                            <li>
-                                                <a href="javascript:void(0);" class="dropdown-item"><i class="feather-trash-2 me-3"></i>Delete Message</a>
-                                            </li>
-                                            <li>
-                                                <a href="javascript:void(0);" class="dropdown-item"><i class="feather-alert-triangle me-3"></i>Report Message</a>
-                                            </li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="p-4 text-dark border-bottom single-item">
-                                <div class="w-100 d-flex align-items-start justify-content-between">
-                                    <div class="d-flex align-items-start">
-                                        <div class="avatar-image me-3">
-                                            <img src="assets/images/avatar/10.png" class="img-fluid" alt="image">
-                                        </div>
-                                        <div>
-                                            <a href="javascript:void(0)" class="fs-13 fw-bold d-flex align-items-center mb-1">Erna Serpa</a>
-                                            <div class="fs-12 fw-normal text-muted text-truncate-2-line">Hi, I wanted to check my order status.....</div>
-                                        </div>
-                                    </div>
-                                    <div class="dropdown ms-3">
-                                        <a href="javascript:void(0);" class="avatar-text avatar-sm" data-bs-toggle="dropdown">
-                                            <i class="feather-more-vertical"></i>
-                                        </a>
-                                        <ul class="dropdown-menu dropdown-menu-end">
-                                            <li>
-                                                <a href="javascript:void(0);" class="dropdown-item"><i class="feather-eye-off me-3"></i>Hide Message</a>
-                                            </li>
-                                            <li>
-                                                <a href="javascript:void(0);" class="dropdown-item"><i class="feather-trash-2 me-3"></i>Delete Message</a>
-                                            </li>
-                                            <li>
-                                                <a href="javascript:void(0);" class="dropdown-item"><i class="feather-alert-triangle me-3"></i>Report Message</a>
-                                            </li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="p-4 text-dark border-bottom single-item">
-                                <div class="w-100 d-flex align-items-start justify-content-between">
-                                    <div class="d-flex align-items-start">
-                                        <div class="avatar-image me-3">
-                                            <img src="assets/images/avatar/1.png" class="img-fluid" alt="image">
-                                        </div>
-                                        <div>
-                                            <a href="javascript:void(0)" class="fs-13 fw-bold d-flex align-items-center mb-1">Felix Luis Mateo</a>
-                                            <div class="fs-12 fw-normal text-muted text-truncate-2-line">Thanks for the information!!! Give me one moment please while I check on that for you.</div>
-                                        </div>
-                                    </div>
-                                    <div class="dropdown ms-3">
-                                        <a href="javascript:void(0);" class="avatar-text avatar-sm" data-bs-toggle="dropdown">
-                                            <i class="feather-more-vertical"></i>
-                                        </a>
-                                        <ul class="dropdown-menu dropdown-menu-end">
-                                            <li>
-                                                <a href="javascript:void(0);" class="dropdown-item"><i class="feather-eye-off me-3"></i>Hide Message</a>
-                                            </li>
-                                            <li>
-                                                <a href="javascript:void(0);" class="dropdown-item"><i class="feather-trash-2 me-3"></i>Delete Message</a>
-                                            </li>
-                                            <li>
-                                                <a href="javascript:void(0);" class="dropdown-item"><i class="feather-alert-triangle me-3"></i>Report Message</a>
-                                            </li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="p-4 text-dark border-bottom single-item">
-                                <div class="w-100 d-flex align-items-start justify-content-between">
-                                    <div class="d-flex align-items-start">
-                                        <div class="avatar-image me-3">
-                                            <img src="assets/images/avatar/10.png" class="img-fluid" alt="image">
-                                        </div>
-                                        <div>
-                                            <a href="javascript:void(0)" class="fs-13 fw-bold d-flex align-items-center mb-1">Erna Serpa</a>
-                                            <div class="fs-12 fw-normal text-muted text-truncate-2-line">Thanks. I'm worried it won't arrive in time for my daughter's birthday party this weekend.</div>
-                                        </div>
-                                    </div>
-                                    <div class="dropdown ms-3">
-                                        <a href="javascript:void(0);" class="avatar-text avatar-sm" data-bs-toggle="dropdown">
-                                            <i class="feather-more-vertical"></i>
-                                        </a>
-                                        <ul class="dropdown-menu dropdown-menu-end">
-                                            <li>
-                                                <a href="javascript:void(0);" class="dropdown-item"><i class="feather-eye-off me-3"></i>Hide Message</a>
-                                            </li>
-                                            <li>
-                                                <a href="javascript:void(0);" class="dropdown-item"><i class="feather-trash-2 me-3"></i>Delete Message</a>
-                                            </li>
-                                            <li>
-                                                <a href="javascript:void(0);" class="dropdown-item"><i class="feather-alert-triangle me-3"></i>Report Message</a>
-                                            </li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="p-4 text-dark border-bottom single-item">
-                                <div class="w-100 d-flex align-items-start justify-content-between">
-                                    <div class="d-flex align-items-start">
-                                        <div class="avatar-image me-3">
-                                            <img src="assets/images/avatar/1.png" class="img-fluid" alt="image">
-                                        </div>
-                                        <div>
-                                            <a href="javascript:void(0)" class="fs-13 fw-bold d-flex align-items-center mb-1">Felix Luis Mateo</a>
-                                            <div class="fs-12 fw-normal text-muted text-truncate-2-line">I understand your concern I wouldn't want my child's gift to arrive late either.</div>
-                                        </div>
-                                    </div>
-                                    <div class="dropdown ms-3">
-                                        <a href="javascript:void(0);" class="avatar-text avatar-sm" data-bs-toggle="dropdown">
-                                            <i class="feather-more-vertical"></i>
-                                        </a>
-                                        <ul class="dropdown-menu dropdown-menu-end">
-                                            <li>
-                                                <a href="javascript:void(0);" class="dropdown-item"><i class="feather-eye-off me-3"></i>Hide Message</a>
-                                            </li>
-                                            <li>
-                                                <a href="javascript:void(0);" class="dropdown-item"><i class="feather-trash-2 me-3"></i>Delete Message</a>
-                                            </li>
-                                            <li>
-                                                <a href="javascript:void(0);" class="dropdown-item"><i class="feather-alert-triangle me-3"></i>Report Message</a>
-                                            </li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="p-4 text-dark border-bottom single-item">
-                                <div class="w-100 d-flex align-items-start justify-content-between">
-                                    <div class="d-flex align-items-start">
-                                        <div class="avatar-image me-3">
-                                            <img src="assets/images/avatar/10.png" class="img-fluid" alt="image">
-                                        </div>
-                                        <div>
-                                            <a href="javascript:void(0)" class="fs-13 fw-bold d-flex align-items-center mb-1">Erna Serpa</a>
-                                            <div class="fs-12 fw-normal text-muted text-truncate-2-line">The birthday🎂 ceremony preparation almost completed</div>
-                                        </div>
-                                    </div>
-                                    <div class="dropdown ms-3">
-                                        <a href="javascript:void(0);" class="avatar-text avatar-sm" data-bs-toggle="dropdown">
-                                            <i class="feather-more-vertical"></i>
-                                        </a>
-                                        <ul class="dropdown-menu dropdown-menu-end">
-                                            <li>
-                                                <a href="javascript:void(0);" class="dropdown-item"><i class="feather-eye-off me-3"></i>Hide Message</a>
-                                            </li>
-                                            <li>
-                                                <a href="javascript:void(0);" class="dropdown-item"><i class="feather-trash-2 me-3"></i>Delete Message</a>
-                                            </li>
-                                            <li>
-                                                <a href="javascript:void(0);" class="dropdown-item"><i class="feather-alert-triangle me-3"></i>Report Message</a>
-                                            </li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="p-4 text-dark border-bottom single-item">
-                                <div class="w-100 d-flex align-items-start justify-content-between">
-                                    <div class="d-flex align-items-start">
-                                        <div class="avatar-image me-3">
-                                            <img src="assets/images/avatar/1.png" class="img-fluid" alt="image">
-                                        </div>
-                                        <div>
-                                            <a href="javascript:void(0)" class="fs-13 fw-bold d-flex align-items-center mb-1">Felix Luis Mateo</a>
-                                            <div class="fs-12 fw-normal text-muted text-truncate-2-line">I understand your concern......!!</div>
-                                        </div>
-                                    </div>
-                                    <div class="dropdown ms-3">
-                                        <a href="javascript:void(0);" class="avatar-text avatar-sm" data-bs-toggle="dropdown">
-                                            <i class="feather-more-vertical"></i>
-                                        </a>
-                                        <ul class="dropdown-menu dropdown-menu-end">
-                                            <li>
-                                                <a href="javascript:void(0);" class="dropdown-item"><i class="feather-eye-off me-3"></i>Hide Message</a>
-                                            </li>
-                                            <li>
-                                                <a href="javascript:void(0);" class="dropdown-item"><i class="feather-trash-2 me-3"></i>Delete Message</a>
-                                            </li>
-                                            <li>
-                                                <a href="javascript:void(0);" class="dropdown-item"><i class="feather-alert-triangle me-3"></i>Report Message</a>
-                                            </li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="p-4 text-dark single-item">
-                                <div class="w-100 d-flex align-items-start justify-content-between">
-                                    <div class="d-flex align-items-start">
-                                        <div class="avatar-image me-3">
-                                            <img src="assets/images/avatar/10.png" class="img-fluid" alt="image">
-                                        </div>
-                                        <div>
-                                            <a href="javascript:void(0)" class="fs-13 fw-bold d-flex align-items-center mb-1">Erna Serpa</a>
-                                            <div class="d-flex align-items-baseline text typing">
-                                                <div class="fs-11 text-success">Typing</div>
-                                                <div class="wave">
-                                                    <span class="dot"></span>
-                                                    <span class="dot"></span>
-                                                    <span class="dot"></span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="px-3 py-2 fs-16 fw-bold border-top">
-                            <input class="form-control border-0 emoji-picker" placeholder="Type your message here...">
-                        </div>
-                    </div>
-                    <!--! END: [chat-calling-text-message-sidebar] !-->
+</div>
+
+<div class="chat-contact-overlay" id="chat-contact-modal" aria-hidden="true">
+    <div class="chat-contact-modal" role="dialog" aria-modal="true" aria-labelledby="chat-contact-title">
+        <div class="chat-contact-head">
+            <h6 class="chat-contact-title" id="chat-contact-title">Contact details</h6>
+            <button type="button" class="chat-contact-close" id="chat-contact-close" aria-label="Close">&times;</button>
+        </div>
+        <div class="chat-contact-body">
+            <div class="chat-contact-identity">
+                <div class="chat-contact-avatar-host" id="chat-contact-avatar-host"></div>
+                <div>
+                    <p class="chat-contact-name" id="chat-contact-name">Unknown user</p>
+                    <p class="chat-contact-sub" id="chat-contact-sub">-</p>
                 </div>
+            </div>
+            <div class="chat-contact-grid">
+                <div class="chat-contact-row"><div class="chat-contact-key">User ID</div><div class="chat-contact-value" id="chat-contact-user-id">-</div></div>
+                <div class="chat-contact-row"><div class="chat-contact-key">Username</div><div class="chat-contact-value" id="chat-contact-username">-</div></div>
+                <div class="chat-contact-row"><div class="chat-contact-key">Email</div><div class="chat-contact-value" id="chat-contact-email">-</div></div>
+                <div class="chat-contact-row"><div class="chat-contact-key">Status</div><div class="chat-contact-value" id="chat-contact-status">Offline</div></div>
+                <div class="chat-contact-row"><div class="chat-contact-key">Conversation</div><div class="chat-contact-value" id="chat-contact-muted-state">Unmuted</div></div>
+                <div class="chat-contact-row"><div class="chat-contact-key">Last active</div><div class="chat-contact-value" id="chat-contact-last-active">No messages yet</div></div>
+                <div class="chat-contact-row"><div class="chat-contact-key">Last message</div><div class="chat-contact-value preview" id="chat-contact-last-message">No messages yet</div></div>
+                <div class="chat-contact-row"><div class="chat-contact-key">Unread</div><div class="chat-contact-value" id="chat-contact-unread">0</div></div>
+                <div class="chat-contact-row"><div class="chat-contact-key">Messages</div><div class="chat-contact-value" id="chat-contact-total">0</div></div>
+                <div class="chat-contact-row"><div class="chat-contact-key">Reportable</div><div class="chat-contact-value" id="chat-contact-reportable">0 messages</div></div>
+            </div>
+            <div class="chat-contact-actions">
+                <button type="button" class="chat-contact-action" id="chat-contact-mute">Mute conversation</button>
+                <button type="button" class="chat-contact-action danger" id="chat-contact-report-user">Report user</button>
+                <button type="button" class="chat-contact-action" id="chat-contact-close-secondary">Close</button>
             </div>
         </div>
     </div>
-    <!--! ================================================================ !-->
-    <!--! END: Calling Modal [Voice] !-->
-    <!--! ================================================================ !-->
-    <!--! ================================================================ !-->
-    <!--! BEGIN: Calling Modal [Video] !-->
-    <!--! ================================================================ !-->
-    <div class="modal fade calling-modal-screen" id="videoCallingModalScreen" data-bs-backdrop="static" aria-hidden="true" aria-labelledby="videoCallingModalScreen" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered modal-fullscreen" role="document">
-            <div class="modal-content">
-                <div class="h-100 d-flex aling-items-center justify-content-center">
-                    <div class="w-100 chat-calling-content">
-                        <!--! BEGIN: [chat-calling-info] !-->
-                        <div class="d-flex align-items-center justify-content-between px-4 py-3">
-                            <div class="d-flex align-items-center justify-content-center content-sub-header-left chat-calling-info">
-                                <div class="avatar-image me-3">
-                                    <img src="assets/images/avatar/10.png" class="img-fluid" alt="image">
-                                </div>
-                                <div>
-                                    <a href="javascript:void(0)" class="fs-13 fw-bold d-flex align-items-center">Erna Serpa</a>
-                                    <div class="text typing">
-                                        <div class="ringing active">
-                                            <div class="d-flex align-items-baseline">
-                                                <div class="fs-11 fw-semibold text-success">Contacting</div>
-                                                <div class="wave">
-                                                    <span class="dot"></span>
-                                                    <span class="dot"></span>
-                                                    <span class="dot"></span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="fs-12 fw-medium text-success timetracker">00:00:00</div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="d-flex align-items-center">
-                                <a href="javascript:void(0)" class="avatar-text avatar-md me-2 d-none d-lg-flex chat-message-sidebar-toggle" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Text Message"><i class="feather-message-circle fs-11"></i></a>
-                                <a href="javascript:void(0)" class="avatar-text avatar-md bg-soft-danger d-flex close-icon call-ended" data-bs-dismiss="modal" onClick="javascript:$('.timetracker').timetracker('reset');">
-                                    <i class="feather-x text-danger"></i>
-                                </a>
-                            </div>
-                        </div>
-                        <!--! END: [chat-calling-info] !-->
-                        <!--! BEGIN: [video-call-content] !-->
-                        <div class="d-flex align-items-end justify-content-start position-relative video-call-content">
-                            <video autoplay loop playsinline>
-                                <source src="assets/images/general/video_bg_1.mp4" type="video/mp4">
-                            </video>
-                            <div class="m-4 border border-5 rounded-3" style="z-index: 1">
-                                <img src="assets/images/avatar/10.png" class="img-fluid" alt="Image">
-                            </div>
-                        </div>
-                        <div class="p-4 gap-2 d-flex align-items-center justify-content-center calling-receiver-action">
-                            <a href="javascript:void(0)" class="btn btn-icon bg-white rounded-circle rounded-circle" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Mute Call"><i class="feather-mic-off fs-12"></i></a>
-                            <a href="javascript:void(0)" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Switch Voice">
-                                <span class="btn btn-icon bg-white rounded-circle rounded-circle" data-bs-target="#voiceCallingModalScreen" data-bs-toggle="modal" data-bs-dismiss="modal"><i class="feather-video-off fs-12"></i></span>
-                            </a>
-                            <a href="javascript:void(0)" class="btn btn-icon btn-success rounded-circle call-received" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Received Call" onClick="javascript:$('.timetracker').timetracker('start');"><i class="feather-phone-call fs-12"></i></a>
-                            <a href="javascript:void(0)" class="btn btn-icon btn-danger rounded-circle call-ended" data-bs-toggle="tooltip" data-bs-trigger="hover" title="End Call" data-bs-dismiss="modal" style="display: none" onClick="javascript:$('.timetracker').timetracker('reset');"><i class="feather-phone-off fs-12"></i></a>
-                            <a href="javascript:void(0)" class="btn btn-icon bg-white rounded-circle rounded-circle" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Add Calls"><i class="feather-plus fs-12"></i></a>
-                            <a href="javascript:void(0)" class="btn btn-icon bg-white rounded-circle rounded-circle" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Hold Call" onClick="javascript:$('.timetracker').timetracker('stop');"><i class="feather-pause fs-12"></i></a>
-                        </div>
-                        <!--! END: [video-call-content] !-->
-                    </div>
-                    <!--! BEGIN: [chat-calling-text-message-sidebar] !-->
-                    <div class="d-none d-lg-block chat-calling-text-message-sidebar active">
-                        <div class="p-4 fs-16 fw-bold text-dark border-bottom">In-call messages</div>
-                        <div class="d-flex flex-column position-relative in-call-messages-items" data-scrollbar-target="#psScrollbarInit">
-                            <div class="p-4 text-dark border-bottom single-item">
-                                <div class="w-100 d-flex align-items-start justify-content-between">
-                                    <div class="d-flex align-items-start">
-                                        <div class="avatar-image me-3">
-                                            <img src="assets/images/avatar/1.png" class="img-fluid" alt="image">
-                                        </div>
-                                        <div>
-                                            <a href="javascript:void(0)" class="fs-13 fw-bold d-flex align-items-center mb-1">Felix Luis Mateo</a>
-                                            <div class="fs-12 fw-normal text-muted text-truncate-2-line">Hello Erna!!! Welcome to Live Chat!!!</div>
-                                        </div>
-                                    </div>
-                                    <div class="dropdown ms-3">
-                                        <a href="javascript:void(0);" class="avatar-text avatar-sm" data-bs-toggle="dropdown">
-                                            <i class="feather-more-vertical"></i>
-                                        </a>
-                                        <ul class="dropdown-menu dropdown-menu-end">
-                                            <li>
-                                                <a href="javascript:void(0);" class="dropdown-item"><i class="feather-eye-off me-3"></i>Hide Message</a>
-                                            </li>
-                                            <li>
-                                                <a href="javascript:void(0);" class="dropdown-item"><i class="feather-trash-2 me-3"></i>Delete Message</a>
-                                            </li>
-                                            <li>
-                                                <a href="javascript:void(0);" class="dropdown-item"><i class="feather-alert-triangle me-3"></i>Report Message</a>
-                                            </li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="p-4 text-dark border-bottom single-item">
-                                <div class="w-100 d-flex align-items-start justify-content-between">
-                                    <div class="d-flex align-items-start">
-                                        <div class="avatar-image me-3">
-                                            <img src="assets/images/avatar/10.png" class="img-fluid" alt="image">
-                                        </div>
-                                        <div>
-                                            <a href="javascript:void(0)" class="fs-13 fw-bold d-flex align-items-center mb-1">Erna Serpa</a>
-                                            <div class="fs-12 fw-normal text-muted text-truncate-2-line">Hi, I wanted to check my order status.....</div>
-                                        </div>
-                                    </div>
-                                    <div class="dropdown ms-3">
-                                        <a href="javascript:void(0);" class="avatar-text avatar-sm" data-bs-toggle="dropdown">
-                                            <i class="feather-more-vertical"></i>
-                                        </a>
-                                        <ul class="dropdown-menu dropdown-menu-end">
-                                            <li>
-                                                <a href="javascript:void(0);" class="dropdown-item"><i class="feather-eye-off me-3"></i>Hide Message</a>
-                                            </li>
-                                            <li>
-                                                <a href="javascript:void(0);" class="dropdown-item"><i class="feather-trash-2 me-3"></i>Delete Message</a>
-                                            </li>
-                                            <li>
-                                                <a href="javascript:void(0);" class="dropdown-item"><i class="feather-alert-triangle me-3"></i>Report Message</a>
-                                            </li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="p-4 text-dark border-bottom single-item">
-                                <div class="w-100 d-flex align-items-start justify-content-between">
-                                    <div class="d-flex align-items-start">
-                                        <div class="avatar-image me-3">
-                                            <img src="assets/images/avatar/1.png" class="img-fluid" alt="image">
-                                        </div>
-                                        <div>
-                                            <a href="javascript:void(0)" class="fs-13 fw-bold d-flex align-items-center mb-1">Felix Luis Mateo</a>
-                                            <div class="fs-12 fw-normal text-muted text-truncate-2-line">Thanks for the information!!! Give me one moment please while I check on that for you.</div>
-                                        </div>
-                                    </div>
-                                    <div class="dropdown ms-3">
-                                        <a href="javascript:void(0);" class="avatar-text avatar-sm" data-bs-toggle="dropdown">
-                                            <i class="feather-more-vertical"></i>
-                                        </a>
-                                        <ul class="dropdown-menu dropdown-menu-end">
-                                            <li>
-                                                <a href="javascript:void(0);" class="dropdown-item"><i class="feather-eye-off me-3"></i>Hide Message</a>
-                                            </li>
-                                            <li>
-                                                <a href="javascript:void(0);" class="dropdown-item"><i class="feather-trash-2 me-3"></i>Delete Message</a>
-                                            </li>
-                                            <li>
-                                                <a href="javascript:void(0);" class="dropdown-item"><i class="feather-alert-triangle me-3"></i>Report Message</a>
-                                            </li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="p-4 text-dark border-bottom single-item">
-                                <div class="w-100 d-flex align-items-start justify-content-between">
-                                    <div class="d-flex align-items-start">
-                                        <div class="avatar-image me-3">
-                                            <img src="assets/images/avatar/10.png" class="img-fluid" alt="image">
-                                        </div>
-                                        <div>
-                                            <a href="javascript:void(0)" class="fs-13 fw-bold d-flex align-items-center mb-1">Erna Serpa</a>
-                                            <div class="fs-12 fw-normal text-muted text-truncate-2-line">Thanks. I'm worried it won't arrive in time for my daughter's birthday party this weekend.</div>
-                                        </div>
-                                    </div>
-                                    <div class="dropdown ms-3">
-                                        <a href="javascript:void(0);" class="avatar-text avatar-sm" data-bs-toggle="dropdown">
-                                            <i class="feather-more-vertical"></i>
-                                        </a>
-                                        <ul class="dropdown-menu dropdown-menu-end">
-                                            <li>
-                                                <a href="javascript:void(0);" class="dropdown-item"><i class="feather-eye-off me-3"></i>Hide Message</a>
-                                            </li>
-                                            <li>
-                                                <a href="javascript:void(0);" class="dropdown-item"><i class="feather-trash-2 me-3"></i>Delete Message</a>
-                                            </li>
-                                            <li>
-                                                <a href="javascript:void(0);" class="dropdown-item"><i class="feather-alert-triangle me-3"></i>Report Message</a>
-                                            </li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="p-4 text-dark border-bottom single-item">
-                                <div class="w-100 d-flex align-items-start justify-content-between">
-                                    <div class="d-flex align-items-start">
-                                        <div class="avatar-image me-3">
-                                            <img src="assets/images/avatar/1.png" class="img-fluid" alt="image">
-                                        </div>
-                                        <div>
-                                            <a href="javascript:void(0)" class="fs-13 fw-bold d-flex align-items-center mb-1">Felix Luis Mateo</a>
-                                            <div class="fs-12 fw-normal text-muted text-truncate-2-line">I understand your concern I wouldn't want my child's gift to arrive late either.</div>
-                                        </div>
-                                    </div>
-                                    <div class="dropdown ms-3">
-                                        <a href="javascript:void(0);" class="avatar-text avatar-sm" data-bs-toggle="dropdown">
-                                            <i class="feather-more-vertical"></i>
-                                        </a>
-                                        <ul class="dropdown-menu dropdown-menu-end">
-                                            <li>
-                                                <a href="javascript:void(0);" class="dropdown-item"><i class="feather-eye-off me-3"></i>Hide Message</a>
-                                            </li>
-                                            <li>
-                                                <a href="javascript:void(0);" class="dropdown-item"><i class="feather-trash-2 me-3"></i>Delete Message</a>
-                                            </li>
-                                            <li>
-                                                <a href="javascript:void(0);" class="dropdown-item"><i class="feather-alert-triangle me-3"></i>Report Message</a>
-                                            </li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="p-4 text-dark border-bottom single-item">
-                                <div class="w-100 d-flex align-items-start justify-content-between">
-                                    <div class="d-flex align-items-start">
-                                        <div class="avatar-image me-3">
-                                            <img src="assets/images/avatar/10.png" class="img-fluid" alt="image">
-                                        </div>
-                                        <div>
-                                            <a href="javascript:void(0)" class="fs-13 fw-bold d-flex align-items-center mb-1">Erna Serpa</a>
-                                            <div class="fs-12 fw-normal text-muted text-truncate-2-line">The birthday🎂 ceremony preparation almost completed</div>
-                                        </div>
-                                    </div>
-                                    <div class="dropdown ms-3">
-                                        <a href="javascript:void(0);" class="avatar-text avatar-sm" data-bs-toggle="dropdown">
-                                            <i class="feather-more-vertical"></i>
-                                        </a>
-                                        <ul class="dropdown-menu dropdown-menu-end">
-                                            <li>
-                                                <a href="javascript:void(0);" class="dropdown-item"><i class="feather-eye-off me-3"></i>Hide Message</a>
-                                            </li>
-                                            <li>
-                                                <a href="javascript:void(0);" class="dropdown-item"><i class="feather-trash-2 me-3"></i>Delete Message</a>
-                                            </li>
-                                            <li>
-                                                <a href="javascript:void(0);" class="dropdown-item"><i class="feather-alert-triangle me-3"></i>Report Message</a>
-                                            </li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="p-4 text-dark border-bottom single-item">
-                                <div class="w-100 d-flex align-items-start justify-content-between">
-                                    <div class="d-flex align-items-start">
-                                        <div class="avatar-image me-3">
-                                            <img src="assets/images/avatar/1.png" class="img-fluid" alt="image">
-                                        </div>
-                                        <div>
-                                            <a href="javascript:void(0)" class="fs-13 fw-bold d-flex align-items-center mb-1">Felix Luis Mateo</a>
-                                            <div class="fs-12 fw-normal text-muted text-truncate-2-line">I understand your concern......!!</div>
-                                        </div>
-                                    </div>
-                                    <div class="dropdown ms-3">
-                                        <a href="javascript:void(0);" class="avatar-text avatar-sm" data-bs-toggle="dropdown">
-                                            <i class="feather-more-vertical"></i>
-                                        </a>
-                                        <ul class="dropdown-menu dropdown-menu-end">
-                                            <li>
-                                                <a href="javascript:void(0);" class="dropdown-item"><i class="feather-eye-off me-3"></i>Hide Message</a>
-                                            </li>
-                                            <li>
-                                                <a href="javascript:void(0);" class="dropdown-item"><i class="feather-trash-2 me-3"></i>Delete Message</a>
-                                            </li>
-                                            <li>
-                                                <a href="javascript:void(0);" class="dropdown-item"><i class="feather-alert-triangle me-3"></i>Report Message</a>
-                                            </li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="p-4 text-dark single-item">
-                                <div class="w-100 d-flex align-items-start justify-content-between">
-                                    <div class="d-flex align-items-start">
-                                        <div class="avatar-image me-3">
-                                            <img src="assets/images/avatar/10.png" class="img-fluid" alt="image">
-                                        </div>
-                                        <div>
-                                            <a href="javascript:void(0)" class="fs-13 fw-bold d-flex align-items-center mb-1">Erna Serpa</a>
-                                            <div class="d-flex align-items-baseline text typing">
-                                                <div class="fs-11 text-success">Typing</div>
-                                                <div class="wave">
-                                                    <span class="dot"></span>
-                                                    <span class="dot"></span>
-                                                    <span class="dot"></span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="px-3 py-2 fs-16 fw-bold border-top">
-                            <input class="form-control border-0 emoji-picker" placeholder="Type your message here...">
-                        </div>
-                    </div>
-                    <!--! END: [chat-calling-text-message-sidebar] !-->
-                </div>
-            </div>
+</div>
+
+<div class="chat-report-overlay" id="chat-report-modal" aria-hidden="true">
+    <div class="chat-report-modal" role="dialog" aria-modal="true" aria-labelledby="chat-report-title">
+        <h6 class="chat-report-title" id="chat-report-title">Report message</h6>
+        <p class="chat-report-text">Tell us why you are reporting this message.</p>
+        <div class="chat-report-field">
+            <label for="chat-report-reason" class="chat-report-label">Reason</label>
+            <select id="chat-report-reason" class="chat-report-select">
+                <option value="Harassment or abusive language">Harassment or abusive language</option>
+                <option value="Spam or scam">Spam or scam</option>
+                <option value="Sexual content">Sexual content</option>
+                <option value="Hate speech">Hate speech</option>
+                <option value="Threat or violence">Threat or violence</option>
+                <option value="Other">Other</option>
+            </select>
+        </div>
+        <div class="chat-report-field">
+            <label for="chat-report-note" class="chat-report-label">Details (optional)</label>
+            <textarea id="chat-report-note" class="chat-report-note" maxlength="220" placeholder="Add short details to help moderation review."></textarea>
+        </div>
+        <div class="chat-report-actions">
+            <button type="button" class="chat-confirm-btn" id="chat-report-cancel">Cancel</button>
+            <button type="button" class="chat-confirm-btn danger" id="chat-report-ok">Continue</button>
         </div>
     </div>
-    <!--! ================================================================ !-->
-    <!--! END: Calling Modal Screen [Video] !-->
-    <!--! ================================================================ !-->
-    <!--! ================================================================ !-->
-    <!--! [Start] Search Modal !-->
-    <!--! ================================================================ !-->
-    <div class="modal fade-scale" id="searchModal" aria-hidden="true" tabindex="-1">
-        <div class="modal-dialog modal-lg modal-dialog-top modal-dialog-scrollable">
-            <div class="modal-content">
-                <div class="modal-header search-form py-0">
-                    <div class="input-group">
-                        <span class="input-group-text">
-                            <i class="feather-search fs-4 text-muted"></i>
-                        </span>
-                        <input type="text" class="form-control search-input-field" placeholder="Search...">
-                        <span class="input-group-text">
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </span>
-                    </div>
-                </div>
-                <div class="modal-body">
-                    <div class="searching-for mb-5">
-                        <h4 class="fs-13 fw-normal text-gray-600 mb-3">I'm searching for...</h4>
-                        <div class="row g-1">
-                            <div class="col-md-4 col-xl-2">
-                                <a href="javascript:void(0);" class="d-flex align-items-center gap-2 px-3 lh-lg border rounded-pill">
-                                    <i class="feather-compass"></i>
-                                    <span>Recent</span>
-                                </a>
-                            </div>
-                            <div class="col-md-4 col-xl-2">
-                                <a href="javascript:void(0);" class="d-flex align-items-center gap-2 px-3 lh-lg border rounded-pill">
-                                    <i class="feather-command"></i>
-                                    <span>Command</span>
-                                </a>
-                            </div>
-                            <div class="col-md-4 col-xl-2">
-                                <a href="javascript:void(0);" class="d-flex align-items-center gap-2 px-3 lh-lg border rounded-pill">
-                                    <i class="feather-users"></i>
-                                    <span>Peoples</span>
-                                </a>
-                            </div>
-                            <div class="col-md-4 col-xl-2">
-                                <a href="javascript:void(0);" class="d-flex align-items-center gap-2 px-3 lh-lg border rounded-pill">
-                                    <i class="feather-file"></i>
-                                    <span>Files</span>
-                                </a>
-                            </div>
-                            <div class="col-md-4 col-xl-2">
-                                <a href="javascript:void(0);" class="d-flex align-items-center gap-2 px-3 lh-lg border rounded-pill">
-                                    <i class="feather-video"></i>
-                                    <span>Medias</span>
-                                </a>
-                            </div>
-                            <div class="col-md-4 col-xl-2">
-                                <a href="javascript:void(0);" class="d-flex align-items-center gap-2 px-3 lh-lg border rounded-pill">
-                                    <span>More</span>
-                                    <i class="feather-chevron-down"></i>
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="recent-result mb-5">
-                        <h4 class="fs-13 fw-normal text-gray-600 mb-3">Recnet <span class="badge small bg-gray-200 rounded ms-1 text-dark">3</span></h4>
-                        <div class="d-flex align-items-center justify-content-between mb-4">
-                            <a href="javascript:void(0);" class="d-flex align-items-start gap-3">
-                                <i class="feather-airplay fs-5"></i>
-                                <div class="fs-13 fw-semibold">Overview Home redesign</div>
-                            </a>
-                            <a href="javascript:void(0);" class="badge border rounded text-dark">/<i class="feather-command ms-1"></i></a>
-                        </div>
-                        <div class="d-flex align-items-center justify-content-between mb-4">
-                            <a href="javascript:void(0);" class="d-flex align-items-start gap-3">
-                                <i class="feather-file-plus fs-5"></i>
-                                <div class="fs-13 fw-semibold">Create new eocument</div>
-                            </a>
-                            <a href="javascript:void(0);" class="badge border rounded text-dark">N /<i class="feather-command ms-1"></i></a>
-                        </div>
-                        <div class="d-flex align-items-center justify-content-between">
-                            <a href="javascript:void(0);" class="d-flex align-items-start gap-3">
-                                <i class="feather-user-plus fs-5"></i>
-                                <div class="fs-13 fw-semibold">Invite project colleagues</div>
-                            </a>
-                            <a href="javascript:void(0);" class="badge border rounded text-dark">P /<i class="feather-command ms-1"></i></a>
-                        </div>
-                    </div>
-                    <div class="command-result mb-5">
-                        <h4 class="fs-13 fw-normal text-gray-600 mb-3">Command <span class="badge small bg-gray-200 rounded ms-1 text-dark">5</span></h4>
-                        <div class="d-flex align-items-center justify-content-between mb-4">
-                            <a href="javascript:void(0);" class="d-flex align-items-start gap-3">
-                                <i class="feather-user fs-5"></i>
-                                <div class="fs-13 fw-semibold">My profile</div>
-                            </a>
-                            <a href="javascript:void(0);" class="badge border rounded text-dark">P /<i class="feather-command ms-1"></i></a>
-                        </div>
-                        <div class="d-flex align-items-center justify-content-between mb-4">
-                            <a href="javascript:void(0);" class="d-flex align-items-start gap-3">
-                                <i class="feather-users fs-5"></i>
-                                <div class="fs-13 fw-semibold">Team profile</div>
-                            </a>
-                            <a href="javascript:void(0);" class="badge border rounded text-dark">T /<i class="feather-command ms-1"></i></a>
-                        </div>
-                        <div class="d-flex align-items-center justify-content-between mb-4">
-                            <a href="javascript:void(0);" class="d-flex align-items-start gap-3">
-                                <i class="feather-user-plus fs-5"></i>
-                                <div class="fs-13 fw-semibold">Invite colleagues</div>
-                            </a>
-                            <a href="javascript:void(0);" class="badge border rounded text-dark">I /<i class="feather-command ms-1"></i></a>
-                        </div>
-                        <div class="d-flex align-items-center justify-content-between mb-4">
-                            <a href="javascript:void(0);" class="d-flex align-items-start gap-3">
-                                <i class="feather-briefcase fs-5"></i>
-                                <div class="fs-13 fw-semibold">Create new project</div>
-                            </a>
-                            <a href="javascript:void(0);" class="badge border rounded text-dark">CP /<i class="feather-command ms-1"></i></a>
-                        </div>
-                        <div class="d-flex align-items-center justify-content-between">
-                            <a href="javascript:void(0);" class="d-flex align-items-start gap-3">
-                                <i class="feather-life-buoy fs-5"></i>
-                                <div class="fs-13 fw-semibold">Support center</div>
-                            </a>
-                            <a href="javascript:void(0);" class="badge border rounded text-dark">SC /<i class="feather-command ms-1"></i></a>
-                        </div>
-                    </div>
-                    <div class="file-result mb-4">
-                        <h4 class="fs-13 fw-normal text-gray-600 mb-3">Files <span class="badge small bg-gray-200 rounded ms-1 text-dark">3</span></h4>
-                        <div class="d-flex align-items-center justify-content-between mb-4">
-                            <a href="javascript:void(0);" class="d-flex align-items-start gap-3">
-                                <i class="feather-folder-plus fs-5"></i>
-                                <div class="fs-13 fw-semibold">Overview Design Project <span class="fs-12 fw-normal text-muted">(56.74 MB)</span></div>
-                            </a>
-                            <a href="javascript:void(0);" class="file-download"><i class="feather-download"></i></a>
-                        </div>
-                        <div class="d-flex align-items-center justify-content-between mb-4">
-                            <a href="javascript:void(0);" class="d-flex align-items-start gap-3">
-                                <i class="feather-folder-plus fs-5"></i>
-                                <div class="fs-13 fw-semibold">Admin Dashboard Project <span class="fs-12 fw-normal text-muted">(46.83 MB)</span></div>
-                            </a>
-                            <a href="javascript:void(0);" class="file-download"><i class="feather-download"></i></a>
-                        </div>
-                        <div class="d-flex align-items-center justify-content-between">
-                            <a href="javascript:void(0);" class="d-flex align-items-start gap-3">
-                                <i class="feather-folder-plus fs-5"></i>
-                                <div class="fs-13 fw-semibold">Overview Home Project <span class="fs-12 fw-normal text-muted">(68.59 MB)</span></div>
-                            </a>
-                            <a href="javascript:void(0);" class="file-download"><i class="feather-download"></i></a>
-                        </div>
-                    </div>
-                </div>
-            </div>
+</div>
+
+<div class="chat-reactions-overlay" id="chat-reactions-modal" aria-hidden="true">
+    <div class="chat-reactions-modal" role="dialog" aria-modal="true" aria-labelledby="chat-reactions-title">
+        <div class="chat-reactions-head">
+            <h6 class="chat-reactions-title" id="chat-reactions-title">Reaction details</h6>
+            <button type="button" class="chat-reactions-close" id="chat-reactions-close" aria-label="Close">&times;</button>
         </div>
+        <div class="chat-reactions-tabs" id="chat-reactions-tabs"></div>
+        <div class="chat-reactions-list" id="chat-reactions-list"></div>
     </div>
-    <!--! ================================================================ !-->
-    <!--! [End] Search Modal !-->
-    <!--! ================================================================ !-->
-    <!--! ================================================================ !-->
- 
-    <!--! ================================================================ !-->
-    <!--! BEGIN: Downloading Toast !-->
-    <!--! ================================================================ !-->
-    <div class="position-fixed app-floating-corner">
-        <div id="toast" class="toast bg-black hide" data-bs-delay="3000" role="alert" aria-live="assertive" aria-atomic="true">
-            <div class="toast-header px-3 bg-transparent d-flex align-items-center justify-content-between border-bottom border-light border-opacity-10">
-                <div class="text-white mb-0 mr-auto">Downloading...</div>
-                <a href="javascript:void(0)" class="ms-2 mb-1 close fw-normal" data-bs-dismiss="toast" aria-label="Close">
-                    <span class="text-white">&times;</span>
-                </a>
+</div>
+
+<div class="chat-media-overlay" id="chat-media-modal" aria-hidden="true">
+    <div class="chat-media-modal" role="dialog" aria-modal="true" aria-labelledby="chat-media-title">
+        <div class="chat-media-head">
+            <div class="chat-media-head-left">
+                <h6 class="chat-media-title" id="chat-media-title">Image</h6>
+                <button type="button" class="chat-media-icon-btn chat-media-close" id="chat-media-close" aria-label="Close viewer">&times;</button>
             </div>
-            <div class="toast-body p-3 text-white">
-                <h6 class="fs-13 text-white">Project.zip</h6>
-                <span class="text-light fs-11">4.2mb of 5.5mb</span>
-            </div>
-            <div class="toast-footer p-3 pt-0 border-top border-light border-opacity-10">
-                <div class="progress mt-3 app-progress-thin">
-                    <div class="progress-bar progress-bar-striped progress-bar-animated w-75 bg-dark" role="progressbar" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100"></div>
-                </div>
+            <div class="chat-media-head-right">
+                <button type="button" class="chat-media-icon-btn" id="chat-media-download" aria-label="Download media" title="Download media">
+                    <svg class="chat-media-icon" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M12 4v10"></path>
+                        <path d="M8.5 10.5 12 14l3.5-3.5"></path>
+                        <path d="M4 18h16"></path>
+                    </svg>
+                </button>
             </div>
         </div>
+        <div class="chat-media-body" id="chat-media-body"></div>
     </div>
-    <!--! ================================================================ !-->
-    <!--! END: Downloading Toast !-->
-    <!--! ================================================================ !-->
-    <!--! ================================================================ !-->
-    <!--! BEGIN: Theme Customizer !-->
-    <!--! ================================================================ !-->
-    <div class="theme-customizer">
-        <div class="customizer-handle">
-            <a href="javascript:void(0);" class="cutomizer-open-trigger bg-primary">
-                <i class="feather-settings"></i>
-            </a>
-        </div>
-        <div class="customizer-sidebar-wrapper">
-            <div class="customizer-sidebar-header px-4 ht-80 border-bottom d-flex align-items-center justify-content-between">
-                <h5 class="mb-0">Theme Settings</h5>
-                <a href="javascript:void(0);" class="cutomizer-close-trigger d-flex">
-                    <i class="feather-x"></i>
-                </a>
-            </div>
-            <div class="customizer-sidebar-body position-relative p-4" data-scrollbar-target="#psScrollbarInit">
-                <!--! BEGIN: [Navigation] !-->
-                <div class="position-relative px-3 pb-3 pt-4 mt-3 mb-5 border border-gray-2 theme-options-set">
-                    <label class="py-1 px-2 fs-8 fw-bold text-uppercase text-muted text-spacing-2 bg-white border border-gray-2 position-absolute rounded-2 options-label app-options-label-offset">Navigation</label>
-                    <div class="row g-2 theme-options-items app-navigation" id="appNavigationList">
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-navigation-light" name="app-navigation" value="1" data-app-navigation="app-navigation-light" checked>
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-navigation-light">Light</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-navigation-dark" name="app-navigation" value="2" data-app-navigation="app-navigation-dark">
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-navigation-dark">Dark</label>
-                        </div>
-                    </div>
-                </div>
-                <!--! END: [Navigation] !-->
-                <!--! BEGIN: [Header] !-->
-                <div class="position-relative px-3 pb-3 pt-4 mt-3 mb-5 border border-gray-2 theme-options-set mt-5">
-                    <label class="py-1 px-2 fs-8 fw-bold text-uppercase text-muted text-spacing-2 bg-white border border-gray-2 position-absolute rounded-2 options-label app-options-label-offset">Header</label>
-                    <div class="row g-2 theme-options-items app-header" id="appHeaderList">
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-header-light" name="app-header" value="1" data-app-header="app-header-light" checked>
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-header-light">Light</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-header-dark" name="app-header" value="2" data-app-header="app-header-dark">
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-header-dark">Dark</label>
-                        </div>
-                    </div>
-                </div>
-                <!--! END: [Header] !-->
-                <!--! BEGIN: [Skins] !-->
-                <div class="position-relative px-3 pb-3 pt-4 mt-3 mb-5 border border-gray-2 theme-options-set">
-                    <label class="py-1 px-2 fs-8 fw-bold text-uppercase text-muted text-spacing-2 bg-white border border-gray-2 position-absolute rounded-2 options-label app-options-label-offset">Skins</label>
-                    <div class="row g-2 theme-options-items app-skin" id="appSkinList">
-                        <div class="col-6 text-center position-relative single-option light-button active">
-                            <input type="radio" class="btn-check" id="app-skin-light" name="app-skin" value="1" data-app-skin="app-skin-light">
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-skin-light">Light</label>
-                        </div>
-                        <div class="col-6 text-center position-relative single-option dark-button">
-                            <input type="radio" class="btn-check" id="app-skin-dark" name="app-skin" value="2" data-app-skin="app-skin-dark">
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-skin-dark">Dark</label>
-                        </div>
-                    </div>
-                </div>
-                <!--! END: [Skins] !-->
-                <!--! BEGIN: [Typography] !-->
-                <div class="position-relative px-3 pb-3 pt-4 mt-3 mb-0 border border-gray-2 theme-options-set">
-                    <label class="py-1 px-2 fs-8 fw-bold text-uppercase text-muted text-spacing-2 bg-white border border-gray-2 position-absolute rounded-2 options-label app-options-label-offset">Typography</label>
-                    <div class="row g-2 theme-options-items font-family" id="fontFamilyList">
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-lato" name="font-family" value="1" data-font-family="app-font-family-lato">
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-lato">Lato</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-rubik" name="font-family" value="2" data-font-family="app-font-family-rubik">
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-rubik">Rubik</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-inter" name="font-family" value="3" data-font-family="app-font-family-inter" checked>
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-inter">Inter</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-cinzel" name="font-family" value="4" data-font-family="app-font-family-cinzel">
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-cinzel">Cinzel</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-nunito" name="font-family" value="6" data-font-family="app-font-family-nunito">
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-nunito">Nunito</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-roboto" name="font-family" value="7" data-font-family="app-font-family-roboto">
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-roboto">Roboto</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-ubuntu" name="font-family" value="8" data-font-family="app-font-family-ubuntu">
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-ubuntu">Ubuntu</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-poppins" name="font-family" value="9" data-font-family="app-font-family-poppins">
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-poppins">Poppins</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-raleway" name="font-family" value="10" data-font-family="app-font-family-raleway">
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-raleway">Raleway</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-system-ui" name="font-family" value="11" data-font-family="app-font-family-system-ui">
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-system-ui">System UI</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-noto-sans" name="font-family" value="12" data-font-family="app-font-family-noto-sans">
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-noto-sans">Noto Sans</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-fira-sans" name="font-family" value="13" data-font-family="app-font-family-fira-sans">
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-fira-sans">Fira Sans</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-work-sans" name="font-family" value="14" data-font-family="app-font-family-work-sans">
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-work-sans">Work Sans</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-open-sans" name="font-family" value="15" data-font-family="app-font-family-open-sans">
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-open-sans">Open Sans</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-maven-pro" name="font-family" value="16" data-font-family="app-font-family-maven-pro">
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-maven-pro">Maven Pro</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-quicksand" name="font-family" value="17" data-font-family="app-font-family-quicksand">
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-quicksand">Quicksand</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-montserrat" name="font-family" value="18" data-font-family="app-font-family-montserrat">
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-montserrat">Montserrat</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-josefin-sans" name="font-family" value="19" data-font-family="app-font-family-josefin-sans">
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-josefin-sans">Josefin Sans</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-ibm-plex-sans" name="font-family" value="20" data-font-family="app-font-family-ibm-plex-sans">
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-ibm-plex-sans">IBM Plex Sans</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-source-sans-pro" name="font-family" value="5" data-font-family="app-font-family-source-sans-pro">
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-source-sans-pro">Source Sans Pro</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-montserrat-alt" name="font-family" value="21" data-font-family="app-font-family-montserrat-alt">
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-montserrat-alt">Montserrat Alt</label>
-                        </div>
-                        <div class="col-6 text-center single-option">
-                            <input type="radio" class="btn-check" id="app-font-family-roboto-slab" name="font-family" value="22" data-font-family="app-font-family-roboto-slab">
-                            <label class="py-2 fs-9 fw-bold text-dark text-uppercase text-spacing-1 border border-gray-2 w-100 h-100 c-pointer position-relative options-label" for="app-font-family-roboto-slab">Roboto Slab</label>
-                        </div>
-                    </div>
-                </div>
-                <!--! END: [Typography] !-->
-            </div>
-            <div class="customizer-sidebar-footer px-4 ht-60 border-top d-flex align-items-center gap-2">
-                <div class="flex-fill w-50">
-                    <a href="javascript:void(0);" class="btn btn-danger" data-style="reset-all-common-style">Reset</a>
-                </div>
-                <div class="flex-fill w-50">
-                    <a href="https://www.themewagon.com/themes/BioTern-admin" target="_blank" class="btn btn-primary">Download</a>
-                </div>
-            </div>
-        </div>
+</div>
+
+<div class="msg-action-menu" id="msg-action-menu" aria-hidden="true">
+    <div class="msg-action-emoji-row">
+        <?php foreach (chat_supported_reactions() as $reactionLabel => $reactionEmoji): ?>
+        <button type="button" class="msg-emoji-btn" data-emoji="<?php echo chat_esc($reactionEmoji); ?>" title="<?php echo chat_esc($reactionLabel); ?>"><?php echo chat_esc($reactionEmoji); ?></button>
+        <?php endforeach; ?>
     </div>
-
-    <!--! ================================================================ !-->
-    <!--! [End] Theme Customizer !-->
-    <!--! ================================================================ !-->
-    <!--! ================================================================ !-->
-    <!--! Footer Script !-->
-    <!--! ================================================================ !-->
-    <!--! BEGIN: Vendors JS !-->
-    <script src="assets/vendors/js/vendors.min.js"></script>
-    <!-- vendors.min.js {always must need to be top} -->
-    <script src="assets/vendors/js/time-tracker.min.js"></script>
-    <script src="assets/vendors/js/emojionearea.min.js"></script>
-    <!--! END: Vendors JS !-->
-    <!--! BEGIN: Apps Init  !-->
-    <script src="assets/js/common-init.min.js"></script>
-    <script src="assets/js/apps-chat-init.min.js"></script>
-    <!--! END: Apps Init !-->
-</body>
-
-</html>
+    <button type="button" class="msg-action-item" data-msg-action="reply">Reply</button>
+    <button type="button" class="msg-action-item" data-msg-action="pin">Pin message</button>
+    <button type="button" class="msg-action-item" data-msg-action="unsend">Unsend</button>
+    <button type="button" class="msg-action-item danger is-hidden" data-msg-action="remove">Remove</button>
+    <button type="button" class="msg-action-item danger" data-msg-action="report">Report</button>
+</div>
 
 
 
-
-
-
-
+<?php
+include 'includes/footer.php';
+$conn->close();
+?>
