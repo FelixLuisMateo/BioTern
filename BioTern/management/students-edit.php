@@ -1,18 +1,6 @@
 <?php
-// Database Connection
-$host = 'localhost';
-$db_user = 'root';
-$db_password = '';
-$db_name = 'biotern_db';
-
-try {
-    $conn = new mysqli($host, $db_user, $db_password, $db_name);
-    if ($conn->connect_error) {
-        die("Connection failed: " . $conn->connect_error);
-    }
-} catch (Exception $e) {
-    die("Database Error: " . $e->getMessage());
-}
+require_once dirname(__DIR__) . '/config/db.php';
+/** @var mysqli $conn */
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -119,6 +107,7 @@ $student = $result->fetch_assoc();
 
 // Fetch all courses for dropdown (be tolerant of differing schema columns)
 $courses = [];
+$db_name = defined('DB_NAME') ? (string)DB_NAME : 'biotern_db';
 $db_esc = $conn->real_escape_string($db_name);
 $has_is_active = false;
 $has_status_col = false;
@@ -541,7 +530,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         }
                     }
 
-                    $success_message = "ï¿½ Student information updated successfully!";
+                    $success_message = "Ã¯Â¿Â½ Student information updated successfully!";
                     // Refresh student data
                     $stmt = $conn->prepare($student_query);
                     $stmt->bind_param("i", $student_id);
@@ -577,12 +566,10 @@ function formatDateTime($date) {
 <?php
 $page_title = 'BioTern || Edit Student - ' . $student['first_name'] . ' ' . $student['last_name'];
 $page_styles = array(
-    'assets/vendors/css/datepicker.min.css',
     'assets/css/layout/page_shell.css',
     'assets/css/modules/management/management-students-shared.css',
     'assets/css/modules/management/management-students-edit.css',
 );
-$page_vendor_scripts = array('assets/vendors/js/datepicker.min.js');
 $page_scripts = array(
     'assets/js/modules/management/students-edit-runtime.js',
     'assets/js/theme-customizer-init.min.js',
@@ -598,7 +585,7 @@ include 'includes/header.php';
                         <h5 class="m-b-10">Edit Student</h5>
                     </div>
                     <ul class="breadcrumb">
-                        <li class="breadcrumb-item"><a href="index.php">Home</a></li>
+                        <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
                         <li class="breadcrumb-item"><a href="students.php">Students</a></li>
                         <li class="breadcrumb-item"><a href="students-view.php?id=<?php echo $student['id']; ?>">View</a></li>
                         <li class="breadcrumb-item">Edit</li>
@@ -940,6 +927,7 @@ include 'includes/header.php';
 <?php
 $conn->close();
 ?>
+
 
 
 

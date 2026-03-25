@@ -214,6 +214,61 @@ html.app-theme-gray .nav-tabs-custom-style .nav-link.active {
   color: var(--biotern-primary) !important;
 }
 
+/* Gray scheme: neutralize colored actions + blue-tinted panels */
+html.app-theme-gray .btn-primary,
+html.app-theme-gray .btn-success,
+html.app-theme-gray .btn-warning,
+html.app-theme-gray .btn-danger,
+html.app-theme-gray .btn-info {
+  background: var(--biotern-btn-bg) !important;
+  color: var(--biotern-btn-text) !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+html.app-theme-gray .btn-primary:hover,
+html.app-theme-gray .btn-success:hover,
+html.app-theme-gray .btn-warning:hover,
+html.app-theme-gray .btn-danger:hover,
+html.app-theme-gray .btn-info:hover,
+html.app-theme-gray .btn-primary:focus,
+html.app-theme-gray .btn-success:focus,
+html.app-theme-gray .btn-warning:focus,
+html.app-theme-gray .btn-danger:focus,
+html.app-theme-gray .btn-info:focus {
+  background: var(--biotern-btn-hover-bg) !important;
+  color: var(--biotern-btn-text) !important;
+}
+
+html.app-theme-gray .page-header,
+html.app-theme-gray .app-ojt-page-header,
+html.app-theme-gray .filter-panel,
+html.app-theme-gray .app-ojt-filter-panel {
+  background-color: var(--biotern-surface) !important;
+  background-image: none !important;
+  border-color: var(--biotern-border) !important;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06) !important;
+}
+
+html.app-theme-gray .page-header-right .btn,
+html.app-theme-gray .app-ojt-page-header-right .btn,
+html.app-theme-gray .filter-toggle-btn {
+  background: var(--biotern-btn-bg) !important;
+  border-color: transparent !important;
+  color: var(--biotern-btn-text) !important;
+  box-shadow: none !important;
+}
+
+html.app-theme-gray .page-header-right .btn:hover,
+html.app-theme-gray .app-ojt-page-header-right .btn:hover,
+html.app-theme-gray .filter-toggle-btn:hover,
+html.app-theme-gray .page-header-right .btn:focus,
+html.app-theme-gray .app-ojt-page-header-right .btn:focus,
+html.app-theme-gray .filter-toggle-btn:focus {
+  background: var(--biotern-btn-hover-bg) !important;
+  color: var(--biotern-btn-text) !important;
+}
+
 html.app-theme-gray .page-link.active,
 html.app-theme-gray .pagination .active > .page-link,
 html.app-theme-gray .dropdown-item.active,
@@ -416,6 +471,82 @@ html.app-theme-gray .students-action-dropdown > a.portal-open {
 html.app-theme-gray .app-students-filter-form input[type="date"].form-control:focus {
   border-color: var(--biotern-primary) !important;
   box-shadow: 0 0 0 0.2rem rgba(var(--bs-primary-rgb), 0.2) !important;
+}
+
+/* Gray scheme: neutral checkbox + toggle accents */
+html.app-theme-gray .form-check-input:checked,
+html.app-theme-gray .form-check-input:indeterminate {
+  background-color: var(--biotern-primary) !important;
+  border-color: var(--biotern-primary) !important;
+}
+
+html.app-theme-gray input[type="checkbox"],
+html.app-theme-gray input[type="radio"] {
+  accent-color: var(--biotern-primary);
+}
+
+html.app-theme-gray .form-check-input:focus {
+  border-color: var(--biotern-primary) !important;
+  box-shadow: 0 0 0 0.2rem rgba(var(--bs-primary-rgb), 0.2) !important;
+}
+
+html.app-theme-gray .custom-checkbox .custom-control-label::before,
+html.app-theme-gray .custom-control-input ~ .custom-control-label::before {
+  background-color: var(--biotern-surface) !important;
+  border-color: var(--biotern-border) !important;
+}
+
+html.app-theme-gray .custom-control-input:checked ~ .custom-control-label::before {
+  background-color: var(--biotern-primary) !important;
+  border-color: var(--biotern-primary) !important;
+}
+
+html.app-theme-gray .custom-control-input:focus ~ .custom-control-label::before {
+  box-shadow: 0 0 0 0.2rem rgba(var(--bs-primary-rgb), 0.2) !important;
+  border-color: var(--biotern-primary) !important;
+}
+
+/* Gray scheme: neutralize blue-tinted header + student filter accents */
+html.app-theme-gray .page-header,
+html.app-theme-gray .page-header-collapse,
+html.app-theme-gray .page-header-collapse .accordion-body {
+  background-image: none !important;
+}
+
+html.app-theme-gray .page-header-collapse .accordion-body {
+  background-color: var(--biotern-surface) !important;
+  border-bottom-color: var(--biotern-border) !important;
+}
+
+html.app-theme-gray .avatar-text {
+  background-color: var(--biotern-surface-muted) !important;
+  border-color: var(--biotern-border) !important;
+  color: var(--biotern-primary-soft-text) !important;
+}
+
+html.app-theme-gray .avatar-text i {
+  color: inherit !important;
+}
+
+html.app-theme-gray.app-skin-dark .filter-panel-head {
+  border-bottom-color: var(--biotern-border) !important;
+}
+
+html.app-theme-gray.app-skin-dark .filter-panel-label {
+  color: #e5e7eb !important;
+}
+
+html.app-theme-gray.app-skin-dark .filter-toggle-btn {
+  background-color: var(--biotern-surface-muted) !important;
+  color: #e5e7eb !important;
+  border-color: var(--biotern-border) !important;
+}
+
+html.app-theme-gray.app-skin-dark .filter-toggle-btn:hover,
+html.app-theme-gray.app-skin-dark .filter-toggle-btn:focus {
+  background-color: var(--biotern-primary-soft) !important;
+  color: var(--biotern-primary-soft-text) !important;
+  border-color: var(--biotern-border) !important;
 }
 
 /* Gray scheme: footer surfaces and links (shared + landing). */

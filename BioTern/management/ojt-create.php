@@ -1,5 +1,6 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
+/** @var mysqli $conn */
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -10,16 +11,6 @@ if (file_exists($ops_helpers)) {
     if (function_exists('require_roles_page')) {
         require_roles_page(['admin', 'coordinator', 'supervisor']);
     }
-}
-
-$host = defined('DB_HOST') ? DB_HOST : 'localhost';
-$db_user = defined('DB_USER') ? DB_USER : 'root';
-$db_password = defined('DB_PASS') ? DB_PASS : '';
-$db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
-
-$conn = new mysqli($host, $db_user, $db_password, $db_name);
-if ($conn->connect_error) {
-    die('Connection failed: ' . $conn->connect_error);
 }
 
 if (!function_exists('ojt_create_table_exists')) {
@@ -495,7 +486,7 @@ include 'includes/header.php';
             <h5 class="m-b-10">Create OJT Assignment</h5>
         </div>
         <ul class="breadcrumb">
-            <li class="breadcrumb-item"><a href="index.php">Home</a></li>
+            <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
             <li class="breadcrumb-item"><a href="ojt.php">OJT</a></li>
             <li class="breadcrumb-item">Create</li>
         </ul>
@@ -712,6 +703,7 @@ include 'includes/header.php';
 include 'includes/footer.php';
 $conn->close();
 ?>
+
 
 
 

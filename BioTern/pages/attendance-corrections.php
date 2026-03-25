@@ -1,16 +1,20 @@
 <?php
+require_once dirname(__DIR__) . '/config/db.php';
+/** @var mysqli $conn */
 require_once dirname(__DIR__) . '/lib/ops_helpers.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 require_roles_page(['admin', 'coordinator', 'supervisor']);
 
-$conn = new mysqli('localhost', 'root', '', 'biotern_db');
-if ($conn->connect_error) {
-    die("DB connection failed");
+if (!isset($conn) || !($conn instanceof mysqli) || $conn->connect_errno) {
+    http_response_code(500);
+    die('Database connection is not available.');
 }
+/** @var mysqli $db */
+$db = $conn;
 
-if (!table_exists($conn, 'attendance_correction_requests')) {
+if (!table_exists($db, 'attendance_correction_requests')) {
     die('Run db_updates_operations.sql first.');
 }
 
@@ -22,7 +26,7 @@ $query = "
     ORDER BY r.created_at DESC
     LIMIT 100
 ";
-$res = $conn->query($query);
+$res = $db->query($query);
 $rows = [];
 if ($res) {
     while ($r = $res->fetch_assoc()) {
@@ -48,9 +52,33 @@ include 'includes/header.php';
                         <h5 class="m-b-10">Attendance Corrections</h5>
                     </div>
                     <ul class="breadcrumb">
-                        <li class="breadcrumb-item"><a href="index.php">Home</a></li>
+                        <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
                         <li class="breadcrumb-item">Attendance Corrections</li>
                     </ul>
+                </div>
+                <div class="page-header-right ms-auto">
+                    <div class="d-flex d-md-none align-items-center">
+                        <button type="button" class="btn btn-light-brand page-header-actions-toggle" data-bs-toggle="collapse" data-bs-target="#attendanceCorrectionsActionsCollapse" aria-expanded="false" aria-controls="attendanceCorrectionsActionsCollapse">
+                            <i class="feather-align-right me-2"></i>
+                            <span>Actions</span>
+                        </button>
+                    </div>
+                    <div class="page-header-right-items collapse d-md-flex" id="attendanceCorrectionsActionsCollapse">
+                        <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
+                            <a href="attendance.php" class="btn btn-light-brand">
+                                <i class="feather-calendar me-1"></i>
+                                <span>Attendance DTR</span>
+                            </a>
+                            <a href="homepage.php" class="btn btn-outline-secondary">
+                                <i class="feather-home me-1"></i>
+                                <span>Dashboard</span>
+                            </a>
+                            <button type="button" class="btn btn-light" data-action="print-page">
+                                <i class="feather-printer me-1"></i>
+                                <span>Print</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -95,8 +123,6 @@ include 'includes/header.php';
 </div> <!-- .nxl-content -->
 </main>
 <?php include 'includes/footer.php'; ?>
-
-
 
 
 

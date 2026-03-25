@@ -7,12 +7,6 @@ require_once dirname(__DIR__) . '/config/db.php';
 
 require_once dirname(__DIR__) . '/vendor/autoload.php';
 
-$dbHost = defined('DB_HOST') ? DB_HOST : '127.0.0.1';
-$dbUser = defined('DB_USER') ? DB_USER : 'root';
-$dbPass = defined('DB_PASS') ? DB_PASS : '';
-$dbName = defined('DB_NAME') ? DB_NAME : 'biotern_db';
-$dbPort = defined('DB_PORT') ? (int)DB_PORT : 3306;
-
 $reset_message = '';
 $reset_error = '';
 $identifier_value = '';
@@ -174,7 +168,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['identifier'])) {
     if ($identifier === '') {
         $reset_error = 'Please provide your email or username.';
     } else {
-        $mysqli = new mysqli($dbHost, $dbUser, $dbPass, $dbName, $dbPort);
+        $mysqli = $conn;
         if ($mysqli->connect_errno) {
             $reset_error = 'Database connection failed.';
         } else {
@@ -207,8 +201,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['identifier'])) {
                         . ($errorRef !== '' ? ' (Ref: ' . $errorRef . ')' : '');
                 }
             }
-
-            $mysqli->close();
         }
     }
 }
@@ -228,7 +220,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['identifier'])) {
     <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/js/theme-preload-init.min.js"></script>
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/vendors/css/vendors.min.css">
-    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/theme.min.css">
+    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/smacss.css">
 </head>
 
 <body>

@@ -1,5 +1,6 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
+/** @var mysqli $conn */
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -11,15 +12,6 @@ if (file_exists($ops_helpers)) {
     }
 }
 
-$host = defined('DB_HOST') ? DB_HOST : 'localhost';
-$db_user = defined('DB_USER') ? DB_USER : 'root';
-$db_password = defined('DB_PASS') ? DB_PASS : '';
-$db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
-
-$conn = new mysqli($host, $db_user, $db_password, $db_name);
-if ($conn->connect_error) {
-    die('Connection failed: ' . $conn->connect_error);
-}
 $current_user_id = intval($_SESSION['user_id'] ?? 0);
 $current_user_name = trim((string)($_SESSION['name'] ?? $_SESSION['username'] ?? 'BioTern User'));
 $current_user_email = trim((string)($_SESSION['email'] ?? 'admin@biotern.local'));
@@ -450,23 +442,36 @@ include 'includes/header.php';
             <div class="page-header-left app-ojt-page-header-left d-flex align-items-center">
                 <div class="page-header-title">
                     <h5 class="m-b-10">Biometric Internship Monitoring Dashboard</h5>
-                    <div class="page-subtitle app-ojt-page-subtitle">Clark College of Science and Technology</div>
                 </div>
+                <ul class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
+                    <li class="breadcrumb-item">OJT Dashboard</li>
+                </ul>
             </div>
-            <div class="page-header-right app-ojt-page-header-right ms-auto d-flex gap-2">
-                <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#kpiPanel" aria-expanded="false" aria-controls="kpiPanel">
-                    <i class="feather-bar-chart-2 me-1"></i>Metrics Summary
-                </button>
-                <button class="btn filter-toggle-btn" type="button" data-bs-toggle="collapse" data-bs-target="#ojtFilterCollapse" aria-expanded="false" aria-controls="ojtFilterCollapse">
-                    <i class="feather-filter me-1"></i>Filters
-                </button>
-                <a href="ojt-workflow-board.php" class="btn btn-outline-primary"><i class="feather-kanban me-1"></i>Workflow Board</a>
-                <a href="ojt.php?<?php echo http_build_query(array_merge($_GET, ['export' => 'csv'])); ?>" class="btn btn-light"><i class="feather-download me-1"></i>Export CSV Report</a>
-                <button type="button" class="btn btn-light" id="ojtPrintBtn"><i class="feather-printer me-1"></i>Print List</button>
-                <form method="post" class="d-inline">
-                    <button type="submit" name="queue_reminders" value="1" class="btn btn-warning"><i class="feather-bell me-1"></i>Queue Risk Reminders</button>
-                </form>
-                <a href="ojt-create.php" class="btn btn-primary"><i class="feather-plus me-1"></i>New OJT Assignment</a>
+            <div class="page-header-right app-ojt-page-header-right ms-auto app-ojt-header-actions">
+                <div class="d-flex d-md-none align-items-center">
+                    <button type="button" class="btn btn-light-brand app-ojt-actions-toggle" data-bs-toggle="collapse" data-bs-target="#ojtActionsCollapse" aria-expanded="false" aria-controls="ojtActionsCollapse">
+                        <i class="feather-align-right me-2"></i>
+                        <span>Actions</span>
+                    </button>
+                </div>
+                <div class="page-header-right-items collapse d-md-flex app-ojt-actions-panel" id="ojtActionsCollapse">
+                    <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
+                        <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#kpiPanel" aria-expanded="false" aria-controls="kpiPanel">
+                            <i class="feather-bar-chart-2 me-1"></i>Metrics Summary
+                        </button>
+                        <button class="btn filter-toggle-btn" type="button" data-bs-toggle="collapse" data-bs-target="#ojtFilterCollapse" aria-expanded="false" aria-controls="ojtFilterCollapse">
+                            <i class="feather-filter me-1"></i>Filters
+                        </button>
+                        <a href="ojt-workflow-board.php" class="btn btn-outline-primary"><i class="feather-kanban me-1"></i>Workflow Board</a>
+                        <a href="ojt.php?<?php echo http_build_query(array_merge($_GET, ['export' => 'csv'])); ?>" class="btn btn-light"><i class="feather-download me-1"></i>Export CSV Report</a>
+                        <button type="button" class="btn btn-light" id="ojtPrintBtn"><i class="feather-printer me-1"></i>Print List</button>
+                        <form method="post" class="d-inline">
+                            <button type="submit" name="queue_reminders" value="1" class="btn btn-warning"><i class="feather-bell me-1"></i>Queue Risk Reminders</button>
+                        </form>
+                        <a href="ojt-create.php" class="btn btn-primary"><i class="feather-plus me-1"></i>New OJT Assignment</a>
+                    </div>
+                </div>
             </div>
         </div>
         <?php if (isset($_GET['queued'])): ?>
@@ -550,9 +555,9 @@ include 'includes/header.php';
             </div>
         </div>
 
-        <div class="card app-ojt-dashboard-card stretch stretch-full">
+        <div class="card app-ojt-dashboard-card stretch stretch-full app-ojt-table-card">
             <div class="card-body p-0">
-                <div class="table-responsive">
+                <div class="table-responsive students-table-wrap app-ojt-table-wrap">
                     <table class="table table-hover mb-0 app-ojt-list-table" id="ojtListTable">
                         <thead>
                         <tr>
@@ -632,12 +637,105 @@ include 'includes/header.php';
                         </tbody>
                     </table>
                 </div>
+                <div class="app-ojt-mobile-list">
+                    <?php if (!$rows): ?>
+                        <div class="app-ojt-mobile-empty text-muted">No records found.</div>
+                    <?php else: ?>
+                        <?php foreach ($rows as $index => $r): ?>
+                            <?php
+                            $profile = trim((string)($r['profile_picture'] ?? ''));
+                            $img = 'assets/images/avatar/' . (($index % 5) + 1) . '.png';
+                            $profile_url = resolve_profile_image_url($profile);
+                            if ($profile_url !== null) {
+                                $img = $profile_url;
+                            }
+                            $required = (float)($r['required_hours'] ?? 0);
+                            $rendered = (float)($r['rendered_hours'] ?? 0);
+                            if ($rendered <= 0) $rendered = (float)($r['attendance_total_hours'] ?? 0);
+                            $stage = (string)($r['stage'] ?? 'Applied');
+                            $summary_status_class = 'status-pending';
+                            if ($stage === 'Completed') {
+                                $summary_status_class = 'status-complete';
+                            } elseif ($stage === 'Ongoing') {
+                                $summary_status_class = 'status-active';
+                            } elseif ($stage === 'Accepted' || $stage === 'Endorsed') {
+                                $summary_status_class = 'status-review';
+                            }
+                            ?>
+                            <details class="app-ojt-mobile-item">
+                                <summary class="app-ojt-mobile-summary">
+                                    <div class="app-ojt-mobile-summary-main">
+                                        <div class="avatar-image avatar-md">
+                                            <img src="<?php echo htmlspecialchars($img); ?>" alt="" class="img-fluid">
+                                        </div>
+                                        <div class="app-ojt-mobile-summary-text">
+                                            <span class="app-ojt-mobile-name"><?php echo htmlspecialchars(trim(($r['first_name'] ?? '') . ' ' . ($r['last_name'] ?? ''))); ?></span>
+                                            <span class="app-ojt-mobile-subtext">ID: <?php echo htmlspecialchars((string)($r['student_id'] ?? '')); ?> &middot; <?php echo htmlspecialchars((string)($r['course_name'] ?? '-')); ?></span>
+                                        </div>
+                                    </div>
+                                    <span class="app-ojt-mobile-status-dot <?php echo htmlspecialchars($summary_status_class); ?>" aria-hidden="true"></span>
+                                </summary>
+                                <div class="app-ojt-mobile-details">
+                                    <div class="app-ojt-mobile-row">
+                                        <span class="app-ojt-mobile-label">Section</span>
+                                        <span class="app-ojt-mobile-value"><?php echo htmlspecialchars((string)($r['section_name'] ?? '-')); ?></span>
+                                    </div>
+                                    <div class="app-ojt-mobile-row">
+                                        <span class="app-ojt-mobile-label">Pipeline</span>
+                                        <span class="app-ojt-mobile-value"><span class="badge <?php echo stage_badge_class($stage); ?>"><?php echo htmlspecialchars($stage); ?></span></span>
+                                    </div>
+                                    <div class="app-ojt-mobile-row">
+                                        <span class="app-ojt-mobile-label">Last Biometric</span>
+                                        <span class="app-ojt-mobile-value"><?php echo htmlspecialchars((string)($r['last_attendance_date'] ?: 'none')); ?></span>
+                                    </div>
+                                    <div class="app-ojt-mobile-row app-ojt-mobile-row-stack">
+                                        <span class="app-ojt-mobile-label">Document Progress</span>
+                                        <span class="app-ojt-mobile-value">
+                                            <span class="app-ojt-chip-stack">
+                                                <span class="chip app-ojt-chip <?php echo !empty($r['has_application']) ? 'ok app-ojt-chip-ok' : 'miss app-ojt-chip-miss'; ?>">Application (<?php echo htmlspecialchars($r['wf_application'] ?: 'draft'); ?>)</span>
+                                                <span class="chip app-ojt-chip <?php echo !empty($r['has_endorsement']) ? 'ok app-ojt-chip-ok' : 'miss app-ojt-chip-miss'; ?>">Endorsement (<?php echo htmlspecialchars($r['wf_endorsement'] ?: 'draft'); ?>)</span>
+                                                <span class="chip app-ojt-chip <?php echo !empty($r['has_moa']) ? 'ok app-ojt-chip-ok' : 'miss app-ojt-chip-miss'; ?>">MOA (<?php echo htmlspecialchars($r['wf_moa'] ?: 'draft'); ?>)</span>
+                                                <span class="chip app-ojt-chip <?php echo !empty($r['has_dau_moa']) ? 'ok app-ojt-chip-ok' : 'miss app-ojt-chip-miss'; ?>">DAU MOA (<?php echo htmlspecialchars($r['wf_dau_moa'] ?: 'draft'); ?>)</span>
+                                            </span>
+                                        </span>
+                                    </div>
+                                    <div class="app-ojt-mobile-row">
+                                        <span class="app-ojt-mobile-label">Hours</span>
+                                        <span class="app-ojt-mobile-value"><?php echo number_format($rendered, 1); ?> / <?php echo number_format($required, 1); ?> (<?php echo (float)$r['progress_pct']; ?>%)</span>
+                                    </div>
+                                    <div class="app-ojt-mobile-row app-ojt-mobile-row-stack">
+                                        <span class="app-ojt-mobile-label">Risk</span>
+                                        <span class="app-ojt-mobile-value">
+                                            <?php if (empty($r['risk_flags'])): ?>
+                                                <span class="text-success fs-12">No critical flags</span>
+                                            <?php else: ?>
+                                                <span class="app-ojt-risk-stack">
+                                                    <?php foreach ($r['risk_flags'] as $rf): ?><span class="risk-pill app-ojt-risk-pill"><?php echo htmlspecialchars($rf); ?></span><?php endforeach; ?>
+                                                </span>
+                                            <?php endif; ?>
+                                        </span>
+                                    </div>
+                                    <div class="app-ojt-mobile-row">
+                                        <span class="app-ojt-mobile-label">Risk Score</span>
+                                        <span class="app-ojt-mobile-value"><span class="badge bg-soft-danger text-danger"><?php echo intval($r['risk_score'] ?? 0); ?></span></span>
+                                    </div>
+                                    <div class="app-ojt-mobile-actions">
+                                        <a class="btn btn-sm btn-light" href="ojt-view.php?id=<?php echo (int)$r['id']; ?>">View</a>
+                                        <a class="btn btn-sm btn-outline-primary" href="ojt-edit.php?id=<?php echo (int)$r['id']; ?>">Edit</a>
+                                        <a class="btn btn-sm btn-outline-success" href="students-dtr.php?id=<?php echo (int)$r['id']; ?>">DTR</a>
+                                    </div>
+                                </div>
+                            </details>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </div>
             </div>
         </div>
     </div>
 </main>
 <?php include 'includes/footer.php'; ?>
 <?php $conn->close(); ?>
+
 
 
 

@@ -44,6 +44,7 @@ $merged = array_merge($existing, array_intersect_key($payload, [
     'navigation' => true,
     'header' => true,
     'scheme' => true,
+    'surfaces' => true,
 ]));
 $saved = biotern_save_theme_preferences($merged);
 

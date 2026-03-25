@@ -1,0 +1,198 @@
+/* SMACSS Module: unified button styling */
+:root {
+  --biotern-btn-radius: 10px;
+  --biotern-btn-font-size: 0.82rem;
+  --biotern-btn-min-height: 38px;
+  --biotern-btn-pad-y: 0.5rem;
+  --biotern-btn-pad-x: 0.9rem;
+  --biotern-btn-bg: rgba(15, 23, 42, 0.08);
+  --biotern-btn-hover-bg: rgba(15, 23, 42, 0.14);
+  --biotern-btn-active-bg: rgba(15, 23, 42, 0.18);
+  --biotern-btn-text: #1f2937;
+  --biotern-btn-shadow: 0 10px 20px rgba(15, 23, 42, 0.12);
+}
+
+html.app-skin-dark {
+  --biotern-btn-bg: rgba(255, 255, 255, 0.06);
+  --biotern-btn-hover-bg: rgba(255, 255, 255, 0.12);
+  --biotern-btn-active-bg: rgba(255, 255, 255, 0.16);
+  --biotern-btn-text: #f8fafc;
+  --biotern-btn-shadow: 0 12px 24px rgba(0, 0, 0, 0.35);
+}
+
+body .btn:not(.btn-link):not(.btn-close) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: var(--biotern-btn-min-height);
+  padding: var(--biotern-btn-pad-y) var(--biotern-btn-pad-x);
+  border-radius: var(--biotern-btn-radius);
+  border: 1px solid transparent;
+  background: var(--biotern-btn-bg);
+  color: var(--biotern-btn-text);
+  font-weight: 600;
+  font-size: var(--biotern-btn-font-size);
+  letter-spacing: 0;
+  text-transform: none !important;
+  line-height: 1;
+  box-shadow: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+body .btn.btn-sm:not(.btn-link):not(.btn-close) {
+  min-height: 32px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.76rem;
+}
+
+body .btn.btn-lg:not(.btn-link):not(.btn-close) {
+  min-height: 46px;
+  padding: 0.65rem 1.15rem;
+  font-size: 0.9rem;
+}
+
+body .btn:not(.btn-link):not(.btn-close):hover,
+body .btn:not(.btn-link):not(.btn-close):focus {
+  background: var(--biotern-btn-hover-bg);
+  color: var(--biotern-btn-text);
+  box-shadow: var(--biotern-btn-shadow);
+}
+
+body .btn:not(.btn-link):not(.btn-close):active {
+  background: var(--biotern-btn-active-bg);
+  color: var(--biotern-btn-text);
+  box-shadow: none;
+  transform: translateY(1px);
+}
+
+body .btn-primary {
+  background: rgba(var(--bs-primary-rgb), 0.9);
+  color: var(--biotern-primary-contrast, #ffffff);
+  border-color: transparent;
+}
+
+body .btn-primary:hover,
+body .btn-primary:focus {
+  background: rgba(var(--bs-primary-rgb), 1);
+}
+
+body .btn-success {
+  background: rgba(var(--bs-success-rgb, 25, 135, 84), 0.9);
+  color: #ffffff;
+  border-color: transparent;
+}
+
+body .btn-success:hover,
+body .btn-success:focus {
+  background: rgba(var(--bs-success-rgb, 25, 135, 84), 1);
+}
+
+body .btn-warning {
+  background: rgba(var(--bs-warning-rgb, 255, 193, 7), 0.9);
+  color: #111827;
+  border-color: transparent;
+}
+
+body .btn-warning:hover,
+body .btn-warning:focus {
+  background: rgba(var(--bs-warning-rgb, 255, 193, 7), 1);
+}
+
+body .btn-danger {
+  background: rgba(var(--bs-danger-rgb, 220, 53, 69), 0.9);
+  color: #ffffff;
+  border-color: transparent;
+}
+
+body .btn-danger:hover,
+body .btn-danger:focus {
+  background: rgba(var(--bs-danger-rgb, 220, 53, 69), 1);
+}
+
+body .btn-info {
+  background: rgba(var(--bs-info-rgb, 13, 202, 240), 0.9);
+  color: #0f172a;
+  border-color: transparent;
+}
+
+body .btn-info:hover,
+body .btn-info:focus {
+  background: rgba(var(--bs-info-rgb, 13, 202, 240), 1);
+}
+
+body .btn-outline-primary,
+body .btn-outline-secondary,
+body .btn-outline-success,
+body .btn-outline-danger,
+body .btn-outline-warning,
+body .btn-outline-info,
+body .btn-outline-dark,
+body .btn-outline-light,
+body .btn-light,
+body .btn-secondary,
+body .btn-light-brand {
+  background: var(--biotern-btn-bg);
+  border-color: transparent !important;
+  color: var(--biotern-btn-text);
+  box-shadow: none;
+}
+
+body .btn-outline-primary {
+  color: var(--bs-primary);
+}
+
+body .btn-outline-secondary {
+  color: var(--bs-secondary);
+}
+
+body .btn-outline-success {
+  color: rgb(var(--bs-success-rgb, 25, 135, 84));
+}
+
+body .btn-outline-danger {
+  color: rgb(var(--bs-danger-rgb, 220, 53, 69));
+}
+
+body .btn-outline-warning {
+  color: rgb(var(--bs-warning-rgb, 255, 193, 7));
+}
+
+body .btn-outline-info {
+  color: rgb(var(--bs-info-rgb, 13, 202, 240));
+}
+
+body .btn-outline-light {
+  color: var(--biotern-btn-text);
+}
+
+body .btn-outline-dark {
+  color: #111827;
+}
+
+body .action-tile {
+  border-radius: var(--biotern-btn-radius);
+  border: 1px solid transparent;
+  background: var(--biotern-btn-bg);
+  color: var(--biotern-btn-text);
+  box-shadow: none;
+  font-size: var(--biotern-btn-font-size);
+  text-transform: none !important;
+  letter-spacing: 0;
+}
+
+body .action-tile:hover {
+  background: var(--biotern-btn-hover-bg);
+  color: var(--biotern-btn-text);
+  box-shadow: var(--biotern-btn-shadow);
+}
+
+body .action-tile-primary {
+  background: rgba(var(--bs-primary-rgb), 0.9);
+  color: var(--biotern-primary-contrast, #ffffff);
+}
+
+body .action-tile-primary:hover {
+  background: rgba(var(--bs-primary-rgb), 1);
+  color: var(--biotern-primary-contrast, #ffffff);
+}

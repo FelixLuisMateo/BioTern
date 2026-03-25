@@ -41,11 +41,12 @@
   }
 
   function initDateField() {
-    if (window.jQuery && $("#date_of_birth").length && $.fn.datepicker) {
-      $("#date_of_birth").datepicker({
-        format: "yyyy-mm-dd",
-        autoclose: true,
-      });
+    if (
+      window.AppCore &&
+      window.AppCore.DatePicker &&
+      typeof window.AppCore.DatePicker.refresh === "function"
+    ) {
+      window.AppCore.DatePicker.refresh(document.getElementById("editStudentForm"));
     }
   }
 

@@ -1,20 +1,9 @@
 <?php
-$host = 'localhost';
-$db_user = 'root';
-$db_password = '';
-$db_name = 'biotern_db';
+require_once dirname(__DIR__) . '/config/db.php';
+/** @var mysqli $conn */
 
 $message = '';
 $message_type = 'info';
-
-try {
-	$conn = new mysqli($host, $db_user, $db_password, $db_name);
-	if ($conn->connect_error) {
-		throw new Exception("Connection failed: " . $conn->connect_error);
-	}
-} catch (Exception $e) {
-	die("Database Error: " . $e->getMessage());
-}
 
 $id = isset($_GET['id']) ? (int)$_GET['id'] : (int)($_POST['id'] ?? 0);
 
@@ -108,7 +97,7 @@ include 'includes/header.php';
 			<h5 class="m-b-10">Edit Department</h5>
 		</div>
 		<ul class="breadcrumb">
-			<li class="breadcrumb-item"><a href="index.php">Home</a></li>
+			<li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
 			<li class="breadcrumb-item"><a href="departments.php">Departments</a></li>
 			<li class="breadcrumb-item">Edit</li>
 		</ul>
@@ -205,6 +194,7 @@ include 'includes/header.php';
 include 'includes/footer.php';
 $conn->close();
 ?>
+
 
 
 

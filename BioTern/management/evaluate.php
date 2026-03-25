@@ -1,5 +1,6 @@
 <?php
 require_once '../config/db.php';
+/** @var mysqli $conn */
 require_once dirname(__DIR__) . '/lib/ops_helpers.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();

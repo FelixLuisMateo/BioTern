@@ -1,0 +1,350 @@
+/* Global page-header consistency layer.
+ * Loaded after per-page styles to enforce one behavior across the app.
+ */
+
+body .page-header .btn,
+body .page-header .page-header-primary-actions .btn,
+body .page-header .page-header-right-items .btn,
+body .page-header .page-header-actions .btn {
+  min-height: var(--biotern-btn-min-height, 38px) !important;
+  padding: var(--biotern-btn-pad-y, 0.5rem) var(--biotern-btn-pad-x, 0.9rem) !important;
+  border-radius: var(--biotern-btn-radius, 10px) !important;
+  font-size: var(--biotern-btn-font-size, 0.82rem) !important;
+  font-weight: 600 !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+}
+
+body .page-header .btn.btn-sm {
+  min-height: 32px !important;
+  padding: 0.35rem 0.75rem !important;
+  font-size: 0.76rem !important;
+}
+
+@media (min-width: 992px) {
+  body .page-header {
+    position: static !important;
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 0.75rem !important;
+    overflow: visible !important;
+  }
+
+  body .page-header .page-header-left {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 0.5rem !important;
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    text-align: left !important;
+  }
+
+  body .page-header .page-header-left .breadcrumb {
+    display: inline-flex !important;
+    align-items: center !important;
+    margin-bottom: 0 !important;
+  }
+
+  body .page-header .page-header-title h5 {
+    margin-bottom: 0 !important;
+    white-space: nowrap;
+  }
+
+  body .page-header .page-header-right {
+    position: relative !important;
+    margin-left: auto !important;
+    width: auto !important;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 0.5rem !important;
+  }
+
+  body .page-header .page-header-primary-actions {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+  }
+
+  body .page-header.page-header-condensed-actions .page-header-right-items {
+    display: none !important;
+    position: absolute !important;
+    top: calc(100% + 8px) !important;
+    right: 0 !important;
+    left: auto !important;
+    width: min(240px, 72vw) !important;
+    margin: 0 !important;
+    padding: 6px !important;
+    border-radius: 14px !important;
+    border: 1px solid var(--biotern-border) !important;
+    background: var(--biotern-surface) !important;
+    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.28) !important;
+    z-index: 120 !important;
+    opacity: 0 !important;
+    transform: translateY(-6px) !important;
+    transition: opacity 0.18s ease, transform 0.18s ease !important;
+  }
+
+  body .page-header.page-header-condensed-actions .page-header-right-items.is-open,
+  body .page-header.page-header-condensed-actions .page-header-right-items.show {
+    display: block !important;
+    opacity: 1 !important;
+    transform: translateY(0) !important;
+  }
+
+  body .page-header .page-header-right .page-header-right-items,
+  body .page-header .page-header-right .page-header-quick,
+  body .page-header .page-header-right .page-header-right-items-wrapper {
+    display: flex !important;
+    align-items: center !important;
+    flex-wrap: wrap !important;
+    gap: 0.5rem !important;
+    width: auto !important;
+  }
+
+  body .page-header.page-header-condensed-actions .page-header-right .page-header-right-items-wrapper {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 6px !important;
+  }
+
+  body .page-header.page-header-condensed-actions .page-header-right-items-wrapper .btn,
+  body .page-header.page-header-condensed-actions .page-header-right-items-wrapper .dropdown,
+  body .page-header.page-header-condensed-actions .page-header-right-items-wrapper form {
+    width: 100% !important;
+    min-width: 0 !important;
+    justify-content: flex-start !important;
+  }
+
+  body .page-header .page-header-right .page-header-actions {
+    position: absolute !important;
+    top: calc(100% + 8px) !important;
+    right: 0 !important;
+    left: auto !important;
+    width: min(680px, 90vw) !important;
+    z-index: 120 !important;
+    display: none;
+  }
+
+  body .page-header .page-header-right .page-header-actions.is-open {
+    display: block !important;
+  }
+}
+
+@media (min-width: 992px) {
+  body .page-header.page-header-with-middle {
+    position: relative !important;
+  }
+
+  body .page-header.page-header-with-middle .page-header-middle {
+    position: absolute !important;
+    left: 50% !important;
+    top: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: min(42vw, 700px) !important;
+    max-width: min(42vw, 700px) !important;
+    pointer-events: none !important;
+    z-index: 2 !important;
+  }
+
+  body .page-header.page-header-with-middle .page-header-middle .page-header-statement {
+    margin: 0 !important;
+    font-size: 0.82rem !important;
+    line-height: 1.35 !important;
+    font-weight: 500 !important;
+    text-align: center !important;
+    color: var(--biotern-text-muted, rgba(222, 228, 241, 0.72)) !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+}
+
+@media (max-width: 991.98px) {
+  body .page-header.page-header-with-middle .page-header-middle {
+    display: none !important;
+  }
+}
+
+@media (max-width: 991.98px) {
+  body.mobile-bottom-nav .page-header {
+    position: static !important;
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 0.65rem !important;
+    min-height: 56px !important;
+    padding: 12px 14px !important;
+    overflow: visible !important;
+  }
+
+  body.mobile-bottom-nav .page-header .page-header-left {
+    flex: 1 1 auto !important;
+    width: auto !important;
+    min-width: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    text-align: left !important;
+    gap: 0.35rem !important;
+  }
+
+  body.mobile-bottom-nav .page-header .page-header-left .breadcrumb {
+    display: none !important;
+  }
+
+  body.mobile-bottom-nav .page-header .page-header-title h5 {
+    margin: 0 !important;
+    font-size: 1.05rem !important;
+    line-height: 1.2 !important;
+    text-align: left !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  body.mobile-bottom-nav .page-header .page-header-right {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    margin-left: auto !important;
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 0.45rem !important;
+  }
+
+  /* Keep only the action toggle visible in header row on mobile. */
+  body.mobile-bottom-nav .page-header .page-header-right > .page-header-quick {
+    display: none !important;
+  }
+
+  body.mobile-bottom-nav .page-header .page-header-right-close-toggle {
+    display: none !important;
+  }
+
+  body.mobile-bottom-nav .page-header .page-header-actions-toggle,
+  body.mobile-bottom-nav .page-header .app-students-actions-toggle,
+  body.mobile-bottom-nav .page-header .app-ojt-actions-toggle,
+  body.mobile-bottom-nav .page-header .app-applications-actions-toggle,
+  body.mobile-bottom-nav .page-header .page-header-right-open-toggle,
+  body.mobile-bottom-nav .page-header .app-page-header-auto-toggle {
+    width: 40px !important;
+    min-width: 40px !important;
+    max-width: 40px !important;
+    min-height: 40px !important;
+    padding: 0 !important;
+    border-radius: 999px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    overflow: hidden !important;
+    font-size: 0 !important;
+    line-height: 0 !important;
+    white-space: nowrap !important;
+  }
+
+  body.mobile-bottom-nav .page-header .page-header-actions-toggle i,
+  body.mobile-bottom-nav .page-header .page-header-actions-toggle span,
+  body.mobile-bottom-nav .page-header .app-students-actions-toggle i,
+  body.mobile-bottom-nav .page-header .app-students-actions-toggle span,
+  body.mobile-bottom-nav .page-header .app-ojt-actions-toggle i,
+  body.mobile-bottom-nav .page-header .app-ojt-actions-toggle span,
+  body.mobile-bottom-nav .page-header .app-applications-actions-toggle i,
+  body.mobile-bottom-nav .page-header .app-applications-actions-toggle span,
+  body.mobile-bottom-nav .page-header .page-header-right-open-toggle i,
+  body.mobile-bottom-nav .page-header .page-header-right-open-toggle span,
+  body.mobile-bottom-nav .page-header .app-page-header-auto-toggle i,
+  body.mobile-bottom-nav .page-header .app-page-header-auto-toggle span {
+    display: none !important;
+  }
+
+  body.mobile-bottom-nav .page-header .page-header-actions-toggle::after,
+  body.mobile-bottom-nav .page-header .app-students-actions-toggle::after,
+  body.mobile-bottom-nav .page-header .app-ojt-actions-toggle::after,
+  body.mobile-bottom-nav .page-header .app-applications-actions-toggle::after,
+  body.mobile-bottom-nav .page-header .page-header-right-open-toggle::after,
+  body.mobile-bottom-nav .page-header .app-page-header-auto-toggle::after {
+    content: "...";
+    letter-spacing: 2px;
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  body.mobile-bottom-nav .page-header .page-header-actions,
+  body.mobile-bottom-nav .page-header .page-header-right-items,
+  body.mobile-bottom-nav .page-header .app-students-actions-panel,
+  body.mobile-bottom-nav .page-header .app-ojt-actions-panel,
+  body.mobile-bottom-nav .page-header .app-applications-actions-panel {
+    position: absolute !important;
+    top: calc(100% + 8px) !important;
+    right: 0 !important;
+    left: auto !important;
+    width: min(340px, 92vw) !important;
+    margin: 0 !important;
+    padding: 10px !important;
+    border-radius: 14px !important;
+    border: 1px solid var(--biotern-border) !important;
+    background: var(--biotern-surface) !important;
+    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.28) !important;
+    z-index: 120 !important;
+    display: none !important;
+    height: auto !important;
+    transform: none !important;
+  }
+
+  body.mobile-bottom-nav .page-header .page-header-actions.is-open,
+  body.mobile-bottom-nav .page-header .page-header-right-items.is-open,
+  body.mobile-bottom-nav .page-header .app-students-actions-panel.is-open,
+  body.mobile-bottom-nav .page-header .app-ojt-actions-panel.is-open,
+  body.mobile-bottom-nav .page-header .app-applications-actions-panel.is-open,
+  body.mobile-bottom-nav .page-header .collapse.show.page-header-right-items,
+  body.mobile-bottom-nav .page-header .collapse.show.app-students-actions-panel,
+  body.mobile-bottom-nav .page-header .collapse.show.app-ojt-actions-panel,
+  body.mobile-bottom-nav .page-header .collapse.show.app-applications-actions-panel {
+    display: block !important;
+  }
+
+  body.mobile-bottom-nav .page-header .page-header-actions .page-header-right-items-wrapper,
+  body.mobile-bottom-nav .page-header .page-header-right-items .page-header-right-items-wrapper,
+  body.mobile-bottom-nav .page-header .app-students-actions-panel .page-header-right-items-wrapper,
+  body.mobile-bottom-nav .page-header .app-ojt-actions-panel .page-header-right-items-wrapper,
+  body.mobile-bottom-nav .page-header .app-applications-actions-panel .page-header-right-items-wrapper,
+  body.mobile-bottom-nav .page-header .dashboard-actions-quick,
+  body.mobile-bottom-nav .page-header .dashboard-actions-grid {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+
+  body.mobile-bottom-nav .page-header .page-header-actions .btn,
+  body.mobile-bottom-nav .page-header .page-header-right-items .btn,
+  body.mobile-bottom-nav .page-header .app-students-actions-panel .btn,
+  body.mobile-bottom-nav .page-header .app-ojt-actions-panel .btn,
+  body.mobile-bottom-nav .page-header .app-applications-actions-panel .btn,
+  body.mobile-bottom-nav .page-header .page-header-actions .dropdown,
+  body.mobile-bottom-nav .page-header .page-header-right-items .dropdown,
+  body.mobile-bottom-nav .page-header .app-students-actions-panel .dropdown,
+  body.mobile-bottom-nav .page-header .app-ojt-actions-panel .dropdown,
+  body.mobile-bottom-nav .page-header .app-applications-actions-panel .dropdown {
+    width: 100% !important;
+  }
+}

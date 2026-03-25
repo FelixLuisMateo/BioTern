@@ -1,18 +1,6 @@
 <?php
-// Database Connection
-$host = 'localhost';
-$db_user = 'root';
-$db_password = '';
-$db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
-
-try {
-    $conn = new mysqli($host, $db_user, $db_password, $db_name);
-    if ($conn->connect_error) {
-        die("Connection failed: " . $conn->connect_error);
-    }
-} catch (Exception $e) {
-    die("Database Error: " . $e->getMessage());
-}
+require_once dirname(__DIR__) . '/config/db.php';
+/** @var mysqli $conn */
 
 require_once dirname(__DIR__) . '/lib/evaluation_unlock.php';
 if (session_status() === PHP_SESSION_NONE) {
@@ -419,7 +407,7 @@ include 'includes/header.php';
                         <h5 class="m-b-10">Student Profile</h5>
                     </div>
                     <ul class="breadcrumb">
-                        <li class="breadcrumb-item"><a href="index.php">Home</a></li>
+                        <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
                         <li class="breadcrumb-item"><a href="students.php">Students</a></li>
                         <li class="breadcrumb-item">View</li>
                     </ul>
@@ -923,6 +911,7 @@ echo $is_evaluation_unlocked ? 'Waiting for supervisor submission' : 'Waiting fo
 <?php
 $conn->close();
 ?>
+
 
 
 

@@ -165,30 +165,46 @@ if ($isLocalRuntime && !$primaryIsLocalHost && !$preferVercel) {
     ];
 }
 
-$conn = null;
 $activeProfile = null;
 $lastError = 'Unknown MySQL connection error.';
+$profileCount = count($connectionProfiles);
 
-foreach ($connectionProfiles as $profile) {
-    $attempt = biotern_open_mysqli(
-        (string)$profile['host'],
-        (string)$profile['user'],
-        (string)$profile['pass'],
-        (string)$profile['name'],
-        (int)$profile['port']
-    );
+/** @var mysqli $conn */
+$conn = biotern_open_mysqli(
+    (string)$connectionProfiles[0]['host'],
+    (string)$connectionProfiles[0]['user'],
+    (string)$connectionProfiles[0]['pass'],
+    (string)$connectionProfiles[0]['name'],
+    (int)$connectionProfiles[0]['port']
+);
 
-    if (!$attempt->connect_errno) {
-        $conn = $attempt;
-        $activeProfile = $profile;
-        break;
+if (!$conn->connect_errno) {
+    $activeProfile = $connectionProfiles[0];
+} else {
+    $lastError = (string)$conn->connect_error;
+    $conn->close();
+
+    for ($profileIndex = 1; $profileIndex < $profileCount; $profileIndex++) {
+        $profile = $connectionProfiles[$profileIndex];
+        $conn = biotern_open_mysqli(
+            (string)$profile['host'],
+            (string)$profile['user'],
+            (string)$profile['pass'],
+            (string)$profile['name'],
+            (int)$profile['port']
+        );
+
+        if (!$conn->connect_errno) {
+            $activeProfile = $profile;
+            break;
+        }
+
+        $lastError = (string)$conn->connect_error;
+        $conn->close();
     }
-
-    $lastError = (string)$attempt->connect_error;
-    $attempt->close();
 }
 
-if (!$conn || !$activeProfile) {
+if (!$activeProfile) {
     $safeHost = $resolvedHost !== '' ? $resolvedHost : 'unknown-host';
     $safeDb = $resolvedName !== '' ? $resolvedName : 'unknown-db';
     die('Database connection failed. Please verify DB env variables (DB_HOST/DB_USER/DB_PASS/DB_NAME/DB_PORT or MYSQL*/RAILWAY_MYSQL* vars). Current host=' . $safeHost . ', db=' . $safeDb . '. Error: ' . $lastError);

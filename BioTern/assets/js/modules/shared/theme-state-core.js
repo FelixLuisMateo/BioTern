@@ -38,7 +38,11 @@
   }
 
   function normalizeScheme(value) {
-    return value === "blue" || value === "gray" ? value : "gray";
+    return value === "blue" || value === "gray" ? value : "blue";
+  }
+
+  function normalizeSurfacesMode(value) {
+    return value === "independent" ? "independent" : "linked";
   }
 
   function readCookie(name) {
@@ -135,7 +139,7 @@
       localScheme !== ""
         ? normalizeScheme(localScheme)
         : normalizeScheme(
-            serverPrefs && typeof serverPrefs.scheme === "string" ? serverPrefs.scheme : "gray"
+            serverPrefs && typeof serverPrefs.scheme === "string" ? serverPrefs.scheme : "blue"
           );
 
     var localFont = storageGet("font-family", "");
@@ -144,7 +148,21 @@
         ? localFont
         : serverPrefs && typeof serverPrefs.font === "string"
           ? serverPrefs.font
-          : "default";
+          : "app-font-family-montserrat";
+    if (font === "default") {
+      font = "app-font-family-montserrat";
+    }
+
+    var localSurfaces = storageGet("app-surfaces", "");
+    var surfaces =
+      localSurfaces !== ""
+        ? normalizeSurfacesMode(localSurfaces)
+        : normalizeSurfacesMode(serverPrefs && serverPrefs.surfaces);
+
+    if (surfaces !== "independent") {
+      navigation = skin;
+      header = skin;
+    }
 
     return {
       skin: skin === "dark" ? "dark" : "light",
@@ -152,6 +170,7 @@
       navigation: navigation === "dark" ? "dark" : "light",
       header: header === "dark" ? "dark" : "light",
       scheme: normalizeScheme(scheme),
+      surfaces: surfaces,
       font: typeof font === "string" && font !== "" ? font : "default",
     };
   }
@@ -181,14 +200,17 @@
       return;
     }
     var prefs = preferences || {};
+    var surfaces = normalizeSurfacesMode(prefs.surfaces);
+    var effectiveNavigation = surfaces === "independent" ? prefs.navigation : prefs.skin;
+    var effectiveHeader = surfaces === "independent" ? prefs.header : prefs.skin;
     root.classList.remove("app-skin-dark", "app-navigation-dark", "app-header-dark", "app-theme-gray");
     if (prefs.skin === "dark") {
       root.classList.add("app-skin-dark");
     }
-    if (prefs.navigation === "dark") {
+    if (effectiveNavigation === "dark") {
       root.classList.add("app-navigation-dark");
     }
-    if (prefs.header === "dark") {
+    if (effectiveHeader === "dark") {
       root.classList.add("app-header-dark");
     }
     if (normalizeScheme(prefs.scheme) === "gray") {
@@ -241,6 +263,7 @@
     allowedFonts: ALLOWED_FONTS.slice(),
     normalizeMenuPreference: normalizeMenuPreference,
     normalizeScheme: normalizeScheme,
+    normalizeSurfacesMode: normalizeSurfacesMode,
     readCookie: readCookie,
     readPreferencesCookie: readPreferencesCookie,
     inferInitialPreferences: inferInitialPreferences,

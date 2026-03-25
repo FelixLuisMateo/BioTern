@@ -1,5 +1,6 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
+/** @var mysqli $conn */
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -112,21 +113,38 @@ include 'includes/header.php';
 ?>
 <main class="nxl-container">
 <div class="nxl-content">
-<div class="page-header">
+<div class="page-header page-header-with-middle">
     <div class="page-header-left d-flex align-items-center">
         <div class="page-header-title logs-page-title">
             <h5 class="m-b-10">Reports - Login Logs</h5>
-            <p class="text-muted mb-0">Track successful and failed sign-in attempts.</p>
+        </div>
+        <ul class="breadcrumb">
+            <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
+            <li class="breadcrumb-item"><a href="reports-ojt.php">Reports</a></li>
+            <li class="breadcrumb-item">Login Logs</li>
+        </ul>
+    </div>
+    <div class="page-header-middle">
+        <p class="page-header-statement">Real-time visibility into sign-in outcomes, suspicious access, and account activity health.</p>
+    </div>
+    <div class="page-header-right ms-auto">
+        <div class="d-md-none d-flex align-items-center">
+            <button type="button" class="btn btn-light-brand page-header-actions-toggle" data-bs-toggle="collapse" data-bs-target="#reportsLoginLogsActionsCollapse" aria-expanded="false" aria-controls="reportsLoginLogsActionsCollapse">
+                <i class="feather-more-horizontal"></i>
+            </button>
+        </div>
+        <div class="page-header-right-items collapse d-md-flex" id="reportsLoginLogsActionsCollapse">
+            <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
+                <a href="homepage.php" class="btn btn-outline-secondary"><i class="feather-home me-1"></i>Dashboard</a>
+                <a href="reports-chat-logs.php" class="btn btn-outline-primary"><i class="feather-message-circle me-1"></i>Chat Logs</a>
+                <button type="button" class="btn btn-light-brand" onclick="window.print();"><i class="feather-printer me-1"></i>Print</button>
+            </div>
         </div>
     </div>
 </div>
 
 <div class="main-content pb-5">
     <div class="logs-hero d-flex flex-wrap align-items-center justify-content-between gap-3">
-        <div>
-            <h6 class="mb-1 fw-bold">Authentication Activity Overview</h6>
-            <p class="text-muted mb-0">Real-time visibility into sign-in outcomes, suspicious access, and operational account health.</p>
-        </div>
         <span class="logs-pill bg-soft-primary text-primary">
             <i class="feather feather-clock"></i>
             Last 500 events
@@ -211,3 +229,4 @@ include 'includes/header.php';
 </div> <!-- .nxl-content -->
 </main>
 <?php include 'includes/footer.php'; ?>
+

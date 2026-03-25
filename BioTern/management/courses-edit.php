@@ -1,20 +1,9 @@
 <?php
-$host = '127.0.0.1';
-$db_user = 'root';
-$db_password = '';
-$db_name = 'biotern_db';
+require_once dirname(__DIR__) . '/config/db.php';
+/** @var mysqli $conn */
 
 $message = '';
 $message_type = 'info';
-
-try {
-	$conn = new mysqli($host, $db_user, $db_password, $db_name);
-	if ($conn->connect_error) {
-		throw new Exception("Connection failed: " . $conn->connect_error);
-	}
-} catch (Exception $e) {
-	die("Database Error: " . $e->getMessage());
-}
 
 $courseColumns = [];
 $columnResult = $conn->query("SHOW COLUMNS FROM courses");
@@ -143,7 +132,7 @@ include 'includes/header.php';
 			<h5 class="m-b-10">Edit Course</h5>
 		</div>
 		<ul class="breadcrumb">
-			<li class="breadcrumb-item"><a href="index.php">Home</a></li>
+			<li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
 			<li class="breadcrumb-item"><a href="courses.php">Courses</a></li>
 			<li class="breadcrumb-item">Edit</li>
 		</ul>
@@ -242,6 +231,7 @@ include 'includes/header.php';
 include 'includes/footer.php';
 $conn->close();
 ?>
+
 
 
 

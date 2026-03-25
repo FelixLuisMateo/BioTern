@@ -120,16 +120,54 @@ if (!function_exists('header_asset_versioned_href')) {
     }
 }
 
+if (!function_exists('header_resolve_avatar_href')) {
+    function header_resolve_avatar_href(string $rawAvatar, string $fallback = 'assets/images/avatar/1.png'): string
+    {
+        $normalized = trim(str_replace('\\', '/', $rawAvatar));
+        if ($normalized === '') {
+            return header_asset_versioned_href($fallback);
+        }
+
+        $normalized = preg_replace('/\?.*$/', '', $normalized);
+        $normalized = ltrim((string)$normalized, '/');
+        $normalized = preg_replace('#^(\./)+#', '', (string)$normalized);
+
+        $candidates = [];
+        if ($normalized !== '') {
+            $candidates[] = $normalized;
+            if (stripos($normalized, 'BioTern/BioTern/') === 0) {
+                $candidates[] = substr($normalized, strlen('BioTern/BioTern/'));
+            } elseif (stripos($normalized, 'BioTern/') === 0) {
+                $candidates[] = substr($normalized, strlen('BioTern/'));
+            }
+        }
+
+        foreach (array_values(array_unique($candidates)) as $candidate) {
+            $candidate = ltrim((string)$candidate, '/');
+            if ($candidate === '') {
+                continue;
+            }
+            $absolute = dirname(__DIR__) . '/' . $candidate;
+            if (is_file($absolute)) {
+                return header_asset_versioned_href($candidate);
+            }
+        }
+
+        return header_asset_versioned_href($fallback);
+    }
+}
+
 $biotern_theme_api_endpoint = $base_href . 'api/theme-customizer.php';
 require_once __DIR__ . '/theme-preferences.php';
 
 $default_theme_prefs = [
     'skin' => 'light',
     'menu' => 'auto',
-    'font' => 'default',
+    'font' => 'app-font-family-montserrat',
     'navigation' => 'light',
     'header' => 'light',
-    'scheme' => 'gray',
+    'scheme' => 'blue',
+    'surfaces' => 'linked',
 ];
 
 if (isset($page_theme_preferences) && is_array($page_theme_preferences)) {
@@ -151,7 +189,22 @@ if (!is_array($biotern_theme_preferences)) {
 $biotern_theme_preferences = array_merge($default_theme_prefs, $biotern_theme_preferences);
 
 $html_classes = [];
-if (($biotern_theme_preferences['skin'] ?? 'light') === 'dark') {
+$theme_skin = (($biotern_theme_preferences['skin'] ?? 'light') === 'dark') ? 'dark' : 'light';
+$theme_surfaces = strtolower(trim((string)($biotern_theme_preferences['surfaces'] ?? 'linked')));
+if ($theme_surfaces !== 'independent') {
+    $theme_surfaces = 'linked';
+}
+$theme_navigation = (($biotern_theme_preferences['navigation'] ?? 'light') === 'dark') ? 'dark' : 'light';
+$theme_header = (($biotern_theme_preferences['header'] ?? 'light') === 'dark') ? 'dark' : 'light';
+if ($theme_surfaces === 'linked') {
+    $theme_navigation = $theme_skin;
+    $theme_header = $theme_skin;
+    $biotern_theme_preferences['navigation'] = $theme_navigation;
+    $biotern_theme_preferences['header'] = $theme_header;
+}
+$biotern_theme_preferences['surfaces'] = $theme_surfaces;
+
+if ($theme_skin === 'dark') {
     $html_classes[] = 'app-skin-dark';
 }
 if (($biotern_theme_preferences['menu'] ?? 'auto') === 'mini') {
@@ -160,13 +213,13 @@ if (($biotern_theme_preferences['menu'] ?? 'auto') === 'mini') {
 if (($biotern_theme_preferences['font'] ?? 'default') !== 'default') {
     $html_classes[] = (string)$biotern_theme_preferences['font'];
 }
-if (($biotern_theme_preferences['navigation'] ?? 'light') === 'dark') {
+if ($theme_navigation === 'dark') {
     $html_classes[] = 'app-navigation-dark';
 }
-if (($biotern_theme_preferences['header'] ?? 'light') === 'dark') {
+if ($theme_header === 'dark') {
     $html_classes[] = 'app-header-dark';
 }
-$theme_scheme = strtolower(trim((string)($biotern_theme_preferences['scheme'] ?? 'gray')));
+$theme_scheme = strtolower(trim((string)($biotern_theme_preferences['scheme'] ?? 'blue')));
 if ($theme_scheme === 'gray') {
     $html_classes[] = 'app-theme-gray';
 }
@@ -208,13 +261,7 @@ if ($page_render_header) {
     $header_user_role = strtolower(trim((string)($_SESSION['role'] ?? '')));
 
     $session_avatar = trim((string)($_SESSION['profile_picture'] ?? ''));
-    if ($session_avatar !== '') {
-        $normalized_avatar = ltrim(str_replace('\\', '/', $session_avatar), '/');
-        $avatar_fs_path = dirname(__DIR__) . '/' . $normalized_avatar;
-        if (is_file($avatar_fs_path)) {
-            $header_avatar = $normalized_avatar;
-        }
-    }
+    $header_avatar = header_resolve_avatar_href($session_avatar, $header_avatar);
 
     if ($header_user_id_session > 0) {
         $hdr_db = $header_db;
@@ -354,6 +401,7 @@ if ($header_db instanceof mysqli) {
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/dataTables.bs5.min.css">
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2.min.css">
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2-theme.min.css">
+    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars(header_asset_versioned_href('assets/vendors/css/datepicker.min.css'), ENT_QUOTES, 'UTF-8'); ?>">
     <!--! END: Vendors CSS-->
     <!-- Theme runtime config moved to body data attributes -->
     <!--! BEGIN: Early Skin Script -->
@@ -371,6 +419,7 @@ if ($header_db instanceof mysqli) {
             <?php endif; ?>
         <?php endforeach; ?>
     <?php endif; ?>
+    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars(header_asset_versioned_href('assets/css/state/page-header-consistency.css'), ENT_QUOTES, 'UTF-8'); ?>" />
 </head>
 
 <body<?php echo $page_body_class !== '' ? ' class="' . htmlspecialchars($page_body_class, ENT_QUOTES, 'UTF-8') . '"' : ''; ?>
@@ -504,7 +553,7 @@ if ($header_db instanceof mysqli) {
                                         </span>
                                     </a>
                                     <div class="dropdown-divider"></div>
-                                    <a href="javascript:void(0);" class="dropdown-item">
+                                    <a href="account-settings.php" class="dropdown-item">
                                         <i class="feather-user"></i>
                                         <span>Profile Details</span>
                                     </a>
@@ -516,7 +565,7 @@ if ($header_db instanceof mysqli) {
                                         <i class="feather-bell"></i>
                                         <span>Notifications</span>
                                     </a>
-                                    <a href="settings-support.php" class="dropdown-item">
+                                    <a href="account-settings.php" class="dropdown-item">
                                         <i class="feather-settings"></i>
                                         <span>Account Settings</span>
                                     </a>

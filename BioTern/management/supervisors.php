@@ -1,13 +1,6 @@
 <?php
-$host = 'localhost';
-$db_user = 'root';
-$db_password = '';
-$db_name = 'biotern_db';
-
-$conn = new mysqli($host, $db_user, $db_password, $db_name);
-if ($conn->connect_error) {
-    die('Connection failed: ' . $conn->connect_error);
-}
+require_once dirname(__DIR__) . '/config/db.php';
+/** @var mysqli $conn */
 
 $message = '';
 $message_type = 'success';
@@ -61,7 +54,7 @@ include 'includes/header.php';
             <h5 class="m-b-10">Supervisors</h5>
         </div>
         <ul class="breadcrumb">
-            <li class="breadcrumb-item"><a href="index.php">Home</a></li>
+            <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
             <li class="breadcrumb-item">Supervisors</li>
         </ul>
     </div>
@@ -141,6 +134,7 @@ include 'includes/header.php';
 include 'includes/footer.php';
 $conn->close();
 ?>
+
 
 
 

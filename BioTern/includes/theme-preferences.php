@@ -6,10 +6,11 @@ if (!function_exists('biotern_theme_defaults')) {
         return [
             'skin' => 'light',
             'menu' => 'auto',
-            'font' => 'default',
+            'font' => 'app-font-family-montserrat',
             'navigation' => 'light',
             'header' => 'light',
-            'scheme' => 'gray',
+            'scheme' => 'blue',
+            'surfaces' => 'linked',
         ];
     }
 }
@@ -66,6 +67,7 @@ if (!function_exists('biotern_theme_sanitize')) {
         $navigation = isset($preferences['navigation']) ? strtolower(trim((string) $preferences['navigation'])) : $defaults['navigation'];
         $header = isset($preferences['header']) ? strtolower(trim((string) $preferences['header'])) : $defaults['header'];
         $scheme = isset($preferences['scheme']) ? strtolower(trim((string) $preferences['scheme'])) : $defaults['scheme'];
+        $surfaces = isset($preferences['surfaces']) ? strtolower(trim((string) $preferences['surfaces'])) : $defaults['surfaces'];
 
         if (!in_array($skin, ['light', 'dark'], true)) {
             $skin = $defaults['skin'];
@@ -91,6 +93,10 @@ if (!function_exists('biotern_theme_sanitize')) {
             $scheme = $defaults['scheme'];
         }
 
+        if (!in_array($surfaces, ['linked', 'independent'], true)) {
+            $surfaces = $defaults['surfaces'];
+        }
+
         return [
             'skin' => $skin,
             'menu' => $menu,
@@ -98,6 +104,7 @@ if (!function_exists('biotern_theme_sanitize')) {
             'navigation' => $navigation,
             'header' => $header,
             'scheme' => $scheme,
+            'surfaces' => $surfaces,
         ];
     }
 }

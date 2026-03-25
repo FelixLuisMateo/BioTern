@@ -1,15 +1,6 @@
 <?php
-$host = 'localhost';
-$db_user = 'root';
-$db_password = '';
-$db_name = 'biotern_db';
-
-try {
-    $conn = new mysqli($host, $db_user, $db_password, $db_name);
-    if ($conn->connect_error) die('Connection failed: ' . $conn->connect_error);
-} catch (Exception $e) {
-    die('Database error: ' . $e->getMessage());
-}
+require_once dirname(__DIR__) . '/config/db.php';
+/** @var mysqli $conn */
 
 $student_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 $student = ['first_name' => '', 'middle_name' => '', 'last_name' => ''];

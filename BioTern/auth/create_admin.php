@@ -3,12 +3,6 @@
 // Usage: open this file in the browser (http://localhost/BioTern/create_admin.php)
 
 require_once dirname(__DIR__) . '/config/db.php';
-
-$dbHost = defined('DB_HOST') ? DB_HOST : '127.0.0.1';
-$dbUser = defined('DB_USER') ? DB_USER : 'root';
-$dbPass = defined('DB_PASS') ? DB_PASS : '';
-$dbName = defined('DB_NAME') ? DB_NAME : 'biotern_db';
-$dbPort = defined('DB_PORT') ? (int)DB_PORT : 3306;
 $script_name = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
 $asset_prefix = (strpos($script_name, '/auth/') !== false) ? '../' : '';
 
@@ -24,7 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($name === '' || $username === '' || $email === '' || $password === '') {
         $message = 'All fields are required.';
     } else {
-        $mysqli = new mysqli($dbHost, $dbUser, $dbPass, $dbName, $dbPort);
+        $mysqli = $conn;
         if ($mysqli->connect_errno) {
             $message = 'Database connection failed: ' . esc($mysqli->connect_error);
         } else {
@@ -125,7 +119,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 $message = 'Query preparation failed.';
             }
-            $mysqli->close();
         }
     }
 }
@@ -137,6 +130,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>Create Admin - BioTern</title>
     <link rel="stylesheet" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/bootstrap.min.css">
+    <link rel="stylesheet" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/smacss.css">
     <style>body{padding:24px;background:#f7f9fb} .card{max-width:640px;margin:24px auto}</style>
 </head>
 <body>

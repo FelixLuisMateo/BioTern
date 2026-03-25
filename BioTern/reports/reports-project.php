@@ -1,5 +1,6 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
+/** @var mysqli $conn */
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -60,13 +61,37 @@ include 'includes/header.php';
 ?>
 <main class="nxl-container">
 <div class="nxl-content">
-<div class="page-header"><div class="page-header-left d-flex align-items-center"><div class="page-header-title report-page-title"><h5 class="m-b-10">Reports - Projects</h5><p class="text-muted mb-0">View all intern project assignments and progress.</p></div></div></div>
+<div class="page-header page-header-with-middle">
+    <div class="page-header-left d-flex align-items-center">
+        <div class="page-header-title report-page-title">
+            <h5 class="m-b-10">Reports - Projects</h5>
+        </div>
+        <ul class="breadcrumb">
+            <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
+            <li class="breadcrumb-item"><a href="reports-ojt.php">Reports</a></li>
+            <li class="breadcrumb-item">Projects</li>
+        </ul>
+    </div>
+    <div class="page-header-middle">
+        <p class="page-header-statement">Track intern assignments, completion progress, and required hour coverage in one view.</p>
+    </div>
+    <div class="page-header-right ms-auto">
+        <div class="d-md-none d-flex align-items-center">
+            <button type="button" class="btn btn-light-brand page-header-actions-toggle" data-bs-toggle="collapse" data-bs-target="#reportsProjectActionsCollapse" aria-expanded="false" aria-controls="reportsProjectActionsCollapse">
+                <i class="feather-more-horizontal"></i>
+            </button>
+        </div>
+        <div class="page-header-right-items collapse d-md-flex" id="reportsProjectActionsCollapse">
+            <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
+                <a href="homepage.php" class="btn btn-outline-secondary"><i class="feather-home me-1"></i>Dashboard</a>
+                <a href="reports-ojt.php" class="btn btn-outline-primary"><i class="feather-briefcase me-1"></i>OJT Report</a>
+                <button type="button" class="btn btn-light-brand" onclick="window.print();"><i class="feather-printer me-1"></i>Print</button>
+            </div>
+        </div>
+    </div>
+</div>
 <div class="main-content pb-5">
 <div class="report-hero d-flex flex-wrap align-items-center justify-content-between gap-3">
-<div>
-<h6 class="mb-1 fw-bold">Project Management Dashboard</h6>
-<p class="text-muted mb-0">Track all internship project assignments, positions, and student progress.</p>
-</div>
 <span class="report-pill bg-soft-primary text-primary"><i class="feather feather-package"></i><?php echo $total_projects; ?> Projects</span>
 </div>
 
@@ -134,3 +159,4 @@ $badge_class = match(strtolower($row['status'] ?? 'pending')) {
 </div> <!-- .nxl-content -->
 </main>
 <?php include 'includes/footer.php'; ?>
+

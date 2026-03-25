@@ -1,17 +1,6 @@
 <?php
 // Documents page - provides UI to generate student documents (Application Letter etc.)
-
-$host = 'localhost';
-$db_user = 'root';
-$db_password = '';
-$db_name = 'biotern_db';
-
-try {
-    $conn = new mysqli($host, $db_user, $db_password, $db_name);
-    if ($conn->connect_error) die('Connection failed: ' . $conn->connect_error);
-} catch (Exception $e) {
-    die('Database error: ' . $e->getMessage());
-}
+require_once dirname(__DIR__) . '/config/db.php';
 $prefill_student_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 
 // Simple AJAX endpoints served by this file
@@ -74,15 +63,37 @@ include __DIR__ . '/../includes/header.php';
 <main class="nxl-container">
     <div class="nxl-content">
 <div class="app-page doc-page-root" data-page="application" data-prefill-student-id="<?php echo intval($prefill_student_id); ?>">
-
-    <div class="container">
-            <div class="row mt-1">
-                <div class="col-12">
-                    <h4>Documents</h4>
-                    <p class="text-muted">Select a student to auto-fill the Application Letter template. Click Generate to open a printable document.</p>
+    <div class="page-header page-header-with-middle">
+        <div class="page-header-left d-flex align-items-center">
+            <div class="page-header-title">
+                <h5 class="m-b-10">Documents - Application Letter</h5>
+            </div>
+            <ul class="breadcrumb">
+                <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
+                <li class="breadcrumb-item">Documents</li>
+                <li class="breadcrumb-item">Application</li>
+            </ul>
+        </div>
+        <div class="page-header-middle">
+            <p class="page-header-statement">Select a student to auto-fill the Application Letter template and generate a printable version.</p>
+        </div>
+        <div class="page-header-right ms-auto">
+            <div class="d-md-none d-flex align-items-center">
+                <button type="button" class="btn btn-light-brand page-header-actions-toggle" data-bs-toggle="collapse" data-bs-target="#documentApplicationActionsCollapse" aria-expanded="false" aria-controls="documentApplicationActionsCollapse">
+                    <i class="feather-more-horizontal"></i>
+                </button>
+            </div>
+            <div class="page-header-right-items collapse d-md-flex" id="documentApplicationActionsCollapse">
+                <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
+                    <a href="homepage.php" class="btn btn-outline-secondary"><i class="feather-home me-1"></i>Dashboard</a>
+                    <a href="document_endorsement.php" class="btn btn-outline-primary"><i class="feather-file-text me-1"></i>Endorsement</a>
+                    <a href="document_moa.php" class="btn btn-outline-primary"><i class="feather-file-text me-1"></i>MOA</a>
                 </div>
             </div>
+        </div>
+    </div>
 
+    <div class="container">
             <div class="row doc-workspace-row">
                 <div class="col-lg-6 doc-form-pane">
                     <div class="card p-3">

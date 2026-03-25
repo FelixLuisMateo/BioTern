@@ -1,16 +1,8 @@
 <?php
+require_once dirname(__DIR__) . '/config/db.php';
+/** @var mysqli $conn */
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
-}
-
-$host = '127.0.0.1';
-$db_user = 'root';
-$db_password = '';
-$db_name = 'biotern_db';
-
-$conn = new mysqli($host, $db_user, $db_password, $db_name);
-if ($conn->connect_error) {
-    die('Connection failed: ' . $conn->connect_error);
 }
 
 $conn->query("CREATE TABLE IF NOT EXISTS school_years (
@@ -99,7 +91,7 @@ include 'includes/header.php';
     <div class="page-header-left d-flex align-items-center">
         <div class="page-header-title"><h5 class="m-b-10">School Years</h5></div>
         <ul class="breadcrumb">
-            <li class="breadcrumb-item"><a href="index.php">Home</a></li>
+            <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
             <li class="breadcrumb-item">School Years</li>
         </ul>
     </div>
@@ -166,6 +158,7 @@ include 'includes/header.php';
 </div> <!-- .nxl-content -->
 </main>
 <?php include 'includes/footer.php'; ?>
+
 
 
 

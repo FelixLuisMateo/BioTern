@@ -1,5 +1,6 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
+/** @var mysqli $conn */
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -10,13 +11,6 @@ if (file_exists($ops_helpers)) {
         require_roles_page(['admin', 'coordinator', 'supervisor']);
     }
 }
-
-$host = defined('DB_HOST') ? DB_HOST : 'localhost';
-$db_user = defined('DB_USER') ? DB_USER : 'root';
-$db_password = defined('DB_PASS') ? DB_PASS : '';
-$db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
-$conn = new mysqli($host, $db_user, $db_password, $db_name);
-if ($conn->connect_error) die('Connection failed: ' . $conn->connect_error);
 
 $current_user_id = intval($_SESSION['user_id'] ?? 0);
 $current_role = strtolower((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? ''));
@@ -136,10 +130,32 @@ include 'includes/header.php';
 ?>
 <main class="nxl-container">
     <div class="nxl-content">
-<div class="page-header app-ojt-workflow-page-header d-flex justify-content-between align-items-center">
-    <div>
-        <h5 class="m-b-10">OJT Document Workflow Board</h5>
-        <small class="text-muted">Centralized approval tracking for internship documents</small>
+<div class="page-header app-ojt-workflow-page-header">
+    <div class="page-header-left app-ojt-workflow-page-header-left d-flex align-items-center">
+        <div class="page-header-title">
+            <h5 class="m-b-10">OJT Document Workflow Board</h5>
+        </div>
+        <ul class="breadcrumb">
+            <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
+            <li class="breadcrumb-item"><a href="ojt.php">OJT Dashboard</a></li>
+            <li class="breadcrumb-item">Workflow Board</li>
+        </ul>
+    </div>
+    <div class="page-header-right ms-auto app-ojt-workflow-header-actions">
+        <div class="d-flex d-md-none align-items-center">
+            <button type="button" class="btn btn-light-brand app-ojt-workflow-actions-toggle" data-bs-toggle="collapse" data-bs-target="#ojtWorkflowActionsCollapse" aria-expanded="false" aria-controls="ojtWorkflowActionsCollapse">
+                <i class="feather-align-right me-2"></i>
+                <span>Actions</span>
+            </button>
+        </div>
+        <div class="page-header-right-items collapse d-md-flex app-ojt-workflow-actions-panel" id="ojtWorkflowActionsCollapse">
+            <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
+                <a href="ojt.php" class="btn btn-light-brand"><i class="feather-bar-chart-2 me-1"></i>Dashboard</a>
+                <a href="#workflowFilters" class="btn btn-outline-secondary"><i class="feather-filter me-1"></i>Filters</a>
+                <button type="button" class="btn btn-light" data-action="print-page"><i class="feather-printer me-1"></i>Print</button>
+                <a href="ojt-workflow-board.php" class="btn btn-outline-primary"><i class="feather-rotate-cw me-1"></i>Reset</a>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -147,7 +163,7 @@ include 'includes/header.php';
     <div class="alert alert-<?php echo htmlspecialchars($message_type); ?> py-2"><?php echo htmlspecialchars($message); ?></div>
 <?php endif; ?>
 
-<div class="card app-ojt-workflow-surface-card card-body mb-3">
+<div class="card app-ojt-workflow-surface-card card-body mb-3" id="workflowFilters">
     <form method="get" class="row g-2 align-items-end filter-form app-ojt-workflow-filter-form">
         <div class="col-md-4">
             <label class="form-label">Search Student</label>
@@ -220,6 +236,7 @@ include 'includes/header.php';
 </main>
 <?php include 'includes/footer.php'; ?>
 <?php $conn->close(); ?>
+
 
 
 

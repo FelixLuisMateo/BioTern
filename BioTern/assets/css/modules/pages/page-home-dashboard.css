@@ -190,10 +190,15 @@ html.app-theme-gray:not(.app-skin-dark) {
 
 .dashboard-movable {
     position: relative;
+    cursor: default;
+    will-change: transform;
+}
+
+.layout-edit-active .dashboard-movable {
     cursor: grab;
 }
 
-.dashboard-movable:active {
+.layout-edit-active .dashboard-movable:active {
     cursor: grabbing;
 }
 
@@ -207,6 +212,11 @@ html.app-theme-gray:not(.app-skin-dark) {
 
 .dashboard-movable.dragging {
     opacity: 0.5;
+}
+
+.dashboard-movable .dash-card,
+.dashboard-movable .card {
+    transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease;
 }
 
 .dashboard-movable.drag-target .dash-card {
@@ -437,7 +447,7 @@ html.app-theme-gray:not(.app-skin-dark) {
     transform: scale(.985);
 }
 
-.dashboard-movable.drag-target {
+.layout-edit-active .dashboard-movable.drag-target {
     outline: 1px dashed rgba(var(--bs-primary-rgb), .8);
     outline-offset: 3px;
 }
@@ -920,10 +930,10 @@ html.app-theme-gray:not(.app-skin-dark) {
     gap: 8px;
     min-height: 48px;
     padding: 0.65rem 0.9rem;
-    border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    background: rgba(255, 255, 255, 0.06);
-    color: #f8fafc;
+    border-radius: var(--biotern-btn-radius, 10px);
+    border: 1px solid transparent;
+    background: var(--biotern-btn-bg, rgba(255, 255, 255, 0.06));
+    color: var(--biotern-btn-text, #f8fafc);
     font-weight: 600;
     font-size: 0.85rem;
     text-decoration: none;
@@ -936,20 +946,21 @@ html.app-theme-gray:not(.app-skin-dark) {
 
 .action-tile:hover {
     transform: translateY(-1px);
-    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.2);
-    background: rgba(255, 255, 255, 0.12);
-    color: #fff;
+    box-shadow: var(--biotern-btn-shadow, 0 8px 18px rgba(0, 0, 0, 0.2));
+    background: var(--biotern-btn-hover-bg, rgba(255, 255, 255, 0.12));
+    color: var(--biotern-btn-text, #fff);
 }
 
 .action-tile-primary {
-    background: rgba(var(--bs-primary-rgb), 0.85);
-    border-color: rgba(var(--bs-primary-rgb), 0.85);
-    color: #fff;
+    background: rgba(var(--bs-primary-rgb), 0.9);
+    border-color: transparent;
+    color: var(--biotern-primary-contrast, #fff);
 }
 
 .action-tile-primary:hover {
     background: rgba(var(--bs-primary-rgb), 1);
-    border-color: rgba(var(--bs-primary-rgb), 1);
+    border-color: transparent;
+    color: var(--biotern-primary-contrast, #fff);
 }
 
 .active-student-item {

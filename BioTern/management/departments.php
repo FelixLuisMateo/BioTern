@@ -1,17 +1,6 @@
 <?php
-$host = '127.0.0.1';
-$db_user = 'root';
-$db_password = '';
-$db_name = 'biotern_db';
-
-try {
-    $conn = new mysqli($host, $db_user, $db_password, $db_name);
-    if ($conn->connect_error) {
-        throw new Exception("Connection failed: " . $conn->connect_error);
-    }
-} catch (Exception $e) {
-    die("Database Error: " . $e->getMessage());
-}
+require_once dirname(__DIR__) . '/config/db.php';
+/** @var mysqli $conn */
 
 $deptColumns = [];
 $columnResult = $conn->query("SHOW COLUMNS FROM departments");
@@ -64,12 +53,15 @@ $page_title = 'Departments';
             <h5 class="m-b-10">Departments</h5>
         </div>
         <ul class="breadcrumb">
-            <li class="breadcrumb-item"><a href="index.php">Home</a></li>
+            <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
             <li class="breadcrumb-item">Departments</li>
         </ul>
     </div>
     <div class="page-header-right ms-auto">
-        <a href="departments-create.php" class="btn btn-primary">Create Department</a>
+        <a href="departments-create.php" class="btn btn-primary">
+            <i class="feather-plus me-2"></i>
+            <span>Create Department</span>
+        </a>
     </div>
 </div>
 
@@ -141,5 +133,6 @@ $page_title = 'Departments';
 </main>
 <?php
 include 'includes/footer.php';
+
 
 

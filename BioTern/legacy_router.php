@@ -220,6 +220,7 @@ $map = [
   'reports-chat-reports.php' => 'reports/reports-chat-reports.php',
 
   'settings-support.php' => 'settings/settings-support.php',
+  'account-settings.php' => 'settings/account-settings.php',
   'theme-customizer.php' => 'pages/theme-customizer.php',
 
 

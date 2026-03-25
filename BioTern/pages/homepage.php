@@ -390,7 +390,7 @@ include 'includes/header.php';
                         <h5 class="m-b-10">Overview</h5>
                     </div>
                     <ul class="breadcrumb">
-                        <li class="breadcrumb-item"><a href="index.php">Home</a></li>
+                        <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
                         <li class="breadcrumb-item">Overview</li>
                     </ul>
                 </div>
@@ -580,7 +580,7 @@ include 'includes/header.php';
                                                             <?php echo htmlspecialchars(trim($firstName . ' ' . $lastName)); ?>
                                                         </a>
                                                         <div class="dash-list-sub">
-                                                            <?php echo htmlspecialchars((string)($student['student_id'] ?? '')); ?> · <?php echo htmlspecialchars($internshipType); ?>
+                                                            <?php echo htmlspecialchars((string)($student['student_id'] ?? '')); ?> Â· <?php echo htmlspecialchars($internshipType); ?>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -595,7 +595,7 @@ include 'includes/header.php';
                                                         <span class="badge bg-soft-secondary text-secondary">No record</span>
                                                     <?php endif; ?>
                                                     <div class="dash-meta-line">
-                                                        <?php echo $attendanceDate; ?><?php echo $attendanceTime ? ' · ' . $attendanceTime : ''; ?>
+                                                        <?php echo $attendanceDate; ?><?php echo $attendanceTime ? ' Â· ' . $attendanceTime : ''; ?>
                                                     </div>
                                                 </div>
                                             </div>
@@ -834,6 +834,7 @@ include 'includes/header.php';
 </div> <!-- .nxl-content -->
 </main>
 <?php include 'includes/footer.php'; ?>
+
 
 
 
