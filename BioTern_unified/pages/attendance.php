@@ -1,5 +1,15 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+$attendance_role = strtolower(trim((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? '')));
+if ($attendance_role === 'student') {
+    require __DIR__ . '/student-dtr.php';
+    return;
+}
+
 // Database Connection
 $host = defined('DB_HOST') ? DB_HOST : 'localhost';
 $db_user = defined('DB_USER') ? DB_USER : 'root';

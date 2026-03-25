@@ -60,7 +60,11 @@ if ((int)($_SESSION['user_id'] ?? 0) <= 0 && isset($conn) && $conn instanceof my
   biotern_auth_restore_session_from_cookie($conn);
 }
 
+// Add tools and root-level files for browser access
+// Add tools and root-level files for browser access
 $map = [
+  'biometric_auto_import.php' => 'tools/biometric_auto_import.php',
+  'fingerprint_mapping.php' => 'pages/fingerprint_mapping.php',
   'students.php' => 'management/students.php',
   'students-create.php' => 'management/students-create.php',
   'students-edit.php' => 'management/students-edit.php',

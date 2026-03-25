@@ -59,7 +59,7 @@ $source = isset($_GET['source']) ? htmlspecialchars((string)$_GET['source']) : '
                                 $label = 'Student not found (Students View)';
                             } elseif ($source === 'ojt-view') {
                                 $label = 'Student not found (OJT View)';
-                            } elseif ($source === 'demo-biometric') {
+                            } elseif ($source === 'demo-biometric' || $source === 'biometric-machine') {
                                 $label = 'Student ID not found (Biometric)';
                             }
                         ?>

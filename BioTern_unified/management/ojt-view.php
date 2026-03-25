@@ -1053,7 +1053,7 @@ try {
             $stmt_att_audit->execute();
             $res_att_audit = $stmt_att_audit->get_result();
             while ($ar = $res_att_audit->fetch_assoc()) {
-                $source = 'manual';
+                $source = (string)($ar['source'] ?? 'manual');
                 if (ojt_table_exists($conn, 'biometric_event_queue')) {
                     $stmt_src = $conn->prepare("SELECT event_source FROM biometric_event_queue WHERE student_id = ? AND attendance_date = ? ORDER BY id DESC LIMIT 1");
                     $stmt_src->bind_param('is', $selected_student_id, $ar['attendance_date']);

@@ -120,7 +120,7 @@ if (!function_exists('nav_page_href')) {
                         <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'students.php'); ?>">Students List</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'applications-review.php'); ?>">Applications Review</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'attendance.php'); ?>">Attendance DTR</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'demo-biometric.php'); ?>">Demo Biometric</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="legacy_router.php?file=fingerprint_mapping.php">Fingerprint Mapping</a></li>
                     </ul>
                 </li>
                 <li class="nxl-item nxl-hasmenu">
@@ -172,7 +172,7 @@ if (!function_exists('nav_page_href')) {
                     </a>
                     <ul class="nxl-submenu">
                         <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'student-profile.php'); ?>">My Profile</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'student-dtr.php'); ?>">My DTR</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'attendance.php'); ?>">My DTR</a></li>
                     </ul>
                 </li>
                 <li class="nxl-item nxl-hasmenu">
