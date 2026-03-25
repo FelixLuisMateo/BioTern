@@ -12,6 +12,7 @@ if (!in_array($role, ['admin', 'coordinator', 'supervisor'], true)) {
     header('Location: homepage.php');
     exit;
 }
+$isAdmin = ($role === 'admin');
 
 $flashType = 'info';
 $flashMessage = '';
@@ -35,10 +36,14 @@ function machine_h($value): string
 
 function machine_render_pairs(array $data): string
 {
+    global $isAdmin;
     $html = '';
     foreach ($data as $key => $value) {
         if (is_array($value)) {
             $value = json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        }
+        if (!$isAdmin && in_array(strtolower((string)$key), ['cardno', 'card_no', 'card'], true)) {
+            $value = machine_mask_card_number((string)$value);
         }
         $html .= '<div class="col-md-6 col-xl-4"><div class="border rounded p-3 h-100">';
         $html .= '<div class="text-muted fs-12 mb-1">' . machine_h($key) . '</div>';
@@ -81,6 +86,7 @@ function machine_row_value(array $row, array $keys): string
 
 function machine_user_label(array $row): string
 {
+    global $isAdmin;
     $name = trim(machine_row_value($row, ['name', 'Name']));
     $userId = trim(machine_row_value($row, ['id', 'ID', 'user_id', 'userId']));
     $cardNo = trim(machine_row_value($row, ['cardno', 'cardNo', 'CardNo']));
@@ -93,10 +99,22 @@ function machine_user_label(array $row): string
         $parts[] = 'ID ' . $userId;
     }
     if ($cardNo !== '') {
-        $parts[] = 'Card ' . $cardNo;
+        $parts[] = 'Card ' . ($isAdmin ? $cardNo : machine_mask_card_number($cardNo));
     }
 
     return $parts !== [] ? implode(' | ', $parts) : 'Machine user';
+}
+
+function machine_mask_card_number(string $value): string
+{
+    $digits = preg_replace('/\s+/', '', trim($value));
+    if ($digits === '') {
+        return '-';
+    }
+    if (strlen($digits) <= 4) {
+        return str_repeat('*', max(strlen($digits) - 1, 0)) . substr($digits, -1);
+    }
+    return str_repeat('*', max(strlen($digits) - 4, 0)) . substr($digits, -4);
 }
 
 function machine_load_user_list_into_state(&$userListRaw, &$userListDecoded): void
@@ -125,6 +143,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = trim((string)($_POST['machine_action'] ?? ''));
 
     try {
+        $adminOnlyActions = [
+            'save_user_json',
+            'save_config',
+            'save_network',
+            'save_connector_config',
+            'clear_records',
+            'clear_users',
+            'clear_admin',
+            'restart',
+            'save_device_identity',
+        ];
+        if (in_array($action, $adminOnlyActions, true) && !$isAdmin) {
+            throw new RuntimeException('Only admins can perform that machine action.');
+        }
+
         switch ($action) {
             case 'sync':
                 $connector = biometric_machine_run_command('sync');
@@ -403,6 +436,10 @@ include __DIR__ . '/../includes/header.php';
             </div>
         <?php endif; ?>
 
+        <div class="alert alert-info">
+            Fingerprint templates stay on the F20H. BioTern only manages machine user records, mappings, and attendance events. Card numbers are masked for non-admin views.
+        </div>
+
         <div class="row g-3 mb-3">
             <div class="col-md-4">
                 <div class="card stretch stretch-full">
@@ -529,7 +566,7 @@ include __DIR__ . '/../includes/header.php';
                                                     <div class="fw-semibold"><?php echo machine_h($rowName !== '' ? $rowName : '(blank)'); ?></div>
                                                     <small class="text-muted"><?php echo machine_h(machine_user_label($row)); ?></small>
                                                 </td>
-                                                <td><?php echo machine_h($rowCardNo !== '' ? $rowCardNo : '-'); ?></td>
+                                                <td><?php echo machine_h($rowCardNo !== '' ? ($isAdmin ? $rowCardNo : machine_mask_card_number($rowCardNo)) : '-'); ?></td>
                                                 <td><?php echo machine_h($rowPrivilege !== '' ? $rowPrivilege : '-'); ?></td>
                                                 <td style="min-width: 240px;">
                                                     <?php if ($rowUserId !== ''): ?>
@@ -561,8 +598,10 @@ include __DIR__ . '/../includes/header.php';
                             </div>
                         <?php endif; ?>
 
-                        <label class="form-label">Raw User List</label>
-                        <textarea class="form-control" rows="10" readonly><?php echo machine_h($userListRaw); ?></textarea>
+                        <?php if ($isAdmin): ?>
+                            <label class="form-label">Raw User List</label>
+                            <textarea class="form-control" rows="10" readonly><?php echo machine_h($userListRaw); ?></textarea>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
@@ -584,24 +623,48 @@ include __DIR__ . '/../includes/header.php';
                             </div>
                         </form>
 
-                        <form method="post">
-                            <input type="hidden" name="machine_action" value="save_user_json">
-                            <input type="hidden" name="user_id" value="<?php echo machine_h($selectedUserId); ?>">
-                            <label class="form-label">Raw User JSON</label>
-                            <textarea name="user_json" class="form-control" rows="12"><?php echo machine_h($userDetailsRaw); ?></textarea>
-                            <div class="d-flex flex-wrap gap-2 mt-3">
-                                <button type="submit" class="btn btn-primary">Save Raw User</button>
-                            </div>
-                        </form>
                         <form method="post" class="mt-2" onsubmit="return confirm('Delete this user from the F20H machine?');">
                             <input type="hidden" name="machine_action" value="delete_user">
                             <input type="hidden" name="user_id" value="<?php echo machine_h($selectedUserId); ?>">
                             <button type="submit" class="btn btn-danger">Delete User</button>
                         </form>
 
-                        <?php if (is_array($userDetailsDecoded)): ?>
-                            <div class="row g-2 mt-3">
-                                <?php echo machine_render_pairs($userDetailsDecoded); ?>
+                        <?php if ($isAdmin || is_array($userDetailsDecoded)): ?>
+                            <div class="mt-3">
+                                <button
+                                    class="btn btn-sm btn-outline-secondary"
+                                    type="button"
+                                    data-bs-toggle="collapse"
+                                    data-bs-target="#machineUserAdvanced"
+                                    aria-expanded="false"
+                                    aria-controls="machineUserAdvanced"
+                                >
+                                    Toggle Advanced Record
+                                </button>
+                            </div>
+                            <div class="collapse mt-3" id="machineUserAdvanced">
+                                <?php if ($isAdmin): ?>
+                                    <form method="post">
+                                        <input type="hidden" name="machine_action" value="save_user_json">
+                                        <input type="hidden" name="user_id" value="<?php echo machine_h($selectedUserId); ?>">
+                                        <label class="form-label">Raw User JSON</label>
+                                        <textarea
+                                            name="user_json"
+                                            class="form-control"
+                                            rows="4"
+                                            style="resize: vertical; min-height: 120px;"
+                                        ><?php echo machine_h($userDetailsRaw); ?></textarea>
+                                        <div class="d-flex flex-wrap gap-2 mt-3">
+                                            <button type="submit" class="btn btn-primary">Save Raw User</button>
+                                        </div>
+                                    </form>
+                                <?php endif; ?>
+
+                                <?php if (is_array($userDetailsDecoded)): ?>
+                                    <div class="row g-2 mt-3">
+                                        <?php echo machine_render_pairs($userDetailsDecoded); ?>
+                                    </div>
+                                <?php endif; ?>
                             </div>
                         <?php endif; ?>
                     </div>
@@ -658,77 +721,79 @@ include __DIR__ . '/../includes/header.php';
                 </div>
             </div>
 
-            <div class="col-xl-6">
-                <div class="card stretch stretch-full">
-                    <div class="card-header"><h6 class="card-title mb-0">Device Info and Raw Config</h6></div>
-                    <div class="card-body">
-                        <label class="form-label">Device Info</label>
-                        <textarea class="form-control mb-3" rows="6" readonly><?php echo machine_h($deviceInfoRaw); ?></textarea>
+            <?php if ($isAdmin): ?>
+                <div class="col-xl-6">
+                    <div class="card stretch stretch-full">
+                        <div class="card-header"><h6 class="card-title mb-0">Device Info and Raw Config</h6></div>
+                        <div class="card-body">
+                            <label class="form-label">Device Info</label>
+                            <textarea class="form-control mb-3" rows="6" readonly><?php echo machine_h($deviceInfoRaw); ?></textarea>
 
-                        <form method="post">
-                            <input type="hidden" name="machine_action" value="save_config">
-                            <label class="form-label">Config JSON</label>
-                            <textarea name="config_json" class="form-control" rows="10"><?php echo machine_h($configRaw); ?></textarea>
-                            <button type="submit" class="btn btn-primary mt-3">Save Config</button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-xl-6">
-                <div class="card stretch stretch-full">
-                    <div class="card-header"><h6 class="card-title mb-0">Connector Defaults</h6></div>
-                    <div class="card-body">
-                        <p class="text-muted">These are the localhost-side connection settings BioTern uses when it talks to the F20H over LAN.</p>
-                        <form method="post">
-                            <input type="hidden" name="machine_action" value="save_connector_config">
-                            <label class="form-label">Connector JSON</label>
-                            <textarea name="connector_config_json" class="form-control" rows="10"><?php echo machine_h($machineConfigJson); ?></textarea>
-                            <button type="submit" class="btn btn-outline-primary mt-3">Save Connector Config</button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-xl-6">
-                <div class="card stretch stretch-full">
-                    <div class="card-header"><h6 class="card-title mb-0">Advanced Machine Controls</h6></div>
-                    <div class="card-body">
-                        <form method="post" class="row g-2 mb-4">
-                            <input type="hidden" name="machine_action" value="save_device_identity">
-                            <div class="col-sm-6">
-                                <label class="form-label">Device Number</label>
-                                <input type="number" name="device_number" class="form-control" min="1" placeholder="1">
-                            </div>
-                            <div class="col-sm-6">
-                                <label class="form-label">Communication Password</label>
-                                <input type="text" name="communication_password" class="form-control" placeholder="0">
-                            </div>
-                            <div class="col-12">
-                                <button type="submit" class="btn btn-outline-secondary">Save Device Identity</button>
-                            </div>
-                        </form>
-
-                        <div class="d-flex flex-wrap gap-2">
-                            <form method="post" onsubmit="return confirm('Restart the F20H now?');">
-                                <input type="hidden" name="machine_action" value="restart">
-                                <button type="submit" class="btn btn-outline-primary">Restart Machine</button>
-                            </form>
-                            <form method="post" onsubmit="return confirm('Clear only attendance records from the F20H?');">
-                                <input type="hidden" name="machine_action" value="clear_records">
-                                <button type="submit" class="btn btn-outline-warning">Clear Records</button>
-                            </form>
-                            <form method="post" onsubmit="return confirm('Clear admin data on the F20H?');">
-                                <input type="hidden" name="machine_action" value="clear_admin">
-                                <button type="submit" class="btn btn-outline-warning">Clear Admin</button>
-                            </form>
-                            <form method="post" onsubmit="return confirm('Clear all users from the F20H? This removes the machine user list.');">
-                                <input type="hidden" name="machine_action" value="clear_users">
-                                <button type="submit" class="btn btn-outline-danger">Clear All Users</button>
+                            <form method="post">
+                                <input type="hidden" name="machine_action" value="save_config">
+                                <label class="form-label">Config JSON</label>
+                                <textarea name="config_json" class="form-control" rows="10"><?php echo machine_h($configRaw); ?></textarea>
+                                <button type="submit" class="btn btn-primary mt-3">Save Config</button>
                             </form>
                         </div>
                     </div>
                 </div>
-            </div>
+
+                <div class="col-xl-6">
+                    <div class="card stretch stretch-full">
+                        <div class="card-header"><h6 class="card-title mb-0">Connector Defaults</h6></div>
+                        <div class="card-body">
+                            <p class="text-muted">These are the localhost-side connection settings BioTern uses when it talks to the F20H over LAN.</p>
+                            <form method="post">
+                                <input type="hidden" name="machine_action" value="save_connector_config">
+                                <label class="form-label">Connector JSON</label>
+                                <textarea name="connector_config_json" class="form-control" rows="10"><?php echo machine_h($machineConfigJson); ?></textarea>
+                                <button type="submit" class="btn btn-outline-primary mt-3">Save Connector Config</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-6">
+                    <div class="card stretch stretch-full">
+                        <div class="card-header"><h6 class="card-title mb-0">Advanced Machine Controls</h6></div>
+                        <div class="card-body">
+                            <form method="post" class="row g-2 mb-4">
+                                <input type="hidden" name="machine_action" value="save_device_identity">
+                                <div class="col-sm-6">
+                                    <label class="form-label">Device Number</label>
+                                    <input type="number" name="device_number" class="form-control" min="1" placeholder="1">
+                                </div>
+                                <div class="col-sm-6">
+                                    <label class="form-label">Communication Password</label>
+                                    <input type="text" name="communication_password" class="form-control" placeholder="0">
+                                </div>
+                                <div class="col-12">
+                                    <button type="submit" class="btn btn-outline-secondary">Save Device Identity</button>
+                                </div>
+                            </form>
+
+                            <div class="d-flex flex-wrap gap-2">
+                                <form method="post" onsubmit="return confirm('Restart the F20H now?');">
+                                    <input type="hidden" name="machine_action" value="restart">
+                                    <button type="submit" class="btn btn-outline-primary">Restart Machine</button>
+                                </form>
+                                <form method="post" onsubmit="return confirm('Clear only attendance records from the F20H?');">
+                                    <input type="hidden" name="machine_action" value="clear_records">
+                                    <button type="submit" class="btn btn-outline-warning">Clear Records</button>
+                                </form>
+                                <form method="post" onsubmit="return confirm('Clear admin data on the F20H?');">
+                                    <input type="hidden" name="machine_action" value="clear_admin">
+                                    <button type="submit" class="btn btn-outline-warning">Clear Admin</button>
+                                </form>
+                                <form method="post" onsubmit="return confirm('Clear all users from the F20H? This removes the machine user list.');">
+                                    <input type="hidden" name="machine_action" value="clear_users">
+                                    <button type="submit" class="btn btn-outline-danger">Clear All Users</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            <?php endif; ?>
         </div>
 <?php include __DIR__ . '/../includes/footer.php'; ?>

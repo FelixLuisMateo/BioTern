@@ -348,7 +348,7 @@ if ($is_logged_in) {
   $internship_files = [
     'students.php', 'students-create.php', 'students-edit.php', 'students-view.php', 'students-dtr.php',
     'applications-review.php',
-    'attendance.php', 'attendance-corrections.php', 'edit_attendance.php', 'print_attendance.php', 'biometric_machine_sync.php', 'biometric-machine.php',
+    'attendance.php', 'attendance-corrections.php', 'edit_attendance.php', 'print_attendance.php', 'biometric_machine_sync.php', 'biometric-machine.php', 'fingerprint_mapping.php',
     'demo-biometric.php',
     'ojt.php', 'ojt-create.php', 'ojt-edit.php', 'ojt-view.php', 'ojt-workflow-board.php',
     'reports-sales.php', 'reports-attendance-operations.php', 'reports-ojt.php', 'reports-project.php', 'reports-timesheets.php', 'reports-login-logs.php', 'reports-chat-logs.php', 'reports-chat-reports.php',

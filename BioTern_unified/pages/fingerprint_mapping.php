@@ -6,6 +6,12 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+$role = strtolower(trim((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? '')));
+if (!in_array($role, ['admin', 'coordinator', 'supervisor'], true)) {
+    header('Location: homepage.php');
+    exit;
+}
+
 $host = defined('DB_HOST') ? DB_HOST : 'localhost';
 $db_user = defined('DB_USER') ? DB_USER : 'root';
 $db_password = defined('DB_PASS') ? DB_PASS : '';
