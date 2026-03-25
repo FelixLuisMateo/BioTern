@@ -1,18 +1,6 @@
 <?php
-// Database Connection
-$host = 'localhost';
-$db_user = 'root';
-$db_password = '';
-$db_name = 'biotern_db';
-
-try {
-    $conn = new mysqli($host, $db_user, $db_password, $db_name);
-    if ($conn->connect_error) {
-        die("Connection failed: " . $conn->connect_error);
-    }
-} catch (Exception $e) {
-    die("Database Error: " . $e->getMessage());
-}
+require_once dirname(__DIR__) . '/config/db.php';
+/** @var mysqli $conn */
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -119,6 +107,7 @@ $student = $result->fetch_assoc();
 
 // Fetch all courses for dropdown (be tolerant of differing schema columns)
 $courses = [];
+$db_name = defined('DB_NAME') ? (string)DB_NAME : 'biotern_db';
 $db_esc = $conn->real_escape_string($db_name);
 $has_is_active = false;
 $has_status_col = false;

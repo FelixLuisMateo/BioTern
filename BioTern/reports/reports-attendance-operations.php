@@ -1,21 +1,11 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
+/** @var mysqli $conn */
 require_once dirname(__DIR__) . '/lib/ops_helpers.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 require_roles_page(['admin', 'coordinator', 'supervisor']);
-
-$conn = new mysqli(
-    defined('DB_HOST') ? DB_HOST : 'localhost',
-    defined('DB_USER') ? DB_USER : 'root',
-    defined('DB_PASS') ? DB_PASS : '',
-    defined('DB_NAME') ? DB_NAME : 'biotern_db',
-    defined('DB_PORT') ? (int)DB_PORT : 3306
-);
-if ($conn->connect_error) {
-    die("DB connection failed");
-}
 
 $rows = [];
 if (table_exists($conn, 'attendance_operational_report')) {

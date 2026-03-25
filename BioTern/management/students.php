@@ -1,8 +1,16 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
+/** @var mysqli $conn */
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+if (!isset($conn) || !($conn instanceof mysqli) || $conn->connect_errno) {
+    http_response_code(500);
+    die('Database connection is not available.');
+}
+/** @var mysqli $db */
+$db = $conn;
+$db_name = defined('DB_NAME') ? (string)DB_NAME : 'biotern_db';
 
 $current_user_id = (int)($_SESSION['user_id'] ?? 0);
 $current_user_name = trim((string)($_SESSION['name'] ?? $_SESSION['username'] ?? 'BioTern User'));
@@ -24,27 +32,14 @@ $current_role = strtolower(trim((string) (
 )));
 $is_student_user = ($current_role === 'student');
 
-$db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
-if (!isset($conn) || !($conn instanceof mysqli)) {
-    $host = defined('DB_HOST') ? DB_HOST : 'localhost';
-    $db_user = defined('DB_USER') ? DB_USER : 'root';
-    $db_password = defined('DB_PASS') ? DB_PASS : '';
-    $db_port = defined('DB_PORT') ? DB_PORT : 3306;
-    $conn = new mysqli($host, $db_user, $db_password, $db_name, $db_port);
-    if ($conn->connect_error) {
-        die("Connection failed: " . $conn->connect_error);
-    }
-    $conn->set_charset('utf8mb4');
-}
-
 $has_application_status = false;
-$col_app = $conn->query("SHOW COLUMNS FROM users LIKE 'application_status'");
+$col_app = $db->query("SHOW COLUMNS FROM users LIKE 'application_status'");
 if ($col_app && $col_app->num_rows > 0) {
     $has_application_status = true;
 }
 
 $has_school_year_column = false;
-$col_sy = $conn->query("SHOW COLUMNS FROM students LIKE 'school_year'");
+$col_sy = $db->query("SHOW COLUMNS FROM students LIKE 'school_year'");
 if ($col_sy && $col_sy->num_rows > 0) {
     $has_school_year_column = true;
 }
@@ -64,8 +59,19 @@ if ($has_application_status) {
     WHERE COALESCE(u.application_status, 'approved') = 'approved'
     ";
 }
-$stats_result = $conn->query($stats_query);
-$stats = $stats_result->fetch_assoc();
+$stats = [
+    'total_students' => 0,
+    'active_students' => 0,
+    'inactive_students' => 0,
+    'biometric_registered' => 0,
+];
+$stats_result = $db->query($stats_query);
+if ($stats_result) {
+    $stats_row = $stats_result->fetch_assoc();
+    if (is_array($stats_row)) {
+        $stats = array_merge($stats, $stats_row);
+    }
+}
 
 // Prepare filter inputs
 $filter_date = isset($_GET['date']) ? trim((string)$_GET['date']) : '';
@@ -90,10 +96,10 @@ for ($year = $latest_school_year_start; $year >= $school_year_start; $year--) {
 // Fetch dropdown lists
 $courses = [];
 // Determine which column exists for active flag on courses to avoid schema mismatch errors
-$db_esc = $conn->real_escape_string($db_name);
+$db_esc = $db->real_escape_string($db_name);
 $has_is_active = false;
 $has_status_col = false;
-$col_check = $conn->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '" . $db_esc . "' AND TABLE_NAME = 'courses' AND COLUMN_NAME IN ('is_active','status')");
+$col_check = $db->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '" . $db_esc . "' AND TABLE_NAME = 'courses' AND COLUMN_NAME IN ('is_active','status')");
 if ($col_check && $col_check->num_rows) {
     while ($c = $col_check->fetch_assoc()) {
         if ($c['COLUMN_NAME'] === 'is_active') $has_is_active = true;
@@ -109,25 +115,25 @@ if ($has_is_active) {
 }
 $courses_query .= " ORDER BY name ASC";
 
-$courses_res = $conn->query($courses_query);
+$courses_res = $db->query($courses_query);
 if ($courses_res && $courses_res->num_rows) {
     while ($r = $courses_res->fetch_assoc()) $courses[] = $r;
 }
 
 $departments = [];
-$dept_res = $conn->query("SELECT id, name FROM departments ORDER BY name ASC");
+$dept_res = $db->query("SELECT id, name FROM departments ORDER BY name ASC");
 if ($dept_res && $dept_res->num_rows) {
     while ($r = $dept_res->fetch_assoc()) $departments[] = $r;
 }
 
 $sections = [];
-$section_res = $conn->query("SELECT id, COALESCE(NULLIF(code, ''), name) AS section_label FROM sections ORDER BY section_label ASC");
+$section_res = $db->query("SELECT id, COALESCE(NULLIF(code, ''), name) AS section_label FROM sections ORDER BY section_label ASC");
 if ($section_res && $section_res->num_rows) {
     while ($r = $section_res->fetch_assoc()) $sections[] = $r;
 }
 
 $supervisors = [];
-$sup_res = $conn->query("
+$sup_res = $db->query("
     SELECT DISTINCT TRIM(CONCAT_WS(' ', first_name, middle_name, last_name)) AS supervisor_name
     FROM supervisors
     WHERE TRIM(CONCAT_WS(' ', first_name, middle_name, last_name)) <> ''
@@ -138,7 +144,7 @@ if ($sup_res && $sup_res->num_rows) {
 }
 
 $coordinators = [];
-$coor_res = $conn->query("
+$coor_res = $db->query("
     SELECT DISTINCT TRIM(CONCAT_WS(' ', first_name, middle_name, last_name)) AS coordinator_name
     FROM coordinators
     WHERE TRIM(CONCAT_WS(' ', first_name, middle_name, last_name)) <> ''
@@ -155,7 +161,7 @@ if ($has_application_status) {
 }
 if ($filter_date !== '') {
     // Filter students that have attendance logs on the selected date.
-    $safe_date = $conn->real_escape_string($filter_date);
+    $safe_date = $db->real_escape_string($filter_date);
     $where[] = "EXISTS (
         SELECT 1 FROM attendances a_date
         WHERE a_date.student_id = s.id
@@ -172,18 +178,18 @@ if ($filter_section > 0) {
     $where[] = "s.section_id = " . intval($filter_section);
 }
 if ($has_school_year_column && $filter_school_year !== '' && preg_match('/^\\d{4}-\\d{4}$/', $filter_school_year) && in_array($filter_school_year, $school_year_options, true)) {
-    $esc_school_year = $conn->real_escape_string($filter_school_year);
+    $esc_school_year = $db->real_escape_string($filter_school_year);
     $where[] = "s.school_year = '{$esc_school_year}'";
 }
 if (!empty($filter_supervisor)) {
-    $esc_sup = $conn->real_escape_string($filter_supervisor);
+    $esc_sup = $db->real_escape_string($filter_supervisor);
     $where[] = "(
         TRIM(CONCAT_WS(' ', sup.first_name, sup.middle_name, sup.last_name)) LIKE '%{$esc_sup}%'
         OR s.supervisor_name LIKE '%{$esc_sup}%'
     )";
 }
 if (!empty($filter_coordinator)) {
-    $esc_coor = $conn->real_escape_string($filter_coordinator);
+    $esc_coor = $db->real_escape_string($filter_coordinator);
     $where[] = "(
         TRIM(CONCAT_WS(' ', coor.first_name, coor.middle_name, coor.last_name)) LIKE '%{$esc_coor}%'
         OR s.coordinator_name LIKE '%{$esc_coor}%'
@@ -265,9 +271,9 @@ $students_query = "
     ORDER BY s.first_name ASC
     LIMIT 100
 ";
-$students_result = $conn->query($students_query);
+$students_result = $db->query($students_query);
 $students = [];
-if ($students_result->num_rows > 0) {
+if ($students_result && $students_result->num_rows > 0) {
     while ($row = $students_result->fetch_assoc()) {
         $students[] = $row;
     }

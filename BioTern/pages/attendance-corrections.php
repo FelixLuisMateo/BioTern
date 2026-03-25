@@ -1,16 +1,20 @@
 <?php
+require_once dirname(__DIR__) . '/config/db.php';
+/** @var mysqli $conn */
 require_once dirname(__DIR__) . '/lib/ops_helpers.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 require_roles_page(['admin', 'coordinator', 'supervisor']);
 
-$conn = new mysqli('localhost', 'root', '', 'biotern_db');
-if ($conn->connect_error) {
-    die("DB connection failed");
+if (!isset($conn) || !($conn instanceof mysqli) || $conn->connect_errno) {
+    http_response_code(500);
+    die('Database connection is not available.');
 }
+/** @var mysqli $db */
+$db = $conn;
 
-if (!table_exists($conn, 'attendance_correction_requests')) {
+if (!table_exists($db, 'attendance_correction_requests')) {
     die('Run db_updates_operations.sql first.');
 }
 
@@ -22,7 +26,7 @@ $query = "
     ORDER BY r.created_at DESC
     LIMIT 100
 ";
-$res = $conn->query($query);
+$res = $db->query($query);
 $rows = [];
 if ($res) {
     while ($r = $res->fetch_assoc()) {
@@ -95,8 +99,6 @@ include 'includes/header.php';
 </div> <!-- .nxl-content -->
 </main>
 <?php include 'includes/footer.php'; ?>
-
-
 
 
 

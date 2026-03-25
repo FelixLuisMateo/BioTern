@@ -1,22 +1,6 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
-$host = defined('DB_HOST') ? DB_HOST : 'localhost';
-$db_user = defined('DB_USER') ? DB_USER : 'root';
-$db_password = defined('DB_PASS') ? DB_PASS : '';
-$db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
-$db_port = defined('DB_PORT') ? DB_PORT : 3306;
-
-if (!isset($conn) || !($conn instanceof mysqli)) {
-    try {
-        $conn = new mysqli($host, $db_user, $db_password, $db_name, $db_port);
-        if ($conn->connect_error) {
-            die("Connection failed: " . $conn->connect_error);
-        }
-        $conn->set_charset('utf8mb4');
-    } catch (Exception $e) {
-        die("Database Error: " . $e->getMessage());
-    }
-}
+/** @var mysqli $conn */
 
 $student_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 if ($student_id <= 0) {

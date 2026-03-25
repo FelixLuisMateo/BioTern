@@ -5,12 +5,6 @@ if (session_status() === PHP_SESSION_NONE) {
 
 require_once dirname(__DIR__) . '/config/db.php';
 
-$dbHost = defined('DB_HOST') ? DB_HOST : '127.0.0.1';
-$dbUser = defined('DB_USER') ? DB_USER : 'root';
-$dbPass = defined('DB_PASS') ? DB_PASS : '';
-$dbName = defined('DB_NAME') ? DB_NAME : 'biotern_db';
-$dbPort = defined('DB_PORT') ? (int)DB_PORT : 3306;
-
 $reset_error = '';
 $reset_success = '';
 $script_name = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
@@ -38,7 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif ($newPassword !== $confirmPassword) {
             $reset_error = 'Passwords do not match.';
         } else {
-            $mysqli = new mysqli($dbHost, $dbUser, $dbPass, $dbName, $dbPort);
+            $mysqli = $conn;
             if ($mysqli->connect_errno) {
                 $reset_error = 'Database connection failed.';
             } else {
@@ -101,7 +95,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $select->close();
                     }
                 }
-                $mysqli->close();
             }
         }
     }
@@ -122,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/js/theme-preload-init.min.js"></script>
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/vendors/css/vendors.min.css">
-    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/theme.min.css">
+    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/smacss.css">
 </head>
 
 <body>

@@ -149,18 +149,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($identifier === '' || $password === '') {
         $login_error = 'Please enter your username/email and password.';
     } else {
-        $mysqli = null;
-        if (isset($conn) && $conn instanceof mysqli && !$conn->connect_errno) {
-            $mysqli = $conn;
-        } else {
-            $mysqli = mysqli_init();
-            if ($mysqli instanceof mysqli) {
-                $mysqli->options(MYSQLI_OPT_CONNECT_TIMEOUT, 5);
-                @mysqli_real_connect($mysqli, $dbHost, $dbUser, $dbPass, $dbName, $dbPort);
-            } else {
-                $mysqli = @new mysqli($dbHost, $dbUser, $dbPass, $dbName, $dbPort);
-            }
-        }
+        $mysqli = $conn;
 
         if ($mysqli->connect_errno) {
             $login_error = 'Database connection failed.';
@@ -254,9 +243,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             } else {
                 $login_error = 'Login query preparation failed.';
-            }
-            if (!isset($conn) || !$conn instanceof mysqli || $mysqli !== $conn) {
-                $mysqli->close();
             }
         }
     }

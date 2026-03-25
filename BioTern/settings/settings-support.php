@@ -1,5 +1,6 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
+/** @var mysqli $conn */
 
 $page_body_class = 'settings-page';
 
@@ -110,8 +111,7 @@ $support_settings = $support_defaults;
 $support_success = '';
 $support_error = '';
 
-$conn = @new mysqli($dbHost, $dbUser, $dbPass, $dbName, $dbPort);
-if ($conn->connect_errno) {
+if (!isset($conn) || !($conn instanceof mysqli) || $conn->connect_errno) {
     $support_error = 'Database connection failed for support settings.';
 } else {
     $has_table = $conn->query("SHOW TABLES LIKE 'system_settings'");
@@ -180,8 +180,6 @@ if ($conn->connect_errno) {
     } else {
         $support_error = 'system_settings table not found in database.';
     }
-
-    $conn->close();
 }
 
 $selected_extensions = array_filter(array_map('trim', explode(',', support_pick($support_settings, 'allowed_extensions', ''))));

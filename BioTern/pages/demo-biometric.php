@@ -1,20 +1,12 @@
 <?php
+require_once dirname(__DIR__) . '/config/db.php';
+/** @var mysqli $conn */
 require_once dirname(__DIR__) . '/lib/attendance_rules.php';
 require_once dirname(__DIR__) . '/lib/ops_helpers.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 require_roles_page(['admin', 'coordinator', 'supervisor', 'student']);
-// Database Connection
-$host = 'localhost';
-$db_user = 'root';
-$db_password = '';
-$db_name = 'biotern_db';
-
-$conn = new mysqli($host, $db_user, $db_password, $db_name);
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
 
 function parse_time_seconds($time_value) {
     if (empty($time_value)) {
@@ -580,7 +572,6 @@ include 'includes/header.php';
 <?php
 $conn->close();
 ?>
-
 
 
 

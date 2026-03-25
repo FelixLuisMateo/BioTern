@@ -190,10 +190,15 @@ html.app-theme-gray:not(.app-skin-dark) {
 
 .dashboard-movable {
     position: relative;
+    cursor: default;
+    will-change: transform;
+}
+
+.layout-edit-active .dashboard-movable {
     cursor: grab;
 }
 
-.dashboard-movable:active {
+.layout-edit-active .dashboard-movable:active {
     cursor: grabbing;
 }
 
@@ -207,6 +212,11 @@ html.app-theme-gray:not(.app-skin-dark) {
 
 .dashboard-movable.dragging {
     opacity: 0.5;
+}
+
+.dashboard-movable .dash-card,
+.dashboard-movable .card {
+    transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease;
 }
 
 .dashboard-movable.drag-target .dash-card {
@@ -437,7 +447,7 @@ html.app-theme-gray:not(.app-skin-dark) {
     transform: scale(.985);
 }
 
-.dashboard-movable.drag-target {
+.layout-edit-active .dashboard-movable.drag-target {
     outline: 1px dashed rgba(var(--bs-primary-rgb), .8);
     outline-offset: 3px;
 }

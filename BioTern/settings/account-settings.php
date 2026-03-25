@@ -1,5 +1,6 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
+/** @var mysqli $conn */
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();

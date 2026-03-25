@@ -1,6 +1,7 @@
 <?php
 // Messaging handler for supervisor, coordinator, student
 require_once '../config/db.php';
+/** @var mysqli $conn */
 require_once '../lib/notifications.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();

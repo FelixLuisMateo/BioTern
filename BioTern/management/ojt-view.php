@@ -1,14 +1,9 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
+/** @var mysqli $conn */
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-$host = defined('DB_HOST') ? DB_HOST : 'localhost';
-$db_user = defined('DB_USER') ? DB_USER : 'root';
-$db_password = defined('DB_PASS') ? DB_PASS : '';
-$db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
-
-$conn = null;
 $view_user_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 $selected_student_id = $view_user_id;
 $selected_user_id = 0;
@@ -256,11 +251,6 @@ function resolve_profile_image_url(string $profilePath): ?string
 }
 
 try {
-    $conn = new mysqli($host, $db_user, $db_password, $db_name);
-    if ($conn->connect_error) {
-        throw new Exception($conn->connect_error);
-    }
-
     $conn->query("CREATE TABLE IF NOT EXISTS application_letter (
         id INT(11) NOT NULL AUTO_INCREMENT,
         user_id INT(11) NOT NULL,

@@ -37,12 +37,74 @@
         });
 
         var isEditMode = false;
+        var dragged = null;
+
+        function getMovableCards() {
+            return Array.from(row.querySelectorAll('.dashboard-movable[data-move-key]'));
+        }
+
+        function animateLayoutMutation(mutate) {
+            var beforeRects = new Map();
+            var nodes = getMovableCards();
+            nodes.forEach(function (node) {
+                beforeRects.set(node, node.getBoundingClientRect());
+            });
+
+            mutate();
+
+            var afterRects = new Map();
+            nodes.forEach(function (node) {
+                afterRects.set(node, node.getBoundingClientRect());
+            });
+
+            nodes.forEach(function (node) {
+                var before = beforeRects.get(node);
+                var after = afterRects.get(node);
+                if (!before || !after) return;
+
+                var deltaX = before.left - after.left;
+                var deltaY = before.top - after.top;
+                if (Math.abs(deltaX) < 0.5 && Math.abs(deltaY) < 0.5) return;
+
+                node.style.transition = 'none';
+                node.style.transform = 'translate(' + deltaX + 'px, ' + deltaY + 'px)';
+                node.style.zIndex = '5';
+
+                requestAnimationFrame(function () {
+                    node.style.transition = 'transform 240ms cubic-bezier(0.22, 1, 0.36, 1)';
+                    node.style.transform = 'translate(0, 0)';
+                });
+
+                var clearTransition = function () {
+                    node.style.transition = '';
+                    node.style.transform = '';
+                    node.style.zIndex = '';
+                    node.removeEventListener('transitionend', clearTransition);
+                };
+                node.addEventListener('transitionend', clearTransition);
+            });
+        }
+
+        function updateDraggableState() {
+            cards.forEach(function (card) {
+                card.setAttribute('draggable', isEditMode ? 'true' : 'false');
+                card.classList.toggle('layout-draggable', isEditMode);
+            });
+        }
 
         function setEditMode(enabled) {
             isEditMode = !!enabled;
             if (shell) {
                 shell.classList.toggle('layout-edit-active', isEditMode);
             }
+            if (!isEditMode) {
+                if (dragged) {
+                    dragged.classList.remove('dragging');
+                    dragged = null;
+                }
+                clearTargets();
+            }
+            updateDraggableState();
 
             var toggleButtons = document.querySelectorAll('#toggle-dashboard-layout, #toggle-dashboard-layout-mobile');
             toggleButtons.forEach(function (toggleBtn) {
@@ -73,8 +135,6 @@
             console.warn('Homepage layout restore failed:', error);
         }
 
-        var dragged = null;
-
         function saveOrder() {
             var order = Array.from(row.querySelectorAll('.dashboard-movable[data-move-key]')).map(function (item) {
                 return item.dataset.moveKey;
@@ -91,6 +151,25 @@
         function resetLayout() {
             localStorage.removeItem(storageKey);
             applyOrder(defaultOrder);
+        }
+
+        function swapCards(firstCard, secondCard) {
+            if (!firstCard || !secondCard || firstCard === secondCard) return;
+            var firstNext = firstCard.nextElementSibling;
+            var secondNext = secondCard.nextElementSibling;
+
+            if (firstNext === secondCard) {
+                row.insertBefore(secondCard, firstCard);
+                return;
+            }
+
+            if (secondNext === firstCard) {
+                row.insertBefore(firstCard, secondCard);
+                return;
+            }
+
+            row.insertBefore(firstCard, secondNext);
+            row.insertBefore(secondCard, firstNext);
         }
 
         var resetButton = document.getElementById('reset-dashboard-layout');
@@ -120,13 +199,15 @@
         });
 
         cards.forEach(function (item) {
-            item.setAttribute('draggable', 'true');
-
             item.querySelectorAll('a, button, input, select, textarea').forEach(function (ctrl) {
                 ctrl.setAttribute('draggable', 'false');
             });
 
             function beginDrag(event) {
+                if (!isEditMode) {
+                    event.preventDefault();
+                    return;
+                }
                 var interactiveTarget = event.target.closest('a, button, input, select, textarea, .dropdown-menu, .pagination-common-style');
                 if (interactiveTarget) {
                     event.preventDefault();
@@ -151,13 +232,11 @@
             });
 
             item.addEventListener('dragover', function (event) {
+                if (!isEditMode) return;
                 if (!dragged || dragged === item) return;
                 event.preventDefault();
                 clearTargets();
                 item.classList.add('drag-target');
-                var itemRect = item.getBoundingClientRect();
-                var placeAfter = event.clientY > (itemRect.top + itemRect.height / 2);
-                item.classList.add(placeAfter ? 'drag-after' : 'drag-before');
                 if (event.dataTransfer) {
                     event.dataTransfer.dropEffect = 'move';
                 }
@@ -168,13 +247,13 @@
             });
 
             item.addEventListener('drop', function (event) {
+                if (!isEditMode) return;
                 if (!dragged || dragged === item) return;
                 event.preventDefault();
                 item.classList.remove('drag-target', 'drag-before', 'drag-after');
-
-                var itemRect = item.getBoundingClientRect();
-                var placeAfter = event.clientY > (itemRect.top + itemRect.height / 2);
-                row.insertBefore(dragged, placeAfter ? item.nextSibling : item);
+                animateLayoutMutation(function () {
+                    swapCards(dragged, item);
+                });
             });
         });
 

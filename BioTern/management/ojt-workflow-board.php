@@ -1,5 +1,6 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
+/** @var mysqli $conn */
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -10,13 +11,6 @@ if (file_exists($ops_helpers)) {
         require_roles_page(['admin', 'coordinator', 'supervisor']);
     }
 }
-
-$host = defined('DB_HOST') ? DB_HOST : 'localhost';
-$db_user = defined('DB_USER') ? DB_USER : 'root';
-$db_password = defined('DB_PASS') ? DB_PASS : '';
-$db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
-$conn = new mysqli($host, $db_user, $db_password, $db_name);
-if ($conn->connect_error) die('Connection failed: ' . $conn->connect_error);
 
 $current_user_id = intval($_SESSION['user_id'] ?? 0);
 $current_role = strtolower((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? ''));

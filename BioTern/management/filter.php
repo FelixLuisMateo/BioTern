@@ -1,14 +1,6 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
-if (!isset($conn) || !($conn instanceof mysqli)) {
-    $conn = @new mysqli(
-        defined('DB_HOST') ? DB_HOST : '127.0.0.1',
-        defined('DB_USER') ? DB_USER : 'root',
-        defined('DB_PASS') ? DB_PASS : '',
-        defined('DB_NAME') ? DB_NAME : 'biotern_db',
-        defined('DB_PORT') ? (int)DB_PORT : 3306
-    );
-}
+/** @var mysqli $conn */
 
 $school_years = [];
 $courses = [];

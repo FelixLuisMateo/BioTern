@@ -1,23 +1,6 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
-// Database Connection
-$host = defined('DB_HOST') ? DB_HOST : 'localhost';
-$db_user = defined('DB_USER') ? DB_USER : 'root';
-$db_password = defined('DB_PASS') ? DB_PASS : '';
-$db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
-$db_port = defined('DB_PORT') ? DB_PORT : 3306;
-
-if (!isset($conn) || !($conn instanceof mysqli)) {
-    try {
-        $conn = new mysqli($host, $db_user, $db_password, $db_name, $db_port);
-        if ($conn->connect_error) {
-            die("Connection failed: " . $conn->connect_error);
-        }
-        $conn->set_charset('utf8mb4');
-    } catch (Exception $e) {
-        die("Database Error: " . $e->getMessage());
-    }
-}
+/** @var mysqli $conn */
 
 $has_school_year_column = false;
 $col_sy = $conn->query("SHOW COLUMNS FROM students LIKE 'school_year'");
@@ -66,6 +49,7 @@ if (empty($filter_date) && empty($start_date) && empty($end_date) && empty($filt
 // Fetch dropdown lists
 $courses = [];
 // Determine which column exists for active flag on courses to avoid schema mismatch errors
+$db_name = defined('DB_NAME') ? (string)DB_NAME : 'biotern_db';
 $db_esc = $conn->real_escape_string($db_name);
 $has_is_active = false;
 $has_status_col = false;
@@ -885,8 +869,6 @@ include 'includes/header.php';
 </div> <!-- .nxl-content -->
 </main>
 <?php include 'includes/footer.php'; ?>
-
-
 
 
 
