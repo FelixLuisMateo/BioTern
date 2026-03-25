@@ -182,14 +182,14 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
             'key' => 'profile',
             'label' => 'Profile',
             'icon' => 'feather-user',
-            'routes' => [],
+            'routes' => ['account-settings.php'],
             'avatar' => $profileAvatar,
             'sections' => [
                 [
                     'title' => 'Account',
                     'items' => [
-                        ['label' => 'Profile Details', 'href' => 'settings-support.php', 'icon' => 'feather-user'],
-                        ['label' => 'Account Settings', 'href' => 'settings-support.php', 'icon' => 'feather-settings'],
+                        ['label' => 'Profile Details', 'href' => 'account-settings.php', 'icon' => 'feather-user'],
+                        ['label' => 'Account Settings', 'href' => 'account-settings.php', 'icon' => 'feather-settings'],
                         ['label' => 'Logout', 'href' => '/BioTern/BioTern/auth/auth-login-cover.php?logout=1', 'icon' => 'feather-log-out'],
                     ],
                 ],

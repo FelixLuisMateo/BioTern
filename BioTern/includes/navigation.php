@@ -92,7 +92,7 @@ $nav_active_users = biotern_nav_any_active($nav_current_file, [
     'auth-register-creative.php', 'users.php', 'create_admin.php',
 ]);
 $nav_active_settings = biotern_nav_any_active($nav_current_file, [
-    'settings-support.php', 'theme-customizer.php',
+    'settings-support.php', 'account-settings.php', 'theme-customizer.php',
 ]);
 $nav_active_help = biotern_nav_any_active($nav_current_file, [
     'help-knowledgebase.php', 'settings-support.php',

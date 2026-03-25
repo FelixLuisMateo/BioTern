@@ -88,6 +88,10 @@ $favicon_logo_path = dirname(__DIR__) . '/assets/images/logo-abbr.png';
 $favicon_ico_version = @filemtime($favicon_ico_path);
 $favicon_png_version = @filemtime($favicon_png_path);
 $favicon_logo_version = @filemtime($favicon_logo_path);
+$smacss_css_path = dirname(__DIR__) . '/assets/css/smacss.css';
+$auth_login_css_path = dirname(__DIR__) . '/assets/css/modules/auth/auth-login-cover.css';
+$smacss_css_version = @filemtime($smacss_css_path);
+$auth_login_css_version = @filemtime($auth_login_css_path);
 if ($favicon_ico_version === false) {
     $favicon_ico_version = '20260318';
 }
@@ -96,6 +100,12 @@ if ($favicon_png_version === false) {
 }
 if ($favicon_logo_version === false) {
     $favicon_logo_version = '20260318';
+}
+if ($smacss_css_version === false) {
+    $smacss_css_version = '20260325';
+}
+if ($auth_login_css_version === false) {
+    $auth_login_css_version = '20260325';
 }
 $login_error = '';
 $next = isset($_GET['next']) ? basename((string)$_GET['next']) : '';
@@ -268,19 +278,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/js/theme-preload-init.min.js"></script>
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/vendors/css/vendors.min.css">
-    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/smacss.css">
-    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/modules/auth/auth-login-cover.css">
+    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/smacss.css?v=<?php echo rawurlencode((string)$smacss_css_version); ?>">
+    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/modules/auth/auth-login-cover.css?v=<?php echo rawurlencode((string)$auth_login_css_version); ?>">
 </head>
-<body>
+<body class="auth-login-page">
     <div class="login-bg-watermark" aria-hidden="true"></div>
     <main class="auth-cover-wrapper">
-        <div class="auth-cover-content-inner">
-            <div class="auth-cover-content-wrapper">
-                <div class="auth-img">
-                    <img src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>auth/building.png" alt="" class="img-fluid">
-                </div>
-            </div>
-        </div>
         <div class="auth-cover-sidebar-inner">
             <div class="auth-cover-card-wrapper">
                 <div class="auth-cover-card p-sm-5">
