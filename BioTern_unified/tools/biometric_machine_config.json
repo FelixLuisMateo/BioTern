@@ -3,5 +3,8 @@
   "port": 5001,
   "deviceNumber": 1,
   "communicationPassword": "0",
-  "outputPath": "C:\\xampp\\htdocs\\BioTern\\attendance.txt"
+  "outputPath": "C:\\xampp\\htdocs\\BioTern\\attendance.txt",
+  "attendanceWindowEnabled": false,
+  "attendanceStartTime": "08:00:00",
+  "attendanceEndTime": "20:00:00"
 }

@@ -6,6 +6,7 @@ if (!function_exists('run_biometric_auto_import')) {
     function run_biometric_auto_import(?string $attendanceFile = null): string
     {
         $attendanceFile = $attendanceFile ?: (__DIR__ . '/../../attendance.txt');
+        $machineConfig = loadBiometricMachineConfig();
         $host = 'localhost';
         $db_user = 'root';
         $db_password = '';
@@ -113,6 +114,11 @@ if (!function_exists('run_biometric_auto_import')) {
                     continue;
                 }
 
+                if (!isWithinConfiguredAttendanceWindow($time, $machineConfig)) {
+                    markRawLogProcessed($conn, $logId);
+                    continue;
+                }
+
                 $events[] = [
                     'log_id' => $logId,
                     'student_id' => $studentId,
@@ -155,6 +161,47 @@ if (!function_exists('run_biometric_auto_import')) {
 
         $conn->close();
         return "Biometric sync complete. Raw inserted: {$rawInserted}, logs processed: {$processedLogs}, attendance rows changed: {$attendanceChanged}";
+    }
+}
+
+if (!function_exists('loadBiometricMachineConfig')) {
+    function loadBiometricMachineConfig(): array
+    {
+        $configPath = __DIR__ . '/biometric_machine_config.json';
+        if (!file_exists($configPath)) {
+            return [];
+        }
+
+        $json = file_get_contents($configPath);
+        if (!is_string($json) || trim($json) === '') {
+            return [];
+        }
+
+        $decoded = json_decode($json, true);
+        return is_array($decoded) ? $decoded : [];
+    }
+}
+
+if (!function_exists('isWithinConfiguredAttendanceWindow')) {
+    function isWithinConfiguredAttendanceWindow(string $time, array $machineConfig): bool
+    {
+        $enabled = !empty($machineConfig['attendanceWindowEnabled']);
+        if (!$enabled) {
+            return true;
+        }
+
+        $start = trim((string)($machineConfig['attendanceStartTime'] ?? '08:00:00'));
+        $end = trim((string)($machineConfig['attendanceEndTime'] ?? '20:00:00'));
+
+        if (!preg_match('/^\d{2}:\d{2}:\d{2}$/', $time) || !preg_match('/^\d{2}:\d{2}:\d{2}$/', $start) || !preg_match('/^\d{2}:\d{2}:\d{2}$/', $end)) {
+            return true;
+        }
+
+        if ($start <= $end) {
+            return $time >= $start && $time <= $end;
+        }
+
+        return $time >= $start || $time <= $end;
     }
 }
 

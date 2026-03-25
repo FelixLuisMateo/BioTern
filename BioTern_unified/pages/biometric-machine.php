@@ -79,6 +79,48 @@ function machine_row_value(array $row, array $keys): string
     return '';
 }
 
+function machine_user_label(array $row): string
+{
+    $name = trim(machine_row_value($row, ['name', 'Name']));
+    $userId = trim(machine_row_value($row, ['id', 'ID', 'user_id', 'userId']));
+    $cardNo = trim(machine_row_value($row, ['cardno', 'cardNo', 'CardNo']));
+
+    $parts = [];
+    if ($name !== '') {
+        $parts[] = $name;
+    }
+    if ($userId !== '') {
+        $parts[] = 'ID ' . $userId;
+    }
+    if ($cardNo !== '') {
+        $parts[] = 'Card ' . $cardNo;
+    }
+
+    return $parts !== [] ? implode(' | ', $parts) : 'Machine user';
+}
+
+function machine_load_user_list_into_state(&$userListRaw, &$userListDecoded): void
+{
+    $result = biometric_machine_run_command('get-user-list');
+    if (!$result['success']) {
+        throw new RuntimeException(trim(implode("\n", $result['output'] ?? [])));
+    }
+
+    $userListRaw = biometric_machine_clean_output((string)($result['text'] ?? ''));
+    $userListDecoded = biometric_machine_decode_data($userListRaw);
+}
+
+function machine_load_user_details_into_state(int $selectedUserId, &$userDetailsRaw, &$userDetailsDecoded): void
+{
+    $result = biometric_machine_run_command('get-user', [(string)$selectedUserId]);
+    if (!$result['success']) {
+        throw new RuntimeException(trim(implode("\n", $result['output'] ?? [])));
+    }
+
+    $userDetailsRaw = biometric_machine_clean_output((string)($result['text'] ?? ''));
+    $userDetailsDecoded = biometric_machine_decode_data($userDetailsRaw);
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = trim((string)($_POST['machine_action'] ?? ''));
 
@@ -94,12 +136,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 break;
 
             case 'list_users':
-                $result = biometric_machine_run_command('get-user-list');
-                if (!$result['success']) {
-                    throw new RuntimeException(trim(implode("\n", $result['output'] ?? [])));
-                }
-                $userListRaw = $result['text'] ?? '';
-                $userListDecoded = biometric_machine_decode_data($userListRaw);
+                machine_load_user_list_into_state($userListRaw, $userListDecoded);
                 $flashMessage = 'Machine user list loaded.';
                 $flashType = 'success';
                 break;
@@ -108,12 +145,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($selectedUserId <= 0) {
                     throw new RuntimeException('Enter a valid user ID.');
                 }
-                $result = biometric_machine_run_command('get-user', [(string)$selectedUserId]);
-                if (!$result['success']) {
-                    throw new RuntimeException(trim(implode("\n", $result['output'] ?? [])));
-                }
-                $userDetailsRaw = $result['text'] ?? '';
-                $userDetailsDecoded = biometric_machine_decode_data($userDetailsRaw);
+                machine_load_user_details_into_state($selectedUserId, $userDetailsRaw, $userDetailsDecoded);
                 $flashMessage = 'Machine user record loaded.';
                 $flashType = 'success';
                 break;
@@ -146,9 +178,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!$result['success']) {
                     throw new RuntimeException(trim(implode("\n", $result['output'] ?? [])));
                 }
-                $userDetailsRaw = $patchedJson;
-                $userDetailsDecoded = biometric_machine_decode_data($userDetailsRaw);
+                machine_load_user_details_into_state($selectedUserId, $userDetailsRaw, $userDetailsDecoded);
+                machine_load_user_list_into_state($userListRaw, $userListDecoded);
                 $flashMessage = 'Machine user name updated.';
+                $flashType = 'success';
+                break;
+
+            case 'save_list_user_name':
+                $newName = trim((string)($_POST['inline_user_name'] ?? ''));
+                $inlineUserId = (int)($_POST['inline_user_id'] ?? 0);
+                if ($newName === '' || $inlineUserId <= 0) {
+                    throw new RuntimeException('Choose a machine user and enter a new name first.');
+                }
+                machine_load_user_details_into_state($inlineUserId, $userDetailsRaw, $userDetailsDecoded);
+                if ($userDetailsRaw === '') {
+                    throw new RuntimeException('Failed to load the full machine user record.');
+                }
+                $patchedJson = biometric_machine_patch_user_name($userDetailsRaw, $newName);
+                $tmp = tempnam(sys_get_temp_dir(), 'biotern_user_');
+                file_put_contents($tmp, $patchedJson);
+                $result = biometric_machine_run_command('set-user', [$tmp]);
+                @unlink($tmp);
+                if (!$result['success']) {
+                    throw new RuntimeException(trim(implode("\n", $result['output'] ?? [])));
+                }
+                machine_load_user_list_into_state($userListRaw, $userListDecoded);
+                $flashMessage = 'Machine user renamed on the F20H.';
                 $flashType = 'success';
                 break;
 
@@ -164,6 +219,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $flashType = 'success';
                 $userDetailsRaw = '';
                 $userDetailsDecoded = null;
+                machine_load_user_list_into_state($userListRaw, $userListDecoded);
                 break;
 
             case 'get_device_info':
@@ -319,11 +375,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+$loadedUserRows = machine_extract_rows($userListDecoded);
+$connectorConfig = json_decode($machineConfigJson, true);
+$connectorIp = is_array($connectorConfig) ? (string)($connectorConfig['ipAddress'] ?? '') : '';
+$connectorPort = is_array($connectorConfig) ? (string)($connectorConfig['port'] ?? '') : '';
+$connectorDeviceNo = is_array($connectorConfig) ? (string)($connectorConfig['deviceNumber'] ?? '') : '';
+
 $page_title = 'BioTern || F20H Machine Manager';
 include __DIR__ . '/../includes/header.php';
 ?>
-<main class="nxl-container">
-    <div class="nxl-content">
         <div class="page-header">
             <div class="page-header-left d-flex align-items-center">
                 <div class="page-header-title">
@@ -342,6 +402,36 @@ include __DIR__ . '/../includes/header.php';
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
         <?php endif; ?>
+
+        <div class="row g-3 mb-3">
+            <div class="col-md-4">
+                <div class="card stretch stretch-full">
+                    <div class="card-body">
+                        <div class="text-muted fs-12 mb-1">Connector Target</div>
+                        <div class="fw-bold"><?php echo machine_h($connectorIp !== '' ? $connectorIp : 'Not set'); ?></div>
+                        <div class="text-muted">Port: <?php echo machine_h($connectorPort !== '' ? $connectorPort : '-'); ?> | Device: <?php echo machine_h($connectorDeviceNo !== '' ? $connectorDeviceNo : '-'); ?></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card stretch stretch-full">
+                    <div class="card-body">
+                        <div class="text-muted fs-12 mb-1">Loaded Machine Users</div>
+                        <div class="fs-3 fw-bold"><?php echo count($loadedUserRows); ?></div>
+                        <div class="text-muted">Use “Read All Users” to refresh this page view.</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card stretch stretch-full">
+                    <div class="card-body">
+                        <div class="text-muted fs-12 mb-1">Selected Machine User</div>
+                        <div class="fs-3 fw-bold"><?php echo machine_h($selectedUserId > 0 ? (string)$selectedUserId : '-'); ?></div>
+                        <div class="text-muted">Load a record, then edit its name or raw JSON below.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <div class="row g-3">
             <div class="col-xl-4">
@@ -419,17 +509,41 @@ include __DIR__ . '/../includes/header.php';
                                 <table class="table table-sm table-hover align-middle">
                                     <thead>
                                         <tr>
-                                            <th>Actions</th>
-                                            <?php foreach (array_keys($rows[0]) as $key): ?>
-                                                <th><?php echo machine_h($key); ?></th>
-                                            <?php endforeach; ?>
+                                            <th>Machine ID</th>
+                                            <th>Name</th>
+                                            <th>Card No</th>
+                                            <th>Privilege</th>
+                                            <th>Rename on F20H</th>
+                                            <th class="text-end">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <?php foreach ($rows as $row): ?>
                                             <tr>
+                                                <?php $rowUserId = machine_row_value($row, ['id', 'ID', 'user_id', 'userId', 'EnrollNumber']); ?>
+                                                <?php $rowName = machine_row_value($row, ['name', 'Name']); ?>
+                                                <?php $rowCardNo = machine_row_value($row, ['cardno', 'cardNo', 'CardNo']); ?>
+                                                <?php $rowPrivilege = machine_row_value($row, ['privilege', 'privalege', 'Privilege']); ?>
+                                                <td><?php echo machine_h($rowUserId !== '' ? $rowUserId : '-'); ?></td>
                                                 <td>
-                                                    <?php $rowUserId = machine_row_value($row, ['id', 'ID', 'user_id', 'userId', 'EnrollNumber']); ?>
+                                                    <div class="fw-semibold"><?php echo machine_h($rowName !== '' ? $rowName : '(blank)'); ?></div>
+                                                    <small class="text-muted"><?php echo machine_h(machine_user_label($row)); ?></small>
+                                                </td>
+                                                <td><?php echo machine_h($rowCardNo !== '' ? $rowCardNo : '-'); ?></td>
+                                                <td><?php echo machine_h($rowPrivilege !== '' ? $rowPrivilege : '-'); ?></td>
+                                                <td style="min-width: 240px;">
+                                                    <?php if ($rowUserId !== ''): ?>
+                                                        <form method="post" class="d-flex gap-2">
+                                                            <input type="hidden" name="machine_action" value="save_list_user_name">
+                                                            <input type="hidden" name="inline_user_id" value="<?php echo machine_h($rowUserId); ?>">
+                                                            <input type="text" name="inline_user_name" class="form-control form-control-sm" value="<?php echo machine_h($rowName); ?>" placeholder="Type new name">
+                                                            <button type="submit" class="btn btn-sm btn-outline-primary">Save</button>
+                                                        </form>
+                                                    <?php else: ?>
+                                                        <span class="text-muted fs-12">Unavailable</span>
+                                                    <?php endif; ?>
+                                                </td>
+                                                <td class="text-end">
                                                     <?php if ($rowUserId !== ''): ?>
                                                         <form method="post" class="d-inline">
                                                             <input type="hidden" name="machine_action" value="get_user">
@@ -440,9 +554,6 @@ include __DIR__ . '/../includes/header.php';
                                                         <span class="text-muted fs-12">No ID</span>
                                                     <?php endif; ?>
                                                 </td>
-                                                <?php foreach ($row as $value): ?>
-                                                    <td><?php echo machine_h(is_array($value) ? json_encode($value) : (string)$value); ?></td>
-                                                <?php endforeach; ?>
                                             </tr>
                                         <?php endforeach; ?>
                                     </tbody>
@@ -620,6 +731,4 @@ include __DIR__ . '/../includes/header.php';
                 </div>
             </div>
         </div>
-    </div>
-</main>
 <?php include __DIR__ . '/../includes/footer.php'; ?>

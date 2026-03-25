@@ -87,7 +87,7 @@ if (!function_exists('biometric_machine_run_command')) {
 if (!function_exists('biometric_machine_decode_data')) {
     function biometric_machine_decode_data(string $text)
     {
-        $trimmed = trim($text);
+        $trimmed = biometric_machine_clean_output($text);
         if ($trimmed === '') {
             return null;
         }
@@ -98,6 +98,19 @@ if (!function_exists('biometric_machine_decode_data')) {
         }
 
         return null;
+    }
+}
+
+if (!function_exists('biometric_machine_clean_output')) {
+    function biometric_machine_clean_output(string $text): string
+    {
+        $trimmed = trim($text);
+        if ($trimmed === '') {
+            return '';
+        }
+
+        $trimmed = preg_replace('/\s*Device disconnected\.\s*$/i', '', $trimmed);
+        return trim((string)$trimmed);
     }
 }
 

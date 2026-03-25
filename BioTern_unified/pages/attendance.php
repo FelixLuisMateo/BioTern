@@ -1841,9 +1841,19 @@ endif; ?>
                 new bootstrap.Tooltip(this);
             });
 
+            setTimeout(function() {
+                runBiometricAutoSync(false);
+            }, 1500);
+
             setInterval(function() {
                 runBiometricAutoSync(false);
             }, biometricAutoSyncIntervalMs);
+
+            document.addEventListener('visibilitychange', function() {
+                if (!document.hidden) {
+                    runBiometricAutoSync(false);
+                }
+            });
         });
 
         // View Details function
