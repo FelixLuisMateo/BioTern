@@ -524,6 +524,9 @@
         var toggle = document.querySelector('.page-header-actions-toggle');
         var panel = document.getElementById('dashboardPageActions');
         if (!toggle || !panel) return;
+        if (toggle.dataset && toggle.dataset.phcBound === '1') {
+            return;
+        }
 
         function setOpen(isOpen) {
             panel.classList.toggle('is-open', isOpen);

@@ -72,14 +72,37 @@ include __DIR__ . '/../includes/header.php';
 <main class="nxl-container">
     <div class="nxl-content">
 <div class="moa-page doc-page-root" data-page="dau_moa" data-prefill-student-id="<?php echo intval($prefill_student_id); ?>">
-        <div class="container moa-content">
-            <div class="row mt-3">
-                <div class="col-12">
-                    <h4>Memorandum of Agreement</h4>
-                    <p class="text-muted">Fill the fields below then click Generate DAU MOA to open the printable Memorandum of Agreement.</p>
+        <div class="page-header page-header-with-middle">
+            <div class="page-header-left d-flex align-items-center">
+                <div class="page-header-title">
+                    <h5 class="m-b-10">Documents - DAU MOA</h5>
+                </div>
+                <ul class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
+                    <li class="breadcrumb-item">Documents</li>
+                    <li class="breadcrumb-item">DAU MOA</li>
+                </ul>
+            </div>
+            <div class="page-header-middle">
+                <p class="page-header-statement">Fill the fields below, then generate the printable DAU Memorandum of Agreement.</p>
+            </div>
+            <div class="page-header-right ms-auto">
+                <div class="d-md-none d-flex align-items-center">
+                    <button type="button" class="btn btn-light-brand page-header-actions-toggle" data-bs-toggle="collapse" data-bs-target="#documentDauMoaActionsCollapse" aria-expanded="false" aria-controls="documentDauMoaActionsCollapse">
+                        <i class="feather-more-horizontal"></i>
+                    </button>
+                </div>
+                <div class="page-header-right-items collapse d-md-flex" id="documentDauMoaActionsCollapse">
+                    <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
+                        <a href="homepage.php" class="btn btn-outline-secondary"><i class="feather-home me-1"></i>Dashboard</a>
+                        <a href="document_application.php" class="btn btn-outline-primary"><i class="feather-file-text me-1"></i>Application</a>
+                        <a href="document_moa.php" class="btn btn-outline-primary"><i class="feather-file-text me-1"></i>MOA</a>
+                    </div>
                 </div>
             </div>
+        </div>
 
+        <div class="container moa-content">
             <div class="row doc-workspace-row">
                 <div class="col-lg-6 doc-form-pane">
                     <div class="card p-3">

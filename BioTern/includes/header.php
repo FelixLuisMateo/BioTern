@@ -163,10 +163,11 @@ require_once __DIR__ . '/theme-preferences.php';
 $default_theme_prefs = [
     'skin' => 'light',
     'menu' => 'auto',
-    'font' => 'default',
+    'font' => 'app-font-family-montserrat',
     'navigation' => 'light',
     'header' => 'light',
-    'scheme' => 'gray',
+    'scheme' => 'blue',
+    'surfaces' => 'linked',
 ];
 
 if (isset($page_theme_preferences) && is_array($page_theme_preferences)) {
@@ -188,7 +189,22 @@ if (!is_array($biotern_theme_preferences)) {
 $biotern_theme_preferences = array_merge($default_theme_prefs, $biotern_theme_preferences);
 
 $html_classes = [];
-if (($biotern_theme_preferences['skin'] ?? 'light') === 'dark') {
+$theme_skin = (($biotern_theme_preferences['skin'] ?? 'light') === 'dark') ? 'dark' : 'light';
+$theme_surfaces = strtolower(trim((string)($biotern_theme_preferences['surfaces'] ?? 'linked')));
+if ($theme_surfaces !== 'independent') {
+    $theme_surfaces = 'linked';
+}
+$theme_navigation = (($biotern_theme_preferences['navigation'] ?? 'light') === 'dark') ? 'dark' : 'light';
+$theme_header = (($biotern_theme_preferences['header'] ?? 'light') === 'dark') ? 'dark' : 'light';
+if ($theme_surfaces === 'linked') {
+    $theme_navigation = $theme_skin;
+    $theme_header = $theme_skin;
+    $biotern_theme_preferences['navigation'] = $theme_navigation;
+    $biotern_theme_preferences['header'] = $theme_header;
+}
+$biotern_theme_preferences['surfaces'] = $theme_surfaces;
+
+if ($theme_skin === 'dark') {
     $html_classes[] = 'app-skin-dark';
 }
 if (($biotern_theme_preferences['menu'] ?? 'auto') === 'mini') {
@@ -197,13 +213,13 @@ if (($biotern_theme_preferences['menu'] ?? 'auto') === 'mini') {
 if (($biotern_theme_preferences['font'] ?? 'default') !== 'default') {
     $html_classes[] = (string)$biotern_theme_preferences['font'];
 }
-if (($biotern_theme_preferences['navigation'] ?? 'light') === 'dark') {
+if ($theme_navigation === 'dark') {
     $html_classes[] = 'app-navigation-dark';
 }
-if (($biotern_theme_preferences['header'] ?? 'light') === 'dark') {
+if ($theme_header === 'dark') {
     $html_classes[] = 'app-header-dark';
 }
-$theme_scheme = strtolower(trim((string)($biotern_theme_preferences['scheme'] ?? 'gray')));
+$theme_scheme = strtolower(trim((string)($biotern_theme_preferences['scheme'] ?? 'blue')));
 if ($theme_scheme === 'gray') {
     $html_classes[] = 'app-theme-gray';
 }
@@ -385,6 +401,7 @@ if ($header_db instanceof mysqli) {
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/dataTables.bs5.min.css">
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2.min.css">
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2-theme.min.css">
+    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars(header_asset_versioned_href('assets/vendors/css/datepicker.min.css'), ENT_QUOTES, 'UTF-8'); ?>">
     <!--! END: Vendors CSS-->
     <!-- Theme runtime config moved to body data attributes -->
     <!--! BEGIN: Early Skin Script -->
@@ -402,6 +419,7 @@ if ($header_db instanceof mysqli) {
             <?php endif; ?>
         <?php endforeach; ?>
     <?php endif; ?>
+    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars(header_asset_versioned_href('assets/css/state/page-header-consistency.css'), ENT_QUOTES, 'UTF-8'); ?>" />
 </head>
 
 <body<?php echo $page_body_class !== '' ? ' class="' . htmlspecialchars($page_body_class, ENT_QUOTES, 'UTF-8') . '"' : ''; ?>

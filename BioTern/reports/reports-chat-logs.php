@@ -317,21 +317,39 @@ include 'includes/header.php';
 ?>
 <main class="nxl-container">
 <div class="nxl-content">
-<div class="page-header">
+<div class="page-header page-header-with-middle">
     <div class="page-header-left d-flex align-items-center">
         <div class="page-header-title logs-page-title">
             <h5 class="m-b-10">Reports - Chat Logs</h5>
-            <p class="text-muted mb-0">Monitor and audit message activity between users.</p>
+        </div>
+        <ul class="breadcrumb">
+            <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
+            <li class="breadcrumb-item"><a href="reports-ojt.php">Reports</a></li>
+            <li class="breadcrumb-item">Chat Logs</li>
+        </ul>
+    </div>
+    <div class="page-header-middle">
+        <p class="page-header-statement">Real-time visibility into conversations, delivery status, and user message activity.</p>
+    </div>
+    <div class="page-header-right ms-auto">
+        <div class="d-md-none d-flex align-items-center">
+            <button type="button" class="btn btn-light-brand page-header-actions-toggle" data-bs-toggle="collapse" data-bs-target="#reportsChatLogsActionsCollapse" aria-expanded="false" aria-controls="reportsChatLogsActionsCollapse">
+                <i class="feather-more-horizontal"></i>
+            </button>
+        </div>
+        <div class="page-header-right-items collapse d-md-flex" id="reportsChatLogsActionsCollapse">
+            <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
+                <a href="homepage.php" class="btn btn-outline-secondary"><i class="feather-home me-1"></i>Dashboard</a>
+                <a href="reports-chat-reports.php" class="btn btn-outline-primary"><i class="feather-alert-triangle me-1"></i>Reported Chats</a>
+                <a href="reports-chat-logs.php?<?php echo chatlogs_esc($exportQuery); ?>" class="btn btn-outline-success"><i class="feather-download me-1"></i>Export</a>
+                <button type="button" class="btn btn-light-brand" onclick="window.print();"><i class="feather-printer me-1"></i>Print</button>
+            </div>
         </div>
     </div>
 </div>
 
 <div class="main-content pb-5">
     <div class="logs-hero d-flex flex-wrap align-items-center justify-content-between gap-3">
-        <div>
-            <h6 class="mb-1 fw-bold">Messaging Activity Overview</h6>
-            <p class="text-muted mb-0">Real-time visibility into conversations, message delivery, and read status across all users.</p>
-        </div>
         <span class="logs-pill bg-soft-primary text-primary">
             <i class="feather feather-message-circle"></i>
             Last <?php echo (int)$limit; ?> messages
@@ -538,3 +556,4 @@ include 'includes/header.php';
 </div> <!-- .nxl-content -->
 </main>
 <?php include 'includes/footer.php'; ?>
+

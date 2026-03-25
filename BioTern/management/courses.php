@@ -57,12 +57,15 @@ include 'includes/header.php';
             <h5 class="m-b-10">Courses</h5>
         </div>
         <ul class="breadcrumb">
-            <li class="breadcrumb-item"><a href="index.php">Home</a></li>
+            <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
             <li class="breadcrumb-item">Courses</li>
         </ul>
     </div>
     <div class="page-header-right ms-auto">
-        <a href="courses-create.php" class="btn btn-primary">Create Course</a>
+        <a href="courses-create.php" class="btn btn-primary">
+            <i class="feather-plus me-2"></i>
+            <span>Create Course</span>
+        </a>
     </div>
 </div>
 
@@ -132,6 +135,7 @@ include 'includes/header.php';
 </main>
 <?php
 include 'includes/footer.php';
+
 
 
 

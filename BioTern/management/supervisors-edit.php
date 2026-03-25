@@ -95,7 +95,7 @@ include 'includes/header.php';
     <div class="page-header-left d-flex align-items-center">
         <div class="page-header-title"><h5 class="m-b-10">Edit Supervisor</h5></div>
         <ul class="breadcrumb">
-            <li class="breadcrumb-item"><a href="index.php">Home</a></li>
+            <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
             <li class="breadcrumb-item"><a href="supervisors.php">Supervisors</a></li>
             <li class="breadcrumb-item">Edit</li>
         </ul>
@@ -152,6 +152,7 @@ include 'includes/header.php';
 </div> <!-- .nxl-content -->
 </main>
 <?php include 'includes/footer.php'; $conn->close(); ?>
+
 
 
 

@@ -128,7 +128,17 @@
       if (themeStateCore && typeof themeStateCore.normalizeScheme === "function") {
         return themeStateCore.normalizeScheme(value);
       }
-      return value === "blue" || value === "gray" ? value : "gray";
+      return value === "blue" || value === "gray" ? value : "blue";
+    }
+
+    function normalizeSurfacesMode(value) {
+      if (
+        themeStateCore &&
+        typeof themeStateCore.normalizeSurfacesMode === "function"
+      ) {
+        return themeStateCore.normalizeSurfacesMode(value);
+      }
+      return value === "independent" ? "independent" : "linked";
     }
 
     var runtimePrefs = {
@@ -137,13 +147,17 @@
       font:
         typeof serverPrefs.font === "string" && serverPrefs.font !== ""
           ? serverPrefs.font
-          : "default",
+          : "app-font-family-montserrat",
       navigation: serverPrefs.navigation === "dark" ? "dark" : "light",
       header: serverPrefs.header === "dark" ? "dark" : "light",
       scheme:
         typeof serverPrefs.scheme === "string"
           ? normalizeScheme(serverPrefs.scheme)
-          : "gray",
+          : "blue",
+      surfaces:
+        typeof serverPrefs.surfaces === "string"
+          ? normalizeSurfacesMode(serverPrefs.surfaces)
+          : "linked",
     };
 
     var darkBtn =
@@ -161,6 +175,11 @@
     var pageScheme = document.getElementById("theme-page-scheme");
     var pageNavigation = document.getElementById("theme-page-navigation");
     var pageHeader = document.getElementById("theme-page-header");
+    var pageSurfaces = document.getElementById("theme-page-surfaces");
+    var pageSurfacesIndependent = document.getElementById(
+      "theme-page-surfaces-independent"
+    );
+    var pageSurfacesCard = document.getElementById("theme-page-surfaces-card");
     var pageSave = document.getElementById("theme-page-save");
     var pageReset = document.getElementById("theme-page-reset");
     var allowedFonts =
@@ -276,10 +295,13 @@
       try {
         var legacyFont = storageGet("font-family", null);
         if (legacyFont !== null && legacyFont !== "") {
+          if (legacyFont === "default") {
+            return "app-font-family-montserrat";
+          }
           return legacyFont;
         }
       } catch (e) {
-        return runtimePrefs.font || "default";
+        return runtimePrefs.font || "app-font-family-montserrat";
       }
 
       if (typeof runtimePrefs.font === "string" && runtimePrefs.font !== "") {
@@ -288,7 +310,7 @@
       if (typeof serverPrefs.font === "string" && serverPrefs.font !== "") {
         return serverPrefs.font;
       }
-      return "default";
+      return "app-font-family-montserrat";
     }
 
     function getSavedNavigationMode() {
@@ -315,7 +337,7 @@
 
       if (runtimePrefs.scheme) return normalizeScheme(runtimePrefs.scheme);
       if (serverPrefs.scheme) return normalizeScheme(serverPrefs.scheme);
-      return "gray";
+      return "blue";
     }
 
     function getSavedHeaderMode() {
@@ -332,6 +354,23 @@
         return serverPrefs.header;
       }
       return "light";
+    }
+
+    function getSavedSurfacesMode() {
+      try {
+        var stored = storageGet("app-surfaces", null);
+        if (stored) {
+          return normalizeSurfacesMode(stored);
+        }
+      } catch (e) {}
+
+      if (runtimePrefs.surfaces) {
+        return normalizeSurfacesMode(runtimePrefs.surfaces);
+      }
+      if (serverPrefs.surfaces) {
+        return normalizeSurfacesMode(serverPrefs.surfaces);
+      }
+      return "linked";
     }
 
     function clearFontClasses() {
@@ -399,6 +438,37 @@
       return next;
     }
 
+    function applySurfaceMode(mode) {
+      var next = normalizeSurfacesMode(mode);
+      runtimePrefs.surfaces = next;
+      try {
+        storageSet("app-surfaces", next);
+      } catch (e) {}
+      return next;
+    }
+
+    function syncSurfaceControlsState() {
+      var independent = runtimePrefs.surfaces === "independent";
+      var navLightRadio = document.getElementById("theme-page-navigation-light");
+      var navDarkRadio = document.getElementById("theme-page-navigation-dark");
+      var headerLightRadio = document.getElementById("theme-page-header-light");
+      var headerDarkRadio = document.getElementById("theme-page-header-dark");
+
+      if (pageSurfaces) {
+        pageSurfaces.value = independent ? "independent" : "linked";
+      }
+      if (pageSurfacesIndependent) {
+        pageSurfacesIndependent.checked = independent;
+      }
+      if (pageSurfacesCard) {
+        pageSurfacesCard.classList.toggle("is-surfaces-linked", !independent);
+      }
+      if (navLightRadio) navLightRadio.disabled = !independent;
+      if (navDarkRadio) navDarkRadio.disabled = !independent;
+      if (headerLightRadio) headerLightRadio.disabled = !independent;
+      if (headerDarkRadio) headerDarkRadio.disabled = !independent;
+    }
+
     function applyScheme(scheme) {
       var next = normalizeScheme(scheme);
       runtimePrefs.scheme = next;
@@ -421,6 +491,7 @@
         navigation: src.navigation,
         header: src.header,
         scheme: src.scheme,
+        surfaces: src.surfaces,
       };
     }
 
@@ -482,6 +553,9 @@
           }
           if (typeof data.preferences.scheme === "string") {
             runtimePrefs.scheme = normalizeScheme(data.preferences.scheme);
+          }
+          if (typeof data.preferences.surfaces === "string") {
+            runtimePrefs.surfaces = normalizeSurfacesMode(data.preferences.surfaces);
           }
           return { ok: true };
         })
@@ -599,6 +673,10 @@
         } catch (e) {}
         if (darkBtn) darkBtn.style.display = "none";
         if (lightBtn) lightBtn.style.display = "inline-flex";
+        if (runtimePrefs.surfaces !== "independent") {
+          applyNavigationMode("dark");
+          applyHeaderMode("dark");
+        }
         if (persist !== false) {
           saveThemePreferences({
             skin: "dark",
@@ -607,6 +685,7 @@
             scheme: currentSchemeValue(),
             navigation: currentNavigationValue(),
             header: currentHeaderValue(),
+            surfaces: runtimePrefs.surfaces,
           });
         }
       } else {
@@ -620,6 +699,10 @@
         } catch (e) {}
         if (darkBtn) darkBtn.style.display = "inline-flex";
         if (lightBtn) lightBtn.style.display = "none";
+        if (runtimePrefs.surfaces !== "independent") {
+          applyNavigationMode("light");
+          applyHeaderMode("light");
+        }
         if (persist !== false) {
           saveThemePreferences({
             skin: "light",
@@ -628,6 +711,7 @@
             scheme: currentSchemeValue(),
             navigation: currentNavigationValue(),
             header: currentHeaderValue(),
+            surfaces: runtimePrefs.surfaces,
           });
         }
       }
@@ -639,13 +723,15 @@
       var menu = getSavedMenuMode();
       var font = currentFontValue();
       var scheme = currentSchemeValue();
-      var navigation = currentNavigationValue();
-      var header = currentHeaderValue();
+      var surfaces = getSavedSurfacesMode();
+      var navigation = surfaces === "independent" ? currentNavigationValue() : skin;
+      var header = surfaces === "independent" ? currentHeaderValue() : skin;
       var navLightRadio = document.getElementById("theme-page-navigation-light");
       var navDarkRadio = document.getElementById("theme-page-navigation-dark");
       var headerLightRadio = document.getElementById("theme-page-header-light");
       var headerDarkRadio = document.getElementById("theme-page-header-dark");
 
+      runtimePrefs.surfaces = surfaces;
       if (pageSkinDark) pageSkinDark.checked = skin === "dark";
       if (pageSkinLight) pageSkinLight.checked = skin !== "dark";
       if (pageMenu) pageMenu.value = menu;
@@ -657,6 +743,7 @@
       if (navLightRadio) navLightRadio.checked = navigation !== "dark";
       if (headerDarkRadio) headerDarkRadio.checked = header === "dark";
       if (headerLightRadio) headerLightRadio.checked = header !== "dark";
+      syncSurfaceControlsState();
     }
 
     function bindCustomizerHeaderNavigationRadios() {
@@ -667,6 +754,7 @@
 
       if (navLightRadio && pageNavigation) {
         navLightRadio.addEventListener("change", function () {
+          if (runtimePrefs.surfaces !== "independent") return;
           if (navLightRadio.checked) {
             pageNavigation.value = "light";
             applyNavigationMode("light");
@@ -677,6 +765,7 @@
       }
       if (navDarkRadio && pageNavigation) {
         navDarkRadio.addEventListener("change", function () {
+          if (runtimePrefs.surfaces !== "independent") return;
           if (navDarkRadio.checked) {
             pageNavigation.value = "dark";
             applyNavigationMode("dark");
@@ -687,6 +776,7 @@
       }
       if (headerLightRadio && pageHeader) {
         headerLightRadio.addEventListener("change", function () {
+          if (runtimePrefs.surfaces !== "independent") return;
           if (headerLightRadio.checked) {
             pageHeader.value = "light";
             applyHeaderMode("light");
@@ -697,6 +787,7 @@
       }
       if (headerDarkRadio && pageHeader) {
         headerDarkRadio.addEventListener("change", function () {
+          if (runtimePrefs.surfaces !== "independent") return;
           if (headerDarkRadio.checked) {
             pageHeader.value = "dark";
             applyHeaderMode("dark");
@@ -758,10 +849,17 @@
       isDark = true;
     }
     applyFont(getSavedFont());
-    applyNavigationMode(getSavedNavigationMode());
-    applyHeaderMode(getSavedHeaderMode());
     applyScheme(getSavedScheme());
+    applySurfaceMode(getSavedSurfacesMode());
     setDark(isDark, false);
+    if (runtimePrefs.surfaces === "independent") {
+      applyNavigationMode(getSavedNavigationMode());
+      applyHeaderMode(getSavedHeaderMode());
+    } else {
+      var linkedMode = isDark ? "dark" : "light";
+      applyNavigationMode(linkedMode);
+      applyHeaderMode(linkedMode);
+    }
     applyMenuMode(getSavedMenuMode());
     syncMenuToggleButtons();
     syncCustomizerInputs();
@@ -793,7 +891,18 @@
       return currentSkinValue();
     }
 
-    function resolveSelectedNavigation() {
+    function resolveSelectedSurfacesMode() {
+      if (pageSurfacesIndependent) {
+        return pageSurfacesIndependent.checked ? "independent" : "linked";
+      }
+      if (pageSurfaces && pageSurfaces.value) {
+        return normalizeSurfacesMode(pageSurfaces.value);
+      }
+      return getSavedSurfacesMode();
+    }
+
+    function resolveSelectedNavigation(surfacesMode, selectedSkin) {
+      if (surfacesMode !== "independent") return selectedSkin === "dark" ? "dark" : "light";
       var navLightRadio = document.getElementById("theme-page-navigation-light");
       var navDarkRadio = document.getElementById("theme-page-navigation-dark");
       if (navDarkRadio && navDarkRadio.checked) return "dark";
@@ -802,7 +911,8 @@
       return currentNavigationValue();
     }
 
-    function resolveSelectedHeader() {
+    function resolveSelectedHeader(surfacesMode, selectedSkin) {
+      if (surfacesMode !== "independent") return selectedSkin === "dark" ? "dark" : "light";
       var headerLightRadio = document.getElementById("theme-page-header-light");
       var headerDarkRadio = document.getElementById("theme-page-header-dark");
       if (headerDarkRadio && headerDarkRadio.checked) return "dark";
@@ -815,11 +925,13 @@
 
     function applyAndSavePreferences(showToast) {
       var skin = resolveSelectedSkin(pageSkinLight, pageSkinDark);
+      var surfaces = resolveSelectedSurfacesMode();
       var menu = normalizeMenuPreference(pageMenu ? pageMenu.value : getSavedMenuMode());
       var font = pageFont ? pageFont.value : currentFontValue();
       var scheme = pageScheme ? pageScheme.value : currentSchemeValue();
-      var navigation = resolveSelectedNavigation();
-      var header = resolveSelectedHeader();
+      var navigation = resolveSelectedNavigation(surfaces, skin);
+      var header = resolveSelectedHeader(surfaces, skin);
+      applySurfaceMode(surfaces);
       if (pageNavigation) pageNavigation.value = navigation;
       if (pageHeader) pageHeader.value = header;
       runtimePrefs.menu = menu;
@@ -827,8 +939,13 @@
       applyMenuMode(menu);
       font = applyFont(font);
       scheme = applyScheme(scheme);
-      navigation = applyNavigationMode(navigation);
-      header = applyHeaderMode(header);
+      if (runtimePrefs.surfaces === "independent") {
+        navigation = applyNavigationMode(navigation);
+        header = applyHeaderMode(header);
+      } else {
+        navigation = applyNavigationMode(skin);
+        header = applyHeaderMode(skin);
+      }
       saveThemePreferences({
         skin: skin,
         menu: menu,
@@ -836,6 +953,7 @@
         scheme: scheme,
         navigation: navigation,
         header: header,
+        surfaces: runtimePrefs.surfaces,
       }).then(function (result) {
         if (result && result.ok) {
           if (showToast) {
@@ -877,7 +995,7 @@
 
     if (pageScheme) {
       pageScheme.addEventListener("change", function () {
-        var scheme = pageScheme.value || "gray";
+        var scheme = pageScheme.value || "blue";
         applyScheme(scheme);
         syncCustomizerInputs();
         scheduleAutoSave();
@@ -913,7 +1031,7 @@
 
     if (pageFont) {
       pageFont.addEventListener("change", function () {
-        var font = pageFont.value || "default";
+        var font = pageFont.value || "app-font-family-montserrat";
         applyFont(font);
         syncCustomizerInputs();
         scheduleAutoSave();
@@ -922,6 +1040,7 @@
 
     if (pageNavigation) {
       pageNavigation.addEventListener("change", function () {
+        if (runtimePrefs.surfaces !== "independent") return;
         var navigation = pageNavigation.value || currentNavigationValue();
         applyNavigationMode(navigation);
         syncCustomizerInputs();
@@ -931,8 +1050,23 @@
 
     if (pageHeader) {
       pageHeader.addEventListener("change", function () {
+        if (runtimePrefs.surfaces !== "independent") return;
         var header = pageHeader.value || currentHeaderValue();
         applyHeaderMode(header);
+        syncCustomizerInputs();
+        scheduleAutoSave();
+      });
+    }
+
+    if (pageSurfacesIndependent) {
+      pageSurfacesIndependent.addEventListener("change", function () {
+        var nextMode = pageSurfacesIndependent.checked ? "independent" : "linked";
+        applySurfaceMode(nextMode);
+        if (nextMode !== "independent") {
+          var linkedMode = currentSkinValue();
+          applyNavigationMode(linkedMode);
+          applyHeaderMode(linkedMode);
+        }
         syncCustomizerInputs();
         scheduleAutoSave();
       });
@@ -943,24 +1077,27 @@
         runtimePrefs = {
           skin: "light",
           menu: "auto",
-          font: "default",
-          scheme: "gray",
+          font: "app-font-family-montserrat",
+          scheme: "blue",
           navigation: "light",
           header: "light",
+          surfaces: "linked",
         };
+        applySurfaceMode("linked");
         setDark(false, false);
         applyMenuMode("auto");
-        applyFont("default");
-        applyScheme("gray");
+        applyFont("app-font-family-montserrat");
+        applyScheme("blue");
         applyNavigationMode("light");
         applyHeaderMode("light");
         saveThemePreferences({
           skin: "light",
           menu: "auto",
-          font: "default",
-          scheme: "gray",
+          font: "app-font-family-montserrat",
+          scheme: "blue",
           navigation: "light",
           header: "light",
+          surfaces: "linked",
         }).then(function (result) {
           if (result && result.ok) {
             showThemeToast("success", "Theme settings reset to defaults");

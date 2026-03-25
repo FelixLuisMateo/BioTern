@@ -53,12 +53,15 @@ $page_title = 'Departments';
             <h5 class="m-b-10">Departments</h5>
         </div>
         <ul class="breadcrumb">
-            <li class="breadcrumb-item"><a href="index.php">Home</a></li>
+            <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
             <li class="breadcrumb-item">Departments</li>
         </ul>
     </div>
     <div class="page-header-right ms-auto">
-        <a href="departments-create.php" class="btn btn-primary">Create Department</a>
+        <a href="departments-create.php" class="btn btn-primary">
+            <i class="feather-plus me-2"></i>
+            <span>Create Department</span>
+        </a>
     </div>
 </div>
 
@@ -130,5 +133,6 @@ $page_title = 'Departments';
 </main>
 <?php
 include 'includes/footer.php';
+
 
 

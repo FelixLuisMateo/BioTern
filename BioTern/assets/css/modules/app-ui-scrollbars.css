@@ -1,0 +1,54 @@
+/* SMACSS Module: global custom scrollbars */
+
+:root {
+  --biotern-scrollbar-size: 10px;
+  --biotern-scrollbar-track: rgba(148, 163, 184, 0.16);
+  --biotern-scrollbar-thumb: rgba(100, 116, 139, 0.72);
+  --biotern-scrollbar-thumb-hover: rgba(71, 85, 105, 0.9);
+}
+
+html {
+  scrollbar-width: thin;
+  scrollbar-color: var(--biotern-scrollbar-thumb) var(--biotern-scrollbar-track);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--biotern-scrollbar-thumb) var(--biotern-scrollbar-track);
+}
+
+*::-webkit-scrollbar {
+  width: var(--biotern-scrollbar-size);
+  height: var(--biotern-scrollbar-size);
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--biotern-scrollbar-track);
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    180deg,
+    var(--biotern-scrollbar-thumb) 0%,
+    var(--biotern-scrollbar-thumb-hover) 100%
+  );
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: content-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(
+    180deg,
+    var(--biotern-scrollbar-thumb-hover) 0%,
+    rgba(51, 65, 85, 0.95) 100%
+  );
+  background-clip: content-box;
+}
+
+html.app-skin-dark {
+  --biotern-scrollbar-track: rgba(42, 47, 53, 0.9);
+  --biotern-scrollbar-thumb: rgba(123, 130, 138, 0.85);
+  --biotern-scrollbar-thumb-hover: rgba(154, 160, 166, 0.95);
+}

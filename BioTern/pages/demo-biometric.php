@@ -235,7 +235,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $message_type = "warning";
                 // If the time field is already set, prevent duplicate clock-in
                 } elseif (!empty($record[$db_column])) {
-                    $message = " — " . ucfirst(str_replace('_', ' ', $clock_type)) . " has already been recorded. Cannot clock in twice.";
+                    $message = " â€” " . ucfirst(str_replace('_', ' ', $clock_type)) . " has already been recorded. Cannot clock in twice.";
                     $message_type = "warning";
                 } else {
                     // Update existing attendance record with this new time
@@ -360,6 +360,42 @@ include 'includes/header.php';
 ?>
 <main class="nxl-container">
     <div class="nxl-content">
+            <div class="page-header">
+                <div class="page-header-left d-flex align-items-center">
+                    <div class="page-header-title">
+                        <h5 class="m-b-10">Biometric Demo</h5>
+                    </div>
+                    <ul class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
+                        <li class="breadcrumb-item"><a href="attendance.php">Attendance</a></li>
+                        <li class="breadcrumb-item">Biometric Demo</li>
+                    </ul>
+                </div>
+                <div class="page-header-right ms-auto">
+                    <div class="d-flex d-md-none align-items-center">
+                        <button type="button" class="btn btn-light-brand page-header-actions-toggle" data-bs-toggle="collapse" data-bs-target="#demoBiometricActionsCollapse" aria-expanded="false" aria-controls="demoBiometricActionsCollapse">
+                            <i class="feather-align-right me-2"></i>
+                            <span>Actions</span>
+                        </button>
+                    </div>
+                    <div class="page-header-right-items collapse d-md-flex" id="demoBiometricActionsCollapse">
+                        <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
+                            <a href="attendance.php" class="btn btn-light-brand">
+                                <i class="feather-calendar me-1"></i>
+                                <span>Attendance DTR</span>
+                            </a>
+                            <a href="students.php" class="btn btn-outline-secondary">
+                                <i class="feather-users me-1"></i>
+                                <span>Students</span>
+                            </a>
+                            <button type="button" class="btn btn-light" data-action="print-page">
+                                <i class="feather-printer me-1"></i>
+                                <span>Print</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <div class="main-content">
                 <div class="biometric-container">
                 <div class="bio-hero">
@@ -500,7 +536,7 @@ include 'includes/header.php';
                                                     if ($record['morning_time_in'] && $record['morning_time_out']) {
                                                         $morning = date('h:i A', strtotime($record['morning_time_in'])) . ' - ' . date('h:i A', strtotime($record['morning_time_out']));
                                                     } elseif ($record['morning_time_in']) {
-                                                        $morning = date('h:i A', strtotime($record['morning_time_in'])) . ' ✓';
+                                                        $morning = date('h:i A', strtotime($record['morning_time_in'])) . ' âœ“';
                                                     }
                                                     echo $morning ? '<span class="badge-time badge-morning">' . $morning . '</span>' : '-';
                                                 ?>
@@ -511,7 +547,7 @@ include 'includes/header.php';
                                                     if ($record['break_time_in'] && $record['break_time_out']) {
                                                         $break = date('h:i A', strtotime($record['break_time_in'])) . ' - ' . date('h:i A', strtotime($record['break_time_out']));
                                                     } elseif ($record['break_time_in']) {
-                                                        $break = date('h:i A', strtotime($record['break_time_in'])) . ' ✓';
+                                                        $break = date('h:i A', strtotime($record['break_time_in'])) . ' âœ“';
                                                     }
                                                     echo $break ? '<span class="badge-time badge-break">' . $break . '</span>' : '-';
                                                 ?>
@@ -522,7 +558,7 @@ include 'includes/header.php';
                                                     if ($record['afternoon_time_in'] && $record['afternoon_time_out']) {
                                                         $afternoon = date('h:i A', strtotime($record['afternoon_time_in'])) . ' - ' . date('h:i A', strtotime($record['afternoon_time_out']));
                                                     } elseif ($record['afternoon_time_in']) {
-                                                        $afternoon = date('h:i A', strtotime($record['afternoon_time_in'])) . ' ✓';
+                                                        $afternoon = date('h:i A', strtotime($record['afternoon_time_in'])) . ' âœ“';
                                                     }
                                                     echo $afternoon ? '<span class="badge-time badge-afternoon">' . $afternoon . '</span>' : '-';
                                                 ?>

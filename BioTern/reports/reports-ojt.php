@@ -62,13 +62,37 @@ include 'includes/header.php';
 ?>
 <main class="nxl-container">
 <div class="nxl-content">
-<div class="page-header"><div class="page-header-left d-flex align-items-center"><div class="page-header-title report-page-title"><h5 class="m-b-10">Reports - OJT Programs</h5><p class="text-muted mb-0">Monitor all active and completed on-the-job training programs.</p></div></div></div>
+<div class="page-header page-header-with-middle">
+    <div class="page-header-left d-flex align-items-center">
+        <div class="page-header-title report-page-title">
+            <h5 class="m-b-10">Reports - OJT Programs</h5>
+        </div>
+        <ul class="breadcrumb">
+            <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
+            <li class="breadcrumb-item">Reports</li>
+            <li class="breadcrumb-item">OJT Programs</li>
+        </ul>
+    </div>
+    <div class="page-header-middle">
+        <p class="page-header-statement">Real-time tracking of student progress, completion rates, and training milestones.</p>
+    </div>
+    <div class="page-header-right ms-auto">
+        <div class="d-md-none d-flex align-items-center">
+            <button type="button" class="btn btn-light-brand page-header-actions-toggle" data-bs-toggle="collapse" data-bs-target="#reportsOjtActionsCollapse" aria-expanded="false" aria-controls="reportsOjtActionsCollapse">
+                <i class="feather-more-horizontal"></i>
+            </button>
+        </div>
+        <div class="page-header-right-items collapse d-md-flex" id="reportsOjtActionsCollapse">
+            <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
+                <a href="homepage.php" class="btn btn-outline-secondary"><i class="feather-home me-1"></i>Dashboard</a>
+                <a href="reports-project.php" class="btn btn-outline-primary"><i class="feather-package me-1"></i>Projects</a>
+                <button type="button" class="btn btn-light-brand" onclick="window.print();"><i class="feather-printer me-1"></i>Print</button>
+            </div>
+        </div>
+    </div>
+</div>
 <div class="main-content pb-5">
 <div class="report-hero d-flex flex-wrap align-items-center justify-content-between gap-3">
-<div>
-<h6 class="mb-1 fw-bold">OJT Program Overview</h6>
-<p class="text-muted mb-0">Real-time tracking of student progress, completion rates, and training milestones.</p>
-</div>
 <span class="report-pill bg-soft-primary text-primary"><i class="feather feather-briefcase"></i><?php echo $total_ojt; ?> Programs</span>
 </div>
 
@@ -136,3 +160,4 @@ $badge_class = match(strtolower($row['status'] ?? 'pending')) {
 </div> <!-- .nxl-content -->
 </main>
 <?php include 'includes/footer.php'; ?>
+

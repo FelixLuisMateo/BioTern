@@ -52,9 +52,33 @@ include 'includes/header.php';
                         <h5 class="m-b-10">Attendance Corrections</h5>
                     </div>
                     <ul class="breadcrumb">
-                        <li class="breadcrumb-item"><a href="index.php">Home</a></li>
+                        <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
                         <li class="breadcrumb-item">Attendance Corrections</li>
                     </ul>
+                </div>
+                <div class="page-header-right ms-auto">
+                    <div class="d-flex d-md-none align-items-center">
+                        <button type="button" class="btn btn-light-brand page-header-actions-toggle" data-bs-toggle="collapse" data-bs-target="#attendanceCorrectionsActionsCollapse" aria-expanded="false" aria-controls="attendanceCorrectionsActionsCollapse">
+                            <i class="feather-align-right me-2"></i>
+                            <span>Actions</span>
+                        </button>
+                    </div>
+                    <div class="page-header-right-items collapse d-md-flex" id="attendanceCorrectionsActionsCollapse">
+                        <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
+                            <a href="attendance.php" class="btn btn-light-brand">
+                                <i class="feather-calendar me-1"></i>
+                                <span>Attendance DTR</span>
+                            </a>
+                            <a href="homepage.php" class="btn btn-outline-secondary">
+                                <i class="feather-home me-1"></i>
+                                <span>Dashboard</span>
+                            </a>
+                            <button type="button" class="btn btn-light" data-action="print-page">
+                                <i class="feather-printer me-1"></i>
+                                <span>Print</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
 

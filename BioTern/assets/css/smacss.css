@@ -22,6 +22,9 @@
 /* 3) Core modules */
 @import url("./modules/app-core-pages.css");
 @import url("./modules/app-ui-interactions.css");
+@import url("./modules/app-ui-buttons.css");
+@import url("./modules/app-ui-scrollbars.css");
+@import url("./modules/app-ui-datepicker.css");
 
 /* 4) Theme */
 @import url("./theme/tokens.css");

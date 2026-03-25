@@ -44,11 +44,32 @@ include 'includes/header.php';
 <main class="nxl-container">
 <div class="nxl-content">
 <div class="main-content">
-    <div class="page-header">
+    <div class="page-header page-header-with-middle">
         <div class="page-header-left d-flex align-items-center">
             <div class="page-header-title">
                 <h5 class="m-b-10">Reports - Attendance Operations</h5>
-                <p class="text-muted mb-0">Operational visibility for attendance correction and biometric queue health.</p>
+            </div>
+            <ul class="breadcrumb">
+                <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
+                <li class="breadcrumb-item"><a href="reports-ojt.php">Reports</a></li>
+                <li class="breadcrumb-item">Attendance Operations</li>
+            </ul>
+        </div>
+        <div class="page-header-middle">
+            <p class="page-header-statement">Operational visibility for attendance corrections and biometric queue health.</p>
+        </div>
+        <div class="page-header-right ms-auto">
+            <div class="d-md-none d-flex align-items-center">
+                <button type="button" class="btn btn-light-brand page-header-actions-toggle" data-bs-toggle="collapse" data-bs-target="#reportsAttendanceOpsActionsCollapse" aria-expanded="false" aria-controls="reportsAttendanceOpsActionsCollapse">
+                    <i class="feather-more-horizontal"></i>
+                </button>
+            </div>
+            <div class="page-header-right-items collapse d-md-flex" id="reportsAttendanceOpsActionsCollapse">
+                <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
+                    <a href="homepage.php" class="btn btn-outline-secondary"><i class="feather-home me-1"></i>Dashboard</a>
+                    <a href="attendance-corrections.php" class="btn btn-outline-primary"><i class="feather-edit-2 me-1"></i>Corrections</a>
+                    <button type="button" class="btn btn-light-brand" onclick="window.print();"><i class="feather-printer me-1"></i>Print</button>
+                </div>
             </div>
         </div>
     </div>
@@ -114,3 +135,4 @@ include 'includes/header.php';
 </div> <!-- .nxl-content -->
 </main>
 <?php include 'includes/footer.php'; ?>
+

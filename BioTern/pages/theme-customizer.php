@@ -84,7 +84,7 @@ include 'includes/header.php';
                             </div>
                             <div class="theme-select-wrap">
                                 <select id="theme-page-font" class="form-select">
-                                    <option value="default">Default (Inter)</option>
+                                    <option value="app-font-family-montserrat">Montserrat (Default)</option>
                                     <option value="app-font-family-inter">Inter</option>
                                     <option value="app-font-family-lato">Lato</option>
                                     <option value="app-font-family-rubik">Rubik</option>
@@ -92,7 +92,6 @@ include 'includes/header.php';
                                     <option value="app-font-family-roboto">Roboto</option>
                                     <option value="app-font-family-poppins">Poppins</option>
                                     <option value="app-font-family-open-sans">Open Sans</option>
-                                    <option value="app-font-family-montserrat">Montserrat</option>
                                     <option value="app-font-family-source-sans-pro">Source Sans Pro</option>
                                 </select>
                             </div>
@@ -113,9 +112,22 @@ include 'includes/header.php';
                     <h5 class="mb-0">Independent Surfaces</h5>
                     <span class="badge bg-soft-success text-success">Separate Control</span>
                 </div>
-                <div class="card-body">
+                <div class="card-body" id="theme-page-surfaces-card">
                     <div class="option-row">
-                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                            <div>
+                                <label class="form-label mb-1" for="theme-page-surfaces-independent">Surface Sync</label>
+                                <div class="fs-12 text-muted">When disabled, light/dark mode controls both header and navigation.</div>
+                            </div>
+                            <div class="form-check form-switch m-0">
+                                <input class="form-check-input" type="checkbox" role="switch" id="theme-page-surfaces-independent">
+                                <label class="form-check-label fs-12 fw-semibold ms-2" for="theme-page-surfaces-independent">Enable independent surfaces</label>
+                            </div>
+                            <input type="hidden" id="theme-page-surfaces" value="linked">
+                        </div>
+                    </div>
+                    <div class="option-row">
+                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2" data-surface-option="independent-control">
                             <div>
                                 <label class="form-label mb-1">Navigation Style</label>
                                 <div class="fs-12 text-muted">Set sidebar color independently.</div>
@@ -131,10 +143,10 @@ include 'includes/header.php';
                     </div>
 
                     <div class="option-row mb-0">
-                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2" data-surface-option="independent-control">
                             <div>
                                 <label class="form-label mb-1">Header Style</label>
-                                <div class="fs-12 text-muted">Modify top header independently from sidebar.</div>
+                                <div class="fs-12 text-muted">Modify top + page header styling independently from sidebar.</div>
                             </div>
                             <div class="btn-group" role="group" aria-label="Header style">
                                 <input class="btn-check" type="radio" name="theme-page-header-group" id="theme-page-header-light" value="light">

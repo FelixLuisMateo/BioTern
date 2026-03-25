@@ -197,7 +197,7 @@ include 'includes/header.php';
             <h5 class="m-b-10">Create Section</h5>
         </div>
         <ul class="breadcrumb">
-            <li class="breadcrumb-item"><a href="index.php">Home</a></li>
+            <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
             <li class="breadcrumb-item"><a href="sections.php">Sections</a></li>
             <li class="breadcrumb-item">Create</li>
         </ul>
@@ -266,6 +266,7 @@ include 'includes/header.php';
 include 'includes/footer.php';
 $conn->close();
 ?>
+
 
 
 

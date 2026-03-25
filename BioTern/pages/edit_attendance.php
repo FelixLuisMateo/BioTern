@@ -178,10 +178,36 @@ include 'includes/header.php';
                         <h5 class="m-b-10">Edit Attendance</h5>
                     </div>
                     <ul class="breadcrumb">
-                        <li class="breadcrumb-item"><a href="index.php">Home</a></li>
+                        <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
                         <li class="breadcrumb-item"><a href="attendance.php">Attendance</a></li>
                         <li class="breadcrumb-item">Edit</li>
                     </ul>
+                </div>
+                <div class="page-header-right ms-auto">
+                    <div class="d-flex d-md-none align-items-center">
+                        <button type="button" class="btn btn-light-brand page-header-actions-toggle" data-bs-toggle="collapse" data-bs-target="#editAttendanceActionsCollapse" aria-expanded="false" aria-controls="editAttendanceActionsCollapse">
+                            <i class="feather-align-right me-2"></i>
+                            <span>Actions</span>
+                        </button>
+                    </div>
+                    <div class="page-header-right-items collapse d-md-flex" id="editAttendanceActionsCollapse">
+                        <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
+                            <a href="attendance.php" class="btn btn-light-brand">
+                                <i class="feather-arrow-left me-1"></i>
+                                <span>Back to Attendance</span>
+                            </a>
+                            <?php if (!empty($attendance['student_id'])): ?>
+                                <a href="students-dtr.php?id=<?php echo (int)$attendance['student_id']; ?>" class="btn btn-outline-secondary">
+                                    <i class="feather-user me-1"></i>
+                                    <span>Student DTR</span>
+                                </a>
+                            <?php endif; ?>
+                            <button type="button" class="btn btn-light" data-action="print-page">
+                                <i class="feather-printer me-1"></i>
+                                <span>Print</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -320,6 +346,7 @@ include 'includes/header.php';
 </div> <!-- .nxl-content -->
 </main>
 <?php include 'includes/footer.php'; ?>
+
 
 
 

@@ -179,6 +179,24 @@ html.app-theme-gray .theme-setting-card .badge {
   font-weight: 600;
 }
 
+.theme-setting-card .form-check-input[type="checkbox"] {
+  width: 2.2rem;
+  height: 1.25rem;
+}
+
+.theme-setting-card .form-check-input:checked {
+  background-color: var(--biotern-primary);
+  border-color: var(--biotern-primary);
+}
+
+#theme-page-surfaces-card.is-surfaces-linked [data-surface-option="independent-control"] {
+  opacity: 0.55;
+}
+
+#theme-page-surfaces-card.is-surfaces-linked [data-surface-option="independent-control"] .btn-group {
+  pointer-events: none;
+}
+
 .theme-select-wrap {
   width: 100%;
   max-width: 320px;

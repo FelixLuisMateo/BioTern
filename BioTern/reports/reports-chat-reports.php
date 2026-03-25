@@ -375,17 +375,34 @@ include 'includes/header.php';
 <main class="nxl-container">
 <div class="nxl-content">
 <div class="main-content">
-    <div class="page-header">
+    <div class="page-header page-header-with-middle">
         <div class="page-header-left d-flex align-items-center">
             <div class="page-header-title">
                 <h5 class="m-b-10">Reports - Reported Chats</h5>
             </div>
+            <ul class="breadcrumb">
+                <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
+                <li class="breadcrumb-item"><a href="reports-ojt.php">Reports</a></li>
+                <li class="breadcrumb-item">Reported Chats</li>
+            </ul>
         </div>
-    </div>
-
-    <div class="chatreports-hero">
-        <h6 class="mb-1">Reported Chats</h6>
-        <p class="text-muted mb-0">Review messages flagged from chat conversations.</p>
+        <div class="page-header-middle">
+            <p class="page-header-statement">Review flagged conversations and moderate reported chat activity in one stream.</p>
+        </div>
+        <div class="page-header-right ms-auto">
+            <div class="d-md-none d-flex align-items-center">
+                <button type="button" class="btn btn-light-brand page-header-actions-toggle" data-bs-toggle="collapse" data-bs-target="#reportsChatReportsActionsCollapse" aria-expanded="false" aria-controls="reportsChatReportsActionsCollapse">
+                    <i class="feather-more-horizontal"></i>
+                </button>
+            </div>
+            <div class="page-header-right-items collapse d-md-flex" id="reportsChatReportsActionsCollapse">
+                <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
+                    <a href="homepage.php" class="btn btn-outline-secondary"><i class="feather-home me-1"></i>Dashboard</a>
+                    <a href="reports-chat-logs.php" class="btn btn-outline-primary"><i class="feather-message-circle me-1"></i>Chat Logs</a>
+                    <button type="button" class="btn btn-light-brand" onclick="window.print();"><i class="feather-printer me-1"></i>Print</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div class="chatreports-summary-grid">
@@ -533,3 +550,4 @@ include 'includes/header.php';
 include 'includes/footer.php';
 $conn->close();
 ?>
+
