@@ -64,6 +64,7 @@ if ((int)($_SESSION['user_id'] ?? 0) <= 0 && isset($conn) && $conn instanceof my
 // Add tools and root-level files for browser access
 $map = [
   'biometric_auto_import.php' => 'tools/biometric_auto_import.php',
+  'biometric_machine_sync.php' => 'tools/biometric_machine_sync.php',
   'fingerprint_mapping.php' => 'pages/fingerprint_mapping.php',
   'students.php' => 'management/students.php',
   'students-create.php' => 'management/students-create.php',
@@ -346,7 +347,7 @@ if ($is_logged_in) {
   $internship_files = [
     'students.php', 'students-create.php', 'students-edit.php', 'students-view.php', 'students-dtr.php',
     'applications-review.php',
-    'attendance.php', 'attendance-corrections.php', 'edit_attendance.php', 'print_attendance.php',
+    'attendance.php', 'attendance-corrections.php', 'edit_attendance.php', 'print_attendance.php', 'biometric_machine_sync.php',
     'demo-biometric.php',
     'ojt.php', 'ojt-create.php', 'ojt-edit.php', 'ojt-view.php', 'ojt-workflow-board.php',
     'reports-sales.php', 'reports-attendance-operations.php', 'reports-ojt.php', 'reports-project.php', 'reports-timesheets.php', 'reports-login-logs.php', 'reports-chat-logs.php', 'reports-chat-reports.php',

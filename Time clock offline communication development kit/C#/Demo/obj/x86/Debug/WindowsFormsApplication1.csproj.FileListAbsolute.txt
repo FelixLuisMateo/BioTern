@@ -1,0 +1,69 @@
+c:\users\zhou\documents\visual studio 2010\Projects\WindowsFormsApplication1\WindowsFormsApplication1\bin\Debug\WindowsFormsApplication1.exe
+c:\users\zhou\documents\visual studio 2010\Projects\WindowsFormsApplication1\WindowsFormsApplication1\bin\Debug\WindowsFormsApplication1.pdb
+c:\users\zhou\documents\visual studio 2010\Projects\WindowsFormsApplication1\WindowsFormsApplication1\obj\x86\Debug\ResolveAssemblyReference.cache
+c:\users\zhou\documents\visual studio 2010\Projects\WindowsFormsApplication1\WindowsFormsApplication1\obj\x86\Debug\WindowsFormsApplication1.Form1.resources
+c:\users\zhou\documents\visual studio 2010\Projects\WindowsFormsApplication1\WindowsFormsApplication1\obj\x86\Debug\WindowsFormsApplication1.Properties.Resources.resources
+c:\users\zhou\documents\visual studio 2010\Projects\WindowsFormsApplication1\WindowsFormsApplication1\obj\x86\Debug\GenerateResource.read.1.tlog
+c:\users\zhou\documents\visual studio 2010\Projects\WindowsFormsApplication1\WindowsFormsApplication1\obj\x86\Debug\GenerateResource.write.1.tlog
+c:\users\zhou\documents\visual studio 2010\Projects\WindowsFormsApplication1\WindowsFormsApplication1\obj\x86\Debug\WindowsFormsApplication1.exe
+c:\users\zhou\documents\visual studio 2010\Projects\WindowsFormsApplication1\WindowsFormsApplication1\obj\x86\Debug\WindowsFormsApplication1.pdb
+D:\__接口SDK\__主_上_Demo for C#\WindowsFormsApplication1\WindowsFormsApplication1\obj\x86\Debug\WindowsFormsApplication1.exe
+D:\__接口SDK\__主_上_Demo for C#\WindowsFormsApplication1\WindowsFormsApplication1\obj\x86\Debug\WindowsFormsApplication1.pdb
+D:\__接口SDK\__主_上_Demo for C#\WindowsFormsApplication1\WindowsFormsApplication1\bin\Debug\WindowsFormsApplication1.exe
+D:\__接口SDK\__主_上_Demo for C#\WindowsFormsApplication1\WindowsFormsApplication1\bin\Debug\WindowsFormsApplication1.pdb
+D:\__接口SDK\__主_上_Demo for C#\WindowsFormsApplication1\WindowsFormsApplication1\obj\x86\Debug\ResolveAssemblyReference.cache
+D:\__接口SDK\__主_上_Demo for C#\WindowsFormsApplication1\WindowsFormsApplication1\obj\x86\Debug\WindowsFormsApplication1.Form1.resources
+D:\__接口SDK\__主_上_Demo for C#\WindowsFormsApplication1\WindowsFormsApplication1\obj\x86\Debug\WindowsFormsApplication1.Properties.Resources.resources
+D:\__接口SDK\__主_上_Demo for C#\WindowsFormsApplication1\WindowsFormsApplication1\obj\x86\Debug\GenerateResource.read.1.tlog
+D:\__接口SDK\__主_上_Demo for C#\WindowsFormsApplication1\WindowsFormsApplication1\obj\x86\Debug\GenerateResource.write.1.tlog
+C:\Users\zhou\Desktop\WindowsFormsApplication1\WindowsFormsApplication1\WindowsFormsApplication1\obj\x86\Debug\ResolveAssemblyReference.cache
+C:\Users\zhou\Desktop\WindowsFormsApplication1\WindowsFormsApplication1\WindowsFormsApplication1\obj\x86\Debug\WindowsFormsApplication1.Form1.resources
+C:\Users\zhou\Desktop\WindowsFormsApplication1\WindowsFormsApplication1\WindowsFormsApplication1\obj\x86\Debug\WindowsFormsApplication1.Properties.Resources.resources
+C:\Users\zhou\Desktop\WindowsFormsApplication1\WindowsFormsApplication1\WindowsFormsApplication1\obj\x86\Debug\GenerateResource.read.1.tlog
+C:\Users\zhou\Desktop\WindowsFormsApplication1\WindowsFormsApplication1\WindowsFormsApplication1\obj\x86\Debug\GenerateResource.write.1.tlog
+C:\Users\zhou\Desktop\WindowsFormsApplication1\WindowsFormsApplication1\WindowsFormsApplication1\obj\x86\Debug\WindowsFormsApplication1.exe
+C:\Users\zhou\Desktop\WindowsFormsApplication1\WindowsFormsApplication1\WindowsFormsApplication1\obj\x86\Debug\WindowsFormsApplication1.pdb
+C:\Users\zhou\Desktop\WindowsFormsApplication1\WindowsFormsApplication1\WindowsFormsApplication1\bin\Debug\WindowsFormsApplication1.exe
+C:\Users\zhou\Desktop\WindowsFormsApplication1\WindowsFormsApplication1\WindowsFormsApplication1\bin\Debug\WindowsFormsApplication1.pdb
+E:\2-MoreCard\二次开发Demo\门禁Demo\WindowsFormsApplication1\obj\x86\Debug\ResolveAssemblyReference.cache
+E:\2-MoreCard\二次开发Demo\门禁Demo\WindowsFormsApplication1\obj\x86\Debug\WindowsFormsApplication1.Properties.Resources.resources
+E:\2-MoreCard\二次开发Demo\门禁Demo\WindowsFormsApplication1\obj\x86\Debug\GenerateResource.read.1.tlog
+E:\2-MoreCard\二次开发Demo\门禁Demo\WindowsFormsApplication1\obj\x86\Debug\GenerateResource.write.1.tlog
+E:\2-MoreCard\二次开发Demo\门禁Demo\WindowsFormsApplication1\obj\x86\Debug\WindowsFormsApplication1.exe
+E:\2-MoreCard\二次开发Demo\门禁Demo\WindowsFormsApplication1\bin\Debug\WindowsFormsApplication1.exe
+E:\2-MoreCard\二次开发Demo\门禁Demo\WindowsFormsApplication1\bin\Debug\WindowsFormsApplication1.pdb
+E:\2-MoreCard\二次开发Demo\门禁Demo\WindowsFormsApplication1\obj\x86\Debug\WindowsFormsApplication1.pdb
+E:\2-MoreCard\二次开发Demo\门禁Demo\WindowsFormsApplication1\obj\x86\Debug\WindowsFormsApplication1.ADSDemo.resources
+E:\Comet\二次开发\考勤机\C#示例\WindowsFormsApplication1\obj\x86\Debug\ResolveAssemblyReference.cache
+E:\Comet\二次开发\考勤机\C#示例\WindowsFormsApplication1\obj\x86\Debug\WindowsFormsApplication1.ADSDemo.resources
+E:\Comet\二次开发\考勤机\C#示例\WindowsFormsApplication1\obj\x86\Debug\WindowsFormsApplication1.Properties.Resources.resources
+E:\Comet\二次开发\考勤机\C#示例\WindowsFormsApplication1\obj\x86\Debug\GenerateResource.read.1.tlog
+E:\Comet\二次开发\考勤机\C#示例\WindowsFormsApplication1\obj\x86\Debug\GenerateResource.write.1.tlog
+E:\Comet\二次开发\考勤机\C#示例\WindowsFormsApplication1\obj\x86\Debug\WindowsFormsApplication1.exe
+E:\Comet\二次开发\考勤机\C#示例\WindowsFormsApplication1\bin\Debug\WindowsFormsApplication1.exe
+E:\Comet\二次开发\考勤机\C#示例\WindowsFormsApplication1\bin\Debug\WindowsFormsApplication1.pdb
+E:\Comet\二次开发\考勤机\C#示例\WindowsFormsApplication1\obj\x86\Debug\WindowsFormsApplication1.pdb
+E:\公司资料和软件归类\开发包\考勤机\C#示例\WindowsFormsApplication1\bin\Debug\WindowsFormsApplication1.exe
+E:\公司资料和软件归类\开发包\考勤机\C#示例\WindowsFormsApplication1\bin\Debug\WindowsFormsApplication1.pdb
+E:\公司资料和软件归类\开发包\考勤机\C#示例\WindowsFormsApplication1\obj\x86\Debug\ResolveAssemblyReference.cache
+E:\公司资料和软件归类\开发包\考勤机\C#示例\WindowsFormsApplication1\obj\x86\Debug\WindowsFormsApplication1.ADSDemo.resources
+E:\公司资料和软件归类\开发包\考勤机\C#示例\WindowsFormsApplication1\obj\x86\Debug\WindowsFormsApplication1.Properties.Resources.resources
+E:\公司资料和软件归类\开发包\考勤机\C#示例\WindowsFormsApplication1\obj\x86\Debug\WindowsFormsApplication1.csproj.GenerateResource.Cache
+E:\公司资料和软件归类\开发包\考勤机\C#示例\WindowsFormsApplication1\obj\x86\Debug\WindowsFormsApplication1.exe
+E:\公司资料和软件归类\开发包\考勤机\C#示例\WindowsFormsApplication1\obj\x86\Debug\WindowsFormsApplication1.pdb
+E:\6-XIYUN\二次开发\考勤机\C#示例\WindowsFormsApplication1\bin\Debug\WindowsFormsApplication1.exe
+E:\6-XIYUN\二次开发\考勤机\C#示例\WindowsFormsApplication1\bin\Debug\WindowsFormsApplication1.pdb
+E:\6-XIYUN\二次开发\考勤机\C#示例\WindowsFormsApplication1\obj\x86\Debug\WindowsFormsApplication1.ADSDemo.resources
+E:\6-XIYUN\二次开发\考勤机\C#示例\WindowsFormsApplication1\obj\x86\Debug\WindowsFormsApplication1.Properties.Resources.resources
+E:\6-XIYUN\二次开发\考勤机\C#示例\WindowsFormsApplication1\obj\x86\Debug\WindowsFormsApplication1.csproj.GenerateResource.Cache
+E:\6-XIYUN\二次开发\考勤机\C#示例\WindowsFormsApplication1\obj\x86\Debug\WindowsFormsApplication1.exe
+E:\6-XIYUN\二次开发\考勤机\C#示例\WindowsFormsApplication1\obj\x86\Debug\WindowsFormsApplication1.pdb
+E:\6-XIYUN\二次开发\考勤机\C#示例\WindowsFormsApplication1\obj\x86\Debug\WindowsFormsApplication1.csprojResolveAssemblyReference.cache
+E:\3-XIYUN\二次开发\考勤机\C#示例\WindowsFormsApplication1\bin\Debug\WindowsFormsApplication1.exe
+E:\3-XIYUN\二次开发\考勤机\C#示例\WindowsFormsApplication1\bin\Debug\WindowsFormsApplication1.pdb
+E:\3-XIYUN\二次开发\考勤机\C#示例\WindowsFormsApplication1\obj\x86\Debug\WindowsFormsApplication1.csprojResolveAssemblyReference.cache
+E:\3-XIYUN\二次开发\考勤机\C#示例\WindowsFormsApplication1\obj\x86\Debug\WindowsFormsApplication1.ADSDemo.resources
+E:\3-XIYUN\二次开发\考勤机\C#示例\WindowsFormsApplication1\obj\x86\Debug\WindowsFormsApplication1.Properties.Resources.resources
+E:\3-XIYUN\二次开发\考勤机\C#示例\WindowsFormsApplication1\obj\x86\Debug\WindowsFormsApplication1.csproj.GenerateResource.Cache
+E:\3-XIYUN\二次开发\考勤机\C#示例\WindowsFormsApplication1\obj\x86\Debug\WindowsFormsApplication1.exe
+E:\3-XIYUN\二次开发\考勤机\C#示例\WindowsFormsApplication1\obj\x86\Debug\WindowsFormsApplication1.pdb

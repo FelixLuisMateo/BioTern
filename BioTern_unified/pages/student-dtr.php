@@ -22,6 +22,48 @@ if (!$student) {
     exit;
 }
 
+function student_dtr_format_time($value): string
+{
+    $value = trim((string)$value);
+    if ($value === '') {
+        return '-';
+    }
+
+    $timestamp = strtotime($value);
+    return $timestamp === false ? $value : date('h:i A', $timestamp);
+}
+
+function student_dtr_total_hours(array $row): string
+{
+    if (isset($row['total_hours']) && $row['total_hours'] !== null && $row['total_hours'] !== '') {
+        return number_format((float)$row['total_hours'], 2);
+    }
+
+    $minutes = 0;
+    $pairs = [
+        ['morning_time_in', 'morning_time_out'],
+        ['afternoon_time_in', 'afternoon_time_out'],
+    ];
+
+    foreach ($pairs as $pair) {
+        $start = trim((string)($row[$pair[0]] ?? ''));
+        $end = trim((string)($row[$pair[1]] ?? ''));
+        if ($start === '' || $end === '') {
+            continue;
+        }
+
+        $startTs = strtotime($start);
+        $endTs = strtotime($end);
+        if ($startTs === false || $endTs === false || $endTs <= $startTs) {
+            continue;
+        }
+
+        $minutes += (int)(($endTs - $startTs) / 60);
+    }
+
+    return number_format($minutes / 60, 2);
+}
+
 $month = trim((string)($_GET['month'] ?? date('Y-m')));
 if (!preg_match('/^\d{4}-\d{2}$/', $month)) {
     $month = date('Y-m');
@@ -29,7 +71,7 @@ if (!preg_match('/^\d{4}-\d{2}$/', $month)) {
 $start = $month . '-01';
 $end = date('Y-m-t', strtotime($start));
 
-$attStmt = $conn->prepare("SELECT attendance_date, morning_time_in, morning_time_out, afternoon_time_in, afternoon_time_out, total_hours, status FROM attendances WHERE student_id = ? AND attendance_date BETWEEN ? AND ? ORDER BY attendance_date DESC");
+$attStmt = $conn->prepare("SELECT attendance_date, morning_time_in, morning_time_out, break_time_in, break_time_out, afternoon_time_in, afternoon_time_out, total_hours, source, status FROM attendances WHERE student_id = ? AND attendance_date BETWEEN ? AND ? ORDER BY attendance_date DESC, id DESC");
 $studentId = (int)$student['id'];
 $attStmt->bind_param('iss', $studentId, $start, $end);
 $attStmt->execute();
@@ -71,6 +113,7 @@ include 'includes/header.php';
                                     <th>Afternoon In</th>
                                     <th>Afternoon Out</th>
                                     <th>Total Hours</th>
+                                    <th>Source</th>
                                     <th>Status</th>
                                 </tr>
                             </thead>
@@ -79,16 +122,17 @@ include 'includes/header.php';
                                     <?php while ($row = $attendances->fetch_assoc()): ?>
                                         <tr>
                                             <td><?php echo htmlspecialchars((string)$row['attendance_date'], ENT_QUOTES, 'UTF-8'); ?></td>
-                                            <td><?php echo htmlspecialchars((string)($row['morning_time_in'] ?: '-'), ENT_QUOTES, 'UTF-8'); ?></td>
-                                            <td><?php echo htmlspecialchars((string)($row['morning_time_out'] ?: '-'), ENT_QUOTES, 'UTF-8'); ?></td>
-                                            <td><?php echo htmlspecialchars((string)($row['afternoon_time_in'] ?: '-'), ENT_QUOTES, 'UTF-8'); ?></td>
-                                            <td><?php echo htmlspecialchars((string)($row['afternoon_time_out'] ?: '-'), ENT_QUOTES, 'UTF-8'); ?></td>
-                                            <td><?php echo htmlspecialchars((string)($row['total_hours'] ?? '0'), ENT_QUOTES, 'UTF-8'); ?></td>
+                                            <td><?php echo htmlspecialchars(student_dtr_format_time($row['morning_time_in'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+                                            <td><?php echo htmlspecialchars(student_dtr_format_time($row['morning_time_out'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+                                            <td><?php echo htmlspecialchars(student_dtr_format_time($row['afternoon_time_in'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+                                            <td><?php echo htmlspecialchars(student_dtr_format_time($row['afternoon_time_out'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+                                            <td><?php echo htmlspecialchars(student_dtr_total_hours($row), ENT_QUOTES, 'UTF-8'); ?></td>
+                                            <td><?php echo htmlspecialchars((string)($row['source'] ?? 'manual'), ENT_QUOTES, 'UTF-8'); ?></td>
                                             <td><?php echo htmlspecialchars((string)($row['status'] ?? 'pending'), ENT_QUOTES, 'UTF-8'); ?></td>
                                         </tr>
                                     <?php endwhile; ?>
                                 <?php else: ?>
-                                    <tr><td colspan="7" class="text-center text-muted py-4">No attendance records for this month.</td></tr>
+                                    <tr><td colspan="8" class="text-center text-muted py-4">No attendance records for this month.</td></tr>
                                 <?php endif; ?>
                             </tbody>
                         </table>

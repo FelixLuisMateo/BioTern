@@ -178,6 +178,7 @@ $attendance_query = "
         a.break_time_out,
         a.afternoon_time_in,
         a.afternoon_time_out,
+        a.source,
         a.status,
         a.approved_by,
         a.approved_at,
@@ -284,6 +285,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
                 $att_status_label = 'Absent';
             }
             echo '<td>' . $status_html . '</td>';
+            echo '<td>' . getSourceBadge($attendance['source'] ?? 'manual') . '</td>';
             echo '<td>' . getStatusBadge($attendance['status']) . '</td>';
             $student_name = trim((string)($attendance['first_name'] ?? '') . ' ' . (string)($attendance['last_name'] ?? ''));
             $approval_status_label = ucfirst((string)($attendance['status'] ?? 'pending'));
@@ -333,6 +335,17 @@ function getStatusBadge($status) {
             return '<span class="badge bg-soft-warning text-warning">Pending</span>';
         default:
             return '<span class="badge bg-soft-secondary text-secondary">Unknown</span>';
+    }
+}
+
+function getSourceBadge($source) {
+    switch (strtolower(trim((string)$source))) {
+        case 'biometric':
+            return '<span class="badge bg-soft-primary text-primary">Biometric</span>';
+        case 'uploaded':
+            return '<span class="badge bg-soft-info text-info">Uploaded</span>';
+        default:
+            return '<span class="badge bg-soft-secondary text-secondary">Manual</span>';
     }
 }
 
@@ -971,6 +984,10 @@ echo htmlspecialchars((string)($_SESSION['email'] ?? 'admin@biotern.local'), ENT
                                 <i class="feather-filter me-2"></i>
                                 <span>Filters</span>
                             </button>
+                            <a href="legacy_router.php?file=biometric_machine_sync.php&redirect=attendance.php" class="btn btn-primary">
+                                <i class="feather-refresh-cw me-2"></i>
+                                <span>Sync Machine</span>
+                            </a>
                             <div class="dropdown">
                                 <a class="btn btn-icon btn-light-brand" data-bs-toggle="dropdown" data-bs-offset="0, 10" data-bs-auto-close="outside">
                                     <i class="feather-filter"></i>
@@ -1036,6 +1053,17 @@ echo htmlspecialchars((string)($_SESSION['email'] ?? 'admin@biotern.local'), ENT
                     </div>
                 </div>
             </div>
+
+            <?php
+            $attendance_sync_flash = $_SESSION['attendance_sync_flash'] ?? null;
+            unset($_SESSION['attendance_sync_flash']);
+            if (is_array($attendance_sync_flash) && !empty($attendance_sync_flash['message'])):
+            ?>
+                <div class="alert alert-<?php echo htmlspecialchars((string)($attendance_sync_flash['type'] ?? 'info'), ENT_QUOTES, 'UTF-8'); ?> alert-dismissible fade show mx-3" role="alert">
+                    <?php echo nl2br(htmlspecialchars((string)$attendance_sync_flash['message'], ENT_QUOTES, 'UTF-8')); ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            <?php endif; ?>
 
             <!-- Filters -->
             <div class="collapse" id="attendanceFilterCollapse">
@@ -1341,6 +1369,7 @@ echo $stats['total_count'] ?? 0; ?></span>
                                                 <th>Afternoon Out</th>
                                                 <th>Total Hours</th>
                                                 <th>Status</th>
+                                                <th>Source</th>
                                                 <th>Approval Status</th>
                                                 <th class="text-end">Actions</th>
                                             </tr>
@@ -1436,6 +1465,9 @@ $att_status = getAttendanceStatus($attendance['morning_time_in']);
                                                                 }
                                                             ?>
                                                         </td>
+                                                        <td><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo getSourceBadge($attendance['source'] ?? 'manual'); ?></td>
                                                         <td><?php
 require_once dirname(__DIR__) . '/config/db.php';
 echo getStatusBadge($attendance['status']); ?></td>
@@ -1639,11 +1671,39 @@ endif; ?>
                 "autoWidth": false,
                 "order": [[2, "desc"]],
                 "columnDefs": [
-                    { "orderable": false, "targets": [0, 12] }
+                    { "orderable": false, "targets": [0, 13] }
                 ],
                 "language": {
                     "emptyTable": "No attendance records found"
                 }
+            });
+        }
+
+        var biometricAutoSyncInFlight = false;
+        var biometricAutoSyncIntervalMs = 60000;
+
+        function runBiometricAutoSync(showToastOnError) {
+            if (biometricAutoSyncInFlight || document.hidden) {
+                return;
+            }
+
+            biometricAutoSyncInFlight = true;
+            $.ajax({
+                url: 'legacy_router.php?file=biometric_machine_sync.php&format=json',
+                type: 'GET',
+                dataType: 'json'
+            }).done(function(response) {
+                if (response && response.success) {
+                    refreshAttendanceTable();
+                } else if (showToastOnError) {
+                    showToast((response && response.message) ? response.message : 'Machine sync failed.', 'danger');
+                }
+            }).fail(function(xhr) {
+                if (showToastOnError) {
+                    showToast('Automatic machine sync failed.', 'danger');
+                }
+            }).always(function() {
+                biometricAutoSyncInFlight = false;
             });
         }
 
@@ -1790,6 +1850,10 @@ endif; ?>
             $('[data-bs-toggle="tooltip"]').each(function() {
                 new bootstrap.Tooltip(this);
             });
+
+            setInterval(function() {
+                runBiometricAutoSync(false);
+            }, biometricAutoSyncIntervalMs);
         });
 
         // View Details function

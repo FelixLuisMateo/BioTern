@@ -1,0 +1,42 @@
+E:\8-东为\DevCtrl\C#示例\WindowsFormsApplication1\bin\Debug\WindowsFormsApplication1.exe
+E:\8-东为\DevCtrl\C#示例\WindowsFormsApplication1\bin\Debug\WindowsFormsApplication1.pdb
+E:\8-东为\DevCtrl\C#示例\WindowsFormsApplication1\obj\x86\Debug\WindowsFormsApplication1.ADSDemo.resources
+E:\8-东为\DevCtrl\C#示例\WindowsFormsApplication1\obj\x86\Debug\WindowsFormsApplication1.Properties.Resources.resources
+E:\8-东为\DevCtrl\C#示例\WindowsFormsApplication1\obj\x86\Debug\Demo.csproj.GenerateResource.Cache
+E:\8-东为\DevCtrl\C#示例\WindowsFormsApplication1\obj\x86\Debug\WindowsFormsApplication1.exe
+E:\8-东为\DevCtrl\C#示例\WindowsFormsApplication1\obj\x86\Debug\WindowsFormsApplication1.pdb
+E:\8-东为\DevCtrl\C#示例\Demo\bin\Debug\Demo.exe
+E:\8-东为\DevCtrl\C#示例\Demo\bin\Debug\Demo.pdb
+E:\8-东为\DevCtrl\C#示例\Demo\obj\x86\Debug\Demo.ADSDemo.resources
+E:\8-东为\DevCtrl\C#示例\Demo\obj\x86\Debug\Demo.Properties.Resources.resources
+E:\8-东为\DevCtrl\C#示例\Demo\obj\x86\Debug\Demo.csproj.GenerateResource.Cache
+E:\8-东为\DevCtrl\C#示例\Demo\obj\x86\Debug\Demo.exe
+E:\8-东为\DevCtrl\C#示例\Demo\obj\x86\Debug\Demo.pdb
+E:\8-东为\DevCtrl\C#示例\Demo\obj\x86\Debug\Demo.csprojResolveAssemblyReference.cache
+E:\8-东为\DevCtrl\Demo\C#\Demo\bin\Debug\Demo.exe
+E:\8-东为\DevCtrl\Demo\C#\Demo\bin\Debug\Demo.pdb
+E:\8-东为\DevCtrl\Demo\C#\Demo\obj\x86\Debug\Demo.ADSDemo.resources
+E:\8-东为\DevCtrl\Demo\C#\Demo\obj\x86\Debug\Demo.Properties.Resources.resources
+E:\8-东为\DevCtrl\Demo\C#\Demo\obj\x86\Debug\Demo.csproj.GenerateResource.Cache
+E:\8-东为\DevCtrl\Demo\C#\Demo\obj\x86\Debug\Demo.exe
+E:\8-东为\DevCtrl\Demo\C#\Demo\obj\x86\Debug\Demo.pdb
+E:\8-东为\DevCtrl\Demo\C#\Demo\obj\x86\Debug\Demo.csprojResolveAssemblyReference.cache
+G:\工作\F20(h)\F20SDK\考勤机SDK\C#\Demo\bin\Debug\Demo.exe
+G:\工作\F20(h)\F20SDK\考勤机SDK\C#\Demo\bin\Debug\Demo.pdb
+G:\工作\F20(h)\F20SDK\考勤机SDK\C#\Demo\obj\x86\Debug\Demo.csproj.AssemblyReference.cache
+G:\工作\F20(h)\F20SDK\考勤机SDK\C#\Demo\obj\x86\Debug\Demo.ADSDemo.resources
+G:\工作\F20(h)\F20SDK\考勤机SDK\C#\Demo\obj\x86\Debug\Demo.Properties.Resources.resources
+G:\工作\F20(h)\F20SDK\考勤机SDK\C#\Demo\obj\x86\Debug\Demo.csproj.GenerateResource.cache
+G:\工作\F20(h)\F20SDK\考勤机SDK\C#\Demo\obj\x86\Debug\Demo.csproj.CoreCompileInputs.cache
+G:\工作\F20(h)\F20SDK\考勤机SDK\C#\Demo\obj\x86\Debug\Demo.exe
+G:\工作\F20(h)\F20SDK\考勤机SDK\C#\Demo\obj\x86\Debug\Demo.pdb
+C:\Users\Admin\Documents\F20H\English\1.SDK\Time clock offline communication development kit\C#\Demo\bin\Debug\Demo.exe.config
+C:\Users\Admin\Documents\F20H\English\1.SDK\Time clock offline communication development kit\C#\Demo\bin\Debug\Demo.exe
+C:\Users\Admin\Documents\F20H\English\1.SDK\Time clock offline communication development kit\C#\Demo\bin\Debug\Demo.pdb
+C:\Users\Admin\Documents\F20H\English\1.SDK\Time clock offline communication development kit\C#\Demo\obj\x86\Debug\Demo.csproj.AssemblyReference.cache
+C:\Users\Admin\Documents\F20H\English\1.SDK\Time clock offline communication development kit\C#\Demo\obj\x86\Debug\Demo.ADSDemo.resources
+C:\Users\Admin\Documents\F20H\English\1.SDK\Time clock offline communication development kit\C#\Demo\obj\x86\Debug\Demo.Properties.Resources.resources
+C:\Users\Admin\Documents\F20H\English\1.SDK\Time clock offline communication development kit\C#\Demo\obj\x86\Debug\Demo.csproj.GenerateResource.cache
+C:\Users\Admin\Documents\F20H\English\1.SDK\Time clock offline communication development kit\C#\Demo\obj\x86\Debug\Demo.csproj.CoreCompileInputs.cache
+C:\Users\Admin\Documents\F20H\English\1.SDK\Time clock offline communication development kit\C#\Demo\obj\x86\Debug\Demo.exe
+C:\Users\Admin\Documents\F20H\English\1.SDK\Time clock offline communication development kit\C#\Demo\obj\x86\Debug\Demo.pdb

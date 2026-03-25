@@ -1,0 +1,7 @@
+{
+  "ipAddress": "192.168.100.201",
+  "port": 5001,
+  "deviceNumber": 1,
+  "communicationPassword": "0",
+  "outputPath": "C:\\xampp\\htdocs\\BioTern\\attendance.txt"
+}
