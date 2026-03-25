@@ -174,8 +174,6 @@ $attendance_query = "
         a.attendance_date,
         a.morning_time_in,
         a.morning_time_out,
-        a.break_time_in,
-        a.break_time_out,
         a.afternoon_time_in,
         a.afternoon_time_out,
         a.source,
@@ -266,8 +264,6 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
             echo '<td><span class="badge bg-soft-primary text-primary">' . date('Y-m-d', strtotime($attendance['attendance_date'])) . '</span></td>';
             echo '<td><span class="badge bg-soft-success text-success">' . ( $attendance['morning_time_in'] ? date('h:i A', strtotime($attendance['morning_time_in'])) : '-' ) . '</span></td>';
             echo '<td><span class="badge bg-soft-success text-success">' . ( $attendance['morning_time_out'] ? date('h:i A', strtotime($attendance['morning_time_out'])) : '-' ) . '</span></td>';
-            echo '<td><span class="badge bg-soft-info text-info">' . ( $attendance['break_time_in'] ? date('h:i A', strtotime($attendance['break_time_in'])) : '-' ) . '</span></td>';
-            echo '<td><span class="badge bg-soft-info text-info">' . ( $attendance['break_time_out'] ? date('h:i A', strtotime($attendance['break_time_out'])) : '-' ) . '</span></td>';
             echo '<td><span class="badge bg-soft-warning text-warning">' . ( $attendance['afternoon_time_in'] ? date('h:i A', strtotime($attendance['afternoon_time_in'])) : '-' ) . '</span></td>';
             echo '<td><span class="badge bg-soft-warning text-warning">' . ( $attendance['afternoon_time_out'] ? date('h:i A', strtotime($attendance['afternoon_time_out'])) : '-' ) . '</span></td>';
             $total_hours = calculateTotalHours($attendance['morning_time_in'], $attendance['morning_time_out'], $attendance['afternoon_time_in'], $attendance['afternoon_time_out']);
@@ -291,8 +287,6 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
             $approval_status_label = ucfirst((string)($attendance['status'] ?? 'pending'));
             $morning_in_text = $attendance['morning_time_in'] ? date('h:i A', strtotime($attendance['morning_time_in'])) : '-';
             $morning_out_text = $attendance['morning_time_out'] ? date('h:i A', strtotime($attendance['morning_time_out'])) : '-';
-            $break_in_text = $attendance['break_time_in'] ? date('h:i A', strtotime($attendance['break_time_in'])) : '-';
-            $break_out_text = $attendance['break_time_out'] ? date('h:i A', strtotime($attendance['break_time_out'])) : '-';
             $afternoon_in_text = $attendance['afternoon_time_in'] ? date('h:i A', strtotime($attendance['afternoon_time_in'])) : '-';
             $afternoon_out_text = $attendance['afternoon_time_out'] ? date('h:i A', strtotime($attendance['afternoon_time_out'])) : '-';
             // actions (keep minimal for AJAX)
@@ -984,6 +978,10 @@ echo htmlspecialchars((string)($_SESSION['email'] ?? 'admin@biotern.local'), ENT
                                 <i class="feather-filter me-2"></i>
                                 <span>Filters</span>
                             </button>
+                            <a href="legacy_router.php?file=biometric-machine.php" class="btn btn-light-brand">
+                                <i class="feather-cpu me-2"></i>
+                                <span>Machine Manager</span>
+                            </a>
                             <a href="legacy_router.php?file=biometric_machine_sync.php&redirect=attendance.php" class="btn btn-primary">
                                 <i class="feather-refresh-cw me-2"></i>
                                 <span>Sync Machine</span>
@@ -1363,8 +1361,6 @@ echo $stats['total_count'] ?? 0; ?></span>
                                                 <th>Attendance Date</th>
                                                 <th>Morning In</th>
                                                 <th>Morning Out</th>
-                                                <th>Break In</th>
-                                                <th>Break Out</th>
                                                 <th>Afternoon In</th>
                                                 <th>Afternoon Out</th>
                                                 <th>Total Hours</th>
@@ -1433,12 +1429,6 @@ echo formatTime($attendance['morning_time_in']); ?></span></td>
                                                         <td><span class="badge bg-soft-success text-success"><?php
 require_once dirname(__DIR__) . '/config/db.php';
 echo formatTime($attendance['morning_time_out']); ?></span></td>
-                                                        <td><span class="badge bg-soft-info text-info"><?php
-require_once dirname(__DIR__) . '/config/db.php';
-echo formatTime($attendance['break_time_in']); ?></span></td>
-                                                        <td><span class="badge bg-soft-info text-info"><?php
-require_once dirname(__DIR__) . '/config/db.php';
-echo formatTime($attendance['break_time_out']); ?></span></td>
                                                         <td><span class="badge bg-soft-warning text-warning"><?php
 require_once dirname(__DIR__) . '/config/db.php';
 echo formatTime($attendance['afternoon_time_in']); ?></span></td>
@@ -1671,7 +1661,7 @@ endif; ?>
                 "autoWidth": false,
                 "order": [[2, "desc"]],
                 "columnDefs": [
-                    { "orderable": false, "targets": [0, 13] }
+                    { "orderable": false, "targets": [0, 11] }
                 ],
                 "language": {
                     "emptyTable": "No attendance records found"
@@ -2215,12 +2205,10 @@ endif; ?>
                         <div class="col-md-6"><small class="text-muted d-block">Student</small><strong id="view_student_name">-</strong></div>
                         <div class="col-md-3"><small class="text-muted d-block">Course</small><strong id="view_course">-</strong></div>
                         <div class="col-md-3"><small class="text-muted d-block">Department</small><strong id="view_department">-</strong></div>
-                        <div class="col-md-2"><small class="text-muted d-block">Morning In</small><strong id="view_morning_in">-</strong></div>
-                        <div class="col-md-2"><small class="text-muted d-block">Morning Out</small><strong id="view_morning_out">-</strong></div>
-                        <div class="col-md-2"><small class="text-muted d-block">Break In</small><strong id="view_break_in">-</strong></div>
-                        <div class="col-md-2"><small class="text-muted d-block">Break Out</small><strong id="view_break_out">-</strong></div>
-                        <div class="col-md-2"><small class="text-muted d-block">Afternoon In</small><strong id="view_afternoon_in">-</strong></div>
-                        <div class="col-md-2"><small class="text-muted d-block">Afternoon Out</small><strong id="view_afternoon_out">-</strong></div>
+                        <div class="col-md-3"><small class="text-muted d-block">Morning In</small><strong id="view_morning_in">-</strong></div>
+                        <div class="col-md-3"><small class="text-muted d-block">Morning Out</small><strong id="view_morning_out">-</strong></div>
+                        <div class="col-md-3"><small class="text-muted d-block">Afternoon In</small><strong id="view_afternoon_in">-</strong></div>
+                        <div class="col-md-3"><small class="text-muted d-block">Afternoon Out</small><strong id="view_afternoon_out">-</strong></div>
                         <div class="col-md-4"><small class="text-muted d-block">Total Hours</small><strong id="view_total_hours">-</strong></div>
                         <div class="col-md-4"><small class="text-muted d-block">Attendance Status</small><strong id="view_attendance_status">-</strong></div>
                         <div class="col-md-4"><small class="text-muted d-block">Approval Status</small><strong id="view_approval_status">-</strong></div>
