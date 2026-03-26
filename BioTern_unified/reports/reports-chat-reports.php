@@ -581,15 +581,19 @@ include 'includes/header.php';
             grid-template-columns: repeat(1, minmax(0, 1fr));
         }
     }
+    .page-header h5 { border-right: none !important; margin-right: 0 !important; padding-right: 0 !important; }
+    .breadcrumb-wrapper { margin: 0 0 12px 0; }
+    .breadcrumb { padding: 0; margin-bottom: 0; background: transparent; font-size: 13px; }
+    .breadcrumb-item { color: #64748b; }
+    .breadcrumb-item a { color: #64748b; text-decoration: none; transition: color 0.3s ease; }
+    .breadcrumb-item a:hover { color: #3454d1; }
+    .breadcrumb-item.active { color: #64748b; font-weight: 500; }
+    .breadcrumb-item + .breadcrumb-item::before { color: #94a3b8; }
 </style>
 
 <div class="main-content">
     <div class="page-header">
-        <div class="page-header-left d-flex align-items-center">
-            <div class="page-header-title">
-                <h5 class="m-b-10">Reports - Reported Chats</h5>
-            </div>
-        </div>
+        <nav class="breadcrumb-wrapper"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="index.php">Reports</a></li><li class="breadcrumb-item active">Reported Chats</li></ol></nav>
     </div>
 
     <div class="chatreports-hero">

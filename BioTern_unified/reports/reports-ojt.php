@@ -23,7 +23,7 @@ if ($status_filter !== 'all') {
 $sql = "SELECT i.id, i.student_id, i.start_date, i.end_date, i.status, 
         i.company_name, i.position, i.required_hours, i.rendered_hours, 
         i.completion_percentage, s.first_name, s.last_name, s.student_number, 
-        c.course_name, d.department_name
+        c.course_name, d.name as department_name
         FROM internships i
         LEFT JOIN students s ON s.id = i.student_id
         LEFT JOIN courses c ON c.id = i.course_id
@@ -53,11 +53,34 @@ if ($summary_result && $summary_result->num_rows > 0) {
 
 $total_ojt = array_sum($status_summary);
 
+function ojt_is_at_risk($row) {
+    $completion = (int)($row['completion_percentage'] ?? 0);
+    if ($completion < 50) return true;
+    $end_date = trim((string)($row['end_date'] ?? ''));
+    if ($end_date !== '' && $end_date !== '0000-00-00') {
+        $end_time = strtotime($end_date);
+        if ($end_time && $end_time < strtotime('-1 month')) return true;
+    }
+    return false;
+}
+
 $page_title = 'BioTern || OJT Report';
 include 'includes/header.php';
 ?>
 <style>
-.report-page-title { border-right: 0 !important; padding-right: 0 !important; }
+.ojt-at-risk { background-color: rgba(220, 38, 38, 0.08) !important; }
+html.app-skin-dark .ojt-at-risk { background-color: rgba(220, 38, 38, 0.15) !important; }
+.ojt-at-risk-badge { background: #dc2626; color: white; border-radius: 3px; padding: 2px 6px; font-size: 0.7rem; font-weight: 600; }
+.page-header h5 { border-right: none !important; margin-right: 0 !important; padding-right: 0 !important; }
+.page-header .page-header-left { border-right: none !important; border-left: none !important; }
+.page-header .page-header-title { border-right: none !important; border-left: none !important; }
+.breadcrumb-wrapper { margin: 0 0 12px 0; }
+.breadcrumb { padding: 0; margin-bottom: 0; background: transparent; font-size: 13px; }
+.breadcrumb-item { color: #64748b; }
+.breadcrumb-item a { color: #64748b; text-decoration: none; transition: color 0.3s ease; }
+.breadcrumb-item a:hover { color: #3454d1; }
+.breadcrumb-item.active { color: #64748b; font-weight: 500; }
+.breadcrumb-item + .breadcrumb-item::before { color: #94a3b8; }
 .report-hero { border: 1px solid rgba(80, 102, 144, 0.15); background: linear-gradient(135deg, rgba(26, 64, 132, 0.08), rgba(24, 153, 132, 0.08)); border-radius: 14px; padding: 1.1rem 1.25rem; margin-bottom: 1rem; }
 .report-summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.75rem; margin-bottom: 1rem; }
 .report-kpi { border: 1px solid rgba(80, 102, 144, 0.14); border-radius: 12px; padding: 0.85rem 1rem; background: #fff; text-align: center; }
@@ -83,7 +106,7 @@ html.app-skin-dark .report-table-card thead th { background: #111f36; color: #9f
 html.app-skin-dark .report-table-card .table { --bs-table-bg: #0f172a; --bs-table-hover-bg: #18243d; --bs-table-border-color: rgba(129, 153, 199, 0.2); }
 @media (max-width: 768px) { .report-summary-grid { grid-template-columns: repeat(2, 1fr); } }
 </style>
-<div class="page-header"><div class="page-header-left d-flex align-items-center"><div class="page-header-title report-page-title"><h5 class="m-b-10">Reports - OJT Programs</h5><p class="text-muted mb-0">Monitor all active and completed on-the-job training programs.</p></div></div></div>
+<div class="page-header"><nav class="breadcrumb-wrapper"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="index.php">Reports</a></li><li class="breadcrumb-item active">OJT Programs</li></ol></nav></div>
 <div class="main-content pb-5">
 <div class="report-hero d-flex flex-wrap align-items-center justify-content-between gap-3">
 <div>
@@ -135,14 +158,15 @@ while ($row = $result->fetch_assoc()):
 $badge_class = match(strtolower($row['status'] ?? 'pending')) { 
     'pending'=>'warning', 'ongoing'=>'primary', 'completed'=>'success', 'cancelled'=>'danger', default=>'secondary' 
 }; 
+$atRisk = ojt_is_at_risk($row);
 ?>
-<tr>
+<tr class="<?php echo $atRisk ? 'ojt-at-risk' : ''; ?>">
 <td><strong><?php echo htmlspecialchars(($row['first_name'] ?? '') . ' ' . ($row['last_name'] ?? '')); ?></strong><br><small class="text-muted"><?php echo htmlspecialchars($row['student_number'] ?? ''); ?></small></td>
 <td><?php echo htmlspecialchars($row['course_name'] ?? '-'); ?></td>
 <td><?php echo htmlspecialchars($row['department_name'] ?? '-'); ?></td>
 <td><?php echo htmlspecialchars($row['start_date'] ?? '-'); ?></td>
-<td><?php echo htmlspecialchars($row['end_date'] ?? '-'); ?></td>
-<td><div class="progress-bar-custom mb-1"><div class="bar" style="width:<?php echo $row['completion_percentage']; ?>%"></div></div><small class="text-muted"><?php echo number_format($row['completion_percentage'] ?? 0, 1); ?>%</small></td>
+<td><?php echo htmlspecialchars($row['end_date'] ?? '-'); ?><?php if ($atRisk): ?><br><span class="ojt-at-risk-badge"><i class="feather feather-alert-triangle"></i>At Risk</span><?php endif; ?></td>
+<td><div class="progress-bar-custom mb-1"><div class="bar" style="width:<?php echo $row['completion_percentage']; ?>%"></div></div><small class="text-muted"><?php echo number_format($row['completion_percentage'] ?? 0, 1); ?>%</small><?php if ((int)($row['completion_percentage'] ?? 0) < 50): ?><br><span style="color: #dc2626; font-size: 0.75rem; font-weight: 600;">Critical</span><?php endif; ?></td>
 <td><strong><?php echo $row['rendered_hours']; ?></strong> / <?php echo $row['required_hours']; ?></td>
 <td><span class="report-pill bg-soft-<?php echo $badge_class; ?> text-<?php echo $badge_class; ?>"><?php echo htmlspecialchars($row['status']); ?></span></td>
 </tr>
