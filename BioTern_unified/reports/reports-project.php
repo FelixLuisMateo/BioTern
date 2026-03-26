@@ -15,17 +15,21 @@ if (!in_array($status_filter, ['all', 'pending', 'ongoing', 'completed', 'cancel
     $status_filter = 'all';
 }
 
+$no_activity = isset($_GET['no_activity']) && $_GET['no_activity'] === '1' ? true : false;
+
 $where_clause = "WHERE i.deleted_at IS NULL";
 if ($status_filter !== 'all') {
     $where_clause .= " AND i.status = " . $conn->quote($status_filter);
 }
 
 $sql = "SELECT i.*, s.first_name, s.last_name, s.student_number, 
-        c.course_name, COUNT(h.id) as hour_entries
+        c.course_name, COUNT(h.id) as hour_entries,
+        MAX(h.date) as last_log_date,
+        DATEDIFF(CURDATE(), COALESCE(MAX(h.date), DATE_SUB(CURDATE(), INTERVAL 100 DAY))) as days_since_last
         FROM internships i
         LEFT JOIN students s ON s.id = i.student_id
         LEFT JOIN courses c ON c.id = i.course_id
-        LEFT JOIN hour_logs h ON h.student_id = i.student_id
+        LEFT JOIN hour_logs h ON h.student_id = i.student_id AND h.deleted_at IS NULL
         " . $where_clause . "
         GROUP BY i.id
         ORDER BY i.created_at DESC LIMIT 500";
@@ -34,6 +38,7 @@ $result = $conn->query($sql);
 $project_records = [];
 if ($result && $result->num_rows > 0) {
     while ($row = $result->fetch_assoc()) {
+        if ($no_activity && (int)($row['days_since_last'] ?? 0) < 7) continue;
         $project_records[] = $row;
     }
 }
@@ -56,7 +61,16 @@ $page_title = 'BioTern || Project Report';
 include 'includes/header.php';
 ?>
 <style>
-.report-page-title { border-right: 0 !important; padding-right: 0 !important; }
+.page-header h5 { border-right: none !important; margin-right: 0 !important; padding-right: 0 !important; }
+.page-header .page-header-left { border-right: none !important; border-left: none !important; }
+.page-header .page-header-title { border-right: none !important; border-left: none !important; }
+.breadcrumb-wrapper { margin: 0 0 12px 0; }
+.breadcrumb { padding: 0; margin-bottom: 0; background: transparent; font-size: 13px; }
+.breadcrumb-item { color: #64748b; }
+.breadcrumb-item a { color: #64748b; text-decoration: none; transition: color 0.3s ease; }
+.breadcrumb-item a:hover { color: #3454d1; }
+.breadcrumb-item.active { color: #64748b; font-weight: 500; }
+.breadcrumb-item + .breadcrumb-item::before { color: #94a3b8; }
 .report-hero { border: 1px solid rgba(80, 102, 144, 0.15); background: linear-gradient(135deg, rgba(26, 64, 132, 0.08), rgba(24, 153, 132, 0.08)); border-radius: 14px; padding: 1.1rem 1.25rem; margin-bottom: 1rem; }
 .report-summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.75rem; margin-bottom: 1rem; }
 .report-kpi { border: 1px solid rgba(80, 102, 144, 0.14); border-radius: 12px; padding: 0.85rem 1rem; background: #fff; text-align: center; }
@@ -82,7 +96,7 @@ html.app-skin-dark .report-table-card thead th { background: #111f36; color: #9f
 html.app-skin-dark .report-table-card .table { --bs-table-bg: #0f172a; --bs-table-hover-bg: #18243d; --bs-table-border-color: rgba(129, 153, 199, 0.2); }
 @media (max-width: 768px) { .report-summary-grid { grid-template-columns: repeat(2, 1fr); } }
 </style>
-<div class="page-header"><div class="page-header-left d-flex align-items-center"><div class="page-header-title report-page-title"><h5 class="m-b-10">Reports - Projects</h5><p class="text-muted mb-0">View all intern project assignments and progress.</p></div></div></div>
+<div class="page-header"><nav class="breadcrumb-wrapper"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="index.php">Reports</a></li><li class="breadcrumb-item active">Projects</li></ol></nav></div>
 <div class="main-content pb-5">
 <div class="report-hero d-flex flex-wrap align-items-center justify-content-between gap-3">
 <div>
@@ -113,6 +127,12 @@ html.app-skin-dark .report-table-card .table { --bs-table-bg: #0f172a; --bs-tabl
 </select>
 </div>
 <div class="col-auto">
+<div class="form-check mt-2">
+<input class="form-check-input" type="checkbox" name="no_activity" value="1" id="noActivity" <?php echo $no_activity ? 'checked' : ''; ?>>
+<label class="form-check-label" for="noActivity">No logs in 7 days</label>
+</div>
+</div>
+<div class="col-auto">
 <button type="submit" class="btn btn-primary"><i class="feather feather-filter me-1"></i>Filter</button>
 </div>
 <div class="col-auto">
@@ -125,7 +145,7 @@ html.app-skin-dark .report-table-card .table { --bs-table-bg: #0f172a; --bs-tabl
 <div class="table-responsive">
 <table class="table table-hover">
 <thead>
-<tr><th>Student</th><th>Position</th><th>Company</th><th>Course</th><th>Hours Logged</th><th>Progress</th><th>Hours/Req</th><th>Status</th></tr>
+<tr><th>Student</th><th>Position</th><th>Company</th><th>Course</th><th>Hours Logged</th><th>Progress</th><th>Hours/Req</th><th>Last Activity</th><th>Status</th></tr>
 </thead>
 <tbody>
 <?php if ($result && $result->num_rows > 0): 
@@ -143,6 +163,7 @@ $badge_class = match(strtolower($row['status'] ?? 'pending')) {
 <td><strong><?php echo (int)($row['hour_entries'] ?? 0); ?></strong> entries</td>
 <td><div class="progress-bar-custom mb-1"><div class="bar" style="width:<?php echo $row['completion_percentage']; ?>%"></div></div><small class="text-muted"><?php echo number_format($row['completion_percentage'] ?? 0, 1); ?>%</small></td>
 <td><?php echo (int)($row['rendered_hours'] ?? 0); ?> / <?php echo (int)($row['required_hours'] ?? 0); ?></td>
+<td><?php $lastLog = trim((string)($row['last_log_date'] ?? '')); if ($lastLog && $lastLog !== '0000-00-00'): echo date('M d', strtotime($lastLog)); else: echo '-'; endif; ?><br><small class="text-muted"><?php $daysSince = (int)($row['days_since_last'] ?? 100); echo $daysSince > 7 ? '<span style="color:#dc2626;font-weight:600;">' . $daysSince . ' days ago</span>' : ($daysSince >= 0 ? $daysSince . ' days ago' : '-'); ?></small></td>
 <td><span class="report-pill bg-soft-<?php echo $badge_class; ?> text-<?php echo $badge_class; ?>"><?php echo htmlspecialchars($row['status']); ?></span></td>
 </tr>
 <?php endwhile; else: ?>

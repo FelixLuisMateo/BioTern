@@ -312,6 +312,16 @@ $page_title = 'BioTern || Chat Logs';
 include 'includes/header.php';
 ?>
 <style>
+    .page-header h5 { border-right: none !important; margin-right: 0 !important; padding-right: 0 !important; }
+    .page-header .page-header-left { border-right: none !important; border-left: none !important; }
+    .page-header .page-header-title { border-right: none !important; border-left: none !important; }
+    .breadcrumb-wrapper { margin: 0 0 12px 0; }
+    .breadcrumb { padding: 0; margin-bottom: 0; background: transparent; font-size: 13px; }
+    .breadcrumb-item { color: #64748b; }
+    .breadcrumb-item a { color: #64748b; text-decoration: none; transition: color 0.3s ease; }
+    .breadcrumb-item a:hover { color: #3454d1; }
+    .breadcrumb-item.active { color: #64748b; font-weight: 500; }
+    .breadcrumb-item + .breadcrumb-item::before { color: #94a3b8; }
     :root {
         --chatlogs-surface: #ffffff;
         --chatlogs-surface-soft: #f8fafc;
@@ -730,12 +740,7 @@ include 'includes/header.php';
 </style>
 
 <div class="page-header">
-    <div class="page-header-left d-flex align-items-center">
-        <div class="page-header-title logs-page-title">
-            <h5 class="m-b-10">Reports - Chat Logs</h5>
-            <p class="text-muted mb-0">Monitor and audit message activity between users.</p>
-        </div>
-    </div>
+    <nav class="breadcrumb-wrapper"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="index.php">Reports</a></li><li class="breadcrumb-item active">Chat Logs</li></ol></nav>
 </div>
 
 <div class="main-content pb-5">
@@ -827,7 +832,7 @@ include 'includes/header.php';
                                     $firstMsg = end($msgs); // oldest (rows are DESC)
                                     $lastMsg = reset($msgs); // newest
                                     $threadRows = array_reverse($msgs); // oldest -> newest for readable thread timeline
-                                    $previewCount = 3;
+                                    $previewCount = 1;
                                     $collapseThreshold = max(0, count($threadRows) - $previewCount);
                                     $hiddenCount = $collapseThreshold;
                                     $convoId = 'convo-' . substr(md5((string)$key), 0, 10);
