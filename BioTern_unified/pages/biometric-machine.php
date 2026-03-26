@@ -138,6 +138,80 @@ function machine_mask_card_number(string $value): string
     return str_repeat('*', max(strlen($digits) - 4, 0)) . substr($digits, -4);
 }
 
+function machine_person_label(array $anomaly): string
+{
+    $studentName = trim((string)($anomaly['student_first_name'] ?? '') . ' ' . (string)($anomaly['student_last_name'] ?? ''));
+    if ($studentName !== '') {
+        $studentNumber = trim((string)($anomaly['student_number'] ?? ''));
+        return $studentNumber !== '' ? ($studentName . ' (' . $studentNumber . ')') : $studentName;
+    }
+
+    $userName = trim((string)($anomaly['mapped_user_name'] ?? ''));
+    if ($userName !== '') {
+        return $userName;
+    }
+
+    $username = trim((string)($anomaly['mapped_username'] ?? ''));
+    if ($username !== '') {
+        return $username;
+    }
+
+    return 'Unknown user';
+}
+
+function machine_decode_raw_log_entry(string $rawData): array
+{
+    $decoded = json_decode($rawData, true);
+    return is_array($decoded) ? $decoded : [];
+}
+
+function machine_fetch_fingerprint_identity_map(mysqli $conn): array
+{
+    $map = [];
+    $res = $conn->query("
+        SELECT
+            m.finger_id,
+            m.user_id,
+            u.name AS mapped_user_name,
+            u.username AS mapped_username,
+            s.first_name,
+            s.last_name,
+            s.student_id AS student_number
+        FROM fingerprint_user_map m
+        LEFT JOIN users u ON m.user_id = u.id
+        LEFT JOIN students s ON s.user_id = m.user_id
+    ");
+    if ($res instanceof mysqli_result) {
+        while ($row = $res->fetch_assoc()) {
+            $map[(int)($row['finger_id'] ?? 0)] = $row;
+        }
+        $res->close();
+    }
+
+    return $map;
+}
+
+function machine_identity_label(array $identity): string
+{
+    $studentName = trim((string)($identity['first_name'] ?? '') . ' ' . (string)($identity['last_name'] ?? ''));
+    if ($studentName !== '') {
+        $studentNumber = trim((string)($identity['student_number'] ?? ''));
+        return $studentNumber !== '' ? ($studentName . ' (' . $studentNumber . ')') : $studentName;
+    }
+
+    $userName = trim((string)($identity['mapped_user_name'] ?? ''));
+    if ($userName !== '') {
+        return $userName;
+    }
+
+    $username = trim((string)($identity['mapped_username'] ?? ''));
+    if ($username !== '') {
+        return $username;
+    }
+
+    return 'Unknown user';
+}
+
 function machine_load_user_list_into_state(&$userListRaw, &$userListDecoded): void
 {
     $result = biometric_machine_run_command('get-user-list');
@@ -298,6 +372,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 biometric_ops_log_audit($conn, (int)($_SESSION['user_id'] ?? 0), $role, 'machine_user_deleted', 'machine_user', (string)$selectedUserId, ['user_id' => $selectedUserId]);
                 machine_redirect_after_post(['load_users' => 1]);
 
+            case 'delete_fingerprint':
+                if ($selectedUserId <= 0) {
+                    throw new RuntimeException('Enter a valid F20H user ID to delete.');
+                }
+                $result = biometric_machine_run_command('delete-user', [(string)$selectedUserId]);
+                if (!$result['success']) {
+                    throw new RuntimeException(trim(implode("\n", $result['output'] ?? [])));
+                }
+                $_SESSION['machine_manager_flash'] = ['type' => 'warning', 'message' => 'Fingerprint record removed from the F20H machine user list.'];
+                biometric_ops_log_audit($conn, (int)($_SESSION['user_id'] ?? 0), $role, 'machine_fingerprint_deleted', 'machine_user', (string)$selectedUserId, ['user_id' => $selectedUserId]);
+                machine_redirect_after_post(['load_users' => 1]);
+
             case 'get_device_info':
                 $result = biometric_machine_run_command('get-device-info');
                 if (!$result['success']) {
@@ -396,6 +482,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $existingConfig['attendanceEndTime'] = trim((string)($_POST['attendance_end_time'] ?? '20:00:00'));
                 $existingConfig['duplicateGuardMinutes'] = max(1, (int)($_POST['duplicate_guard_minutes'] ?? 10));
                 $existingConfig['slotAdvanceMinimumMinutes'] = max(1, (int)($_POST['slot_advance_minimum_minutes'] ?? 10));
+                $selectedRouterPreset = trim((string)($_POST['router_preset'] ?? 'custom'));
+                $allowedRouterPresets = ['router_1', 'router_2', 'custom'];
+                $existingConfig['selectedRouterPreset'] = in_array($selectedRouterPreset, $allowedRouterPresets, true) ? $selectedRouterPreset : 'custom';
 
                 if ($existingConfig['ipAddress'] === '') {
                     throw new RuntimeException('Connector IP address is required.');
@@ -476,14 +565,137 @@ $latestSyncRun = biometric_ops_fetch_latest_sync_run($conn);
 $recentAnomalies = biometric_ops_fetch_recent_anomalies($conn, 6);
 $recentAuditLogs = biometric_ops_fetch_recent_audit_logs($conn, 6);
 $openAnomalyCount = biometric_ops_fetch_open_anomaly_count($conn);
+$fingerprintIdentityMap = machine_fetch_fingerprint_identity_map($conn);
+$rawLogsPerPage = 50;
+$rawLogPage = max(1, (int)($_GET['raw_page'] ?? 1));
+$rawLogTotal = 0;
+$rawLogProcessedTotal = 0;
+$rawLogRows = [];
+$rawLogSummary = $conn->query("
+    SELECT
+        COUNT(*) AS total_logs,
+        SUM(CASE WHEN processed = 1 THEN 1 ELSE 0 END) AS processed_logs,
+        MAX(imported_at) AS latest_imported_at
+    FROM biometric_raw_logs
+");
+if ($rawLogSummary instanceof mysqli_result) {
+    $summaryRow = $rawLogSummary->fetch_assoc() ?: [];
+    $rawLogTotal = (int)($summaryRow['total_logs'] ?? 0);
+    $rawLogProcessedTotal = (int)($summaryRow['processed_logs'] ?? 0);
+    $latestRawImportAt = (string)($summaryRow['latest_imported_at'] ?? '');
+    $rawLogSummary->close();
+} else {
+    $latestRawImportAt = '';
+}
+$rawLogPages = max(1, (int)ceil($rawLogTotal / $rawLogsPerPage));
+if ($rawLogPage > $rawLogPages) {
+    $rawLogPage = $rawLogPages;
+}
+$rawLogOffset = ($rawLogPage - 1) * $rawLogsPerPage;
+$rawLogResult = $conn->query("
+    SELECT id, raw_data, imported_at, processed
+    FROM biometric_raw_logs
+    ORDER BY id DESC
+    LIMIT {$rawLogsPerPage} OFFSET {$rawLogOffset}
+");
+if ($rawLogResult instanceof mysqli_result) {
+    while ($row = $rawLogResult->fetch_assoc()) {
+        $rawLogRows[] = $row;
+    }
+    $rawLogResult->close();
+}
+$syncAttemptRows = [];
+$syncAttemptResult = $conn->query("
+    SELECT id, trigger_source, status, raw_inserted, processed_logs, attendance_changed, anomalies_found, started_at, finished_at
+    FROM biometric_sync_runs
+    ORDER BY id DESC
+    LIMIT 20
+");
+if ($syncAttemptResult instanceof mysqli_result) {
+    while ($row = $syncAttemptResult->fetch_assoc()) {
+        $syncAttemptRows[] = $row;
+    }
+    $syncAttemptResult->close();
+}
 $connectorConfig = json_decode($machineConfigJson, true);
 $connectorIp = is_array($connectorConfig) ? (string)($connectorConfig['ipAddress'] ?? '') : '';
 $connectorPort = is_array($connectorConfig) ? (string)($connectorConfig['port'] ?? '') : '';
 $connectorDeviceNo = is_array($connectorConfig) ? (string)($connectorConfig['deviceNumber'] ?? '') : '';
+$connectorGateway = is_array($connectorConfig) ? (string)($connectorConfig['gateway'] ?? '') : '';
+$connectorMask = is_array($connectorConfig) ? (string)($connectorConfig['mask'] ?? '255.255.255.0') : '255.255.255.0';
+$connectorPassword = is_array($connectorConfig) ? (string)($connectorConfig['communicationPassword'] ?? '0') : '0';
+$connectorOutputPath = is_array($connectorConfig) ? (string)($connectorConfig['outputPath'] ?? '') : '';
+$connectorWindowEnabled = is_array($connectorConfig) ? !empty($connectorConfig['attendanceWindowEnabled']) : false;
+$connectorStartTime = is_array($connectorConfig) ? (string)($connectorConfig['attendanceStartTime'] ?? '08:00:00') : '08:00:00';
+$connectorEndTime = is_array($connectorConfig) ? (string)($connectorConfig['attendanceEndTime'] ?? '20:00:00') : '20:00:00';
+$duplicateGuardMinutes = is_array($connectorConfig) ? (int)($connectorConfig['duplicateGuardMinutes'] ?? 10) : 10;
+$slotAdvanceMinimumMinutes = is_array($connectorConfig) ? (int)($connectorConfig['slotAdvanceMinimumMinutes'] ?? 10) : 10;
+$selectedRouterPreset = is_array($connectorConfig) ? (string)($connectorConfig['selectedRouterPreset'] ?? 'custom') : 'custom';
+$quickRouterOptions = [
+    'router_1' => [
+        'label' => 'Router 1',
+        'ip' => '192.168.100.201',
+        'gateway' => '192.168.100.1',
+        'mask' => '255.255.255.0',
+        'port' => '5001',
+    ],
+    'router_2' => [
+        'label' => 'Router 2',
+        'ip' => '192.168.110.201',
+        'gateway' => '192.168.110.1',
+        'mask' => '255.255.255.0',
+        'port' => '5001',
+    ],
+    'custom' => [
+        'label' => 'Custom',
+        'ip' => $connectorIp,
+        'gateway' => $connectorGateway,
+        'mask' => $connectorMask,
+        'port' => $connectorPort !== '' ? $connectorPort : '5001',
+    ],
+];
 
 $page_title = 'BioTern || F20H Machine Manager';
 include __DIR__ . '/../includes/header.php';
 ?>
+        <style>
+            .quick-router-panel {
+                background: rgba(255, 255, 255, 0.03);
+                border: 1px solid rgba(148, 163, 184, 0.18);
+                border-radius: 0.9rem;
+                padding: 1rem;
+            }
+            .machine-users-card .table td,
+            .machine-users-card .table th {
+                vertical-align: middle;
+            }
+            .machine-users-card .table td:last-child {
+                min-width: 160px;
+            }
+            .machine-inline-actions {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 0.5rem;
+                justify-content: flex-end;
+            }
+            .machine-inline-actions form {
+                margin: 0;
+            }
+            .machine-users-card code,
+            .machine-raw-logs-card code {
+                white-space: pre-wrap;
+                word-break: break-word;
+            }
+            html.app-skin-dark .quick-router-panel {
+                background: rgba(15, 23, 42, 0.72);
+                border-color: rgba(148, 163, 184, 0.22);
+                color: #e5eefc;
+            }
+            html.app-skin-dark .quick-router-panel .text-muted,
+            html.app-skin-dark .quick-router-panel small {
+                color: rgba(226, 232, 240, 0.78) !important;
+            }
+        </style>
         <div class="page-header">
             <div class="page-header-left d-flex align-items-center">
                 <div class="page-header-title">
@@ -623,8 +835,8 @@ include __DIR__ . '/../includes/header.php';
                 </div>
             </div>
 
-            <div class="col-xl-6">
-                <div class="card stretch stretch-full">
+            <div class="col-xl-8">
+                <div class="card stretch stretch-full machine-users-card">
                     <div class="card-header"><h6 class="card-title mb-0">Users on Machine</h6></div>
                     <div class="card-body">
                         <form method="post" class="row g-2 align-items-end mb-3">
@@ -680,11 +892,18 @@ include __DIR__ . '/../includes/header.php';
                                                 </td>
                                                 <td class="text-end">
                                                     <?php if ($rowUserId !== ''): ?>
-                                                        <form method="post" class="d-inline">
-                                                            <input type="hidden" name="machine_action" value="get_user">
-                                                            <input type="hidden" name="user_id" value="<?php echo machine_h($rowUserId); ?>">
-                                                            <button type="submit" class="btn btn-sm btn-outline-primary">Load</button>
-                                                        </form>
+                                                        <div class="machine-inline-actions">
+                                                            <form method="post" class="d-inline">
+                                                                <input type="hidden" name="machine_action" value="get_user">
+                                                                <input type="hidden" name="user_id" value="<?php echo machine_h($rowUserId); ?>">
+                                                                <button type="submit" class="btn btn-sm btn-outline-primary">Load</button>
+                                                            </form>
+                                                            <form method="post" class="d-inline" onsubmit="return confirm('Delete this fingerprint record from the F20H machine? This removes the machine user entry.');">
+                                                                <input type="hidden" name="machine_action" value="delete_fingerprint">
+                                                                <input type="hidden" name="user_id" value="<?php echo machine_h($rowUserId); ?>">
+                                                                <button type="submit" class="btn btn-sm btn-outline-danger">Delete FP</button>
+                                                            </form>
+                                                        </div>
                                                     <?php else: ?>
                                                         <span class="text-muted fs-12">No ID</span>
                                                     <?php endif; ?>
@@ -704,7 +923,7 @@ include __DIR__ . '/../includes/header.php';
                 </div>
             </div>
 
-            <div class="col-xl-6">
+            <div class="col-xl-4">
                 <div class="card">
                     <div class="card-header"><h6 class="card-title mb-0">Selected User Editor</h6></div>
                     <div class="card-body">
@@ -721,11 +940,12 @@ include __DIR__ . '/../includes/header.php';
                             </div>
                         </form>
 
-                        <form method="post" class="mt-2" onsubmit="return confirm('Delete this user from the F20H machine?');">
-                            <input type="hidden" name="machine_action" value="delete_user">
+                        <form method="post" class="mt-2" onsubmit="return confirm('Delete this fingerprint record from the F20H machine? This removes the machine user entry.');">
+                            <input type="hidden" name="machine_action" value="delete_fingerprint">
                             <input type="hidden" name="user_id" value="<?php echo machine_h($selectedUserId); ?>">
-                            <button type="submit" class="btn btn-danger">Delete User</button>
+                            <button type="submit" class="btn btn-danger">Delete Fingerprint</button>
                         </form>
+                        <div class="text-muted fs-12 mt-2">This device SDK removes the whole F20H machine user record, which also removes the enrolled fingerprint from the device.</div>
 
                         <?php if ($isAdmin || is_array($userDetailsDecoded)): ?>
                             <div class="mt-3">
@@ -773,23 +993,107 @@ include __DIR__ . '/../includes/header.php';
                 <div class="card stretch stretch-full">
                     <div class="card-header"><h6 class="card-title mb-0">Network and Time</h6></div>
                     <div class="card-body">
+                        <div class="quick-router-panel mb-4">
+                            <div class="d-flex flex-wrap justify-content-between gap-2 align-items-start">
+                                <div>
+                                    <div class="fw-semibold">Quick Router Switch</div>
+                                    <div class="text-muted fs-12">Choose a router preset, adjust any values you want, then save. BioTern will use these settings the next time you sync.</div>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-primary" id="copyConnectorToMachineBtn">Copy to Network Form</button>
+                            </div>
+                            <form method="post" class="row g-2 mt-1">
+                                <input type="hidden" name="machine_action" value="save_connector_profile">
+                                <div class="col-sm-6">
+                                    <label class="form-label">Router Preset</label>
+                                    <select class="form-select" id="routerPresetSelect" name="router_preset">
+                                        <?php foreach ($quickRouterOptions as $presetKey => $preset): ?>
+                                            <option
+                                                value="<?php echo machine_h($presetKey); ?>"
+                                                data-ip="<?php echo machine_h((string)$preset['ip']); ?>"
+                                                data-gateway="<?php echo machine_h((string)$preset['gateway']); ?>"
+                                                data-mask="<?php echo machine_h((string)$preset['mask']); ?>"
+                                                data-port="<?php echo machine_h((string)$preset['port']); ?>"
+                                                <?php echo $selectedRouterPreset === $presetKey ? 'selected' : ''; ?>
+                                            >
+                                                <?php echo machine_h((string)$preset['label']); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                                <div class="col-sm-6">
+                                    <label class="form-label">Attendance File</label>
+                                    <input type="text" name="connector_output_path" class="form-control" value="<?php echo machine_h($connectorOutputPath); ?>" placeholder="C:\xampp\htdocs\BioTern\attendance.txt">
+                                </div>
+                                <div class="col-sm-6">
+                                    <label class="form-label">Connector IP</label>
+                                    <input type="text" name="connector_ip" id="connectorIpField" class="form-control" value="<?php echo machine_h($connectorIp); ?>" placeholder="192.168.110.201">
+                                </div>
+                                <div class="col-sm-6">
+                                    <label class="form-label">Gateway</label>
+                                    <input type="text" name="connector_gateway" id="connectorGatewayField" class="form-control" value="<?php echo machine_h($connectorGateway); ?>" placeholder="192.168.110.1">
+                                </div>
+                                <div class="col-sm-6">
+                                    <label class="form-label">Mask</label>
+                                    <input type="text" name="connector_mask" id="connectorMaskField" class="form-control" value="<?php echo machine_h($connectorMask); ?>" placeholder="255.255.255.0">
+                                </div>
+                                <div class="col-sm-6">
+                                    <label class="form-label">Port</label>
+                                    <input type="number" name="connector_port" id="connectorPortField" class="form-control" value="<?php echo machine_h($connectorPort !== '' ? $connectorPort : '5001'); ?>" min="1">
+                                </div>
+                                <div class="col-sm-6">
+                                    <label class="form-label">Device Number</label>
+                                    <input type="number" name="connector_device_number" class="form-control" value="<?php echo machine_h($connectorDeviceNo !== '' ? $connectorDeviceNo : '1'); ?>" min="1">
+                                </div>
+                                <div class="col-sm-6">
+                                    <label class="form-label">Communication Password</label>
+                                    <input type="text" name="connector_password" class="form-control" value="<?php echo machine_h($connectorPassword); ?>" placeholder="0">
+                                </div>
+                                <div class="col-sm-4">
+                                    <label class="form-label">Duplicate Guard (minutes)</label>
+                                    <input type="number" name="duplicate_guard_minutes" class="form-control" value="<?php echo machine_h((string)$duplicateGuardMinutes); ?>" min="1" max="60">
+                                </div>
+                                <div class="col-sm-4">
+                                    <label class="form-label">Slot Advance Minimum</label>
+                                    <input type="number" name="slot_advance_minimum_minutes" class="form-control" value="<?php echo machine_h((string)$slotAdvanceMinimumMinutes); ?>" min="1" max="240">
+                                </div>
+                                <div class="col-sm-4 d-flex align-items-end">
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" name="attendance_window_enabled" id="attendanceWindowEnabled" <?php echo $connectorWindowEnabled ? 'checked' : ''; ?>>
+                                        <label class="form-check-label" for="attendanceWindowEnabled">Use Attendance Window</label>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6">
+                                    <label class="form-label">Window Start</label>
+                                    <input type="text" name="attendance_start_time" class="form-control" value="<?php echo machine_h($connectorStartTime); ?>" placeholder="08:00:00">
+                                </div>
+                                <div class="col-sm-6">
+                                    <label class="form-label">Window End</label>
+                                    <input type="text" name="attendance_end_time" class="form-control" value="<?php echo machine_h($connectorEndTime); ?>" placeholder="20:00:00">
+                                </div>
+                                <div class="col-12 d-flex flex-wrap gap-2">
+                                    <button type="submit" class="btn btn-primary">Save Quick Router Settings</button>
+                                    <small class="text-muted align-self-center">Use 10 minutes as the safe duplicate guard and slot step when you want imports to ignore near-duplicate scans.</small>
+                                </div>
+                            </form>
+                        </div>
+
                         <form method="post" class="row g-2 mb-4">
                             <input type="hidden" name="machine_action" value="save_network">
                             <div class="col-sm-6">
                                 <label class="form-label">IP Address</label>
-                                <input type="text" name="ip_address" class="form-control" placeholder="192.168.100.201">
+                                <input type="text" name="ip_address" id="machineIpField" class="form-control" value="<?php echo machine_h($connectorIp); ?>" placeholder="192.168.100.201">
                             </div>
                             <div class="col-sm-6">
                                 <label class="form-label">Gateway</label>
-                                <input type="text" name="gateway" class="form-control" placeholder="192.168.100.1">
+                                <input type="text" name="gateway" id="machineGatewayField" class="form-control" value="<?php echo machine_h($connectorGateway); ?>" placeholder="192.168.100.1">
                             </div>
                             <div class="col-sm-6">
                                 <label class="form-label">Mask</label>
-                                <input type="text" name="mask" class="form-control" placeholder="255.255.255.0">
+                                <input type="text" name="mask" id="machineMaskField" class="form-control" value="<?php echo machine_h($connectorMask); ?>" placeholder="255.255.255.0">
                             </div>
                             <div class="col-sm-6">
                                 <label class="form-label">Port</label>
-                                <input type="number" name="port" class="form-control" placeholder="5001">
+                                <input type="number" name="port" id="machinePortField" class="form-control" value="<?php echo machine_h($connectorPort !== '' ? $connectorPort : '5001'); ?>" placeholder="5001">
                             </div>
                             <div class="col-12">
                                 <button type="submit" class="btn btn-outline-primary">Save Network Settings</button>
@@ -819,6 +1123,112 @@ include __DIR__ . '/../includes/header.php';
                 </div>
             </div>
 
+            <div class="col-xl-8">
+                <div class="card stretch stretch-full machine-raw-logs-card">
+                    <div class="card-header d-flex flex-wrap justify-content-between gap-2">
+                        <div>
+                            <h6 class="card-title mb-0">Raw Machine Logs</h6>
+                            <div class="text-muted fs-12 mt-1">Every log BioTern has already pulled from the F20H. Use this to monitor volume before clearing the machine records.</div>
+                        </div>
+                        <div class="text-end">
+                            <div class="fw-semibold"><?php echo machine_h((string)$rawLogTotal); ?> total logs</div>
+                            <small class="text-muted"><?php echo machine_h((string)$rawLogProcessedTotal); ?> processed<?php echo $latestRawImportAt !== '' ? ' | Last import ' . machine_h($latestRawImportAt) : ''; ?></small>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-sm mb-0 align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>Raw ID</th>
+                                        <th>Fingerprint</th>
+                                        <th>Matched Person</th>
+                                        <th>Time</th>
+                                        <th>Type</th>
+                                        <th>Processed</th>
+                                        <th>Imported</th>
+                                        <th>Raw JSON</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php if (empty($rawLogRows)): ?>
+                                        <tr><td colspan="8" class="text-center text-muted py-3">No raw machine logs stored yet.</td></tr>
+                                    <?php else: ?>
+                                        <?php foreach ($rawLogRows as $rawLog): ?>
+                                            <?php $rawEntry = machine_decode_raw_log_entry((string)($rawLog['raw_data'] ?? '')); ?>
+                                            <?php $rawFingerId = (int)($rawEntry['finger_id'] ?? $rawEntry['id'] ?? 0); ?>
+                                            <?php $rawIdentity = $fingerprintIdentityMap[$rawFingerId] ?? []; ?>
+                                            <tr>
+                                                <td><?php echo machine_h((string)($rawLog['id'] ?? '-')); ?></td>
+                                                <td><?php echo machine_h($rawFingerId > 0 ? (string)$rawFingerId : '-'); ?></td>
+                                                <td><?php echo machine_h($rawIdentity !== [] ? machine_identity_label($rawIdentity) : 'Unmapped fingerprint'); ?></td>
+                                                <td><?php echo machine_h((string)($rawEntry['time'] ?? '-')); ?></td>
+                                                <td><?php echo machine_h((string)($rawEntry['type'] ?? '-')); ?></td>
+                                                <td><?php echo machine_h(!empty($rawLog['processed']) ? 'Yes' : 'No'); ?></td>
+                                                <td><?php echo machine_h((string)($rawLog['imported_at'] ?? '-')); ?></td>
+                                                <td style="min-width: 320px;"><code><?php echo machine_h((string)($rawLog['raw_data'] ?? '')); ?></code></td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 px-3 py-3 border-top">
+                            <small class="text-muted">Page <?php echo machine_h((string)$rawLogPage); ?> of <?php echo machine_h((string)$rawLogPages); ?></small>
+                            <div class="d-flex gap-2">
+                                <?php if ($rawLogPage > 1): ?>
+                                    <a class="btn btn-sm btn-outline-primary" href="biometric-machine.php?raw_page=<?php echo $rawLogPage - 1; ?>">Previous</a>
+                                <?php endif; ?>
+                                <?php if ($rawLogPage < $rawLogPages): ?>
+                                    <a class="btn btn-sm btn-outline-primary" href="biometric-machine.php?raw_page=<?php echo $rawLogPage + 1; ?>">Next</a>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-4">
+                <div class="card stretch stretch-full">
+                    <div class="card-header"><h6 class="card-title mb-0">Sync Attempts</h6></div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-sm mb-0 align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>Status</th>
+                                        <th>Started</th>
+                                        <th>Imported</th>
+                                        <th>Anomalies</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php if (empty($syncAttemptRows)): ?>
+                                        <tr><td colspan="4" class="text-center text-muted py-3">No sync attempts yet.</td></tr>
+                                    <?php else: ?>
+                                        <?php foreach ($syncAttemptRows as $syncAttempt): ?>
+                                            <tr>
+                                                <td>
+                                                    <div class="fw-semibold"><?php echo machine_h((string)($syncAttempt['status'] ?? '-')); ?></div>
+                                                    <small class="text-muted"><?php echo machine_h((string)($syncAttempt['trigger_source'] ?? 'manual')); ?></small>
+                                                </td>
+                                                <td>
+                                                    <div><?php echo machine_h((string)($syncAttempt['started_at'] ?? '-')); ?></div>
+                                                    <small class="text-muted"><?php echo machine_h((string)($syncAttempt['finished_at'] ?? '')); ?></small>
+                                                </td>
+                                                <td><?php echo machine_h((string)($syncAttempt['processed_logs'] ?? 0)); ?> logs</td>
+                                                <td><?php echo machine_h((string)($syncAttempt['anomalies_found'] ?? 0)); ?></td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="px-3 py-3 border-top text-muted fs-12">If these counts keep growing, run a sync, confirm the raw logs are stored here, then you can use "Clear Records" on the F20H to avoid filling the device.</div>
+                    </div>
+                </div>
+            </div>
+
             <?php if ($isAdmin): ?>
                 <div class="col-xl-6">
                     <div class="card stretch stretch-full">
@@ -829,6 +1239,8 @@ include __DIR__ . '/../includes/header.php';
                                     <thead>
                                         <tr>
                                             <th>Type</th>
+                                            <th>Fingerprint</th>
+                                            <th>Matched Person</th>
                                             <th>Severity</th>
                                             <th>Message</th>
                                             <th>When</th>
@@ -836,11 +1248,18 @@ include __DIR__ . '/../includes/header.php';
                                     </thead>
                                     <tbody>
                                         <?php if (empty($recentAnomalies)): ?>
-                                            <tr><td colspan="4" class="text-center text-muted py-3">No recent anomalies.</td></tr>
+                                            <tr><td colspan="6" class="text-center text-muted py-3">No recent anomalies.</td></tr>
                                         <?php else: ?>
                                             <?php foreach ($recentAnomalies as $anomaly): ?>
                                                 <tr>
                                                     <td><?php echo machine_h((string)$anomaly['anomaly_type']); ?></td>
+                                                    <td><?php echo machine_h((string)($anomaly['fingerprint_id'] ?? '-')); ?></td>
+                                                    <td>
+                                                        <div class="fw-semibold"><?php echo machine_h(machine_person_label($anomaly)); ?></div>
+                                                        <small class="text-muted">
+                                                            <?php echo machine_h((string)($anomaly['mapped_user_name'] ?? '') !== '' ? ('User #' . (string)($anomaly['user_id'] ?? '-')) : ((string)($anomaly['student_id'] ?? '') !== '' ? ('Student row #' . (string)$anomaly['student_id']) : 'No BioTern match')); ?>
+                                                        </small>
+                                                    </td>
                                                     <td><?php echo machine_h((string)$anomaly['severity']); ?></td>
                                                     <td><?php echo machine_h((string)$anomaly['message']); ?></td>
                                                     <td><?php echo machine_h((string)($anomaly['event_time'] ?: $anomaly['created_at'])); ?></td>
@@ -962,4 +1381,70 @@ include __DIR__ . '/../includes/header.php';
                 </div>
             <?php endif; ?>
         </div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const presetSelect = document.getElementById('routerPresetSelect');
+    const copyButton = document.getElementById('copyConnectorToMachineBtn');
+    const connectorFields = {
+        ip: document.getElementById('connectorIpField'),
+        gateway: document.getElementById('connectorGatewayField'),
+        mask: document.getElementById('connectorMaskField'),
+        port: document.getElementById('connectorPortField')
+    };
+    const machineFields = {
+        ip: document.getElementById('machineIpField'),
+        gateway: document.getElementById('machineGatewayField'),
+        mask: document.getElementById('machineMaskField'),
+        port: document.getElementById('machinePortField')
+    };
+
+    function applyPreset() {
+        if (!presetSelect) {
+            return;
+        }
+
+        const option = presetSelect.options[presetSelect.selectedIndex];
+        if (!option) {
+            return;
+        }
+
+        if (connectorFields.ip) {
+            connectorFields.ip.value = option.dataset.ip || '';
+        }
+        if (connectorFields.gateway) {
+            connectorFields.gateway.value = option.dataset.gateway || '';
+        }
+        if (connectorFields.mask) {
+            connectorFields.mask.value = option.dataset.mask || '';
+        }
+        if (connectorFields.port) {
+            connectorFields.port.value = option.dataset.port || '5001';
+        }
+    }
+
+    function copyConnectorToMachine() {
+        if (machineFields.ip && connectorFields.ip) {
+            machineFields.ip.value = connectorFields.ip.value;
+        }
+        if (machineFields.gateway && connectorFields.gateway) {
+            machineFields.gateway.value = connectorFields.gateway.value;
+        }
+        if (machineFields.mask && connectorFields.mask) {
+            machineFields.mask.value = connectorFields.mask.value;
+        }
+        if (machineFields.port && connectorFields.port) {
+            machineFields.port.value = connectorFields.port.value;
+        }
+    }
+
+    if (presetSelect) {
+        presetSelect.addEventListener('change', applyPreset);
+    }
+
+    if (copyButton) {
+        copyButton.addEventListener('click', copyConnectorToMachine);
+    }
+
+});
+</script>
 <?php include __DIR__ . '/../includes/footer.php'; ?>

@@ -2,6 +2,7 @@
 // BioTern_unified/tools/biometric_auto_import.php
 // Imports new machine logs into biometric_raw_logs and reconciles them into attendances.
 require_once __DIR__ . '/biometric_ops.php';
+require_once dirname(__DIR__) . '/lib/section_schedule.php';
 
 if (!function_exists('run_biometric_auto_import')) {
     function run_biometric_auto_import(?string $attendanceFile = null): string
@@ -26,6 +27,7 @@ if (!function_exists('run_biometric_auto_import_stats')) {
             throw new RuntimeException('Connection failed: ' . $conn->connect_error);
         }
         $conn->set_charset('utf8mb4');
+        section_schedule_ensure_columns($conn);
 
         $conn->query("
             UPDATE attendances a
@@ -85,6 +87,7 @@ if (!function_exists('run_biometric_auto_import_stats')) {
 
         $fingerprintMap = buildFingerprintStudentMap($conn);
         $fingerprintUserMap = buildFingerprintUserMap($conn);
+        $studentScheduleMap = buildStudentAttendanceScheduleMap($conn);
         $dailyPunchCounts = [];
         $columns = [
             1 => 'morning_time_in',
@@ -215,7 +218,8 @@ if (!function_exists('run_biometric_auto_import_stats')) {
                 (int)$event['log_id'],
                 (int)($event['finger_id'] ?? 0),
                 (int)($event['user_id'] ?? 0),
-                $machineConfig
+                $machineConfig,
+                $studentScheduleMap[(int)$event['student_id']] ?? section_schedule_from_row([])
             );
             if (($syncResult['changed'] ?? false) === true) {
                 $attendanceChanged++;
@@ -327,6 +331,35 @@ if (!function_exists('buildFingerprintUserMap')) {
     }
 }
 
+if (!function_exists('buildStudentAttendanceScheduleMap')) {
+    function buildStudentAttendanceScheduleMap(mysqli $conn): array
+    {
+        $map = [];
+        $res = $conn->query("
+            SELECT
+                s.id AS student_id,
+                sec.attendance_session,
+                sec.schedule_time_in,
+                sec.schedule_time_out,
+                sec.late_after_time,
+                sec.weekly_schedule_json
+            FROM students s
+            LEFT JOIN sections sec ON s.section_id = sec.id
+        ");
+        if ($res && $res instanceof mysqli_result) {
+            while ($row = $res->fetch_assoc()) {
+                $studentId = (int)($row['student_id'] ?? 0);
+                if ($studentId > 0) {
+                    $map[$studentId] = section_schedule_from_row($row);
+                }
+            }
+            $res->close();
+        }
+
+        return $map;
+    }
+}
+
 if (!function_exists('markRawLogProcessed')) {
     function markRawLogProcessed(mysqli $conn, int $logId): void
     {
@@ -341,7 +374,7 @@ if (!function_exists('markRawLogProcessed')) {
 }
 
 if (!function_exists('syncAttendanceFromBiometricLog')) {
-    function syncAttendanceFromBiometricLog(mysqli $conn, int $studentId, string $date, string $time, int $clockType, ?string $hintColumn, ?int $rawLogId = null, ?int $fingerId = null, ?int $userId = null, array $machineConfig = []): array
+    function syncAttendanceFromBiometricLog(mysqli $conn, int $studentId, string $date, string $time, int $clockType, ?string $hintColumn, ?int $rawLogId = null, ?int $fingerId = null, ?int $userId = null, array $machineConfig = [], array $studentSchedule = []): array
     {
         consolidateDuplicateBiometricAttendanceRows($conn, $studentId, $date);
 
@@ -361,9 +394,13 @@ if (!function_exists('syncAttendanceFromBiometricLog')) {
         $existing->close();
 
         $attendanceId = (int)($row['id'] ?? 0);
+        if (!is_array($row)) {
+            $row = [];
+        }
+        $row['attendance_date'] = $date;
 
         $duplicateWindowMinutes = biometricMachineConfigInt($machineConfig, 'duplicateGuardMinutes', 10);
-        if (isDuplicateBiometricPunch($row ?: [], $time, $duplicateWindowMinutes)) {
+        if (isDuplicateBiometricPunch($row, $time, $duplicateWindowMinutes)) {
             biometric_ops_record_anomaly(
                 $conn,
                 $rawLogId,
@@ -379,7 +416,7 @@ if (!function_exists('syncAttendanceFromBiometricLog')) {
             return ['changed' => false, 'anomalies_found' => 1];
         }
 
-        $column = resolveAttendanceColumnForPunch($row ?: [], $clockType, $hintColumn, $time, $machineConfig);
+        $column = resolveAttendanceColumnForPunch($row, $clockType, $hintColumn, $time, $machineConfig, $studentSchedule);
         if ($column === null) {
             biometric_ops_record_anomaly(
                 $conn,
@@ -438,12 +475,38 @@ if (!function_exists('syncAttendanceFromBiometricLog')) {
 }
 
 if (!function_exists('resolveAttendanceColumnForPunch')) {
-    function resolveAttendanceColumnForPunch(array $attendanceRow, int $clockType, ?string $hintColumn, string $incomingTime, array $machineConfig = []): ?string
+    function resolveAttendanceColumnForPunch(array $attendanceRow, int $clockType, ?string $hintColumn, string $incomingTime, array $machineConfig = [], array $studentSchedule = []): ?string
     {
         $orderedColumns = ['morning_time_in', 'morning_time_out', 'afternoon_time_in', 'afternoon_time_out'];
+        $effectiveSchedule = section_schedule_for_date($studentSchedule, (string)($attendanceRow['attendance_date'] ?? ''));
 
         // The F20H logs currently arrive as generic punches with type=1, so advance through slots in order.
         if ($clockType === 1) {
+            $session = section_schedule_normalize_session((string)($effectiveSchedule['attendance_session'] ?? 'whole_day'));
+            if (section_schedule_prefers_afternoon_entry($effectiveSchedule)) {
+                if (trim((string)($attendanceRow['afternoon_time_in'] ?? '')) === '') {
+                    return 'afternoon_time_in';
+                }
+                if (trim((string)($attendanceRow['afternoon_time_out'] ?? '')) === '') {
+                    $minutesSinceLast = minutesBetweenPunches((string)($attendanceRow['afternoon_time_in'] ?? ''), $incomingTime);
+                    $slotAdvanceMinimumMinutes = biometricMachineConfigInt($machineConfig, 'slotAdvanceMinimumMinutes', 10);
+                    return ($minutesSinceLast !== null && $minutesSinceLast < $slotAdvanceMinimumMinutes) ? null : 'afternoon_time_out';
+                }
+                return null;
+            }
+
+            if ($session === 'morning_only') {
+                if (trim((string)($attendanceRow['morning_time_in'] ?? '')) === '') {
+                    return 'morning_time_in';
+                }
+                if (trim((string)($attendanceRow['morning_time_out'] ?? '')) === '') {
+                    $minutesSinceLast = minutesBetweenPunches((string)($attendanceRow['morning_time_in'] ?? ''), $incomingTime);
+                    $slotAdvanceMinimumMinutes = biometricMachineConfigInt($machineConfig, 'slotAdvanceMinimumMinutes', 10);
+                    return ($minutesSinceLast !== null && $minutesSinceLast < $slotAdvanceMinimumMinutes) ? null : 'morning_time_out';
+                }
+                return null;
+            }
+
             $lastTime = lastBiometricPunchTime($attendanceRow);
             if ($lastTime !== null) {
                 $minutesSinceLast = minutesBetweenPunches($lastTime, $incomingTime);
@@ -540,10 +603,10 @@ if (!function_exists('consolidateDuplicateBiometricAttendanceRows')) {
     function consolidateDuplicateBiometricAttendanceRows(mysqli $conn, int $studentId, string $date): void
     {
         $stmt = $conn->prepare("
-            SELECT id
+            SELECT id, morning_time_in, morning_time_out, afternoon_time_in, afternoon_time_out, status, remarks
             FROM attendances
             WHERE student_id = ? AND attendance_date = ? AND source = 'biometric'
-            ORDER BY id DESC
+            ORDER BY id ASC
         ");
         if ($stmt === false) {
             throw new RuntimeException('Database error: failed to prepare biometric duplicate lookup. Error: ' . $conn->error);
@@ -557,10 +620,51 @@ if (!function_exists('consolidateDuplicateBiometricAttendanceRows')) {
             return;
         }
 
-        $keepId = (int)($rows[0]['id'] ?? 0);
+        $keepRow = $rows[0];
+        foreach ($rows as $row) {
+            if (shouldPreferBiometricAttendanceRow($row, $keepRow)) {
+                $keepRow = $row;
+            }
+        }
+
+        $keepId = (int)($keepRow['id'] ?? 0);
         if ($keepId <= 0) {
             return;
         }
+
+        $mergedMorningIn = chooseBiometricAttendanceValue($rows, 'morning_time_in', 'min');
+        $mergedMorningOut = chooseBiometricAttendanceValue($rows, 'morning_time_out', 'max');
+        $mergedAfternoonIn = chooseBiometricAttendanceValue($rows, 'afternoon_time_in', 'min');
+        $mergedAfternoonOut = chooseBiometricAttendanceValue($rows, 'afternoon_time_out', 'max');
+        $mergedStatus = trim((string)($keepRow['status'] ?? 'pending'));
+        $mergedRemarks = (string)($keepRow['remarks'] ?? '');
+
+        $update = $conn->prepare("
+            UPDATE attendances
+            SET morning_time_in = ?,
+                morning_time_out = ?,
+                afternoon_time_in = ?,
+                afternoon_time_out = ?,
+                status = ?,
+                remarks = ?,
+                updated_at = NOW()
+            WHERE id = ?
+        ");
+        if ($update === false) {
+            throw new RuntimeException('Database error: failed to prepare biometric duplicate merge update. Error: ' . $conn->error);
+        }
+        $update->bind_param(
+            'ssssssi',
+            $mergedMorningIn,
+            $mergedMorningOut,
+            $mergedAfternoonIn,
+            $mergedAfternoonOut,
+            $mergedStatus,
+            $mergedRemarks,
+            $keepId
+        );
+        $update->execute();
+        $update->close();
 
         $delete = $conn->prepare("DELETE FROM attendances WHERE id = ?");
         if ($delete === false) {
@@ -577,6 +681,57 @@ if (!function_exists('consolidateDuplicateBiometricAttendanceRows')) {
         }
 
         $delete->close();
+    }
+}
+
+if (!function_exists('shouldPreferBiometricAttendanceRow')) {
+    function shouldPreferBiometricAttendanceRow(array $candidate, array $current): bool
+    {
+        $candidateScore = biometricAttendanceFilledSlotScore($candidate);
+        $currentScore = biometricAttendanceFilledSlotScore($current);
+        if ($candidateScore !== $currentScore) {
+            return $candidateScore > $currentScore;
+        }
+
+        return (int)($candidate['id'] ?? 0) < (int)($current['id'] ?? 0);
+    }
+}
+
+if (!function_exists('biometricAttendanceFilledSlotScore')) {
+    function biometricAttendanceFilledSlotScore(array $row): int
+    {
+        $score = 0;
+        foreach (['morning_time_in', 'morning_time_out', 'afternoon_time_in', 'afternoon_time_out'] as $column) {
+            $value = trim((string)($row[$column] ?? ''));
+            if ($value !== '' && $value !== '00:00:00') {
+                $score++;
+            }
+        }
+
+        return $score;
+    }
+}
+
+if (!function_exists('chooseBiometricAttendanceValue')) {
+    function chooseBiometricAttendanceValue(array $rows, string $column, string $mode = 'min'): ?string
+    {
+        $values = [];
+        foreach ($rows as $row) {
+            $value = trim((string)($row[$column] ?? ''));
+            if ($value !== '' && $value !== '00:00:00') {
+                $values[] = $value;
+            }
+        }
+
+        if ($values === []) {
+            return null;
+        }
+
+        usort($values, static function (string $left, string $right): int {
+            return strcmp($left, $right);
+        });
+
+        return $mode === 'max' ? end($values) : $values[0];
     }
 }
 
