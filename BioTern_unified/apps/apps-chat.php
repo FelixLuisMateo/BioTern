@@ -1834,6 +1834,23 @@ if ($isAjaxRequest) {
 include 'includes/header.php';
 ?>
 <style>
+    /* Ensure chat timestamps are visible in all themes. */
+    body:not(.dark) .msg-meta-outside.own {
+        color: #f3f4f6 !important; /* Tailwind zinc-100 for better readability on blue */
+    }
+    .msg-date, .chat-time, .bubble-time {
+        color: #64748b;
+        font-size: 0.92em;
+        opacity: 0.85;
+        transition: color 0.2s;
+    }
+    @media (prefers-color-scheme: light) {
+        body .msg-date, body .chat-time, body .bubble-time {
+            color: #000 !important;
+            opacity: 1 !important;
+            text-shadow: none;
+        }
+    }
     /* â”€â”€ Light mode tokens (default) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     :root {
         --chat-shell-bg: #eef2f6;
@@ -6821,6 +6838,10 @@ include 'includes/header.php';
 </script>
 
 <?php
-include 'includes/footer.php';
-$conn->close();
+if (empty($isAjaxRequest)) {
+    include 'includes/footer.php';
+    if (isset($conn) && $conn instanceof mysqli) {
+        $conn->close();
+    }
+}
 ?>

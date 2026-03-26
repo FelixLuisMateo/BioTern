@@ -74,10 +74,16 @@ if ((string)($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && (string)($_POST['ac
 
     if ($recipientUserId <= 0) {
         $_SESSION['email_flash'] = ['error' => 'Please select a recipient.'];
+        header('Location: apps-email.php?mailbox=inbox');
+        exit;
     } elseif ($recipientUserId === $currentUserId) {
         $_SESSION['email_flash'] = ['error' => 'You cannot send email to yourself.'];
+        header('Location: apps-email.php?mailbox=inbox');
+        exit;
     } elseif ($subject === '') {
         $_SESSION['email_flash'] = ['error' => 'Subject is required.'];
+        header('Location: apps-email.php?mailbox=inbox');
+        exit;
     } else {
         if (function_exists('mb_substr')) {
             $subject = mb_substr($subject, 0, 255, 'UTF-8');
@@ -96,28 +102,32 @@ if ((string)($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && (string)($_POST['ac
 
         if (!$recipientExists) {
             $_SESSION['email_flash'] = ['error' => 'Recipient not found.'];
+            header('Location: apps-email.php?mailbox=inbox');
+            exit;
         } else {
             $sendStmt = $conn->prepare('INSERT INTO app_emails (sender_user_id, recipient_user_id, subject, body, is_read, created_at, updated_at) VALUES (?, ?, ?, ?, 0, NOW(), NOW())');
             if (!$sendStmt) {
                 $_SESSION['email_flash'] = ['error' => 'Failed to prepare email send request.'];
+                header('Location: apps-email.php?mailbox=inbox');
+                exit;
             } else {
                 $sendStmt->bind_param('iiss', $currentUserId, $recipientUserId, $subject, $body);
                 $ok = $sendStmt->execute();
                 $newId = (int)$sendStmt->insert_id;
                 $sendStmt->close();
 
-                if ($ok && $newId > 0) {
+                if ($ok) {
                     $_SESSION['email_flash'] = ['success' => 'Email sent successfully.'];
-                    header('Location: apps-email.php?mailbox=sent&view=' . $newId);
+                    header('Location: apps-email.php?mailbox=sent' . ($newId > 0 ? ('&view=' . $newId) : ''));
+                    exit;
+                } else {
+                    $_SESSION['email_flash'] = ['error' => 'Failed to send email.'];
+                    header('Location: apps-email.php?mailbox=inbox');
                     exit;
                 }
-                $_SESSION['email_flash'] = ['error' => 'Failed to send email.'];
             }
         }
     }
-
-    header('Location: apps-email.php?mailbox=inbox');
-    exit;
 }
 
 $mailbox = strtolower(trim((string)($_GET['mailbox'] ?? 'inbox')));
@@ -509,10 +519,16 @@ include 'includes/header.php';
 
         <div class="content-area-body p-0">
             <?php if ($flashError !== ''): ?>
-                <div class="alert alert-danger rounded-0 mb-0"><?php echo email_esc($flashError); ?></div>
+                <div class="alert alert-danger alert-dismissible fade show rounded-2 shadow-sm mb-3" role="alert" id="emailAlertError">
+                    <span class="me-2"><i class="feather-x-circle"></i></span> <?php echo email_esc($flashError); ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
             <?php endif; ?>
             <?php if ($flashSuccess !== ''): ?>
-                <div class="alert alert-success rounded-0 mb-0"><?php echo email_esc($flashSuccess); ?></div>
+                <div class="alert alert-success alert-dismissible fade show rounded-2 shadow-sm mb-3" role="alert" id="emailAlertSuccess">
+                    <span class="me-2"><i class="feather-check-circle"></i></span> <?php echo email_esc($flashSuccess); ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
             <?php endif; ?>
 
             <div class="row g-0">
@@ -593,7 +609,7 @@ include 'includes/header.php';
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Send</button>
+                    <button type="submit" class="btn btn-primary" id="composeSendBtn"><i class="feather-send me-1"></i>Send</button>
                 </div>
             </form>
         </div>
@@ -606,9 +622,30 @@ include 'includes/header.php';
             document.body.classList.add('apps-email-page');
         }
 
+        // Move modal to body for proper z-index
         var composeModal = document.getElementById('composeMail');
         if (composeModal && document.body && composeModal.parentElement !== document.body) {
             document.body.appendChild(composeModal);
+        }
+
+        // Auto-hide alerts after 4 seconds
+        setTimeout(function () {
+            var err = document.getElementById('emailAlertError');
+            if (err) err.classList.remove('show');
+            var ok = document.getElementById('emailAlertSuccess');
+            if (ok) ok.classList.remove('show');
+        }, 4000);
+
+        // Ctrl+Enter to send in compose modal
+        var composeForm = composeModal ? composeModal.querySelector('form') : null;
+        if (composeForm) {
+            composeForm.addEventListener('keydown', function (e) {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                    e.preventDefault();
+                    var sendBtn = document.getElementById('composeSendBtn');
+                    if (sendBtn) sendBtn.click();
+                }
+            });
         }
     })();
 </script>
