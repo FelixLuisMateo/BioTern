@@ -1,5 +1,6 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
+require_once dirname(__DIR__) . '/lib/section_schedule.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -22,6 +23,7 @@ try {
     if ($conn->connect_error) {
         die("Connection failed: " . $conn->connect_error);
     }
+    section_schedule_ensure_columns($conn);
 } catch (Exception $e) {
     die("Database Error: " . $e->getMessage());
 }
@@ -187,14 +189,21 @@ $attendance_query = "
         s.first_name,
         s.last_name,
         s.email,
+        s.section_id,
         s.supervisor_name,
         s.coordinator_name,
         c.name as course_name,
         d.name as department_name,
+        sec.attendance_session,
+        sec.schedule_time_in,
+        sec.schedule_time_out,
+        sec.late_after_time,
+        sec.weekly_schedule_json,
         u.name as approver_name
     FROM attendances a
     LEFT JOIN students s ON a.student_id = s.id
     LEFT JOIN users u_student ON s.user_id = u_student.id
+    LEFT JOIN sections sec ON s.section_id = sec.id
     LEFT JOIN courses c ON s.course_id = c.id
     LEFT JOIN internships i ON s.id = i.student_id AND i.status = 'ongoing'
     LEFT JOIN supervisors sup ON i.supervisor_id = sup.id
@@ -265,7 +274,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
             $total_hours = calculateTotalHours($attendance['morning_time_in'], $attendance['morning_time_out'], $attendance['afternoon_time_in'], $attendance['afternoon_time_out']);
             echo '<td><span class="badge bg-soft-secondary text-secondary">' . $total_hours . 'h</span></td>';
             // attendance status
-            $att_status = getAttendanceStatus($attendance['morning_time_in']);
+            $att_status = getAttendanceStatus($attendance);
             if ($att_status === 'present') {
                 $status_html = '<span class="badge bg-soft-success text-success">Present</span>';
                 $att_status_label = 'Present';
@@ -356,20 +365,9 @@ function calculateTotalHours($morning_in, $morning_out, $afternoon_in, $afternoo
     return round($total, 2);
 }
 
-// Determine attendance status based on morning_time_in
-function getAttendanceStatus($morning_time_in) {
-    if (!$morning_time_in) {
-        return 'absent';
-    }
-    
-    $time = strtotime($morning_time_in);
-    $expected_time = strtotime('08:00 AM');
-    
-    if ($time <= $expected_time) {
-        return 'present';
-    } else {
-        return 'late';
-    }
+// Determine attendance status based on the section schedule.
+function getAttendanceStatus(array $attendance) {
+    return section_schedule_status($attendance, section_schedule_from_row($attendance));
 }
 
 function attendanceFilledSlotScore(array $attendance): int {
@@ -1464,7 +1462,7 @@ echo calculateTotalHours($attendance['morning_time_in'], $attendance['morning_ti
                                                         <td>
                                                             <?php
 require_once dirname(__DIR__) . '/config/db.php';
-$att_status = getAttendanceStatus($attendance['morning_time_in']);
+$att_status = getAttendanceStatus($attendance);
                                                                 if ($att_status === 'present') {
                                                                     echo '<span class="badge bg-soft-success text-success">Present</span>';
                                                                 } elseif ($att_status === 'late') {
