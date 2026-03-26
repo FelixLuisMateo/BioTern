@@ -1836,7 +1836,7 @@ include 'includes/header.php';
 <style>
     /* Ensure chat timestamps are visible in all themes. */
     body:not(.dark) .msg-meta-outside.own {
-        color: #f3f4f6 !important; /* Tailwind zinc-100 for better readability on blue */
+        color: #475569 !important;
     }
     .msg-date, .chat-time, .bubble-time {
         color: #64748b;
@@ -3551,16 +3551,16 @@ include 'includes/header.php';
     }
 
     .msg-meta-outside {
-        margin: 0;
+        margin: -0.04rem 0 0.34rem;
         padding: 0 0.18rem;
         font-size: 0.72rem;
         line-height: 1.2;
         color: var(--chat-meta-color);
         display: flex;
-        max-height: 0;
-        opacity: 0;
-        overflow: hidden;
-        pointer-events: none;
+        max-height: 1.2rem;
+        opacity: 1;
+        overflow: visible;
+        pointer-events: auto;
         transition: opacity 0.14s ease, max-height 0.14s ease, margin 0.14s ease;
     }
 
@@ -3573,18 +3573,50 @@ include 'includes/header.php';
         justify-content: flex-start;
     }
 
+    body:not(.dark) .msg-meta-outside {
+        color: #475569;
+    }
+
+    body:not(.dark) .msg-meta-outside.own {
+        color: #475569;
+    }
+
+    body:not(.dark) .msg-meta-outside.other {
+        color: #475569;
+    }
+
+    html.app-skin-dark .msg-meta-outside {
+        color: rgba(226, 232, 240, 0.84) !important;
+    }
+
+    html.app-skin-dark .msg-meta-outside.other {
+        color: rgba(226, 232, 240, 0.84) !important;
+    }
+
+    html.app-skin-dark .msg-meta-outside.own {
+        color: rgba(239, 246, 255, 0.96) !important;
+    }
+
     .msg-block {
-        display: block;
+        display: flex;
+        flex-direction: column;
         width: 100%;
         max-width: 100%;
     }
 
     .msg-block.own {
         margin-left: 0;
+        align-items: flex-end;
     }
 
     .msg-block.other {
         margin-right: 0;
+        align-items: flex-start;
+    }
+
+    .msg-block .msg-meta-outside {
+        width: auto;
+        max-width: min(72%, 620px);
     }
 
     .msg-row:hover + .msg-meta-outside,
@@ -4766,7 +4798,7 @@ include 'includes/header.php';
                 }
                 return 'Seen';
             }
-            return 'Delivered';
+            return '';
         }
 
         function avatarMarkup(contact) {
