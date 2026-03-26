@@ -1,22 +1,29 @@
 <?php
-// Documents page - provides UI to generate student documents (Application Letter etc.)
 require_once dirname(__DIR__) . '/config/db.php';
+
 $prefill_student_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 
-// Simple AJAX endpoints served by this file
 if (isset($_GET['action'])) {
-    $action = $_GET['action'];
+    $action = (string)$_GET['action'];
     header('Content-Type: application/json');
 
     if ($action === 'search_students') {
-        $term = isset($_GET['q']) ? $conn->real_escape_string($_GET['q']) : '';
-        $sql = "SELECT id, first_name, middle_name, last_name, student_id FROM students WHERE CONCAT(first_name,' ',middle_name,' ',last_name) LIKE '%" . $term . "%' OR student_id LIKE '%" . $term . "%' ORDER BY first_name LIMIT 50";
+        $term = isset($_GET['q']) ? $conn->real_escape_string((string)$_GET['q']) : '';
+        $sql = "SELECT id, first_name, middle_name, last_name, student_id
+                FROM students
+                WHERE CONCAT(first_name,' ',middle_name,' ',last_name) LIKE '%" . $term . "%'
+                   OR student_id LIKE '%" . $term . "%'
+                ORDER BY first_name
+                LIMIT 50";
         $res = $conn->query($sql);
         $out = [];
-        if ($res) {
+        if ($res instanceof mysqli_result) {
             while ($r = $res->fetch_assoc()) {
-                $text = trim($r['first_name'] . ' ' . ($r['middle_name'] ? $r['middle_name'] . ' ' : '') . $r['last_name']) . '  ' . $r['student_id'];
-                $out[] = ['id' => $r['id'], 'text' => $text];
+                $text = trim((string)$r['first_name'] . ' ' . (!empty($r['middle_name']) ? $r['middle_name'] . ' ' : '') . (string)$r['last_name']);
+                $out[] = [
+                    'id' => (int)$r['id'],
+                    'text' => trim($text . ' ' . (string)$r['student_id']),
+                ];
             }
         }
         echo json_encode(['results' => $out]);
@@ -25,28 +32,39 @@ if (isset($_GET['action'])) {
 
     if ($action === 'get_student' && isset($_GET['id'])) {
         $id = intval($_GET['id']);
-        $stmt = $conn->prepare("SELECT s.*, c.name as course_name FROM students s LEFT JOIN courses c ON s.course_id = c.id WHERE s.id = ? LIMIT 1");
-        $stmt->bind_param('i', $id);
-        $stmt->execute();
-        $res = $stmt->get_result();
-        $data = $res->fetch_assoc();
-        echo json_encode($data ?: new stdClass());
+        $stmt = $conn->prepare("SELECT s.*, c.name AS course_name FROM students s LEFT JOIN courses c ON s.course_id = c.id WHERE s.id = ? LIMIT 1");
+        if ($stmt) {
+            $stmt->bind_param('i', $id);
+            $stmt->execute();
+            $res = $stmt->get_result();
+            $data = $res ? $res->fetch_assoc() : null;
+            $stmt->close();
+            echo json_encode($data ?: new stdClass());
+            exit;
+        }
+        echo json_encode(new stdClass());
         exit;
     }
 
     if ($action === 'get_application_letter' && isset($_GET['id'])) {
         $id = intval($_GET['id']);
         $exists = $conn->query("SHOW TABLES LIKE 'application_letter'");
-        if (!$exists || $exists->num_rows === 0) {
+        if (!$exists instanceof mysqli_result || $exists->num_rows === 0) {
             echo json_encode(new stdClass());
             exit;
         }
+
         $stmt = $conn->prepare("SELECT * FROM application_letter WHERE user_id = ? LIMIT 1");
-        $stmt->bind_param('i', $id);
-        $stmt->execute();
-        $res = $stmt->get_result();
-        $data = $res->fetch_assoc();
-        echo json_encode($data ?: new stdClass());
+        if ($stmt) {
+            $stmt->bind_param('i', $id);
+            $stmt->execute();
+            $res = $stmt->get_result();
+            $data = $res ? $res->fetch_assoc() : null;
+            $stmt->close();
+            echo json_encode($data ?: new stdClass());
+            exit;
+        }
+        echo json_encode(new stdClass());
         exit;
     }
 
@@ -54,121 +72,170 @@ if (isset($_GET['action'])) {
     exit;
 }
 
-$page_title = 'Documents';
+$page_title = 'Application Letter Builder';
 $base_href = '../';
-$page_styles = ['assets/css/layout/page_shell.css', 'assets/css/modules/documents/documents.css'];
-$page_scripts = ['assets/js/modules/documents/documents-page-runtime.js'];
+$page_body_class = 'application-builder-page application-document-builder-page';
+$page_styles = [
+    'assets/css/layout/page_shell.css',
+    'assets/css/modules/documents/document-builder-shared.css',
+    'assets/css/modules/documents/page-application-document-builder.css',
+    'assets/css/modules/documents/template-print-isolation.css',
+];
+$page_scripts = [
+    'assets/js/modules/documents/application-document-builder.js',
+];
+
 include __DIR__ . '/../includes/header.php';
 ?>
 <main class="nxl-container">
     <div class="nxl-content">
-<div class="app-page doc-page-root" data-page="application" data-prefill-student-id="<?php echo intval($prefill_student_id); ?>">
-    <div class="page-header page-header-with-middle">
-        <div class="page-header-left d-flex align-items-center">
-            <div class="page-header-title">
-                <h5 class="m-b-10">Documents - Application Letter</h5>
+        <div class="page-header dashboard-page-header">
+            <div class="page-header-left d-flex align-items-center">
+                <div class="page-header-title">
+                    <h5 class="mb-0">Application Letter</h5>
+                </div>
+                <ul class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
+                    <li class="breadcrumb-item">Documents</li>
+                    <li class="breadcrumb-item">Application Builder</li>
+                </ul>
             </div>
-            <ul class="breadcrumb">
-                <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
-                <li class="breadcrumb-item">Documents</li>
-                <li class="breadcrumb-item">Application</li>
-            </ul>
         </div>
-        <div class="page-header-middle">
-            <p class="page-header-statement">Select a student to auto-fill the Application Letter template and generate a printable version.</p>
-        </div>
-        <div class="page-header-right ms-auto">
-            <div class="d-md-none d-flex align-items-center">
-                <button type="button" class="btn btn-light-brand page-header-actions-toggle" data-bs-toggle="collapse" data-bs-target="#documentApplicationActionsCollapse" aria-expanded="false" aria-controls="documentApplicationActionsCollapse">
-                    <i class="feather-more-horizontal"></i>
-                </button>
-            </div>
-            <div class="page-header-right-items collapse d-md-flex" id="documentApplicationActionsCollapse">
-                <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
-                    <a href="homepage.php" class="btn btn-outline-secondary"><i class="feather-home me-1"></i>Dashboard</a>
-                    <a href="document_endorsement.php" class="btn btn-outline-primary"><i class="feather-file-text me-1"></i>Endorsement</a>
-                    <a href="document_moa.php" class="btn btn-outline-primary"><i class="feather-file-text me-1"></i>MOA</a>
+
+        <div class="application-document-builder" data-prefill-student-id="<?php echo (int)$prefill_student_id; ?>">
+            <div class="main-content">
+                <div class="application-builder-grid">
+                    <section class="application-builder-sidebar">
+                        <div class="builder-card">
+                            <div class="builder-card-head">
+                                <h6>Record Source</h6>
+                                <p>Load a student, pull saved application-letter data, and keep the preview updated live.</p>
+                            </div>
+
+                            <div class="builder-field">
+                                <label for="student_select" class="form-label">Search Student</label>
+                                <select id="student_select" class="student-select-full" data-placeholder="Search by name or student id"></select>
+                            </div>
+
+                            <div class="builder-field-grid">
+                                <div class="builder-field">
+                                    <label for="input_name" class="form-label">Recipient</label>
+                                    <input id="input_name" class="form-control" type="text" placeholder="Mr./Ms. full name" autocomplete="off">
+                                </div>
+                                <div class="builder-field">
+                                    <label for="input_position" class="form-label">Position</label>
+                                    <input id="input_position" class="form-control" type="text" placeholder="Recipient position" autocomplete="off">
+                                </div>
+                            </div>
+
+                            <div class="builder-field">
+                                <label for="input_company" class="form-label">Company</label>
+                                <input id="input_company" class="form-control" type="text" placeholder="Company name" autocomplete="off">
+                            </div>
+
+                            <div class="builder-field">
+                                <label for="input_company_address" class="form-label">Company Address</label>
+                                <textarea id="input_company_address" class="form-control" rows="3" placeholder="Company address" autocomplete="off"></textarea>
+                            </div>
+
+                            <div class="builder-field-grid builder-field-grid-compact">
+                                <div class="builder-field">
+                                    <label for="input_hours" class="form-label">Required Hours</label>
+                                    <input id="input_hours" class="form-control" type="text" value="250" placeholder="Hours" autocomplete="off">
+                                </div>
+                                <div class="builder-field">
+                                    <label for="builder_date" class="form-label">Letter Date</label>
+                                    <input id="builder_date" class="form-control" type="text" value="<?php echo htmlspecialchars(date('F j, Y'), ENT_QUOTES, 'UTF-8'); ?>" autocomplete="off">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="builder-card builder-card-note">
+                            <div class="builder-card-head">
+                                <h6>Unified Flow</h6>
+                            </div>
+                            <ul class="builder-note-list">
+                                <li>Template editing now happens in the same screen.</li>
+                                <li>Printing uses the live preview on the right.</li>
+                                <li>Saved template layout stays separate from student values.</li>
+                            </ul>
+                        </div>
+                    </section>
+
+                    <section class="application-builder-canvas">
+                        <div class="builder-card builder-card-editor">
+                            <div class="builder-editor-head">
+                                <div>
+                                    <h6>Template Builder</h6>
+                                    <p>Application letter preview, editor, and print layout in one place.</p>
+                                </div>
+                                <div class="builder-editor-actions">
+                                    <button id="btn_toggle_edit" class="btn btn-light" type="button" aria-pressed="false">Edit Template</button>
+                                    <button id="btn_save" class="btn btn-primary" type="button">Save Template</button>
+                                    <button id="btn_reset" class="btn btn-light" type="button">Reset</button>
+                                    <button id="btn_print" class="btn btn-success" type="button">Print Letter</button>
+                                </div>
+                            </div>
+
+                            <div class="builder-toolbar is-disabled" id="builder_toolbar" aria-label="Template formatting tools" aria-hidden="true">
+                                <button id="btn_bold" class="btn btn-light" type="button"><strong>B</strong></button>
+                                <button id="btn_italic" class="btn btn-light" type="button"><em>I</em></button>
+                                <button id="btn_underline" class="btn btn-light" type="button"><u>U</u></button>
+                                <button id="btn_left" class="btn btn-light" type="button">Left</button>
+                                <button id="btn_center" class="btn btn-light" type="button">Center</button>
+                                <button id="btn_right" class="btn btn-light" type="button">Right</button>
+                                <button id="btn_justify" class="btn btn-light" type="button">Justify</button>
+                                <button id="btn_indent" class="btn btn-light" type="button">Indent</button>
+                                <button id="btn_outdent" class="btn btn-light" type="button">Outdent</button>
+                                <label for="font_color">Color</label>
+                                <input id="font_color" type="color" value="#000000">
+                            </div>
+
+                            <div class="builder-status-bar">
+                                <span id="msg" class="builder-status-text">Template ready.</span>
+                            </div>
+
+                            <div class="builder-paper-shell">
+                                <div class="builder-paper">
+                                    <div id="editor" class="builder-editor-surface is-locked" contenteditable="false" spellcheck="true"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
                 </div>
             </div>
+
+            <template id="application_default_template">
+                <div class="container app-application-container">
+                    <div class="header app-application-header">
+                        <div class="app-application-header-inner">
+                            <img class="crest app-application-crest" src="assets/images/ccstlogo.png" alt="Clark College of Science and Technology logo" data-hide-onerror="1">
+                            <div class="app-application-header-copy">
+                                <h2 class="app-application-title">CLARK COLLEGE OF SCIENCE AND TECHNOLOGY</h2>
+                                <div class="meta app-application-meta">SNS Bldg. Aurea St., Samsonville Subd., Dau, Mabalacat, Pampanga</div>
+                                <div class="tel app-application-tel">Telefax No.: (045) 624-0215</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="content app-application-content">
+                        <h3 class="app-application-heading">Application Approval Sheet</h3>
+                        <p>Date: <span id="ap_date">__________</span></p>
+                        <p>Mr./Ms.: <span id="ap_name">__________________________</span></p>
+                        <p>Position: <span id="ap_position">__________________________</span></p>
+                        <p>Name of Company: <span id="ap_company">__________________________</span></p>
+                        <p>Company Address: <span id="ap_address">__________________________</span></p>
+                        <p class="mt-30 app-application-mt-30">Dear Sir or Madam:</p>
+                        <p>I am <span id="ap_student">__________________________</span>, student of Clark College of Science and Technology. In partial fulfillment of the requirements of this course, I am required to have an On-the-job Training ( OJT ) for a minimum of <strong><span id="ap_hours">250</span> hours</strong>.</p>
+                        <p>I would like to apply as a trainee in your company because I believe that the training and experience, I will acquire will broaden my knowledge about my course.</p>
+                        <p>Thank you for any consideration that you may give to this letter of application.</p>
+                        <p class="mt-30 app-application-mt-30">Very truly yours,</p>
+                        <p class="mt-40 app-application-mt-40">Student Name: <span id="ap_student_name">__________________________</span></p>
+                        <p>Student Home Address: <span id="ap_student_address">__________________________</span></p>
+                        <p>Contact No.: <span id="ap_student_contact">__________________________</span></p>
+                    </div>
+                </div>
+            </template>
         </div>
     </div>
-
-    <div class="container">
-            <div class="row doc-workspace-row">
-                <div class="col-lg-6 doc-form-pane">
-                    <div class="card p-3">
-                        <label for="student_select" class="form-label">Search Student</label>
-                        <select id="student_select" class="student-select-full"></select>
-                        <div class="mt-3">
-                            <label class="form-label">Mr./Ms. (as to appear)</label>
-                            <input id="input_name" class="form-control form-control-sm" type="text" placeholder="Recepient full name" autocomplete="off">
-                        </div>
-                        <div class="mt-2">
-                            <label class="form-label">Position</label>
-                            <input id="input_position" class="form-control form-control-sm" type="text" placeholder="Position (optional)" autocomplete="off">
-                        </div>
-                        <div class="mt-2">
-                            <label class="form-label">Company</label>
-                            <input id="input_company" class="form-control form-control-sm" type="text" placeholder="Company name" autocomplete="off">
-                        </div>
-                        <div class="mt-2">
-                            <label class="form-label">Company Address</label>
-                            <textarea id="input_company_address" class="form-control form-control-sm" rows="2" placeholder="Company address" autocomplete="off"></textarea>
-                        </div>
-                        <div class="mt-2">
-                            <label class="form-label">Hours</label>
-                            <input id="input_hours" class="form-control form-control-sm" type="text" value="250" placeholder="Required OJT hours" autocomplete="off">
-                        </div>
-                        <div class="mt-3 d-flex gap-2">
-                            <button id="btn_file_edit_application" type="button" class="btn btn-primary flex-grow-0">File Edit</button>
-                            <button id="btn_generate" type="button" class="btn btn-success flex-grow-1">Generate / Print</button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-lg-6 doc-template-pane">
-                    <div class="doc-preview" id="letter_preview">
-                        <img class="crest-preview crest-preview-position js-hide-on-error" src="assets/images/auth/auth-cover-login-bg.png" alt="crest">
-                        <div class="preview-header">
-                            <p class="school-name">CLARK COLLEGE OF SCIENCE AND TECHNOLOGY</p>
-                            <p class="school-meta">SNS Bldg. Aurea St., Samsonville Subd., Dau, Mabalacat, Pampanga</p>
-                            <p class="school-tel">Telefax No.: (045) 624-0215</p>
-                        </div>
-                        <div id="letter_content">
-                            <p><strong>Application Approval Sheet</strong></p>
-                            <p>Date: <span id="ap_date">__________</span></p>
-                            <p>Mr./Ms.: <span id="ap_name">__________________________</span></p>
-                            <p>Position: <span id="ap_position">__________________________</span></p>
-                            <p>Name of Company: <span id="ap_company">__________________________</span></p>
-                            <p>Company Address: <span id="ap_address">__________________________</span></p>
-
-                            <p>Dear Sir or Madam:</p>
-                            <p>I am <span id="ap_student">__________________________</span> student of Clark College of Science and Technology. In partial fulfillment of the requirements of this course, I am required to have an On-the-job Training ( OJT ) for a minimum of <strong><span id="ap_hours">250</span> hours</strong>.</p>
-
-                            <p>I would like to apply as a trainee in your company because I believe that the training and experience, I will acquire will broaden my knowledge about my course.</p>
-
-                            <p>Thank you for any consideration that you may give to this letter of application.</p>
-
-                            <p>Very truly yours,</p>
-
-                            <p>Student Name: <span id="ap_student_name">__________________________</span></p>
-                            <p>Student Home Address: <span id="ap_student_address">__________________________</span></p>
-                            <p>Contact No.: <span id="ap_student_contact">__________________________</span></p>
-
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-</div>
-</div> <!-- .nxl-content -->
 </main>
 <?php include __DIR__ . '/../includes/footer.php'; ?>
-
-
-
-
-
-
-

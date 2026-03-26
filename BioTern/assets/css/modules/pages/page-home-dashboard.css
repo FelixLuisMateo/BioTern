@@ -904,9 +904,11 @@ html.app-theme-gray:not(.app-skin-dark) {
     background: rgba(12, 18, 36, 0.92);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 14px;
-    padding: 14px;
+    padding: 10px;
     box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
     backdrop-filter: blur(8px);
+    width: min(280px, 86vw);
+    margin-left: auto;
 }
 
 .dashboard-actions-meta {
@@ -914,28 +916,28 @@ html.app-theme-gray:not(.app-skin-dark) {
     align-items: center;
     justify-content: space-between;
     gap: 10px;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
 }
 
 .dashboard-actions-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 10px;
+    grid-template-columns: 1fr;
+    gap: 8px;
 }
 
 .action-tile {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     gap: 8px;
-    min-height: 48px;
-    padding: 0.65rem 0.9rem;
+    min-height: 42px;
+    padding: 0.58rem 0.82rem;
     border-radius: var(--biotern-btn-radius, 10px);
     border: 1px solid transparent;
     background: var(--biotern-btn-bg, rgba(255, 255, 255, 0.06));
     color: var(--biotern-btn-text, #f8fafc);
     font-weight: 600;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     text-decoration: none;
     transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
 }

@@ -63,7 +63,7 @@ include __DIR__ . '/../includes/header.php';
 <main class="nxl-container">
     <div class="nxl-content">
 <div class="moa-page doc-page-root" data-page="moa" data-prefill-student-id="<?php echo intval($prefill_student_id); ?>">
-        <div class="page-header page-header-with-middle">
+        <div class="page-header dashboard-page-header page-header-with-middle">
             <div class="page-header-left d-flex align-items-center">
                 <div class="page-header-title">
                     <h5 class="m-b-10">Documents - Memorandum of Agreement</h5>

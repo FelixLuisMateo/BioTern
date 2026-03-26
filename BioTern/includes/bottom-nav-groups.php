@@ -18,13 +18,12 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
             'key' => 'home',
             'label' => 'Home',
             'icon' => 'feather-home',
-            'routes' => ['homepage.php', 'analytics.php'],
+            'routes' => ['homepage.php'],
             'sections' => [
                 [
                     'title' => 'Dashboard',
                     'items' => [
                         ['label' => 'Overview', 'href' => 'homepage.php', 'icon' => 'feather-grid'],
-                        ['label' => 'Analytics', 'href' => 'analytics.php', 'icon' => 'feather-pie-chart'],
                     ],
                 ],
             ],
@@ -38,9 +37,8 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                 'routes' => [
                     'students.php', 'students-create.php', 'students-edit.php', 'students-view.php', 'students-dtr.php',
                     'applications-review.php', 'attendance.php', 'attendance-corrections.php', 'print_attendance.php', 'demo-biometric.php',
+                    'fingerprint_mapping.php', 'biometric-machine.php', 'biometric_machine_sync.php',
                     'ojt.php', 'ojt-create.php', 'ojt-edit.php', 'ojt-view.php', 'ojt-workflow-board.php',
-                    'document_application.php', 'document_endorsement.php', 'document_moa.php', 'document_dau_moa.php', 'document_dtr.php',
-                    'document_resume.php', 'document_waiver.php',
                     'reports-ojt.php', 'reports-project.php', 'reports-timesheets.php', 'reports-attendance-operations.php',
                     'reports-chat-logs.php', 'reports-chat-reports.php', 'reports-login-logs.php',
                 ],
@@ -52,7 +50,9 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                             ['label' => 'Applications Review', 'href' => 'applications-review.php', 'icon' => 'feather-clipboard'],
                             ['label' => 'Attendance DTR', 'href' => 'attendance.php', 'icon' => 'feather-clock'],
                             ['label' => 'Attendance Corrections', 'href' => 'attendance-corrections.php', 'icon' => 'feather-edit'],
-                            ['label' => 'Demo Biometric', 'href' => 'demo-biometric.php', 'icon' => 'feather-rss'],
+                            ['label' => 'Fingerprint Mapping', 'href' => 'fingerprint_mapping.php', 'icon' => 'feather-link'],
+                            ['label' => 'F20H Manager', 'href' => 'biometric-machine.php', 'icon' => 'feather-cpu'],
+                            ['label' => 'Sync Biometrics', 'href' => 'biometric_machine_sync.php?redirect=biometric-machine.php', 'icon' => 'feather-refresh-cw'],
                         ],
                     ],
                     [
@@ -69,9 +69,9 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                             ['label' => 'Application', 'href' => 'document_application.php', 'icon' => 'feather-file-text'],
                             ['label' => 'Endorsement', 'href' => 'document_endorsement.php', 'icon' => 'feather-file-text'],
                             ['label' => 'MOA', 'href' => 'document_moa.php', 'icon' => 'feather-file-text'],
-                            ['label' => 'Dau MOA', 'href' => 'document_dau_moa.php', 'icon' => 'feather-file-text'],
-                            ['label' => 'DTR', 'href' => 'document_dtr.php', 'icon' => 'feather-file-text'],
+                            ['label' => 'DAU MOA', 'href' => 'document_dau_moa.php', 'icon' => 'feather-file-text'],
                             ['label' => 'Resume', 'href' => 'document_resume.php', 'icon' => 'feather-file-text'],
+                            ['label' => 'DTR', 'href' => 'document_dtr.php', 'icon' => 'feather-file-text'],
                             ['label' => 'Waiver', 'href' => 'document_waiver.php', 'icon' => 'feather-file-text'],
                         ],
                     ],
@@ -182,14 +182,15 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
             'key' => 'profile',
             'label' => 'Profile',
             'icon' => 'feather-user',
-            'routes' => ['account-settings.php'],
+            'routes' => ['account-settings.php', 'notifications.php'],
             'avatar' => $profileAvatar,
             'sections' => [
                 [
                     'title' => 'Account',
                     'items' => [
-                        ['label' => 'Profile Details', 'href' => 'account-settings.php', 'icon' => 'feather-user'],
-                        ['label' => 'Account Settings', 'href' => 'account-settings.php', 'icon' => 'feather-settings'],
+                        ['label' => 'Profile Details', 'href' => 'account-settings.php#overview', 'icon' => 'feather-user'],
+                        ['label' => 'Account Settings', 'href' => 'account-settings.php#security', 'icon' => 'feather-settings'],
+                        ['label' => 'Notifications', 'href' => 'notifications.php', 'icon' => 'feather-bell'],
                         ['label' => 'Logout', 'href' => '/BioTern/BioTern/auth/auth-login-cover.php?logout=1', 'icon' => 'feather-log-out'],
                     ],
                 ],
