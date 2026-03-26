@@ -3,5 +3,24 @@
   <Profiles>
     <Profile Name="(Default)" />
   </Profiles>
-  <Settings />
+  <Settings>
+    <Setting Name="DeviceIp" Type="System.String" Scope="User">
+      <Value Profile="(Default)">192.168.110.201</Value>
+    </Setting>
+    <Setting Name="DeviceGateway" Type="System.String" Scope="User">
+      <Value Profile="(Default)">192.168.110.1</Value>
+    </Setting>
+    <Setting Name="DeviceMask" Type="System.String" Scope="User">
+      <Value Profile="(Default)">255.255.255.0</Value>
+    </Setting>
+    <Setting Name="DevicePort" Type="System.String" Scope="User">
+      <Value Profile="(Default)">5001</Value>
+    </Setting>
+    <Setting Name="DeviceNo" Type="System.String" Scope="User">
+      <Value Profile="(Default)">1</Value>
+    </Setting>
+    <Setting Name="CommPassword" Type="System.String" Scope="User">
+      <Value Profile="(Default)">0</Value>
+    </Setting>
+  </Settings>
 </SettingsFile>

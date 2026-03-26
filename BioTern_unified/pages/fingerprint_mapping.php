@@ -1,6 +1,7 @@
 <?php
 ob_start();
 require_once __DIR__ . '/../config/db.php';
+require_once dirname(__DIR__) . '/tools/biometric_ops.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -54,6 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->bind_param('i', $fingerId);
             $stmt->execute();
             $stmt->close();
+            biometric_ops_log_audit($conn, (int)($_SESSION['user_id'] ?? 0), $role, 'fingerprint_mapping_removed', 'fingerprint_mapping', (string)$fingerId, ['finger_id' => $fingerId]);
             $_SESSION['fingerprint_mapping_flash'] = ['type' => 'success', 'message' => 'Mapping removed.'];
             header('Location: fingerprint_mapping.php');
             exit;
@@ -91,6 +93,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->bind_param('ii', $fingerId, $userId);
             $stmt->execute();
             $stmt->close();
+            biometric_ops_log_audit($conn, (int)($_SESSION['user_id'] ?? 0), $role, 'fingerprint_mapping_saved', 'fingerprint_mapping', (string)$fingerId, ['finger_id' => $fingerId, 'user_id' => $userId]);
             $_SESSION['fingerprint_mapping_flash'] = ['type' => 'success', 'message' => 'Mapping updated.'];
             header('Location: fingerprint_mapping.php');
             exit;

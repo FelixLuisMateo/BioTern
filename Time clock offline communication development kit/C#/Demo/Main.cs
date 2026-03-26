@@ -24,6 +24,51 @@ namespace Demo
             btnDisconnect.Enabled = false;
             edtBeginTime.Text = DateTime.Now.ToString("yyyy-MM-dd 00:00:00");
             edtEndTime.Text = DateTime.Now.ToString("yyyy-MM-dd 23:59:59");
+            LoadSavedConnectionSettings();
+        }
+
+        private void LoadSavedConnectionSettings()
+        {
+            if (!string.IsNullOrWhiteSpace(Properties.Settings.Default.DeviceIp))
+            {
+                edtIP.Text = Properties.Settings.Default.DeviceIp;
+            }
+
+            if (!string.IsNullOrWhiteSpace(Properties.Settings.Default.DeviceGateway))
+            {
+                edtGateway.Text = Properties.Settings.Default.DeviceGateway;
+            }
+
+            if (!string.IsNullOrWhiteSpace(Properties.Settings.Default.DeviceMask))
+            {
+                edtMask.Text = Properties.Settings.Default.DeviceMask;
+            }
+
+            if (!string.IsNullOrWhiteSpace(Properties.Settings.Default.DevicePort))
+            {
+                edtPort.Text = Properties.Settings.Default.DevicePort;
+            }
+
+            if (!string.IsNullOrWhiteSpace(Properties.Settings.Default.DeviceNo))
+            {
+                edtDevNo.Text = Properties.Settings.Default.DeviceNo;
+            }
+
+            if (!string.IsNullOrWhiteSpace(Properties.Settings.Default.CommPassword))
+            {
+                edtComPwd.Text = Properties.Settings.Default.CommPassword;
+            }
+        }
+
+        private void SaveConnectionSettings()
+        {
+            Properties.Settings.Default.DeviceIp = edtIP.Text.Trim();
+            Properties.Settings.Default.DeviceGateway = edtGateway.Text.Trim();
+            Properties.Settings.Default.DeviceMask = edtMask.Text.Trim();
+            Properties.Settings.Default.DevicePort = edtPort.Text.Trim();
+            Properties.Settings.Default.DeviceNo = edtDevNo.Text.Trim();
+            Properties.Settings.Default.CommPassword = edtComPwd.Text.Trim();
+            Properties.Settings.Default.Save();
         }
 
         private void btnConnect_Click(object sender, EventArgs e)
@@ -37,6 +82,7 @@ namespace Demo
             {
                 btnDisconnect.Enabled = true;
                 btnConnect.Enabled = false;
+                SaveConnectionSettings();
                 MessageBox.Show("Connection successful");
             }
             else
@@ -87,13 +133,14 @@ namespace Demo
                 MessageBox.Show("Please connect first");
                 return;
             }
-            string IP = edtTime.Text;
+            string IP = edtIP.Text;
             string Gateway = edtGateway.Text;
             string Mask = edtMask.Text;
             Int32 Port = Int32.Parse(edtPort.Text);
 
             if (DevCtrlAPI.D_SetIP(h, IP, Gateway, Mask, Port))
             {
+                SaveConnectionSettings();
                 MessageBox.Show("Network parameters updated successfully");
             }
             else

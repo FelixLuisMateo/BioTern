@@ -22,5 +22,77 @@ namespace Demo.Properties {
                 return defaultInstance;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("192.168.110.201")]
+        public string DeviceIp {
+            get {
+                return ((string)(this["DeviceIp"]));
+            }
+            set {
+                this["DeviceIp"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("192.168.110.1")]
+        public string DeviceGateway {
+            get {
+                return ((string)(this["DeviceGateway"]));
+            }
+            set {
+                this["DeviceGateway"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("255.255.255.0")]
+        public string DeviceMask {
+            get {
+                return ((string)(this["DeviceMask"]));
+            }
+            set {
+                this["DeviceMask"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("5001")]
+        public string DevicePort {
+            get {
+                return ((string)(this["DevicePort"]));
+            }
+            set {
+                this["DevicePort"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("1")]
+        public string DeviceNo {
+            get {
+                return ((string)(this["DeviceNo"]));
+            }
+            set {
+                this["DeviceNo"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public string CommPassword {
+            get {
+                return ((string)(this["CommPassword"]));
+            }
+            set {
+                this["CommPassword"] = value;
+            }
+        }
     }
 }

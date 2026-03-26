@@ -2,6 +2,7 @@
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/tools/biometric_machine_runtime.php';
 require_once dirname(__DIR__) . '/tools/biometric_auto_import.php';
+require_once dirname(__DIR__) . '/tools/biometric_ops.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -42,6 +43,16 @@ $machineConfigJson = file_exists($machineConfigPath) ? trim((string)file_get_con
 function machine_h($value): string
 {
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
+}
+
+function machine_connector_write_config(string $machineConfigPath, array $config): void
+{
+    $json = json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    if (!is_string($json)) {
+        throw new RuntimeException('Failed to encode connector config.');
+    }
+
+    file_put_contents($machineConfigPath, $json . PHP_EOL);
 }
 
 function machine_render_pairs(array $data): string
@@ -233,6 +244,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     throw new RuntimeException(trim(implode("\n", $result['output'] ?? [])));
                 }
                 $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Machine user updated.'];
+                biometric_ops_log_audit($conn, (int)($_SESSION['user_id'] ?? 0), $role, 'machine_user_updated_raw', 'machine_user', (string)$selectedUserId, ['user_id' => $selectedUserId]);
                 machine_redirect_after_post(['selected_user_id' => $selectedUserId, 'load_users' => 1, 'load_user' => 1]);
 
             case 'save_user_name':
@@ -249,6 +261,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     throw new RuntimeException(trim(implode("\n", $result['output'] ?? [])));
                 }
                 $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Machine user name updated.'];
+                biometric_ops_log_audit($conn, (int)($_SESSION['user_id'] ?? 0), $role, 'machine_user_renamed', 'machine_user', (string)$selectedUserId, ['user_id' => $selectedUserId, 'name' => $newName]);
                 machine_redirect_after_post(['selected_user_id' => $selectedUserId, 'load_users' => 1, 'load_user' => 1]);
 
             case 'save_list_user_name':
@@ -270,6 +283,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     throw new RuntimeException(trim(implode("\n", $result['output'] ?? [])));
                 }
                 $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Machine user renamed on the F20H.'];
+                biometric_ops_log_audit($conn, (int)($_SESSION['user_id'] ?? 0), $role, 'machine_user_renamed', 'machine_user', (string)$inlineUserId, ['user_id' => $inlineUserId, 'name' => $newName]);
                 machine_redirect_after_post(['selected_user_id' => $inlineUserId, 'load_users' => 1, 'load_user' => 1]);
 
             case 'delete_user':
@@ -281,6 +295,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     throw new RuntimeException(trim(implode("\n", $result['output'] ?? [])));
                 }
                 $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Machine user deleted.'];
+                biometric_ops_log_audit($conn, (int)($_SESSION['user_id'] ?? 0), $role, 'machine_user_deleted', 'machine_user', (string)$selectedUserId, ['user_id' => $selectedUserId]);
                 machine_redirect_after_post(['load_users' => 1]);
 
             case 'get_device_info':
@@ -363,6 +378,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Connector config updated.'];
                 machine_redirect_after_post([]);
 
+            case 'save_connector_profile':
+                $existingConfig = json_decode($machineConfigJson, true);
+                if (!is_array($existingConfig)) {
+                    $existingConfig = [];
+                }
+
+                $existingConfig['ipAddress'] = trim((string)($_POST['connector_ip'] ?? ''));
+                $existingConfig['gateway'] = trim((string)($_POST['connector_gateway'] ?? ''));
+                $existingConfig['mask'] = trim((string)($_POST['connector_mask'] ?? '255.255.255.0'));
+                $existingConfig['port'] = max(1, (int)($_POST['connector_port'] ?? 5001));
+                $existingConfig['deviceNumber'] = max(1, (int)($_POST['connector_device_number'] ?? 1));
+                $existingConfig['communicationPassword'] = trim((string)($_POST['connector_password'] ?? '0'));
+                $existingConfig['outputPath'] = trim((string)($_POST['connector_output_path'] ?? ''));
+                $existingConfig['attendanceWindowEnabled'] = isset($_POST['attendance_window_enabled']);
+                $existingConfig['attendanceStartTime'] = trim((string)($_POST['attendance_start_time'] ?? '08:00:00'));
+                $existingConfig['attendanceEndTime'] = trim((string)($_POST['attendance_end_time'] ?? '20:00:00'));
+                $existingConfig['duplicateGuardMinutes'] = max(1, (int)($_POST['duplicate_guard_minutes'] ?? 10));
+                $existingConfig['slotAdvanceMinimumMinutes'] = max(1, (int)($_POST['slot_advance_minimum_minutes'] ?? 10));
+
+                if ($existingConfig['ipAddress'] === '') {
+                    throw new RuntimeException('Connector IP address is required.');
+                }
+                if ($existingConfig['outputPath'] === '') {
+                    throw new RuntimeException('Connector output path is required.');
+                }
+
+                machine_connector_write_config($machineConfigPath, $existingConfig);
+                $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Quick connector settings updated.'];
+                machine_redirect_after_post([]);
+
             case 'clear_records':
                 $result = biometric_machine_run_command('clear-records');
                 if (!$result['success']) {
@@ -426,6 +471,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $loadedUserRows = machine_extract_rows($userListDecoded);
+biometric_ops_ensure_tables($conn);
+$latestSyncRun = biometric_ops_fetch_latest_sync_run($conn);
+$recentAnomalies = biometric_ops_fetch_recent_anomalies($conn, 6);
+$recentAuditLogs = biometric_ops_fetch_recent_audit_logs($conn, 6);
+$openAnomalyCount = biometric_ops_fetch_open_anomaly_count($conn);
 $connectorConfig = json_decode($machineConfigJson, true);
 $connectorIp = is_array($connectorConfig) ? (string)($connectorConfig['ipAddress'] ?? '') : '';
 $connectorPort = is_array($connectorConfig) ? (string)($connectorConfig['port'] ?? '') : '';
@@ -482,6 +532,37 @@ include __DIR__ . '/../includes/header.php';
                         <div class="text-muted fs-12 mb-1">Selected Machine User</div>
                         <div class="fs-3 fw-bold"><?php echo machine_h($selectedUserId > 0 ? (string)$selectedUserId : '-'); ?></div>
                         <div class="text-muted">Load a record, then edit its name or raw JSON below.</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card stretch stretch-full">
+                    <div class="card-body">
+                        <div class="text-muted fs-12 mb-1">Last Sync Status</div>
+                        <div class="fs-4 fw-bold"><?php echo machine_h($latestSyncRun['status'] ?? 'No runs yet'); ?></div>
+                        <div class="text-muted"><?php echo machine_h((string)($latestSyncRun['finished_at'] ?? $latestSyncRun['started_at'] ?? '')); ?></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card stretch stretch-full">
+                    <div class="card-body">
+                        <div class="text-muted fs-12 mb-1">Open Anomalies</div>
+                        <div class="fs-3 fw-bold"><?php echo $openAnomalyCount; ?></div>
+                        <div class="text-muted">Duplicate punches, unmapped scans, and suspicious attendance cases.</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card stretch stretch-full">
+                    <div class="card-body">
+                        <div class="text-muted fs-12 mb-1">Last Sync Totals</div>
+                        <div class="fw-bold">
+                            <?php echo machine_h('Raw ' . (string)($latestSyncRun['raw_inserted'] ?? 0) . ' | Logs ' . (string)($latestSyncRun['processed_logs'] ?? 0)); ?>
+                        </div>
+                        <div class="text-muted">
+                            <?php echo machine_h('Attendance changed: ' . (string)($latestSyncRun['attendance_changed'] ?? 0) . ' | Anomalies: ' . (string)($latestSyncRun['anomalies_found'] ?? 0)); ?>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -739,6 +820,74 @@ include __DIR__ . '/../includes/header.php';
             </div>
 
             <?php if ($isAdmin): ?>
+                <div class="col-xl-6">
+                    <div class="card stretch stretch-full">
+                        <div class="card-header"><h6 class="card-title mb-0">Recent Anomalies</h6></div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-sm mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Type</th>
+                                            <th>Severity</th>
+                                            <th>Message</th>
+                                            <th>When</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php if (empty($recentAnomalies)): ?>
+                                            <tr><td colspan="4" class="text-center text-muted py-3">No recent anomalies.</td></tr>
+                                        <?php else: ?>
+                                            <?php foreach ($recentAnomalies as $anomaly): ?>
+                                                <tr>
+                                                    <td><?php echo machine_h((string)$anomaly['anomaly_type']); ?></td>
+                                                    <td><?php echo machine_h((string)$anomaly['severity']); ?></td>
+                                                    <td><?php echo machine_h((string)$anomaly['message']); ?></td>
+                                                    <td><?php echo machine_h((string)($anomaly['event_time'] ?: $anomaly['created_at'])); ?></td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        <?php endif; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-6">
+                    <div class="card stretch stretch-full">
+                        <div class="card-header"><h6 class="card-title mb-0">Recent Audit Log</h6></div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-sm mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Action</th>
+                                            <th>Actor</th>
+                                            <th>Target</th>
+                                            <th>When</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php if (empty($recentAuditLogs)): ?>
+                                            <tr><td colspan="4" class="text-center text-muted py-3">No recent audit entries.</td></tr>
+                                        <?php else: ?>
+                                            <?php foreach ($recentAuditLogs as $auditLog): ?>
+                                                <tr>
+                                                    <td><?php echo machine_h((string)$auditLog['action']); ?></td>
+                                                    <td><?php echo machine_h((string)($auditLog['actor_role'] ?: 'system')); ?></td>
+                                                    <td><?php echo machine_h((string)($auditLog['target_type'] . ($auditLog['target_id'] ? ' #' . $auditLog['target_id'] : ''))); ?></td>
+                                                    <td><?php echo machine_h((string)$auditLog['created_at']); ?></td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        <?php endif; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="col-xl-6">
                     <div class="card stretch stretch-full">
                         <div class="card-header"><h6 class="card-title mb-0">Device Info and Raw Config</h6></div>

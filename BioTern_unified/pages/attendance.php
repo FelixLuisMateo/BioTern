@@ -222,10 +222,9 @@ if ($attendance_result && $attendance_result->num_rows > 0) {
     }
 }
 
-// Remove same-day duplicates per student (keep latest by id due ORDER BY a.id DESC).
+// Remove same-day duplicates per student, preferring the row that has actual punches.
 if (count($attendances) > 1) {
-    $seen_student_date = [];
-    $unique_attendances = [];
+    $attendance_by_student_date = [];
     foreach ($attendances as $attendance) {
         $student_id_key = isset($attendance['student_id']) ? (string)$attendance['student_id'] : '';
         $attendance_date_key = isset($attendance['attendance_date']) ? (string)$attendance['attendance_date'] : '';
@@ -233,14 +232,11 @@ if (count($attendances) > 1) {
             ? ($student_id_key . '|' . $attendance_date_key)
             : ('id|' . (string)($attendance['id'] ?? ''));
 
-        if (isset($seen_student_date[$dedupe_key])) {
-            continue;
+        if (!isset($attendance_by_student_date[$dedupe_key]) || shouldPreferAttendanceRow($attendance, $attendance_by_student_date[$dedupe_key])) {
+            $attendance_by_student_date[$dedupe_key] = $attendance;
         }
-
-        $seen_student_date[$dedupe_key] = true;
-        $unique_attendances[] = $attendance;
     }
-    $attendances = $unique_attendances;
+    $attendances = array_values($attendance_by_student_date);
 }
 
 // If requested via AJAX, return only the table rows HTML so frontend can replace tbody
@@ -374,6 +370,28 @@ function getAttendanceStatus($morning_time_in) {
     } else {
         return 'late';
     }
+}
+
+function attendanceFilledSlotScore(array $attendance): int {
+    $score = 0;
+    foreach (['morning_time_in', 'morning_time_out', 'afternoon_time_in', 'afternoon_time_out'] as $column) {
+        $value = trim((string)($attendance[$column] ?? ''));
+        if ($value !== '' && $value !== '00:00:00') {
+            $score++;
+        }
+    }
+    return $score;
+}
+
+function shouldPreferAttendanceRow(array $candidate, array $existing): bool {
+    $candidateScore = attendanceFilledSlotScore($candidate);
+    $existingScore = attendanceFilledSlotScore($existing);
+
+    if ($candidateScore !== $existingScore) {
+        return $candidateScore > $existingScore;
+    }
+
+    return (int)($candidate['id'] ?? 0) > (int)($existing['id'] ?? 0);
 }
 ?>
 
