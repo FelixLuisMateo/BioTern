@@ -141,8 +141,11 @@ $conn->query("CREATE TABLE IF NOT EXISTS document_workflow (
 $search = trim((string)($_GET['search'] ?? ''));
 $course_filter = trim((string)($_GET['course'] ?? ''));
 $section_filter = trim((string)($_GET['section'] ?? ''));
+$semester_filter = trim((string)($_GET['semester'] ?? ''));
 $status_filter = trim((string)($_GET['stage'] ?? ''));
 $risk_filter = trim((string)($_GET['risk'] ?? 'all'));
+biotern_db_add_column_if_missing($conn, 'students', 'semester', "semester VARCHAR(30) DEFAULT NULL");
+$semester_options = ['1st Semester', '2nd Semester', 'Summer'];
 
 $courses = [];
 $cres = $conn->query('SELECT id, name FROM courses ORDER BY name');
@@ -170,6 +173,7 @@ SELECT
     s.phone,
     s.status AS student_status,
     s.created_at,
+    COALESCE(NULLIF(s.semester, ''), '-') AS semester,
     COALESCE(NULLIF(u_student.profile_picture, ''), NULLIF(s.profile_picture, '')) AS profile_picture,
     c.name AS course_name,
     COALESCE(NULLIF(sec.code, ''), NULLIF(sec.name, ''), '-') AS section_name,
@@ -273,6 +277,9 @@ if ($res) {
             continue;
         }
         if ($section_filter !== '' && strcasecmp((string)($row['section_name'] ?? ''), $section_filter) !== 0) {
+            continue;
+        }
+        if ($semester_filter !== '' && strcasecmp((string)($row['semester'] ?? ''), $semester_filter) !== 0) {
             continue;
         }
         if ($status_filter !== '' && strcasecmp($row['stage'], $status_filter) !== 0) {
@@ -936,7 +943,7 @@ echo number_format($trend_avg_approval_hours, 2); ?>h</div></div></div>
                                     <i class="feather-sliders"></i>
                                     <span>Filter OJT</span>
                                 </div>
-                                <p class="filter-panel-sub">Narrow down results by student, course, section, stage, and risk level.</p>
+                                <p class="filter-panel-sub">Narrow down results by student, course, section, semester, stage, and risk level.</p>
                             </div>
                             <div class="filter-panel-head-actions">
                                 <a href="ojt.php" class="btn btn-outline-secondary btn-sm px-3">Reset</a>
@@ -974,6 +981,17 @@ echo ($section_filter === $section['section_label']) ? 'selected' : ''; ?>><?php
 echo htmlspecialchars($section['section_label']); ?></option>
                         <?php
 endforeach; ?>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Semester</label>
+                    <select name="semester" id="ojtFilterSemester" class="form-select">
+                        <option value="">All</option>
+                        <?php foreach ($semester_options as $semester): ?>
+                            <option value="<?php echo htmlspecialchars($semester, ENT_QUOTES, 'UTF-8'); ?>" <?php echo ($semester_filter === $semester) ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($semester, ENT_QUOTES, 'UTF-8'); ?>
+                            </option>
+                        <?php endforeach; ?>
                     </select>
                 </div>
                 <div class="col-md-2">
@@ -1058,7 +1076,12 @@ echo htmlspecialchars($r['course_name'] ?? '-'); ?></div>
                                     </a>
                                 </td>
                                 <td data-label="Section"><?php
-echo htmlspecialchars($r['section_name'] ?? '-'); ?></td>
+$sectionSemester = trim((string)($r['section_name'] ?? '-'));
+$semesterLabel = trim((string)($r['semester'] ?? ''));
+if ($semesterLabel !== '' && $semesterLabel !== '-') {
+    $sectionSemester .= ' / ' . $semesterLabel;
+}
+echo htmlspecialchars($sectionSemester); ?></td>
                                 <td data-label="Pipeline">
                                     <span class="badge <?php
 echo stage_badge_class($r['stage']); ?>"><?php
@@ -1142,7 +1165,7 @@ endforeach; ?>
             clearTimeout(submitTimer);
             submitTimer = setTimeout(submitFilters, 350);
         }
-        ['ojtFilterCourse', 'ojtFilterSection', 'ojtFilterStage', 'ojtFilterRisk'].forEach(function (id) {
+        ['ojtFilterCourse', 'ojtFilterSection', 'ojtFilterSemester', 'ojtFilterStage', 'ojtFilterRisk'].forEach(function (id) {
             var el = document.getElementById(id);
             if (el) el.addEventListener('change', submitFilters);
         });
@@ -1150,7 +1173,7 @@ endforeach; ?>
 
         if (window.jQuery && $.fn.select2) {
             var $filterForm = $('#ojtFilterForm');
-            ['#ojtFilterCourse', '#ojtFilterSection', '#ojtFilterStage'].forEach(function (selector) {
+            ['#ojtFilterCourse', '#ojtFilterSection', '#ojtFilterSemester', '#ojtFilterStage'].forEach(function (selector) {
                 if ($(selector).length) {
                     $(selector).select2({
                         width: '100%',
@@ -1171,7 +1194,7 @@ endforeach; ?>
                     });
                 }
             });
-            ['#ojtFilterCourse', '#ojtFilterSection', '#ojtFilterStage', '#ojtFilterRisk'].forEach(function (selector) {
+            ['#ojtFilterCourse', '#ojtFilterSection', '#ojtFilterSemester', '#ojtFilterStage', '#ojtFilterRisk'].forEach(function (selector) {
                 if ($(selector).length) {
                     $(selector).on('select2:select select2:clear', submitFilters);
                 }

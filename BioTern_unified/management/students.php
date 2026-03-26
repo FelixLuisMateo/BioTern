@@ -59,6 +59,7 @@ $filter_date = isset($_GET['date']) ? trim((string)$_GET['date']) : '';
 $filter_course = isset($_GET['course_id']) ? intval($_GET['course_id']) : 0;
 $filter_department = isset($_GET['department_id']) ? intval($_GET['department_id']) : 0;
 $filter_section = isset($_GET['section_id']) ? intval($_GET['section_id']) : 0;
+$filter_semester = isset($_GET['semester']) ? trim((string)$_GET['semester']) : '';
 $filter_school_year = isset($_GET['school_year']) ? trim((string)$_GET['school_year']) : '';
 $filter_supervisor = isset($_GET['supervisor']) ? trim($_GET['supervisor']) : '';
 $filter_coordinator = isset($_GET['coordinator']) ? trim($_GET['coordinator']) : '';
@@ -73,6 +74,8 @@ $latest_school_year_start = max(2025, $current_school_year_start);
 for ($year = $latest_school_year_start; $year >= $school_year_start; $year--) {
     $school_year_options[] = sprintf('%d-%d', $year, $year + 1);
 }
+$semester_options = ['1st Semester', '2nd Semester', 'Summer'];
+biotern_db_add_column_if_missing($conn, 'students', 'semester', "semester VARCHAR(30) DEFAULT NULL");
 
 $db_esc = $conn->real_escape_string($db_name);
 
@@ -157,6 +160,10 @@ if ($filter_department > 0) {
 if ($filter_section > 0) {
     $where[] = "s.section_id = " . intval($filter_section);
 }
+if ($filter_semester !== '' && in_array($filter_semester, $semester_options, true)) {
+    $esc_semester = $conn->real_escape_string($filter_semester);
+    $where[] = "COALESCE(s.semester, '') = '{$esc_semester}'";
+}
 if ($filter_school_year !== '' && preg_match('/^\d{4}-\d{4}$/', $filter_school_year) && in_array($filter_school_year, $school_year_options, true)) {
     $esc_school_year = $conn->real_escape_string($filter_school_year);
     $where[] = "s.school_year = '{$esc_school_year}'";
@@ -227,6 +234,7 @@ $students_query = "
         COALESCE(NULLIF(u_student.profile_picture, ''), NULLIF(s.profile_picture, '')) AS profile_picture,
         c.name as course_name,
         COALESCE(NULLIF(sec.code, ''), NULLIF(sec.name, ''), '-') AS section_name,
+        COALESCE(NULLIF(s.semester, ''), '-') AS semester,
         c.id as course_id,
         i.supervisor_id,
         i.coordinator_id,
@@ -1204,7 +1212,7 @@ echo htmlspecialchars($current_user_email, ENT_QUOTES, 'UTF-8'); ?></span>
                                         <i class="feather-sliders"></i>
                                         <span>Filter Students</span>
                                     </div>
-                                    <p class="filter-panel-sub">Narrow down results by school year, date, course, section, supervisor, and coordinator.</p>
+                                    <p class="filter-panel-sub">Narrow down results by school year, semester, date, course, section, supervisor, and coordinator.</p>
                                 </div>
                                 <div class="filter-panel-head-actions">
                                     <a href="students.php" class="btn btn-outline-secondary btn-sm px-3">Reset</a>
@@ -1291,6 +1299,17 @@ echo htmlspecialchars($section['section_label']); ?></option>
                                 <?php
 require_once dirname(__DIR__) . '/config/db.php';
 endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
+                            <label class="form-label" for="filter-semester">Semester</label>
+                            <select id="filter-semester" name="semester" class="form-control">
+                                <option value="">-- All Semesters --</option>
+                                <?php foreach ($semester_options as $semester): ?>
+                                    <option value="<?php echo htmlspecialchars($semester, ENT_QUOTES, 'UTF-8'); ?>" <?php echo $filter_semester === $semester ? 'selected' : ''; ?>>
+                                        <?php echo htmlspecialchars($semester, ENT_QUOTES, 'UTF-8'); ?>
+                                    </option>
+                                <?php endforeach; ?>
                             </select>
                         </div>
                         <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
@@ -1503,7 +1522,12 @@ require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars($student['course_name'] ?? 'N/A'); ?></a></td>
                                                         <td><a href="javascript:void(0);"><?php
 require_once dirname(__DIR__) . '/config/db.php';
-echo htmlspecialchars($student['section_name'] ?? '-'); ?></a></td>
+$sectionSemester = trim((string)($student['section_name'] ?? '-'));
+$semesterLabel = trim((string)($student['semester'] ?? ''));
+if ($semesterLabel !== '' && $semesterLabel !== '-') {
+    $sectionSemester .= ' / ' . $semesterLabel;
+}
+echo htmlspecialchars($sectionSemester); ?></a></td>
                                                         <td><a href="javascript:void(0);"><?php
 require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars($student['supervisor_name'] ?? '-'); ?></a></td>
@@ -1634,7 +1658,7 @@ endif; ?>
             // Do not reinitialize DataTable here; `customers-init.min.js` handles it.
             if (window.jQuery) {
                 var $filterForm = $('#studentsFilterForm');
-                ['#filter-course', '#filter-department', '#filter-section', '#filter-school-year'].forEach(function (selector) {
+                ['#filter-course', '#filter-department', '#filter-section', '#filter-semester', '#filter-school-year'].forEach(function (selector) {
                     if ($(selector).length) {
                         $(selector).select2({
                             width: '100%',
@@ -1657,7 +1681,7 @@ endif; ?>
                     }
                 });
 
-                ['#filter-course', '#filter-department', '#filter-section', '#filter-school-year', '#filter-supervisor', '#filter-coordinator'].forEach(function (selector) {
+                ['#filter-course', '#filter-department', '#filter-section', '#filter-semester', '#filter-school-year', '#filter-supervisor', '#filter-coordinator'].forEach(function (selector) {
                     if ($(selector).length) {
                         $(selector).on('select2:open', function () {
                             var select2Instance = $(this).data('select2');
@@ -1679,12 +1703,12 @@ endif; ?>
             function submitFilters() {
                 if (filterForm) filterForm.submit();
             }
-            ['filter-date', 'filter-course', 'filter-department', 'filter-section', 'filter-school-year', 'filter-supervisor', 'filter-coordinator'].forEach(function (id) {
+            ['filter-date', 'filter-course', 'filter-department', 'filter-section', 'filter-semester', 'filter-school-year', 'filter-supervisor', 'filter-coordinator'].forEach(function (id) {
                 var el = document.getElementById(id);
                 if (el) el.addEventListener('change', submitFilters);
             });
             if (window.jQuery) {
-                ['#filter-course', '#filter-department', '#filter-section', '#filter-school-year', '#filter-supervisor', '#filter-coordinator'].forEach(function (selector) {
+                ['#filter-course', '#filter-department', '#filter-section', '#filter-semester', '#filter-school-year', '#filter-supervisor', '#filter-coordinator'].forEach(function (selector) {
                     if ($(selector).length) {
                         $(selector).on('select2:select select2:clear', submitFilters);
                     }

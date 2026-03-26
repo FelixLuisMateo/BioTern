@@ -60,27 +60,40 @@ function biotern_masterlist_fetch_for_student(mysqli $conn, array $student): arr
     }
 
     $schoolYear = trim((string)($student['school_year'] ?? ''));
+    $semester = trim((string)($student['semester'] ?? ''));
     $section = trim((string)($student['section_name'] ?? ($student['section'] ?? '')));
     $phoneDigits = biotern_masterlist_phone_digits((string)($student['phone'] ?? ''));
     $nameKeys = biotern_masterlist_student_name_variants($student);
 
-    $where = [];
+    $contextWhere = [];
+    $identityWhere = [];
     if ($schoolYear !== '') {
-        $where[] = "m.school_year = '" . $conn->real_escape_string($schoolYear) . "'";
+        $contextWhere[] = "m.school_year = '" . $conn->real_escape_string($schoolYear) . "'";
     }
-    if ($section !== '') {
-        $where[] = "m.section = '" . $conn->real_escape_string($section) . "'";
+    if ($semester !== '') {
+        $contextWhere[] = "COALESCE(m.semester, '') = '" . $conn->real_escape_string($semester) . "'";
     }
     if ($phoneDigits !== '') {
-        $where[] = "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(m.contact_no,''), '-', ''), ' ', ''), '(', ''), ')', ''), '+', '') = '" . $conn->real_escape_string($phoneDigits) . "'";
+        $identityWhere[] = "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(m.contact_no,''), '-', ''), ' ', ''), '(', ''), ')', ''), '+', '') = '" . $conn->real_escape_string($phoneDigits) . "'";
     }
     if (!empty($nameKeys)) {
         $escapedKeys = array_map(static fn($key) => "'" . $conn->real_escape_string($key) . "'", $nameKeys);
-        $where[] = 'm.student_lookup_key IN (' . implode(', ', $escapedKeys) . ')';
+        $identityWhere[] = 'm.student_lookup_key IN (' . implode(', ', $escapedKeys) . ')';
+    }
+    if ($section !== '') {
+        $identityWhere[] = "m.section = '" . $conn->real_escape_string($section) . "'";
     }
 
-    if (empty($where)) {
+    if (empty($contextWhere) && empty($identityWhere)) {
         return [];
+    }
+
+    $whereParts = [];
+    if (!empty($contextWhere)) {
+        $whereParts[] = '(' . implode(' AND ', $contextWhere) . ')';
+    }
+    if (!empty($identityWhere)) {
+        $whereParts[] = '(' . implode(' OR ', $identityWhere) . ')';
     }
 
     $sql = "SELECT
@@ -92,9 +105,10 @@ function biotern_masterlist_fetch_for_student(mysqli $conn, array $student): arr
             c.company_representative AS company_table_representative
         FROM ojt_masterlist m
         LEFT JOIN ojt_partner_companies c ON c.id = m.company_id
-        WHERE " . implode(' OR ', $where) . "
+        WHERE " . implode(' AND ', $whereParts) . "
         ORDER BY
             CASE WHEN '" . $conn->real_escape_string($schoolYear) . "' <> '' AND m.school_year = '" . $conn->real_escape_string($schoolYear) . "' THEN 0 ELSE 1 END,
+            CASE WHEN '" . $conn->real_escape_string($semester) . "' <> '' AND COALESCE(m.semester, '') = '" . $conn->real_escape_string($semester) . "' THEN 0 ELSE 1 END,
             CASE WHEN '" . $conn->real_escape_string($section) . "' <> '' AND m.section = '" . $conn->real_escape_string($section) . "' THEN 0 ELSE 1 END,
             CASE WHEN '" . $conn->real_escape_string($phoneDigits) . "' <> '' AND REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(m.contact_no,''), '-', ''), ' ', ''), '(', ''), ')', ''), '+', '') = '" . $conn->real_escape_string($phoneDigits) . "' THEN 0 ELSE 1 END,
             m.updated_at DESC,
