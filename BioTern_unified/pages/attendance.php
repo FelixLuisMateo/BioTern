@@ -409,6 +409,28 @@ function shouldPreferAttendanceRow(array $candidate, array $existing): bool {
     <!--! END:  Apps Title-->
     <!--! BEGIN: Favicon-->
     <link rel="shortcut icon" type="image/x-icon" href="/BioTern/BioTern_unified/assets/images/favicon.ico?v=20260310">
+    <script>
+        (function () {
+            try {
+                var appSkin = localStorage.getItem('app-skin');
+                var appSkinAlt = localStorage.getItem('app_skin');
+                var theme = localStorage.getItem('theme');
+                var legacy = localStorage.getItem('app-skin-dark');
+                var raw = '';
+
+                if (appSkin !== null && appSkin !== '') raw = appSkin;
+                else if (appSkinAlt !== null && appSkinAlt !== '') raw = appSkinAlt;
+                else if (theme !== null && theme !== '') raw = theme;
+                else if (legacy !== null && legacy !== '') raw = legacy;
+
+                if (typeof raw === 'string' && raw.indexOf('dark') !== -1) {
+                    document.documentElement.classList.add('app-skin-dark');
+                } else {
+                    document.documentElement.classList.remove('app-skin-dark');
+                }
+            } catch (e) {}
+        })();
+    </script>
     <script src="assets/js/theme-preload-init.min.js"></script>
     <!--! END: Favicon-->
     <!--! BEGIN: Bootstrap CSS-->
@@ -2340,12 +2362,22 @@ endif; ?>
                 function setDark(isDark) {
                     if (isDark) {
                         document.documentElement.classList.add('app-skin-dark');
-                        try { localStorage.setItem('app-skin', 'app-skin-dark'); } catch (e) {}
+                        try {
+                            localStorage.setItem('app-skin', 'app-skin-dark');
+                            localStorage.setItem('app_skin', 'app-skin-dark');
+                            localStorage.setItem('theme', 'dark');
+                            localStorage.setItem('app-skin-dark', 'app-skin-dark');
+                        } catch (e) {}
                         if (darkBtn) darkBtn.style.display = 'none';
                         if (lightBtn) lightBtn.style.display = '';
                     } else {
                         document.documentElement.classList.remove('app-skin-dark');
-                        try { localStorage.setItem('app-skin', ''); } catch (e) {}
+                        try {
+                            localStorage.setItem('app-skin', '');
+                            localStorage.setItem('app_skin', '');
+                            localStorage.setItem('theme', 'light');
+                            localStorage.removeItem('app-skin-dark');
+                        } catch (e) {}
                         if (darkBtn) darkBtn.style.display = '';
                         if (lightBtn) lightBtn.style.display = 'none';
                     }
@@ -2353,7 +2385,14 @@ endif; ?>
 
                 var skin = '';
                 try {
-                    skin = localStorage.getItem('app-skin') || localStorage.getItem('app_skin') || localStorage.getItem('theme') || localStorage.getItem('app-skin-dark') || '';
+                    var appSkin = localStorage.getItem('app-skin');
+                    var appSkinAlt = localStorage.getItem('app_skin');
+                    var theme = localStorage.getItem('theme');
+                    var legacy = localStorage.getItem('app-skin-dark');
+                    if (appSkin !== null) skin = appSkin;
+                    else if (appSkinAlt !== null) skin = appSkinAlt;
+                    else if (theme !== null) skin = theme;
+                    else if (legacy !== null) skin = legacy;
                 } catch (e) {}
                 setDark((typeof skin === 'string' && skin.indexOf('dark') !== -1) || document.documentElement.classList.contains('app-skin-dark'));
 

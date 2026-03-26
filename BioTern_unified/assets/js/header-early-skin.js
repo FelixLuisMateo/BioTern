@@ -61,16 +61,19 @@
     }
 
     function getSavedFont() {
+        try {
+            var legacyFont = localStorage.getItem("font-family");
+            if (legacyFont !== null && legacyFont !== "") {
+                return legacyFont;
+            }
+        } catch (e) {
+        }
+
         if (typeof serverPrefs.font === "string" && serverPrefs.font !== "") {
             return serverPrefs.font;
         }
 
-        try {
-            var legacyFont = localStorage.getItem("font-family");
-            return legacyFont !== null ? legacyFont : "default";
-        } catch (e) {
-            return "default";
-        }
+        return "default";
     }
 
     function applyNavigationMode(mode) {
@@ -88,24 +91,26 @@
     }
 
     function getSavedNavigationMode() {
-        if (serverPrefs.navigation === "dark" || serverPrefs.navigation === "light") {
-            return serverPrefs.navigation;
-        }
         try {
             var nav = localStorage.getItem("app-navigation");
             if (nav === "app-navigation-dark") return "dark";
+            if (nav === "app-navigation-light") return "light";
         } catch (e) {}
+        if (serverPrefs.navigation === "dark" || serverPrefs.navigation === "light") {
+            return serverPrefs.navigation;
+        }
         return "light";
     }
 
     function getSavedHeaderMode() {
-        if (serverPrefs.header === "dark" || serverPrefs.header === "light") {
-            return serverPrefs.header;
-        }
         try {
             var hdr = localStorage.getItem("app-header");
             if (hdr === "app-header-dark") return "dark";
+            if (hdr === "app-header-light") return "light";
         } catch (e) {}
+        if (serverPrefs.header === "dark" || serverPrefs.header === "light") {
+            return serverPrefs.header;
+        }
         return "light";
     }
 
