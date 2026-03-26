@@ -121,7 +121,11 @@ function chat_json_response(array $payload, int $statusCode = 200): void
 {
     http_response_code($statusCode);
     header('Content-Type: application/json; charset=UTF-8');
-    echo json_encode($payload, JSON_UNESCAPED_SLASHES);
+    $json = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
+    if ($json === false) {
+        $json = '{"ok":false,"error":"Response encoding failed."}';
+    }
+    echo $json;
     exit;
 }
 
@@ -132,7 +136,7 @@ function chat_page_url(int $userId = 0, array $extraQuery = []): string
         $query['user_id'] = $userId;
     }
 
-    $url = 'apps-chat';
+    $url = 'apps-chat.php';
     if (!empty($query)) {
         $url .= '?' . http_build_query($query);
     }
@@ -432,6 +436,7 @@ function chat_normalize_messages(array $messages, int $currentUserId): array
             ? (date('Y-m-d', $ts) === $todayDate ? date('g:i A', $ts) : date('M j Â· g:i A', $ts))
             : '';
         $timeFull = $ts > 0 ? date('F j, Y \a\t g:i A', $ts) : '';
+        $timeClock = $ts > 0 ? date('g:i A', $ts) : '';
         $readAt = (string)($message['read_at'] ?? '');
         $readTs = $readAt !== '' ? strtotime($readAt) : 0;
         $readTimeExact = $readTs > 0
@@ -568,6 +573,7 @@ function chat_normalize_messages(array $messages, int $currentUserId): array
             'time_label' => chat_time_label($createdAt),
             'time_exact' => $timeExact,
             'time_full' => $timeFull,
+            'time_clock' => $timeClock,
             'is_read' => (int)($message['is_read'] ?? 0) === 1,
             'read_at' => $readAt,
             'read_time_label' => $readAt !== '' ? chat_time_label($readAt) : '',
@@ -1798,6 +1804,10 @@ if ($selectedContact) {
 }
 
 $normalizedMessages = chat_normalize_messages($conversationMessages, $currentUserId);
+$initialMessagesJson = json_encode(array_values($normalizedMessages), JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
+if ($initialMessagesJson === false) {
+    $initialMessagesJson = '[]';
+}
 
 if ($isAjaxRequest) {
     if ($errorMessage !== '') {
@@ -1953,6 +1963,8 @@ include 'includes/header.php';
     .btchat-page-alert {
         margin: 0 0 0.5rem 0;
         flex-shrink: 0;
+        position: relative;
+        z-index: 30;
     }
 
     .btchat-shell {
@@ -2638,6 +2650,8 @@ include 'includes/header.php';
         align-items: flex-end;
         margin-bottom: 0.18rem;
         gap: 0.45rem;
+        width: fit-content;
+        max-width: 100%;
     }
 
     .msg-hover-menu-btn {
@@ -2864,9 +2878,9 @@ include 'includes/header.php';
         align-items: center;
         justify-content: space-between;
         position: absolute;
-        top: 0.62rem;
-        left: 0.62rem;
-        right: 0.62rem;
+        top: calc(env(safe-area-inset-top, 0px) + 0.9rem);
+        left: calc(env(safe-area-inset-left, 0px) + 0.9rem);
+        right: calc(env(safe-area-inset-right, 0px) + 0.9rem);
         z-index: 22;
         padding: 0;
         pointer-events: none;
@@ -3326,7 +3340,12 @@ include 'includes/header.php';
     }
 
     .msg-row.own {
+        margin-left: auto;
         justify-content: flex-end;
+    }
+
+    .msg-row:not(.own) {
+        margin-right: auto;
     }
 
     .msg-bubble {
@@ -3341,6 +3360,9 @@ include 'includes/header.php';
         box-shadow: 0 2px 8px rgba(15, 23, 42, 0.09);
         position: relative;
         overflow: visible;
+        word-break: break-word;
+        overflow-wrap: break-word;
+        white-space: pre-line;
     }
 
     .msg-row.own .msg-bubble {
@@ -3355,6 +3377,20 @@ include 'includes/header.php';
         border: 0 !important;
         box-shadow: none;
         padding: 0;
+        width: auto;
+        max-width: min(260px, 82vw);
+        display: inline-flex;
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .msg-row.own .msg-bubble.has-media {
+        margin-left: auto;
+        align-items: flex-end;
+    }
+
+    .msg-row:not(.own) .msg-bubble.has-media {
+        margin-right: auto;
     }
 
     .msg-bubble.has-media.is-pinned {
@@ -3379,6 +3415,7 @@ include 'includes/header.php';
     .msg-bubble.has-media .msg-meta {
         margin-top: 0.28rem;
         padding: 0 0.2rem;
+        width: 100%;
     }
 
     /* â”€â”€ Message grouping â€“ own (right, teal) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
@@ -3496,16 +3533,63 @@ include 'includes/header.php';
         justify-content: center;
     }
 
-    .msg-meta {
-        margin-top: 0.22rem;
+    .msg-meta-outside {
+        margin: 0;
+        padding: 0 0.18rem;
         font-size: 0.72rem;
+        line-height: 1.2;
         color: var(--chat-meta-color);
-        text-align: right;
+        display: flex;
+        max-height: 0;
+        opacity: 0;
+        overflow: hidden;
+        pointer-events: none;
+        transition: opacity 0.14s ease, max-height 0.14s ease, margin 0.14s ease;
     }
 
-    .msg-row.own .msg-meta,
-    .msg-row.own .msg-meta .msg-time-exact {
+    .msg-meta-outside.own {
+        justify-content: flex-end;
         color: var(--chat-own-meta-color);
+    }
+
+    .msg-meta-outside.other {
+        justify-content: flex-start;
+    }
+
+    .msg-block {
+        display: block;
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .msg-block.own {
+        margin-left: 0;
+    }
+
+    .msg-block.other {
+        margin-right: 0;
+    }
+
+    .msg-row:hover + .msg-meta-outside,
+    .msg-row:focus-within + .msg-meta-outside {
+        margin: -0.04rem 0 0.34rem;
+        max-height: 1.2rem;
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    @media (hover: none) {
+        .msg-meta-outside {
+            margin: -0.04rem 0 0.34rem;
+            max-height: 1.2rem;
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .msg-hover-menu-btn {
+            opacity: 0.9;
+            pointer-events: auto;
+        }
     }
 
     .btchat-compose {
@@ -3613,9 +3697,9 @@ include 'includes/header.php';
 
     .msg-media {
         display: block;
-        max-width: min(220px, 100%);
+        max-width: 100%;
         max-height: 260px;
-        width: auto;
+        width: 100%;
         height: auto;
         border: 0;
         border-radius: 0.65rem;
@@ -3623,11 +3707,17 @@ include 'includes/header.php';
         cursor: pointer;
     }
 
+    .msg-bubble.has-media .msg-media,
+    .msg-bubble.has-media .msg-media-video {
+        margin-left: 0;
+        margin-right: 0;
+    }
+
     .msg-media-video {
         display: block;
-        max-width: min(260px, 100%);
+        max-width: 100%;
         max-height: 280px;
-        width: auto;
+        width: 100%;
         height: auto;
         border: 0;
         border-radius: 0.65rem;
@@ -3839,7 +3929,7 @@ include 'includes/header.php';
         top: 1rem;
         right: 1rem;
         max-width: 320px;
-        z-index: 4;
+        z-index: 220;
     }
 
     .btchat-empty {
@@ -3940,12 +4030,16 @@ include 'includes/header.php';
             max-width: 90%;
         }
 
+        .msg-bubble.has-media {
+            max-width: min(220px, 78vw);
+        }
+
         .msg-media {
-            max-width: min(200px, 100%);
+            max-width: 100%;
         }
 
         .msg-media-video {
-            max-width: min(220px, 100%);
+            max-width: 100%;
         }
 
         #chat-scroll-btn {
@@ -4039,7 +4133,7 @@ include 'includes/header.php';
             gap: 0.3rem;
         }
 
-        .msg-meta {
+        .msg-meta-outside {
             font-size: 0.68rem;
         }
 
@@ -4207,28 +4301,37 @@ include 'includes/header.php';
                                 }
                             }
                             $hasReaction = $reactionTotal > 0 && !empty($reactionIcons);
+                            $isUnsentMessage = !empty($message['is_unsent']);
                             ?>
-                            <div class="msg-row<?php echo !empty($message['is_own']) ? ' own' : ''; ?><?php echo $hasReaction ? ' has-reaction' : ''; ?>">
-                                <div class="msg-bubble<?php echo !empty($message['media_path']) ? ' has-media' : ''; ?>">
-                                    <?php if ((string)($message['reply_preview'] ?? '') !== ''): ?>
-                                        <div class="msg-reply-quote"><strong><?php echo chat_esc((string)($message['reply_author'] ?? '')); ?></strong><span class="msg-reply-quote-text"><?php echo chat_esc((string)$message['reply_preview']); ?></span></div>
+                            <div class="msg-block<?php echo !empty($message['is_own']) ? ' own' : ' other'; ?>">
+                                <div class="msg-row<?php echo !empty($message['is_own']) ? ' own' : ''; ?><?php echo $hasReaction ? ' has-reaction' : ''; ?>">
+                                    <?php if (!empty($message['is_own'])): ?>
+                                        <button type="button" class="msg-hover-menu-btn" data-message-id="<?php echo (int)($message['message_id'] ?? 0); ?>">&#8226;&#8226;&#8226;</button>
                                     <?php endif; ?>
-                                    <?php if ((string)$message['media_type'] === 'image'): ?>
-                                        <img src="<?php echo chat_esc((string)$message['media_path']); ?>" class="msg-media" alt="image" data-media-viewer="image">
-                                    <?php elseif ((string)$message['media_type'] === 'video'): ?>
-                                        <video src="<?php echo chat_esc((string)$message['media_path']); ?>" class="msg-media-video" controls preload="metadata" data-media-viewer="video"></video>
-                                    <?php endif; ?>
-                                    <?php $displayMsg = (string)$message['message']; if (!empty($message['media_path']) && $displayMsg === basename((string)$message['media_path'])) $displayMsg = ''; ?>
-                                    <?php if ($displayMsg !== ''): ?><?php echo nl2br(chat_esc($displayMsg)); ?><?php endif; ?>
-                                    <div class="msg-meta" title="<?php echo chat_esc((string)$message['time_full']); ?>">
-                                        <?php echo chat_esc((string)$message['time_label']); ?><?php if ((string)$message['time_exact'] !== ''): ?> &middot; <span class="msg-time-exact"><?php echo chat_esc((string)$message['time_exact']); ?></span><?php endif; ?>
+                                    <div class="msg-bubble<?php echo !empty($message['media_path']) ? ' has-media' : ''; ?>">
+                                        <?php if ((string)($message['reply_preview'] ?? '') !== ''): ?>
+                                            <div class="msg-reply-quote"><strong><?php echo chat_esc((string)($message['reply_author'] ?? '')); ?></strong><span class="msg-reply-quote-text"><?php echo chat_esc((string)$message['reply_preview']); ?></span></div>
+                                        <?php endif; ?>
+                                        <?php if ((string)$message['media_type'] === 'image'): ?>
+                                            <img src="<?php echo chat_esc((string)$message['media_path']); ?>" class="msg-media" alt="image" data-media-viewer="image">
+                                        <?php elseif ((string)$message['media_type'] === 'video'): ?>
+                                            <video src="<?php echo chat_esc((string)$message['media_path']); ?>" class="msg-media-video" controls preload="metadata" data-media-viewer="video"></video>
+                                        <?php endif; ?>
+                                        <?php $displayMsg = (string)$message['message']; if (!empty($message['media_path']) && $displayMsg === basename((string)$message['media_path'])) $displayMsg = ''; ?>
+                                        <?php if ($displayMsg !== ''): ?><?php echo nl2br(chat_esc($displayMsg)); ?><?php endif; ?>
+                                        <?php if ($hasReaction): ?>
+                                            <button type="button" class="msg-reaction-badge" data-reaction-mid="<?php echo (int)($message['message_id'] ?? 0); ?>" aria-label="View reactions">
+                                                <span class="msg-reaction-icons"><?php foreach ($reactionIcons as $reactionIcon): ?><span class="msg-reaction-icon"><?php echo chat_esc((string)$reactionIcon); ?></span><?php endforeach; ?></span>
+                                                <span class="msg-reaction-count"><?php echo $reactionTotal; ?></span>
+                                            </button>
+                                        <?php endif; ?>
                                     </div>
-                                    <?php if ($hasReaction): ?>
-                                        <button type="button" class="msg-reaction-badge" data-reaction-mid="<?php echo (int)($message['message_id'] ?? 0); ?>" aria-label="View reactions">
-                                            <span class="msg-reaction-icons"><?php foreach ($reactionIcons as $reactionIcon): ?><span class="msg-reaction-icon"><?php echo chat_esc((string)$reactionIcon); ?></span><?php endforeach; ?></span>
-                                            <span class="msg-reaction-count"><?php echo $reactionTotal; ?></span>
-                                        </button>
+                                    <?php if (empty($message['is_own']) && !$isUnsentMessage): ?>
+                                        <button type="button" class="msg-hover-menu-btn" data-message-id="<?php echo (int)($message['message_id'] ?? 0); ?>">&#8226;&#8226;&#8226;</button>
                                     <?php endif; ?>
+                                </div>
+                                <div class="msg-meta-outside <?php echo !empty($message['is_own']) ? 'own' : 'other'; ?>" title="<?php echo chat_esc((string)$message['time_full']); ?>">
+                                    <?php echo chat_esc((string)($message['time_clock'] !== '' ? $message['time_clock'] : ($message['time_exact'] !== '' ? $message['time_exact'] : $message['time_label']))); ?>
                                 </div>
                             </div>
                         <?php endforeach; ?>
@@ -4484,6 +4587,7 @@ include 'includes/header.php';
         var mediaModalDownloadEl = document.getElementById('chat-media-download');
         var currentUserId = <?php echo (int)$currentUserId; ?>;
         var selectedUserId = parseInt(app.getAttribute('data-selected-user-id') || '0', 10) || 0;
+        var initialMessages = <?php echo $initialMessagesJson; ?>;
         var selectedContactRef = null;
         var messageCache = {};
         var replyTarget = null;
@@ -4509,6 +4613,13 @@ include 'includes/header.php';
         // Render media viewer at document level so it is never clipped by app containers.
         if (mediaModalEl && document.body && mediaModalEl.parentNode !== document.body) {
             document.body.appendChild(mediaModalEl);
+        }
+
+        if (Array.isArray(initialMessages) && initialMessages.length) {
+            initialMessages.forEach(function (msg) {
+                if (!msg || !msg.message_id) { return; }
+                messageCache[String(msg.message_id)] = msg;
+            });
         }
 
         function escapeHtml(value) {
@@ -4613,6 +4724,7 @@ include 'includes/header.php';
             return items.map(function (item) {
                 return [
                     item.message_id || 0,
+                    item.time_clock || '',
                     item.time_exact || '',
                     item.message || '',
                     item.media_path || '',
@@ -5789,13 +5901,12 @@ include 'includes/header.php';
                 }
 
                 // Meta (time): only on last/only of a group
-                var metaHtml = '';
+                var metaOutsideHtml = '';
                 if (grp === 'msg-group-last' || grp === 'msg-group-only') {
-                    var metaText = escapeHtml(msg.time_label || '');
-                    if (msg.time_exact) {
-                        metaText += ' &middot; <span class="msg-time-exact">' + escapeHtml(msg.time_exact) + '</span>';
-                    }
-                    metaHtml = '<div class="msg-meta">' + metaText + '</div>';
+                    var metaTextRaw = msg.time_clock || msg.time_exact || msg.time_label || '';
+                    var metaText = escapeHtml(metaTextRaw);
+                    var metaTitle = escapeHtml(msg.time_full || metaTextRaw);
+                    metaOutsideHtml = '<div class="msg-meta-outside ' + (msg.is_own ? 'own' : 'other') + '" title="' + metaTitle + '">' + metaText + '</div>';
                 }
 
                 // Avatar for other's messages (left side)
@@ -5841,6 +5952,7 @@ include 'includes/header.php';
                     return '<span class="msg-reaction-icon">' + escapeHtml(item.emoji) + '</span>';
                 }).join('');
 
+                html += '<div class="msg-block ' + (msg.is_own ? 'own' : 'other') + '">';
                 html += '<div class="msg-row' + (msg.is_own ? ' own' : '') + ' ' + grp + (hasReaction ? ' has-reaction' : '') + '">';
                 if (!msg.is_own) { html += avatarHtml; }
                 if (msg.is_own) {
@@ -5852,7 +5964,6 @@ include 'includes/header.php';
                 }
                 html += mediaHtml;
                 if (displayMsg) { html += nl2br(displayMsg); }
-                html += metaHtml;
                 if (hasReaction) {
                     html += '<button type="button" class="msg-reaction-badge" data-reaction-mid="' + msg.message_id + '" aria-label="View reactions">' +
                         '<span class="msg-reaction-icons">' + reactionIconsHtml + '</span>' +
@@ -5863,6 +5974,8 @@ include 'includes/header.php';
                 if (!msg.is_own && !isUnsent) {
                     html += '<button type="button" class="msg-hover-menu-btn" data-message-id="' + msg.message_id + '">&#8226;&#8226;&#8226;</button>';
                 }
+                html += '</div>';
+                html += metaOutsideHtml;
                 html += '</div>';
 
                 // Sent indicator under the last own message
@@ -6455,7 +6568,11 @@ include 'includes/header.php';
                         clearComposeWarning();
                         fetchState(true, { forceScroll: true });
                     } else {
-                        showAlert('error', 'Failed to send.');
+                        var rawError = (result && result.text) ? String(result.text).trim() : '';
+                        if (rawError !== '') {
+                            rawError = rawError.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+                        }
+                        showAlert('error', rawError !== '' ? rawError : 'Failed to send.');
                     }
                 }).catch(function () {
                     fetchState(true, { forceScroll: true });
