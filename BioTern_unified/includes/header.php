@@ -313,6 +313,34 @@ require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars($favicon_ico_href, ENT_QUOTES, 'UTF-8'); ?>">
     <!--! END: Favicon-->
     <script src="assets/js/pace-options.js"></script>
+    <script>
+        (function () {
+            try {
+                var root = document.documentElement;
+                var appSkin = localStorage.getItem('app-skin');
+                var appSkinAlt = localStorage.getItem('app_skin');
+                var theme = localStorage.getItem('theme');
+                var legacy = localStorage.getItem('app-skin-dark');
+                var raw = '';
+
+                if (appSkin !== null) {
+                    raw = appSkin;
+                } else if (appSkinAlt !== null) {
+                    raw = appSkinAlt;
+                } else if (theme !== null) {
+                    raw = theme;
+                } else if (legacy !== null) {
+                    raw = legacy;
+                }
+
+                if (typeof raw === 'string' && raw.indexOf('dark') !== -1) {
+                    root.classList.add('app-skin-dark');
+                } else {
+                    root.classList.remove('app-skin-dark');
+                }
+            } catch (e) {}
+        })();
+    </script>
     <script src="assets/js/theme-preload-init.min.js"></script>
     <!--! BEGIN: Bootstrap CSS-->
     <link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css">

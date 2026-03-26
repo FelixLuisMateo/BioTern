@@ -120,8 +120,10 @@
 
       if (runtimePrefs.skin === "dark") return "app-skin-dark";
       if (runtimePrefs.skin === "light") return "";
-      if (serverPrefs.skin === "dark") return "app-skin-dark";
-      if (serverPrefs.skin === "light") return "";
+      if (typeof runtimePrefs.skin !== "string" || runtimePrefs.skin === "") {
+        if (serverPrefs.skin === "dark") return "app-skin-dark";
+        if (serverPrefs.skin === "light") return "";
+      }
       return "";
     }
 

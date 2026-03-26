@@ -1230,6 +1230,66 @@ include 'includes/header.php';
     <script src="assets/js/theme-customizer-init.min.js"></script>
     <!--! END: Theme Customizer !-->
     <script>
+        (function () {
+            function setDark(isDark) {
+                document.documentElement.classList.toggle('app-skin-dark', !!isDark);
+                try {
+                    localStorage.setItem('app-skin', isDark ? 'app-skin-dark' : '');
+                    localStorage.setItem('app_skin', isDark ? 'app-skin-dark' : '');
+                    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+                    if (isDark) {
+                        localStorage.setItem('app-skin-dark', 'app-skin-dark');
+                    } else {
+                        localStorage.removeItem('app-skin-dark');
+                    }
+                } catch (e) {}
+
+                var lightOption = document.querySelector('.light-button');
+                var darkOption = document.querySelector('.dark-button');
+                var lightInput = document.getElementById('app-skin-light');
+                var darkInput = document.getElementById('app-skin-dark');
+
+                if (lightOption) lightOption.classList.toggle('active', !isDark);
+                if (darkOption) darkOption.classList.toggle('active', isDark);
+                if (lightInput) lightInput.checked = !isDark;
+                if (darkInput) darkInput.checked = isDark;
+            }
+
+            function getSavedSkinMode() {
+                try {
+                    var appSkin = localStorage.getItem('app-skin');
+                    if (appSkin !== null) return appSkin.indexOf('dark') !== -1;
+                    var appSkinAlt = localStorage.getItem('app_skin');
+                    if (appSkinAlt !== null) return appSkinAlt.indexOf('dark') !== -1;
+                    var theme = localStorage.getItem('theme');
+                    if (theme !== null) return theme.toLowerCase() === 'dark';
+                    var legacy = localStorage.getItem('app-skin-dark');
+                    if (legacy !== null) return legacy.indexOf('dark') !== -1;
+                } catch (e) {}
+                return document.documentElement.classList.contains('app-skin-dark');
+            }
+
+            document.addEventListener('DOMContentLoaded', function () {
+                setDark(getSavedSkinMode());
+
+                var lightInput = document.getElementById('app-skin-light');
+                var darkInput = document.getElementById('app-skin-dark');
+
+                if (lightInput) {
+                    lightInput.addEventListener('change', function () {
+                        if (lightInput.checked) setDark(false);
+                    });
+                }
+
+                if (darkInput) {
+                    darkInput.addEventListener('change', function () {
+                        if (darkInput.checked) setDark(true);
+                    });
+                }
+            });
+        })();
+    </script>
+    <script>
         function removeNote() {
             $(".remove-note")
                 .off("click")
