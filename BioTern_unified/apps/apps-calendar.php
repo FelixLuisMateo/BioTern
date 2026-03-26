@@ -27,11 +27,11 @@ include 'includes/header.php';
 
                         /* Elegant, theme-aware calendar redesign */
                         .calendar-toolbar-pro {
-                            background: #1e293b;
+                            background: #ffffff;
                             border-bottom: none;
                             padding: 20px 32px 16px 32px;
                             border-radius: 18px 18px 0 0;
-                            box-shadow: 0 2px 12px 0 rgba(30,41,59,0.12);
+                            box-shadow: 0 2px 12px 0 rgba(15, 23, 42, 0.08);
                             display: flex;
                             align-items: center;
                             justify-content: space-between;
@@ -43,7 +43,7 @@ include 'includes/header.php';
                         #staticMonthYear {
                             font-size: 1.25rem;
                             font-weight: 600;
-                            color: #fff;
+                            color: #0f172a;
                             letter-spacing: 0.01em;
                             margin-right: 10px;
                         }
@@ -94,24 +94,27 @@ include 'includes/header.php';
                             font-size: 12px;
                         }
                         .content-area {
-                            background: #151c2c;
+                            background: #f5f7fb;
                         }
                         #tui-calendar-init {
                             min-height: calc(100vh - 205px);
-                            background: #232e47;
+                            background: #ffffff;
                             border-radius: 0 0 18px 18px;
-                            box-shadow: 0 4px 24px 0 rgba(30,41,59,0.18);
+                            box-shadow: 0 4px 24px 0 rgba(15, 23, 42, 0.1);
                             border-top: none;
                             padding: 18px 18px 32px 18px;
                         }
-                        /* Calendar grid dark mode */
+                        /* Calendar grid light mode */
                         .tui-full-calendar-layout,
                         .tui-full-calendar-weekday-grid,
                         .tui-full-calendar-daygrid-cell {
-                            background: #232e47 !important;
+                            background: #ffffff !important;
+                        }
+                        .tui-full-calendar-daygrid-cell {
+                            border-color: #dbe3f0 !important;
                         }
                         .tui-full-calendar-weekday-grid-date {
-                            color: #cbd5e1 !important;
+                            color: #334155 !important;
                             font-weight: 500;
                         }
                         .tui-full-calendar-weekday-grid-date.tui-full-calendar-today {
@@ -121,20 +124,25 @@ include 'includes/header.php';
                             font-weight: 700;
                         }
                         .tui-full-calendar-weekday-grid-date:hover {
-                            background: #334155 !important;
-                            color: #fff !important;
+                            background: #e8f0ff !important;
+                            color: #1d4ed8 !important;
                         }
                         .tui-full-calendar-dayname {
-                            color: #a5b4fc !important;
+                            color: #64748b !important;
                             font-weight: 700;
-                            background: #151c2c !important;
+                            background: #ffffff !important;
+                            border-color: #dbe3f0 !important;
                         }
-                        /* Modal redesign */
+                        .tui-full-calendar-dayname-container,
+                        .tui-full-calendar-month-dayname {
+                            background: #ffffff !important;
+                            border-color: #dbe3f0 !important;
+                        }
                         .modal-content {
                             border-radius: 18px;
-                            box-shadow: 0 8px 32px 0 rgba(30,41,59,0.22);
-                            background: #232e47;
-                            color: #fff;
+                            box-shadow: 0 8px 32px 0 rgba(15, 23, 42, 0.16);
+                            background: #ffffff;
+                            color: #0f172a;
                             padding: 18px 24px 18px 24px;
                         }
                         .modal-header {
@@ -155,9 +163,9 @@ include 'includes/header.php';
                         }
                         .form-control, .form-control-color, textarea, input[type="datetime-local"] {
                             border-radius: 10px;
-                            border: 1.5px solid #334155;
-                            background: #1a2236;
-                            color: #fff;
+                            border: 1.5px solid #cbd5e1;
+                            background: #f8fafc;
+                            color: #0f172a;
                             font-size: 1rem;
                             padding: 10px 14px;
                             margin-bottom: 8px;
@@ -165,35 +173,16 @@ include 'includes/header.php';
                         }
                         .form-control:focus, .form-control-color:focus, textarea:focus, input[type="datetime-local"]:focus {
                             border-color: #3b82f6;
-                            background: #232e47;
-                            color: #fff;
+                            background: #ffffff;
+                            color: #0f172a;
                             outline: none;
                         }
                         input[type="datetime-local"]::-webkit-calendar-picker-indicator {
-                            filter: invert(1) brightness(0.8) sepia(1) hue-rotate(180deg) saturate(3);
-                        }
-                        @media (prefers-color-scheme: light) {
-                            .modal-content {
-                                background: #fff;
-                                color: #232e47;
-                            }
-                            .form-control, .form-control-color, textarea, input[type="datetime-local"] {
-                                background: #f3f6fb;
-                                color: #232e47;
-                                border: 1.5px solid #b6c2e1;
-                            }
-                            .form-control:focus, .form-control-color:focus, textarea:focus, input[type="datetime-local"]:focus {
-                                border-color: #2563eb;
-                                background: #fff;
-                                color: #232e47;
-                            }
-                            input[type="datetime-local"]::-webkit-calendar-picker-indicator {
-                                filter: none;
-                            }
+                            filter: none;
                         }
                         .form-label {
                             font-weight: 600;
-                            color: #a5b4fc;
+                            color: #475569;
                             margin-bottom: 4px;
                         }
                         .form-check-input:checked {
@@ -216,8 +205,8 @@ include 'includes/header.php';
                         }
                         .btn.btn-outline-secondary {
                             border-radius: 8px;
-                            border: 1.5px solid #334155;
-                            color: #a5b4fc;
+                            border: 1.5px solid #cbd5e1;
+                            color: #475569;
                             background: transparent;
                             font-weight: 600;
                             padding: 8px 22px;
@@ -230,11 +219,85 @@ include 'includes/header.php';
                         /* Sidebar minimal */
                         .content-sidebar-header {
                             border-radius: 18px 0 0 0;
-                            background: #232e47;
-                            box-shadow: 0 2px 8px 0 rgba(30,41,59,0.10);
-                            color: #fff;
+                            background: #ffffff;
+                            box-shadow: 0 2px 8px 0 rgba(15, 23, 42, 0.08);
+                            color: #0f172a;
                         }
                         .content-sidebar {
+                            background: #ffffff;
+                        }
+                        body.app-skin-dark .calendar-toolbar-pro {
+                            background: #1e293b;
+                            box-shadow: 0 2px 12px 0 rgba(30, 41, 59, 0.12);
+                        }
+                        body.app-skin-dark #staticMonthYear {
+                            color: #ffffff;
+                        }
+                        body.app-skin-dark .content-area {
+                            background: #151c2c;
+                        }
+                        body.app-skin-dark #tui-calendar-init {
+                            background: #232e47;
+                            box-shadow: 0 4px 24px 0 rgba(30, 41, 59, 0.18);
+                        }
+                        body.app-skin-dark .tui-full-calendar-layout,
+                        body.app-skin-dark .tui-full-calendar-weekday-grid,
+                        body.app-skin-dark .tui-full-calendar-daygrid-cell {
+                            background: #232e47 !important;
+                        }
+                        body.app-skin-dark .tui-full-calendar-daygrid-cell {
+                            border-color: rgba(226, 232, 240, 0.18) !important;
+                        }
+                        body.app-skin-dark .tui-full-calendar-weekday-grid-date {
+                            color: #cbd5e1 !important;
+                        }
+                        body.app-skin-dark .tui-full-calendar-weekday-grid-date:hover {
+                            background: #334155 !important;
+                            color: #ffffff !important;
+                        }
+                        body.app-skin-dark .tui-full-calendar-dayname,
+                        body.app-skin-dark .tui-full-calendar-dayname-container,
+                        body.app-skin-dark .tui-full-calendar-month-dayname {
+                            color: #a5b4fc !important;
+                            background: #151c2c !important;
+                            border-color: rgba(226, 232, 240, 0.16) !important;
+                        }
+                        body.app-skin-dark .modal-content {
+                            box-shadow: 0 8px 32px 0 rgba(30, 41, 59, 0.22);
+                            background: #232e47;
+                            color: #ffffff;
+                        }
+                        body.app-skin-dark .form-control,
+                        body.app-skin-dark .form-control-color,
+                        body.app-skin-dark textarea,
+                        body.app-skin-dark input[type="datetime-local"] {
+                            border-color: #334155;
+                            background: #1a2236;
+                            color: #ffffff;
+                        }
+                        body.app-skin-dark .form-control:focus,
+                        body.app-skin-dark .form-control-color:focus,
+                        body.app-skin-dark textarea:focus,
+                        body.app-skin-dark input[type="datetime-local"]:focus {
+                            background: #232e47;
+                            color: #ffffff;
+                        }
+                        body.app-skin-dark input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+                            filter: invert(1) brightness(0.8) sepia(1) hue-rotate(180deg) saturate(3);
+                        }
+                        body.app-skin-dark .form-label {
+                            color: #a5b4fc;
+                        }
+                        body.app-skin-dark .btn.btn-outline-secondary {
+                            border-color: #334155;
+                            color: #a5b4fc;
+                        }
+                        body.app-skin-dark .content-sidebar-header {
+                            background: #232e47;
+                            box-shadow: 0 2px 8px 0 rgba(30, 41, 59, 0.1);
+                            color: #ffffff;
+                        }
+                        body.app-skin-dark .content-sidebar {
                             background: #151c2c;
                         }
                         /* Responsive */
