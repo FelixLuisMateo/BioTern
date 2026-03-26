@@ -252,7 +252,11 @@ $students_query = "
     LEFT JOIN users u_student ON s.user_id = u_student.id
     LEFT JOIN courses c ON s.course_id = c.id
     LEFT JOIN sections sec ON s.section_id = sec.id
-    LEFT JOIN internships i ON s.id = i.student_id AND i.status = 'ongoing'
+    LEFT JOIN internships i
+        ON s.id = i.student_id
+       AND i.status = 'ongoing'
+       AND COALESCE(i.school_year, '') = COALESCE(s.school_year, '')
+       AND COALESCE(i.semester, '') = COALESCE(s.semester, '')
     LEFT JOIN supervisors sup ON i.supervisor_id = sup.id
     LEFT JOIN coordinators coor ON i.coordinator_id = coor.id
     " . (count($where) > 0 ? "WHERE " . implode(' AND ', $where) : "") . "
