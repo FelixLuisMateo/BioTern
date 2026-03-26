@@ -1000,10 +1000,10 @@ echo htmlspecialchars((string)($_SESSION['email'] ?? 'admin@biotern.local'), ENT
                                 <i class="feather-cpu me-2"></i>
                                 <span>Machine Manager</span>
                             </a>
-                            <a href="legacy_router.php?file=biometric_machine_sync.php&redirect=attendance.php" class="btn btn-primary">
+                            <button type="button" class="btn btn-primary" id="manualSyncMachineButton">
                                 <i class="feather-refresh-cw me-2"></i>
                                 <span>Sync Machine</span>
-                            </a>
+                            </button>
                             <div class="dropdown">
                                 <a class="btn btn-icon btn-light-brand" data-bs-toggle="dropdown" data-bs-offset="0, 10" data-bs-auto-close="outside">
                                     <i class="feather-filter"></i>
@@ -1075,11 +1075,12 @@ echo htmlspecialchars((string)($_SESSION['email'] ?? 'admin@biotern.local'), ENT
             unset($_SESSION['attendance_sync_flash']);
             if (is_array($attendance_sync_flash) && !empty($attendance_sync_flash['message'])):
             ?>
-                <div class="alert alert-<?php echo htmlspecialchars((string)($attendance_sync_flash['type'] ?? 'info'), ENT_QUOTES, 'UTF-8'); ?> alert-dismissible fade show mx-3" role="alert">
+                <div class="alert alert-<?php echo htmlspecialchars((string)($attendance_sync_flash['type'] ?? 'info'), ENT_QUOTES, 'UTF-8'); ?> alert-dismissible fade show mx-3" role="alert" id="attendanceSyncAlert">
                     <?php echo nl2br(htmlspecialchars((string)$attendance_sync_flash['message'], ENT_QUOTES, 'UTF-8')); ?>
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
             <?php endif; ?>
+            <div id="attendanceSyncAlertHost" class="mx-3"></div>
 
             <!-- Filters -->
             <div class="collapse" id="attendanceFilterCollapse">
@@ -1690,12 +1691,56 @@ endif; ?>
         var biometricAutoSyncInFlight = false;
         var biometricAutoSyncIntervalMs = 60000;
 
-        function runBiometricAutoSync(showToastOnError) {
+        function escapeHtml(value) {
+            return String(value || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function showAttendanceSyncAlert(message, type) {
+            var host = document.getElementById('attendanceSyncAlertHost');
+            if (!host) {
+                return;
+            }
+
+            host.innerHTML = [
+                '<div class="alert alert-', escapeHtml(type || 'success'), ' alert-dismissible fade show" role="alert">',
+                escapeHtml(message || ''),
+                '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>',
+                '</div>'
+            ].join('');
+        }
+
+        function setManualSyncButtonBusy(isBusy) {
+            var button = document.getElementById('manualSyncMachineButton');
+            if (!button) {
+                return;
+            }
+
+            button.disabled = !!isBusy;
+            if (isBusy) {
+                button.dataset.originalHtml = button.dataset.originalHtml || button.innerHTML;
+                button.innerHTML = '<i class="feather-loader me-2"></i><span>Syncing...</span>';
+            } else if (button.dataset.originalHtml) {
+                button.innerHTML = button.dataset.originalHtml;
+            }
+        }
+
+        function runBiometricAutoSync(options) {
+            options = options || {};
+            var manual = !!options.manual;
+            var showToastOnError = !!options.showToastOnError;
             if (biometricAutoSyncInFlight || document.hidden) {
                 return;
             }
 
             biometricAutoSyncInFlight = true;
+            if (manual) {
+                setManualSyncButtonBusy(true);
+            }
             $.ajax({
                 url: 'legacy_router.php?file=biometric_machine_sync.php&format=json',
                 type: 'GET',
@@ -1703,15 +1748,27 @@ endif; ?>
             }).done(function(response) {
                 if (response && response.success) {
                     refreshAttendanceTable();
+                    if (manual) {
+                        showAttendanceSyncAlert('Machine sync complete.', 'success');
+                    }
                 } else if (showToastOnError) {
                     showToast((response && response.message) ? response.message : 'Machine sync failed.', 'danger');
+                    if (manual) {
+                        showAttendanceSyncAlert((response && response.message) ? response.message : 'Machine sync failed.', 'danger');
+                    }
                 }
             }).fail(function(xhr) {
                 if (showToastOnError) {
-                    showToast('Automatic machine sync failed.', 'danger');
+                    showToast(manual ? 'Machine sync failed.' : 'Automatic machine sync failed.', 'danger');
+                }
+                if (manual) {
+                    showAttendanceSyncAlert('Machine sync failed.', 'danger');
                 }
             }).always(function() {
                 biometricAutoSyncInFlight = false;
+                if (manual) {
+                    setManualSyncButtonBusy(false);
+                }
             });
         }
 
@@ -1860,17 +1917,24 @@ endif; ?>
             });
 
             setTimeout(function() {
-                runBiometricAutoSync(false);
+                runBiometricAutoSync({ showToastOnError: false });
             }, 1500);
 
             setInterval(function() {
-                runBiometricAutoSync(false);
+                runBiometricAutoSync({ showToastOnError: false });
             }, biometricAutoSyncIntervalMs);
 
             document.addEventListener('visibilitychange', function() {
                 if (!document.hidden) {
-                    runBiometricAutoSync(false);
+                    runBiometricAutoSync({ showToastOnError: false });
                 }
+            });
+
+            $('#manualSyncMachineButton').on('click', function() {
+                runBiometricAutoSync({
+                    manual: true,
+                    showToastOnError: true
+                });
             });
         });
 

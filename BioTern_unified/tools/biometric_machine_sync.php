@@ -112,7 +112,7 @@ if ($jsonMode) {
 }
 
 if ($allowRedirect) {
-    $_SESSION['attendance_sync_flash'] = ['type' => 'success', 'message' => $message];
+    $_SESSION['attendance_sync_flash'] = ['type' => 'success', 'message' => 'Machine sync complete.'];
     header('Location: ' . $redirect);
     exit;
 }

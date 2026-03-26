@@ -540,10 +540,10 @@ if (!function_exists('consolidateDuplicateBiometricAttendanceRows')) {
     function consolidateDuplicateBiometricAttendanceRows(mysqli $conn, int $studentId, string $date): void
     {
         $stmt = $conn->prepare("
-            SELECT id
+            SELECT id, morning_time_in, morning_time_out, afternoon_time_in, afternoon_time_out, status, remarks
             FROM attendances
             WHERE student_id = ? AND attendance_date = ? AND source = 'biometric'
-            ORDER BY id DESC
+            ORDER BY id ASC
         ");
         if ($stmt === false) {
             throw new RuntimeException('Database error: failed to prepare biometric duplicate lookup. Error: ' . $conn->error);
@@ -557,10 +557,51 @@ if (!function_exists('consolidateDuplicateBiometricAttendanceRows')) {
             return;
         }
 
-        $keepId = (int)($rows[0]['id'] ?? 0);
+        $keepRow = $rows[0];
+        foreach ($rows as $row) {
+            if (shouldPreferBiometricAttendanceRow($row, $keepRow)) {
+                $keepRow = $row;
+            }
+        }
+
+        $keepId = (int)($keepRow['id'] ?? 0);
         if ($keepId <= 0) {
             return;
         }
+
+        $mergedMorningIn = chooseBiometricAttendanceValue($rows, 'morning_time_in', 'min');
+        $mergedMorningOut = chooseBiometricAttendanceValue($rows, 'morning_time_out', 'max');
+        $mergedAfternoonIn = chooseBiometricAttendanceValue($rows, 'afternoon_time_in', 'min');
+        $mergedAfternoonOut = chooseBiometricAttendanceValue($rows, 'afternoon_time_out', 'max');
+        $mergedStatus = trim((string)($keepRow['status'] ?? 'pending'));
+        $mergedRemarks = (string)($keepRow['remarks'] ?? '');
+
+        $update = $conn->prepare("
+            UPDATE attendances
+            SET morning_time_in = ?,
+                morning_time_out = ?,
+                afternoon_time_in = ?,
+                afternoon_time_out = ?,
+                status = ?,
+                remarks = ?,
+                updated_at = NOW()
+            WHERE id = ?
+        ");
+        if ($update === false) {
+            throw new RuntimeException('Database error: failed to prepare biometric duplicate merge update. Error: ' . $conn->error);
+        }
+        $update->bind_param(
+            'ssssssi',
+            $mergedMorningIn,
+            $mergedMorningOut,
+            $mergedAfternoonIn,
+            $mergedAfternoonOut,
+            $mergedStatus,
+            $mergedRemarks,
+            $keepId
+        );
+        $update->execute();
+        $update->close();
 
         $delete = $conn->prepare("DELETE FROM attendances WHERE id = ?");
         if ($delete === false) {
@@ -577,6 +618,57 @@ if (!function_exists('consolidateDuplicateBiometricAttendanceRows')) {
         }
 
         $delete->close();
+    }
+}
+
+if (!function_exists('shouldPreferBiometricAttendanceRow')) {
+    function shouldPreferBiometricAttendanceRow(array $candidate, array $current): bool
+    {
+        $candidateScore = biometricAttendanceFilledSlotScore($candidate);
+        $currentScore = biometricAttendanceFilledSlotScore($current);
+        if ($candidateScore !== $currentScore) {
+            return $candidateScore > $currentScore;
+        }
+
+        return (int)($candidate['id'] ?? 0) < (int)($current['id'] ?? 0);
+    }
+}
+
+if (!function_exists('biometricAttendanceFilledSlotScore')) {
+    function biometricAttendanceFilledSlotScore(array $row): int
+    {
+        $score = 0;
+        foreach (['morning_time_in', 'morning_time_out', 'afternoon_time_in', 'afternoon_time_out'] as $column) {
+            $value = trim((string)($row[$column] ?? ''));
+            if ($value !== '' && $value !== '00:00:00') {
+                $score++;
+            }
+        }
+
+        return $score;
+    }
+}
+
+if (!function_exists('chooseBiometricAttendanceValue')) {
+    function chooseBiometricAttendanceValue(array $rows, string $column, string $mode = 'min'): ?string
+    {
+        $values = [];
+        foreach ($rows as $row) {
+            $value = trim((string)($row[$column] ?? ''));
+            if ($value !== '' && $value !== '00:00:00') {
+                $values[] = $value;
+            }
+        }
+
+        if ($values === []) {
+            return null;
+        }
+
+        usort($values, static function (string $left, string $right): int {
+            return strcmp($left, $right);
+        });
+
+        return $mode === 'max' ? end($values) : $values[0];
     }
 }
 

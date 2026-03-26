@@ -185,9 +185,17 @@ if (!function_exists('biometric_ops_fetch_recent_anomalies')) {
         $limit = max(1, min($limit, 50));
         $rows = [];
         $res = $conn->query("
-            SELECT *
-            FROM biometric_anomalies
-            ORDER BY created_at DESC, id DESC
+            SELECT
+                a.*,
+                u.name AS mapped_user_name,
+                u.username AS mapped_username,
+                s.first_name AS student_first_name,
+                s.last_name AS student_last_name,
+                s.student_id AS student_number
+            FROM biometric_anomalies a
+            LEFT JOIN users u ON a.user_id = u.id
+            LEFT JOIN students s ON a.student_id = s.id
+            ORDER BY a.created_at DESC, a.id DESC
             LIMIT {$limit}
         ");
         if ($res instanceof mysqli_result) {
