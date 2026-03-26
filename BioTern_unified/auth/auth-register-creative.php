@@ -741,6 +741,15 @@ for ($y = $currentYear; $y >= $startYear; $y--):
                                             <?php endfor; ?>
                                         </select>
                                     </div>
+                                    <div class="col-4 mb-2">
+                                        <label class="form-label fs-12" for="studentSemester">Semester</label>
+                                        <select name="semester" id="studentSemester" class="form-control" required>
+                                            <option value="" disabled selected>Select Semester</option>
+                                            <option value="1st Semester">1st Semester</option>
+                                            <option value="2nd Semester">2nd Semester</option>
+                                            <option value="Summer">Summer</option>
+                                        </select>
+                                    </div>
                                 </div>
                                 <div class="row g-3">
                                     <div class="col-6 mb-2">

@@ -92,6 +92,7 @@ include 'includes/header.php';
                 <li class="nav-item"><a class="nav-link" href="settings-ojt.php"><i class="feather-crosshair"></i><span>Leads</span></a></li>
                 <li class="nav-item"><a class="nav-link" href="settings-support.php"><i class="feather-life-buoy"></i><span>Support</span></a></li>
                 <li class="nav-item"><a class="nav-link" href="settings-students.php"><i class="feather-users"></i><span>Students</span></a></li>
+                <li class="nav-item"><a class="nav-link" href="import-students-excel.php"><i class="feather-upload"></i><span>Excel Import</span></a></li>
                 <li class="nav-item"><a class="nav-link active" href="theme-customizer.php"><i class="feather-settings"></i><span>Theme Customizer</span></a></li>
             </ul>
         </div>

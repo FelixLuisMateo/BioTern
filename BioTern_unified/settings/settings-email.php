@@ -58,6 +58,12 @@ include 'includes/header.php';
                                     <span>Students</span>
                                 </a>
                             </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="import-students-excel.php">
+                                    <i class="feather-upload"></i>
+                                    <span>Excel Import</span>
+                                </a>
+                            </li>
 
 
                             <li class="nav-item">

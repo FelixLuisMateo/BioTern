@@ -281,6 +281,7 @@ if ($role === 'student') {
         'external_total_hours_remaining' => "external_total_hours_remaining INT(11) DEFAULT NULL",
         'assignment_track' => "assignment_track VARCHAR(20) NOT NULL DEFAULT 'internal'",
         'school_year' => "school_year VARCHAR(9) NULL",
+        'semester' => "semester VARCHAR(30) NULL",
     ];
     foreach ($registerStudentSchemaColumns as $column => $definition) {
         biotern_db_add_column_if_missing($mysqli, 'students', $column, $definition);
@@ -305,6 +306,8 @@ if ($role === 'student') {
     $department_id_raw = getPost('department_id');
     $department_code = getPost('department_code');
     $account_email = getPost('account_email');
+    $semester = getPost('semester');
+    $school_year_posted = getPost('school_year');
     
     // New fields - now accepting IDs
     $phone = getPost('phone');
@@ -356,7 +359,13 @@ if ($role === 'student') {
     $internal_total_hours_remaining = $finished_internal_yes ? 0 : $internal_total_hours;
     $external_total_hours_remaining = $finished_internal_yes ? $external_total_hours : 0;
     $assignment_track = $finished_internal_yes ? 'external' : 'internal';
-    $school_year = getCurrentSchoolYearLabel();
+    $school_year = $school_year_posted && preg_match('/^\d{4}-\d{4}$/', (string)$school_year_posted)
+        ? (string)$school_year_posted
+        : getCurrentSchoolYearLabel();
+    $semester = trim((string)$semester);
+    if (!in_array($semester, ['1st Semester', '2nd Semester', 'Summer'], true)) {
+        $semester = '';
+    }
     $coordinator_name = null;
     $supervisor_name = null;
 
@@ -592,7 +601,7 @@ if ($role === 'student') {
 
     // Now insert into students table using the user_id
     // Note: If emergency_contact_phone column doesn't exist, store phone in emergency_contact or add the column
-    $stmt = $mysqli->prepare("INSERT INTO students (user_id, course_id, student_id, first_name, last_name, middle_name, password, email, department_id, section_id, address, phone, date_of_birth, gender, supervisor_id, supervisor_name, coordinator_id, coordinator_name, internal_total_hours, internal_total_hours_remaining, external_total_hours, external_total_hours_remaining, assignment_track, emergency_contact, school_year, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULLIF(?, 0), ?, ?, ?, ?, NULLIF(?, 0), ?, NULLIF(?, 0), ?, ?, ?, ?, ?, ?, ?, ?, NOW())");
+    $stmt = $mysqli->prepare("INSERT INTO students (user_id, course_id, student_id, first_name, last_name, middle_name, password, email, department_id, section_id, semester, address, phone, date_of_birth, gender, supervisor_id, supervisor_name, coordinator_id, coordinator_name, internal_total_hours, internal_total_hours_remaining, external_total_hours, external_total_hours_remaining, assignment_track, emergency_contact, school_year, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULLIF(?, 0), NULLIF(?, ''), ?, ?, ?, ?, NULLIF(?, 0), ?, NULLIF(?, 0), ?, ?, ?, ?, ?, ?, ?, ?, NOW())");
     
     if (!$stmt) {
         header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Database statement error: ' . $mysqli->error));
@@ -606,7 +615,7 @@ if ($role === 'student') {
     }
     
     // types: user_id(i), course_id(i), student_id(s), first_name(s), last_name(s), middle_name(s),
-    // password(s), email(s), department_id(s), section_id(i), address(s), phone(s),
+    // password(s), email(s), department_id(s), section_id(i), semester(s), address(s), phone(s),
     // date_of_birth(s), gender(s), supervisor_id(i), supervisor_name(s), coordinator_id(i),
     // coordinator_name(s), internal_total_hours(i), internal_total_hours_remaining(i),
     // external_total_hours(i), external_total_hours_remaining(i), assignment_track(s), emergency_contact(s), school_year(s)
@@ -616,7 +625,7 @@ if ($role === 'student') {
     $coordinator_id_for_insert = !empty($coordinator_id) ? (int)$coordinator_id : 0;
 
     $stmt->bind_param(
-        'iisssssssissssisisiiiisss',
+        'iisssssssisssssisisiiiisss',
         $user_id,
         $course_id,
         $student_id,
@@ -627,6 +636,7 @@ if ($role === 'student') {
         $final_email,
         $department_id_for_student,
         $section_id_for_insert,
+        $semester,
         $address,
         $phone,
         $date_of_birth,
