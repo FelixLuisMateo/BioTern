@@ -34,6 +34,12 @@ $msg = '';
 $editFingerId = (int)($_GET['edit_finger_id'] ?? 0);
 $editUserId = 0;
 
+if (isset($_SESSION['fingerprint_mapping_flash']) && is_array($_SESSION['fingerprint_mapping_flash'])) {
+    $flashType = (string)($_SESSION['fingerprint_mapping_flash']['type'] ?? 'success');
+    $msg = (string)($_SESSION['fingerprint_mapping_flash']['message'] ?? '');
+    unset($_SESSION['fingerprint_mapping_flash']);
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = trim((string)($_POST['mapping_action'] ?? 'save'));
 
@@ -48,7 +54,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->bind_param('i', $fingerId);
             $stmt->execute();
             $stmt->close();
-            $msg = 'Mapping removed.';
+            $_SESSION['fingerprint_mapping_flash'] = ['type' => 'success', 'message' => 'Mapping removed.'];
+            header('Location: fingerprint_mapping.php');
+            exit;
         } else {
             $fingerId = (int)($_POST['finger_id'] ?? 0);
             $userId = (int)($_POST['user_id'] ?? 0);
@@ -83,11 +91,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->bind_param('ii', $fingerId, $userId);
             $stmt->execute();
             $stmt->close();
-            $msg = 'Mapping updated.';
+            $_SESSION['fingerprint_mapping_flash'] = ['type' => 'success', 'message' => 'Mapping updated.'];
+            header('Location: fingerprint_mapping.php');
+            exit;
         }
     } catch (Throwable $e) {
-        $flashType = 'danger';
-        $msg = $e->getMessage();
+        $_SESSION['fingerprint_mapping_flash'] = ['type' => 'danger', 'message' => $e->getMessage()];
+        $redirect = 'fingerprint_mapping.php';
+        if ($editFingerId > 0) {
+            $redirect .= '?edit_finger_id=' . $editFingerId;
+        }
+        header('Location: ' . $redirect);
+        exit;
     }
 }
 

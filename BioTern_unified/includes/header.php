@@ -145,52 +145,9 @@ if (!$header_conn->connect_errno) {
 if (!isset($page_title) || trim($page_title) === '') {
     $page_title = 'BioTern';
 }
-if (!isset($base_href)) {
-    $base_href = '';
-}
-// Resolve base URL once so every relative head asset (including favicon) stays valid.
-if ($base_href === '') {
-    $resolved_base_href = '';
 
-    $doc_root_real = realpath((string)($_SERVER['DOCUMENT_ROOT'] ?? ''));
-    $project_root_real = realpath(dirname(__DIR__));
-    if (is_string($doc_root_real) && $doc_root_real !== '' && is_string($project_root_real) && $project_root_real !== '') {
-        $doc_root_norm = str_replace('\\', '/', rtrim($doc_root_real, '/\\'));
-        $project_root_norm = str_replace('\\', '/', rtrim($project_root_real, '/\\'));
-        if (stripos($project_root_norm, $doc_root_norm) === 0) {
-            $relative_root = trim(substr($project_root_norm, strlen($doc_root_norm)), '/');
-            $resolved_base_href = '/' . ($relative_root !== '' ? ($relative_root . '/') : '');
-        }
-    }
-
-    if ($resolved_base_href === '') {
-        $script_name = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
-        $project_segment = '/' . basename(dirname(__DIR__)) . '/';
-        $project_pos = stripos($script_name, $project_segment);
-        if ($project_pos !== false) {
-            $resolved_base_href = substr($script_name, 0, $project_pos) . $project_segment;
-        } else {
-            $resolved_base_href = '/';
-        }
-    }
-
-    $base_href = $resolved_base_href;
-}
-
-$base_href = str_replace('\\', '/', (string)$base_href);
-if (preg_match('#^/?[A-Za-z]:/#', $base_href) === 1) {
-    $htdocs_pos = stripos($base_href, '/htdocs/');
-    if ($htdocs_pos !== false) {
-        $base_href = substr($base_href, $htdocs_pos + strlen('/htdocs'));
-    }
-}
-if ($base_href !== '' && $base_href[0] !== '/') {
-    $base_href = '/' . $base_href;
-}
-$base_href = preg_replace('#/+#', '/', (string)$base_href);
-if ($base_href === '' || substr($base_href, -1) !== '/') {
-    $base_href .= '/';
-}
+// FORCE base_href to the correct web root-relative path to prevent file system paths in <base href>
+$base_href = '/BioTern/BioTern_unified/';
 
 $favicon_root = $base_href;
 $favicon_ico_path = dirname(__DIR__) . '/assets/images/favicon.ico';

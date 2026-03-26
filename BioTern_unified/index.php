@@ -33,16 +33,12 @@ $landing_theme_preferences = [
 ];
 $landing_theme_api = 'api/theme-customizer.php';
 
-$favicon_root = '';
-$script_name = (string)($_SERVER['SCRIPT_NAME'] ?? '');
-$script_name = str_replace('\\', '/', $script_name);
-$unified_pos = stripos($script_name, '/BioTern_unified/');
-if ($unified_pos !== false) {
-    $favicon_root = substr($script_name, 0, $unified_pos) . '/BioTern_unified/';
-} else {
-    $dir = rtrim(str_replace('\\', '/', dirname($script_name)), '/');
-    $favicon_root = ($dir === '' || $dir === '.') ? '/' : ($dir . '/');
-}
+
+
+// Hardcode the web root-relative path for correct URL generation
+$landing_app_root = '/biotern/biotern_unified';
+
+$favicon_root = $landing_app_root . '/';
 $favicon_ico_path = __DIR__ . '/assets/images/favicon.ico';
 $favicon_png_path = __DIR__ . '/assets/images/favicon-rounded.png';
 $favicon_ico_mtime = @filemtime($favicon_ico_path);
@@ -52,12 +48,11 @@ $favicon_png_version = ($favicon_png_mtime !== false) ? (string)$favicon_png_mti
 $favicon_ico_href = $favicon_root . 'assets/images/favicon.ico?v=' . rawurlencode($favicon_ico_version);
 $favicon_png_href = $favicon_root . 'assets/images/favicon-rounded.png?v=' . rawurlencode($favicon_png_version);
 
-$landing_app_root = rtrim($favicon_root, '/');
 $landing_apply_href = $landing_app_root . '/auth/auth-register-creative.php?role=student';
 $landing_start_href = $landing_app_root . '/auth/auth-register-creative.php?role=student';
 $landing_signin_href = $landing_logged_in
     ? ($landing_app_root . '/homepage.php')
-    : ($landing_app_root . '/auth/auth-login-cover.php');
+    : '/BioTern/BioTern_unified/auth/auth-login-cover.php';
 $landing_hero_href = $landing_signin_href;
 ?>
 <!DOCTYPE html>
@@ -367,8 +362,8 @@ $landing_hero_href = $landing_signin_href;
     <header class="nxl-header landing-header">
         <div class="header-wrapper">
             <div class="header-left d-flex align-items-center gap-4">
-                <a href="index.php" class="d-flex align-items-center">
-                    <img src="assets/images/logo-full-header.png" alt="BioTern" class="landing-brand-logo">
+                <a href="<?php echo htmlspecialchars($landing_app_root . '/index.php', ENT_QUOTES, 'UTF-8'); ?>" class="d-flex align-items-center">
+                    <img src="<?php echo htmlspecialchars($landing_app_root . '/assets/images/logo-full-header.png', ENT_QUOTES, 'UTF-8'); ?>" alt="BioTern" class="landing-brand-logo">
                 </a>
             </div>
             <div class="header-right ms-auto">
@@ -382,7 +377,7 @@ $landing_hero_href = $landing_signin_href;
                         </a>
                     </div>
                     <a href="<?php echo htmlspecialchars($landing_apply_href, ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-sm btn-light-brand">Apply</a>
-                    <a href="<?php echo htmlspecialchars($landing_signin_href, ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-sm btn-primary"><?php echo htmlspecialchars($landing_signin_label, ENT_QUOTES, 'UTF-8'); ?></a>
+                    <a href="/BioTern/BioTern_unified/auth/auth-login-cover.php" class="btn btn-sm btn-primary"><?php echo htmlspecialchars($landing_signin_label, ENT_QUOTES, 'UTF-8'); ?></a>
                 </div>
             </div>
         </div>
@@ -405,7 +400,7 @@ $landing_hero_href = $landing_signin_href;
                         </div>
                     </div>
                     <div class="col-lg-4 d-flex justify-content-center p-4 p-lg-0">
-                        <img class="hero-college-logo" src="assets/images/auth/auth-cover-login-bg.png" alt="Clark College Logo">
+                        <img class="hero-college-logo" src="<?php echo htmlspecialchars($landing_app_root . '/assets/images/auth/auth-cover-login-bg.png', ENT_QUOTES, 'UTF-8'); ?>" alt="Clark College Logo">
                     </div>
                 </div>
             </div>
@@ -457,11 +452,11 @@ $landing_hero_href = $landing_signin_href;
         </div>
     </footer>
 
-    <script src="assets/vendors/js/vendors.min.js"></script>
-    <script src="assets/js/common-init.min.js"></script>
-    <script src="assets/js/global-ui-helpers.js"></script>
-    <script src="assets/js/theme-preferences-runtime.js"></script>
-    <script src="assets/js/theme-customizer-init.min.js"></script>
+    <script src="<?php echo htmlspecialchars($landing_app_root . '/assets/vendors/js/vendors.min.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
+    <script src="<?php echo htmlspecialchars($landing_app_root . '/assets/js/common-init.min.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
+    <script src="<?php echo htmlspecialchars($landing_app_root . '/assets/js/global-ui-helpers.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
+    <script src="<?php echo htmlspecialchars($landing_app_root . '/assets/js/theme-preferences-runtime.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
+    <script src="<?php echo htmlspecialchars($landing_app_root . '/assets/js/theme-customizer-init.min.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
 </body>
 </html>
 

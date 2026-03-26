@@ -14,13 +14,23 @@ if (!in_array($role, ['admin', 'coordinator', 'supervisor'], true)) {
 }
 $isAdmin = ($role === 'admin');
 
+function machine_redirect_after_post(array $params = []): void
+{
+    $target = 'biometric-machine.php';
+    if ($params !== []) {
+        $target .= '?' . http_build_query($params);
+    }
+    header('Location: ' . $target);
+    exit;
+}
+
 $flashType = 'info';
 $flashMessage = '';
 $userListRaw = '';
-$userDetailsRaw = trim((string)($_POST['user_json'] ?? ''));
+$userDetailsRaw = '';
 $userListDecoded = null;
 $userDetailsDecoded = null;
-$selectedUserId = (int)($_POST['user_id'] ?? 0);
+$selectedUserId = (int)($_GET['selected_user_id'] ?? $_POST['user_id'] ?? 0);
 $deviceInfoRaw = '';
 $configRaw = '';
 $ringSetRaw = '';
@@ -139,6 +149,34 @@ function machine_load_user_details_into_state(int $selectedUserId, &$userDetails
     $userDetailsDecoded = biometric_machine_decode_data($userDetailsRaw);
 }
 
+if (isset($_SESSION['machine_manager_flash']) && is_array($_SESSION['machine_manager_flash'])) {
+    $flashType = (string)($_SESSION['machine_manager_flash']['type'] ?? 'info');
+    $flashMessage = (string)($_SESSION['machine_manager_flash']['message'] ?? '');
+    unset($_SESSION['machine_manager_flash']);
+}
+
+if ((int)($_GET['load_users'] ?? 0) === 1) {
+    try {
+        machine_load_user_list_into_state($userListRaw, $userListDecoded);
+    } catch (Throwable $e) {
+        if ($flashMessage === '') {
+            $flashType = 'danger';
+            $flashMessage = $e->getMessage();
+        }
+    }
+}
+
+if ($selectedUserId > 0 && (int)($_GET['load_user'] ?? 0) === 1) {
+    try {
+        machine_load_user_details_into_state($selectedUserId, $userDetailsRaw, $userDetailsDecoded);
+    } catch (Throwable $e) {
+        if ($flashMessage === '') {
+            $flashType = 'danger';
+            $flashMessage = $e->getMessage();
+        }
+    }
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = trim((string)($_POST['machine_action'] ?? ''));
 
@@ -164,24 +202,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!$connector['success']) {
                     throw new RuntimeException(trim(implode("\n", $connector['output'] ?? [])));
                 }
-                $flashMessage = trim(($connector['text'] ?? '') . "\n" . run_biometric_auto_import());
-                $flashType = 'success';
-                break;
+                $_SESSION['machine_manager_flash'] = [
+                    'type' => 'success',
+                    'message' => trim(($connector['text'] ?? '') . "\n" . run_biometric_auto_import()),
+                ];
+                machine_redirect_after_post(['load_users' => 1]);
 
             case 'list_users':
                 machine_load_user_list_into_state($userListRaw, $userListDecoded);
-                $flashMessage = 'Machine user list loaded.';
-                $flashType = 'success';
-                break;
+                $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Machine user list loaded.'];
+                machine_redirect_after_post(['load_users' => 1]);
 
             case 'get_user':
                 if ($selectedUserId <= 0) {
                     throw new RuntimeException('Enter a valid user ID.');
                 }
                 machine_load_user_details_into_state($selectedUserId, $userDetailsRaw, $userDetailsDecoded);
-                $flashMessage = 'Machine user record loaded.';
-                $flashType = 'success';
-                break;
+                $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Machine user record loaded.'];
+                machine_redirect_after_post(['selected_user_id' => $selectedUserId, 'load_users' => 1, 'load_user' => 1]);
 
             case 'save_user_json':
                 if ($userDetailsRaw === '') {
@@ -194,9 +232,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!$result['success']) {
                     throw new RuntimeException(trim(implode("\n", $result['output'] ?? [])));
                 }
-                $flashMessage = 'Machine user updated.';
-                $flashType = 'success';
-                break;
+                $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Machine user updated.'];
+                machine_redirect_after_post(['selected_user_id' => $selectedUserId, 'load_users' => 1, 'load_user' => 1]);
 
             case 'save_user_name':
                 $newName = trim((string)($_POST['user_name'] ?? ''));
@@ -211,11 +248,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!$result['success']) {
                     throw new RuntimeException(trim(implode("\n", $result['output'] ?? [])));
                 }
-                machine_load_user_details_into_state($selectedUserId, $userDetailsRaw, $userDetailsDecoded);
-                machine_load_user_list_into_state($userListRaw, $userListDecoded);
-                $flashMessage = 'Machine user name updated.';
-                $flashType = 'success';
-                break;
+                $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Machine user name updated.'];
+                machine_redirect_after_post(['selected_user_id' => $selectedUserId, 'load_users' => 1, 'load_user' => 1]);
 
             case 'save_list_user_name':
                 $newName = trim((string)($_POST['inline_user_name'] ?? ''));
@@ -235,10 +269,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!$result['success']) {
                     throw new RuntimeException(trim(implode("\n", $result['output'] ?? [])));
                 }
-                machine_load_user_list_into_state($userListRaw, $userListDecoded);
-                $flashMessage = 'Machine user renamed on the F20H.';
-                $flashType = 'success';
-                break;
+                $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Machine user renamed on the F20H.'];
+                machine_redirect_after_post(['selected_user_id' => $inlineUserId, 'load_users' => 1, 'load_user' => 1]);
 
             case 'delete_user':
                 if ($selectedUserId <= 0) {
@@ -248,32 +280,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!$result['success']) {
                     throw new RuntimeException(trim(implode("\n", $result['output'] ?? [])));
                 }
-                $flashMessage = 'Machine user deleted.';
-                $flashType = 'success';
-                $userDetailsRaw = '';
-                $userDetailsDecoded = null;
-                machine_load_user_list_into_state($userListRaw, $userListDecoded);
-                break;
+                $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Machine user deleted.'];
+                machine_redirect_after_post(['load_users' => 1]);
 
             case 'get_device_info':
                 $result = biometric_machine_run_command('get-device-info');
                 if (!$result['success']) {
                     throw new RuntimeException(trim(implode("\n", $result['output'] ?? [])));
                 }
-                $deviceInfoRaw = $result['text'] ?? '';
-                $flashMessage = 'Device info loaded.';
-                $flashType = 'success';
-                break;
+                $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Device info loaded.'];
+                machine_redirect_after_post([]);
 
             case 'get_config':
                 $result = biometric_machine_run_command('get-config');
                 if (!$result['success']) {
                     throw new RuntimeException(trim(implode("\n", $result['output'] ?? [])));
                 }
-                $configRaw = $result['text'] ?? '';
-                $flashMessage = 'Device config loaded.';
-                $flashType = 'success';
-                break;
+                $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Device config loaded.'];
+                machine_redirect_after_post([]);
 
             case 'save_config':
                 $configRaw = trim((string)($_POST['config_json'] ?? ''));
@@ -287,19 +311,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!$result['success']) {
                     throw new RuntimeException(trim(implode("\n", $result['output'] ?? [])));
                 }
-                $flashMessage = 'Device config updated.';
-                $flashType = 'success';
-                break;
+                $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Device config updated.'];
+                machine_redirect_after_post([]);
 
             case 'get_network':
                 $result = biometric_machine_run_command('get-network');
                 if (!$result['success']) {
                     throw new RuntimeException(trim(implode("\n", $result['output'] ?? [])));
                 }
-                $networkRaw = $result['text'] ?? '';
-                $flashMessage = 'Network settings loaded.';
-                $flashType = 'success';
-                break;
+                $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Network settings loaded.'];
+                machine_redirect_after_post([]);
 
             case 'save_network':
                 $ip = trim((string)($_POST['ip_address'] ?? ''));
@@ -310,19 +331,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!$result['success']) {
                     throw new RuntimeException(trim(implode("\n", $result['output'] ?? [])));
                 }
-                $flashMessage = 'Network settings updated.';
-                $flashType = 'success';
-                break;
+                $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Network settings updated.'];
+                machine_redirect_after_post([]);
 
             case 'get_time':
                 $result = biometric_machine_run_command('get-time');
                 if (!$result['success']) {
                     throw new RuntimeException(trim(implode("\n", $result['output'] ?? [])));
                 }
-                $timeRaw = $result['text'] ?? '';
-                $flashMessage = 'Machine time loaded.';
-                $flashType = 'success';
-                break;
+                $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Machine time loaded.'];
+                machine_redirect_after_post([]);
 
             case 'set_time':
                 $timeValue = trim((string)($_POST['time_value'] ?? ''));
@@ -330,9 +348,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!$result['success']) {
                     throw new RuntimeException(trim(implode("\n", $result['output'] ?? [])));
                 }
-                $flashMessage = 'Machine time updated.';
-                $flashType = 'success';
-                break;
+                $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Machine time updated.'];
+                machine_redirect_after_post([]);
 
             case 'save_connector_config':
                 $machineConfigJson = trim((string)($_POST['connector_config_json'] ?? ''));
@@ -343,45 +360,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     throw new RuntimeException('Connector config must be valid JSON.');
                 }
                 file_put_contents($machineConfigPath, $machineConfigJson . PHP_EOL);
-                $flashMessage = 'Connector config updated.';
-                $flashType = 'success';
-                break;
+                $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Connector config updated.'];
+                machine_redirect_after_post([]);
 
             case 'clear_records':
                 $result = biometric_machine_run_command('clear-records');
                 if (!$result['success']) {
                     throw new RuntimeException(trim(implode("\n", $result['output'] ?? [])));
                 }
-                $flashMessage = 'Machine attendance records cleared.';
-                $flashType = 'warning';
-                break;
+                $_SESSION['machine_manager_flash'] = ['type' => 'warning', 'message' => 'Machine attendance records cleared.'];
+                machine_redirect_after_post(['load_users' => 1]);
 
             case 'clear_users':
                 $result = biometric_machine_run_command('clear-users');
                 if (!$result['success']) {
                     throw new RuntimeException(trim(implode("\n", $result['output'] ?? [])));
                 }
-                $flashMessage = 'All users on the machine were cleared.';
-                $flashType = 'warning';
-                break;
+                $_SESSION['machine_manager_flash'] = ['type' => 'warning', 'message' => 'All users on the machine were cleared.'];
+                machine_redirect_after_post([]);
 
             case 'clear_admin':
                 $result = biometric_machine_run_command('clear-admin');
                 if (!$result['success']) {
                     throw new RuntimeException(trim(implode("\n", $result['output'] ?? [])));
                 }
-                $flashMessage = 'Machine admin records cleared.';
-                $flashType = 'warning';
-                break;
+                $_SESSION['machine_manager_flash'] = ['type' => 'warning', 'message' => 'Machine admin records cleared.'];
+                machine_redirect_after_post([]);
 
             case 'restart':
                 $result = biometric_machine_run_command('restart');
                 if (!$result['success']) {
                     throw new RuntimeException(trim(implode("\n", $result['output'] ?? [])));
                 }
-                $flashMessage = 'Restart command sent to the machine.';
-                $flashType = 'success';
-                break;
+                $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Restart command sent to the machine.'];
+                machine_redirect_after_post([]);
 
             case 'save_device_identity':
                 $deviceNo = trim((string)($_POST['device_number'] ?? ''));
@@ -398,13 +410,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         throw new RuntimeException(trim(implode("\n", $passwordResult['output'] ?? [])));
                     }
                 }
-                $flashMessage = 'Machine identity settings updated.';
-                $flashType = 'success';
-                break;
+                $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Machine identity settings updated.'];
+                machine_redirect_after_post([]);
         }
     } catch (Throwable $e) {
-        $flashType = 'danger';
-        $flashMessage = $e->getMessage();
+        $_SESSION['machine_manager_flash'] = ['type' => 'danger', 'message' => $e->getMessage()];
+        $errorParams = [];
+        if ($selectedUserId > 0) {
+            $errorParams['selected_user_id'] = $selectedUserId;
+            $errorParams['load_user'] = 1;
+        }
+        $errorParams['load_users'] = 1;
+        machine_redirect_after_post($errorParams);
     }
 }
 
@@ -607,7 +624,7 @@ include __DIR__ . '/../includes/header.php';
             </div>
 
             <div class="col-xl-6">
-                <div class="card stretch stretch-full">
+                <div class="card">
                     <div class="card-header"><h6 class="card-title mb-0">Selected User Editor</h6></div>
                     <div class="card-body">
                         <form method="post" class="row g-2 mb-3">
