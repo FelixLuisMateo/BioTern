@@ -11,6 +11,8 @@ $db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
 
 $conn = null;
 $view_user_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
+$requested_school_year = trim((string)($_GET['school_year'] ?? ''));
+$requested_semester = trim((string)($_GET['semester'] ?? ''));
 $selected_student_id = $view_user_id;
 $selected_user_id = 0;
 $flash_message = '';
@@ -761,42 +763,22 @@ try {
     }
 
     if ($view_user_id > 0) {
-        // Resolve student robustly across varying schemas/data imports.
-        $student_cols = [];
-        $col_res = $conn->query("SHOW COLUMNS FROM students");
-        if ($col_res) {
-            while ($col = $col_res->fetch_assoc()) {
-                $student_cols[] = $col['Field'] ?? '';
-            }
-        }
-
-        $candidate_wheres = [];
-        $candidate_wheres[] = "s.id = " . intval($view_user_id);
-        if (in_array('user_id', $student_cols, true)) {
-            $candidate_wheres[] = "s.user_id = " . intval($view_user_id);
-        }
-        if (in_array('student_id', $student_cols, true)) {
-            $candidate_wheres[] = "s.student_id = '" . $conn->real_escape_string((string)$view_user_id) . "'";
-        }
-        $candidate_sql = implode(' OR ', array_unique($candidate_wheres));
-        // Priority order is critical:
-        // 1) exact students.id match, 2) user_id match, 3) student_id string match.
-        $student_sql = "SELECT s.*, c.name AS course_name,
+        $student_stmt = $conn->prepare("SELECT s.*, c.name AS course_name,
+                COALESCE(NULLIF(sec.code, ''), NULLIF(sec.name, ''), '') AS section_name,
                 COALESCE(NULLIF(u_student.profile_picture, ''), NULLIF(s.profile_picture, '')) AS user_profile_picture
             FROM students s
             LEFT JOIN users u_student ON s.user_id = u_student.id
             LEFT JOIN courses c ON s.course_id = c.id
-            WHERE (" . $candidate_sql . ")
-            ORDER BY
-                CASE
-                    WHEN s.id = " . intval($view_user_id) . " THEN 1
-                    " . (in_array('user_id', $student_cols, true) ? "WHEN s.user_id = " . intval($view_user_id) . " THEN 2" : "") . "
-                    " . (in_array('student_id', $student_cols, true) ? "WHEN s.student_id = '" . $conn->real_escape_string((string)$view_user_id) . "' THEN 3" : "") . "
-                    ELSE 99
-                END
-            LIMIT 1";
-        $res_student = $conn->query($student_sql);
-        $student = $res_student ? $res_student->fetch_assoc() : null;
+            LEFT JOIN sections sec ON s.section_id = sec.id
+            WHERE s.id = ?
+            LIMIT 1");
+        $student = null;
+        if ($student_stmt) {
+            $student_stmt->bind_param('i', $view_user_id);
+            $student_stmt->execute();
+            $student = $student_stmt->get_result()->fetch_assoc();
+            $student_stmt->close();
+        }
         if (!$student) {
             header('Location: idnotfound-404.php?source=ojt-view&id=' . urlencode($view_user_id));
             exit;
@@ -806,6 +788,8 @@ try {
         }
         $selected_student_id = intval($student['id'] ?? $view_user_id);
         $selected_user_id = intval($student['user_id'] ?? 0);
+        $student['active_school_year'] = preg_match('/^\d{4}-\d{4}$/', $requested_school_year) ? $requested_school_year : trim((string)($student['school_year'] ?? ''));
+        $student['active_semester'] = in_array($requested_semester, ['1st Semester', '2nd Semester', 'Summer'], true) ? $requested_semester : trim((string)($student['semester'] ?? ''));
         $masterlist_row = biotern_masterlist_fetch_for_student($conn, $student);
 
         if (!empty($masterlist_row)) {
@@ -815,11 +799,7 @@ try {
             $dau_moa_data = array_merge($dau_moa_data, biotern_masterlist_dau_moa_defaults($masterlist_row, $student));
         }
 
-        $doc_lookup_ids = array_values(array_unique(array_filter([
-            $selected_student_id,
-            $selected_user_id,
-            $view_user_id
-        ], function ($v) { return intval($v) > 0; })));
+        $doc_lookup_ids = [$selected_student_id];
 
         $row = null;
         foreach ($doc_lookup_ids as $lookup_id) {
@@ -917,8 +897,12 @@ try {
         }
 
         if (ojt_table_exists($conn, 'internships')) {
-            $stmt_i = $conn->prepare("SELECT * FROM internships WHERE student_id = ? ORDER BY id DESC LIMIT 1");
-            $stmt_i->bind_param('i', $selected_student_id);
+            $student_school_year = trim((string)($student['school_year'] ?? ''));
+            $student_semester = trim((string)($student['semester'] ?? ''));
+            $active_school_year = $student['active_school_year'] !== '' ? $student['active_school_year'] : $student_school_year;
+            $active_semester = $student['active_semester'] !== '' ? $student['active_semester'] : $student_semester;
+            $stmt_i = $conn->prepare("SELECT * FROM internships WHERE student_id = ? AND COALESCE(school_year, '') = ? AND COALESCE(semester, '') = ? ORDER BY id DESC LIMIT 1");
+            $stmt_i->bind_param('iss', $selected_student_id, $active_school_year, $active_semester);
             $stmt_i->execute();
             $internship_data = $stmt_i->get_result()->fetch_assoc();
             $stmt_i->close();
@@ -1747,6 +1731,18 @@ require_once dirname(__DIR__) . '/config/db.php';
                                     <div class="col-lg-10"><?php echo htmlspecialchars(display_text($student['course_name'] ?? '')); ?></div>
                                 </div>
                                 <div class="row mb-4">
+                                    <div class="col-lg-2 fw-medium">School Year</div>
+                                    <div class="col-lg-10"><?php echo htmlspecialchars(display_text($student['active_school_year'] ?? ($student['school_year'] ?? ''))); ?></div>
+                                </div>
+                                <div class="row mb-4">
+                                    <div class="col-lg-2 fw-medium">Semester</div>
+                                    <div class="col-lg-10"><?php echo htmlspecialchars(display_text($student['active_semester'] ?? ($student['semester'] ?? ''))); ?></div>
+                                </div>
+                                <div class="row mb-4">
+                                    <div class="col-lg-2 fw-medium">Section</div>
+                                    <div class="col-lg-10"><?php echo htmlspecialchars(display_text($student['section_name'] ?? ($student['section'] ?? ''))); ?></div>
+                                </div>
+                                <div class="row mb-4">
                                     <div class="col-lg-2 fw-medium">Email</div>
                                     <div class="col-lg-10"><?php echo htmlspecialchars(display_text($student['email'] ?? '')); ?></div>
                                 </div>
@@ -2066,7 +2062,7 @@ require_once dirname(__DIR__) . '/config/db.php';
                             <?php endif; ?>
 
                             <?php if ($view_user_id <= 0): ?>
-                                <div class="alert alert-warning mb-0">Open this page from OJT List using a specific student row so document data can be linked by user ID.</div>
+                                <div class="alert alert-warning mb-0">Open this page from OJT List using a specific student row so document data stays linked to the student record for the active term.</div>
                             <?php else: ?>
                                 <div class="mb-4">
                                     <h5 class="fw-bold mb-1">Application Letter Autofill</h5>
@@ -2125,7 +2121,7 @@ require_once dirname(__DIR__) . '/config/db.php';
                                 <div class="alert alert-<?php echo htmlspecialchars($flash_type); ?> mb-3"><?php echo htmlspecialchars($flash_message); ?></div>
                             <?php endif; ?>
                             <?php if ($view_user_id <= 0): ?>
-                                <div class="alert alert-warning mb-0">Open this page from OJT List using a specific student row so document data can be linked by user ID.</div>
+                                <div class="alert alert-warning mb-0">Open this page from OJT List using a specific student row so document data stays linked to the student record for the active term.</div>
                             <?php else: ?>
                                 <div class="mb-4">
                                     <h5 class="fw-bold mb-1">MOA Autofill</h5>
@@ -2237,7 +2233,7 @@ require_once dirname(__DIR__) . '/config/db.php';
                                 <div class="alert alert-<?php echo htmlspecialchars($flash_type); ?> mb-3"><?php echo htmlspecialchars($flash_message); ?></div>
                             <?php endif; ?>
                             <?php if ($view_user_id <= 0): ?>
-                                <div class="alert alert-warning mb-0">Open this page from OJT List using a specific student row so document data can be linked by user ID.</div>
+                                <div class="alert alert-warning mb-0">Open this page from OJT List using a specific student row so document data stays linked to the student record for the active term.</div>
                             <?php else: ?>
                                 <div class="mb-4">
                                     <h5 class="fw-bold mb-1">Endorsement Letter</h5>
@@ -2304,7 +2300,7 @@ require_once dirname(__DIR__) . '/config/db.php';
                                 <div class="alert alert-<?php echo htmlspecialchars($flash_type); ?> mb-3"><?php echo htmlspecialchars($flash_message); ?></div>
                             <?php endif; ?>
                             <?php if ($view_user_id <= 0): ?>
-                                <div class="alert alert-warning mb-0">Open this page from OJT List using a specific student row so document data can be linked by user ID.</div>
+                                <div class="alert alert-warning mb-0">Open this page from OJT List using a specific student row so document data stays linked to the student record for the active term.</div>
                             <?php else: ?>
                                 <div class="mb-4">
                                     <h5 class="fw-bold mb-1">Dau MOA</h5>
@@ -2460,6 +2456,47 @@ require_once dirname(__DIR__) . '/config/db.php';
     <script src="<?php echo htmlspecialchars($asset_base); ?>/js/global-datepicker-init.js"></script>
     <script src="<?php echo htmlspecialchars($asset_base); ?>/js/common-init.min.js"></script>
     <script src="<?php echo htmlspecialchars($asset_base); ?>/js/theme-customizer-init.min.js"></script>
+    <script>
+        (function () {
+            function setDark(isDark) {
+                document.documentElement.classList.toggle('app-skin-dark', !!isDark);
+                try {
+                    localStorage.setItem('app-skin', isDark ? 'app-skin-dark' : '');
+                    localStorage.setItem('app_skin', isDark ? 'app-skin-dark' : '');
+                    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+                    if (isDark) {
+                        localStorage.setItem('app-skin-dark', 'app-skin-dark');
+                    } else {
+                        localStorage.removeItem('app-skin-dark');
+                    }
+                } catch (e) {}
+                var darkBtn = document.querySelector('.dark-button');
+                var lightBtn = document.querySelector('.light-button');
+                if (darkBtn) darkBtn.style.display = isDark ? 'none' : '';
+                if (lightBtn) lightBtn.style.display = isDark ? '' : 'none';
+            }
+            function getSavedSkinMode() {
+                try {
+                    var appSkin = localStorage.getItem('app-skin');
+                    if (appSkin !== null) return appSkin.indexOf('dark') !== -1;
+                    var appSkinAlt = localStorage.getItem('app_skin');
+                    if (appSkinAlt !== null) return appSkinAlt.indexOf('dark') !== -1;
+                    var theme = localStorage.getItem('theme');
+                    if (theme !== null) return theme.toLowerCase() === 'dark';
+                    var legacy = localStorage.getItem('app-skin-dark');
+                    if (legacy !== null) return legacy.indexOf('dark') !== -1;
+                } catch (e) {}
+                return document.documentElement.classList.contains('app-skin-dark');
+            }
+            document.addEventListener('DOMContentLoaded', function () {
+                setDark(getSavedSkinMode());
+                var darkBtn = document.querySelector('.dark-button');
+                var lightBtn = document.querySelector('.light-button');
+                if (darkBtn) darkBtn.addEventListener('click', function (e) { e.preventDefault(); setDark(true); });
+                if (lightBtn) lightBtn.addEventListener('click', function (e) { e.preventDefault(); setDark(false); });
+            });
+        })();
+    </script>
     <script src="<?php echo htmlspecialchars($asset_base); ?>/js/leads-view-init.min.js"></script>
     <!--! END: Apps Init !-->
     <script>

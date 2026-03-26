@@ -14,78 +14,7 @@ include 'includes/header.php';
                         </a>
                     </div>
                     <div class="content-sidebar-body">
-                        <!--! BEGIN: [Events] !-->
-                        <div class="p-4 c-pointer single-item schedule-item">
-                            <div class="d-flex align-items-start">
-                                <div class="wd-50 ht-50 bg-soft-primary text-primary lh-1 d-flex align-items-center justify-content-center flex-column rounded-2 schedule-date">
-                                    <span class="fs-18 fw-bold mb-1 d-block">21</span>
-                                    <span class="fs-10 text-semibold text-uppercase d-block">Dec</span>
-                                </div>
-                                <div class="ms-3 schedule-body">
-                                    <div class="text-dark">
-                                        <h6 class="fw-bold my-1 text-truncate-1-line">Standup Design Presentation</h6>
-                                        <span class="fs-11 fw-normal text-muted">2:00pm - 5:00pm, Virtual Platform</span>
-                                        <p class="fs-12 fw-normal text-muted my-3 text-truncate-2-line">Lorem ipsum quia dolor sit amet, consectetur, adipisci velit, abore et dolore magnam aliquam quaerat voluptatem.</p>
-                                    </div>
-                                    <div class="img-group lh-0 ms-3 justify-content-start">
-                                        <a href="javascript:void(0)" class="avatar-image avatar-sm" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Janette Dalton">
-                                            <img src="assets/images/avatar/2.png" class="img-fluid" alt="image">
-                                        </a>
-                                        <a href="javascript:void(0)" class="avatar-image avatar-sm" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Michael Ksen">
-                                            <img src="assets/images/avatar/3.png" class="img-fluid" alt="image">
-                                        </a>
-                                        <a href="javascript:void(0)" class="avatar-image avatar-sm" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Socrates Itumay">
-                                            <img src="assets/images/avatar/4.png" class="img-fluid" alt="image">
-                                        </a>
-                                        <a href="javascript:void(0)" class="avatar-image avatar-sm" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Marianne Audrey">
-                                            <img src="assets/images/avatar/5.png" class="img-fluid" alt="image">
-                                        </a>
-                                        <a href="javascript:void(0)" class="avatar-image avatar-sm" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Marianne Audrey">
-                                            <img src="assets/images/avatar/6.png" class="img-fluid" alt="image">
-                                        </a>
-                                        <a href="javascript:void(0)" class="avatar-text avatar-sm" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Explorer More">
-                                            <i class="feather-more-horizontal"></i>
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <!--! BEGIN: [Events] !-->
-                        <div class="p-4 border-top c-pointer single-item schedule-item">
-                            <div class="d-flex align-items-start">
-                                <div class="wd-50 ht-50 bg-soft-danger text-danger lh-1 d-flex align-items-center justify-content-center flex-column rounded-2 schedule-date">
-                                    <span class="fs-18 fw-bold mb-1 d-block">14</span>
-                                    <span class="fs-10 text-semibold text-uppercase d-block">Dec</span>
-                                </div>
-                                <div class="ms-3 schedule-body">
-                                    <div class="text-dark">
-                                        <h6 class="fw-bold my-1 text-truncate-1-line">Company Start Concept</h6>
-                                        <span class="fs-11 fw-normal text-muted">8:00am - 9:00am, Engineering Room</span>
-                                        <p class="fs-12 fw-normal text-muted my-3 text-truncate-2-line">Lorem ipsum quia dolor sit amet, consectetur, adipisci velit, abore et dolore magnam aliquam quaerat voluptatem.</p>
-                                    </div>
-                                    <div class="img-group lh-0 ms-3 justify-content-start">
-                                        <a href="javascript:void(0)" class="avatar-image avatar-sm" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Janette Dalton">
-                                            <img src="assets/images/avatar/2.png" class="img-fluid" alt="image">
-                                        </a>
-                                        <a href="javascript:void(0)" class="avatar-image avatar-sm" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Michael Ksen">
-                                            <img src="assets/images/avatar/3.png" class="img-fluid" alt="image">
-                                        </a>
-                                        <a href="javascript:void(0)" class="avatar-image avatar-sm" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Socrates Itumay">
-                                            <img src="assets/images/avatar/4.png" class="img-fluid" alt="image">
-                                        </a>
-                                        <a href="javascript:void(0)" class="avatar-image avatar-sm" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Marianne Audrey">
-                                            <img src="assets/images/avatar/5.png" class="img-fluid" alt="image">
-                                        </a>
-                                        <a href="javascript:void(0)" class="avatar-image avatar-sm" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Marianne Audrey">
-                                            <img src="assets/images/avatar/6.png" class="img-fluid" alt="image">
-                                        </a>
-                                        <a href="javascript:void(0)" class="avatar-text avatar-sm" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Explorer More">
-                                            <i class="feather-more-horizontal"></i>
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        <!-- Calendar events are now loaded dynamically. -->
                     </div>
                 </div>
                 <!-- [ Content Sidebar  ] end -->
@@ -96,76 +25,294 @@ include 'includes/header.php';
                         @import url("assets/vendors/css/tui-time-picker.min.css");
                         @import url("assets/vendors/css/tui-calendar.min.css");
 
+                        /* Elegant, theme-aware calendar redesign */
                         .calendar-toolbar-pro {
-                            background: linear-gradient(135deg, #f8fbff 0%, #edf4ff 100%);
-                            border-bottom: 1px solid #d9e5ff;
-                            padding: 10px 14px;
-                        }
-
-                        .calendar-toolbar-pro .calendar-dropdown-btn,
-                        .calendar-toolbar-pro .move-today,
-                        .calendar-toolbar-pro .move-day {
-                            border-radius: 10px;
-                            border: 1px solid #cadbff;
                             background: #ffffff;
-                            color: #0f172a;
+                            border-bottom: none;
+                            padding: 20px 32px 16px 32px;
+                            border-radius: 18px 18px 0 0;
+                            box-shadow: 0 2px 12px 0 rgba(15, 23, 42, 0.08);
+                            display: flex;
+                            align-items: center;
+                            justify-content: space-between;
                         }
-
-                        .calendar-toolbar-pro .move-day {
+                        .calendar-toolbar-pro .calendar-action-btn {
+                            align-items: center;
+                            gap: 18px;
+                        }
+                        #staticMonthYear {
+                            font-size: 1.25rem;
+                            font-weight: 600;
+                            color: #0f172a;
+                            letter-spacing: 0.01em;
+                            margin-right: 10px;
+                        }
+                        .calendar-toolbar-pro .move-day,
+                        .calendar-toolbar-pro .move-today {
+                            border-radius: 10px;
+                            border: none;
+                            background: #2563eb;
+                            color: #fff;
                             width: 36px;
                             height: 36px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            font-size: 1.1rem;
+                            margin: 0 2px;
+                            box-shadow: 0 1px 4px 0 rgba(30,41,59,0.10);
+                            transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+                            outline: none;
                         }
-
-                        .calendar-toolbar-pro .render-range {
-                            font-weight: 700;
-                            color: #1e293b;
+                        .calendar-toolbar-pro .move-day:hover,
+                        .calendar-toolbar-pro .move-today:hover,
+                        .calendar-toolbar-pro .move-day:focus,
+                        .calendar-toolbar-pro .move-today:focus {
+                            background: #1e40af;
+                            color: #fff;
+                            box-shadow: 0 2px 8px 0 rgba(30,41,59,0.18);
                         }
-
+                        .calendar-toolbar-pro .move-day i,
+                        .calendar-toolbar-pro .move-today i {
+                            font-size: 1.1em;
+                        }
                         .calendar-quick-create {
-                            border-radius: 10px;
+                            border-radius: 8px;
                             font-weight: 700;
                             letter-spacing: 0.01em;
+                            background: #2563eb;
+                            color: #fff;
+                            border: none;
+                            box-shadow: 0 1px 4px 0 rgba(30,41,59,0.10);
+                            transition: background 0.2s;
                         }
-
+                        .calendar-quick-create:hover {
+                            background: #1e40af;
+                        }
                         .calendar-event-status {
                             min-height: 20px;
                             font-size: 12px;
                         }
-
                         .content-area {
-                            background: #f6f9ff;
+                            background: #f5f7fb;
                         }
-
                         #tui-calendar-init {
                             min-height: calc(100vh - 205px);
                             background: #ffffff;
-                            border-top: 1px solid #dbe7ff;
+                            border-radius: 0 0 18px 18px;
+                            box-shadow: 0 4px 24px 0 rgba(15, 23, 42, 0.1);
+                            border-top: none;
+                            padding: 18px 18px 32px 18px;
                         }
-
-                        .app-skin-dark .calendar-toolbar-pro {
-                            background: linear-gradient(135deg, #15274a 0%, #0f1d3b 100%);
-                            border-bottom: 1px solid #2b3e68;
+                        /* Calendar grid light mode */
+                        .tui-full-calendar-layout,
+                        .tui-full-calendar-weekday-grid,
+                        .tui-full-calendar-daygrid-cell {
+                            background: #ffffff !important;
                         }
-
-                        .app-skin-dark .calendar-toolbar-pro .calendar-dropdown-btn,
-                        .app-skin-dark .calendar-toolbar-pro .move-today,
-                        .app-skin-dark .calendar-toolbar-pro .move-day {
-                            border-color: #3b4f79;
-                            background: #102344;
-                            color: #dce9ff;
+                        .tui-full-calendar-daygrid-cell {
+                            border-color: #dbe3f0 !important;
                         }
-
-                        .app-skin-dark .calendar-toolbar-pro .render-range {
-                            color: #dce9ff;
+                        .tui-full-calendar-weekday-grid-date {
+                            color: #334155 !important;
+                            font-weight: 500;
                         }
-
-                        .app-skin-dark .content-area {
-                            background: #0d1b37;
+                        .tui-full-calendar-weekday-grid-date.tui-full-calendar-today {
+                            background: #2563eb !important;
+                            color: #fff !important;
+                            border-radius: 50%;
+                            font-weight: 700;
                         }
-
-                        .app-skin-dark #tui-calendar-init {
-                            background: #0f1f40;
-                            border-top-color: #243760;
+                        .tui-full-calendar-weekday-grid-date:hover {
+                            background: #e8f0ff !important;
+                            color: #1d4ed8 !important;
+                        }
+                        .tui-full-calendar-dayname {
+                            color: #64748b !important;
+                            font-weight: 700;
+                            background: #ffffff !important;
+                            border-color: #dbe3f0 !important;
+                        }
+                        .tui-full-calendar-dayname-container,
+                        .tui-full-calendar-month-dayname {
+                            background: #ffffff !important;
+                            border-color: #dbe3f0 !important;
+                        }
+                        .modal-content {
+                            border-radius: 18px;
+                            box-shadow: 0 8px 32px 0 rgba(15, 23, 42, 0.16);
+                            background: #ffffff;
+                            color: #0f172a;
+                            padding: 18px 24px 18px 24px;
+                        }
+                        .modal-header {
+                            border-bottom: none;
+                            padding-bottom: 0;
+                            margin-bottom: 10px;
+                        }
+                        .modal-title {
+                            font-weight: 700;
+                            color: #3b82f6;
+                            font-size: 1.3rem;
+                            letter-spacing: 0.01em;
+                        }
+                        .modal-footer {
+                            border-top: none;
+                            padding-top: 0;
+                            margin-top: 10px;
+                        }
+                        .form-control, .form-control-color, textarea, input[type="datetime-local"] {
+                            border-radius: 10px;
+                            border: 1.5px solid #cbd5e1;
+                            background: #f8fafc;
+                            color: #0f172a;
+                            font-size: 1rem;
+                            padding: 10px 14px;
+                            margin-bottom: 8px;
+                            transition: border-color 0.2s, background 0.2s, color 0.2s;
+                        }
+                        .form-control:focus, .form-control-color:focus, textarea:focus, input[type="datetime-local"]:focus {
+                            border-color: #3b82f6;
+                            background: #ffffff;
+                            color: #0f172a;
+                            outline: none;
+                        }
+                        input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+                            filter: none;
+                        }
+                        .form-label {
+                            font-weight: 600;
+                            color: #475569;
+                            margin-bottom: 4px;
+                        }
+                        .form-check-input:checked {
+                            background-color: #3b82f6;
+                            border-color: #3b82f6;
+                        }
+                        .btn.btn-primary, .calendar-quick-create {
+                            background: linear-gradient(90deg, #2563eb 0%, #3b82f6 100%);
+                            border: none;
+                            color: #fff;
+                            font-weight: 600;
+                            border-radius: 8px;
+                            padding: 8px 22px;
+                            box-shadow: 0 2px 8px 0 rgba(30,41,59,0.10);
+                            letter-spacing: 0.01em;
+                            transition: background 0.2s;
+                        }
+                        .btn.btn-primary:hover, .calendar-quick-create:hover {
+                            background: #1e40af;
+                        }
+                        .btn.btn-outline-secondary {
+                            border-radius: 8px;
+                            border: 1.5px solid #cbd5e1;
+                            color: #475569;
+                            background: transparent;
+                            font-weight: 600;
+                            padding: 8px 22px;
+                            transition: border-color 0.2s, color 0.2s;
+                        }
+                        .btn.btn-outline-secondary:hover {
+                            border-color: #3b82f6;
+                            color: #3b82f6;
+                        }
+                        /* Sidebar minimal */
+                        .content-sidebar-header {
+                            border-radius: 18px 0 0 0;
+                            background: #ffffff;
+                            box-shadow: 0 2px 8px 0 rgba(15, 23, 42, 0.08);
+                            color: #0f172a;
+                        }
+                        .content-sidebar {
+                            background: #ffffff;
+                        }
+                        body.app-skin-dark .calendar-toolbar-pro {
+                            background: #1e293b;
+                            box-shadow: 0 2px 12px 0 rgba(30, 41, 59, 0.12);
+                        }
+                        body.app-skin-dark #staticMonthYear {
+                            color: #ffffff;
+                        }
+                        body.app-skin-dark .content-area {
+                            background: #151c2c;
+                        }
+                        body.app-skin-dark #tui-calendar-init {
+                            background: #232e47;
+                            box-shadow: 0 4px 24px 0 rgba(30, 41, 59, 0.18);
+                        }
+                        body.app-skin-dark .tui-full-calendar-layout,
+                        body.app-skin-dark .tui-full-calendar-weekday-grid,
+                        body.app-skin-dark .tui-full-calendar-daygrid-cell {
+                            background: #232e47 !important;
+                        }
+                        body.app-skin-dark .tui-full-calendar-daygrid-cell {
+                            border-color: rgba(226, 232, 240, 0.18) !important;
+                        }
+                        body.app-skin-dark .tui-full-calendar-weekday-grid-date {
+                            color: #cbd5e1 !important;
+                        }
+                        body.app-skin-dark .tui-full-calendar-weekday-grid-date:hover {
+                            background: #334155 !important;
+                            color: #ffffff !important;
+                        }
+                        body.app-skin-dark .tui-full-calendar-dayname,
+                        body.app-skin-dark .tui-full-calendar-dayname-container,
+                        body.app-skin-dark .tui-full-calendar-month-dayname {
+                            color: #a5b4fc !important;
+                            background: #151c2c !important;
+                            border-color: rgba(226, 232, 240, 0.16) !important;
+                        }
+                        body.app-skin-dark .modal-content {
+                            box-shadow: 0 8px 32px 0 rgba(30, 41, 59, 0.22);
+                            background: #232e47;
+                            color: #ffffff;
+                        }
+                        body.app-skin-dark .form-control,
+                        body.app-skin-dark .form-control-color,
+                        body.app-skin-dark textarea,
+                        body.app-skin-dark input[type="datetime-local"] {
+                            border-color: #334155;
+                            background: #1a2236;
+                            color: #ffffff;
+                        }
+                        body.app-skin-dark .form-control:focus,
+                        body.app-skin-dark .form-control-color:focus,
+                        body.app-skin-dark textarea:focus,
+                        body.app-skin-dark input[type="datetime-local"]:focus {
+                            background: #232e47;
+                            color: #ffffff;
+                        }
+                        body.app-skin-dark input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+                            filter: invert(1) brightness(0.8) sepia(1) hue-rotate(180deg) saturate(3);
+                        }
+                        body.app-skin-dark .form-label {
+                            color: #a5b4fc;
+                        }
+                        body.app-skin-dark .btn.btn-outline-secondary {
+                            border-color: #334155;
+                            color: #a5b4fc;
+                        }
+                        body.app-skin-dark .content-sidebar-header {
+                            background: #232e47;
+                            box-shadow: 0 2px 8px 0 rgba(30, 41, 59, 0.1);
+                            color: #ffffff;
+                        }
+                        body.app-skin-dark .content-sidebar {
+                            background: #151c2c;
+                        }
+                        /* Responsive */
+                        @media (max-width: 768px) {
+                            .calendar-toolbar-pro {
+                                flex-direction: column;
+                                align-items: flex-start;
+                                padding: 16px 8px 10px 8px;
+                            }
+                            #staticMonthYear {
+                                font-size: 1.3rem;
+                            }
+                            #tui-calendar-init {
+                                padding: 8px 2px 16px 2px;
+                            }
                         }
                     </style>
                     <div class="content-area-header sticky-top calendar-toolbar-pro">
@@ -173,105 +320,28 @@ include 'includes/header.php';
                             <a href="javascript:void(0);" class="app-sidebar-open-trigger me-2">
                                 <i class="feather-align-left fs-20"></i>
                             </a>
-                            <div id="menu" class="d-flex align-items-center justify-content-between">
-                                <div class="d-flex calendar-action-btn">
-                                    <div class="dropdown me-1">
-                                        <button id="dropdownMenu-calendarType" class="dropdown-toggle calendar-dropdown-btn" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" data-bs-offset="0,17">
-                                            <i id="calendarTypeIcon" class="feather-grid calendar-icon fs-12 me-1"></i>
-                                            <span id="calendarTypeName">Monthly</span>
-                                        </button>
-                                        <ul class="dropdown-menu" role="menu" aria-labelledby="dropdownMenu-calendarType">
-                                            <li role="presentation">
-                                                <div class="dropdown-item c-pointer" role="menuitem" data-action="toggle-daily">
-                                                    <i class="feather-list calendar-icon me-3"></i>
-                                                    <span>Daily</span>
-                                                </div>
-                                            </li>
-                                            <li role="presentation">
-                                                <div class="dropdown-item c-pointer" role="menuitem" data-action="toggle-weekly">
-                                                    <i class="feather-umbrella calendar-icon me-3"></i>
-                                                    <span>Weekly</span>
-                                                </div>
-                                            </li>
-                                            <li role="presentation">
-                                                <div class="dropdown-item c-pointer" role="menuitem" data-action="toggle-weeks2">
-                                                    <i class="feather-sliders calendar-icon me-3"></i>
-                                                    <span>Weeks (2)</span>
-                                                </div>
-                                            </li>
-                                            <li role="presentation">
-                                                <div class="dropdown-item" role="menuitem" data-action="toggle-weeks3">
-                                                    <i class="feather-framer calendar-icon me-3"></i>
-                                                    <span>Weeks (3)</span>
-                                                </div>
-                                            </li>
-                                            <li role="presentation">
-                                                <div class="dropdown-item c-pointer" role="menuitem" data-action="toggle-monthly">
-                                                    <i class="feather-grid calendar-icon me-3"></i>
-                                                    <span>Monthly</span>
-                                                </div>
-                                            </li>
-                                            <li role="presentation" class="dropdown-divider"></li>
-                                            <li role="presentation">
-                                                <div class="dropdown-item" role="menuitem" data-action="toggle-workweek">
-                                                    <div class="custom-control custom-checkbox">
-                                                        <input type="checkbox" class="custom-control-input chalendar-checkbox" id="viewWeekendsSchedules" value="toggle-workweek" checked="checked">
-                                                        <label class="custom-control-label c-pointer" for="viewWeekendsSchedules">
-                                                            <span class="fs-12 fw-bold">Show Weekends</span>
-                                                        </label>
-                                                    </div>
-                                                </div>
-                                            </li>
-                                            <li role="presentation">
-                                                <div class="dropdown-item" role="menuitem" data-action="toggle-start-day-1">
-                                                    <div class="custom-control custom-checkbox">
-                                                        <input type="checkbox" class="custom-control-input chalendar-checkbox" id="viewStartSchedules" value="toggle-start-day-1">
-                                                        <label class="custom-control-label c-pointer" for="viewStartSchedules">
-                                                            <span class="fs-12 fw-bold">Start Week on Monday</span>
-                                                        </label>
-                                                    </div>
-                                                </div>
-                                            </li>
-                                            <li role="presentation">
-                                                <div class="dropdown-item" role="menuitem" data-action="toggle-narrow-weekend">
-                                                    <div class="custom-control custom-checkbox">
-                                                        <input type="checkbox" class="custom-control-input chalendar-checkbox" id="viewNarrowerSchedules" value="toggle-narrow-weekend">
-                                                        <label class="custom-control-label c-pointer" for="viewNarrowerSchedules">
-                                                            <span class="fs-12 fw-bold">Narrower than weekdays</span>
-                                                        </label>
-                                                    </div>
-                                                </div>
-                                            </li>
-                                        </ul>
-                                    </div>
-                                    <div class="menu-navi d-none d-sm-flex">
-                                        <button type="button" class="move-today" data-action="move-today">
-                                            <i class="feather-clock calendar-icon me-1 fs-12" data-action="move-today"></i>
-                                            <span>Today</span>
-                                        </button>
-                                    </div>
+                            <div id="menu" class="d-flex align-items-center justify-content-between w-100">
+                                <div class="d-flex calendar-action-btn align-items-center">
+                                    <span id="staticMonthYear"></span>
+                                    <button type="button" class="move-today ms-2" data-action="move-today" title="Go to Today">
+                                        <i class="feather-clock calendar-icon fs-12" data-action="move-today"></i>
+                                    </button>
+                                    <button type="button" class="avatar-text avatar-md move-day ms-2" data-action="move-prev" title="Previous Month">
+                                        <i class="feather-chevron-left fs-12" data-action="move-prev"></i>
+                                    </button>
+                                    <button type="button" class="avatar-text avatar-md move-day ms-1" data-action="move-next" title="Next Month">
+                                        <i class="feather-chevron-right fs-12" data-action="move-next"></i>
+                                    </button>
                                 </div>
                             </div>
                         </div>
                         <div class="page-header-right ms-auto">
                             <div class="hstack gap-2">
-                                <button type="button" id="importCelebrationsBtn" class="btn btn-warning btn-sm calendar-quick-create d-none">
-                                    <i class="feather-star me-1"></i>
-                                    PH Holidays + Celebrations
-                                </button>
                                 <button type="button" id="openEventModalBtn" class="btn btn-primary btn-sm calendar-quick-create">
                                     <i class="feather-plus me-1"></i>
                                     Add Event
                                 </button>
-                                <div id="renderRange" class="render-range d-none d-sm-flex"></div>
-                                <div class="btn-group gap-1 menu-navi" role="group">
-                                    <button type="button" class="avatar-text avatar-md move-day" data-action="move-prev">
-                                        <i class="feather-chevron-left fs-12" data-action="move-prev"></i>
-                                    </button>
-                                    <button type="button" class="avatar-text avatar-md move-day" data-action="move-next">
-                                        <i class="feather-chevron-right fs-12" data-action="move-next"></i>
-                                    </button>
-                                </div>
+                                <!-- Removed small date label near Add Event button -->
                             </div>
                         </div>
                     </div>
@@ -511,7 +581,103 @@ include 'includes/header.php';
     <!--! END: Vendors JS !-->
     <!--! BEGIN: Apps Init  !-->
     <script src="assets/js/common-init.min.js"></script>
-    <script src="assets/js/apps-calendar-init.min.js"></script>
+    <script>
+    // Remove all events: forcibly clear demo/template events after every render and navigation
+    window.ScheduleList = [];
+    function forceClearCalendar() {
+        if (window.cal && typeof window.cal.clear === 'function') {
+            window.cal.clear();
+        }
+    }
+    function updateStaticMonthYear() {
+        if (!window.cal) return;
+        var date = window.cal.getDate ? window.cal.getDate() : new Date();
+        if (!(date instanceof Date)) {
+            date = new Date(date);
+        }
+        var monthNames = [
+            "January", "February", "March", "April", "May", "June",
+            "July", "August", "September", "October", "November", "December"
+        ];
+        var text = monthNames[date.getMonth()] + ' ' + date.getFullYear();
+        var el = document.getElementById('staticMonthYear');
+        if (el) el.textContent = text;
+    }
+    var script = document.createElement('script');
+    script.src = 'assets/js/apps-calendar-init.min.js';
+    script.onload = function() {
+        forceClearCalendar();
+        updateStaticMonthYear();
+        // Also clear after navigation or view change
+        if (window.cal) {
+            var origRender = window.cal.render;
+            window.cal.render = function() {
+                if (origRender) origRender.apply(window.cal, arguments);
+                forceClearCalendar();
+                updateStaticMonthYear();
+            };
+            var origChangeView = window.cal.changeView;
+            window.cal.changeView = function() {
+                if (origChangeView) origChangeView.apply(window.cal, arguments);
+                forceClearCalendar();
+                updateStaticMonthYear();
+            };
+            var origPrev = window.cal.prev;
+            window.cal.prev = function() {
+                if (origPrev) origPrev.apply(window.cal, arguments);
+                forceClearCalendar();
+                updateStaticMonthYear();
+            };
+            var origNext = window.cal.next;
+            window.cal.next = function() {
+                if (origNext) origNext.apply(window.cal, arguments);
+                forceClearCalendar();
+                updateStaticMonthYear();
+            };
+            var origToday = window.cal.today;
+            window.cal.today = function() {
+                if (origToday) origToday.apply(window.cal, arguments);
+                forceClearCalendar();
+                updateStaticMonthYear();
+            };
+        }
+        // Also update on initial load
+        setTimeout(updateStaticMonthYear, 100);
+    };
+    document.body.appendChild(script);
+
+    // Always update month label after navigation button clicks
+    document.addEventListener('DOMContentLoaded', function() {
+        var navBtns = document.querySelectorAll('[data-action="move-prev"], [data-action="move-next"], [data-action="move-today"]');
+        navBtns.forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                setTimeout(updateStaticMonthYear, 20);
+            });
+        });
+        // Make Add Event button open the modal
+        var addEventBtn = document.getElementById('openEventModalBtn');
+        var eventModal = document.getElementById('calendarEventModal');
+        if (addEventBtn && eventModal) {
+            addEventBtn.addEventListener('click', function() {
+                if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                    var modal = bootstrap.Modal.getOrCreateInstance(eventModal);
+                    modal.show();
+                } else if (window.$ && window.$.fn && window.$.fn.modal) {
+                    window.$(eventModal).modal('show');
+                } else {
+                    eventModal.style.display = 'block';
+                    eventModal.classList.add('show');
+                }
+            });
+        }
+    });
+    </script>
+    <style>
+    /* Remove scroll/overflow from calendar page */
+    html, body, .main-content, .content-area, .content-sidebar {
+        overflow: hidden !important;
+    }
+    </style>
     <script src="assets/js/apps-calendar-crud.js"></script>
     <!--! END: Apps Init !-->
 </body>

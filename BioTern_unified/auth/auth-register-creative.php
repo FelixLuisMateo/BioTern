@@ -627,7 +627,7 @@ if (isset($_GET['registered'])) {
                                 <h5 class="fs-14 fw-bold mb-3">Personal Information</h5>
                                 <div class="row g-3">
                                     <div class="col-6 mb-2">
-                                        <input type="text" name="student_id" class="form-control" placeholder="School ID Number" autocomplete="off" required pattern="^05-[0-9]{4,5}$" maxlength="8" title="Use format 05-1234 or 05-12345">
+                                        <input type="text" name="student_id" class="form-control" placeholder="School ID Number" autocomplete="off" required pattern="^[A-Za-z0-9][A-Za-z0-9-]{3,19}$" maxlength="20" title="Use letters, numbers, or hyphens only">
                                     </div>
                                     <div class="col-6 mb-2">
                                         <input type="text" name="first_name" style="padding: 12px 16px;" class="form-control" placeholder="First name" autocomplete="given-name" required>
@@ -739,6 +739,15 @@ for ($y = $currentYear; $y >= $startYear; $y--):
                                                     <?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?>
                                                 </option>
                                             <?php endfor; ?>
+                                        </select>
+                                    </div>
+                                    <div class="col-4 mb-2">
+                                        <label class="form-label fs-12" for="studentSemester">Semester</label>
+                                        <select name="semester" id="studentSemester" class="form-control" required>
+                                            <option value="" disabled selected>Select Semester</option>
+                                            <option value="1st Semester">1st Semester</option>
+                                            <option value="2nd Semester">2nd Semester</option>
+                                            <option value="Summer">Summer</option>
                                         </select>
                                     </div>
                                 </div>
@@ -1611,14 +1620,14 @@ endforeach; ?>
 
             const studentIdInput = document.querySelector('#studentForm input[name="student_id"]');
             if (studentIdInput) {
-                const studentIdPattern = /^05-[0-9]{4,5}$/;
+                const studentIdPattern = /^[A-Za-z0-9][A-Za-z0-9-]{3,19}$/;
 
                 studentIdInput.addEventListener('input', function() {
                     this.value = this.value.replace(/\s+/g, '');
                     if (this.value === '' || studentIdPattern.test(this.value)) {
                         this.setCustomValidity('');
                     } else {
-                        this.setCustomValidity('Use format 05-1234 or 05-12345');
+                        this.setCustomValidity('Use 4-20 letters, numbers, or hyphens only');
                     }
                 });
 

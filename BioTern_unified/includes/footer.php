@@ -119,10 +119,6 @@ require_once dirname(__DIR__) . '/config/db.php';
                 ];
 
                 function getSavedSkin(){
-                    if (runtimePrefs.skin === 'dark') return 'app-skin-dark';
-                    if (runtimePrefs.skin === 'light') return '';
-                    if (serverPrefs.skin === 'dark') return 'app-skin-dark';
-                    if (serverPrefs.skin === 'light') return '';
                     try{
                         // Respect primary key even when value is intentionally empty.
                         var primary = localStorage.getItem('app-skin');
@@ -134,8 +130,13 @@ require_once dirname(__DIR__) . '/config/db.php';
                         var legacy = localStorage.getItem('app-skin-dark');
                         return legacy !== null ? legacy : '';
                     }catch(e){
-                        return '';
+                        return runtimePrefs.skin === 'dark' ? 'app-skin-dark' : '';
                     }
+                    if (runtimePrefs.skin === 'dark') return 'app-skin-dark';
+                    if (runtimePrefs.skin === 'light') return '';
+                    if (serverPrefs.skin === 'dark') return 'app-skin-dark';
+                    if (serverPrefs.skin === 'light') return '';
+                    return '';
                 }
 
                 function getSavedMenuMode() {
@@ -158,46 +159,48 @@ require_once dirname(__DIR__) . '/config/db.php';
                 }
 
                 function getSavedFont() {
+                    try {
+                        var legacyFont = localStorage.getItem('font-family');
+                        if (legacyFont !== null && legacyFont !== '') return legacyFont;
+                    } catch (e) {
+                    }
                     if (typeof runtimePrefs.font === 'string' && runtimePrefs.font !== '') {
                         return runtimePrefs.font;
                     }
                     if (typeof serverPrefs.font === 'string' && serverPrefs.font !== '') {
                         return serverPrefs.font;
                     }
-                    try {
-                        var legacyFont = localStorage.getItem('font-family');
-                        return legacyFont !== null ? legacyFont : 'default';
-                    } catch (e) {
-                        return 'default';
-                    }
+                    return 'default';
                 }
 
                 function getSavedNavigationMode() {
+                    try {
+                        var nav = localStorage.getItem('app-navigation');
+                        if (nav === 'app-navigation-dark') return 'dark';
+                        if (nav === 'app-navigation-light') return 'light';
+                    } catch (e) {
+                    }
                     if (runtimePrefs.navigation === 'dark' || runtimePrefs.navigation === 'light') {
                         return runtimePrefs.navigation;
                     }
                     if (serverPrefs.navigation === 'dark' || serverPrefs.navigation === 'light') {
                         return serverPrefs.navigation;
                     }
-                    try {
-                        var nav = localStorage.getItem('app-navigation');
-                        if (nav === 'app-navigation-dark') return 'dark';
-                    } catch (e) {
-                    }
                     return 'light';
                 }
 
                 function getSavedHeaderMode() {
+                    try {
+                        var hdr = localStorage.getItem('app-header');
+                        if (hdr === 'app-header-dark') return 'dark';
+                        if (hdr === 'app-header-light') return 'light';
+                    } catch (e) {
+                    }
                     if (runtimePrefs.header === 'dark' || runtimePrefs.header === 'light') {
                         return runtimePrefs.header;
                     }
                     if (serverPrefs.header === 'dark' || serverPrefs.header === 'light') {
                         return serverPrefs.header;
-                    }
-                    try {
-                        var hdr = localStorage.getItem('app-header');
-                        if (hdr === 'app-header-dark') return 'dark';
-                    } catch (e) {
                     }
                     return 'light';
                 }

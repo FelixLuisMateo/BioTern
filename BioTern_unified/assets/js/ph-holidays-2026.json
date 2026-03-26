@@ -1,0 +1,102 @@
+[
+  {
+    "id": "ph-2026-01-01",
+    "calendarId": "1",
+    "title": "New Year's Day",
+    "category": "allday",
+    "start": "2026-01-01",
+    "end": "2026-01-01",
+    "bgColor": "#2563eb",
+    "color": "#fff"
+  },
+  {
+    "id": "ph-2026-02-25",
+    "calendarId": "1",
+    "title": "EDSA People Power Revolution Anniversary",
+    "category": "allday",
+    "start": "2026-02-25",
+    "end": "2026-02-25",
+    "bgColor": "#22c55e",
+    "color": "#fff"
+  },
+  {
+    "id": "ph-2026-04-03",
+    "calendarId": "1",
+    "title": "Maundy Thursday",
+    "category": "allday",
+    "start": "2026-04-03",
+    "end": "2026-04-03",
+    "bgColor": "#f59e42",
+    "color": "#fff"
+  },
+  {
+    "id": "ph-2026-04-04",
+    "calendarId": "1",
+    "title": "Good Friday",
+    "category": "allday",
+    "start": "2026-04-04",
+    "end": "2026-04-04",
+    "bgColor": "#ef4444",
+    "color": "#fff"
+  },
+  {
+    "id": "ph-2026-06-12",
+    "calendarId": "1",
+    "title": "Independence Day",
+    "category": "allday",
+    "start": "2026-06-12",
+    "end": "2026-06-12",
+    "bgColor": "#0ea5e9",
+    "color": "#fff"
+  },
+  {
+    "id": "ph-2026-08-21",
+    "calendarId": "1",
+    "title": "Ninoy Aquino Day",
+    "category": "allday",
+    "start": "2026-08-21",
+    "end": "2026-08-21",
+    "bgColor": "#a21caf",
+    "color": "#fff"
+  },
+  {
+    "id": "ph-2026-08-31",
+    "calendarId": "1",
+    "title": "National Heroes Day",
+    "category": "allday",
+    "start": "2026-08-31",
+    "end": "2026-08-31",
+    "bgColor": "#f59e42",
+    "color": "#fff"
+  },
+  {
+    "id": "ph-2026-11-30",
+    "calendarId": "1",
+    "title": "Bonifacio Day",
+    "category": "allday",
+    "start": "2026-11-30",
+    "end": "2026-11-30",
+    "bgColor": "#2563eb",
+    "color": "#fff"
+  },
+  {
+    "id": "ph-2026-12-25",
+    "calendarId": "1",
+    "title": "Christmas Day",
+    "category": "allday",
+    "start": "2026-12-25",
+    "end": "2026-12-25",
+    "bgColor": "#ef4444",
+    "color": "#fff"
+  },
+  {
+    "id": "ph-2026-12-30",
+    "calendarId": "1",
+    "title": "Rizal Day",
+    "category": "allday",
+    "start": "2026-12-30",
+    "end": "2026-12-30",
+    "bgColor": "#0ea5e9",
+    "color": "#fff"
+  }
+]

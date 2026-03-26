@@ -141,8 +141,22 @@ $conn->query("CREATE TABLE IF NOT EXISTS document_workflow (
 $search = trim((string)($_GET['search'] ?? ''));
 $course_filter = trim((string)($_GET['course'] ?? ''));
 $section_filter = trim((string)($_GET['section'] ?? ''));
+$school_year_filter = trim((string)($_GET['school_year'] ?? ''));
+$semester_filter = trim((string)($_GET['semester'] ?? ''));
 $status_filter = trim((string)($_GET['stage'] ?? ''));
 $risk_filter = trim((string)($_GET['risk'] ?? 'all'));
+biotern_db_add_column_if_missing($conn, 'students', 'semester', "semester VARCHAR(30) DEFAULT NULL");
+biotern_db_add_column_if_missing($conn, 'internships', 'semester', "semester VARCHAR(30) DEFAULT NULL");
+$semester_options = ['1st Semester', '2nd Semester', 'Summer'];
+$school_year_options = [];
+$school_year_start = 2005;
+$current_calendar_month = (int)date('n');
+$current_calendar_year = (int)date('Y');
+$current_school_year_start = $current_calendar_month >= 7 ? $current_calendar_year : ($current_calendar_year - 1);
+$latest_school_year_start = max(2025, $current_school_year_start);
+for ($year = $latest_school_year_start; $year >= $school_year_start; $year--) {
+    $school_year_options[] = sprintf('%d-%d', $year, $year + 1);
+}
 
 $courses = [];
 $cres = $conn->query('SELECT id, name FROM courses ORDER BY name');
@@ -170,6 +184,8 @@ SELECT
     s.phone,
     s.status AS student_status,
     s.created_at,
+    COALESCE(NULLIF(s.school_year, ''), '-') AS school_year,
+    COALESCE(NULLIF(s.semester, ''), '-') AS semester,
     COALESCE(NULLIF(u_student.profile_picture, ''), NULLIF(s.profile_picture, '')) AS profile_picture,
     c.name AS course_name,
     COALESCE(NULLIF(sec.code, ''), NULLIF(sec.name, ''), '-') AS section_name,
@@ -195,7 +211,11 @@ FROM students s
 LEFT JOIN users u_student ON s.user_id = u_student.id
 LEFT JOIN courses c ON s.course_id = c.id
 LEFT JOIN sections sec ON s.section_id = sec.id
-LEFT JOIN internships i ON s.id = i.student_id AND i.status IN ('ongoing','completed')
+LEFT JOIN internships i
+    ON s.id = i.student_id
+   AND i.status IN ('ongoing','completed')
+   AND COALESCE(i.school_year, '') = COALESCE(s.school_year, '')
+   AND COALESCE(i.semester, '') = COALESCE(s.semester, '')
 LEFT JOIN users u_supervisor ON i.supervisor_id = u_supervisor.id
 LEFT JOIN users u_coordinator ON i.coordinator_id = u_coordinator.id
 LEFT JOIN (SELECT user_id, 1 AS has_application FROM application_letter GROUP BY user_id) app ON app.user_id = s.id
@@ -273,6 +293,12 @@ if ($res) {
             continue;
         }
         if ($section_filter !== '' && strcasecmp((string)($row['section_name'] ?? ''), $section_filter) !== 0) {
+            continue;
+        }
+        if ($school_year_filter !== '' && strcasecmp((string)($row['school_year'] ?? ''), $school_year_filter) !== 0) {
+            continue;
+        }
+        if ($semester_filter !== '' && strcasecmp((string)($row['semester'] ?? ''), $semester_filter) !== 0) {
             continue;
         }
         if ($status_filter !== '' && strcasecmp($row['stage'], $status_filter) !== 0) {
@@ -381,6 +407,12 @@ usort($print_ojt_rows, function ($a, $b) {
     return strcmp($a_last, $b_last);
 });
 $print_section_label = $section_filter !== '' ? $section_filter : 'ALL';
+if ($semester_filter !== '') {
+    $print_section_label .= ' / ' . $semester_filter;
+}
+if ($school_year_filter !== '') {
+    $print_section_label .= ' / ' . $school_year_filter;
+}
 
 $page_title = 'BioTern || OJT Dashboard';
 $page_styles = array();
@@ -851,7 +883,16 @@ echo htmlspecialchars($student_name_lf); ?></td>
                         <td><?php
 echo htmlspecialchars((string)($r['course_name'] ?? '')); ?></td>
                         <td><?php
-echo htmlspecialchars((string)($r['section_name'] ?? '')); ?></td>
+$printSection = trim((string)($r['section_name'] ?? '-'));
+$printSemester = trim((string)($r['semester'] ?? ''));
+$printSchoolYear = trim((string)($r['school_year'] ?? ''));
+if ($printSemester !== '' && $printSemester !== '-') {
+    $printSection .= ' / ' . $printSemester;
+}
+if ($printSchoolYear !== '' && $printSchoolYear !== '-') {
+    $printSection .= ' / ' . $printSchoolYear;
+}
+echo htmlspecialchars($printSection); ?></td>
                         <td><?php
 echo htmlspecialchars(to_last_name_first((string)($r['supervisor_name'] ?? ''))); ?></td>
                         <td><?php
@@ -936,7 +977,7 @@ echo number_format($trend_avg_approval_hours, 2); ?>h</div></div></div>
                                     <i class="feather-sliders"></i>
                                     <span>Filter OJT</span>
                                 </div>
-                                <p class="filter-panel-sub">Narrow down results by student, course, section, stage, and risk level.</p>
+                                <p class="filter-panel-sub">Narrow down results by student, course, section, school year, semester, stage, and risk level.</p>
                             </div>
                             <div class="filter-panel-head-actions">
                                 <a href="ojt.php" class="btn btn-outline-secondary btn-sm px-3">Reset</a>
@@ -974,6 +1015,28 @@ echo ($section_filter === $section['section_label']) ? 'selected' : ''; ?>><?php
 echo htmlspecialchars($section['section_label']); ?></option>
                         <?php
 endforeach; ?>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">School Year</label>
+                    <select name="school_year" id="ojtFilterSchoolYear" class="form-select">
+                        <option value="">All</option>
+                        <?php foreach ($school_year_options as $schoolYear): ?>
+                            <option value="<?php echo htmlspecialchars($schoolYear, ENT_QUOTES, 'UTF-8'); ?>" <?php echo ($school_year_filter === $schoolYear) ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($schoolYear, ENT_QUOTES, 'UTF-8'); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Semester</label>
+                    <select name="semester" id="ojtFilterSemester" class="form-select">
+                        <option value="">All</option>
+                        <?php foreach ($semester_options as $semester): ?>
+                            <option value="<?php echo htmlspecialchars($semester, ENT_QUOTES, 'UTF-8'); ?>" <?php echo ($semester_filter === $semester) ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($semester, ENT_QUOTES, 'UTF-8'); ?>
+                            </option>
+                        <?php endforeach; ?>
                     </select>
                 </div>
                 <div class="col-md-2">
@@ -1045,7 +1108,9 @@ $profile = trim((string)($r['profile_picture'] ?? ''));
                             <tr>
                                 <td data-label="Student">
                                     <a class="student-link d-flex align-items-center gap-2" href="ojt-view.php?id=<?php
-echo (int)$r['id']; ?>">
+echo (int)$r['id']; ?>&amp;school_year=<?php
+echo urlencode((string)($r['school_year'] ?? '')); ?>&amp;semester=<?php
+echo urlencode((string)($r['semester'] ?? '')); ?>">
                                         <img src="<?php
 echo htmlspecialchars($img); ?>" style="width:42px;height:42px;border-radius:50%;object-fit:cover;" alt="profile">
                                         <div>
@@ -1058,7 +1123,16 @@ echo htmlspecialchars($r['course_name'] ?? '-'); ?></div>
                                     </a>
                                 </td>
                                 <td data-label="Section"><?php
-echo htmlspecialchars($r['section_name'] ?? '-'); ?></td>
+$sectionSemester = trim((string)($r['section_name'] ?? '-'));
+$schoolYearLabel = trim((string)($r['school_year'] ?? ''));
+$semesterLabel = trim((string)($r['semester'] ?? ''));
+if ($semesterLabel !== '' && $semesterLabel !== '-') {
+    $sectionSemester .= ' / ' . $semesterLabel;
+}
+if ($schoolYearLabel !== '' && $schoolYearLabel !== '-') {
+    $sectionSemester .= ' / ' . $schoolYearLabel;
+}
+echo htmlspecialchars($sectionSemester); ?></td>
                                 <td data-label="Pipeline">
                                     <span class="badge <?php
 echo stage_badge_class($r['stage']); ?>"><?php
@@ -1109,9 +1183,13 @@ echo intval($r['risk_score'] ?? 0); ?></span></td>
                                 <td data-label="Actions">
                                     <div class="d-flex gap-2">
                                         <a class="btn btn-sm btn-light" href="ojt-view.php?id=<?php
-echo (int)$r['id']; ?>">View</a>
+echo (int)$r['id']; ?>&amp;school_year=<?php
+echo urlencode((string)($r['school_year'] ?? '')); ?>&amp;semester=<?php
+echo urlencode((string)($r['semester'] ?? '')); ?>">View</a>
                                         <a class="btn btn-sm btn-outline-primary" href="ojt-edit.php?id=<?php
-echo (int)$r['id']; ?>">Edit</a>
+echo (int)$r['id']; ?>&amp;school_year=<?php
+echo urlencode((string)($r['school_year'] ?? '')); ?>&amp;semester=<?php
+echo urlencode((string)($r['semester'] ?? '')); ?>">Edit</a>
                                         <a class="btn btn-sm btn-outline-success" href="students-dtr.php?id=<?php
 echo (int)$r['id']; ?>">DTR</a>
                                     </div>
@@ -1132,6 +1210,67 @@ endforeach; ?>
 <script src="assets/js/theme-customizer-init.min.js"></script>
 <script>
     (function () {
+        function setDark(isDark) {
+            document.documentElement.classList.toggle('app-skin-dark', !!isDark);
+            try {
+                localStorage.setItem('app-skin', isDark ? 'app-skin-dark' : '');
+                localStorage.setItem('app_skin', isDark ? 'app-skin-dark' : '');
+                localStorage.setItem('theme', isDark ? 'dark' : 'light');
+                if (isDark) {
+                    localStorage.setItem('app-skin-dark', 'app-skin-dark');
+                } else {
+                    localStorage.removeItem('app-skin-dark');
+                }
+            } catch (e) {}
+
+            var darkBtn = document.querySelector('.dark-button');
+            var lightBtn = document.querySelector('.light-button');
+            if (darkBtn) darkBtn.style.display = isDark ? 'none' : '';
+            if (lightBtn) lightBtn.style.display = isDark ? '' : 'none';
+        }
+
+        function getSavedSkinMode() {
+            try {
+                var appSkin = localStorage.getItem('app-skin');
+                if (appSkin !== null) return appSkin.indexOf('dark') !== -1;
+
+                var appSkinAlt = localStorage.getItem('app_skin');
+                if (appSkinAlt !== null) return appSkinAlt.indexOf('dark') !== -1;
+
+                var theme = localStorage.getItem('theme');
+                if (theme !== null) return theme.toLowerCase() === 'dark';
+
+                var legacy = localStorage.getItem('app-skin-dark');
+                if (legacy !== null) return legacy.indexOf('dark') !== -1;
+            } catch (e) {}
+
+            return document.documentElement.classList.contains('app-skin-dark');
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            setDark(getSavedSkinMode());
+
+            var darkBtn = document.querySelector('.dark-button');
+            var lightBtn = document.querySelector('.light-button');
+
+            if (darkBtn) {
+                darkBtn.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    setDark(true);
+                });
+            }
+
+            if (lightBtn) {
+                lightBtn.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    setDark(false);
+                });
+            }
+        });
+    })();
+</script>
+<script>
+    (function () {
         var filterForm = document.getElementById('ojtFilterForm');
         var searchInput = document.getElementById('ojtFilterSearch');
         var submitTimer;
@@ -1142,7 +1281,7 @@ endforeach; ?>
             clearTimeout(submitTimer);
             submitTimer = setTimeout(submitFilters, 350);
         }
-        ['ojtFilterCourse', 'ojtFilterSection', 'ojtFilterStage', 'ojtFilterRisk'].forEach(function (id) {
+        ['ojtFilterCourse', 'ojtFilterSection', 'ojtFilterSchoolYear', 'ojtFilterSemester', 'ojtFilterStage', 'ojtFilterRisk'].forEach(function (id) {
             var el = document.getElementById(id);
             if (el) el.addEventListener('change', submitFilters);
         });
@@ -1150,7 +1289,7 @@ endforeach; ?>
 
         if (window.jQuery && $.fn.select2) {
             var $filterForm = $('#ojtFilterForm');
-            ['#ojtFilterCourse', '#ojtFilterSection', '#ojtFilterStage'].forEach(function (selector) {
+            ['#ojtFilterCourse', '#ojtFilterSection', '#ojtFilterSchoolYear', '#ojtFilterSemester', '#ojtFilterStage'].forEach(function (selector) {
                 if ($(selector).length) {
                     $(selector).select2({
                         width: '100%',
@@ -1171,7 +1310,7 @@ endforeach; ?>
                     });
                 }
             });
-            ['#ojtFilterCourse', '#ojtFilterSection', '#ojtFilterStage', '#ojtFilterRisk'].forEach(function (selector) {
+            ['#ojtFilterCourse', '#ojtFilterSection', '#ojtFilterSchoolYear', '#ojtFilterSemester', '#ojtFilterStage', '#ojtFilterRisk'].forEach(function (selector) {
                 if ($(selector).length) {
                     $(selector).on('select2:select select2:clear', submitFilters);
                 }

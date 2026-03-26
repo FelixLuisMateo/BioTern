@@ -401,7 +401,6 @@ if ($student_id > 0 && ojt_edit_table_exists($conn, 'ojt_supervisor_reviews')) {
     <link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/vendors.min.css">
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/datepicker.min.css">
-    <script>try{var s=localStorage.getItem('app-skin')||localStorage.getItem('app_skin')||localStorage.getItem('theme'); if(s&&s.indexOf('dark')!==-1)document.documentElement.classList.add('app-skin-dark');}catch(e){};</script>
     <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css">
     <link rel="stylesheet" type="text/css" href="assets/css/datepicker-global.css">
     <style>
@@ -713,6 +712,47 @@ require_once dirname(__DIR__) . '/config/db.php';
 <script src="assets/js/global-datepicker-init.js"></script>
 <script src="assets/js/common-init.min.js"></script>
 <script src="assets/js/theme-customizer-init.min.js"></script>
+<script>
+    (function () {
+        function setDark(isDark) {
+            document.documentElement.classList.toggle('app-skin-dark', !!isDark);
+            try {
+                localStorage.setItem('app-skin', isDark ? 'app-skin-dark' : '');
+                localStorage.setItem('app_skin', isDark ? 'app-skin-dark' : '');
+                localStorage.setItem('theme', isDark ? 'dark' : 'light');
+                if (isDark) {
+                    localStorage.setItem('app-skin-dark', 'app-skin-dark');
+                } else {
+                    localStorage.removeItem('app-skin-dark');
+                }
+            } catch (e) {}
+            var darkBtn = document.querySelector('.dark-button');
+            var lightBtn = document.querySelector('.light-button');
+            if (darkBtn) darkBtn.style.display = isDark ? 'none' : '';
+            if (lightBtn) lightBtn.style.display = isDark ? '' : 'none';
+        }
+        function getSavedSkinMode() {
+            try {
+                var appSkin = localStorage.getItem('app-skin');
+                if (appSkin !== null) return appSkin.indexOf('dark') !== -1;
+                var appSkinAlt = localStorage.getItem('app_skin');
+                if (appSkinAlt !== null) return appSkinAlt.indexOf('dark') !== -1;
+                var theme = localStorage.getItem('theme');
+                if (theme !== null) return theme.toLowerCase() === 'dark';
+                var legacy = localStorage.getItem('app-skin-dark');
+                if (legacy !== null) return legacy.indexOf('dark') !== -1;
+            } catch (e) {}
+            return document.documentElement.classList.contains('app-skin-dark');
+        }
+        document.addEventListener('DOMContentLoaded', function () {
+            setDark(getSavedSkinMode());
+            var darkBtn = document.querySelector('.dark-button');
+            var lightBtn = document.querySelector('.light-button');
+            if (darkBtn) darkBtn.addEventListener('click', function (e) { e.preventDefault(); setDark(true); });
+            if (lightBtn) lightBtn.addEventListener('click', function (e) { e.preventDefault(); setDark(false); });
+        });
+    })();
+</script>
 </body>
 </html>
 <?php $conn->close(); ?>

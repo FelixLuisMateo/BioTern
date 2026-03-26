@@ -38,6 +38,7 @@ $studentEditSchemaColumns = [
     'external_total_hours' => "external_total_hours INT(11) DEFAULT NULL",
     'external_total_hours_remaining' => "external_total_hours_remaining INT(11) DEFAULT NULL",
     'assignment_track' => "assignment_track VARCHAR(20) NOT NULL DEFAULT 'internal'",
+    'semester' => "semester VARCHAR(30) DEFAULT NULL",
 ];
 foreach ($studentEditSchemaColumns as $column => $definition) {
     biotern_db_add_column_if_missing($conn, 'students', $column, $definition);
@@ -74,6 +75,7 @@ $student_query = "
         s.email,
         s.department_id,
         s.section_id,
+        s.semester,
         s.phone,
         s.date_of_birth,
         s.gender,
@@ -293,6 +295,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $course_id = isset($_POST['course_id']) ? intval($_POST['course_id']) : 0;
     $department_id = isset($_POST['department_id']) ? trim((string)$_POST['department_id']) : '';
     $section_id = isset($_POST['section_id']) ? intval($_POST['section_id']) : 0;
+    $semester = isset($_POST['semester']) ? trim((string)$_POST['semester']) : '';
     $status = isset($_POST['status']) ? intval($_POST['status']) : 1;
     $supervisor_id = isset($_POST['supervisor_id']) && $_POST['supervisor_id'] !== '' ? intval($_POST['supervisor_id']) : null;
     $coordinator_id = isset($_POST['coordinator_id']) && $_POST['coordinator_id'] !== '' ? intval($_POST['coordinator_id']) : null;
@@ -330,6 +333,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         'course_id' => (string)$course_id,
         'department_id' => (string)$department_id,
         'section_id' => (string)$section_id,
+        'semester' => (string)$semester,
         'internal_total_hours' => (string)$internal_total_hours,
         'internal_total_hours_remaining' => (string)$internal_total_hours_remaining,
         'external_total_hours' => (string)$external_total_hours,
@@ -476,6 +480,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     course_id = NULLIF(?, 0),
                     department_id = NULLIF(?, ''),
                     section_id = NULLIF(?, 0),
+                    semester = NULLIF(?, ''),
                     status = ?,
                     supervisor_name = ?,
                     coordinator_name = ?,
@@ -489,7 +494,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $error_message = "Prepare failed: " . $conn->error;
             } else {
                 $update_stmt->bind_param(
-                    "ssssssssssiiiisisiisssi",
+                    "ssssssssssiiiisisisisssi",
                     $student_id_code,
                     $first_name,
                     $last_name,
@@ -508,6 +513,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $course_id,
                     $department_id,
                     $section_id,
+                    $semester,
                     $status,
                     $selected_supervisor_name,
                     $selected_coordinator_name,
@@ -1530,6 +1536,15 @@ function resolve_profile_image_url(string $profilePath): ?string {
                                                     <?php endforeach; ?>
                                                 </select>
                                             </div>
+                                            <div class="col-md-6 mb-4">
+                                                <label for="semester" class="form-label fw-semibold">Semester</label>
+                                                <select class="form-control" id="semester" name="semester">
+                                                    <option value="">-- Select Semester --</option>
+                                                    <option value="1st Semester" <?php echo (($student['semester'] ?? '') === '1st Semester') ? 'selected' : ''; ?>>1st Semester</option>
+                                                    <option value="2nd Semester" <?php echo (($student['semester'] ?? '') === '2nd Semester') ? 'selected' : ''; ?>>2nd Semester</option>
+                                                    <option value="Summer" <?php echo (($student['semester'] ?? '') === 'Summer') ? 'selected' : ''; ?>>Summer</option>
+                                                </select>
+                                            </div>
                                         </div>
 
                                         <div class="row">
@@ -1650,6 +1665,47 @@ function resolve_profile_image_url(string $profilePath): ?string {
     <script src="assets/vendors/js/datepicker.min.js"></script>
     <script src="assets/js/common-init.min.js"></script>
     <script src="assets/js/theme-customizer-init.min.js"></script>
+    <script>
+        (function () {
+            function setDark(isDark) {
+                document.documentElement.classList.toggle('app-skin-dark', !!isDark);
+                try {
+                    localStorage.setItem('app-skin', isDark ? 'app-skin-dark' : '');
+                    localStorage.setItem('app_skin', isDark ? 'app-skin-dark' : '');
+                    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+                    if (isDark) {
+                        localStorage.setItem('app-skin-dark', 'app-skin-dark');
+                    } else {
+                        localStorage.removeItem('app-skin-dark');
+                    }
+                } catch (e) {}
+                var darkBtn = document.querySelector('.dark-button');
+                var lightBtn = document.querySelector('.light-button');
+                if (darkBtn) darkBtn.style.display = isDark ? 'none' : '';
+                if (lightBtn) lightBtn.style.display = isDark ? '' : 'none';
+            }
+            function getSavedSkinMode() {
+                try {
+                    var appSkin = localStorage.getItem('app-skin');
+                    if (appSkin !== null) return appSkin.indexOf('dark') !== -1;
+                    var appSkinAlt = localStorage.getItem('app_skin');
+                    if (appSkinAlt !== null) return appSkinAlt.indexOf('dark') !== -1;
+                    var theme = localStorage.getItem('theme');
+                    if (theme !== null) return theme.toLowerCase() === 'dark';
+                    var legacy = localStorage.getItem('app-skin-dark');
+                    if (legacy !== null) return legacy.indexOf('dark') !== -1;
+                } catch (e) {}
+                return document.documentElement.classList.contains('app-skin-dark');
+            }
+            document.addEventListener('DOMContentLoaded', function () {
+                setDark(getSavedSkinMode());
+                var darkBtn = document.querySelector('.dark-button');
+                var lightBtn = document.querySelector('.light-button');
+                if (darkBtn) darkBtn.addEventListener('click', function (e) { e.preventDefault(); setDark(true); });
+                if (lightBtn) lightBtn.addEventListener('click', function (e) { e.preventDefault(); setDark(false); });
+            });
+        })();
+    </script>
 
     <script>
         // Initialize form elements

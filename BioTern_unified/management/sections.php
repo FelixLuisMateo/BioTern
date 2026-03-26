@@ -1,5 +1,6 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
+require_once dirname(__DIR__) . '/lib/section_schedule.php';
 $host = defined('DB_HOST') ? DB_HOST : '127.0.0.1';
 $db_user = defined('DB_USER') ? DB_USER : 'root';
 $db_password = defined('DB_PASS') ? DB_PASS : ''; 
@@ -11,6 +12,7 @@ try {
     if ($conn->connect_error) {
         throw new Exception("Connection failed: " . $conn->connect_error);
     }
+    section_schedule_ensure_columns($conn);
 } catch (Exception $e) {
     die("Database Error: " . $e->getMessage());
 }
@@ -123,6 +125,11 @@ if ($hasSectionStatus) {
 if ($hasSectionCreatedAt) {
     $sectionFields[] = 's.created_at';
 }
+$sectionFields[] = 's.attendance_session';
+$sectionFields[] = 's.schedule_time_in';
+$sectionFields[] = 's.schedule_time_out';
+$sectionFields[] = 's.late_after_time';
+$sectionFields[] = 's.weekly_schedule_json';
 
 $where = [];
 if ($hasSectionDeletedAt) {
@@ -358,6 +365,7 @@ include 'includes/header.php';
                             <th>Name</th>
                             <th>Course</th>
                             <?php if ($hasSectionDepartment): ?><th>Department</th><?php endif; ?>
+                            <th>Schedule</th>
                             <?php if ($hasSectionStatus || $hasSectionIsActive): ?><th>Status</th><?php endif; ?>
                             <?php if ($hasSectionCreatedAt): ?><th>Created</th><?php endif; ?>
                             <th>Actions</th>
@@ -372,6 +380,13 @@ include 'includes/header.php';
                                 <td><?php echo htmlspecialchars((string)($sec['name'] ?? '')); ?></td>
                                 <td><?php echo htmlspecialchars((string)($sec['course_name'] ?? '-')); ?></td>
                                 <?php if ($hasSectionDepartment): ?><td><?php echo htmlspecialchars((string)($sec['department_name'] ?? '-')); ?></td><?php endif; ?>
+                                <td>
+                                    <?php
+                                    $schedule = section_schedule_from_row($sec);
+                                    $scheduleParts = section_schedule_summary_lines($schedule);
+                                    ?>
+                                    <small><?php echo htmlspecialchars(implode(' || ', $scheduleParts)); ?></small>
+                                </td>
                                 <?php if ($hasSectionStatus || $hasSectionIsActive): ?>
                                     <td>
                                         <?php
@@ -395,7 +410,7 @@ require_once dirname(__DIR__) . '/config/db.php';
                         <?php endforeach; ?>
                     <?php else: ?>
                         <tr>
-                            <td colspan="<?php echo 5 + ($hasSectionDepartment ? 1 : 0) + (($hasSectionStatus || $hasSectionIsActive) ? 1 : 0) + ($hasSectionCreatedAt ? 1 : 0); ?>" class="text-center py-4 text-muted">
+                            <td colspan="<?php echo 6 + ($hasSectionDepartment ? 1 : 0) + (($hasSectionStatus || $hasSectionIsActive) ? 1 : 0) + ($hasSectionCreatedAt ? 1 : 0); ?>" class="text-center py-4 text-muted">
                                 No sections found.
                             </td>
                         </tr>
