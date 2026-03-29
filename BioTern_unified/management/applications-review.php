@@ -36,10 +36,15 @@ $applicationsStudentSchemaColumns = [
     'gender' => "gender VARCHAR(30) NULL",
     'emergency_contact' => "emergency_contact VARCHAR(255) NULL",
     'emergency_contact_phone' => "emergency_contact_phone VARCHAR(50) NULL",
+    'school_year' => "school_year VARCHAR(9) NULL",
+    'semester' => "semester VARCHAR(30) NULL",
+    'application_status' => "application_status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending'",
+    'status' => "status TINYINT(1) NOT NULL DEFAULT 1",
 ];
 foreach ($applicationsStudentSchemaColumns as $column => $definition) {
     biotern_db_add_column_if_missing($conn, 'students', $column, $definition);
 }
+biotern_db_add_column_if_missing($conn, 'internships', 'semester', "semester VARCHAR(30) DEFAULT NULL");
 
 $departmentOptions = [];
 $courseOptions = [];
@@ -180,7 +185,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 $stmt->close();
 
-                $studentStmt = $conn->prepare("UPDATE students SET department_id = NULLIF(?, 0), coordinator_id = NULLIF(?, 0), coordinator_name = ?, supervisor_id = NULLIF(?, 0), supervisor_name = ?, internal_total_hours = ?, external_total_hours = ?, internal_total_hours_remaining = CASE WHEN assignment_track = 'external' THEN 0 ELSE ? END, external_total_hours_remaining = CASE WHEN assignment_track = 'external' THEN ? ELSE 0 END WHERE user_id = ? LIMIT 1");
+                $studentStmt = $conn->prepare("UPDATE students SET department_id = NULLIF(?, 0), coordinator_id = NULLIF(?, 0), coordinator_name = ?, supervisor_id = NULLIF(?, 0), supervisor_name = ?, internal_total_hours = ?, external_total_hours = ?, internal_total_hours_remaining = CASE WHEN assignment_track = 'external' THEN 0 ELSE ? END, external_total_hours_remaining = CASE WHEN assignment_track = 'external' THEN ? ELSE 0 END, application_status = 'approved', status = 1 WHERE user_id = ? LIMIT 1");
                 if (!$studentStmt) {
                     throw new Exception('Unable to update student hour settings.');
                 }
@@ -193,7 +198,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 // Create internship record on approval (if not already created).
                 $studentRow = null;
-                $studentLookup = $conn->prepare("SELECT id, course_id, department_id, coordinator_id, supervisor_id, assignment_track, internal_total_hours, external_total_hours FROM students WHERE user_id = ? LIMIT 1");
+                $studentLookup = $conn->prepare("SELECT id, course_id, department_id, coordinator_id, supervisor_id, assignment_track, internal_total_hours, external_total_hours, school_year, semester FROM students WHERE user_id = ? LIMIT 1");
                 if ($studentLookup) {
                     $studentLookup->bind_param('i', $userId);
                     $studentLookup->execute();
@@ -211,11 +216,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $internalHours = (int)($studentRow['internal_total_hours'] ?? 0);
                     $externalHours = (int)($studentRow['external_total_hours'] ?? 0);
 
-                    if ($studentId > 0 && $courseId > 0 && $departmentId > 0 && $coordinatorId > 0 && $supervisorId > 0) {
-                        $existsIntern = $conn->prepare("SELECT id FROM internships WHERE student_id = ? LIMIT 1");
+                    $schoolYear = trim((string)($studentRow['school_year'] ?? ''));
+                    $semester = trim((string)($studentRow['semester'] ?? ''));
+
+                    if ($studentId > 0 && $courseId > 0 && $departmentId > 0 && $coordinatorId > 0 && $supervisorId > 0 && $schoolYear !== '' && $semester !== '') {
+                        $existsIntern = $conn->prepare("SELECT id FROM internships WHERE student_id = ? AND COALESCE(school_year, '') = ? AND COALESCE(semester, '') = ? LIMIT 1");
                         $hasIntern = false;
                         if ($existsIntern) {
-                            $existsIntern->bind_param('i', $studentId);
+                            $existsIntern->bind_param('iss', $studentId, $schoolYear, $semester);
                             $existsIntern->execute();
                             $resIntern = $existsIntern->get_result();
                             $hasIntern = ($resIntern && $resIntern->num_rows > 0);
@@ -250,7 +258,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                             if ($internCoordinatorUserId > 0 && $internSupervisorUserId > 0) {
                                 $today = date('Y-m-d');
-                                $schoolYear = getCurrentSchoolYearLabel();
                                 $type = $assignmentTrack === 'external' ? 'external' : 'internal';
                                 $requiredHours = $type === 'external' ? max(0, $externalHours) : max(0, $internalHours);
                                 $renderedHours = 0;
@@ -258,13 +265,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                                 $insertIntern = $conn->prepare("
                                     INSERT INTO internships
-                                    (student_id, course_id, department_id, coordinator_id, supervisor_id, type, start_date, status, school_year, required_hours, rendered_hours, completion_percentage, created_at, updated_at)
+                                    (student_id, course_id, department_id, coordinator_id, supervisor_id, type, start_date, status, school_year, semester, required_hours, rendered_hours, completion_percentage, created_at, updated_at)
                                     VALUES
-                                    (?, ?, ?, ?, ?, ?, ?, 'ongoing', ?, ?, ?, ?, NOW(), NOW())
+                                    (?, ?, ?, ?, ?, ?, ?, 'ongoing', ?, ?, ?, ?, ?, NOW(), NOW())
                                 ");
                                 if ($insertIntern) {
                                     $insertIntern->bind_param(
-                                        'iiiiisssiid',
+                                        'iiiiisssiiid',
                                         $studentId,
                                         $courseId,
                                         $departmentId,
@@ -273,6 +280,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                         $type,
                                         $today,
                                         $schoolYear,
+                                        $semester,
                                         $requiredHours,
                                         $renderedHours,
                                         $completionPct
@@ -308,7 +316,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $stmt->close();
 
-                $studentStmt = $conn->prepare("UPDATE students SET department_id = NULLIF(?, 0), coordinator_id = NULLIF(?, 0), coordinator_name = ?, supervisor_id = NULLIF(?, 0), supervisor_name = ? WHERE user_id = ? LIMIT 1");
+                $studentStmt = $conn->prepare("UPDATE students SET department_id = NULLIF(?, 0), coordinator_id = NULLIF(?, 0), coordinator_name = ?, supervisor_id = NULLIF(?, 0), supervisor_name = ?, application_status = 'rejected', status = 0 WHERE user_id = ? LIMIT 1");
                 if (!$studentStmt) {
                     throw new Exception('Unable to update student assignments.');
                 }
@@ -387,6 +395,8 @@ $sql = "
         s.supervisor_name,
         s.internal_total_hours,
         s.external_total_hours,
+        s.school_year,
+        s.semester,
         c.name AS course_name,
         d.name AS department_name,
         sec.code AS section_code,
@@ -1025,6 +1035,8 @@ include 'includes/header.php';
                                             $departmentName = trim((string)($row['department_name'] ?? ''));
                                             $sectionCode = trim((string)($row['section_code'] ?? ''));
                                             $sectionName = trim((string)($row['section_name'] ?? ''));
+                                            $schoolYearLabel = trim((string)($row['school_year'] ?? ''));
+                                            $semesterLabel = trim((string)($row['semester'] ?? ''));
                                             $coordinatorName = trim((string)($row['coordinator_name'] ?? ''));
                                             $supervisorName = trim((string)($row['supervisor_name'] ?? ''));
                                             $addressValue = trim((string)($row['address'] ?? ''));
@@ -1092,6 +1104,7 @@ include 'includes/header.php';
                                             <td data-label="Course">
                                                 <div class="fw-semibold"><?php echo htmlspecialchars($courseLabel, ENT_QUOTES, 'UTF-8'); ?></div>
                                                 <small class="text-muted d-block">Section: <?php echo htmlspecialchars($sectionLabel, ENT_QUOTES, 'UTF-8'); ?></small>
+                                                <small class="text-muted d-block">Term: <?php echo htmlspecialchars(($schoolYearLabel !== '' ? $schoolYearLabel : 'Unassigned') . ' / ' . ($semesterLabel !== '' ? $semesterLabel : 'Unassigned'), ENT_QUOTES, 'UTF-8'); ?></small>
                                             </td>
                                             <td data-label="Status">
                                                 <span class="badge bg-soft-<?php echo $badge; ?> text-<?php echo $badge; ?> text-capitalize"><?php echo htmlspecialchars($status, ENT_QUOTES, 'UTF-8'); ?></span>
@@ -1121,6 +1134,8 @@ include 'includes/header.php';
                                                             <div class="line"><strong>Parent/Emergency Phone:</strong> <?php echo htmlspecialchars($emergencyContactPhoneLabel, ENT_QUOTES, 'UTF-8'); ?></div>
                                                             <div class="line"><strong>Department:</strong> <?php echo htmlspecialchars($departmentLabel, ENT_QUOTES, 'UTF-8'); ?></div>
                                                             <div class="line"><strong>Section:</strong> <?php echo htmlspecialchars($sectionLabel, ENT_QUOTES, 'UTF-8'); ?></div>
+                                                            <div class="line"><strong>School Year:</strong> <?php echo htmlspecialchars($schoolYearLabel !== '' ? $schoolYearLabel : '-', ENT_QUOTES, 'UTF-8'); ?></div>
+                                                            <div class="line"><strong>Semester:</strong> <?php echo htmlspecialchars($semesterLabel !== '' ? $semesterLabel : '-', ENT_QUOTES, 'UTF-8'); ?></div>
                                                             <div class="line"><strong>Coordinator:</strong> <?php echo htmlspecialchars($coordinatorLabel, ENT_QUOTES, 'UTF-8'); ?></div>
                                                             <div class="line"><strong>Supervisor:</strong> <?php echo htmlspecialchars($supervisorLabel, ENT_QUOTES, 'UTF-8'); ?></div>
                                                             <div class="line"><strong>Submitted:</strong> <?php echo htmlspecialchars($submittedAt, ENT_QUOTES, 'UTF-8'); ?></div>

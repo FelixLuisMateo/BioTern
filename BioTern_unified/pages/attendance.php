@@ -28,6 +28,64 @@ try {
     die("Database Error: " . $e->getMessage());
 }
 
+function attendance_machine_config_path(): string
+{
+    return dirname(__DIR__) . '/tools/biometric_machine_config.json';
+}
+
+function attendance_load_machine_config(): array
+{
+    $configPath = attendance_machine_config_path();
+    if (!file_exists($configPath)) {
+        return [];
+    }
+
+    $json = file_get_contents($configPath);
+    if (!is_string($json) || trim($json) === '') {
+        return [];
+    }
+
+    $decoded = json_decode($json, true);
+    return is_array($decoded) ? $decoded : [];
+}
+
+function attendance_write_machine_config(array $config): void
+{
+    $json = json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    if (!is_string($json)) {
+        throw new RuntimeException('Failed to encode biometric machine config.');
+    }
+
+    file_put_contents(attendance_machine_config_path(), $json . PHP_EOL);
+}
+
+function attendance_redirect_self(): void
+{
+    $target = 'attendance.php';
+    $query = trim((string)($_SERVER['QUERY_STRING'] ?? ''));
+    if ($query !== '') {
+        $target .= '?' . $query;
+    }
+    header('Location: ' . $target);
+    exit;
+}
+
+$machineConfig = attendance_load_machine_config();
+$attendanceTestingModeEnabled = empty($machineConfig['attendanceWindowEnabled']);
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['attendance_action'] ?? '') === 'toggle_testing_mode') {
+    $enableTestingMode = (string)($_POST['testing_mode'] ?? '') === '1';
+    $machineConfig['attendanceWindowEnabled'] = !$enableTestingMode;
+    attendance_write_machine_config($machineConfig);
+    $_SESSION['attendance_sync_flash'] = [
+        'type' => 'success',
+        'message' => $enableTestingMode
+            ? 'Testing mode enabled. Attendance window is disabled, so all-day punches will be accepted on the next sync or replay.'
+            : 'Testing mode disabled. Attendance window filtering is active again.',
+    ];
+    attendance_redirect_self();
+}
+
 // Fetch Attendance Statistics
 $stats_query = "
     SELECT 
@@ -171,16 +229,19 @@ if (!empty($filter_coordinator)) {
 }
 
 $attendance_query = "
-    SELECT 
-        a.id,
-        a.attendance_date,
-        a.morning_time_in,
-        a.morning_time_out,
-        a.afternoon_time_in,
-        a.afternoon_time_out,
-        a.source,
-        a.status,
-        a.approved_by,
+     SELECT 
+         a.id,
+         a.attendance_date,
+         a.morning_time_in,
+         a.morning_time_out,
+         a.break_time_in,
+         a.break_time_out,
+         a.afternoon_time_in,
+         a.afternoon_time_out,
+         a.total_hours,
+         a.source,
+         a.status,
+         a.approved_by,
         a.approved_at,
         a.remarks,
         s.id as student_id,
@@ -248,6 +309,8 @@ if (count($attendances) > 1) {
     $attendances = array_values($attendance_by_student_date);
 }
 
+synchronizeAttendanceProgress($conn, $attendances);
+
 // If requested via AJAX, return only the table rows HTML so frontend can replace tbody
 if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
     if (!empty($attendances)) {
@@ -271,7 +334,9 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
             echo '<td><span class="badge bg-soft-success text-success">' . ( $attendance['morning_time_out'] ? date('h:i A', strtotime($attendance['morning_time_out'])) : '-' ) . '</span></td>';
             echo '<td><span class="badge bg-soft-warning text-warning">' . ( $attendance['afternoon_time_in'] ? date('h:i A', strtotime($attendance['afternoon_time_in'])) : '-' ) . '</span></td>';
             echo '<td><span class="badge bg-soft-warning text-warning">' . ( $attendance['afternoon_time_out'] ? date('h:i A', strtotime($attendance['afternoon_time_out'])) : '-' ) . '</span></td>';
-            $total_hours = calculateTotalHours($attendance['morning_time_in'], $attendance['morning_time_out'], $attendance['afternoon_time_in'], $attendance['afternoon_time_out']);
+            $total_hours = isset($attendance['computed_total_hours'])
+                ? $attendance['computed_total_hours']
+                : calculateAttendanceRowHours($attendance);
             echo '<td><span class="badge bg-soft-secondary text-secondary">' . $total_hours . 'h</span></td>';
             // attendance status
             $att_status = getAttendanceStatus($attendance);
@@ -363,6 +428,190 @@ function calculateTotalHours($morning_in, $morning_out, $afternoon_in, $afternoo
     }
     
     return round($total, 2);
+}
+
+function parseAttendanceTime($time) {
+    $value = trim((string)$time);
+    if ($value === '') {
+        return null;
+    }
+
+    $timestamp = strtotime($value);
+    return $timestamp === false ? null : $timestamp;
+}
+
+function calculateAttendanceRowHours(array $attendance): float {
+    $totalSeconds = 0;
+    $pairs = [
+        ['morning_time_in', 'morning_time_out'],
+        ['afternoon_time_in', 'afternoon_time_out'],
+    ];
+
+    foreach ($pairs as $pair) {
+        $startTs = parseAttendanceTime($attendance[$pair[0]] ?? null);
+        $endTs = parseAttendanceTime($attendance[$pair[1]] ?? null);
+        if ($startTs === null || $endTs === null || $endTs <= $startTs) {
+            continue;
+        }
+
+        $totalSeconds += ($endTs - $startTs);
+    }
+
+    $breakInTs = parseAttendanceTime($attendance['break_time_in'] ?? null);
+    $breakOutTs = parseAttendanceTime($attendance['break_time_out'] ?? null);
+    if ($breakInTs !== null && $breakOutTs !== null && $breakOutTs > $breakInTs) {
+        $totalSeconds -= ($breakOutTs - $breakInTs);
+    }
+
+    if ($totalSeconds < 0) {
+        $totalSeconds = 0;
+    }
+
+    return round($totalSeconds / 3600, 2);
+}
+
+function synchronizeAttendanceProgress(mysqli $conn, array &$attendances): void {
+    if (empty($attendances)) {
+        return;
+    }
+
+    $studentIds = [];
+    $updateAttendanceStmt = $conn->prepare("UPDATE attendances SET total_hours = ?, updated_at = NOW() WHERE id = ?");
+
+    foreach ($attendances as &$attendance) {
+        $computedHours = calculateAttendanceRowHours($attendance);
+        $attendance['computed_total_hours'] = $computedHours;
+
+        $studentId = (int)($attendance['student_id'] ?? 0);
+        if ($studentId > 0) {
+            $studentIds[$studentId] = true;
+        }
+
+        $attendanceId = (int)($attendance['id'] ?? 0);
+        $storedHours = isset($attendance['total_hours']) && $attendance['total_hours'] !== null && $attendance['total_hours'] !== ''
+            ? (float)$attendance['total_hours']
+            : null;
+
+        if ($attendanceId > 0 && $updateAttendanceStmt && ($storedHours === null || abs($storedHours - $computedHours) > 0.009)) {
+            $updateAttendanceStmt->bind_param('di', $computedHours, $attendanceId);
+            $updateAttendanceStmt->execute();
+            $attendance['total_hours'] = $computedHours;
+        }
+    }
+    unset($attendance);
+
+    if ($updateAttendanceStmt) {
+        $updateAttendanceStmt->close();
+    }
+
+    if (empty($studentIds)) {
+        return;
+    }
+
+    $sumStmt = $conn->prepare("
+        SELECT COALESCE(SUM(total_hours), 0) AS rendered
+        FROM attendances
+        WHERE student_id = ? AND (status IS NULL OR status <> 'rejected')
+    ");
+    $internshipLookupStmt = $conn->prepare("
+        SELECT id, required_hours
+        FROM internships
+        WHERE student_id = ? AND status = 'ongoing'
+        ORDER BY id DESC
+        LIMIT 1
+    ");
+    $internshipUpdateStmt = $conn->prepare("
+        UPDATE internships
+        SET rendered_hours = ?, completion_percentage = ?, updated_at = NOW()
+        WHERE id = ?
+    ");
+    $studentLookupStmt = $conn->prepare("
+        SELECT assignment_track, internal_total_hours, external_total_hours
+        FROM students
+        WHERE id = ?
+        LIMIT 1
+    ");
+    $studentInternalUpdateStmt = $conn->prepare("
+        UPDATE students
+        SET internal_total_hours_remaining = ?, updated_at = NOW()
+        WHERE id = ?
+    ");
+    $studentExternalUpdateStmt = $conn->prepare("
+        UPDATE students
+        SET external_total_hours_remaining = ?, updated_at = NOW()
+        WHERE id = ?
+    ");
+
+    foreach (array_keys($studentIds) as $studentId) {
+        if (!$sumStmt) {
+            break;
+        }
+
+        $sumStmt->bind_param('i', $studentId);
+        $sumStmt->execute();
+        $sumRow = $sumStmt->get_result()->fetch_assoc();
+        $rendered = isset($sumRow['rendered']) ? (float)$sumRow['rendered'] : 0.0;
+
+        if ($internshipLookupStmt && $internshipUpdateStmt) {
+            $internshipLookupStmt->bind_param('i', $studentId);
+            $internshipLookupStmt->execute();
+            $internship = $internshipLookupStmt->get_result()->fetch_assoc();
+
+            if ($internship) {
+                $required = max(0, (int)($internship['required_hours'] ?? 0));
+                $percentage = $required > 0 ? round(($rendered / $required) * 100, 2) : 0.0;
+                if ($percentage > 100) {
+                    $percentage = 100.0;
+                }
+
+                $internshipId = (int)$internship['id'];
+                $internshipUpdateStmt->bind_param('ddi', $rendered, $percentage, $internshipId);
+                $internshipUpdateStmt->execute();
+            }
+        }
+
+        if ($studentLookupStmt) {
+            $studentLookupStmt->bind_param('i', $studentId);
+            $studentLookupStmt->execute();
+            $student = $studentLookupStmt->get_result()->fetch_assoc();
+
+            if ($student) {
+                $track = strtolower(trim((string)($student['assignment_track'] ?? 'internal')));
+                $roundedRendered = (int)floor($rendered);
+
+                if ($track === 'external' && $studentExternalUpdateStmt) {
+                    $externalTotal = max(0, (int)($student['external_total_hours'] ?? 0));
+                    $externalRemaining = max(0, $externalTotal - $roundedRendered);
+                    $studentExternalUpdateStmt->bind_param('ii', $externalRemaining, $studentId);
+                    $studentExternalUpdateStmt->execute();
+                } elseif ($studentInternalUpdateStmt) {
+                    $internalTotal = max(0, (int)($student['internal_total_hours'] ?? 0));
+                    $internalRemaining = max(0, $internalTotal - $roundedRendered);
+                    $studentInternalUpdateStmt->bind_param('ii', $internalRemaining, $studentId);
+                    $studentInternalUpdateStmt->execute();
+                }
+            }
+        }
+    }
+
+    if ($sumStmt) {
+        $sumStmt->close();
+    }
+    if ($internshipLookupStmt) {
+        $internshipLookupStmt->close();
+    }
+    if ($internshipUpdateStmt) {
+        $internshipUpdateStmt->close();
+    }
+    if ($studentLookupStmt) {
+        $studentLookupStmt->close();
+    }
+    if ($studentInternalUpdateStmt) {
+        $studentInternalUpdateStmt->close();
+    }
+    if ($studentExternalUpdateStmt) {
+        $studentExternalUpdateStmt->close();
+    }
 }
 
 // Determine attendance status based on the section schedule.
@@ -1020,6 +1269,14 @@ echo htmlspecialchars((string)($_SESSION['email'] ?? 'admin@biotern.local'), ENT
                                 <i class="feather-cpu me-2"></i>
                                 <span>Machine Manager</span>
                             </a>
+                            <form method="POST" class="d-inline-block m-0">
+                                <input type="hidden" name="attendance_action" value="toggle_testing_mode">
+                                <input type="hidden" name="testing_mode" value="<?php echo $attendanceTestingModeEnabled ? '0' : '1'; ?>">
+                                <button type="submit" class="btn <?php echo $attendanceTestingModeEnabled ? 'btn-warning' : 'btn-outline-warning'; ?>">
+                                    <i class="feather-<?php echo $attendanceTestingModeEnabled ? 'toggle-right' : 'toggle-left'; ?> me-2"></i>
+                                    <span><?php echo $attendanceTestingModeEnabled ? 'Testing Mode: ON' : 'Testing Mode: OFF'; ?></span>
+                                </button>
+                            </form>
                             <button type="button" class="btn btn-primary" id="manualSyncMachineButton">
                                 <i class="feather-refresh-cw me-2"></i>
                                 <span>Sync Machine</span>
@@ -1478,7 +1735,9 @@ echo formatTime($attendance['afternoon_time_out']); ?></span></td>
                                                             <span class="badge bg-soft-secondary text-secondary">
                                                                 <?php
 require_once dirname(__DIR__) . '/config/db.php';
-echo calculateTotalHours($attendance['morning_time_in'], $attendance['morning_time_out'], $attendance['afternoon_time_in'], $attendance['afternoon_time_out']); ?>h
+echo isset($attendance['computed_total_hours'])
+    ? $attendance['computed_total_hours']
+    : calculateAttendanceRowHours($attendance); ?>h
                                                             </span>
                                                         </td>
                                                         <td>

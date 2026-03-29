@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Mar 23, 2026 at 02:51 AM
+-- Generation Time: Mar 26, 2026 at 04:27 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -144,7 +144,87 @@ INSERT INTO `attendances` (`id`, `student_id`, `internship_id`, `attendance_date
 (9, 1, NULL, '2026-03-05', '10:46:00', '16:05:00', NULL, NULL, NULL, NULL, 5.32, 'manual', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-05 02:46:19', '2026-03-05 08:05:28'),
 (13, 1, NULL, '2026-03-09', '10:46:00', NULL, NULL, NULL, '10:46:00', NULL, 0.00, 'manual', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-09 02:46:22', '2026-03-09 02:46:31'),
 (14, 1, NULL, '2026-03-11', '08:08:00', NULL, NULL, NULL, NULL, NULL, NULL, 'manual', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-11 00:08:43', '2026-03-11 00:08:43'),
-(15, 1, NULL, '2026-03-17', '15:44:00', NULL, NULL, NULL, NULL, NULL, NULL, 'manual', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-17 07:44:30', '2026-03-17 07:44:30');
+(15, 1, NULL, '2026-03-17', '15:44:00', NULL, NULL, NULL, NULL, NULL, NULL, 'manual', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-17 07:44:30', '2026-03-17 07:44:30'),
+(23, 1, NULL, '2026-03-25', '01:05:35', '01:19:43', NULL, NULL, '01:34:41', '22:01:17', NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-24 18:06:30', '2026-03-26 03:27:00'),
+(25, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-25 15:32:52', '2026-03-25 15:32:56'),
+(26, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-25 15:32:56', '2026-03-25 15:34:57'),
+(27, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-25 15:34:57', '2026-03-25 15:35:02'),
+(29, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-25 15:35:02', '2026-03-25 15:35:15'),
+(31, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-25 15:35:16', '2026-03-25 15:59:25'),
+(33, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-25 15:59:26', '2026-03-25 15:59:26'),
+(35, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-25 15:59:26', '2026-03-25 15:59:31'),
+(37, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-25 15:59:31', '2026-03-25 16:00:50'),
+(39, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-25 16:00:50', '2026-03-25 16:02:04'),
+(41, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-25 16:02:05', '2026-03-25 16:04:23'),
+(43, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-25 16:04:33', '2026-03-25 16:07:15'),
+(45, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-25 16:07:16', '2026-03-26 02:52:21'),
+(47, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 02:52:21', '2026-03-26 02:52:22'),
+(49, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 02:52:22', '2026-03-26 02:52:25'),
+(51, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 02:52:25', '2026-03-26 02:57:59'),
+(53, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 02:57:59', '2026-03-26 02:58:01'),
+(55, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 02:58:02', '2026-03-26 02:58:08'),
+(57, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 02:58:08', '2026-03-26 02:58:09'),
+(59, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 02:58:09', '2026-03-26 02:58:11'),
+(61, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 02:58:11', '2026-03-26 02:58:22'),
+(63, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 02:58:23', '2026-03-26 02:58:25'),
+(66, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 02:58:25', '2026-03-26 02:58:39'),
+(68, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 02:58:39', '2026-03-26 02:58:41'),
+(71, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 02:58:41', '2026-03-26 02:58:44'),
+(74, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 02:58:44', '2026-03-26 02:59:20'),
+(77, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 02:59:20', '2026-03-26 02:59:31'),
+(80, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 02:59:31', '2026-03-26 02:59:34'),
+(83, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 02:59:34', '2026-03-26 02:59:47'),
+(86, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 02:59:47', '2026-03-26 02:59:49'),
+(89, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 02:59:49', '2026-03-26 02:59:50'),
+(92, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 02:59:50', '2026-03-26 02:59:51'),
+(95, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 02:59:51', '2026-03-26 02:59:53'),
+(98, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 02:59:53', '2026-03-26 02:59:56'),
+(101, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 02:59:56', '2026-03-26 03:00:50'),
+(104, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 03:00:51', '2026-03-26 03:00:57'),
+(107, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 03:00:57', '2026-03-26 03:01:12'),
+(110, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 03:01:12', '2026-03-26 03:01:13'),
+(114, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 03:01:13', '2026-03-26 03:01:15'),
+(118, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 03:01:15', '2026-03-26 03:01:24'),
+(122, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 03:01:24', '2026-03-26 03:01:25'),
+(126, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 03:01:25', '2026-03-26 03:01:28'),
+(130, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 03:01:28', '2026-03-26 03:01:31'),
+(134, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 03:01:31', '2026-03-26 03:01:40'),
+(138, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 03:01:40', '2026-03-26 03:02:11'),
+(142, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 03:02:11', '2026-03-26 03:02:42'),
+(146, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 03:02:42', '2026-03-26 03:02:45'),
+(150, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 03:02:45', '2026-03-26 03:02:48'),
+(154, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 03:02:48', '2026-03-26 03:02:56'),
+(158, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 03:02:56', '2026-03-26 03:03:06'),
+(162, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 03:03:06', '2026-03-26 03:03:08'),
+(166, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 03:03:09', '2026-03-26 03:03:11'),
+(170, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 03:03:11', '2026-03-26 03:03:23'),
+(174, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 03:03:23', '2026-03-26 03:06:04'),
+(178, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 03:06:04', '2026-03-26 03:06:11'),
+(182, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 03:06:11', '2026-03-26 03:20:30'),
+(186, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 03:20:30', '2026-03-26 03:20:34'),
+(187, 7, NULL, '2026-03-25', '01:09:23', '22:00:53', NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, '', NULL, NULL, NULL, '2026-03-26 03:20:30', '2026-03-26 03:27:00'),
+(188, 6, NULL, '2026-03-26', '10:58:46', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, '', NULL, NULL, NULL, '2026-03-26 03:20:30', '2026-03-26 03:27:00'),
+(189, 7, NULL, '2026-03-26', '10:58:26', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, '', NULL, NULL, NULL, '2026-03-26 03:20:30', '2026-03-26 03:27:00'),
+(190, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 03:20:34', '2026-03-26 03:21:32'),
+(194, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 03:21:32', '2026-03-26 03:21:39'),
+(198, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 03:21:39', '2026-03-26 03:22:32'),
+(202, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 03:22:33', '2026-03-26 03:23:32'),
+(206, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 03:23:33', '2026-03-26 03:24:29'),
+(210, 1, NULL, '2026-03-26', '11:22:45', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 03:23:33', '2026-03-26 03:27:00'),
+(211, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 03:24:29', '2026-03-26 03:24:30'),
+(215, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 03:24:30', '2026-03-26 03:24:33'),
+(219, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 03:24:33', '2026-03-26 03:24:38'),
+(223, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 03:24:38', '2026-03-26 03:24:51'),
+(227, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 03:24:51', '2026-03-26 03:24:54'),
+(231, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 03:24:54', '2026-03-26 03:25:11'),
+(235, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 03:25:11', '2026-03-26 03:25:12'),
+(239, 2, NULL, '2026-03-26', '11:25:08', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 03:25:11', '2026-03-26 03:27:00'),
+(240, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 03:25:12', '2026-03-26 03:25:15'),
+(244, 6, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 03:25:15', '2026-03-26 03:27:00'),
+(248, 9, NULL, '2026-03-25', '23:11:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 03:27:00', '2026-03-26 03:27:00'),
+(249, 10, NULL, '2026-03-25', '23:33:37', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 03:27:00', '2026-03-26 03:27:00'),
+(250, 9, NULL, '2026-03-26', '10:58:41', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 03:27:00', '2026-03-26 03:27:00'),
+(251, 10, NULL, '2026-03-26', '11:01:12', NULL, NULL, NULL, NULL, NULL, NULL, 'biometric', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-26 03:27:00', '2026-03-26 03:27:00');
 
 -- --------------------------------------------------------
 
@@ -176,6 +256,171 @@ CREATE TABLE `attendance_with_student_info` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `biometric_anomalies`
+--
+
+CREATE TABLE `biometric_anomalies` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `raw_log_id` bigint(20) UNSIGNED DEFAULT NULL,
+  `fingerprint_id` int(11) DEFAULT NULL,
+  `user_id` bigint(20) UNSIGNED DEFAULT NULL,
+  `student_id` bigint(20) UNSIGNED DEFAULT NULL,
+  `anomaly_type` varchar(100) NOT NULL,
+  `severity` varchar(20) NOT NULL DEFAULT 'warning',
+  `event_time` datetime DEFAULT NULL,
+  `message` text NOT NULL,
+  `details_json` longtext DEFAULT NULL,
+  `status` varchar(20) NOT NULL DEFAULT 'open',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `biometric_anomalies`
+--
+
+INSERT INTO `biometric_anomalies` (`id`, `raw_log_id`, `fingerprint_id`, `user_id`, `student_id`, `anomaly_type`, `severity`, `event_time`, `message`, `details_json`, `status`, `created_at`, `updated_at`) VALUES
+(1, 8, 1, 3, 1, 'excessive_daily_punches', 'warning', '2026-03-25 01:39:25', 'Student has more biometric punches than expected for a single day.', '{\"raw_data\":{\"id\":1,\"type\":1,\"time\":\"2026-03-25 01:39:25\",\"flag\":0},\"daily_count\":7}', 'open', '2026-03-26 02:52:21', '2026-03-26 03:27:00'),
+(2, 10, 1, 3, 1, 'excessive_daily_punches', 'warning', '2026-03-25 22:01:17', 'Student has more biometric punches than expected for a single day.', '{\"raw_data\":{\"id\":1,\"type\":1,\"time\":\"2026-03-25 22:01:17\",\"flag\":0},\"daily_count\":8}', 'open', '2026-03-26 02:52:21', '2026-03-26 03:27:00'),
+(3, 12, 1, 3, 1, 'excessive_daily_punches', 'warning', '2026-03-25 23:14:58', 'Student has more biometric punches than expected for a single day.', '{\"raw_data\":{\"id\":1,\"type\":1,\"time\":\"2026-03-25 23:14:58\",\"flag\":0},\"daily_count\":9}', 'open', '2026-03-26 02:52:21', '2026-03-26 03:27:00'),
+(4, 3, 1, 3, 1, 'duplicate_punch_within_5_minutes', 'warning', '2026-03-25 01:10:21', 'Biometric punch was ignored because it was too close to an existing punch.', '{\"attendance_date\":\"2026-03-25\",\"time\":\"01:10:21\"}', 'open', '2026-03-26 02:52:21', '2026-03-26 03:06:11'),
+(5, 4, 1, 3, 1, 'unassigned_biometric_punch', 'warning', '2026-03-25 01:12:11', 'Biometric punch could not be assigned to an attendance slot.', '{\"attendance_date\":\"2026-03-25\",\"time\":\"01:12:11\"}', 'open', '2026-03-26 02:52:21', '2026-03-26 03:06:11'),
+(6, 5, 1, 3, 1, 'unassigned_biometric_punch', 'warning', '2026-03-25 01:19:43', 'Biometric punch could not be assigned to an attendance slot.', '{\"attendance_date\":\"2026-03-25\",\"time\":\"01:19:43\"}', 'open', '2026-03-26 02:52:21', '2026-03-26 03:06:11'),
+(7, 6, 1, 3, 1, 'unassigned_biometric_punch', 'warning', '2026-03-25 01:24:21', 'Biometric punch could not be assigned to an attendance slot.', '{\"attendance_date\":\"2026-03-25\",\"time\":\"01:24:21\"}', 'open', '2026-03-26 02:52:21', '2026-03-26 03:06:11'),
+(8, 7, 1, 3, 1, 'unassigned_biometric_punch', 'warning', '2026-03-25 01:34:41', 'Biometric punch could not be assigned to an attendance slot.', '{\"attendance_date\":\"2026-03-25\",\"time\":\"01:34:41\"}', 'open', '2026-03-26 02:52:21', '2026-03-26 03:06:11'),
+(9, 8, 1, 3, 1, 'unassigned_biometric_punch', 'warning', '2026-03-25 01:39:25', 'Biometric punch could not be assigned to an attendance slot.', '{\"attendance_date\":\"2026-03-25\",\"time\":\"01:39:25\"}', 'open', '2026-03-26 02:52:21', '2026-03-26 03:06:11'),
+(103, 16, 5, NULL, NULL, 'unmapped_fingerprint', 'warning', '2026-03-26 10:58:46', 'Fingerprint scan was received with no BioTern mapping.', '{\"raw_data\":{\"id\":5,\"type\":1,\"time\":\"2026-03-26 10:58:46\",\"flag\":0}}', 'open', '2026-03-26 02:58:41', '2026-03-26 02:58:44'),
+(309, 18, 3, 16, 9, 'duplicate_punch_within_5_minutes', 'warning', '2026-03-26 11:02:44', 'Biometric punch was ignored because it was too close to an existing punch.', '{\"attendance_date\":\"2026-03-26\",\"time\":\"11:02:44\"}', 'open', '2026-03-26 03:02:43', '2026-03-26 03:06:11'),
+(350, 19, 2, 10, 7, 'duplicate_punch_within_5_minutes', 'warning', '2026-03-26 11:03:07', 'Biometric punch was ignored because it was too close to an existing punch.', '{\"attendance_date\":\"2026-03-26\",\"time\":\"11:03:07\"}', 'open', '2026-03-26 03:03:06', '2026-03-26 03:06:11'),
+(409, 3, 1, 3, 1, 'duplicate_punch_within_10_minutes', 'warning', '2026-03-25 01:10:21', 'Biometric punch was ignored because it was too close to an existing punch.', '{\"attendance_date\":\"2026-03-25\",\"time\":\"01:10:21\",\"window_minutes\":10}', 'open', '2026-03-26 03:20:30', '2026-03-26 03:27:00'),
+(410, 4, 1, 3, 1, 'duplicate_punch_within_10_minutes', 'warning', '2026-03-25 01:12:11', 'Biometric punch was ignored because it was too close to an existing punch.', '{\"attendance_date\":\"2026-03-25\",\"time\":\"01:12:11\",\"window_minutes\":10}', 'open', '2026-03-26 03:20:30', '2026-03-26 03:27:00'),
+(411, 6, 1, 3, 1, 'duplicate_punch_within_10_minutes', 'warning', '2026-03-25 01:24:21', 'Biometric punch was ignored because it was too close to an existing punch.', '{\"attendance_date\":\"2026-03-25\",\"time\":\"01:24:21\",\"window_minutes\":10}', 'open', '2026-03-26 03:20:30', '2026-03-26 03:27:00'),
+(412, 8, 1, 3, 1, 'duplicate_punch_within_10_minutes', 'warning', '2026-03-25 01:39:25', 'Biometric punch was ignored because it was too close to an existing punch.', '{\"attendance_date\":\"2026-03-25\",\"time\":\"01:39:25\",\"window_minutes\":10}', 'open', '2026-03-26 03:20:30', '2026-03-26 03:27:00'),
+(413, 12, 1, 3, 1, 'unassigned_biometric_punch', 'warning', '2026-03-25 23:14:58', 'Biometric punch could not be assigned to an attendance slot.', '{\"attendance_date\":\"2026-03-25\",\"time\":\"23:14:58\"}', 'open', '2026-03-26 03:20:30', '2026-03-26 03:27:00'),
+(414, 18, 3, 16, 9, 'duplicate_punch_within_10_minutes', 'warning', '2026-03-26 11:02:44', 'Biometric punch was ignored because it was too close to an existing punch.', '{\"attendance_date\":\"2026-03-26\",\"time\":\"11:02:44\",\"window_minutes\":10}', 'open', '2026-03-26 03:20:30', '2026-03-26 03:27:00'),
+(415, 19, 2, 10, 7, 'duplicate_punch_within_10_minutes', 'warning', '2026-03-26 11:03:07', 'Biometric punch was ignored because it was too close to an existing punch.', '{\"attendance_date\":\"2026-03-26\",\"time\":\"11:03:07\",\"window_minutes\":10}', 'open', '2026-03-26 03:20:30', '2026-03-26 03:27:00');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `biometric_audit_logs`
+--
+
+CREATE TABLE `biometric_audit_logs` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `actor_user_id` bigint(20) UNSIGNED DEFAULT NULL,
+  `actor_role` varchar(50) DEFAULT NULL,
+  `action` varchar(100) NOT NULL,
+  `target_type` varchar(100) NOT NULL,
+  `target_id` varchar(100) DEFAULT NULL,
+  `details_json` longtext DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `biometric_audit_logs`
+--
+
+INSERT INTO `biometric_audit_logs` (`id`, `actor_user_id`, `actor_role`, `action`, `target_type`, `target_id`, `details_json`, `created_at`) VALUES
+(1, 4, 'admin', 'machine_sync_failed', 'machine_sync', NULL, '{\"message\":\"Machine sync failed.\\nDevice connection failed.\"}', '2026-03-26 02:28:29'),
+(2, 4, 'admin', 'machine_sync_failed', 'machine_sync', NULL, '{\"message\":\"Machine sync failed.\\nDevice connection failed.\"}', '2026-03-26 02:28:35'),
+(3, 4, 'admin', 'machine_sync_failed', 'machine_sync', NULL, '{\"message\":\"Machine sync failed.\\nDevice connection failed.\"}', '2026-03-26 02:28:44'),
+(4, 4, 'admin', 'machine_sync_failed', 'machine_sync', NULL, '{\"message\":\"Machine sync failed.\\nDevice connection failed.\"}', '2026-03-26 02:29:42'),
+(5, 4, 'admin', 'machine_sync_failed', 'machine_sync', NULL, '{\"message\":\"Machine sync failed.\\nDevice connection failed.\"}', '2026-03-26 02:30:40'),
+(6, 4, 'admin', 'machine_sync_failed', 'machine_sync', NULL, '{\"message\":\"Machine sync failed.\\nDevice connection failed.\"}', '2026-03-26 02:30:46'),
+(7, 4, 'admin', 'machine_sync_failed', 'machine_sync', NULL, '{\"message\":\"Machine sync failed.\\nDevice connection failed.\"}', '2026-03-26 02:30:52'),
+(8, 4, 'admin', 'machine_sync_failed', 'machine_sync', NULL, '{\"message\":\"Machine sync failed.\\nDevice connection failed.\"}', '2026-03-26 02:35:50'),
+(9, 4, 'admin', 'machine_sync_failed', 'machine_sync', NULL, '{\"message\":\"Machine sync failed.\\nDevice connection failed.\"}', '2026-03-26 02:35:56'),
+(10, 4, 'admin', 'machine_sync_failed', 'machine_sync', NULL, '{\"message\":\"Machine sync failed.\\nDevice connection failed.\"}', '2026-03-26 02:36:03'),
+(11, 4, 'admin', 'machine_sync_failed', 'machine_sync', NULL, '{\"message\":\"Machine sync failed.\\nDevice connection failed.\"}', '2026-03-26 02:36:11'),
+(12, 4, 'admin', 'machine_sync_failed', 'machine_sync', NULL, '{\"message\":\"Machine sync failed.\\nDevice connection failed.\"}', '2026-03-26 02:36:17'),
+(13, 4, 'admin', 'machine_sync_failed', 'machine_sync', NULL, '{\"message\":\"Machine sync failed.\\nDevice connection failed.\"}', '2026-03-26 02:36:26'),
+(14, 4, 'admin', 'machine_sync_failed', 'machine_sync', NULL, '{\"message\":\"Machine sync failed.\\nDevice connection failed.\"}', '2026-03-26 02:38:33'),
+(15, 4, 'admin', 'machine_sync_failed', 'machine_sync', NULL, '{\"message\":\"Machine sync failed.\\nDevice connection failed.\"}', '2026-03-26 02:39:09'),
+(16, 4, 'admin', 'machine_sync_failed', 'machine_sync', NULL, '{\"message\":\"Machine sync failed.\\nDevice connection failed.\"}', '2026-03-26 02:39:27'),
+(17, 4, 'admin', 'machine_sync_failed', 'machine_sync', NULL, '{\"message\":\"Machine sync failed.\\nDevice connection failed.\"}', '2026-03-26 02:46:17'),
+(18, 4, 'admin', 'machine_sync_failed', 'machine_sync', NULL, '{\"message\":\"Machine sync failed.\\nDevice connection failed.\"}', '2026-03-26 02:46:25'),
+(19, 4, 'admin', 'machine_sync_failed', 'machine_sync', NULL, '{\"message\":\"Machine sync failed.\\nDevice connection failed.\"}', '2026-03-26 02:46:32'),
+(20, 4, 'admin', 'machine_sync_failed', 'machine_sync', NULL, '{\"message\":\"Machine sync failed.\\nDevice connection failed.\"}', '2026-03-26 02:46:39'),
+(21, 4, 'admin', 'machine_sync_failed', 'machine_sync', NULL, '{\"message\":\"Machine sync failed.\\nDevice connection failed.\"}', '2026-03-26 02:47:08'),
+(22, 4, 'admin', 'machine_sync_failed', 'machine_sync', NULL, '{\"message\":\"Machine sync failed.\\nDevice connection failed.\"}', '2026-03-26 02:47:15'),
+(23, 4, 'admin', 'machine_sync_failed', 'machine_sync', NULL, '{\"message\":\"Machine sync failed.\\nDevice connection failed.\"}', '2026-03-26 02:47:23'),
+(24, 4, 'admin', 'machine_sync_failed', 'machine_sync', NULL, '{\"message\":\"Machine sync failed.\\nDevice connection failed.\"}', '2026-03-26 02:51:39'),
+(25, 4, 'admin', 'machine_sync_failed', 'machine_sync', NULL, '{\"message\":\"Machine sync failed.\\nDevice connection failed.\"}', '2026-03-26 02:51:52'),
+(26, 4, 'admin', 'machine_sync_failed', 'machine_sync', NULL, '{\"message\":\"Machine sync failed.\\nDevice connection failed.\"}', '2026-03-26 02:51:53'),
+(27, 4, 'admin', 'machine_sync_failed', 'machine_sync', NULL, '{\"message\":\"Machine sync failed.\\nDevice connection failed.\"}', '2026-03-26 02:51:55'),
+(28, 4, 'admin', 'machine_sync_success', 'machine_sync', NULL, '{\"message\":\"Biometric sync complete. Raw inserted: 0, logs processed: 13, attendance rows changed: 7, anomalies found: 9\",\"raw_inserted\":0,\"processed_logs\":13,\"attendance_changed\":7,\"anomalies_found\":9}', '2026-03-26 02:52:21'),
+(29, 4, 'admin', 'machine_sync_success', 'machine_sync', NULL, '{\"message\":\"Biometric sync complete. Raw inserted: 0, logs processed: 13, attendance rows changed: 7, anomalies found: 9\",\"raw_inserted\":0,\"processed_logs\":13,\"attendance_changed\":7,\"anomalies_found\":9}', '2026-03-26 02:52:22'),
+(30, 4, 'admin', 'machine_sync_success', 'machine_sync', NULL, '{\"message\":\"Biometric sync complete. Raw inserted: 0, logs processed: 13, attendance rows changed: 7, anomalies found: 9\",\"raw_inserted\":0,\"processed_logs\":13,\"attendance_changed\":7,\"anomalies_found\":9}', '2026-03-26 02:52:25'),
+(31, 4, 'admin', 'machine_sync_failed', 'machine_sync', NULL, '{\"message\":\"Machine sync failed.\\nDevice connection failed.\"}', '2026-03-26 02:52:41'),
+(32, 4, 'admin', 'machine_sync_failed', 'machine_sync', NULL, '{\"message\":\"Machine sync failed.\\nDevice connection failed.\"}', '2026-03-26 02:52:57'),
+(33, 4, 'admin', 'machine_sync_failed', 'machine_sync', NULL, '{\"message\":\"Machine sync failed.\\nDevice connection failed.\"}', '2026-03-26 02:52:57'),
+(34, 4, 'admin', 'machine_sync_failed', 'machine_sync', NULL, '{\"message\":\"Machine sync failed.\\nDevice connection failed.\"}', '2026-03-26 02:53:00'),
+(35, 4, 'admin', 'machine_sync_failed', 'machine_sync', NULL, '{\"message\":\"Machine sync failed.\\nDevice connection failed.\"}', '2026-03-26 02:53:11'),
+(36, 4, 'admin', 'machine_sync_failed', 'machine_sync', NULL, '{\"message\":\"Machine sync failed.\\nDevice connection failed.\"}', '2026-03-26 02:53:32'),
+(37, 4, 'admin', 'machine_sync_failed', 'machine_sync', NULL, '{\"message\":\"Machine sync failed.\\nDevice connection failed.\"}', '2026-03-26 02:57:28'),
+(38, 4, 'admin', 'machine_sync_failed', 'machine_sync', NULL, '{\"message\":\"Machine sync failed.\\nDevice connection failed.\"}', '2026-03-26 02:57:37'),
+(39, 4, 'admin', 'machine_sync_success', 'machine_sync', NULL, '{\"message\":\"Biometric sync complete. Raw inserted: 0, logs processed: 13, attendance rows changed: 7, anomalies found: 9\",\"raw_inserted\":0,\"processed_logs\":13,\"attendance_changed\":7,\"anomalies_found\":9}', '2026-03-26 02:57:59'),
+(40, 4, 'admin', 'machine_sync_success', 'machine_sync', NULL, '{\"message\":\"Biometric sync complete. Raw inserted: 0, logs processed: 13, attendance rows changed: 7, anomalies found: 9\",\"raw_inserted\":0,\"processed_logs\":13,\"attendance_changed\":7,\"anomalies_found\":9}', '2026-03-26 02:58:02'),
+(41, 4, 'admin', 'machine_sync_success', 'machine_sync', NULL, '{\"message\":\"Biometric sync complete. Raw inserted: 0, logs processed: 13, attendance rows changed: 7, anomalies found: 9\",\"raw_inserted\":0,\"processed_logs\":13,\"attendance_changed\":7,\"anomalies_found\":9}', '2026-03-26 02:58:08'),
+(42, 4, 'admin', 'machine_sync_success', 'machine_sync', NULL, '{\"message\":\"Biometric sync complete. Raw inserted: 0, logs processed: 13, attendance rows changed: 7, anomalies found: 9\",\"raw_inserted\":0,\"processed_logs\":13,\"attendance_changed\":7,\"anomalies_found\":9}', '2026-03-26 02:58:09'),
+(43, 4, 'admin', 'machine_sync_success', 'machine_sync', NULL, '{\"message\":\"Biometric sync complete. Raw inserted: 0, logs processed: 13, attendance rows changed: 7, anomalies found: 9\",\"raw_inserted\":0,\"processed_logs\":13,\"attendance_changed\":7,\"anomalies_found\":9}', '2026-03-26 02:58:11'),
+(44, 4, 'admin', 'machine_sync_success', 'machine_sync', NULL, '{\"message\":\"Biometric sync complete. Raw inserted: 1, logs processed: 14, attendance rows changed: 8, anomalies found: 9\",\"raw_inserted\":1,\"processed_logs\":14,\"attendance_changed\":8,\"anomalies_found\":9}', '2026-03-26 02:58:23'),
+(45, 4, 'admin', 'machine_sync_success', 'machine_sync', NULL, '{\"message\":\"Biometric sync complete. Raw inserted: 0, logs processed: 14, attendance rows changed: 8, anomalies found: 9\",\"raw_inserted\":0,\"processed_logs\":14,\"attendance_changed\":8,\"anomalies_found\":9}', '2026-03-26 02:58:25'),
+(46, 4, 'admin', 'machine_sync_success', 'machine_sync', NULL, '{\"message\":\"Biometric sync complete. Raw inserted: 1, logs processed: 15, attendance rows changed: 9, anomalies found: 9\",\"raw_inserted\":1,\"processed_logs\":15,\"attendance_changed\":9,\"anomalies_found\":9}', '2026-03-26 02:58:39'),
+(47, 4, 'admin', 'machine_sync_success', 'machine_sync', NULL, '{\"message\":\"Biometric sync complete. Raw inserted: 1, logs processed: 15, attendance rows changed: 9, anomalies found: 10\",\"raw_inserted\":1,\"processed_logs\":15,\"attendance_changed\":9,\"anomalies_found\":10}', '2026-03-26 02:58:41'),
+(48, 4, 'admin', 'machine_sync_success', 'machine_sync', NULL, '{\"message\":\"Biometric sync complete. Raw inserted: 0, logs processed: 15, attendance rows changed: 9, anomalies found: 10\",\"raw_inserted\":0,\"processed_logs\":15,\"attendance_changed\":9,\"anomalies_found\":10}', '2026-03-26 02:58:44'),
+(49, 4, 'admin', 'fingerprint_mapping_saved', 'fingerprint_mapping', '5', '{\"finger_id\":5,\"user_id\":9}', '2026-03-26 02:59:15'),
+(50, 4, 'admin', 'machine_sync_success', 'machine_sync', NULL, '{\"message\":\"Biometric sync complete. Raw inserted: 0, logs processed: 16, attendance rows changed: 10, anomalies found: 9\",\"raw_inserted\":0,\"processed_logs\":16,\"attendance_changed\":10,\"anomalies_found\":9}', '2026-03-26 02:59:20'),
+(51, 4, 'admin', 'machine_sync_success', 'machine_sync', NULL, '{\"message\":\"Biometric sync complete. Raw inserted: 0, logs processed: 16, attendance rows changed: 10, anomalies found: 9\",\"raw_inserted\":0,\"processed_logs\":16,\"attendance_changed\":10,\"anomalies_found\":9}', '2026-03-26 02:59:31'),
+(52, 4, 'admin', 'machine_sync_success', 'machine_sync', NULL, '{\"message\":\"Biometric sync complete. Raw inserted: 0, logs processed: 16, attendance rows changed: 10, anomalies found: 9\",\"raw_inserted\":0,\"processed_logs\":16,\"attendance_changed\":10,\"anomalies_found\":9}', '2026-03-26 02:59:34'),
+(53, 4, 'admin', 'machine_sync_success', 'machine_sync', NULL, '{\"message\":\"Biometric sync complete. Raw inserted: 0, logs processed: 16, attendance rows changed: 10, anomalies found: 9\",\"raw_inserted\":0,\"processed_logs\":16,\"attendance_changed\":10,\"anomalies_found\":9}', '2026-03-26 02:59:47'),
+(54, 4, 'admin', 'machine_sync_success', 'machine_sync', NULL, '{\"message\":\"Biometric sync complete. Raw inserted: 0, logs processed: 16, attendance rows changed: 10, anomalies found: 9\",\"raw_inserted\":0,\"processed_logs\":16,\"attendance_changed\":10,\"anomalies_found\":9}', '2026-03-26 02:59:49'),
+(55, 4, 'admin', 'machine_sync_success', 'machine_sync', NULL, '{\"message\":\"Biometric sync complete. Raw inserted: 0, logs processed: 16, attendance rows changed: 10, anomalies found: 9\",\"raw_inserted\":0,\"processed_logs\":16,\"attendance_changed\":10,\"anomalies_found\":9}', '2026-03-26 02:59:50'),
+(56, 4, 'admin', 'machine_sync_success', 'machine_sync', NULL, '{\"message\":\"Biometric sync complete. Raw inserted: 0, logs processed: 16, attendance rows changed: 10, anomalies found: 9\",\"raw_inserted\":0,\"processed_logs\":16,\"attendance_changed\":10,\"anomalies_found\":9}', '2026-03-26 02:59:51'),
+(57, 4, 'admin', 'machine_sync_success', 'machine_sync', NULL, '{\"message\":\"Biometric sync complete. Raw inserted: 0, logs processed: 16, attendance rows changed: 10, anomalies found: 9\",\"raw_inserted\":0,\"processed_logs\":16,\"attendance_changed\":10,\"anomalies_found\":9}', '2026-03-26 02:59:53'),
+(58, 4, 'admin', 'machine_sync_success', 'machine_sync', NULL, '{\"message\":\"Biometric sync complete. Raw inserted: 0, logs processed: 16, attendance rows changed: 10, anomalies found: 9\",\"raw_inserted\":0,\"processed_logs\":16,\"attendance_changed\":10,\"anomalies_found\":9}', '2026-03-26 02:59:56'),
+(59, 4, 'admin', 'machine_sync_success', 'machine_sync', NULL, '{\"message\":\"Biometric sync complete. Raw inserted: 0, logs processed: 16, attendance rows changed: 10, anomalies found: 9\",\"raw_inserted\":0,\"processed_logs\":16,\"attendance_changed\":10,\"anomalies_found\":9}', '2026-03-26 03:00:51'),
+(60, 4, 'admin', 'machine_sync_success', 'machine_sync', NULL, '{\"message\":\"Biometric sync complete. Raw inserted: 0, logs processed: 16, attendance rows changed: 10, anomalies found: 9\",\"raw_inserted\":0,\"processed_logs\":16,\"attendance_changed\":10,\"anomalies_found\":9}', '2026-03-26 03:00:57'),
+(61, 4, 'admin', 'machine_sync_success', 'machine_sync', NULL, '{\"message\":\"Biometric sync complete. Raw inserted: 1, logs processed: 17, attendance rows changed: 11, anomalies found: 9\",\"raw_inserted\":1,\"processed_logs\":17,\"attendance_changed\":11,\"anomalies_found\":9}', '2026-03-26 03:01:12'),
+(62, 4, 'admin', 'machine_sync_success', 'machine_sync', NULL, '{\"message\":\"Biometric sync complete. Raw inserted: 0, logs processed: 17, attendance rows changed: 11, anomalies found: 9\",\"raw_inserted\":0,\"processed_logs\":17,\"attendance_changed\":11,\"anomalies_found\":9}', '2026-03-26 03:01:13'),
+(63, 4, 'admin', 'machine_sync_success', 'machine_sync', NULL, '{\"message\":\"Biometric sync complete. Raw inserted: 0, logs processed: 17, attendance rows changed: 11, anomalies found: 9\",\"raw_inserted\":0,\"processed_logs\":17,\"attendance_changed\":11,\"anomalies_found\":9}', '2026-03-26 03:01:15'),
+(64, 4, 'admin', 'machine_sync_success', 'machine_sync', NULL, '{\"message\":\"Biometric sync complete. Raw inserted: 0, logs processed: 17, attendance rows changed: 11, anomalies found: 9\",\"raw_inserted\":0,\"processed_logs\":17,\"attendance_changed\":11,\"anomalies_found\":9}', '2026-03-26 03:01:24'),
+(65, 4, 'admin', 'machine_sync_success', 'machine_sync', NULL, '{\"message\":\"Biometric sync complete. Raw inserted: 0, logs processed: 17, attendance rows changed: 11, anomalies found: 9\",\"raw_inserted\":0,\"processed_logs\":17,\"attendance_changed\":11,\"anomalies_found\":9}', '2026-03-26 03:01:25'),
+(66, 4, 'admin', 'machine_sync_success', 'machine_sync', NULL, '{\"message\":\"Biometric sync complete. Raw inserted: 0, logs processed: 17, attendance rows changed: 11, anomalies found: 9\",\"raw_inserted\":0,\"processed_logs\":17,\"attendance_changed\":11,\"anomalies_found\":9}', '2026-03-26 03:01:28'),
+(67, 4, 'admin', 'machine_sync_success', 'machine_sync', NULL, '{\"message\":\"Biometric sync complete. Raw inserted: 0, logs processed: 17, attendance rows changed: 11, anomalies found: 9\",\"raw_inserted\":0,\"processed_logs\":17,\"attendance_changed\":11,\"anomalies_found\":9}', '2026-03-26 03:01:31'),
+(68, 4, 'admin', 'machine_sync_success', 'machine_sync', NULL, '{\"message\":\"Biometric sync complete. Raw inserted: 0, logs processed: 17, attendance rows changed: 11, anomalies found: 9\",\"raw_inserted\":0,\"processed_logs\":17,\"attendance_changed\":11,\"anomalies_found\":9}', '2026-03-26 03:01:40'),
+(69, 4, 'admin', 'machine_sync_success', 'machine_sync', NULL, '{\"message\":\"Biometric sync complete. Raw inserted: 0, logs processed: 17, attendance rows changed: 11, anomalies found: 9\",\"raw_inserted\":0,\"processed_logs\":17,\"attendance_changed\":11,\"anomalies_found\":9}', '2026-03-26 03:02:12'),
+(70, 4, 'admin', 'machine_sync_success', 'machine_sync', NULL, '{\"message\":\"Biometric sync complete. Raw inserted: 1, logs processed: 18, attendance rows changed: 11, anomalies found: 10\",\"raw_inserted\":1,\"processed_logs\":18,\"attendance_changed\":11,\"anomalies_found\":10}', '2026-03-26 03:02:43'),
+(71, 4, 'admin', 'machine_sync_success', 'machine_sync', NULL, '{\"message\":\"Biometric sync complete. Raw inserted: 0, logs processed: 18, attendance rows changed: 11, anomalies found: 10\",\"raw_inserted\":0,\"processed_logs\":18,\"attendance_changed\":11,\"anomalies_found\":10}', '2026-03-26 03:02:45'),
+(72, 4, 'admin', 'machine_sync_success', 'machine_sync', NULL, '{\"message\":\"Biometric sync complete. Raw inserted: 0, logs processed: 18, attendance rows changed: 11, anomalies found: 10\",\"raw_inserted\":0,\"processed_logs\":18,\"attendance_changed\":11,\"anomalies_found\":10}', '2026-03-26 03:02:48'),
+(73, 4, 'admin', 'machine_sync_success', 'machine_sync', NULL, '{\"message\":\"Biometric sync complete. Raw inserted: 0, logs processed: 18, attendance rows changed: 11, anomalies found: 10\",\"raw_inserted\":0,\"processed_logs\":18,\"attendance_changed\":11,\"anomalies_found\":10}', '2026-03-26 03:02:56'),
+(74, 4, 'admin', 'machine_sync_success', 'machine_sync', NULL, '{\"message\":\"Biometric sync complete. Raw inserted: 1, logs processed: 19, attendance rows changed: 11, anomalies found: 11\",\"raw_inserted\":1,\"processed_logs\":19,\"attendance_changed\":11,\"anomalies_found\":11}', '2026-03-26 03:03:06'),
+(75, 4, 'admin', 'machine_sync_success', 'machine_sync', NULL, '{\"message\":\"Biometric sync complete. Raw inserted: 0, logs processed: 19, attendance rows changed: 11, anomalies found: 11\",\"raw_inserted\":0,\"processed_logs\":19,\"attendance_changed\":11,\"anomalies_found\":11}', '2026-03-26 03:03:09'),
+(76, 4, 'admin', 'machine_sync_success', 'machine_sync', NULL, '{\"message\":\"Biometric sync complete. Raw inserted: 0, logs processed: 19, attendance rows changed: 11, anomalies found: 11\",\"raw_inserted\":0,\"processed_logs\":19,\"attendance_changed\":11,\"anomalies_found\":11}', '2026-03-26 03:03:11'),
+(77, 4, 'admin', 'machine_sync_success', 'machine_sync', NULL, '{\"message\":\"Biometric sync complete. Raw inserted: 0, logs processed: 19, attendance rows changed: 11, anomalies found: 11\",\"raw_inserted\":0,\"processed_logs\":19,\"attendance_changed\":11,\"anomalies_found\":11}', '2026-03-26 03:03:23'),
+(78, 4, 'admin', 'machine_sync_success', 'machine_sync', NULL, '{\"message\":\"Biometric sync complete. Raw inserted: 0, logs processed: 19, attendance rows changed: 11, anomalies found: 11\",\"raw_inserted\":0,\"processed_logs\":19,\"attendance_changed\":11,\"anomalies_found\":11}', '2026-03-26 03:06:04'),
+(79, 4, 'admin', 'machine_sync_success', 'machine_sync', NULL, '{\"message\":\"Biometric sync complete. Raw inserted: 0, logs processed: 19, attendance rows changed: 11, anomalies found: 11\",\"raw_inserted\":0,\"processed_logs\":19,\"attendance_changed\":11,\"anomalies_found\":11}', '2026-03-26 03:06:11'),
+(80, 4, 'admin', 'machine_sync_success', 'machine_sync', NULL, '{\"message\":\"Biometric sync complete. Raw inserted: 0, logs processed: 19, attendance rows changed: 12, anomalies found: 10\",\"raw_inserted\":0,\"processed_logs\":19,\"attendance_changed\":12,\"anomalies_found\":10}', '2026-03-26 03:20:30'),
+(81, 4, 'admin', 'machine_sync_success', 'machine_sync', NULL, '{\"message\":\"Biometric sync complete. Raw inserted: 0, logs processed: 19, attendance rows changed: 12, anomalies found: 10\",\"raw_inserted\":0,\"processed_logs\":19,\"attendance_changed\":12,\"anomalies_found\":10}', '2026-03-26 03:20:34'),
+(82, 4, 'admin', 'machine_sync_success', 'machine_sync', NULL, '{\"message\":\"Biometric sync complete. Raw inserted: 0, logs processed: 19, attendance rows changed: 12, anomalies found: 10\",\"raw_inserted\":0,\"processed_logs\":19,\"attendance_changed\":12,\"anomalies_found\":10}', '2026-03-26 03:21:33'),
+(83, 4, 'admin', 'machine_sync_success', 'machine_sync', NULL, '{\"message\":\"Biometric sync complete. Raw inserted: 0, logs processed: 19, attendance rows changed: 12, anomalies found: 10\",\"raw_inserted\":0,\"processed_logs\":19,\"attendance_changed\":12,\"anomalies_found\":10}', '2026-03-26 03:22:33'),
+(84, 4, 'admin', 'machine_sync_success', 'machine_sync', NULL, '{\"message\":\"Biometric sync complete. Raw inserted: 1, logs processed: 20, attendance rows changed: 13, anomalies found: 10\",\"raw_inserted\":1,\"processed_logs\":20,\"attendance_changed\":13,\"anomalies_found\":10}', '2026-03-26 03:23:33'),
+(85, 4, 'admin', 'machine_sync_success', 'machine_sync', NULL, '{\"message\":\"Biometric sync complete. Raw inserted: 0, logs processed: 20, attendance rows changed: 13, anomalies found: 10\",\"raw_inserted\":0,\"processed_logs\":20,\"attendance_changed\":13,\"anomalies_found\":10}', '2026-03-26 03:24:29'),
+(86, 4, 'admin', 'machine_sync_success', 'machine_sync', NULL, '{\"message\":\"Biometric sync complete. Raw inserted: 0, logs processed: 20, attendance rows changed: 13, anomalies found: 10\",\"raw_inserted\":0,\"processed_logs\":20,\"attendance_changed\":13,\"anomalies_found\":10}', '2026-03-26 03:24:30'),
+(87, 4, 'admin', 'machine_sync_success', 'machine_sync', NULL, '{\"message\":\"Biometric sync complete. Raw inserted: 0, logs processed: 20, attendance rows changed: 13, anomalies found: 10\",\"raw_inserted\":0,\"processed_logs\":20,\"attendance_changed\":13,\"anomalies_found\":10}', '2026-03-26 03:24:33'),
+(88, 4, 'admin', 'machine_sync_success', 'machine_sync', NULL, '{\"message\":\"Biometric sync complete. Raw inserted: 0, logs processed: 20, attendance rows changed: 13, anomalies found: 10\",\"raw_inserted\":0,\"processed_logs\":20,\"attendance_changed\":13,\"anomalies_found\":10}', '2026-03-26 03:24:38'),
+(89, 4, 'admin', 'fingerprint_mapping_saved', 'fingerprint_mapping', '6', '{\"finger_id\":6,\"user_id\":5}', '2026-03-26 03:24:48'),
+(90, 4, 'admin', 'machine_sync_success', 'machine_sync', NULL, '{\"message\":\"Biometric sync complete. Raw inserted: 0, logs processed: 20, attendance rows changed: 13, anomalies found: 10\",\"raw_inserted\":0,\"processed_logs\":20,\"attendance_changed\":13,\"anomalies_found\":10}', '2026-03-26 03:24:51'),
+(91, 4, 'admin', 'machine_sync_success', 'machine_sync', NULL, '{\"message\":\"Biometric sync complete. Raw inserted: 0, logs processed: 20, attendance rows changed: 13, anomalies found: 10\",\"raw_inserted\":0,\"processed_logs\":20,\"attendance_changed\":13,\"anomalies_found\":10}', '2026-03-26 03:24:54'),
+(92, 4, 'admin', 'machine_sync_success', 'machine_sync', NULL, '{\"message\":\"Biometric sync complete. Raw inserted: 1, logs processed: 21, attendance rows changed: 14, anomalies found: 10\",\"raw_inserted\":1,\"processed_logs\":21,\"attendance_changed\":14,\"anomalies_found\":10}', '2026-03-26 03:25:11'),
+(93, 4, 'admin', 'machine_sync_success', 'machine_sync', NULL, '{\"message\":\"Biometric sync complete. Raw inserted: 0, logs processed: 21, attendance rows changed: 14, anomalies found: 10\",\"raw_inserted\":0,\"processed_logs\":21,\"attendance_changed\":14,\"anomalies_found\":10}', '2026-03-26 03:25:12'),
+(94, 4, 'admin', 'machine_sync_success', 'machine_sync', NULL, '{\"message\":\"Biometric sync complete. Raw inserted: 0, logs processed: 21, attendance rows changed: 14, anomalies found: 10\",\"raw_inserted\":0,\"processed_logs\":21,\"attendance_changed\":14,\"anomalies_found\":10}', '2026-03-26 03:25:15'),
+(95, 4, 'admin', 'machine_sync_success', 'machine_sync', NULL, '{\"message\":\"Biometric sync complete. Raw inserted: 0, logs processed: 21, attendance rows changed: 14, anomalies found: 10\",\"raw_inserted\":0,\"processed_logs\":21,\"attendance_changed\":14,\"anomalies_found\":10}', '2026-03-26 03:27:00');
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `biometric_data`
 --
 
@@ -189,6 +434,166 @@ CREATE TABLE `biometric_data` (
   `updated_at` timestamp NULL DEFAULT NULL,
   `deleted_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `biometric_raw_logs`
+--
+
+CREATE TABLE `biometric_raw_logs` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `raw_data` text NOT NULL,
+  `imported_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `processed` tinyint(1) DEFAULT 0
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `biometric_raw_logs`
+--
+
+INSERT INTO `biometric_raw_logs` (`id`, `raw_data`, `imported_at`, `processed`) VALUES
+(1, '{\"id\":1,\"type\":1,\"time\":\"2026-03-25 01:05:35\",\"flag\":0}', '2026-03-24 17:05:41', 1),
+(2, '{\"id\":2,\"type\":1,\"time\":\"2026-03-25 01:09:23\",\"flag\":0}', '2026-03-24 17:09:29', 1),
+(3, '{\"id\":1,\"type\":1,\"time\":\"2026-03-25 01:10:21\",\"flag\":0}', '2026-03-24 17:10:21', 1),
+(4, '{\"id\":1,\"type\":1,\"time\":\"2026-03-25 01:12:11\",\"flag\":0}', '2026-03-24 17:12:13', 1),
+(5, '{\"id\":1,\"type\":1,\"time\":\"2026-03-25 01:19:43\",\"flag\":0}', '2026-03-24 17:19:45', 1),
+(6, '{\"id\":1,\"type\":1,\"time\":\"2026-03-25 01:24:21\",\"flag\":0}', '2026-03-24 17:24:30', 1),
+(7, '{\"id\":1,\"type\":1,\"time\":\"2026-03-25 01:34:41\",\"flag\":0}', '2026-03-24 17:34:42', 1),
+(8, '{\"id\":1,\"type\":1,\"time\":\"2026-03-25 01:39:25\",\"flag\":0}', '2026-03-24 17:39:30', 1),
+(9, '{\"id\":2,\"type\":1,\"time\":\"2026-03-25 22:00:53\",\"flag\":0}', '2026-03-25 14:01:18', 1),
+(10, '{\"id\":1,\"type\":1,\"time\":\"2026-03-25 22:01:17\",\"flag\":0}', '2026-03-25 14:01:18', 1),
+(11, '{\"id\":3,\"type\":1,\"time\":\"2026-03-25 23:11:37\",\"flag\":0}', '2026-03-25 15:12:04', 1),
+(12, '{\"id\":1,\"type\":1,\"time\":\"2026-03-25 23:14:58\",\"flag\":0}', '2026-03-25 15:14:58', 1),
+(13, '{\"id\":4,\"type\":1,\"time\":\"2026-03-25 23:33:37\",\"flag\":0}', '2026-03-25 15:34:57', 1),
+(14, '{\"id\":2,\"type\":1,\"time\":\"2026-03-26 10:58:26\",\"flag\":0}', '2026-03-26 02:58:22', 1),
+(15, '{\"id\":3,\"type\":1,\"time\":\"2026-03-26 10:58:41\",\"flag\":0}', '2026-03-26 02:58:39', 1),
+(16, '{\"id\":5,\"type\":1,\"time\":\"2026-03-26 10:58:46\",\"flag\":0}', '2026-03-26 02:58:41', 1),
+(17, '{\"id\":4,\"type\":1,\"time\":\"2026-03-26 11:01:12\",\"flag\":0}', '2026-03-26 03:01:12', 1),
+(18, '{\"id\":3,\"type\":1,\"time\":\"2026-03-26 11:02:44\",\"flag\":0}', '2026-03-26 03:02:42', 1),
+(19, '{\"id\":2,\"type\":1,\"time\":\"2026-03-26 11:03:07\",\"flag\":0}', '2026-03-26 03:03:06', 1),
+(20, '{\"id\":1,\"type\":1,\"time\":\"2026-03-26 11:22:45\",\"flag\":0}', '2026-03-26 03:23:32', 1),
+(21, '{\"id\":6,\"type\":1,\"time\":\"2026-03-26 11:25:08\",\"flag\":0}', '2026-03-26 03:25:11', 1);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `biometric_sync_runs`
+--
+
+CREATE TABLE `biometric_sync_runs` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `initiated_by_user_id` bigint(20) UNSIGNED DEFAULT NULL,
+  `trigger_source` varchar(50) NOT NULL DEFAULT 'manual',
+  `status` varchar(20) NOT NULL DEFAULT 'running',
+  `connector_output` longtext DEFAULT NULL,
+  `import_summary` longtext DEFAULT NULL,
+  `raw_inserted` int(11) NOT NULL DEFAULT 0,
+  `processed_logs` int(11) NOT NULL DEFAULT 0,
+  `attendance_changed` int(11) NOT NULL DEFAULT 0,
+  `anomalies_found` int(11) NOT NULL DEFAULT 0,
+  `started_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `finished_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `biometric_sync_runs`
+--
+
+INSERT INTO `biometric_sync_runs` (`id`, `initiated_by_user_id`, `trigger_source`, `status`, `connector_output`, `import_summary`, `raw_inserted`, `processed_logs`, `attendance_changed`, `anomalies_found`, `started_at`, `finished_at`) VALUES
+(1, 4, 'auto', 'failed', 'Device connection failed.\nMachine sync failed.\nDevice connection failed.', NULL, 0, 0, 0, 0, '2026-03-26 02:28:23', '2026-03-26 02:28:29'),
+(2, 4, 'manual', 'failed', 'Device connection failed.\nMachine sync failed.\nDevice connection failed.', NULL, 0, 0, 0, 0, '2026-03-26 02:28:29', '2026-03-26 02:28:35'),
+(3, 4, 'auto', 'failed', 'Device connection failed.\nMachine sync failed.\nDevice connection failed.', NULL, 0, 0, 0, 0, '2026-03-26 02:28:37', '2026-03-26 02:28:44'),
+(4, 4, 'auto', 'failed', 'Device connection failed.\nMachine sync failed.\nDevice connection failed.', NULL, 0, 0, 0, 0, '2026-03-26 02:29:36', '2026-03-26 02:29:42'),
+(5, 4, 'manual', 'failed', 'Device connection failed.\nMachine sync failed.\nDevice connection failed.', NULL, 0, 0, 0, 0, '2026-03-26 02:30:34', '2026-03-26 02:30:40'),
+(6, 4, 'auto', 'failed', 'Device connection failed.\nMachine sync failed.\nDevice connection failed.', NULL, 0, 0, 0, 0, '2026-03-26 02:30:40', '2026-03-26 02:30:46'),
+(7, 4, 'auto', 'failed', 'Device connection failed.\nMachine sync failed.\nDevice connection failed.', NULL, 0, 0, 0, 0, '2026-03-26 02:30:46', '2026-03-26 02:30:52'),
+(8, 4, 'auto', 'failed', 'Device connection failed.\nMachine sync failed.\nDevice connection failed.', NULL, 0, 0, 0, 0, '2026-03-26 02:35:44', '2026-03-26 02:35:50'),
+(9, 4, 'manual', 'failed', 'Device connection failed.\nMachine sync failed.\nDevice connection failed.', NULL, 0, 0, 0, 0, '2026-03-26 02:35:50', '2026-03-26 02:35:56'),
+(10, 4, 'auto', 'failed', 'Device connection failed.\nMachine sync failed.\nDevice connection failed.', NULL, 0, 0, 0, 0, '2026-03-26 02:35:58', '2026-03-26 02:36:03'),
+(11, 4, 'manual', 'failed', 'Device connection failed.\nMachine sync failed.\nDevice connection failed.', NULL, 0, 0, 0, 0, '2026-03-26 02:36:05', '2026-03-26 02:36:11'),
+(12, 4, 'auto', 'failed', 'Device connection failed.\nMachine sync failed.\nDevice connection failed.', NULL, 0, 0, 0, 0, '2026-03-26 02:36:11', '2026-03-26 02:36:17'),
+(13, 4, 'auto', 'failed', 'Device connection failed.\nMachine sync failed.\nDevice connection failed.', NULL, 0, 0, 0, 0, '2026-03-26 02:36:20', '2026-03-26 02:36:26'),
+(14, 4, 'auto', 'failed', 'Device connection failed.\nMachine sync failed.\nDevice connection failed.', NULL, 0, 0, 0, 0, '2026-03-26 02:38:25', '2026-03-26 02:38:33'),
+(15, 4, 'auto', 'failed', 'Device connection failed.\nMachine sync failed.\nDevice connection failed.', NULL, 0, 0, 0, 0, '2026-03-26 02:39:03', '2026-03-26 02:39:09'),
+(16, 4, 'auto', 'failed', 'Device connection failed.\nMachine sync failed.\nDevice connection failed.', NULL, 0, 0, 0, 0, '2026-03-26 02:39:21', '2026-03-26 02:39:27'),
+(17, 4, 'auto', 'failed', 'Device connection failed.\nMachine sync failed.\nDevice connection failed.', NULL, 0, 0, 0, 0, '2026-03-26 02:46:09', '2026-03-26 02:46:17'),
+(18, 4, 'manual', 'failed', 'Device connection failed.\nMachine sync failed.\nDevice connection failed.', NULL, 0, 0, 0, 0, '2026-03-26 02:46:19', '2026-03-26 02:46:25'),
+(19, 4, 'auto', 'failed', 'Device connection failed.\nMachine sync failed.\nDevice connection failed.', NULL, 0, 0, 0, 0, '2026-03-26 02:46:25', '2026-03-26 02:46:32'),
+(20, 4, 'auto', 'failed', 'Device connection failed.\nMachine sync failed.\nDevice connection failed.', NULL, 0, 0, 0, 0, '2026-03-26 02:46:32', '2026-03-26 02:46:39'),
+(21, 4, 'auto', 'failed', 'Device connection failed.\nMachine sync failed.\nDevice connection failed.', NULL, 0, 0, 0, 0, '2026-03-26 02:47:01', '2026-03-26 02:47:08'),
+(22, 4, 'manual', 'failed', 'Device connection failed.\nMachine sync failed.\nDevice connection failed.', NULL, 0, 0, 0, 0, '2026-03-26 02:47:08', '2026-03-26 02:47:15'),
+(23, 4, 'auto', 'failed', 'Device connection failed.\nMachine sync failed.\nDevice connection failed.', NULL, 0, 0, 0, 0, '2026-03-26 02:47:17', '2026-03-26 02:47:23'),
+(24, 4, 'auto', 'failed', 'Device connection failed.\nMachine sync failed.\nDevice connection failed.', NULL, 0, 0, 0, 0, '2026-03-26 02:51:28', '2026-03-26 02:51:39'),
+(25, 4, 'manual', 'failed', 'Device connection failed.\nMachine sync failed.\nDevice connection failed.', NULL, 0, 0, 0, 0, '2026-03-26 02:51:41', '2026-03-26 02:51:52'),
+(26, 4, 'auto', 'failed', 'Device connection failed.\nMachine sync failed.\nDevice connection failed.', NULL, 0, 0, 0, 0, '2026-03-26 02:51:52', '2026-03-26 02:51:53'),
+(27, 4, 'auto', 'failed', 'Device connection failed.\nMachine sync failed.\nDevice connection failed.', NULL, 0, 0, 0, 0, '2026-03-26 02:51:55', '2026-03-26 02:51:55'),
+(28, 4, 'auto', 'success', 'Connected to 192.168.110.201:5001.\nLogs saved to: C:\\xampp\\htdocs\\BioTern\\attendance.txt\nPayload length: 2\nDevice disconnected.', 'Biometric sync complete. Raw inserted: 0, logs processed: 13, attendance rows changed: 7, anomalies found: 9', 0, 13, 7, 9, '2026-03-26 02:52:19', '2026-03-26 02:52:21'),
+(29, 4, 'manual', 'success', 'Connected to 192.168.110.201:5001.\nLogs saved to: C:\\xampp\\htdocs\\BioTern\\attendance.txt\nPayload length: 2\nDevice disconnected.', 'Biometric sync complete. Raw inserted: 0, logs processed: 13, attendance rows changed: 7, anomalies found: 9', 0, 13, 7, 9, '2026-03-26 02:52:21', '2026-03-26 02:52:22'),
+(30, 4, 'auto', 'success', 'Connected to 192.168.110.201:5001.\nLogs saved to: C:\\xampp\\htdocs\\BioTern\\attendance.txt\nPayload length: 2\nDevice disconnected.', 'Biometric sync complete. Raw inserted: 0, logs processed: 13, attendance rows changed: 7, anomalies found: 9', 0, 13, 7, 9, '2026-03-26 02:52:24', '2026-03-26 02:52:25'),
+(31, 4, 'auto', 'failed', 'Device connection failed.\nMachine sync failed.\nDevice connection failed.', NULL, 0, 0, 0, 0, '2026-03-26 02:52:30', '2026-03-26 02:52:41'),
+(32, 4, 'auto', 'failed', 'Device connection failed.\nMachine sync failed.\nDevice connection failed.', NULL, 0, 0, 0, 0, '2026-03-26 02:52:46', '2026-03-26 02:52:57'),
+(33, 4, 'manual', 'failed', 'Device connection failed.\nMachine sync failed.\nDevice connection failed.', NULL, 0, 0, 0, 0, '2026-03-26 02:52:57', '2026-03-26 02:52:57'),
+(34, 4, 'auto', 'failed', 'Device connection failed.\nMachine sync failed.\nDevice connection failed.', NULL, 0, 0, 0, 0, '2026-03-26 02:52:59', '2026-03-26 02:53:00'),
+(35, 4, 'auto', 'failed', 'Device connection failed.\nMachine sync failed.\nDevice connection failed.', NULL, 0, 0, 0, 0, '2026-03-26 02:53:09', '2026-03-26 02:53:11'),
+(36, 4, 'auto', 'failed', 'Device connection failed.\nMachine sync failed.\nDevice connection failed.', NULL, 0, 0, 0, 0, '2026-03-26 02:53:31', '2026-03-26 02:53:32'),
+(37, 4, 'auto', 'failed', 'Device connection failed.\nMachine sync failed.\nDevice connection failed.', NULL, 0, 0, 0, 0, '2026-03-26 02:57:25', '2026-03-26 02:57:28'),
+(38, 4, 'auto', 'failed', 'Device connection failed.\nMachine sync failed.\nDevice connection failed.', NULL, 0, 0, 0, 0, '2026-03-26 02:57:36', '2026-03-26 02:57:37'),
+(39, 4, 'auto', 'success', 'Connected to 192.168.110.201:5001.\nLogs saved to: C:\\xampp\\htdocs\\BioTern\\attendance.txt\nPayload length: 2\nDevice disconnected.', 'Biometric sync complete. Raw inserted: 0, logs processed: 13, attendance rows changed: 7, anomalies found: 9', 0, 13, 7, 9, '2026-03-26 02:57:58', '2026-03-26 02:57:59'),
+(40, 4, 'auto', 'success', 'Connected to 192.168.110.201:5001.\nLogs saved to: C:\\xampp\\htdocs\\BioTern\\attendance.txt\nPayload length: 2\nDevice disconnected.', 'Biometric sync complete. Raw inserted: 0, logs processed: 13, attendance rows changed: 7, anomalies found: 9', 0, 13, 7, 9, '2026-03-26 02:58:01', '2026-03-26 02:58:02'),
+(41, 4, 'auto', 'success', 'Connected to 192.168.110.201:5001.\nLogs saved to: C:\\xampp\\htdocs\\BioTern\\attendance.txt\nPayload length: 2\nDevice disconnected.', 'Biometric sync complete. Raw inserted: 0, logs processed: 13, attendance rows changed: 7, anomalies found: 9', 0, 13, 7, 9, '2026-03-26 02:58:07', '2026-03-26 02:58:08'),
+(42, 4, 'manual', 'success', 'Connected to 192.168.110.201:5001.\nLogs saved to: C:\\xampp\\htdocs\\BioTern\\attendance.txt\nPayload length: 2\nDevice disconnected.', 'Biometric sync complete. Raw inserted: 0, logs processed: 13, attendance rows changed: 7, anomalies found: 9', 0, 13, 7, 9, '2026-03-26 02:58:08', '2026-03-26 02:58:09'),
+(43, 4, 'auto', 'success', 'Connected to 192.168.110.201:5001.\nLogs saved to: C:\\xampp\\htdocs\\BioTern\\attendance.txt\nPayload length: 2\nDevice disconnected.', 'Biometric sync complete. Raw inserted: 0, logs processed: 13, attendance rows changed: 7, anomalies found: 9', 0, 13, 7, 9, '2026-03-26 02:58:11', '2026-03-26 02:58:11'),
+(44, 4, 'manual', 'success', 'Connected to 192.168.110.201:5001.\nLogs saved to: C:\\xampp\\htdocs\\BioTern\\attendance.txt\nPayload length: 57\nDevice disconnected.', 'Biometric sync complete. Raw inserted: 1, logs processed: 14, attendance rows changed: 8, anomalies found: 9', 1, 14, 8, 9, '2026-03-26 02:58:22', '2026-03-26 02:58:23'),
+(45, 4, 'auto', 'success', 'Connected to 192.168.110.201:5001.\nLogs saved to: C:\\xampp\\htdocs\\BioTern\\attendance.txt\nPayload length: 2\nDevice disconnected.', 'Biometric sync complete. Raw inserted: 0, logs processed: 14, attendance rows changed: 8, anomalies found: 9', 0, 14, 8, 9, '2026-03-26 02:58:25', '2026-03-26 02:58:25'),
+(46, 4, 'manual', 'success', 'Connected to 192.168.110.201:5001.\nLogs saved to: C:\\xampp\\htdocs\\BioTern\\attendance.txt\nPayload length: 57\nDevice disconnected.', 'Biometric sync complete. Raw inserted: 1, logs processed: 15, attendance rows changed: 9, anomalies found: 9', 1, 15, 9, 9, '2026-03-26 02:58:39', '2026-03-26 02:58:39'),
+(47, 4, 'auto', 'success', 'Connected to 192.168.110.201:5001.\nLogs saved to: C:\\xampp\\htdocs\\BioTern\\attendance.txt\nPayload length: 57\nDevice disconnected.', 'Biometric sync complete. Raw inserted: 1, logs processed: 15, attendance rows changed: 9, anomalies found: 10', 1, 15, 9, 10, '2026-03-26 02:58:40', '2026-03-26 02:58:41'),
+(48, 4, 'auto', 'success', 'Connected to 192.168.110.201:5001.\nLogs saved to: C:\\xampp\\htdocs\\BioTern\\attendance.txt\nPayload length: 2\nDevice disconnected.', 'Biometric sync complete. Raw inserted: 0, logs processed: 15, attendance rows changed: 9, anomalies found: 10', 0, 15, 9, 10, '2026-03-26 02:58:43', '2026-03-26 02:58:44'),
+(49, 4, 'auto', 'success', 'Connected to 192.168.110.201:5001.\nLogs saved to: C:\\xampp\\htdocs\\BioTern\\attendance.txt\nPayload length: 2\nDevice disconnected.', 'Biometric sync complete. Raw inserted: 0, logs processed: 16, attendance rows changed: 10, anomalies found: 9', 0, 16, 10, 9, '2026-03-26 02:59:19', '2026-03-26 02:59:20'),
+(50, 4, 'auto', 'success', 'Connected to 192.168.110.201:5001.\nLogs saved to: C:\\xampp\\htdocs\\BioTern\\attendance.txt\nPayload length: 2\nDevice disconnected.', 'Biometric sync complete. Raw inserted: 0, logs processed: 16, attendance rows changed: 10, anomalies found: 9', 0, 16, 10, 9, '2026-03-26 02:59:31', '2026-03-26 02:59:31'),
+(51, 4, 'auto', 'success', 'Connected to 192.168.110.201:5001.\nLogs saved to: C:\\xampp\\htdocs\\BioTern\\attendance.txt\nPayload length: 2\nDevice disconnected.', 'Biometric sync complete. Raw inserted: 0, logs processed: 16, attendance rows changed: 10, anomalies found: 9', 0, 16, 10, 9, '2026-03-26 02:59:34', '2026-03-26 02:59:34'),
+(52, 4, 'manual', 'success', 'Connected to 192.168.110.201:5001.\nLogs saved to: C:\\xampp\\htdocs\\BioTern\\attendance.txt\nPayload length: 2\nDevice disconnected.', 'Biometric sync complete. Raw inserted: 0, logs processed: 16, attendance rows changed: 10, anomalies found: 9', 0, 16, 10, 9, '2026-03-26 02:59:44', '2026-03-26 02:59:47'),
+(53, 4, 'manual', 'success', 'Connected to 192.168.110.201:5001.\nLogs saved to: C:\\xampp\\htdocs\\BioTern\\attendance.txt\nPayload length: 2\nDevice disconnected.', 'Biometric sync complete. Raw inserted: 0, logs processed: 16, attendance rows changed: 10, anomalies found: 9', 0, 16, 10, 9, '2026-03-26 02:59:49', '2026-03-26 02:59:49'),
+(54, 4, 'auto', 'success', 'Connected to 192.168.110.201:5001.\nLogs saved to: C:\\xampp\\htdocs\\BioTern\\attendance.txt\nPayload length: 2\nDevice disconnected.', 'Biometric sync complete. Raw inserted: 0, logs processed: 16, attendance rows changed: 10, anomalies found: 9', 0, 16, 10, 9, '2026-03-26 02:59:49', '2026-03-26 02:59:50'),
+(55, 4, 'manual', 'success', 'Connected to 192.168.110.201:5001.\nLogs saved to: C:\\xampp\\htdocs\\BioTern\\attendance.txt\nPayload length: 2\nDevice disconnected.', 'Biometric sync complete. Raw inserted: 0, logs processed: 16, attendance rows changed: 10, anomalies found: 9', 0, 16, 10, 9, '2026-03-26 02:59:50', '2026-03-26 02:59:51'),
+(56, 4, 'manual', 'success', 'Connected to 192.168.110.201:5001.\nLogs saved to: C:\\xampp\\htdocs\\BioTern\\attendance.txt\nPayload length: 2\nDevice disconnected.', 'Biometric sync complete. Raw inserted: 0, logs processed: 16, attendance rows changed: 10, anomalies found: 9', 0, 16, 10, 9, '2026-03-26 02:59:52', '2026-03-26 02:59:53'),
+(57, 4, 'auto', 'success', 'Connected to 192.168.110.201:5001.\nLogs saved to: C:\\xampp\\htdocs\\BioTern\\attendance.txt\nPayload length: 2\nDevice disconnected.', 'Biometric sync complete. Raw inserted: 0, logs processed: 16, attendance rows changed: 10, anomalies found: 9', 0, 16, 10, 9, '2026-03-26 02:59:55', '2026-03-26 02:59:56'),
+(58, 4, 'auto', 'success', 'Connected to 192.168.110.201:5001.\nLogs saved to: C:\\xampp\\htdocs\\BioTern\\attendance.txt\nPayload length: 2\nDevice disconnected.', 'Biometric sync complete. Raw inserted: 0, logs processed: 16, attendance rows changed: 10, anomalies found: 9', 0, 16, 10, 9, '2026-03-26 03:00:50', '2026-03-26 03:00:51'),
+(59, 4, 'auto', 'success', 'Connected to 192.168.110.201:5001.\nLogs saved to: C:\\xampp\\htdocs\\BioTern\\attendance.txt\nPayload length: 2\nDevice disconnected.', 'Biometric sync complete. Raw inserted: 0, logs processed: 16, attendance rows changed: 10, anomalies found: 9', 0, 16, 10, 9, '2026-03-26 03:00:56', '2026-03-26 03:00:57'),
+(60, 4, 'manual', 'success', 'Connected to 192.168.110.201:5001.\nLogs saved to: C:\\xampp\\htdocs\\BioTern\\attendance.txt\nPayload length: 57\nDevice disconnected.', 'Biometric sync complete. Raw inserted: 1, logs processed: 17, attendance rows changed: 11, anomalies found: 9', 1, 17, 11, 9, '2026-03-26 03:01:11', '2026-03-26 03:01:12'),
+(61, 4, 'auto', 'success', 'Connected to 192.168.110.201:5001.\nLogs saved to: C:\\xampp\\htdocs\\BioTern\\attendance.txt\nPayload length: 2\nDevice disconnected.', 'Biometric sync complete. Raw inserted: 0, logs processed: 17, attendance rows changed: 11, anomalies found: 9', 0, 17, 11, 9, '2026-03-26 03:01:12', '2026-03-26 03:01:13'),
+(62, 4, 'auto', 'success', 'Connected to 192.168.110.201:5001.\nLogs saved to: C:\\xampp\\htdocs\\BioTern\\attendance.txt\nPayload length: 2\nDevice disconnected.', 'Biometric sync complete. Raw inserted: 0, logs processed: 17, attendance rows changed: 11, anomalies found: 9', 0, 17, 11, 9, '2026-03-26 03:01:15', '2026-03-26 03:01:15'),
+(63, 4, 'auto', 'success', 'Connected to 192.168.110.201:5001.\nLogs saved to: C:\\xampp\\htdocs\\BioTern\\attendance.txt\nPayload length: 2\nDevice disconnected.', 'Biometric sync complete. Raw inserted: 0, logs processed: 17, attendance rows changed: 11, anomalies found: 9', 0, 17, 11, 9, '2026-03-26 03:01:24', '2026-03-26 03:01:24'),
+(64, 4, 'manual', 'success', 'Connected to 192.168.110.201:5001.\nLogs saved to: C:\\xampp\\htdocs\\BioTern\\attendance.txt\nPayload length: 2\nDevice disconnected.', 'Biometric sync complete. Raw inserted: 0, logs processed: 17, attendance rows changed: 11, anomalies found: 9', 0, 17, 11, 9, '2026-03-26 03:01:25', '2026-03-26 03:01:25'),
+(65, 4, 'auto', 'success', 'Connected to 192.168.110.201:5001.\nLogs saved to: C:\\xampp\\htdocs\\BioTern\\attendance.txt\nPayload length: 2\nDevice disconnected.', 'Biometric sync complete. Raw inserted: 0, logs processed: 17, attendance rows changed: 11, anomalies found: 9', 0, 17, 11, 9, '2026-03-26 03:01:27', '2026-03-26 03:01:28'),
+(66, 4, 'auto', 'success', 'Connected to 192.168.110.201:5001.\nLogs saved to: C:\\xampp\\htdocs\\BioTern\\attendance.txt\nPayload length: 2\nDevice disconnected.', 'Biometric sync complete. Raw inserted: 0, logs processed: 17, attendance rows changed: 11, anomalies found: 9', 0, 17, 11, 9, '2026-03-26 03:01:30', '2026-03-26 03:01:31'),
+(67, 4, 'auto', 'success', 'Connected to 192.168.110.201:5001.\nLogs saved to: C:\\xampp\\htdocs\\BioTern\\attendance.txt\nPayload length: 2\nDevice disconnected.', 'Biometric sync complete. Raw inserted: 0, logs processed: 17, attendance rows changed: 11, anomalies found: 9', 0, 17, 11, 9, '2026-03-26 03:01:39', '2026-03-26 03:01:40'),
+(68, 4, 'auto', 'success', 'Connected to 192.168.110.201:5001.\nLogs saved to: C:\\xampp\\htdocs\\BioTern\\attendance.txt\nPayload length: 2\nDevice disconnected.', 'Biometric sync complete. Raw inserted: 0, logs processed: 17, attendance rows changed: 11, anomalies found: 9', 0, 17, 11, 9, '2026-03-26 03:02:11', '2026-03-26 03:02:12'),
+(69, 4, 'auto', 'success', 'Connected to 192.168.110.201:5001.\nLogs saved to: C:\\xampp\\htdocs\\BioTern\\attendance.txt\nPayload length: 57\nDevice disconnected.', 'Biometric sync complete. Raw inserted: 1, logs processed: 18, attendance rows changed: 11, anomalies found: 10', 1, 18, 11, 10, '2026-03-26 03:02:42', '2026-03-26 03:02:43'),
+(70, 4, 'manual', 'success', 'Connected to 192.168.110.201:5001.\nLogs saved to: C:\\xampp\\htdocs\\BioTern\\attendance.txt\nPayload length: 2\nDevice disconnected.', 'Biometric sync complete. Raw inserted: 0, logs processed: 18, attendance rows changed: 11, anomalies found: 10', 0, 18, 11, 10, '2026-03-26 03:02:45', '2026-03-26 03:02:45'),
+(71, 4, 'auto', 'success', 'Connected to 192.168.110.201:5001.\nLogs saved to: C:\\xampp\\htdocs\\BioTern\\attendance.txt\nPayload length: 2\nDevice disconnected.', 'Biometric sync complete. Raw inserted: 0, logs processed: 18, attendance rows changed: 11, anomalies found: 10', 0, 18, 11, 10, '2026-03-26 03:02:47', '2026-03-26 03:02:48'),
+(72, 4, 'auto', 'success', 'Connected to 192.168.110.201:5001.\nLogs saved to: C:\\xampp\\htdocs\\BioTern\\attendance.txt\nPayload length: 2\nDevice disconnected.', 'Biometric sync complete. Raw inserted: 0, logs processed: 18, attendance rows changed: 11, anomalies found: 10', 0, 18, 11, 10, '2026-03-26 03:02:55', '2026-03-26 03:02:56'),
+(73, 4, 'auto', 'success', 'Connected to 192.168.110.201:5001.\nLogs saved to: C:\\xampp\\htdocs\\BioTern\\attendance.txt\nPayload length: 57\nDevice disconnected.', 'Biometric sync complete. Raw inserted: 1, logs processed: 19, attendance rows changed: 11, anomalies found: 11', 1, 19, 11, 11, '2026-03-26 03:03:05', '2026-03-26 03:03:06'),
+(74, 4, 'manual', 'success', 'Connected to 192.168.110.201:5001.\nLogs saved to: C:\\xampp\\htdocs\\BioTern\\attendance.txt\nPayload length: 2\nDevice disconnected.', 'Biometric sync complete. Raw inserted: 0, logs processed: 19, attendance rows changed: 11, anomalies found: 11', 0, 19, 11, 11, '2026-03-26 03:03:08', '2026-03-26 03:03:09'),
+(75, 4, 'auto', 'success', 'Connected to 192.168.110.201:5001.\nLogs saved to: C:\\xampp\\htdocs\\BioTern\\attendance.txt\nPayload length: 2\nDevice disconnected.', 'Biometric sync complete. Raw inserted: 0, logs processed: 19, attendance rows changed: 11, anomalies found: 11', 0, 19, 11, 11, '2026-03-26 03:03:11', '2026-03-26 03:03:11'),
+(76, 4, 'auto', 'success', 'Connected to 192.168.110.201:5001.\nLogs saved to: C:\\xampp\\htdocs\\BioTern\\attendance.txt\nPayload length: 2\nDevice disconnected.', 'Biometric sync complete. Raw inserted: 0, logs processed: 19, attendance rows changed: 11, anomalies found: 11', 0, 19, 11, 11, '2026-03-26 03:03:23', '2026-03-26 03:03:23'),
+(77, 4, 'auto', 'success', 'Connected to 192.168.110.201:5001.\nLogs saved to: C:\\xampp\\htdocs\\BioTern\\attendance.txt\nPayload length: 2\nDevice disconnected.', 'Biometric sync complete. Raw inserted: 0, logs processed: 19, attendance rows changed: 11, anomalies found: 11', 0, 19, 11, 11, '2026-03-26 03:06:03', '2026-03-26 03:06:04'),
+(78, 4, 'auto', 'success', 'Connected to 192.168.110.201:5001.\nLogs saved to: C:\\xampp\\htdocs\\BioTern\\attendance.txt\nPayload length: 2\nDevice disconnected.', 'Biometric sync complete. Raw inserted: 0, logs processed: 19, attendance rows changed: 11, anomalies found: 11', 0, 19, 11, 11, '2026-03-26 03:06:09', '2026-03-26 03:06:11'),
+(79, 4, 'auto', 'success', 'Connected to 192.168.110.201:5001.\nLogs saved to: C:\\xampp\\htdocs\\BioTern\\attendance.txt\nPayload length: 2\nDevice disconnected.', 'Biometric sync complete. Raw inserted: 0, logs processed: 19, attendance rows changed: 12, anomalies found: 10', 0, 19, 12, 10, '2026-03-26 03:20:29', '2026-03-26 03:20:30'),
+(80, 4, 'auto', 'success', 'Connected to 192.168.110.201:5001.\nLogs saved to: C:\\xampp\\htdocs\\BioTern\\attendance.txt\nPayload length: 2\nDevice disconnected.', 'Biometric sync complete. Raw inserted: 0, logs processed: 19, attendance rows changed: 12, anomalies found: 10', 0, 19, 12, 10, '2026-03-26 03:20:33', '2026-03-26 03:20:34'),
+(81, 4, 'auto', 'success', 'Connected to 192.168.110.201:5001.\nLogs saved to: C:\\xampp\\htdocs\\BioTern\\attendance.txt\nPayload length: 2\nDevice disconnected.', 'Biometric sync complete. Raw inserted: 0, logs processed: 19, attendance rows changed: 12, anomalies found: 10', 0, 19, 12, 10, '2026-03-26 03:21:32', '2026-03-26 03:21:33'),
+(82, 4, 'auto', 'success', 'Connected to 192.168.110.201:5001.\nLogs saved to: C:\\xampp\\htdocs\\BioTern\\attendance.txt\nPayload length: 2\nDevice disconnected.', 'Biometric sync complete. Raw inserted: 0, logs processed: 19, attendance rows changed: 12, anomalies found: 10', 0, 19, 12, 10, '2026-03-26 03:22:32', '2026-03-26 03:22:33'),
+(83, 4, 'auto', 'success', 'Connected to 192.168.110.201:5001.\nLogs saved to: C:\\xampp\\htdocs\\BioTern\\attendance.txt\nPayload length: 57\nDevice disconnected.', 'Biometric sync complete. Raw inserted: 1, logs processed: 20, attendance rows changed: 13, anomalies found: 10', 1, 20, 13, 10, '2026-03-26 03:23:32', '2026-03-26 03:23:33'),
+(84, 4, 'auto', 'success', 'Connected to 192.168.110.201:5001.\nLogs saved to: C:\\xampp\\htdocs\\BioTern\\attendance.txt\nPayload length: 2\nDevice disconnected.', 'Biometric sync complete. Raw inserted: 0, logs processed: 20, attendance rows changed: 13, anomalies found: 10', 0, 20, 13, 10, '2026-03-26 03:24:29', '2026-03-26 03:24:29'),
+(85, 4, 'manual', 'success', 'Connected to 192.168.110.201:5001.\nLogs saved to: C:\\xampp\\htdocs\\BioTern\\attendance.txt\nPayload length: 2\nDevice disconnected.', 'Biometric sync complete. Raw inserted: 0, logs processed: 20, attendance rows changed: 13, anomalies found: 10', 0, 20, 13, 10, '2026-03-26 03:24:29', '2026-03-26 03:24:30'),
+(86, 4, 'auto', 'success', 'Connected to 192.168.110.201:5001.\nLogs saved to: C:\\xampp\\htdocs\\BioTern\\attendance.txt\nPayload length: 2\nDevice disconnected.', 'Biometric sync complete. Raw inserted: 0, logs processed: 20, attendance rows changed: 13, anomalies found: 10', 0, 20, 13, 10, '2026-03-26 03:24:32', '2026-03-26 03:24:33'),
+(87, 4, 'auto', 'success', 'Connected to 192.168.110.201:5001.\nLogs saved to: C:\\xampp\\htdocs\\BioTern\\attendance.txt\nPayload length: 2\nDevice disconnected.', 'Biometric sync complete. Raw inserted: 0, logs processed: 20, attendance rows changed: 13, anomalies found: 10', 0, 20, 13, 10, '2026-03-26 03:24:37', '2026-03-26 03:24:38'),
+(88, 4, 'auto', 'success', 'Connected to 192.168.110.201:5001.\nLogs saved to: C:\\xampp\\htdocs\\BioTern\\attendance.txt\nPayload length: 2\nDevice disconnected.', 'Biometric sync complete. Raw inserted: 0, logs processed: 20, attendance rows changed: 13, anomalies found: 10', 0, 20, 13, 10, '2026-03-26 03:24:50', '2026-03-26 03:24:51'),
+(89, 4, 'auto', 'success', 'Connected to 192.168.110.201:5001.\nLogs saved to: C:\\xampp\\htdocs\\BioTern\\attendance.txt\nPayload length: 2\nDevice disconnected.', 'Biometric sync complete. Raw inserted: 0, logs processed: 20, attendance rows changed: 13, anomalies found: 10', 0, 20, 13, 10, '2026-03-26 03:24:54', '2026-03-26 03:24:54'),
+(90, 4, 'auto', 'success', 'Connected to 192.168.110.201:5001.\nLogs saved to: C:\\xampp\\htdocs\\BioTern\\attendance.txt\nPayload length: 57\nDevice disconnected.', 'Biometric sync complete. Raw inserted: 1, logs processed: 21, attendance rows changed: 14, anomalies found: 10', 1, 21, 14, 10, '2026-03-26 03:25:11', '2026-03-26 03:25:11'),
+(91, 4, 'manual', 'success', 'Connected to 192.168.110.201:5001.\nLogs saved to: C:\\xampp\\htdocs\\BioTern\\attendance.txt\nPayload length: 2\nDevice disconnected.', 'Biometric sync complete. Raw inserted: 0, logs processed: 21, attendance rows changed: 14, anomalies found: 10', 0, 21, 14, 10, '2026-03-26 03:25:11', '2026-03-26 03:25:12'),
+(92, 4, 'auto', 'success', 'Connected to 192.168.110.201:5001.\nLogs saved to: C:\\xampp\\htdocs\\BioTern\\attendance.txt\nPayload length: 2\nDevice disconnected.', 'Biometric sync complete. Raw inserted: 0, logs processed: 21, attendance rows changed: 14, anomalies found: 10', 0, 21, 14, 10, '2026-03-26 03:25:14', '2026-03-26 03:25:15'),
+(93, 4, 'auto', 'success', 'Connected to 192.168.110.201:5001.\nLogs saved to: C:\\xampp\\htdocs\\BioTern\\attendance.txt\nPayload length: 2\nDevice disconnected.', 'Biometric sync complete. Raw inserted: 0, logs processed: 21, attendance rows changed: 14, anomalies found: 10', 0, 21, 14, 10, '2026-03-26 03:27:00', '2026-03-26 03:27:00');
 
 -- --------------------------------------------------------
 
@@ -491,6 +896,29 @@ CREATE TABLE `evaluation_unlocks` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `fingerprint_user_map`
+--
+
+CREATE TABLE `fingerprint_user_map` (
+  `finger_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `fingerprint_user_map`
+--
+
+INSERT INTO `fingerprint_user_map` (`finger_id`, `user_id`) VALUES
+(1, 3),
+(2, 10),
+(3, 16),
+(4, 17),
+(5, 9),
+(6, 5);
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `hour_logs`
 --
 
@@ -679,7 +1107,10 @@ INSERT INTO `login_logs` (`id`, `user_id`, `identifier`, `role`, `status`, `reas
 (107, NULL, 'Jomar', '', 'failed', 'invalid_credentials', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0', '2026-03-19 11:08:10'),
 (108, NULL, 'Jomar', '', 'failed', 'invalid_credentials', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0', '2026-03-19 11:08:11'),
 (109, NULL, 'Jomar', '', 'failed', 'invalid_credentials', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0', '2026-03-19 11:08:11'),
-(110, 4, 'jomarsangil@gmail.com', 'admin', 'success', 'login_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0', '2026-03-19 11:08:27');
+(110, 4, 'jomarsangil@gmail.com', 'admin', 'success', 'login_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0', '2026-03-19 11:08:27'),
+(111, 4, 'Jomar', 'admin', 'success', 'login_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-03-24 23:19:00'),
+(112, 4, 'jomarsangil@gmail.com', 'admin', 'success', 'login_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0', '2026-03-26 09:16:36'),
+(113, 4, 'jomarsangil@gmail.com', 'admin', 'success', 'login_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0', '2026-03-26 10:28:16');
 
 -- --------------------------------------------------------
 
@@ -1182,11 +1613,11 @@ CREATE TABLE `students` (
 --
 
 INSERT INTO `students` (`id`, `user_id`, `course_id`, `student_id`, `first_name`, `last_name`, `middle_name`, `username`, `password`, `email`, `bio`, `department_id`, `section_id`, `supervisor_name`, `coordinator_name`, `supervisor_id`, `coordinator_id`, `phone`, `date_of_birth`, `gender`, `address`, `internal_total_hours_remaining`, `internal_total_hours`, `external_total_hours_remaining`, `external_total_hours`, `emergency_contact`, `profile_picture`, `biometric_registered`, `biometric_registered_at`, `status`, `school_year`, `created_at`, `updated_at`, `deleted_at`, `assignment_track`, `emergency_contact_phone`) VALUES
-(1, 3, 1, '05-8531', 'Felix Luis', 'Mateo', 'Manaloto', 'FelixLuisMateo', '$2y$10$A2YrsP4KvtdM5noZZxOoge4X/48YkAbi7lxDIEb9ACgbO1PqYlDXK', 'mateo.felixluis@gmail.com', 'sadfH', '1', 0, 'Julius Gomez', 'Mark Verzon', 5, 6, '09091783340', '2006-03-16', 'male', '6553 Balaba 2, Dau, Mabalacat City, Pampanga', 116, 140, 0, 0, 'Carlota Manaloto (09385754436)', 'uploads/profile_pictures/student_1_1771902320.png', 0, NULL, '0', '2025-2026', '2026-02-24 02:57:53', '2026-03-18 05:06:42', NULL, 'internal', NULL),
+(1, 3, 1, '05-8531', 'Felix Luis', 'Mateo', 'Manaloto', 'FelixLuisMateo', '$2y$10$A2YrsP4KvtdM5noZZxOoge4X/48YkAbi7lxDIEb9ACgbO1PqYlDXK', 'mateo.felixluis@gmail.com', 'sadfH', '1', 0, 'Julius Gomez', 'Mark Verzon', 5, 6, '09091783340', '2006-03-16', 'male', '6553 Balaba 2, Dau, Mabalacat City, Pampanga', 116, 140, 0, 0, 'Carlota Manaloto (09385754436)', 'uploads/profile_pictures/student_1_1771902320.png', 0, NULL, '1', '2025-2026', '2026-02-24 02:57:53', '2026-03-25 15:15:02', NULL, 'internal', NULL),
 (2, 5, 1, '05-8377', 'Ivan', 'Sanchez', 'Umali', 'IvanSanchez', '$2y$10$G4AcrvLY6tYayygIQhJIfeQNievmy1uMNCLr7eTSi.f/9Ibibu1AW', 'IvanSanchez@gmail.com', '', '1', 0, 'Julius Gomez', 'Mark Verzon', NULL, 6, '09774911238', '2005-07-02', 'male', 'Madadap Mabalacat City, Pampanga', 138, 140, 0, 0, 'Irma U. Sanchez (09511422631)', 'uploads/profile_pictures/student_2_1772087105.jpg', 0, NULL, '0', '2025-2026', '2026-02-26 06:22:05', '2026-03-11 08:23:33', NULL, 'internal', NULL),
 (5, 8, 1, '05-12346', 'Naven', 'Cuenca', 'Mercado', 'NavenCuenca', '$2y$10$YloO960aow.5YHdreGaH6eOGLY2JMcUgTWHwTLjX1THwX9W8x.WfK', 'Naven@gmail.com', '', '1', 1, NULL, NULL, NULL, NULL, '09123479845', '2005-11-20', 'male', 'Duquit, Dau, Mabalacat City, Pampanga', 140, 140, 0, 250, 'Lani Mercado (09478945879)', NULL, 0, NULL, '1', '2025-2026', '2026-03-10 00:33:51', '2026-03-11 08:23:33', NULL, 'internal', NULL),
 (6, 9, 1, '05-8969', 'Jomer', 'De Guzman', 'Rivera', 'JomerDeGuzman', '$2y$10$MWF9iNupm327Aoj0X0/R5.i9ehi9E7e7LBbxYyVnO5qwCYbWKTqwG', 'JomerDeGuzman@gmail.com', '', '1', 1, 'Julius Gomez', 'Mark Verzon', 5, 6, '09147897451', '0000-00-00', 'male', '14th Street, Dapdap, Mabalacat City, Pampanga', 140, 140, 0, 250, 'Mama De Guzman (09784581268)', NULL, 0, NULL, '1', '2025-2026', '2026-03-10 07:18:34', '2026-03-11 08:23:33', NULL, 'internal', NULL),
-(7, 10, 1, '05-7262', 'Lucky', 'Mateo', 'Manaloto', 'Lucky', '$2y$10$SEt5Ou0nZuwXnc2PhHWuG.3XnrUUyzxujnjePuU7hliVNcZzlS3sm', 'luckyluckymateo@gmail.com', '', '1', 1, '0', 'Mark Verzon', 5, 6, '09204098957', '2006-03-16', 'male', '6553 Balaba 2, Dau, Mabalacat City, Pampanga', 140, 140, 0, 250, 'Carlota Mateo (09652062364)', NULL, 0, NULL, '1', '2025-2026', '2026-03-14 11:57:21', '2026-03-14 11:58:15', NULL, 'internal', NULL),
+(7, 10, 1, '05-7262', 'Lucky', 'Mateo', 'Manaloto', 'Lucky', '$2y$10$SEt5Ou0nZuwXnc2PhHWuG.3XnrUUyzxujnjePuU7hliVNcZzlS3sm', 'luckyluckymateo@gmail.com', '', '1', 1, '0', 'Mark Verzon', 5, 6, '09204098957', '2006-03-16', 'male', '6553 Balaba 2, Dau, Mabalacat City, Pampanga', 140, 140, 0, 250, 'Carlota Mateo (09652062364)', NULL, 0, NULL, '0', '2025-2026', '2026-03-14 11:57:21', '2026-03-25 15:11:06', NULL, 'internal', NULL),
 (8, 12, 1, '05-0702', 'Ivan', '123', 'Pogi', 'ivan', '$2y$10$7TQ3079wW9NkzEi.hTiy6et9gMngPkSLQcc5RMcwXDv7.gNx0b8U6', 'work.ivansanchez@gmail.com', '', '1', 1, 'Julius Gomez', 'Mark Verzon', 5, 6, '09774911238', '2005-07-02', 'male', 'bahay', 0, 140, 250, 250, '09123456789 (09123456789)', '', 0, NULL, '0', '2025-2026', '2026-03-17 07:36:19', '2026-03-17 07:43:52', NULL, 'external', NULL),
 (9, 16, 1, '05-0016', 'Ivans', 'tesnosss', NULL, 'Testos', '/i5BtXFqh5CwJAKtaE.RFRh2AycbNqj2TG.7tJK2co8O3tniZa', 'maros@gmail.com', '', '1', 1, NULL, NULL, NULL, NULL, '', NULL, NULL, NULL, 140, 140, 0, 250, '', NULL, 0, NULL, '1', '2025-2026', '2026-03-11 22:07:27', '2026-03-11 22:09:29', NULL, 'internal', NULL),
 (10, 17, 1, '05-0017', 'Rodolfo', 'David', NULL, 'Rodolfo', '/BJMg8MZdZXGywY5u/54gPZ7mdMli2Ym0fvwI0a73nK9Flx.', 'logicalsucks14@gmail.com', '', '1', 1, NULL, NULL, NULL, NULL, '', NULL, NULL, NULL, 140, 140, 0, 250, '', NULL, 0, NULL, '1', '2025-2026', '2026-03-16 18:36:30', '2026-03-16 18:37:11', NULL, 'internal', NULL);
@@ -1339,7 +1770,7 @@ CREATE TABLE `users` (
 INSERT INTO `users` (`id`, `name`, `username`, `email`, `email_verified_at`, `password`, `remember_token`, `role`, `is_active`, `profile_picture`, `created_at`, `updated_at`, `application_status`, `application_submitted_at`, `approved_by`, `approved_at`, `rejected_at`, `approval_notes`, `disciplinary_remark`) VALUES
 (1, 'JuliusGomez', 'JuliusGomez', 'juluisgomez@gmail.com', NULL, '$2y$10$O3c1pTPq4RNJgOdu22ltdO100ICm7slNH7ZsLmMHCY/ZdglUTu/ya', NULL, 'supervisor', 1, '', '2026-02-24 02:53:39', '2026-02-24 02:53:39', 'approved', NULL, NULL, NULL, NULL, NULL, NULL),
 (2, 'MarkVerzon', 'MarkVerzon', 'markverzon@gmail.com', NULL, '$2y$10$TdhRjBcTSXzliYCnZyeKbeo35UWgShc3fX7d4Z7WhVl9coGXHxGJ2', NULL, 'coordinator', 1, '', '2026-02-24 02:56:30', '2026-03-03 08:42:36', 'approved', NULL, NULL, NULL, NULL, NULL, NULL),
-(3, 'Felix Luis Mateo', 'FelixLuisMateo', 'mateo.felixluis@gmail.com', NULL, '$2y$10$PQtM4YQ0bmhzE8FFT.3CRu1Iuq.tDGQSlK6iQv.Hi/qX4hMhCXKu.', NULL, 'student', 1, '', '2026-02-24 02:57:53', '2026-02-26 07:38:43', 'approved', NULL, NULL, NULL, NULL, NULL, NULL),
+(3, 'Felix Luis Mateo', 'FelixLuisMateo', 'mateo.felixluis@gmail.com', NULL, '$2y$10$PQtM4YQ0bmhzE8FFT.3CRu1Iuq.tDGQSlK6iQv.Hi/qX4hMhCXKu.', NULL, 'student', 1, '', '2026-02-24 02:57:53', '2026-03-24 15:58:26', 'approved', NULL, NULL, NULL, NULL, NULL, NULL),
 (4, 'Jomar', 'Jomar', 'jomarsangil@gmail.com', NULL, '$2y$10$iE4WlTO6Ny3zNcC.v.1Tae04qQtUxcC2f.h9/v7VuKj7q3a4145HO', NULL, 'admin', 1, '', '2026-02-24 03:14:42', '2026-02-24 03:14:42', 'approved', NULL, NULL, NULL, NULL, NULL, NULL),
 (5, 'Ivan Sanchez', 'IvanSanchez', 'IvanSanchez@gmail.com', NULL, '$2y$10$G4AcrvLY6tYayygIQhJIfeQNievmy1uMNCLr7eTSi.f/9Ibibu1AW', NULL, 'student', 1, '', '2026-02-26 06:22:05', '2026-03-03 05:06:17', 'approved', NULL, NULL, NULL, NULL, NULL, NULL),
 (6, 'Tyron Jay Gonzales', 'TyronGonzales', 'Tyron@gmail.com', NULL, '$2y$10$p6uQoFaN6mppBsGGH9iDJOUKVPChh9Oi2T93gUkRFCr/AhAlyLpm2', NULL, 'student', 1, '', '2026-02-26 06:44:27', '2026-03-11 00:20:35', 'approved', NULL, NULL, NULL, NULL, NULL, NULL),
@@ -1374,7 +1805,8 @@ CREATE TABLE `user_auth_tokens` (
 --
 
 INSERT INTO `user_auth_tokens` (`id`, `user_id`, `selector`, `token_hash`, `user_agent`, `ip_address`, `expires_at`, `created_at`) VALUES
-(2, 4, '05aac2cc2a5ece2ee8', '27a3c6449379f9b2ebb913dc0809167f365a1a549263af5bb245f3a9d370d1e8', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0', '::1', '2026-04-18 05:08:27', '2026-03-19 11:08:27');
+(7, 4, '10102039b93c7c69ce', '202209eee987b2df9e9ff0ea895694b55495cc24a385987de2e7eff8dab6ebf0', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0', '::1', '2026-04-23 18:48:07', '2026-03-25 00:48:07'),
+(10, 4, 'cd049b37e38ea01982', '21d6ebcba9b0a7cc6fa286936fc4cffbf586597893ae4bb0b99079789754d112', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0', '::1', '2026-04-25 04:28:16', '2026-03-26 10:28:16');
 
 -- --------------------------------------------------------
 
@@ -1451,11 +1883,42 @@ ALTER TABLE `attendances`
   ADD KEY `idx_student_attendance` (`student_id`,`attendance_date`);
 
 --
+-- Indexes for table `biometric_anomalies`
+--
+ALTER TABLE `biometric_anomalies`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uniq_biometric_anomaly` (`raw_log_id`,`anomaly_type`),
+  ADD KEY `idx_biometric_anomaly_status` (`status`),
+  ADD KEY `idx_biometric_anomaly_created` (`created_at`);
+
+--
+-- Indexes for table `biometric_audit_logs`
+--
+ALTER TABLE `biometric_audit_logs`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_biometric_audit_created` (`created_at`),
+  ADD KEY `idx_biometric_audit_action` (`action`);
+
+--
 -- Indexes for table `biometric_data`
 --
 ALTER TABLE `biometric_data`
   ADD PRIMARY KEY (`id`),
   ADD KEY `biometric_data_student_id_foreign` (`student_id`);
+
+--
+-- Indexes for table `biometric_raw_logs`
+--
+ALTER TABLE `biometric_raw_logs`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `biometric_sync_runs`
+--
+ALTER TABLE `biometric_sync_runs`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_biometric_sync_started` (`started_at`),
+  ADD KEY `idx_biometric_sync_status` (`status`);
 
 --
 -- Indexes for table `certificates`
@@ -1558,6 +2021,12 @@ ALTER TABLE `evaluations`
 ALTER TABLE `evaluation_unlocks`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `uq_student` (`student_id`);
+
+--
+-- Indexes for table `fingerprint_user_map`
+--
+ALTER TABLE `fingerprint_user_map`
+  ADD PRIMARY KEY (`finger_id`);
 
 --
 -- Indexes for table `hour_logs`
@@ -1762,13 +2231,37 @@ ALTER TABLE `app_emails`
 -- AUTO_INCREMENT for table `attendances`
 --
 ALTER TABLE `attendances`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=252;
+
+--
+-- AUTO_INCREMENT for table `biometric_anomalies`
+--
+ALTER TABLE `biometric_anomalies`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=566;
+
+--
+-- AUTO_INCREMENT for table `biometric_audit_logs`
+--
+ALTER TABLE `biometric_audit_logs`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=96;
 
 --
 -- AUTO_INCREMENT for table `biometric_data`
 --
 ALTER TABLE `biometric_data`
   MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `biometric_raw_logs`
+--
+ALTER TABLE `biometric_raw_logs`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
+
+--
+-- AUTO_INCREMENT for table `biometric_sync_runs`
+--
+ALTER TABLE `biometric_sync_runs`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=94;
 
 --
 -- AUTO_INCREMENT for table `certificates`
@@ -1864,7 +2357,7 @@ ALTER TABLE `internships`
 -- AUTO_INCREMENT for table `login_logs`
 --
 ALTER TABLE `login_logs`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=111;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=114;
 
 --
 -- AUTO_INCREMENT for table `manual_dtr_attachments`
@@ -1972,7 +2465,7 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `user_auth_tokens`
 --
 ALTER TABLE `user_auth_tokens`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- Constraints for dumped tables

@@ -59,6 +59,7 @@ $studentOptions = [];
 $coordinatorUsers = [];
 $supervisorUsers = [];
 $schoolYearOptions = [];
+$semesterOptions = ['1st Semester', '2nd Semester', 'Summer'];
 
 $defaultSchoolYear = current_school_year_label();
 $baseYear = 2025;
@@ -85,6 +86,9 @@ if (table_exists($conn, 'school_years')) {
 rsort($schoolYearOptions);
 $schoolYearOptions = array_values(array_unique($schoolYearOptions));
 
+biotern_db_add_column_if_missing($conn, 'students', 'semester', "semester VARCHAR(30) DEFAULT NULL");
+biotern_db_add_column_if_missing($conn, 'internships', 'semester', "semester VARCHAR(30) DEFAULT NULL");
+
 $studentQuery = "
     SELECT
         s.id,
@@ -92,6 +96,8 @@ $studentQuery = "
         s.first_name,
         s.last_name,
         s.assignment_track,
+        COALESCE(NULLIF(s.school_year, ''), '{$defaultSchoolYear}') AS school_year,
+        COALESCE(NULLIF(s.semester, ''), '') AS semester,
         COALESCE(NULLIF(s.internal_total_hours, 0), 140) AS internal_total_hours,
         COALESCE(NULLIF(s.external_total_hours, 0), 250) AS external_total_hours,
         COALESCE(NULLIF(c.name, ''), '-') AS course_name,
@@ -150,6 +156,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_ojt'])) {
         $type = strtolower(trim((string)($_POST['type'] ?? 'internal')));
         $status = strtolower(trim((string)($_POST['status'] ?? 'ongoing')));
         $schoolYear = trim((string)($_POST['school_year'] ?? $defaultSchoolYear));
+        $semester = trim((string)($_POST['semester'] ?? ''));
         $requiredHoursRaw = trim((string)($_POST['required_hours'] ?? '0'));
         $internalHoursRaw = trim((string)($_POST['internal_total_hours'] ?? '140'));
         $externalHoursRaw = trim((string)($_POST['external_total_hours'] ?? '250'));
@@ -171,6 +178,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_ojt'])) {
         } elseif (!in_array($type, ['internal', 'external'], true)) {
             $message = 'Invalid internship type.';
             $message_type = 'danger';
+        } elseif (!preg_match('/^\d{4}-\d{4}$/', $schoolYear)) {
+            $message = 'Please select a valid school year.';
+            $message_type = 'danger';
+        } elseif (!in_array($semester, $semesterOptions, true)) {
+            $message = 'Please select a valid semester.';
+            $message_type = 'danger';
         } elseif (!in_array($status, ['ongoing', 'completed', 'dropped'], true)) {
             $message = 'Invalid internship status.';
             $message_type = 'danger';
@@ -184,17 +197,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_ojt'])) {
             $message = 'End date cannot be earlier than start date.';
             $message_type = 'danger';
         } else {
-            $existingIntern = $conn->prepare("SELECT id, status FROM internships WHERE student_id = ? ORDER BY id DESC LIMIT 1");
-            $existingIntern->bind_param('i', $studentId);
+            $existingIntern = $conn->prepare("SELECT id, status FROM internships WHERE student_id = ? AND COALESCE(school_year, '') = ? AND COALESCE(semester, '') = ? ORDER BY id DESC LIMIT 1");
+            $existingIntern->bind_param('iss', $studentId, $schoolYear, $semester);
             $existingIntern->execute();
             $existingRow = $existingIntern->get_result()->fetch_assoc();
             $existingIntern->close();
 
             if ($existingRow) {
-                $message = 'This student already has an OJT assignment. Use OJT Edit to modify it.';
+                $message = 'This student already has an OJT assignment for the selected school year and semester. Use OJT Edit to modify it.';
                 $message_type = 'warning';
             } else {
-                $studentLookup = $conn->prepare("SELECT id, user_id, course_id, department_id FROM students WHERE id = ? LIMIT 1");
+                $studentLookup = $conn->prepare("SELECT id, user_id, course_id, department_id, school_year, semester FROM students WHERE id = ? LIMIT 1");
                 $studentLookup->bind_param('i', $studentId);
                 $studentLookup->execute();
                 $studentRow = $studentLookup->get_result()->fetch_assoc();
@@ -304,6 +317,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_ojt'])) {
                             $studentTypes .= 'i';
                             $studentVals[] = $supRefId;
                         }
+                        if (in_array('school_year', $studentCols, true)) {
+                            $studentSets[] = 'school_year = ?';
+                            $studentTypes .= 's';
+                            $studentVals[] = $schoolYear;
+                        }
+                        if (in_array('semester', $studentCols, true)) {
+                            $studentSets[] = 'semester = ?';
+                            $studentTypes .= 's';
+                            $studentVals[] = $semester;
+                        }
                         if (in_array('updated_at', $studentCols, true)) {
                             $studentSets[] = 'updated_at = NOW()';
                         }
@@ -358,6 +381,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_ojt'])) {
                             $insertCols[] = 'school_year';
                             $insertTypes .= 's';
                             $insertVals[] = $schoolYear;
+                        }
+                        if (in_array('semester', $internCols, true)) {
+                            $insertCols[] = 'semester';
+                            $insertTypes .= 's';
+                            $insertVals[] = $semester;
                         }
                         if (in_array('required_hours', $internCols, true)) {
                             $insertCols[] = 'required_hours';
@@ -422,7 +450,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_ojt'])) {
                         $conn->commit();
                         $_SESSION['ojt_create_flash_type'] = 'success';
                         $_SESSION['ojt_create_flash_message'] = 'OJT assignment created successfully.';
-                        header('Location: ojt-view.php?id=' . $studentId . '&internship_id=' . $newInternshipId);
+                        header('Location: ojt-view.php?id=' . $studentId . '&school_year=' . urlencode($schoolYear) . '&semester=' . urlencode($semester) . '&internship_id=' . $newInternshipId);
                         exit;
                     } catch (Throwable $e) {
                         $conn->rollback();
@@ -449,6 +477,7 @@ $recentSql = "
         i.status,
         i.type,
         i.school_year,
+        COALESCE(NULLIF(i.semester, ''), '-') AS semester,
         i.required_hours,
         i.start_date,
         s.student_id AS school_id,
@@ -516,16 +545,20 @@ include 'includes/header.php';
                                     $course = trim((string)($student['course_name'] ?? '-'));
                                     $section = trim((string)($student['section_name'] ?? '-'));
                                     $track = trim((string)($student['assignment_track'] ?? 'internal'));
+                                    $studentSchoolYear = trim((string)($student['school_year'] ?? $defaultSchoolYear));
+                                    $studentSemester = trim((string)($student['semester'] ?? ''));
                                     $internalDefault = (int)($student['internal_total_hours'] ?? 140);
                                     $externalDefault = (int)($student['external_total_hours'] ?? 250);
                                     ?>
                                     <option
                                         value="<?php echo $studentPk; ?>"
                                         data-track="<?php echo htmlspecialchars($track, ENT_QUOTES, 'UTF-8'); ?>"
+                                        data-school-year="<?php echo htmlspecialchars($studentSchoolYear, ENT_QUOTES, 'UTF-8'); ?>"
+                                        data-semester="<?php echo htmlspecialchars($studentSemester, ENT_QUOTES, 'UTF-8'); ?>"
                                         data-internal-hours="<?php echo $internalDefault; ?>"
                                         data-external-hours="<?php echo $externalDefault; ?>"
                                     >
-                                        <?php echo htmlspecialchars($schoolId . ' | ' . $fullName . ' | ' . $course . ' - ' . $section, ENT_QUOTES, 'UTF-8'); ?>
+                                        <?php echo htmlspecialchars($schoolId . ' | ' . $fullName . ' | ' . $course . ' - ' . $section . ' | ' . $studentSchoolYear . ' / ' . ($studentSemester !== '' ? $studentSemester : 'No semester'), ENT_QUOTES, 'UTF-8'); ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>
@@ -552,7 +585,7 @@ include 'includes/header.php';
                         <div class="row g-2 mt-0">
                             <div class="col-md-6">
                                 <label class="form-label">School Year *</label>
-                                <select name="school_year" class="form-select" required>
+                                <select name="school_year" id="schoolYearSelect" class="form-select" required>
                                     <?php foreach ($schoolYearOptions as $yearLabel): ?>
                                         <option value="<?php echo htmlspecialchars($yearLabel, ENT_QUOTES, 'UTF-8'); ?>" <?php echo ($yearLabel === $defaultSchoolYear) ? 'selected' : ''; ?>>
                                             <?php echo htmlspecialchars($yearLabel, ENT_QUOTES, 'UTF-8'); ?>
@@ -561,9 +594,22 @@ include 'includes/header.php';
                                 </select>
                             </div>
                             <div class="col-md-6">
+                                <label class="form-label">Semester *</label>
+                                <select name="semester" id="semesterSelect" class="form-select" required>
+                                    <option value="">Select semester</option>
+                                    <?php foreach ($semesterOptions as $semesterOption): ?>
+                                        <option value="<?php echo htmlspecialchars($semesterOption, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($semesterOption, ENT_QUOTES, 'UTF-8'); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row g-2 mt-0">
+                            <div class="col-md-6">
                                 <label class="form-label">Required Hours *</label>
                                 <input type="number" name="required_hours" id="requiredHoursInput" class="form-control" min="0" value="140" required>
                             </div>
+                            <div class="col-md-6"></div>
                         </div>
 
                         <div class="row g-2 mt-0">
@@ -647,7 +693,7 @@ include 'includes/header.php';
                                     <th>Student</th>
                                     <th>Type</th>
                                     <th>Status</th>
-                                    <th>School Year</th>
+                                    <th>Term</th>
                                     <th>Hours</th>
                                     <th>Actions</th>
                                 </tr>
@@ -669,11 +715,11 @@ include 'includes/header.php';
                                         </td>
                                         <td><?php echo htmlspecialchars(ucfirst((string)($assignment['type'] ?? '-')), ENT_QUOTES, 'UTF-8'); ?></td>
                                         <td><?php echo htmlspecialchars(ucfirst((string)($assignment['status'] ?? '-')), ENT_QUOTES, 'UTF-8'); ?></td>
-                                        <td><?php echo htmlspecialchars((string)($assignment['school_year'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></td>
+                                        <td><?php echo htmlspecialchars((string)($assignment['school_year'] ?? '-') . ' / ' . (string)($assignment['semester'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></td>
                                         <td><?php echo (int)($assignment['required_hours'] ?? 0); ?></td>
                                         <td>
-                                            <a href="ojt-view.php?id=<?php echo (int)($assignment['student_id'] ?? 0); ?>" class="btn btn-sm btn-light">View</a>
-                                            <a href="ojt-edit.php?id=<?php echo (int)($assignment['student_id'] ?? 0); ?>" class="btn btn-sm btn-outline-secondary">Edit</a>
+                                            <a href="ojt-view.php?id=<?php echo (int)($assignment['student_id'] ?? 0); ?>&amp;school_year=<?php echo urlencode((string)($assignment['school_year'] ?? '')); ?>&amp;semester=<?php echo urlencode((string)($assignment['semester'] ?? '')); ?>" class="btn btn-sm btn-light">View</a>
+                                            <a href="ojt-edit.php?id=<?php echo (int)($assignment['student_id'] ?? 0); ?>&amp;school_year=<?php echo urlencode((string)($assignment['school_year'] ?? '')); ?>&amp;semester=<?php echo urlencode((string)($assignment['semester'] ?? '')); ?>" class="btn btn-sm btn-outline-secondary">Edit</a>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
@@ -695,11 +741,13 @@ include 'includes/header.php';
 (function () {
     const studentSelect = document.getElementById('studentSelect');
     const typeSelect = document.getElementById('typeSelect');
+    const schoolYearSelect = document.getElementById('schoolYearSelect');
+    const semesterSelect = document.getElementById('semesterSelect');
     const requiredHoursInput = document.getElementById('requiredHoursInput');
     const internalHoursInput = document.getElementById('internalHoursInput');
     const externalHoursInput = document.getElementById('externalHoursInput');
 
-    if (!studentSelect || !typeSelect || !requiredHoursInput || !internalHoursInput || !externalHoursInput) {
+    if (!studentSelect || !typeSelect || !schoolYearSelect || !semesterSelect || !requiredHoursInput || !internalHoursInput || !externalHoursInput) {
         return;
     }
 
@@ -712,6 +760,8 @@ include 'includes/header.php';
         if (!option) return;
 
         const defaultTrack = (option.getAttribute('data-track') || 'internal').toLowerCase();
+        const defaultSchoolYear = option.getAttribute('data-school-year') || '';
+        const defaultSemester = option.getAttribute('data-semester') || '';
         const internalDefault = parseInt(option.getAttribute('data-internal-hours') || '140', 10);
         const externalDefault = parseInt(option.getAttribute('data-external-hours') || '250', 10);
 
@@ -724,6 +774,12 @@ include 'includes/header.php';
 
         if (defaultTrack === 'external' || defaultTrack === 'internal') {
             typeSelect.value = defaultTrack;
+        }
+        if (defaultSchoolYear !== '') {
+            schoolYearSelect.value = defaultSchoolYear;
+        }
+        if (defaultSemester !== '') {
+            semesterSelect.value = defaultSemester;
         }
         syncRequiredHours();
     }

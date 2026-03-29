@@ -31,9 +31,11 @@ if (!function_exists('run_biometric_auto_import_stats')) {
 
         $conn->query("
             UPDATE attendances a
-            INNER JOIN students s ON s.user_id = a.student_id
-            SET a.student_id = s.id
+            LEFT JOIN students s_by_id ON s_by_id.id = a.student_id
+            INNER JOIN students s_by_user ON s_by_user.user_id = a.student_id
+            SET a.student_id = s_by_user.id
             WHERE a.source = 'biometric'
+              AND s_by_id.id IS NULL
         ");
 
         $rawInserted = 0;
@@ -54,9 +56,18 @@ if (!function_exists('run_biometric_auto_import_stats')) {
                     throw new RuntimeException('Invalid attendance.txt format.');
                 }
 
+                $incomingSeen = [];
                 foreach ($data as $entry) {
                     $raw = json_encode($entry);
                     if (!is_string($raw) || $raw === '{}' || $raw === '[]' || $raw === '') {
+                        continue;
+                    }
+
+                    $fingerId = isset($entry['finger_id']) ? (int)$entry['finger_id'] : (isset($entry['id']) ? (int)$entry['id'] : 0);
+                    $datetime = isset($entry['time']) ? trim((string)$entry['time']) : '';
+                    $duplicateWindowMinutes = biometricMachineConfigInt($machineConfig, 'duplicateGuardMinutes', 10);
+
+                    if ($fingerId > 0 && $datetime !== '' && isDuplicateRawBiometricEvent($conn, $incomingSeen, $fingerId, $datetime, $duplicateWindowMinutes)) {
                         continue;
                     }
 
@@ -78,6 +89,7 @@ if (!function_exists('run_biometric_auto_import_stats')) {
                         $ins->execute();
                         $ins->close();
                         $rawInserted++;
+                        rememberAcceptedRawBiometricEvent($incomingSeen, $fingerId, $datetime);
                     } else {
                         $stmt->close();
                     }
@@ -97,7 +109,7 @@ if (!function_exists('run_biometric_auto_import_stats')) {
         ];
 
         $events = [];
-        $res = $conn->query("SELECT id, raw_data FROM biometric_raw_logs ORDER BY id ASC");
+        $res = $conn->query("SELECT id, raw_data FROM biometric_raw_logs WHERE processed = 0 ORDER BY id ASC");
         if ($res && $res instanceof mysqli_result) {
             while ($row = $res->fetch_assoc()) {
                 $logId = (int)$row['id'];
@@ -193,18 +205,6 @@ if (!function_exists('run_biometric_auto_import_stats')) {
                 ];
             }
             $res->close();
-        }
-
-        $rebuildKeys = [];
-        foreach ($events as $event) {
-            $rebuildKeys[$event['student_id'] . '|' . $event['date']] = [
-                'student_id' => $event['student_id'],
-                'date' => $event['date'],
-            ];
-        }
-
-        foreach ($rebuildKeys as $rebuild) {
-            resetBiometricAttendanceDay($conn, (int)$rebuild['student_id'], (string)$rebuild['date']);
         }
 
         foreach ($events as $event) {
@@ -360,6 +360,80 @@ if (!function_exists('buildStudentAttendanceScheduleMap')) {
     }
 }
 
+if (!function_exists('rememberAcceptedRawBiometricEvent')) {
+    function rememberAcceptedRawBiometricEvent(array &$incomingSeen, int $fingerId, string $datetime): void
+    {
+        if ($fingerId <= 0 || $datetime === '') {
+            return;
+        }
+
+        $date = substr($datetime, 0, 10);
+        $time = substr($datetime, 11, 8);
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) || !preg_match('/^\d{2}:\d{2}:\d{2}$/', $time)) {
+            return;
+        }
+
+        $incomingSeen[$fingerId . '|' . $date][] = $time;
+    }
+}
+
+if (!function_exists('isDuplicateRawBiometricEvent')) {
+    function isDuplicateRawBiometricEvent(mysqli $conn, array $incomingSeen, int $fingerId, string $datetime, int $windowMinutes): bool
+    {
+        if ($fingerId <= 0 || $datetime === '') {
+            return false;
+        }
+
+        $date = substr($datetime, 0, 10);
+        $time = substr($datetime, 11, 8);
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) || !preg_match('/^\d{2}:\d{2}:\d{2}$/', $time)) {
+            return false;
+        }
+
+        $seenKey = $fingerId . '|' . $date;
+        foreach ($incomingSeen[$seenKey] ?? [] as $existingTime) {
+            $minutesApart = minutesBetweenPunches($existingTime, $time);
+            if ($minutesApart !== null && $minutesApart <= $windowMinutes) {
+                return true;
+            }
+        }
+
+        $likeDate = '%' . $conn->real_escape_string('"time":"' . $date . ' ') . '%';
+        $res = $conn->query("SELECT raw_data FROM biometric_raw_logs WHERE raw_data LIKE '{$likeDate}' ORDER BY id DESC LIMIT 300");
+        if (!($res instanceof mysqli_result)) {
+            return false;
+        }
+
+        while ($row = $res->fetch_assoc()) {
+            $entry = json_decode((string)($row['raw_data'] ?? ''), true);
+            if (!is_array($entry)) {
+                continue;
+            }
+
+            $existingFingerId = isset($entry['finger_id']) ? (int)$entry['finger_id'] : (isset($entry['id']) ? (int)$entry['id'] : 0);
+            if ($existingFingerId !== $fingerId) {
+                continue;
+            }
+
+            $existingDatetime = trim((string)($entry['time'] ?? ''));
+            $existingDate = substr($existingDatetime, 0, 10);
+            $existingTime = substr($existingDatetime, 11, 8);
+            if ($existingDate !== $date || !preg_match('/^\d{2}:\d{2}:\d{2}$/', $existingTime)) {
+                continue;
+            }
+
+            $minutesApart = minutesBetweenPunches($existingTime, $time);
+            if ($minutesApart !== null && $minutesApart <= $windowMinutes) {
+                $res->close();
+                return true;
+            }
+        }
+
+        $res->close();
+        return false;
+    }
+}
+
 if (!function_exists('markRawLogProcessed')) {
     function markRawLogProcessed(mysqli $conn, int $logId): void
     {
@@ -507,6 +581,54 @@ if (!function_exists('resolveAttendanceColumnForPunch')) {
                 return null;
             }
 
+            if ($session === 'whole_day') {
+                $slotAdvanceMinimumMinutes = biometricMachineConfigInt($machineConfig, 'slotAdvanceMinimumMinutes', 10);
+                $middayBoundary = resolveWholeDayAttendanceSplitTime($effectiveSchedule);
+                $lateDayBoundary = resolveWholeDayAttendanceExitTime($effectiveSchedule);
+
+                $morningIn = trim((string)($attendanceRow['morning_time_in'] ?? ''));
+                $morningOut = trim((string)($attendanceRow['morning_time_out'] ?? ''));
+                $afternoonIn = trim((string)($attendanceRow['afternoon_time_in'] ?? ''));
+                $afternoonOut = trim((string)($attendanceRow['afternoon_time_out'] ?? ''));
+
+                if ($morningIn === '' && $afternoonIn === '') {
+                    return strcmp($incomingTime, $middayBoundary) >= 0 ? 'afternoon_time_in' : 'morning_time_in';
+                }
+
+                if ($morningIn !== '' && $morningOut === '') {
+                    $minutesSinceMorningIn = minutesBetweenPunches($morningIn, $incomingTime);
+                    if ($minutesSinceMorningIn !== null && $minutesSinceMorningIn < $slotAdvanceMinimumMinutes) {
+                        return null;
+                    }
+
+                    if (strcmp($incomingTime, $lateDayBoundary) >= 0 && $afternoonOut === '') {
+                        return 'afternoon_time_out';
+                    }
+
+                    return 'morning_time_out';
+                }
+
+                if ($afternoonIn !== '') {
+                    $minutesSinceAfternoonIn = minutesBetweenPunches($afternoonIn, $incomingTime);
+                    if ($minutesSinceAfternoonIn !== null && $minutesSinceAfternoonIn < $slotAdvanceMinimumMinutes) {
+                        return null;
+                    }
+
+                    if ($afternoonOut === '') {
+                        return 'afternoon_time_out';
+                    }
+
+                    return null;
+                }
+
+                if ($afternoonIn === '') {
+                    if (strcmp($incomingTime, $lateDayBoundary) >= 0 && $afternoonOut === '') {
+                        return 'afternoon_time_out';
+                    }
+                    return 'afternoon_time_in';
+                }
+            }
+
             $lastTime = lastBiometricPunchTime($attendanceRow);
             if ($lastTime !== null) {
                 $minutesSinceLast = minutesBetweenPunches($lastTime, $incomingTime);
@@ -531,6 +653,58 @@ if (!function_exists('resolveAttendanceColumnForPunch')) {
         }
 
         return null;
+    }
+}
+
+if (!function_exists('resolveSequentialAttendanceColumn')) {
+    function resolveSequentialAttendanceColumn(array $attendanceRow, array $columns, string $incomingTime, int $slotAdvanceMinimumMinutes): ?string
+    {
+        $previousValue = null;
+        foreach ($columns as $column) {
+            $value = trim((string)($attendanceRow[$column] ?? ''));
+            if ($value === '' || $value === '00:00:00') {
+                if ($previousValue !== null) {
+                    $minutesSinceLast = minutesBetweenPunches($previousValue, $incomingTime);
+                    if ($minutesSinceLast !== null && $minutesSinceLast < $slotAdvanceMinimumMinutes) {
+                        return null;
+                    }
+                }
+                return $column;
+            }
+            $previousValue = $value;
+        }
+
+        return null;
+    }
+}
+
+if (!function_exists('resolveWholeDayAttendanceSplitTime')) {
+    function resolveWholeDayAttendanceSplitTime(array $schedule): string
+    {
+        $scheduledIn = section_schedule_normalize_time_input((string)($schedule['schedule_time_in'] ?? ''));
+        $scheduledOut = section_schedule_normalize_time_input((string)($schedule['schedule_time_out'] ?? ''));
+
+        if ($scheduledIn !== null && strcmp($scheduledIn, '12:00:00') >= 0) {
+            return '12:00:00';
+        }
+
+        if ($scheduledOut !== null && strcmp($scheduledOut, '12:00:00') <= 0) {
+            return '12:00:00';
+        }
+
+        return '12:00:00';
+    }
+}
+
+if (!function_exists('resolveWholeDayAttendanceExitTime')) {
+    function resolveWholeDayAttendanceExitTime(array $schedule): string
+    {
+        $scheduledOut = section_schedule_normalize_time_input((string)($schedule['schedule_time_out'] ?? ''));
+        if ($scheduledOut !== null && strcmp($scheduledOut, '15:00:00') >= 0) {
+            return substr($scheduledOut, 0, 8);
+        }
+
+        return '15:00:00';
     }
 }
 

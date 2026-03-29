@@ -3,6 +3,36 @@ if (function_exists('mysqli_report')) {
     mysqli_report(MYSQLI_REPORT_OFF);
 }
 
+if (!function_exists('biotern_app_timezone')) {
+    function biotern_app_timezone(): string
+    {
+        static $timezone = null;
+        if ($timezone !== null) {
+            return $timezone;
+        }
+
+        $configured = getenv('APP_TIMEZONE');
+        if (!is_string($configured) || trim($configured) === '') {
+            $configured = getenv('TZ');
+        }
+        if (!is_string($configured) || trim($configured) === '') {
+            $configured = 'Asia/Manila';
+        }
+
+        $configured = trim($configured);
+        try {
+            new DateTimeZone($configured);
+            $timezone = $configured;
+        } catch (Throwable $e) {
+            $timezone = 'Asia/Manila';
+        }
+
+        return $timezone;
+    }
+}
+
+date_default_timezone_set(biotern_app_timezone());
+
 // Database configuration
 if (!function_exists('biotern_env_first')) {
     function biotern_env_first(array $keys, $default = null)
@@ -144,6 +174,19 @@ if (!($conn instanceof mysqli) || $conn->connect_error) {
 // Set charset to utf8mb4
 $conn->set_charset("utf8mb4");
 
+try {
+    $tz = new DateTimeZone(biotern_app_timezone());
+    $offset = $tz->getOffset(new DateTimeImmutable('now', $tz));
+    $sign = $offset >= 0 ? '+' : '-';
+    $abs = abs($offset);
+    $hours = str_pad((string)intdiv($abs, 3600), 2, '0', STR_PAD_LEFT);
+    $minutes = str_pad((string)intdiv($abs % 3600, 60), 2, '0', STR_PAD_LEFT);
+    $mysqlOffset = $sign . $hours . ':' . $minutes;
+    @$conn->query("SET time_zone = '{$mysqlOffset}'");
+} catch (Throwable $e) {
+    // Keep working with the default DB timezone when session timezone cannot be set.
+}
+
 if (!function_exists('biotern_db_has_column')) {
     function biotern_db_has_column(mysqli $mysqli, string $table, string $column): bool
     {
@@ -169,6 +212,66 @@ if (!function_exists('biotern_db_add_column_if_missing')) {
         } catch (Throwable $e) {
             return false;
         }
+    }
+}
+
+if (!function_exists('biotern_db_ensure_index')) {
+    function biotern_db_ensure_index(mysqli $mysqli, string $table, string $indexName, string $indexSql): bool
+    {
+        $safeTable = $mysqli->real_escape_string($table);
+        $safeIndex = $mysqli->real_escape_string($indexName);
+        $res = $mysqli->query("SHOW INDEX FROM `{$safeTable}` WHERE Key_name = '{$safeIndex}'");
+        if ($res instanceof mysqli_result && $res->num_rows > 0) {
+            $res->close();
+            return true;
+        }
+        if ($res instanceof mysqli_result) {
+            $res->close();
+        }
+
+        try {
+            return (bool)$mysqli->query($indexSql);
+        } catch (Throwable $e) {
+            return false;
+        }
+    }
+}
+
+if (!function_exists('biotern_ensure_fingerprint_user_map_table')) {
+    function biotern_ensure_fingerprint_user_map_table(mysqli $mysqli): bool
+    {
+        $ok = (bool)$mysqli->query("
+            CREATE TABLE IF NOT EXISTS fingerprint_user_map (
+                finger_id INT NOT NULL,
+                user_id INT NOT NULL,
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                PRIMARY KEY (finger_id),
+                UNIQUE KEY uniq_fingerprint_user_map_user_id (user_id),
+                KEY idx_fingerprint_user_map_user_id (user_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        ");
+
+        if (!$ok) {
+            return false;
+        }
+
+        biotern_db_add_column_if_missing($mysqli, 'fingerprint_user_map', 'created_at', 'created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP');
+        biotern_db_add_column_if_missing($mysqli, 'fingerprint_user_map', 'updated_at', 'updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP');
+        biotern_db_ensure_index(
+            $mysqli,
+            'fingerprint_user_map',
+            'uniq_fingerprint_user_map_user_id',
+            "ALTER TABLE `fingerprint_user_map` ADD UNIQUE KEY `uniq_fingerprint_user_map_user_id` (`user_id`)"
+        );
+        biotern_db_ensure_index(
+            $mysqli,
+            'fingerprint_user_map',
+            'idx_fingerprint_user_map_user_id',
+            "ALTER TABLE `fingerprint_user_map` ADD KEY `idx_fingerprint_user_map_user_id` (`user_id`)"
+        );
+
+        return true;
     }
 }
 

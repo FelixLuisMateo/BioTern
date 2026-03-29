@@ -78,7 +78,7 @@ include __DIR__ . '/../includes/header.php';
     data-prefill-greeting-pref="<?php echo htmlspecialchars($prefill_greeting_pref, ENT_QUOTES, 'UTF-8'); ?>"
     data-prefill-recipient-title="<?php echo htmlspecialchars($prefill_recipient_title, ENT_QUOTES, 'UTF-8'); ?>"
 >
-    <div class="page-header page-header-with-middle">
+    <div class="page-header dashboard-page-header page-header-with-middle">
         <div class="page-header-left d-flex align-items-center">
             <div class="page-header-title">
                 <h5 class="m-b-10">Documents - Endorsement Letter</h5>

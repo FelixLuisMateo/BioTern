@@ -1,5 +1,6 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
+require_once dirname(__DIR__) . '/lib/notifications.php';
 // Shared header include.  Sets up HTML <head> and page header/navigation.
 // Pages can set a $page_title variable before including this file.
 if (session_status() === PHP_SESSION_NONE) {
@@ -314,8 +315,11 @@ if ($page_render_header) {
                     $res = $list_stmt->get_result();
                     while ($n = $res->fetch_assoc()) {
                         $header_notifications[] = [
+                            'id' => (int)($n['id'] ?? 0),
                             'title' => (string)($n['title'] ?? 'Notification'),
                             'message' => (string)($n['message'] ?? ''),
+                            'type' => (string)($n['type'] ?? ''),
+                            'action_url' => (string)($n['action_url'] ?? ''),
                             'is_read' => (int)($n['is_read'] ?? 0),
                             'created_at' => (string)($n['created_at'] ?? ''),
                         ];
@@ -344,8 +348,11 @@ if ($page_render_header) {
                             $message = (string)($json['message'] ?? $message);
                         }
                         $header_notifications[] = [
+                            'id' => (int)($n['id'] ?? 0),
                             'title' => $title,
                             'message' => $message,
+                            'type' => (string)($n['type'] ?? ''),
+                            'action_url' => '',
                             'is_read' => (int)($n['is_read'] ?? 0),
                             'created_at' => (string)($n['created_at'] ?? ''),
                         ];
@@ -420,6 +427,7 @@ if ($header_db instanceof mysqli) {
         <?php endforeach; ?>
     <?php endif; ?>
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars(header_asset_versioned_href('assets/css/state/page-header-consistency.css'), ENT_QUOTES, 'UTF-8'); ?>" />
+    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars(header_asset_versioned_href('assets/css/state/header-account-menu.css'), ENT_QUOTES, 'UTF-8'); ?>" />
 </head>
 
 <body<?php echo $page_body_class !== '' ? ' class="' . htmlspecialchars($page_body_class, ENT_QUOTES, 'UTF-8') . '"' : ''; ?>
@@ -511,19 +519,43 @@ if ($header_db instanceof mysqli) {
                                         <span class="badge bg-soft-primary text-primary"><?php echo (int)$header_notifications_unread; ?> unread</span>
                                     </div>
                                     <?php if (!empty($header_notifications)): ?>
+                                        <div class="header-notifications-list">
                                         <?php foreach ($header_notifications as $n): ?>
-                                            <div class="notifications-item">
-                                                <img src="assets/images/avatar/1.png" alt="" class="rounded me-3 border">
-                                                <div class="notifications-desc">
-                                                    <a href="javascript:void(0);" class="font-body text-truncate-2-line"><?php echo htmlspecialchars($n['title'], ENT_QUOTES, 'UTF-8'); ?></a>
-                                                    <div class="fs-12 text-muted text-truncate-2-line"><?php echo htmlspecialchars($n['message'], ENT_QUOTES, 'UTF-8'); ?></div>
-                                                    <div class="notifications-date text-muted border-bottom border-bottom-dashed"><?php echo htmlspecialchars($n['created_at'] !== '' ? date('M d, Y h:i A', strtotime($n['created_at'])) : 'Just now', ENT_QUOTES, 'UTF-8'); ?></div>
+                                            <?php
+                                            $notificationTitle = (string)($n['title'] ?? 'Notification');
+                                            $notificationMessage = (string)($n['message'] ?? '');
+                                            $notificationCreatedAt = (string)($n['created_at'] ?? '');
+                                            $notificationType = biotern_notification_normalize_type(
+                                                (string)($n['type'] ?? ''),
+                                                $notificationTitle,
+                                                $notificationMessage,
+                                                (string)($n['action_url'] ?? '')
+                                            );
+                                            $notificationMeta = biotern_notification_type_meta($notificationType);
+                                            $notificationTarget = biotern_notification_open_url((string)($n['action_url'] ?? ''), (int)($n['id'] ?? 0), 'notifications.php');
+                                            $notificationIsUnread = (int)($n['is_read'] ?? 0) === 0;
+                                            ?>
+                                            <a href="<?php echo htmlspecialchars($notificationTarget, ENT_QUOTES, 'UTF-8'); ?>" class="notifications-item header-notification-item<?php echo $notificationIsUnread ? ' unread' : ''; ?>">
+                                                <div class="header-notification-badge">
+                                                    <i class="<?php echo htmlspecialchars((string)($notificationMeta['icon'] ?? 'feather-bell'), ENT_QUOTES, 'UTF-8'); ?>"></i>
                                                 </div>
-                                            </div>
+                                                <div class="notifications-desc header-notification-desc">
+                                                    <div class="header-notification-meta-row">
+                                                        <div class="header-notification-title"><?php echo htmlspecialchars($notificationTitle, ENT_QUOTES, 'UTF-8'); ?></div>
+                                                        <div class="header-notification-time" title="<?php echo htmlspecialchars($notificationCreatedAt, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(biotern_notification_time_ago($notificationCreatedAt), ENT_QUOTES, 'UTF-8'); ?></div>
+                                                    </div>
+                                                    <div class="header-notification-type"><?php echo htmlspecialchars((string)($notificationMeta['label'] ?? 'System'), ENT_QUOTES, 'UTF-8'); ?></div>
+                                                    <div class="header-notification-message"><?php echo htmlspecialchars($notificationMessage, ENT_QUOTES, 'UTF-8'); ?></div>
+                                                </div>
+                                            </a>
                                         <?php endforeach; ?>
+                                        </div>
                                     <?php else: ?>
                                         <div class="px-3 py-3 text-muted fs-12">No notifications yet.</div>
                                     <?php endif; ?>
+                                    <div class="notifications-menu-footer">
+                                        <a href="notifications.php">Open Notifications</a>
+                                    </div>
                                 </div>
                             </div>
                             <div class="dropdown nxl-h-item click-only-dropdown">
@@ -532,48 +564,53 @@ if ($header_db instanceof mysqli) {
                                 </a>
                                 <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-user-dropdown">
                                     <div class="dropdown-header">
-                                        <div class="d-flex align-items-center">
+                                        <div class="header-menu-profile">
                                             <img src="<?php echo htmlspecialchars($header_avatar, ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar">
-                                            <div>
-                                                <h6 class="text-dark mb-0">
-                                                    <?php echo htmlspecialchars($header_user_name, ENT_QUOTES, 'UTF-8'); ?>
+                                            <div class="header-menu-profile-copy">
+                                                <div class="header-menu-profile-name">
+                                                    <h6><?php echo htmlspecialchars($header_user_name, ENT_QUOTES, 'UTF-8'); ?></h6>
                                                     <?php if ($header_user_role !== ''): ?>
-                                                        <span class="badge bg-soft-success text-success ms-1"><?php echo htmlspecialchars(ucfirst($header_user_role), ENT_QUOTES, 'UTF-8'); ?></span>
+                                                        <span class="header-menu-pill"><?php echo htmlspecialchars(ucfirst($header_user_role), ENT_QUOTES, 'UTF-8'); ?></span>
                                                     <?php endif; ?>
-                                                </h6>
+                                                </div>
                                                 <span class="fs-12 fw-medium text-muted"><?php echo htmlspecialchars($header_user_email, ENT_QUOTES, 'UTF-8'); ?></span>
                                             </div>
                                         </div>
                                     </div>
+                                    <div class="header-menu-status">
+                                        <span class="header-menu-status-dot"></span>
+                                        <span>Active</span>
+                                    </div>
                                     <div class="dropdown-divider"></div>
-                                    <a href="javascript:void(0);" class="dropdown-item">
-                                        <span class="hstack">
-                                            <i class="wd-10 ht-10 border border-2 border-gray-1 bg-success rounded-circle me-2"></i>
-                                            <span>Active</span>
-                                        </span>
-                                    </a>
+                                    <div class="dropdown-meta">Profile</div>
+                                    <div class="header-menu-section">
+                                        <a href="account-settings.php#overview" class="dropdown-item">
+                                            <i class="feather-user"></i>
+                                            <span>Profile Details</span>
+                                        </a>
+                                        <a href="account-settings.php#profile-form" class="dropdown-item">
+                                            <i class="feather-edit-3"></i>
+                                            <span>Edit Profile</span>
+                                        </a>
+                                    </div>
+                                    <div class="dropdown-meta">Account</div>
+                                    <div class="header-menu-section">
+                                        <a href="notifications.php" class="dropdown-item">
+                                            <i class="feather-bell"></i>
+                                            <span>Notifications</span>
+                                        </a>
+                                        <a href="account-settings.php#security" class="dropdown-item">
+                                            <i class="feather-shield"></i>
+                                            <span>Security</span>
+                                        </a>
+                                    </div>
                                     <div class="dropdown-divider"></div>
-                                    <a href="account-settings.php" class="dropdown-item">
-                                        <i class="feather-user"></i>
-                                        <span>Profile Details</span>
-                                    </a>
-                                    <a href="javascript:void(0);" class="dropdown-item">
-                                        <i class="feather-activity"></i>
-                                        <span>Activity Feed</span>
-                                    </a>
-                                    <a href="javascript:void(0);" class="dropdown-item">
-                                        <i class="feather-bell"></i>
-                                        <span>Notifications</span>
-                                    </a>
-                                    <a href="account-settings.php" class="dropdown-item">
-                                        <i class="feather-settings"></i>
-                                        <span>Account Settings</span>
-                                    </a>
-                                    <div class="dropdown-divider"></div>
-                                    <a href="auth-login-cover.php?logout=1" class="dropdown-item">
-                                        <i class="feather-log-out"></i>
-                                        <span>Logout</span>
-                                    </a>
+                                    <div class="header-menu-section">
+                                        <a href="auth-login-cover.php?logout=1" class="dropdown-item">
+                                            <i class="feather-log-out"></i>
+                                            <span>Logout</span>
+                                        </a>
+                                    </div>
                                 </div>
                             </div>
                         </div>

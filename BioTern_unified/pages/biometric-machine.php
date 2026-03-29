@@ -3,6 +3,8 @@ require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/tools/biometric_machine_runtime.php';
 require_once dirname(__DIR__) . '/tools/biometric_auto_import.php';
 require_once dirname(__DIR__) . '/tools/biometric_ops.php';
+require_once dirname(__DIR__) . '/tools/cleanup_biometric_duplicates.php';
+require_once dirname(__DIR__) . '/tools/rebuild_biometric_date.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -39,6 +41,15 @@ $networkRaw = '';
 $timeRaw = '';
 $machineConfigPath = dirname(__DIR__) . '/tools/biometric_machine_config.json';
 $machineConfigJson = file_exists($machineConfigPath) ? trim((string)file_get_contents($machineConfigPath)) : '';
+biotern_ensure_fingerprint_user_map_table($conn);
+$fingerprintIdentityMap = machine_fetch_fingerprint_identity_map($conn);
+$machineUserIndex = [];
+$mappingValidation = [
+    'machine_unmapped' => [],
+    'mapped_missing_on_machine' => [],
+    'name_mismatches' => [],
+    'orphan_mappings' => [],
+];
 
 function machine_h($value): string
 {
@@ -167,6 +178,7 @@ function machine_decode_raw_log_entry(string $rawData): array
 
 function machine_fetch_fingerprint_identity_map(mysqli $conn): array
 {
+    biotern_ensure_fingerprint_user_map_table($conn);
     $map = [];
     $res = $conn->query("
         SELECT
@@ -234,6 +246,96 @@ function machine_load_user_details_into_state(int $selectedUserId, &$userDetails
     $userDetailsDecoded = biometric_machine_decode_data($userDetailsRaw);
 }
 
+function machine_build_machine_user_index($decoded): array
+{
+    $index = [];
+    foreach (machine_extract_rows($decoded) as $row) {
+        $machineId = (int)trim(machine_row_value($row, ['id', 'ID', 'user_id', 'userId', 'EnrollNumber']));
+        if ($machineId <= 0) {
+            continue;
+        }
+
+        $index[$machineId] = [
+            'machine_id' => $machineId,
+            'name' => trim(machine_row_value($row, ['name', 'Name'])),
+            'card_no' => trim(machine_row_value($row, ['cardno', 'cardNo', 'CardNo'])),
+            'privilege' => trim(machine_row_value($row, ['privilege', 'privalege', 'Privilege'])),
+            'raw' => $row,
+        ];
+    }
+
+    ksort($index);
+    return $index;
+}
+
+function machine_expected_mapping_name(array $identity): string
+{
+    $studentName = trim((string)($identity['first_name'] ?? '') . ' ' . (string)($identity['last_name'] ?? ''));
+    if ($studentName !== '') {
+        return $studentName;
+    }
+
+    $userName = trim((string)($identity['mapped_user_name'] ?? ''));
+    if ($userName !== '') {
+        return $userName;
+    }
+
+    return trim((string)($identity['mapped_username'] ?? ''));
+}
+
+function machine_build_mapping_validation(array $machineUsers, array $identityMap): array
+{
+    $machineUnmapped = [];
+    $mappedMissingOnMachine = [];
+    $nameMismatches = [];
+    $orphanMappings = [];
+
+    foreach ($machineUsers as $machineId => $machineUser) {
+        if (!isset($identityMap[$machineId])) {
+            $machineUnmapped[] = $machineUser;
+            continue;
+        }
+
+        $identity = $identityMap[$machineId];
+        $expectedName = trim(machine_expected_mapping_name($identity));
+        $machineName = trim((string)($machineUser['name'] ?? ''));
+        if ($expectedName !== '' && $machineName !== '' && mb_strtolower($expectedName) !== mb_strtolower($machineName)) {
+            $nameMismatches[] = [
+                'machine_id' => $machineId,
+                'machine_name' => $machineName,
+                'expected_name' => $expectedName,
+                'student_number' => trim((string)($identity['student_number'] ?? '')),
+                'mapped_user_id' => (int)($identity['user_id'] ?? 0),
+            ];
+        }
+    }
+
+    foreach ($identityMap as $fingerId => $identity) {
+        if (!isset($machineUsers[$fingerId])) {
+            $mappedMissingOnMachine[] = [
+                'finger_id' => $fingerId,
+                'label' => machine_identity_label($identity),
+                'mapped_user_id' => (int)($identity['user_id'] ?? 0),
+            ];
+        }
+
+        if (trim((string)($identity['student_number'] ?? '')) === '') {
+            $orphanMappings[] = [
+                'finger_id' => $fingerId,
+                'label' => machine_identity_label($identity),
+                'mapped_user_id' => (int)($identity['user_id'] ?? 0),
+            ];
+        }
+    }
+
+    return [
+        'machine_unmapped' => $machineUnmapped,
+        'mapped_missing_on_machine' => $mappedMissingOnMachine,
+        'name_mismatches' => $nameMismatches,
+        'orphan_mappings' => $orphanMappings,
+    ];
+}
+
 if (isset($_SESSION['machine_manager_flash']) && is_array($_SESSION['machine_manager_flash'])) {
     $flashType = (string)($_SESSION['machine_manager_flash']['type'] ?? 'info');
     $flashMessage = (string)($_SESSION['machine_manager_flash']['message'] ?? '');
@@ -243,6 +345,8 @@ if (isset($_SESSION['machine_manager_flash']) && is_array($_SESSION['machine_man
 if ((int)($_GET['load_users'] ?? 0) === 1) {
     try {
         machine_load_user_list_into_state($userListRaw, $userListDecoded);
+        $machineUserIndex = machine_build_machine_user_index($userListDecoded);
+        $mappingValidation = machine_build_mapping_validation($machineUserIndex, $fingerprintIdentityMap);
     } catch (Throwable $e) {
         if ($flashMessage === '') {
             $flashType = 'danger';
@@ -271,6 +375,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'save_config',
             'save_network',
             'save_connector_config',
+            'cleanup_duplicates_rebuild',
             'clear_records',
             'clear_users',
             'clear_admin',
@@ -291,6 +396,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'type' => 'success',
                     'message' => trim(($connector['text'] ?? '') . "\n" . run_biometric_auto_import()),
                 ];
+                machine_redirect_after_post(['load_users' => 1]);
+
+            case 'cleanup_duplicates_rebuild':
+                $cleanup = cleanup_biometric_duplicate_logs($conn);
+                $rebuilt = [];
+                foreach (($cleanup['affected_dates'] ?? []) as $date) {
+                    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', (string)$date)) {
+                        continue;
+                    }
+                    $rebuilt[] = rebuild_biometric_attendance_for_date($conn, (string)$date);
+                }
+
+                $rebuildSummary = [];
+                foreach ($rebuilt as $row) {
+                    $rebuildSummary[] = $row['date'] . ' (' . $row['raw_events_replayed'] . ' replayed)';
+                }
+
+                $_SESSION['machine_manager_flash'] = [
+                    'type' => 'success',
+                    'message' => trim(
+                        "Duplicate biometric cleanup complete.\n" .
+                        'Window: ' . (int)($cleanup['window_minutes'] ?? 0) . " minutes\n" .
+                        'Deleted duplicate raw logs: ' . (int)($cleanup['deleted_count'] ?? 0) . "\n" .
+                        'Affected dates rebuilt: ' . ($rebuildSummary !== [] ? implode(', ', $rebuildSummary) : 'none')
+                    ),
+                ];
+                biometric_ops_log_audit(
+                    $conn,
+                    (int)($_SESSION['user_id'] ?? 0),
+                    $role,
+                    'machine_cleanup_duplicates_rebuild',
+                    'machine_sync',
+                    null,
+                    ['cleanup' => $cleanup, 'rebuilt' => $rebuilt]
+                );
                 machine_redirect_after_post(['load_users' => 1]);
 
             case 'list_users':
@@ -786,10 +926,16 @@ include __DIR__ . '/../includes/header.php';
                     <div class="card-header"><h6 class="card-title mb-0">Machine Sync</h6></div>
                     <div class="card-body">
                         <p class="text-muted">Pull new logs from the F20H, then reconcile them into BioTern attendance.</p>
-                        <form method="post">
-                            <input type="hidden" name="machine_action" value="sync">
-                            <button type="submit" class="btn btn-primary w-100">Sync Now</button>
-                        </form>
+                            <form method="post">
+                                <input type="hidden" name="machine_action" value="sync">
+                                <button type="submit" class="btn btn-primary w-100">Sync Now</button>
+                            </form>
+                            <?php if ($isAdmin): ?>
+                                <form method="post" onsubmit="return confirm('Clean duplicate biometric raw logs and rebuild all affected attendance dates?');">
+                                    <input type="hidden" name="machine_action" value="cleanup_duplicates_rebuild">
+                                    <button type="submit" class="btn btn-outline-warning w-100">Clean Duplicates + Rebuild</button>
+                                </form>
+                            <?php endif; ?>
                     </div>
                 </div>
             </div>
@@ -831,6 +977,135 @@ include __DIR__ . '/../includes/header.php';
                             </form>
                             <a href="attendance.php" class="btn btn-outline-secondary w-100">Open Attendance DTR</a>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12">
+                <div class="card stretch stretch-full">
+                    <div class="card-header"><h6 class="card-title mb-0">Fingerprint Mapping Validation</h6></div>
+                    <div class="card-body">
+                        <p class="text-muted mb-3">Compare the current F20H user list against the local `fingerprint_user_map` before syncing attendance.</p>
+                        <?php if (empty($machineUserIndex)): ?>
+                            <div class="alert alert-soft-primary mb-0">Load the machine user list first to validate mappings.</div>
+                        <?php else: ?>
+                            <div class="row g-3">
+                                <div class="col-md-3">
+                                    <div class="border rounded p-3 h-100">
+                                        <div class="text-muted fs-12 mb-1">Machine IDs Without Local Mapping</div>
+                                        <div class="fs-4 fw-bold"><?php echo count($mappingValidation['machine_unmapped']); ?></div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="border rounded p-3 h-100">
+                                        <div class="text-muted fs-12 mb-1">Mapped IDs Missing On Machine</div>
+                                        <div class="fs-4 fw-bold"><?php echo count($mappingValidation['mapped_missing_on_machine']); ?></div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="border rounded p-3 h-100">
+                                        <div class="text-muted fs-12 mb-1">Name Mismatches</div>
+                                        <div class="fs-4 fw-bold"><?php echo count($mappingValidation['name_mismatches']); ?></div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="border rounded p-3 h-100">
+                                        <div class="text-muted fs-12 mb-1">Orphan Local Mappings</div>
+                                        <div class="fs-4 fw-bold"><?php echo count($mappingValidation['orphan_mappings']); ?></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <?php if (!empty($mappingValidation['machine_unmapped'])): ?>
+                                <div class="mt-4">
+                                    <div class="fw-semibold mb-2">Machine IDs Without Local Mapping</div>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm align-middle">
+                                            <thead><tr><th>Machine ID</th><th>Name</th><th>Card</th></tr></thead>
+                                            <tbody>
+                                            <?php foreach ($mappingValidation['machine_unmapped'] as $row): ?>
+                                                <tr>
+                                                    <td><?php echo machine_h($row['machine_id']); ?></td>
+                                                    <td><?php echo machine_h($row['name'] !== '' ? $row['name'] : '(blank)'); ?></td>
+                                                    <td><?php echo machine_h($row['card_no'] !== '' ? ($isAdmin ? $row['card_no'] : machine_mask_card_number($row['card_no'])) : '-'); ?></td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            <?php endif; ?>
+
+                            <?php if (!empty($mappingValidation['mapped_missing_on_machine'])): ?>
+                                <div class="mt-4">
+                                    <div class="fw-semibold mb-2">Mapped Fingerprints Missing On Machine</div>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm align-middle">
+                                            <thead><tr><th>Fingerprint ID</th><th>Mapped User</th><th>User ID</th></tr></thead>
+                                            <tbody>
+                                            <?php foreach ($mappingValidation['mapped_missing_on_machine'] as $row): ?>
+                                                <tr>
+                                                    <td><?php echo machine_h($row['finger_id']); ?></td>
+                                                    <td><?php echo machine_h($row['label']); ?></td>
+                                                    <td><?php echo machine_h($row['mapped_user_id']); ?></td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            <?php endif; ?>
+
+                            <?php if (!empty($mappingValidation['name_mismatches'])): ?>
+                                <div class="mt-4">
+                                    <div class="fw-semibold mb-2">Name Mismatches</div>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm align-middle">
+                                            <thead><tr><th>Fingerprint ID</th><th>Machine Name</th><th>Expected Name</th><th>Student #</th></tr></thead>
+                                            <tbody>
+                                            <?php foreach ($mappingValidation['name_mismatches'] as $row): ?>
+                                                <tr>
+                                                    <td><?php echo machine_h($row['machine_id']); ?></td>
+                                                    <td><?php echo machine_h($row['machine_name']); ?></td>
+                                                    <td><?php echo machine_h($row['expected_name']); ?></td>
+                                                    <td><?php echo machine_h($row['student_number'] !== '' ? $row['student_number'] : '-'); ?></td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            <?php endif; ?>
+
+                            <?php if (!empty($mappingValidation['orphan_mappings'])): ?>
+                                <div class="mt-4">
+                                    <div class="fw-semibold mb-2">Orphan Local Mappings</div>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm align-middle">
+                                            <thead><tr><th>Fingerprint ID</th><th>Mapped Record</th><th>User ID</th></tr></thead>
+                                            <tbody>
+                                            <?php foreach ($mappingValidation['orphan_mappings'] as $row): ?>
+                                                <tr>
+                                                    <td><?php echo machine_h($row['finger_id']); ?></td>
+                                                    <td><?php echo machine_h($row['label']); ?></td>
+                                                    <td><?php echo machine_h($row['mapped_user_id']); ?></td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            <?php endif; ?>
+
+                            <?php if (
+                                empty($mappingValidation['machine_unmapped']) &&
+                                empty($mappingValidation['mapped_missing_on_machine']) &&
+                                empty($mappingValidation['name_mismatches']) &&
+                                empty($mappingValidation['orphan_mappings'])
+                            ): ?>
+                                <div class="alert alert-soft-success mt-4 mb-0">Machine user list and local fingerprint mapping are aligned.</div>
+                            <?php endif; ?>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>

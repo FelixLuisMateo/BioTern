@@ -442,25 +442,17 @@ include 'includes/header.php';
                                 <span>Review Applications</span>
                             </a>
                             <?php endif; ?>
-                            <a href="ojt.php" class="action-tile">
-                                <i class="feather-briefcase"></i>
-                                <span>OJT List</span>
-                            </a>
                             <a href="attendance.php" class="action-tile">
                                 <i class="feather-calendar"></i>
-                                <span>Attendance Today</span>
-                            </a>
-                            <a href="demo-biometric.php" class="action-tile">
-                                <i class="feather-activity"></i>
-                                <span>Biometric Demo</span>
+                                <span>Attendance Center</span>
                             </a>
                             <a href="reports-timesheets.php" class="action-tile">
                                 <i class="feather-file-text"></i>
                                 <span>Reports</span>
                             </a>
-                            <a href="attendance.php" class="action-tile action-tile-primary">
-                                <i class="feather-check-square"></i>
-                                <span>Review Attendance</span>
+                            <a href="biometric-machine.php" class="action-tile">
+                                <i class="feather-activity"></i>
+                                <span>F20H Manager</span>
                             </a>
                         </div>
                     </div>
