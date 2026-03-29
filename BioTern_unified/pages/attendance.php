@@ -28,6 +28,64 @@ try {
     die("Database Error: " . $e->getMessage());
 }
 
+function attendance_machine_config_path(): string
+{
+    return dirname(__DIR__) . '/tools/biometric_machine_config.json';
+}
+
+function attendance_load_machine_config(): array
+{
+    $configPath = attendance_machine_config_path();
+    if (!file_exists($configPath)) {
+        return [];
+    }
+
+    $json = file_get_contents($configPath);
+    if (!is_string($json) || trim($json) === '') {
+        return [];
+    }
+
+    $decoded = json_decode($json, true);
+    return is_array($decoded) ? $decoded : [];
+}
+
+function attendance_write_machine_config(array $config): void
+{
+    $json = json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    if (!is_string($json)) {
+        throw new RuntimeException('Failed to encode biometric machine config.');
+    }
+
+    file_put_contents(attendance_machine_config_path(), $json . PHP_EOL);
+}
+
+function attendance_redirect_self(): void
+{
+    $target = 'attendance.php';
+    $query = trim((string)($_SERVER['QUERY_STRING'] ?? ''));
+    if ($query !== '') {
+        $target .= '?' . $query;
+    }
+    header('Location: ' . $target);
+    exit;
+}
+
+$machineConfig = attendance_load_machine_config();
+$attendanceTestingModeEnabled = empty($machineConfig['attendanceWindowEnabled']);
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['attendance_action'] ?? '') === 'toggle_testing_mode') {
+    $enableTestingMode = (string)($_POST['testing_mode'] ?? '') === '1';
+    $machineConfig['attendanceWindowEnabled'] = !$enableTestingMode;
+    attendance_write_machine_config($machineConfig);
+    $_SESSION['attendance_sync_flash'] = [
+        'type' => 'success',
+        'message' => $enableTestingMode
+            ? 'Testing mode enabled. Attendance window is disabled, so all-day punches will be accepted on the next sync or replay.'
+            : 'Testing mode disabled. Attendance window filtering is active again.',
+    ];
+    attendance_redirect_self();
+}
+
 // Fetch Attendance Statistics
 $stats_query = "
     SELECT 
@@ -1211,6 +1269,14 @@ echo htmlspecialchars((string)($_SESSION['email'] ?? 'admin@biotern.local'), ENT
                                 <i class="feather-cpu me-2"></i>
                                 <span>Machine Manager</span>
                             </a>
+                            <form method="POST" class="d-inline-block m-0">
+                                <input type="hidden" name="attendance_action" value="toggle_testing_mode">
+                                <input type="hidden" name="testing_mode" value="<?php echo $attendanceTestingModeEnabled ? '0' : '1'; ?>">
+                                <button type="submit" class="btn <?php echo $attendanceTestingModeEnabled ? 'btn-warning' : 'btn-outline-warning'; ?>">
+                                    <i class="feather-<?php echo $attendanceTestingModeEnabled ? 'toggle-right' : 'toggle-left'; ?> me-2"></i>
+                                    <span><?php echo $attendanceTestingModeEnabled ? 'Testing Mode: ON' : 'Testing Mode: OFF'; ?></span>
+                                </button>
+                            </form>
                             <button type="button" class="btn btn-primary" id="manualSyncMachineButton">
                                 <i class="feather-refresh-cw me-2"></i>
                                 <span>Sync Machine</span>

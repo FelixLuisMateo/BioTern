@@ -28,7 +28,7 @@ if (!isset($conn) || !($conn instanceof mysqli)) {
     $conn->set_charset('utf8mb4');
 }
 
-$conn->query("CREATE TABLE IF NOT EXISTS fingerprint_user_map (finger_id INT PRIMARY KEY, user_id INT NOT NULL)");
+biotern_ensure_fingerprint_user_map_table($conn);
 
 $flashType = 'success';
 $msg = '';

@@ -215,6 +215,66 @@ if (!function_exists('biotern_db_add_column_if_missing')) {
     }
 }
 
+if (!function_exists('biotern_db_ensure_index')) {
+    function biotern_db_ensure_index(mysqli $mysqli, string $table, string $indexName, string $indexSql): bool
+    {
+        $safeTable = $mysqli->real_escape_string($table);
+        $safeIndex = $mysqli->real_escape_string($indexName);
+        $res = $mysqli->query("SHOW INDEX FROM `{$safeTable}` WHERE Key_name = '{$safeIndex}'");
+        if ($res instanceof mysqli_result && $res->num_rows > 0) {
+            $res->close();
+            return true;
+        }
+        if ($res instanceof mysqli_result) {
+            $res->close();
+        }
+
+        try {
+            return (bool)$mysqli->query($indexSql);
+        } catch (Throwable $e) {
+            return false;
+        }
+    }
+}
+
+if (!function_exists('biotern_ensure_fingerprint_user_map_table')) {
+    function biotern_ensure_fingerprint_user_map_table(mysqli $mysqli): bool
+    {
+        $ok = (bool)$mysqli->query("
+            CREATE TABLE IF NOT EXISTS fingerprint_user_map (
+                finger_id INT NOT NULL,
+                user_id INT NOT NULL,
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                PRIMARY KEY (finger_id),
+                UNIQUE KEY uniq_fingerprint_user_map_user_id (user_id),
+                KEY idx_fingerprint_user_map_user_id (user_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        ");
+
+        if (!$ok) {
+            return false;
+        }
+
+        biotern_db_add_column_if_missing($mysqli, 'fingerprint_user_map', 'created_at', 'created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP');
+        biotern_db_add_column_if_missing($mysqli, 'fingerprint_user_map', 'updated_at', 'updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP');
+        biotern_db_ensure_index(
+            $mysqli,
+            'fingerprint_user_map',
+            'uniq_fingerprint_user_map_user_id',
+            "ALTER TABLE `fingerprint_user_map` ADD UNIQUE KEY `uniq_fingerprint_user_map_user_id` (`user_id`)"
+        );
+        biotern_db_ensure_index(
+            $mysqli,
+            'fingerprint_user_map',
+            'idx_fingerprint_user_map_user_id',
+            "ALTER TABLE `fingerprint_user_map` ADD KEY `idx_fingerprint_user_map_user_id` (`user_id`)"
+        );
+
+        return true;
+    }
+}
+
 if (!function_exists('biotern_auth_cookie_name')) {
     function biotern_auth_cookie_name(): string
     {
