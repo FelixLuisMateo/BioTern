@@ -476,10 +476,11 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function syncSelectedDate() {
-        var visibleKeys = buildMonthDays(state.currentDate).map(function (entry) {
-            return entry.key;
-        });
-        if (visibleKeys.indexOf(state.selectedDateKey) === -1) {
+        var selected = parseDateKey(state.selectedDateKey);
+        if (
+            selected.getFullYear() !== state.currentDate.getFullYear()
+            || selected.getMonth() !== state.currentDate.getMonth()
+        ) {
             state.selectedDateKey = formatDateKey(new Date(state.currentDate.getFullYear(), state.currentDate.getMonth(), 1));
         }
     }

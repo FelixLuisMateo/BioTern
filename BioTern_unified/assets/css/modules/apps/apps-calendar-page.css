@@ -1018,42 +1018,7 @@ body {
     color: #16a34a;
 }
 
-/* Add-event modal visibility fix */
-#appCalendarEventModal {
-    z-index: 1080;
-}
-
-#appCalendarEventModal .modal-dialog {
-    max-width: 640px;
-}
-
-#appCalendarEventModal .modal-content {
-    box-shadow: 0 32px 80px rgba(15, 23, 42, 0.28);
-}
-
-.app-skin-dark #appCalendarEventModal .modal-content {
-    box-shadow: 0 36px 90px rgba(2, 6, 23, 0.62);
-}
-
-#appCalendarEventModal .btn-close {
-    filter: none;
-    opacity: 0.72;
-}
-
-.app-skin-dark #appCalendarEventModal .btn-close {
-    filter: invert(1) grayscale(100%);
-    opacity: 0.82;
-}
-
-.modal-backdrop.show {
-    opacity: 0.42;
-}
-
-.app-skin-dark .modal-backdrop.show {
-    opacity: 0.58;
-}
-
-.app-calendar-modal-header {
+ .app-calendar-modal-header {
     padding: 1.1rem 1.2rem 1rem;
 }
 
@@ -1080,29 +1045,6 @@ body {
     background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
     border-color: #1d4ed8;
     box-shadow: 0 12px 22px rgba(37, 99, 235, 0.22);
-}
-
-/* Non-blocking add-event popup */
-#appCalendarEventModal {
-    background: transparent !important;
-}
-
-#appCalendarEventModal .modal-dialog {
-    margin-top: 6rem;
-    pointer-events: auto;
-}
-
-#appCalendarEventModal .modal-content {
-    border: 1px solid rgba(59, 130, 246, 0.16);
-}
-
-body.modal-open {
-    overflow: auto !important;
-    padding-right: 0 !important;
-}
-
-.modal-backdrop {
-    display: none !important;
 }
 
 /* Floating event panel */
@@ -1594,4 +1536,5 @@ body.modal-open {
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
 }
+
 

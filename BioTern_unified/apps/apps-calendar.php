@@ -16,7 +16,6 @@ $calendar_base_href = ($calendar_unified_pos !== false)
 $calendar_events_endpoint = $calendar_base_href . 'calendar_events.php';
 $calendar_user_role = strtolower(trim((string)($_SESSION['role'] ?? '')));
 $calendar_can_manage_events = !in_array($calendar_user_role, ['student', 'supervisor'], true);
-$calendar_show_intro = $calendar_can_manage_events;
 $calendar_toolbar_subtitle = $calendar_can_manage_events
     ? "Browse the month, check what's happening each day, and manage saved events."
     : "Browse the month and check holidays, birthdays, and important schedule updates.";
