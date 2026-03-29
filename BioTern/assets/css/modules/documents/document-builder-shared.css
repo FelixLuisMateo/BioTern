@@ -1,0 +1,598 @@
+.application-builder-page {
+    --doc-builder-card-bg: var(--biotern-surface, #ffffff);
+    --doc-builder-surface-bg: var(--biotern-surface-muted, #f8fafc);
+    --doc-builder-control-bg: var(--biotern-primary-soft, rgba(52, 84, 209, 0.08));
+    --doc-builder-control-hover: rgba(var(--biotern-primary-rgb, 52, 84, 209), 0.14);
+    --doc-builder-border: var(--biotern-border, rgba(15, 23, 42, 0.08));
+    --doc-builder-text: var(--bs-body-color, #1f2937);
+    --doc-builder-muted: var(--bs-secondary-color, #6b7280);
+    --doc-builder-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+    --doc-builder-paper-width: 8.5in;
+    --doc-builder-paper-height: 11in;
+    --doc-builder-paper-padding: 0.38in;
+    --doc-builder-paper-outer-padding: 16px;
+}
+
+html.app-skin-dark .application-builder-page {
+    --doc-builder-card-bg: var(--biotern-surface, #0f172a);
+    --doc-builder-surface-bg: var(--biotern-surface-muted, #111827);
+    --doc-builder-control-bg: var(--biotern-primary-soft, rgba(52, 84, 209, 0.16));
+    --doc-builder-control-hover: rgba(var(--biotern-primary-rgb, 52, 84, 209), 0.22);
+    --doc-builder-border: var(--biotern-border, rgba(255, 255, 255, 0.08));
+    --doc-builder-text: #f3f4f6;
+    --doc-builder-muted: rgba(229, 231, 235, 0.72);
+    --doc-builder-shadow: none;
+}
+
+html.app-theme-gray .application-builder-page {
+    --doc-builder-control-bg: rgba(127, 127, 127, 0.08);
+    --doc-builder-control-hover: rgba(127, 127, 127, 0.14);
+}
+
+html.app-theme-gray.app-skin-dark .application-builder-page {
+    --doc-builder-control-bg: rgba(255, 255, 255, 0.05);
+    --doc-builder-control-hover: rgba(255, 255, 255, 0.09);
+}
+
+.application-builder-page .nxl-content {
+    padding-left: 0;
+    padding-right: 0;
+}
+
+.application-builder-page .application-document-builder {
+    max-width: 1480px;
+    margin: 0 auto;
+}
+
+.application-builder-page .page-header {
+    border-radius: 0;
+}
+
+.application-builder-page .builder-card {
+    background: var(--doc-builder-card-bg);
+    border: 1px solid var(--doc-builder-border);
+    border-radius: 14px;
+    box-shadow: var(--doc-builder-shadow);
+    padding: 18px;
+}
+
+.application-builder-page .builder-card-head h6,
+.application-builder-page .builder-editor-head h6 {
+    margin: 0;
+    font-size: 1rem;
+    color: var(--doc-builder-text);
+}
+
+.application-builder-page .builder-card-head p,
+.application-builder-page .builder-editor-head p,
+.application-builder-page .builder-status-text {
+    margin: 6px 0 0;
+    color: var(--doc-builder-muted);
+    font-size: 0.83rem;
+}
+
+.application-builder-page .builder-field,
+.application-builder-page .builder-field-grid {
+    margin-top: 14px;
+}
+
+.application-builder-page .builder-field-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.application-builder-page .builder-field-grid-compact {
+    align-items: end;
+}
+
+.application-builder-page .builder-editor-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.application-builder-page .builder-card-note {
+    display: none;
+}
+
+.application-builder-page .builder-editor-actions,
+.application-builder-page .builder-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.application-builder-page .builder-toolbar {
+    padding: 12px 14px;
+    border: 1px solid var(--doc-builder-border);
+    border-radius: 12px;
+    background: var(--doc-builder-surface-bg);
+}
+
+.application-builder-page .builder-toolbar.is-disabled {
+    opacity: 0.55;
+}
+
+.application-builder-page .builder-toolbar.is-disabled button,
+.application-builder-page .builder-toolbar.is-disabled input {
+    pointer-events: none;
+}
+
+.application-builder-page .builder-toolbar label {
+    margin: 0 0 0 4px;
+    color: var(--doc-builder-muted);
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+.application-builder-page .builder-toolbar input[type="number"],
+.application-builder-page .builder-toolbar input[type="color"] {
+    height: 36px;
+    border: 1px solid var(--doc-builder-border);
+    border-radius: 10px;
+    background: var(--doc-builder-control-bg);
+    color: var(--doc-builder-text);
+}
+
+.application-builder-page .builder-toolbar input[type="number"] {
+    width: 76px;
+    padding: 6px 10px;
+}
+
+.application-builder-page .builder-toolbar input[type="color"] {
+    width: 44px;
+    padding: 4px;
+}
+
+.application-builder-page .builder-status-bar {
+    padding: 12px 0 6px;
+}
+
+.application-builder-page .builder-paper-shell {
+    overflow: auto;
+    padding: 6px 0 0;
+    display: block;
+}
+
+.application-builder-page .builder-paper {
+    width: calc(var(--doc-builder-paper-width) + (var(--doc-builder-paper-outer-padding) * 2));
+    min-width: calc(var(--doc-builder-paper-width) + (var(--doc-builder-paper-outer-padding) * 2));
+    margin: 0 auto;
+    padding: var(--doc-builder-paper-outer-padding);
+    border-radius: 14px;
+    background: #111317;
+    display: flex;
+    justify-content: center;
+}
+
+.application-builder-page .builder-editor-surface {
+    width: var(--doc-builder-paper-width);
+    min-height: var(--doc-builder-paper-height);
+    max-width: var(--doc-builder-paper-width);
+    flex: 0 0 auto;
+    margin: 0;
+    padding: var(--doc-builder-paper-padding);
+    background: #fff;
+    border: 1px solid rgba(15, 23, 42, 0.12);
+    border-radius: 10px;
+    box-shadow: 0 18px 36px rgba(15, 23, 42, 0.12);
+    outline: none;
+    color: #111;
+    overflow: hidden;
+}
+
+.application-builder-page .builder-editor-surface.is-locked {
+    cursor: default;
+}
+
+.application-builder-page .builder-editor-surface:not(.is-locked):focus {
+    box-shadow: 0 18px 36px rgba(15, 23, 42, 0.12), 0 0 0 2px rgba(127, 127, 127, 0.18);
+}
+
+.application-builder-page .builder-edit-active {
+    background: var(--doc-builder-control-hover);
+    border-color: var(--doc-builder-border);
+    color: var(--doc-builder-text);
+}
+
+.application-builder-page .btn.btn-light {
+    background: var(--doc-builder-control-bg) !important;
+    border-color: var(--doc-builder-border) !important;
+    color: var(--doc-builder-text) !important;
+    box-shadow: none !important;
+}
+
+.application-builder-page .btn.btn-light:hover,
+.application-builder-page .btn.btn-light:focus {
+    background: var(--doc-builder-control-hover) !important;
+    border-color: var(--doc-builder-border) !important;
+    color: var(--doc-builder-text) !important;
+    box-shadow: none !important;
+}
+
+.application-builder-page .btn.btn-primary,
+.application-builder-page .btn.btn-success {
+    box-shadow: none !important;
+}
+
+.application-builder-page .btn.btn-primary {
+    background: var(--bs-primary) !important;
+    border-color: var(--bs-primary) !important;
+}
+
+.application-builder-page .btn.btn-success {
+    background: #22c55e !important;
+    border-color: #22c55e !important;
+}
+
+.application-builder-page .select2-container {
+    width: 100% !important;
+}
+
+.application-builder-page .select2-container--default .select2-selection--single {
+    min-height: 44px;
+    border-radius: 12px;
+    background: var(--doc-builder-card-bg) !important;
+    border-color: var(--doc-builder-border) !important;
+    box-shadow: none !important;
+}
+
+.application-builder-page .select2-container--default.select2-container--open .select2-selection--single,
+.application-builder-page .select2-container--default.select2-container--focus .select2-selection--single {
+    border-color: var(--doc-builder-border) !important;
+    box-shadow: none !important;
+}
+
+.application-builder-page .select2-container--default .select2-selection--single .select2-selection__rendered {
+    opacity: 1;
+    color: var(--doc-builder-text) !important;
+    line-height: 42px !important;
+    padding-left: 14px !important;
+    padding-right: 36px !important;
+}
+
+.application-builder-page .select2-container--default .select2-dropdown,
+.application-builder-page .select2-dropdown,
+.application-builder-page .select2-container--default .select2-results__options {
+    background: var(--doc-builder-card-bg);
+    color: var(--doc-builder-text);
+    border-color: var(--doc-builder-border) !important;
+    box-shadow: none !important;
+}
+
+.application-builder-page .select2-container--default .select2-results__option {
+    background: var(--doc-builder-card-bg);
+    color: var(--doc-builder-text);
+}
+
+.application-builder-page .select2-container--default .select2-results__option--highlighted[aria-selected],
+.application-builder-page .select2-container--default .select2-results__option--highlighted[data-selected] {
+    background: var(--doc-builder-surface-bg) !important;
+    color: var(--doc-builder-text) !important;
+}
+
+.application-builder-page .select2-search--dropdown .select2-search__field {
+    background: var(--doc-builder-card-bg) !important;
+    color: var(--doc-builder-text) !important;
+    border-color: var(--doc-builder-border) !important;
+    box-shadow: none !important;
+    outline: none;
+}
+
+.application-builder-page .select2-search--dropdown .select2-search__field:focus,
+.application-builder-page .form-control:focus {
+    border-color: var(--doc-builder-border) !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+.application-builder-page .form-control,
+.application-builder-page .form-select,
+.application-builder-page .btn-light {
+    border-color: var(--doc-builder-border);
+    background: var(--doc-builder-card-bg);
+    color: var(--doc-builder-text);
+}
+
+.application-builder-page .form-control::placeholder,
+.application-builder-page .select2-search--dropdown .select2-search__field::placeholder {
+    color: var(--doc-builder-muted);
+}
+
+.application-builder-page #editor .container,
+.application-builder-page #editor .app-application-container {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-sizing: border-box;
+    position: relative;
+    font-family: "Times New Roman", Times, serif !important;
+    color: #111 !important;
+}
+
+.application-builder-page #editor .crest,
+.application-builder-page #editor .app-application-crest {
+    position: static !important;
+    width: 1.08in !important;
+    max-width: 1.08in !important;
+    height: 1.08in !important;
+    max-height: 1.08in !important;
+    object-fit: contain !important;
+    flex: 0 0 1.08in;
+    align-self: start;
+    cursor: grab;
+    user-select: none;
+    -webkit-user-drag: none;
+}
+
+.application-builder-page #editor .app-application-container *,
+.application-builder-page #editor .app-application-container p,
+.application-builder-page #editor .app-application-container span,
+.application-builder-page #editor .app-application-container strong,
+.application-builder-page #editor .app-application-container div,
+.application-builder-page #editor .app-application-container h2,
+.application-builder-page #editor .app-application-container h3 {
+    font-family: "Times New Roman", Times, serif !important;
+    color: #111 !important;
+    letter-spacing: 0 !important;
+    text-transform: none !important;
+}
+
+.application-builder-page #editor .crest.dragging,
+.application-builder-page #editor .app-application-crest.dragging {
+    cursor: grabbing;
+}
+
+.application-builder-page #editor .header,
+.application-builder-page #editor .app-application-header {
+    position: relative;
+    min-height: 0;
+    margin: 0 0 8px;
+    padding: 0 0 0.08in;
+    border-bottom: 1px solid #c8ccd3;
+}
+
+.application-builder-page #editor .app-application-header-inner {
+    display: grid;
+    grid-template-columns: 1.08in minmax(0, 1fr);
+    align-items: center;
+    column-gap: 0.18in;
+}
+
+.application-builder-page #editor .app-application-header-copy {
+    text-align: center;
+    padding-top: 0.02in;
+    padding-right: 0.24in;
+}
+
+.application-builder-page #editor .header h2,
+.application-builder-page #editor .app-application-header .app-application-title {
+    margin: 6px 0 2px;
+    font-family: Calibri, Arial, sans-serif;
+    font-size: 14pt;
+    font-weight: 700;
+    color: #111;
+}
+
+.application-builder-page #editor .header .meta,
+.application-builder-page #editor .header .tel,
+.application-builder-page #editor .app-application-header .app-application-meta,
+.application-builder-page #editor .app-application-header .app-application-tel {
+    font-family: Calibri, Arial, sans-serif;
+    font-size: 10pt;
+    font-weight: 600;
+    color: #111;
+    line-height: 1.25;
+}
+
+.application-builder-page #editor .header .tel,
+.application-builder-page #editor .app-application-header .app-application-tel {
+    font-size: 12pt;
+}
+
+.application-builder-page #editor .content,
+.application-builder-page #editor .app-application-content {
+    margin-top: 6px;
+    font-family: "Times New Roman", Times, serif;
+    font-size: 12pt;
+    line-height: 1.48;
+    color: #111;
+}
+
+.application-builder-page #editor .header h2,
+.application-builder-page #editor .app-application-header .app-application-title,
+.application-builder-page #editor .header .meta,
+.application-builder-page #editor .header .tel,
+.application-builder-page #editor .app-application-header .app-application-meta,
+.application-builder-page #editor .app-application-header .app-application-tel {
+    font-family: Calibri, Arial, sans-serif !important;
+}
+
+.application-builder-page #editor h3,
+.application-builder-page #editor .app-application-heading {
+    margin: 6px 0 14px;
+    font-family: "Times New Roman", Times, serif;
+    font-size: 13pt;
+    font-weight: 700;
+    line-height: 1.2;
+    text-align: center;
+    color: #111;
+}
+
+.application-builder-page #editor p {
+    margin: 0 0 16px;
+    color: #111;
+    font-size: 12pt !important;
+    font-weight: 400 !important;
+    line-height: 1.48 !important;
+}
+
+.application-builder-page #editor .mt-30,
+.application-builder-page #editor .app-application-mt-30 {
+    margin-top: 30px;
+}
+
+.application-builder-page #editor .mt-40,
+.application-builder-page #editor .app-application-mt-40 {
+    margin-top: 40px;
+}
+
+.application-builder-page #editor strong {
+    font-weight: 700 !important;
+}
+
+.application-builder-page #editor .app-application-content h3,
+.application-builder-page #editor .app-application-content p,
+.application-builder-page #editor .app-application-content span,
+.application-builder-page #editor .app-application-content strong {
+    font-family: "Times New Roman", Times, serif !important;
+}
+
+@page {
+    size: letter portrait;
+    margin: 0.5in;
+}
+
+@media (max-width: 1199.98px) {
+    .application-builder-page .builder-editor-head {
+        flex-direction: column;
+    }
+
+    .application-builder-page .builder-paper {
+        width: auto;
+        min-width: calc(var(--doc-builder-paper-width) + 24px);
+        padding: 12px;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .application-builder-page .builder-card {
+        padding: 16px;
+    }
+
+    .application-builder-page .builder-field-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .application-builder-page .builder-editor-actions {
+        width: 100%;
+    }
+
+    .application-builder-page .builder-editor-actions .btn {
+        flex: 1 1 auto;
+    }
+}
+
+@media print {
+    .nxl-navigation,
+    .nxl-header,
+    .application-document-builder > .page-header,
+    .page-header,
+    .footer,
+    .biotern-bottom-nav,
+    .biotern-bottom-sheet,
+    .application-builder-sidebar,
+    .builder-editor-head,
+    .builder-toolbar,
+    .builder-status-bar {
+        display: none !important;
+    }
+
+    .nxl-container,
+    .nxl-content,
+    .main-content,
+    .application-document-builder,
+    .application-builder-grid,
+    .application-builder-canvas,
+    .builder-card,
+    .builder-paper-shell,
+    .builder-paper {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: auto !important;
+        max-width: none !important;
+        min-width: 0 !important;
+        background: #fff !important;
+        box-shadow: none !important;
+        border: 0 !important;
+    }
+
+    .nxl-container {
+        top: 0 !important;
+        left: 0 !important;
+        margin-left: 0 !important;
+        min-height: auto !important;
+    }
+
+    .nxl-content,
+    .main-content,
+    .application-builder-grid,
+    .application-builder-canvas,
+    .builder-paper-shell {
+        overflow: visible !important;
+        display: block !important;
+    }
+
+    .application-builder-page .builder-editor-surface {
+        width: 100% !important;
+        max-width: none !important;
+        min-height: auto !important;
+        margin: 0 !important;
+        padding: 0.22in 0.26in 0.3in !important;
+        box-sizing: border-box !important;
+        border: 0 !important;
+        box-shadow: none !important;
+        overflow: visible !important;
+    }
+
+    .application-builder-page #editor .container,
+    .application-builder-page #editor .app-application-container {
+        width: 100% !important;
+        max-width: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    .application-builder-page #editor .header,
+    .application-builder-page #editor .app-application-header {
+        min-height: 0 !important;
+        padding: 0.02in 0 0.06in !important;
+        overflow: visible !important;
+    }
+
+    .application-builder-page #editor .app-application-header-inner {
+        grid-template-columns: 0.92in minmax(0, 1fr) !important;
+        column-gap: 0.12in !important;
+        align-items: center !important;
+    }
+
+    .application-builder-page #editor .app-application-header-copy {
+        padding-right: 0.16in !important;
+        padding-top: 0 !important;
+    }
+
+    .application-builder-page #editor .crest,
+    .application-builder-page #editor .app-application-crest {
+        position: static !important;
+        width: 0.92in !important;
+        max-width: 0.92in !important;
+        height: 0.92in !important;
+        max-height: 0.92in !important;
+        margin: 0 !important;
+        display: block !important;
+        object-fit: contain !important;
+        object-position: center center !important;
+        print-color-adjust: exact !important;
+        -webkit-print-color-adjust: exact !important;
+    }
+
+    html,
+    body {
+        background: #fff !important;
+    }
+}

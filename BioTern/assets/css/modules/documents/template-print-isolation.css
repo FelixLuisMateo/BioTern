@@ -1,0 +1,114 @@
+@media print {
+    @page {
+        size: letter portrait;
+        margin: 0.06in;
+    }
+
+    html.application-builder-page,
+    body.application-builder-page {
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #fff !important;
+    }
+
+    body.application-builder-page * {
+        visibility: hidden !important;
+    }
+
+    body.application-builder-page #editor,
+    body.application-builder-page #editor * {
+        visibility: visible !important;
+    }
+
+    body.application-builder-page .application-document-builder,
+    body.application-builder-page .application-builder-grid,
+    body.application-builder-page .application-builder-canvas,
+    body.application-builder-page .builder-paper-shell,
+    body.application-builder-page .builder-paper,
+    body.application-builder-page .builder-editor-surface,
+    body.application-builder-page #editor {
+        display: block !important;
+        position: static !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+        max-width: none !important;
+        min-width: 0 !important;
+        background: #fff !important;
+        border: 0 !important;
+        box-shadow: none !important;
+        overflow: visible !important;
+    }
+
+    body.application-builder-page #editor {
+        padding: 0.08in 0.16in 0.16in !important;
+        box-sizing: border-box !important;
+    }
+
+    body.application-builder-page #editor .container,
+    body.application-builder-page #editor .app-application-container {
+        width: 100% !important;
+        max-width: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    body.application-builder-page #editor .header,
+    body.application-builder-page #editor .app-application-header {
+        min-height: 0 !important;
+        margin: 0 0 8px !important;
+        padding: 0 0 0.06in !important;
+        overflow: visible !important;
+        border-bottom: 1px solid #c8ccd3 !important;
+    }
+
+    body.application-builder-page #editor .app-application-header-inner {
+        display: grid !important;
+        grid-template-columns: 0.92in minmax(0, 1fr) !important;
+        align-items: center !important;
+        column-gap: 0.12in !important;
+    }
+
+    body.application-builder-page #editor .app-application-header-copy {
+        text-align: center !important;
+        padding-top: 0 !important;
+        padding-right: 0.16in !important;
+    }
+
+    body.application-builder-page #editor .crest,
+    body.application-builder-page #editor .app-application-crest {
+        position: static !important;
+        width: 0.92in !important;
+        max-width: 0.92in !important;
+        height: 0.92in !important;
+        max-height: 0.92in !important;
+        margin: 0 !important;
+        display: block !important;
+        object-fit: contain !important;
+        object-position: center center !important;
+        print-color-adjust: exact !important;
+        -webkit-print-color-adjust: exact !important;
+    }
+
+    body.application-builder-page #editor .header h2,
+    body.application-builder-page #editor .app-application-header .app-application-title {
+        margin: 2px 0 1px !important;
+    }
+
+    body.application-builder-page #editor .header .meta,
+    body.application-builder-page #editor .header .tel,
+    body.application-builder-page #editor .app-application-header .app-application-meta,
+    body.application-builder-page #editor .app-application-header .app-application-tel {
+        margin: 0 !important;
+        line-height: 1.2 !important;
+    }
+
+    body.application-builder-page #editor .content,
+    body.application-builder-page #editor .app-application-content {
+        margin-top: 6px !important;
+    }
+
+    body.application-builder-page #editor p {
+        margin: 0 0 12px !important;
+    }
+}

@@ -1,0 +1,225 @@
+.account-settings-shell,
+.notifications-page .settings-hub {
+    width: 100%;
+}
+
+.account-profile-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.9fr);
+    gap: 18px;
+    align-items: stretch;
+    padding: 18px;
+}
+
+.account-identity {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+}
+
+.account-identity-avatar {
+    width: 76px;
+    height: 76px;
+    border-radius: 14px;
+    background: var(--settings-accent-bg);
+    color: var(--settings-text);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.45rem;
+    font-weight: 700;
+    overflow: hidden;
+    flex: 0 0 72px;
+}
+
+.account-identity-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.account-identity-copy h3 {
+    margin: 0;
+    font-size: clamp(1.28rem, 2vw, 1.75rem);
+    color: var(--settings-text);
+}
+
+.account-identity-copy p {
+    margin: 6px 0 0;
+    max-width: 620px;
+    color: var(--settings-muted);
+    font-size: 0.92rem;
+}
+
+.account-role-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 10px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: var(--settings-accent-bg);
+    color: var(--settings-accent-text);
+    font-size: 0.74rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.account-profile-grid,
+.account-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.account-profile-field,
+.account-current-avatar {
+    border: 1px solid var(--settings-item-border);
+    border-radius: 12px;
+    padding: 12px;
+    background: var(--settings-item-bg);
+}
+
+.account-settings-shell .settings-sidebar-card {
+    padding: 18px;
+}
+
+.account-settings-shell .settings-menu-link {
+    min-height: 74px;
+}
+
+.account-settings-shell .settings-menu-link span {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.account-settings-shell .settings-menu-link small {
+    font-size: 0.78rem;
+}
+
+.account-settings-shell .settings-panel-card .card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.account-settings-shell .settings-panel-card .card-header p {
+    max-width: 340px;
+    text-align: right;
+}
+
+.account-settings-shell .settings-hero,
+.account-settings-shell .settings-sidebar-card,
+.account-settings-shell .settings-panel-card {
+    background: var(--settings-card-bg);
+}
+
+.account-settings-shell .settings-menu-link.is-active {
+    color: var(--settings-accent-text);
+}
+
+.account-settings-shell .settings-menu-link.is-active small {
+    color: var(--settings-accent-text);
+    opacity: 0.82;
+}
+
+.account-settings-shell .settings-menu-link.is-active i,
+.account-settings-shell .settings-menu-link.is-active .feather-chevron-right {
+    color: var(--settings-accent-text);
+}
+
+.account-profile-field.full,
+.account-form-grid .full {
+    grid-column: 1 / -1;
+}
+
+.account-profile-field span {
+    display: block;
+    color: var(--settings-muted);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.account-profile-field strong,
+.account-current-avatar strong {
+    display: block;
+    margin-top: 6px;
+    color: var(--settings-text);
+    font-size: 0.95rem;
+}
+
+.account-form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 8px;
+}
+
+.account-avatar-panel {
+    display: grid;
+    gap: 12px;
+}
+
+.account-current-avatar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.account-current-avatar img {
+    width: 48px;
+    height: 48px;
+    object-fit: cover;
+    border-radius: 12px;
+}
+
+.account-current-avatar span,
+.account-note,
+.account-password-toggle {
+    color: var(--settings-muted);
+    font-size: 0.8rem;
+}
+
+.account-password-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.account-form-grid .form-control {
+    min-height: 48px;
+}
+
+.account-avatar-panel .form-control[type="file"] {
+    min-height: 48px;
+}
+
+@media (max-width: 991.98px) {
+    .account-profile-hero {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .account-profile-grid,
+    .account-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .account-identity {
+        align-items: flex-start;
+    }
+
+    .account-identity-avatar {
+        width: 60px;
+        height: 60px;
+        font-size: 1.2rem;
+        flex-basis: 60px;
+    }
+}

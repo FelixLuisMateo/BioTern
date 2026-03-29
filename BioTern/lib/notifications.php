@@ -70,6 +70,74 @@ if (!function_exists('biotern_notify')) {
     }
 }
 
+if (!function_exists('biotern_notification_normalize_type')) {
+    function biotern_notification_normalize_type(string $type, string $title = '', string $message = '', string $actionUrl = ''): string {
+        $candidate = strtolower(trim($type));
+        if ($candidate !== '') {
+            if ($candidate === 'msg' || $candidate === 'chat_message') return 'chat';
+            if ($candidate === 'assignment_update' || $candidate === 'assign') return 'assignment';
+            if ($candidate === 'attendance_log' || $candidate === 'dtr') return 'attendance';
+            if ($candidate === 'profile' || $candidate === 'account_update') return 'account';
+            return $candidate;
+        }
+
+        $haystack = strtolower(trim($title . ' ' . $message . ' ' . $actionUrl));
+        if ($haystack === '') return 'system';
+        if (strpos($haystack, 'chat') !== false || strpos($haystack, 'message') !== false || strpos($haystack, 'apps-chat.php') !== false) return 'chat';
+        if (strpos($haystack, 'assignment') !== false || strpos($haystack, 'assigned') !== false || strpos($haystack, 'supervisor') !== false || strpos($haystack, 'coordinator') !== false) return 'assignment';
+        if (strpos($haystack, 'attendance') !== false || strpos($haystack, 'time in') !== false || strpos($haystack, 'time out') !== false || strpos($haystack, 'dtr') !== false) return 'attendance';
+        if (strpos($haystack, 'account') !== false || strpos($haystack, 'profile') !== false || strpos($haystack, 'password') !== false || strpos($haystack, 'login') !== false) return 'account';
+        return 'system';
+    }
+}
+
+if (!function_exists('biotern_notification_type_meta')) {
+    function biotern_notification_type_meta(string $type): array {
+        $type = biotern_notification_normalize_type($type);
+        $map = [
+            'chat' => ['label' => 'Chat', 'icon' => 'feather-message-square', 'badge_class' => 'bg-soft-info text-info'],
+            'assignment' => ['label' => 'Assignment', 'icon' => 'feather-briefcase', 'badge_class' => 'bg-soft-primary text-primary'],
+            'attendance' => ['label' => 'Attendance', 'icon' => 'feather-clock', 'badge_class' => 'bg-soft-success text-success'],
+            'account' => ['label' => 'Account', 'icon' => 'feather-user', 'badge_class' => 'bg-soft-warning text-warning'],
+            'system' => ['label' => 'System', 'icon' => 'feather-bell', 'badge_class' => 'bg-soft-dark text-dark'],
+        ];
+        return $map[$type] ?? $map['system'];
+    }
+}
+
+if (!function_exists('biotern_notification_time_ago')) {
+    function biotern_notification_time_ago(string $dateTime): string {
+        $dateTime = trim($dateTime);
+        if ($dateTime === '') return 'Just now';
+        $ts = strtotime($dateTime);
+        if ($ts === false) return $dateTime;
+        $diff = max(0, time() - $ts);
+        if ($diff < 60) return 'Just now';
+        if ($diff < 3600) { $mins = (int)floor($diff / 60); return $mins . ' min' . ($mins === 1 ? '' : 's') . ' ago'; }
+        if ($diff < 86400) { $hours = (int)floor($diff / 3600); return $hours . ' hr' . ($hours === 1 ? '' : 's') . ' ago'; }
+        if ($diff < 172800) return 'Yesterday';
+        if ($diff < 604800) { $days = (int)floor($diff / 86400); return $days . ' days ago'; }
+        return date('M d, Y', $ts);
+    }
+}
+
+if (!function_exists('biotern_notification_open_url')) {
+    function biotern_notification_open_url(string $url, int $notificationId = 0, string $fallback = 'homepage.php'): string {
+        $target = trim($url);
+        if ($target === '') $target = $fallback;
+        if (preg_match('~^(?:[a-z][a-z0-9+.-]*:)?//~i', $target)) $target = $fallback;
+        if ($notificationId <= 0) return $target;
+        $fragment = '';
+        $hashPos = strpos($target, '#');
+        if ($hashPos !== false) {
+            $fragment = substr($target, $hashPos);
+            $target = substr($target, 0, $hashPos);
+        }
+        $separator = strpos($target, '?') === false ? '?' : '&';
+        return $target . $separator . 'notif_read=' . $notificationId . $fragment;
+    }
+}
+
 if (!function_exists('biotern_notifications_count_unread')) {
     function biotern_notifications_count_unread(mysqli $conn, int $userId): int {
         if ($userId <= 0) return 0;
@@ -162,6 +230,38 @@ if (!function_exists('biotern_notifications_mark_all_read')) {
         $stmt = $conn->prepare("UPDATE notifications SET is_read = 1 WHERE user_id = ? AND is_read = 0");
         if (!$stmt) return false;
 
+        $stmt->bind_param('i', $userId);
+        $ok = $stmt->execute();
+        $stmt->close();
+        return (bool)$ok;
+    }
+}
+
+if (!function_exists('biotern_notifications_clear')) {
+    function biotern_notifications_clear(mysqli $conn, int $userId, int $notificationId): bool {
+        if ($userId <= 0 || $notificationId <= 0) return false;
+        biotern_notifications_ensure_table($conn);
+        $columns = biotern_notification_columns($conn);
+        $stmt = isset($columns['deleted_at'])
+            ? $conn->prepare("UPDATE notifications SET deleted_at = NOW() WHERE id = ? AND user_id = ? AND deleted_at IS NULL")
+            : $conn->prepare("DELETE FROM notifications WHERE id = ? AND user_id = ?");
+        if (!$stmt) return false;
+        $stmt->bind_param('ii', $notificationId, $userId);
+        $ok = $stmt->execute();
+        $stmt->close();
+        return (bool)$ok;
+    }
+}
+
+if (!function_exists('biotern_notifications_clear_all')) {
+    function biotern_notifications_clear_all(mysqli $conn, int $userId): bool {
+        if ($userId <= 0) return false;
+        biotern_notifications_ensure_table($conn);
+        $columns = biotern_notification_columns($conn);
+        $stmt = isset($columns['deleted_at'])
+            ? $conn->prepare("UPDATE notifications SET deleted_at = NOW() WHERE user_id = ? AND deleted_at IS NULL")
+            : $conn->prepare("DELETE FROM notifications WHERE user_id = ?");
+        if (!$stmt) return false;
         $stmt->bind_param('i', $userId);
         $ok = $stmt->execute();
         $stmt->close();
