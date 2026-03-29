@@ -90,45 +90,6 @@ function normalize_datetime(?string $raw): ?string
     }
 }
 
-function build_ph_celebrations(int $year): array
-{
-    $manilaTz = new DateTimeZone('Asia/Manila');
-    $items = [
-        ['New Year\'s Day', "$year-01-01"],
-        ['EDSA People Power Revolution', "$year-02-25"],
-        ['Araw ng Kagitingan', "$year-04-09"],
-        ['Labor Day', "$year-05-01"],
-        ['Independence Day', "$year-06-12"],
-        ['Ninoy Aquino Day', "$year-08-21"],
-        ['All Saints\' Day', "$year-11-01"],
-        ['All Souls\' Day', "$year-11-02"],
-        ['Bonifacio Day', "$year-11-30"],
-        ['Christmas Eve', "$year-12-24"],
-        ['Christmas Day', "$year-12-25"],
-        ['Rizal Day', "$year-12-30"],
-        ['New Year\'s Eve', "$year-12-31"],
-    ];
-
-    $lastAugustDay = new DateTimeImmutable("$year-08-31", $manilaTz);
-    while ((int)$lastAugustDay->format('N') !== 1) {
-        $lastAugustDay = $lastAugustDay->modify('-1 day');
-    }
-    $items[] = ['National Heroes Day', $lastAugustDay->format('Y-m-d')];
-
-    return array_map(static function (array $item): array {
-        $date = $item[1];
-        return [
-            'title' => 'PH Celebration: ' . $item[0],
-            'location' => 'Philippines',
-            'description' => 'Philippines celebration event',
-            'start_at' => $date . ' 00:00:00',
-            'end_at' => $date . ' 23:59:59',
-            'color' => '#f59e0b',
-            'is_all_day' => 1,
-        ];
-    }, $items);
-}
-
 function easter_sunday_manila(int $year): DateTimeImmutable
 {
     $base = new DateTimeImmutable("$year-03-21", new DateTimeZone('Asia/Manila'));
@@ -136,63 +97,175 @@ function easter_sunday_manila(int $year): DateTimeImmutable
     return $base->modify('+' . $offset . ' days');
 }
 
-function build_ph_holidays(int $year): array
+function calendar_avatar_url(?string $profilePath, int $fallbackSeed = 1): string
 {
-    $easterSunday = easter_sunday_manila($year);
-    $maundyThursday = $easterSunday->modify('-3 days')->format('Y-m-d');
-    $goodFriday = $easterSunday->modify('-2 days')->format('Y-m-d');
-    $blackSaturday = $easterSunday->modify('-1 day')->format('Y-m-d');
-
-    $items = [
-        ['New Year\'s Day', "$year-01-01"],
-        ['Maundy Thursday', $maundyThursday],
-        ['Good Friday', $goodFriday],
-        ['Black Saturday', $blackSaturday],
-        ['Araw ng Kagitingan', "$year-04-09"],
-        ['Labor Day', "$year-05-01"],
-        ['Independence Day', "$year-06-12"],
-        ['National Heroes Day', (function () use ($year) {
-            $lastAugustDay = new DateTimeImmutable("$year-08-31", new DateTimeZone('Asia/Manila'));
-            while ((int)$lastAugustDay->format('N') !== 1) {
-                $lastAugustDay = $lastAugustDay->modify('-1 day');
-            }
-            return $lastAugustDay->format('Y-m-d');
-        })()],
-        ['Bonifacio Day', "$year-11-30"],
-        ['Christmas Day', "$year-12-25"],
-        ['Rizal Day', "$year-12-30"],
-    ];
-
-    return array_map(static function (array $item): array {
-        $date = $item[1];
-        return [
-            'title' => 'PH Holiday: ' . $item[0],
-            'location' => 'Philippines',
-            'description' => 'Philippines holiday',
-            'start_at' => $date . ' 00:00:00',
-            'end_at' => $date . ' 23:59:59',
-            'color' => '#ef4444',
-            'is_all_day' => 1,
-        ];
-    }, $items);
-}
-
-function build_ph_celebrations_and_holidays(int $year): array
-{
-    $merged = array_merge(build_ph_celebrations($year), build_ph_holidays($year));
-    $unique = [];
-    $seen = [];
-
-    foreach ($merged as $event) {
-        $key = strtolower((string)$event['title']) . '|' . (string)$event['start_at'];
-        if (isset($seen[$key])) {
-            continue;
+    $clean = ltrim(str_replace('\\', '/', trim((string)$profilePath)), '/');
+    if ($clean !== '') {
+        $rootPath = dirname(__DIR__) . '/' . $clean;
+        if (is_file($rootPath)) {
+            $mtime = @filemtime($rootPath);
+            return $clean . ($mtime ? ('?v=' . $mtime) : '');
         }
-        $seen[$key] = true;
-        $unique[] = $event;
     }
 
-    return $unique;
+    $fallbackIndex = (($fallbackSeed % 5) + 1);
+    return 'assets/images/avatar/' . $fallbackIndex . '.png';
+}
+
+function calendar_last_monday_of_august(int $year): string
+{
+    $lastAugustDay = new DateTimeImmutable("$year-08-31", new DateTimeZone('Asia/Manila'));
+    while ((int)$lastAugustDay->format('N') !== 1) {
+        $lastAugustDay = $lastAugustDay->modify('-1 day');
+    }
+
+    return $lastAugustDay->format('Y-m-d');
+}
+
+function map_calendar_event(array $event): array
+{
+    $startAt = (string)($event['start_at'] ?? '');
+    return [
+        'id' => isset($event['id']) ? (int)$event['id'] : 0,
+        'title' => (string)($event['title'] ?? ''),
+        'location' => (string)($event['location'] ?? ''),
+        'description' => (string)($event['description'] ?? ''),
+        'start_at' => $startAt,
+        'end_at' => (string)($event['end_at'] ?? $startAt),
+        'date' => substr($startAt, 0, 10),
+        'color' => (string)($event['color'] ?? '#0d6efd'),
+        'is_all_day' => (int)($event['is_all_day'] ?? 0),
+        'type' => (string)($event['type'] ?? 'custom'),
+        'category' => (string)($event['category'] ?? 'Saved Event'),
+        'person' => isset($event['person']) && is_array($event['person']) ? $event['person'] : null,
+    ];
+}
+
+function build_ph_events(int $year): array
+{
+    $easterSunday = easter_sunday_manila($year);
+    $items = [
+        ['title' => "New Year's Day", 'date' => "$year-01-01", 'category' => 'Regular Holiday'],
+        ['title' => 'EDSA People Power Revolution Anniversary', 'date' => "$year-02-25", 'category' => 'Special Working Holiday'],
+        ['title' => 'Maundy Thursday', 'date' => $easterSunday->modify('-3 days')->format('Y-m-d'), 'category' => 'Regular Holiday'],
+        ['title' => 'Good Friday', 'date' => $easterSunday->modify('-2 days')->format('Y-m-d'), 'category' => 'Regular Holiday'],
+        ['title' => 'Black Saturday', 'date' => $easterSunday->modify('-1 days')->format('Y-m-d'), 'category' => 'Special Non-Working Holiday'],
+        ['title' => 'Araw ng Kagitingan', 'date' => "$year-04-09", 'category' => 'Regular Holiday'],
+        ['title' => 'Labor Day', 'date' => "$year-05-01", 'category' => 'Regular Holiday'],
+        ['title' => 'Independence Day', 'date' => "$year-06-12", 'category' => 'Regular Holiday'],
+        ['title' => 'National Heroes Day', 'date' => calendar_last_monday_of_august($year), 'category' => 'Regular Holiday'],
+        ['title' => 'Ninoy Aquino Day', 'date' => "$year-08-21", 'category' => 'Special Non-Working Holiday'],
+        ['title' => "All Saints' Day", 'date' => "$year-11-01", 'category' => 'Special Non-Working Holiday'],
+        ['title' => 'All Souls Day', 'date' => "$year-11-02", 'category' => 'Special Non-Working Holiday'],
+        ['title' => 'Bonifacio Day', 'date' => "$year-11-30", 'category' => 'Regular Holiday'],
+        ['title' => 'Feast of the Immaculate Conception', 'date' => "$year-12-08", 'category' => 'Special Non-Working Holiday'],
+        ['title' => 'Christmas Eve', 'date' => "$year-12-24", 'category' => 'Special Non-Working Holiday'],
+        ['title' => 'Christmas Day', 'date' => "$year-12-25", 'category' => 'Regular Holiday'],
+        ['title' => 'Rizal Day', 'date' => "$year-12-30", 'category' => 'Regular Holiday'],
+        ['title' => "New Year's Eve", 'date' => "$year-12-31", 'category' => 'Special Non-Working Holiday'],
+    ];
+
+    if ($year === 2026) {
+        $items[] = ['title' => 'Chinese New Year', 'date' => '2026-02-17', 'category' => 'Special Non-Working Holiday'];
+    }
+
+    $events = [];
+    foreach ($items as $item) {
+        $events[] = map_calendar_event([
+            'title' => $item['title'],
+            'location' => 'Philippines',
+            'description' => 'Philippine holiday or observance',
+            'start_at' => $item['date'] . ' 00:00:00',
+            'end_at' => $item['date'] . ' 23:59:59',
+            'color' => '#f97316',
+            'is_all_day' => 1,
+            'type' => 'holiday',
+            'category' => $item['category'],
+        ]);
+    }
+
+    return $events;
+}
+
+function build_ojt_birthday_events(mysqli $conn, int $year): array
+{
+    $sql = "
+        SELECT
+            s.id,
+            s.first_name,
+            s.last_name,
+            s.date_of_birth,
+            COALESCE(NULLIF(u.profile_picture, ''), NULLIF(s.profile_picture, '')) AS profile_picture,
+            c.name AS course_name,
+            COALESCE(NULLIF(sec.code, ''), NULLIF(sec.name, ''), '-') AS section_name
+        FROM students s
+        LEFT JOIN users u ON s.user_id = u.id
+        LEFT JOIN courses c ON s.course_id = c.id
+        LEFT JOIN sections sec ON s.section_id = sec.id
+        WHERE s.date_of_birth IS NOT NULL
+          AND s.date_of_birth <> '0000-00-00'
+        ORDER BY MONTH(s.date_of_birth), DAY(s.date_of_birth), s.last_name, s.first_name
+    ";
+
+    $result = $conn->query($sql);
+    if (!$result) {
+        return [];
+    }
+
+    $events = [];
+    while ($row = $result->fetch_assoc()) {
+        $timestamp = strtotime((string)($row['date_of_birth'] ?? ''));
+        if ($timestamp === false) {
+            continue;
+        }
+
+        $month = (int)date('n', $timestamp);
+        $day = (int)date('j', $timestamp);
+        if ($month === 2 && $day === 29 && !checkdate($month, $day, $year)) {
+            $day = 28;
+        }
+
+        $date = sprintf('%04d-%02d-%02d', $year, $month, $day);
+        $fullName = trim((string)($row['first_name'] ?? '') . ' ' . (string)($row['last_name'] ?? ''));
+        if ($fullName === '') {
+            continue;
+        }
+
+        $events[] = map_calendar_event([
+            'title' => $fullName . "'s Birthday",
+            'location' => 'BioTern OJT',
+            'description' => 'Birthday reminder for an OJT in BioTern',
+            'start_at' => $date . ' 00:00:00',
+            'end_at' => $date . ' 23:59:59',
+            'color' => '#10b981',
+            'is_all_day' => 1,
+            'type' => 'birthday',
+            'category' => 'OJT Birthday',
+            'person' => [
+                'id' => (int)($row['id'] ?? 0),
+                'name' => $fullName,
+                'course' => (string)($row['course_name'] ?? ''),
+                'section' => (string)($row['section_name'] ?? ''),
+                'avatar' => calendar_avatar_url($row['profile_picture'] ?? '', (int)($row['id'] ?? 0)),
+                'profile_url' => 'students-view.php?id=' . (int)($row['id'] ?? 0),
+            ],
+        ]);
+    }
+
+    return $events;
+}
+
+function filter_derived_events(array $events, ?string $from, ?string $to): array
+{
+    if ($from === null || $to === null) {
+        return $events;
+    }
+
+    return array_values(array_filter($events, static function (array $event) use ($from, $to): bool {
+        $startAt = (string)($event['start_at'] ?? '');
+        $endAt = (string)($event['end_at'] ?? $startAt);
+        return $startAt <= $to && $endAt >= $from;
+    }));
 }
 
 $method = strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET'));
@@ -218,7 +291,7 @@ if ($method === 'GET') {
             respond_json(404, ['success' => false, 'message' => 'Event not found']);
         }
 
-        respond_json(200, ['success' => true, 'event' => [
+        respond_json(200, ['success' => true, 'event' => map_calendar_event([
             'id' => (int)$event['id'],
             'title' => (string)$event['title'],
             'location' => (string)($event['location'] ?? ''),
@@ -227,7 +300,9 @@ if ($method === 'GET') {
             'end_at' => (string)$event['end_at'],
             'color' => (string)($event['color'] ?? '#0d6efd'),
             'is_all_day' => (int)($event['is_all_day'] ?? 0),
-        ]]);
+            'type' => 'custom',
+            'category' => 'Saved Event',
+        ])]);
     }
 
     // Otherwise, fetch events by date range or all events
@@ -263,7 +338,7 @@ if ($method === 'GET') {
     $result = $stmt->get_result();
     $events = [];
     while ($row = $result->fetch_assoc()) {
-        $events[] = [
+        $events[] = map_calendar_event([
             'id' => (int)$row['id'],
             'title' => (string)$row['title'],
             'location' => (string)($row['location'] ?? ''),
@@ -272,9 +347,34 @@ if ($method === 'GET') {
             'end_at' => (string)$row['end_at'],
             'color' => (string)($row['color'] ?? '#0d6efd'),
             'is_all_day' => (int)($row['is_all_day'] ?? 0),
-        ];
+            'type' => 'custom',
+            'category' => 'Saved Event',
+        ]);
     }
     $stmt->close();
+
+    $rangeStart = $from !== null ? new DateTimeImmutable(substr($from, 0, 10)) : new DateTimeImmutable(date('Y-01-01'));
+    $rangeEnd = $to !== null ? new DateTimeImmutable(substr($to, 0, 10)) : new DateTimeImmutable(date('Y-12-31'));
+    $years = [];
+    $cursor = new DateTimeImmutable($rangeStart->format('Y-01-01'));
+    $lastYear = (int)$rangeEnd->format('Y');
+    while ((int)$cursor->format('Y') <= $lastYear) {
+        $years[] = (int)$cursor->format('Y');
+        $cursor = $cursor->modify('+1 year');
+    }
+
+    foreach ($years as $year) {
+        $events = array_merge($events, filter_derived_events(build_ph_events($year), $from, $to));
+        $events = array_merge($events, filter_derived_events(build_ojt_birthday_events($conn, $year), $from, $to));
+    }
+
+    usort($events, static function (array $left, array $right): int {
+        $dateCompare = strcmp((string)($left['start_at'] ?? ''), (string)($right['start_at'] ?? ''));
+        if ($dateCompare !== 0) {
+            return $dateCompare;
+        }
+        return strcasecmp((string)($left['title'] ?? ''), (string)($right['title'] ?? ''));
+    });
 
     respond_json(200, ['success' => true, 'events' => $events]);
 }
@@ -300,7 +400,7 @@ if ($action === 'seed_celebrations' || $action === 'import_celebrations') {
         respond_json(400, ['success' => false, 'message' => 'Invalid year']);
     }
 
-    $events = build_ph_celebrations_and_holidays($year);
+    $events = build_ph_events($year);
     $inserted = 0;
 
     $checkStmt = $conn->prepare("SELECT id
