@@ -142,11 +142,12 @@
 
         var idInput = document.getElementById("calendarEventId");
         var titleInput = document.getElementById("calendarEventTitle");
-        var locationInput = document.getElementById("calendarEventLocation");
         var startInput = document.getElementById("calendarEventStart");
         var endInput = document.getElementById("calendarEventEnd");
-        var allDayInput = document.getElementById("calendarEventAllDay");
+        var startDateInput = document.getElementById("calendarEventStartDate");
+        var endDateInput = document.getElementById("calendarEventEndDate");
         var colorInput = document.getElementById("calendarEventColor");
+        var colorSwatch = document.getElementById("calendarEventColorSwatch");
         var descriptionInput = document.getElementById("calendarEventDescription");
 
         var eventApiUrl = "api/calendar_events.php";
@@ -169,50 +170,141 @@
             }
         }
 
+        function syncColorSwatch() {
+            if (!colorInput || !colorSwatch) {
+                return;
+            }
+
+            var color = colorInput.value || "#0d6efd";
+            colorSwatch.style.background = "linear-gradient(135deg, " + color + " 0%, " + color + "cc 100%)";
+        }
+
+        function splitDateTimeValue(value) {
+            if (!value) {
+                return { date: "", time: "" };
+            }
+
+            var normalized = String(value).replace(" ", "T");
+            var parts = normalized.split("T");
+            return {
+                date: parts[0] || "",
+                time: (parts[1] || "").slice(0, 5)
+            };
+        }
+
+        function syncSegmentsFromHiddenInputs() {
+            var startParts = splitDateTimeValue(startInput.value);
+            var endParts = splitDateTimeValue(endInput.value);
+
+            if (startDateInput) startDateInput.value = startParts.date;
+            if (endDateInput) endDateInput.value = endParts.date;
+        }
+
+        function syncHiddenInputsFromSegments() {
+            var startDate = startDateInput ? startDateInput.value : "";
+            var endDate = endDateInput ? endDateInput.value : "";
+            startInput.value = startDate ? (startDate + "T00:00") : "";
+            endInput.value = (endDate || startDate) ? ((endDate || startDate) + "T23:59") : "";
+        }
+
         function clearForm() {
             idInput.value = "";
             titleInput.value = "";
-            locationInput.value = "";
             descriptionInput.value = "";
             colorInput.value = "#0d6efd";
-            allDayInput.checked = false;
 
             var now = new Date();
-            var oneHourLater = new Date(now.getTime() + 60 * 60 * 1000);
             startInput.value = toLocalInputValue(now);
-            endInput.value = toLocalInputValue(oneHourLater);
+            endInput.value = toLocalInputValue(now);
+            syncSegmentsFromHiddenInputs();
+            syncHiddenInputsFromSegments();
 
             if (deleteBtn) {
                 deleteBtn.classList.add("d-none");
             }
             setStatus("");
+            syncColorSwatch();
         }
 
         function fillFormFromSchedule(schedule) {
             idInput.value = String(schedule.id || "");
             titleInput.value = String(schedule.title || "");
-            locationInput.value = String(schedule.location || "");
             descriptionInput.value = String(schedule.body || "");
             colorInput.value = String(schedule.bgColor || "#0d6efd");
 
-            var allDay = schedule.category === "allday";
-            allDayInput.checked = allDay;
-
             startInput.value = toLocalInputValue(schedule.start);
             endInput.value = toLocalInputValue(schedule.end);
+            syncSegmentsFromHiddenInputs();
+            syncHiddenInputsFromSegments();
 
             if (deleteBtn) {
                 deleteBtn.classList.remove("d-none");
             }
             setStatus("");
+            syncColorSwatch();
         }
 
         function openCreateModalFromRange(startDate, endDate) {
             clearForm();
             startInput.value = toLocalInputValue(startDate || new Date());
-            endInput.value = toLocalInputValue(endDate || new Date(Date.now() + 60 * 60 * 1000));
+            endInput.value = toLocalInputValue(endDate || startDate || new Date());
+            syncSegmentsFromHiddenInputs();
+            syncHiddenInputsFromSegments();
             modal.show();
             titleInput.focus();
+        }
+
+        function openCreateModalForDate(dateLike) {
+            var baseDate = new Date(dateLike);
+            if (Number.isNaN(baseDate.getTime())) {
+                baseDate = new Date();
+            }
+
+            var startDate = new Date(baseDate);
+            startDate.setHours(9, 0, 0, 0);
+
+            var endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
+            openCreateModalFromRange(startDate, endDate);
+        }
+
+        function getDateFromMonthPosition(targetEl, clientX) {
+            if (!targetEl || typeof cal.getDateRangeStart !== "function") {
+                return null;
+            }
+
+            var weekRow = targetEl.closest(".tui-full-calendar-month-week-item");
+            if (!weekRow) {
+                return null;
+            }
+
+            var weekRows = Array.prototype.slice.call(document.querySelectorAll("#tui-calendar-init .tui-full-calendar-month-week-item"));
+            var rowIndex = weekRows.indexOf(weekRow);
+            if (rowIndex < 0) {
+                return null;
+            }
+
+            var bounds = weekRow.getBoundingClientRect();
+            if (!bounds.width) {
+                return null;
+            }
+
+            var relativeX = clientX - bounds.left;
+            if (relativeX < 0 || relativeX > bounds.width) {
+                return null;
+            }
+
+            var columnWidth = bounds.width / 7;
+            var columnIndex = Math.max(0, Math.min(6, Math.floor(relativeX / columnWidth)));
+            var cellIndex = (rowIndex * 7) + columnIndex;
+
+            var rangeStart = new Date(cal.getDateRangeStart());
+            if (Number.isNaN(rangeStart.getTime())) {
+                return null;
+            }
+
+            rangeStart.setHours(0, 0, 0, 0);
+            rangeStart.setDate(rangeStart.getDate() + cellIndex);
+            return rangeStart;
         }
 
         function scheduleFromEvent(event) {
@@ -223,7 +315,6 @@
                 category: Number(event.is_all_day) === 1 ? "allday" : "time",
                 start: normalizeApiDateTime(event.start_at),
                 end: normalizeApiDateTime(event.end_at),
-                location: String(event.location || ""),
                 body: String(event.description || ""),
                 bgColor: String(event.color || "#0d6efd"),
                 borderColor: String(event.color || "#0d6efd")
@@ -342,6 +433,19 @@
             });
         }
 
+        if (colorInput) {
+            colorInput.addEventListener("input", syncColorSwatch);
+            colorInput.addEventListener("change", syncColorSwatch);
+        }
+
+        [startDateInput, endDateInput].forEach(function (input) {
+            if (!input) {
+                return;
+            }
+            input.addEventListener("input", syncHiddenInputsFromSegments);
+            input.addEventListener("change", syncHiddenInputsFromSegments);
+        });
+
         function performCelebrationImport(showAlert) {
             showAlert = showAlert === undefined ? false : !!showAlert;
             var year = new Date().getFullYear();
@@ -406,17 +510,16 @@
             event.preventDefault();
 
             var eventId = parseInt(idInput.value || "0", 10);
-            var allDay = !!allDayInput.checked;
+            syncHiddenInputsFromSegments();
             var payload = {
                 action: eventId > 0 ? "update" : "create",
                 id: eventId,
                 title: titleInput.value.trim(),
-                location: locationInput.value.trim(),
                 description: descriptionInput.value.trim(),
                 color: colorInput.value,
-                is_all_day: allDay ? 1 : 0,
-                start_at: toApiDateTime(startInput.value, allDay),
-                end_at: toApiDateTime(endInput.value, allDay)
+                is_all_day: 1,
+                start_at: toApiDateTime((startDateInput ? startDateInput.value : ""), true),
+                end_at: toApiDateTime((endDateInput ? (endDateInput.value || (startDateInput ? startDateInput.value : "")) : ""), true)
             };
 
             setSavingState(true);
@@ -511,7 +614,6 @@
                     fillFormFromSchedule({
                         id: payload.event.id,
                         title: payload.event.title,
-                        location: payload.event.location,
                         body: payload.event.description,
                         start: payload.event.start_at,
                         end: payload.event.end_at,
@@ -552,6 +654,33 @@
             }, 80);
         });
 
+        function handleMonthCellQuickCreate(event) {
+            var withinMonthGrid = event.target.closest("#tui-calendar-init .tui-full-calendar-month-week-item");
+            if (!withinMonthGrid) {
+                return;
+            }
+
+            if (event.target.closest(".tui-full-calendar-weekday-schedule")
+                || event.target.closest(".tui-full-calendar-month-more")
+                || event.target.closest(".tui-full-calendar-popup")
+                || event.target.closest(".tui-full-calendar-weekday-grid-more-schedules")
+                || event.target.closest(".tui-full-calendar-weekday-exceed-in-month")) {
+                return;
+            }
+
+            var clickedDate = getDateFromMonthPosition(event.target, event.clientX);
+            if (!clickedDate) {
+                return;
+            }
+
+            event.preventDefault();
+            event.stopPropagation();
+            openCreateModalForDate(clickedDate);
+        }
+
+        document.addEventListener("click", handleMonthCellQuickCreate, true);
+
+        syncColorSwatch();
         reloadEvents();
     });
 })();
