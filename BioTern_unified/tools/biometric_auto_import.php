@@ -31,9 +31,11 @@ if (!function_exists('run_biometric_auto_import_stats')) {
 
         $conn->query("
             UPDATE attendances a
-            INNER JOIN students s ON s.user_id = a.student_id
-            SET a.student_id = s.id
+            LEFT JOIN students s_by_id ON s_by_id.id = a.student_id
+            INNER JOIN students s_by_user ON s_by_user.user_id = a.student_id
+            SET a.student_id = s_by_user.id
             WHERE a.source = 'biometric'
+              AND s_by_id.id IS NULL
         ");
 
         $rawInserted = 0;
@@ -97,7 +99,7 @@ if (!function_exists('run_biometric_auto_import_stats')) {
         ];
 
         $events = [];
-        $res = $conn->query("SELECT id, raw_data FROM biometric_raw_logs ORDER BY id ASC");
+        $res = $conn->query("SELECT id, raw_data FROM biometric_raw_logs WHERE processed = 0 ORDER BY id ASC");
         if ($res && $res instanceof mysqli_result) {
             while ($row = $res->fetch_assoc()) {
                 $logId = (int)$row['id'];
@@ -193,18 +195,6 @@ if (!function_exists('run_biometric_auto_import_stats')) {
                 ];
             }
             $res->close();
-        }
-
-        $rebuildKeys = [];
-        foreach ($events as $event) {
-            $rebuildKeys[$event['student_id'] . '|' . $event['date']] = [
-                'student_id' => $event['student_id'],
-                'date' => $event['date'],
-            ];
-        }
-
-        foreach ($rebuildKeys as $rebuild) {
-            resetBiometricAttendanceDay($conn, (int)$rebuild['student_id'], (string)$rebuild['date']);
         }
 
         foreach ($events as $event) {

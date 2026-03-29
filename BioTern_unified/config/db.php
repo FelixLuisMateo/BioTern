@@ -3,6 +3,36 @@ if (function_exists('mysqli_report')) {
     mysqli_report(MYSQLI_REPORT_OFF);
 }
 
+if (!function_exists('biotern_app_timezone')) {
+    function biotern_app_timezone(): string
+    {
+        static $timezone = null;
+        if ($timezone !== null) {
+            return $timezone;
+        }
+
+        $configured = getenv('APP_TIMEZONE');
+        if (!is_string($configured) || trim($configured) === '') {
+            $configured = getenv('TZ');
+        }
+        if (!is_string($configured) || trim($configured) === '') {
+            $configured = 'Asia/Manila';
+        }
+
+        $configured = trim($configured);
+        try {
+            new DateTimeZone($configured);
+            $timezone = $configured;
+        } catch (Throwable $e) {
+            $timezone = 'Asia/Manila';
+        }
+
+        return $timezone;
+    }
+}
+
+date_default_timezone_set(biotern_app_timezone());
+
 // Database configuration
 if (!function_exists('biotern_env_first')) {
     function biotern_env_first(array $keys, $default = null)
@@ -143,6 +173,19 @@ if (!($conn instanceof mysqli) || $conn->connect_error) {
 
 // Set charset to utf8mb4
 $conn->set_charset("utf8mb4");
+
+try {
+    $tz = new DateTimeZone(biotern_app_timezone());
+    $offset = $tz->getOffset(new DateTimeImmutable('now', $tz));
+    $sign = $offset >= 0 ? '+' : '-';
+    $abs = abs($offset);
+    $hours = str_pad((string)intdiv($abs, 3600), 2, '0', STR_PAD_LEFT);
+    $minutes = str_pad((string)intdiv($abs % 3600, 60), 2, '0', STR_PAD_LEFT);
+    $mysqlOffset = $sign . $hours . ':' . $minutes;
+    @$conn->query("SET time_zone = '{$mysqlOffset}'");
+} catch (Throwable $e) {
+    // Keep working with the default DB timezone when session timezone cannot be set.
+}
 
 if (!function_exists('biotern_db_has_column')) {
     function biotern_db_has_column(mysqli $mysqli, string $table, string $column): bool

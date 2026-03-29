@@ -57,6 +57,60 @@ function resolve_profile_image_url(string $profilePath): ?string {
     return $clean . ($mtime ? ('?v=' . $mtime) : '');
 }
 
+function student_view_has_attendance_punches(array $row): bool
+{
+    foreach (['morning_time_in', 'morning_time_out', 'break_time_in', 'break_time_out', 'afternoon_time_in', 'afternoon_time_out'] as $column) {
+        $value = trim((string)($row[$column] ?? ''));
+        if ($value !== '' && $value !== '00:00:00') {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function student_view_parse_time($value): ?int
+{
+    $value = trim((string)$value);
+    if ($value === '') {
+        return null;
+    }
+
+    $timestamp = strtotime($value);
+    return $timestamp === false ? null : $timestamp;
+}
+
+function student_view_calculate_total_hours(array $row): float
+{
+    $totalSeconds = 0;
+    $pairs = [
+        ['morning_time_in', 'morning_time_out'],
+        ['afternoon_time_in', 'afternoon_time_out'],
+    ];
+
+    foreach ($pairs as $pair) {
+        $start = student_view_parse_time($row[$pair[0]] ?? null);
+        $end = student_view_parse_time($row[$pair[1]] ?? null);
+        if ($start === null || $end === null || $end <= $start) {
+            continue;
+        }
+
+        $totalSeconds += ($end - $start);
+    }
+
+    $breakIn = student_view_parse_time($row['break_time_in'] ?? null);
+    $breakOut = student_view_parse_time($row['break_time_out'] ?? null);
+    if ($breakIn !== null && $breakOut !== null && $breakOut > $breakIn) {
+        $totalSeconds -= ($breakOut - $breakIn);
+    }
+
+    if ($totalSeconds < 0) {
+        $totalSeconds = 0;
+    }
+
+    return round($totalSeconds / 3600, 2);
+}
+
 // Get student ID from URL parameter
 $student_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 
@@ -342,18 +396,48 @@ if ($attendance_record) {
 // Calculate hours remaining and completion percentage based on real attendance totals
 // so timer stays consistent and does not jump back to preset values.
 $sum_stmt = $conn->prepare("
-    SELECT COALESCE(SUM(total_hours), 0) AS rendered
+    SELECT total_hours, morning_time_in, morning_time_out, break_time_in, break_time_out, afternoon_time_in, afternoon_time_out
     FROM attendances
     WHERE student_id = ? AND (status IS NULL OR status <> 'rejected')
 ");
 $sum_stmt->bind_param("i", $student_id);
 $sum_stmt->execute();
-$sum_row = $sum_stmt->get_result()->fetch_assoc();
+$sum_result = $sum_stmt->get_result();
+
+$hours_rendered = 0.0;
+while ($sum_result && ($sum_row = $sum_result->fetch_assoc())) {
+    if (student_view_has_attendance_punches($sum_row)) {
+        $hours_rendered += student_view_calculate_total_hours($sum_row);
+    } else {
+        $hours_rendered += (float)($sum_row['total_hours'] ?? 0);
+    }
+}
+$hours_rendered = round($hours_rendered, 2);
 $sum_stmt->close();
 
-$hours_rendered = isset($sum_row['rendered']) ? (float)$sum_row['rendered'] : 0.0;
 if ($hours_rendered <= 0 && isset($student['rendered_hours'])) {
     $hours_rendered = (float)$student['rendered_hours'];
+}
+
+$internship_id = isset($student['internship_id']) ? (int)$student['internship_id'] : 0;
+$required_hours = isset($student['required_hours']) ? max(0, (int)$student['required_hours']) : 0;
+if ($internship_id > 0) {
+    $internship_completion = $required_hours > 0 ? round(($hours_rendered / $required_hours) * 100, 2) : 0.0;
+    if ($internship_completion > 100) {
+        $internship_completion = 100.0;
+    }
+
+    $internship_update_stmt = $conn->prepare("
+        UPDATE internships
+        SET rendered_hours = ?, completion_percentage = ?, updated_at = NOW()
+        WHERE id = ?
+    ");
+    if ($internship_update_stmt) {
+        $internship_update_stmt->bind_param("ddi", $hours_rendered, $internship_completion, $internship_id);
+        $internship_update_stmt->execute();
+        $internship_update_stmt->close();
+        $student['rendered_hours'] = $hours_rendered;
+    }
 }
 
 $open_session_seconds = 0;
@@ -1501,12 +1585,9 @@ echo $is_clocked_in ? 'true' : 'false'; ?>;
 require_once dirname(__DIR__) . '/config/db.php';
 echo $open_clock_in_time ? json_encode($open_clock_in_time) : 'null'; ?>;
             const storageKey = 'student_timer_state_' + String(studentId);
-            const nowRef = new Date();
-            const todayKey = [
-                nowRef.getFullYear(),
-                String(nowRef.getMonth() + 1).padStart(2, '0'),
-                String(nowRef.getDate()).padStart(2, '0')
-            ].join('-');
+            const todayKey = <?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo json_encode($today); ?>;
             let lastSyncedHour = null;
             let syncInFlight = false;
 
@@ -1577,7 +1658,7 @@ echo $open_clock_in_time ? json_encode($open_clock_in_time) : 'null'; ?>;
                 body.set('student_id', String(studentId));
                 body.set('remaining_hours', String(currentHour));
 
-                fetch('update_remaining_hours.php', {
+                fetch('../tools/update_remaining_hours.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
                     body: body.toString()
