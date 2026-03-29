@@ -10,6 +10,7 @@ if (session_status() === PHP_SESSION_NONE) {
 header('Content-Type: application/json; charset=utf-8');
 
 $userId = (int)($_SESSION['user_id'] ?? 0);
+$userRole = strtolower(trim((string)($_SESSION['role'] ?? '')));
 if ($userId <= 0) {
     http_response_code(401);
     echo json_encode(['success' => false, 'message' => 'Unauthorized']);
@@ -276,12 +277,12 @@ if ($method === 'GET') {
     if ($eventId > 0) {
         $stmt = $conn->prepare("SELECT id, title, location, description, start_at, end_at, color, is_all_day
             FROM calendar_events
-            WHERE id = ? AND user_id = ? AND deleted_at IS NULL
+            WHERE id = ? AND deleted_at IS NULL
             LIMIT 1");
         if (!$stmt) {
             respond_json(500, ['success' => false, 'message' => 'Failed to prepare event query']);
         }
-        $stmt->bind_param('ii', $eventId, $userId);
+        $stmt->bind_param('i', $eventId);
         $stmt->execute();
         $result = $stmt->get_result();
         $event = $result->fetch_assoc();
@@ -312,26 +313,23 @@ if ($method === 'GET') {
     if ($from !== null && $to !== null) {
         $stmt = $conn->prepare("SELECT id, title, location, description, start_at, end_at, color, is_all_day
             FROM calendar_events
-            WHERE user_id = ?
-              AND deleted_at IS NULL
+            WHERE deleted_at IS NULL
               AND start_at <= ?
               AND end_at >= ?
             ORDER BY start_at ASC");
         if (!$stmt) {
             respond_json(500, ['success' => false, 'message' => 'Failed to prepare list query']);
         }
-        $stmt->bind_param('iss', $userId, $to, $from);
+        $stmt->bind_param('ss', $to, $from);
     } else {
         $stmt = $conn->prepare("SELECT id, title, location, description, start_at, end_at, color, is_all_day
             FROM calendar_events
-            WHERE user_id = ?
-              AND deleted_at IS NULL
+            WHERE deleted_at IS NULL
             ORDER BY start_at ASC
             LIMIT 1000");
         if (!$stmt) {
             respond_json(500, ['success' => false, 'message' => 'Failed to prepare list query']);
         }
-        $stmt->bind_param('i', $userId);
     }
 
     $stmt->execute();
@@ -383,6 +381,10 @@ if ($method !== 'POST') {
     respond_json(405, ['success' => false, 'message' => 'Method not allowed']);
 }
 
+if (in_array($userRole, ['student', 'supervisor'], true)) {
+    respond_json(403, ['success' => false, 'message' => 'Students and supervisors cannot modify calendar events']);
+}
+
 $rawBody = file_get_contents('php://input');
 $data = json_decode((string)$rawBody, true);
 if (!is_array($data)) {
@@ -405,7 +407,7 @@ if ($action === 'seed_celebrations' || $action === 'import_celebrations') {
 
     $checkStmt = $conn->prepare("SELECT id
         FROM calendar_events
-        WHERE user_id = ? AND title = ? AND start_at = ? AND end_at = ? AND deleted_at IS NULL
+        WHERE title = ? AND start_at = ? AND end_at = ? AND deleted_at IS NULL
         LIMIT 1");
     if (!$checkStmt) {
         respond_json(500, ['success' => false, 'message' => 'Failed to prepare duplicate check']);
@@ -428,7 +430,7 @@ if ($action === 'seed_celebrations' || $action === 'import_celebrations') {
         $color = (string)$event['color'];
         $isAllDay = (int)$event['is_all_day'];
 
-        $checkStmt->bind_param('isss', $userId, $title, $startAt, $endAt);
+        $checkStmt->bind_param('sss', $title, $startAt, $endAt);
         $checkStmt->execute();
         $existingResult = $checkStmt->get_result();
         $alreadyExists = $existingResult && $existingResult->num_rows > 0;
@@ -506,12 +508,12 @@ if ($action === 'update') {
 
     $stmt = $conn->prepare("UPDATE calendar_events
         SET title = ?, location = ?, description = ?, start_at = ?, end_at = ?, color = ?, is_all_day = ?
-        WHERE id = ? AND user_id = ? AND deleted_at IS NULL
+        WHERE id = ? AND deleted_at IS NULL
         LIMIT 1");
     if (!$stmt) {
         respond_json(500, ['success' => false, 'message' => 'Failed to prepare update query']);
     }
-    $stmt->bind_param('ssssssiii', $title, $location, $description, $startAt, $endAt, $color, $isAllDay, $eventId, $userId);
+    $stmt->bind_param('ssssssii', $title, $location, $description, $startAt, $endAt, $color, $isAllDay, $eventId);
     if (!$stmt->execute()) {
         $stmt->close();
         respond_json(500, ['success' => false, 'message' => 'Failed to update event']);
@@ -534,12 +536,12 @@ if ($action === 'delete') {
 
     $stmt = $conn->prepare("UPDATE calendar_events
         SET deleted_at = NOW()
-        WHERE id = ? AND user_id = ? AND deleted_at IS NULL
+        WHERE id = ? AND deleted_at IS NULL
         LIMIT 1");
     if (!$stmt) {
         respond_json(500, ['success' => false, 'message' => 'Failed to prepare delete query']);
     }
-    $stmt->bind_param('ii', $eventId, $userId);
+    $stmt->bind_param('i', $eventId);
     if (!$stmt->execute()) {
         $stmt->close();
         respond_json(500, ['success' => false, 'message' => 'Failed to delete event']);

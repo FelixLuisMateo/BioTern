@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 require_once dirname(__DIR__) . '/config/db.php';
 
 $page_title = 'BioTern || Calendar';
@@ -14,33 +14,33 @@ $calendar_base_href = ($calendar_unified_pos !== false)
     ? substr($calendar_script_name, 0, $calendar_unified_pos) . '/BioTern_unified/'
     : '/BioTern_unified/';
 $calendar_events_endpoint = $calendar_base_href . 'calendar_events.php';
+$calendar_user_role = strtolower(trim((string)($_SESSION['role'] ?? '')));
+$calendar_can_manage_events = !in_array($calendar_user_role, ['student', 'supervisor'], true);
+$calendar_show_intro = $calendar_can_manage_events;
+$calendar_toolbar_subtitle = $calendar_can_manage_events
+    ? "Browse the month, check what's happening each day, and manage saved events."
+    : "Browse the month and check holidays, birthdays, and important schedule updates.";
 
 include 'includes/header.php';
 ?>
-<div class="app-calendar-shell" data-calendar-app data-events-endpoint="<?php echo htmlspecialchars($calendar_events_endpoint, ENT_QUOTES, 'UTF-8'); ?>">
-    <section class="app-calendar-hero">
-        <div class="app-calendar-hero-copy">
-            <span class="app-calendar-kicker">BioTern Calendar</span>
-            <h1 class="app-calendar-title">Calendar</h1>
-            <p class="app-calendar-subtitle">Philippine events, OJT birthdays, and saved schedule entries in one view.</p>
-        </div>
-    </section>
-
+<div class="app-calendar-shell" data-calendar-app data-events-endpoint="<?php echo htmlspecialchars($calendar_events_endpoint, ENT_QUOTES, 'UTF-8'); ?>" data-can-manage-events="<?php echo $calendar_can_manage_events ? '1' : '0'; ?>">
     <div class="row g-4 align-items-start">
         <div class="col-12 col-xxl-9">
             <section class="card app-calendar-board">
                 <div class="card-body">
                     <div class="app-calendar-toolbar">
                         <div class="app-calendar-toolbar-copy">
-                            <span class="app-calendar-toolbar-label">Monthly Planner</span>
+                            <span class="app-calendar-toolbar-label">Month View</span>
                             <h2 class="app-calendar-month-title" data-month-label>Calendar</h2>
-                            <p class="app-calendar-toolbar-subtitle">See the whole month at once, then drill into the day that matters.</p>
+                            <p class="app-calendar-toolbar-subtitle"><?php echo htmlspecialchars($calendar_toolbar_subtitle, ENT_QUOTES, 'UTF-8'); ?></p>
                         </div>
                         <div class="app-calendar-toolbar-actions">
+                            <?php if ($calendar_can_manage_events): ?>
                             <button type="button" class="app-calendar-create-button" data-add-event>
                                 <i class="feather-plus"></i>
                                 <span>Add Event</span>
                             </button>
+                            <?php endif; ?>
                             <div class="app-calendar-jump-controls" aria-label="Jump to month and year">
                                 <select class="form-select form-select-sm" data-jump-month></select>
                                 <select class="form-select form-select-sm" data-jump-year></select>
@@ -109,6 +109,7 @@ include 'includes/header.php';
     </div>
 </div>
 
+<?php if ($calendar_can_manage_events): ?>
 <div class="app-calendar-event-panel" id="appCalendarEventPanel" hidden>
     <form class="app-calendar-modal" data-event-form>
         <div class="app-calendar-modal-header">
@@ -174,8 +175,11 @@ include 'includes/header.php';
         </div>
     </form>
 </div>
+<?php endif; ?>
 
 <script src="assets/vendors/js/datepicker.min.js"></script>
 <script src="assets/js/global-datepicker-init.js"></script>
 <script src="assets/js/modules/apps/apps-calendar-page.js"></script>
 <?php include 'includes/footer.php'; ?>
+
+

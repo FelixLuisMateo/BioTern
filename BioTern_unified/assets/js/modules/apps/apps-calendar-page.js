@@ -19,6 +19,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var upcomingBirthdays = root.querySelector('[data-upcoming-birthdays]');
     var monthEvents = root.querySelector('[data-month-events]');
     var endpoint = root.getAttribute('data-events-endpoint') || 'calendar_events.php';
+    var canManageEvents = root.getAttribute('data-can-manage-events') === '1';
     var navButtons = Array.prototype.slice.call(root.querySelectorAll('[data-action]'));
     var jumpMonth = root.querySelector('[data-jump-month]');
     var jumpYear = root.querySelector('[data-jump-year]');
@@ -85,7 +86,7 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        if (addEventButton) {
+        if (canManageEvents && addEventButton) {
             addEventButton.addEventListener('click', function () {
                 openCreateModal();
             });
@@ -102,7 +103,7 @@ document.addEventListener('DOMContentLoaded', function () {
             submitEventForm();
         });
 
-        if (eventDeleteButton) {
+        if (canManageEvents && eventDeleteButton) {
             eventDeleteButton.addEventListener('click', function () {
                 deleteEvent();
             });
@@ -115,14 +116,18 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    function openCreateModal() {
-        if (!panelElement || !eventForm) {
+    function openCreateModal(dateKey) {
+        if (!canManageEvents || !panelElement || !eventForm) {
             return;
         }
 
         resetEventForm();
 
-        var baseDate = parseDateKey(state.selectedDateKey);
+        if (dateKey) {
+            state.selectedDateKey = dateKey;
+        }
+
+        var baseDate = parseDateKey(dateKey || state.selectedDateKey);
         var startDate = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), 9, 0, 0);
         var endDate = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), 10, 0, 0);
 
@@ -190,7 +195,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function openEditPanel(event) {
-        if (!panelElement || !eventForm || !event || event.type !== 'custom') {
+        if (!canManageEvents || !panelElement || !eventForm || !event || event.type !== 'custom') {
             return;
         }
 
@@ -521,27 +526,56 @@ document.addEventListener('DOMContentLoaded', function () {
             number.textContent = String(day.date.getDate());
             head.appendChild(number);
 
+            var quickAdd = null;
+            if (canManageEvents && day.isCurrentMonth) {
+                quickAdd = document.createElement('button');
+                quickAdd.type = 'button';
+                quickAdd.className = 'app-calendar-day-add';
+                quickAdd.setAttribute('aria-label', 'Add event on ' + day.key);
+                quickAdd.innerHTML = '<i class="feather-plus"></i>';
+                quickAdd.addEventListener('click', function (event) {
+                    event.stopPropagation();
+                    openCreateModal(day.key);
+                });
+            }
+
             if (dayEvents.length) {
                 var badge = document.createElement('span');
                 badge.className = 'app-calendar-day-badge';
-                badge.textContent = dayEvents.length + ' event' + (dayEvents.length === 1 ? '' : 's');
+                badge.textContent = String(dayEvents.length);
+                badge.title = dayEvents.length + ' event' + (dayEvents.length === 1 ? '' : 's');
                 head.appendChild(badge);
+            }
+
+            if (quickAdd) {
+                head.appendChild(quickAdd);
             }
 
             var list = document.createElement('div');
             list.className = 'app-calendar-day-events';
-            dayEvents.slice(0, 2).forEach(function (event) {
-                var pill = document.createElement('div');
-                pill.className = 'app-calendar-pill is-' + normalizeType(event.type);
-                pill.textContent = formatDayCellLabel(event);
-                list.appendChild(pill);
-            });
+            if (dayEvents.length) {
+                var preview = document.createElement('div');
+                preview.className = 'app-calendar-pill is-' + normalizeType(dayEvents[0].type);
+                preview.textContent = formatDayCellLabel(dayEvents[0]);
+                list.appendChild(preview);
+            }
 
-            if (dayEvents.length > 2) {
+            if (dayEvents.length > 1) {
                 var overflow = document.createElement('div');
                 overflow.className = 'app-calendar-overflow';
-                overflow.textContent = '+' + (dayEvents.length - 2) + ' more';
+                overflow.textContent = '+' + (dayEvents.length - 1) + ' more';
                 list.appendChild(overflow);
+            }
+
+            if (dayEvents.length) {
+                var markers = document.createElement('div');
+                markers.className = 'app-calendar-day-markers';
+                summarizeTypes(dayEvents).forEach(function (type) {
+                    var marker = document.createElement('span');
+                    marker.className = 'app-calendar-day-marker is-' + normalizeType(type);
+                    markers.appendChild(marker);
+                });
+                list.appendChild(markers);
             }
 
             cell.appendChild(head);
@@ -582,7 +616,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         items.forEach(function (event) {
             var card;
-            if (event.type === 'custom') {
+            if (canManageEvents && event.type === 'custom') {
                 card = document.createElement('button');
                 card.type = 'button';
                 card.className = 'app-calendar-event-card app-calendar-event-card-button';
@@ -798,6 +832,18 @@ document.addEventListener('DOMContentLoaded', function () {
             return type;
         }
         return 'holiday';
+    }
+
+    function summarizeTypes(events) {
+        var seen = {};
+        return events.reduce(function (types, event) {
+            var normalized = normalizeType(event.type);
+            if (!seen[normalized]) {
+                seen[normalized] = true;
+                types.push(normalized);
+            }
+            return types;
+        }, []).slice(0, 3);
     }
 
     function readableType(type) {
