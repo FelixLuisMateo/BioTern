@@ -3,6 +3,8 @@ require_once dirname(__DIR__) . '/config/db.php';
 
 $page_title = 'BioTern || Calendar';
 $page_styles = [
+    'assets/vendors/css/datepicker.min.css',
+    'assets/css/datepicker-global.css',
     'assets/css/modules/apps/apps-calendar-page.css',
 ];
 
@@ -35,6 +37,10 @@ include 'includes/header.php';
                             <p class="app-calendar-toolbar-subtitle">See the whole month at once, then drill into the day that matters.</p>
                         </div>
                         <div class="app-calendar-toolbar-actions">
+                            <button type="button" class="app-calendar-create-button" data-add-event>
+                                <i class="feather-plus"></i>
+                                <span>Add Event</span>
+                            </button>
                             <div class="app-calendar-jump-controls" aria-label="Jump to month and year">
                                 <select class="form-select form-select-sm" data-jump-month></select>
                                 <select class="form-select form-select-sm" data-jump-year></select>
@@ -103,5 +109,73 @@ include 'includes/header.php';
     </div>
 </div>
 
+<div class="app-calendar-event-panel" id="appCalendarEventPanel" hidden>
+    <form class="app-calendar-modal" data-event-form>
+        <div class="app-calendar-modal-header">
+            <div class="app-calendar-modal-heading">
+                <span class="app-calendar-sidecard-kicker mb-1">Saved Event</span>
+                <h5 class="modal-title mb-0" data-event-panel-title>Add Event</h5>
+                <p class="app-calendar-modal-subtitle" data-event-panel-subtitle>Create a custom schedule item for your BioTern calendar.</p>
+            </div>
+            <button type="button" class="btn-close" data-close-event-panel aria-label="Close"></button>
+        </div>
+        <div class="app-calendar-modal-body">
+            <input type="hidden" id="appCalendarEventId" name="id" value="">
+            <div class="app-calendar-field mb-3">
+                <label class="form-label" for="appCalendarEventTitle">Title</label>
+                <input type="text" class="form-control" id="appCalendarEventTitle" name="title" maxlength="255" required>
+            </div>
+            <div class="app-calendar-field mb-3">
+                <label class="form-label" for="appCalendarEventLocation">Location</label>
+                <input type="text" class="form-control" id="appCalendarEventLocation" name="location" maxlength="255">
+            </div>
+            <div class="row g-3">
+                <div class="col-sm-6 app-calendar-field">
+                    <label class="form-label" for="appCalendarEventStartDate">Start Date</label>
+                    <input type="date" class="form-control" id="appCalendarEventStartDate" name="start_date" required>
+                </div>
+                <div class="col-sm-6 app-calendar-field">
+                    <label class="form-label" for="appCalendarEventEndDate">End Date</label>
+                    <input type="date" class="form-control" id="appCalendarEventEndDate" name="end_date" required>
+                </div>
+            </div>
+            <div class="row g-3 mt-1">
+                <div class="col-sm-6 app-calendar-field">
+                    <label class="form-label" for="appCalendarEventStartTime">Start Time</label>
+                    <select class="form-select" id="appCalendarEventStartTime" name="start_time" required></select>
+                </div>
+                <div class="col-sm-6 app-calendar-field">
+                    <label class="form-label" for="appCalendarEventEndTime">End Time</label>
+                    <select class="form-select" id="appCalendarEventEndTime" name="end_time" required></select>
+                </div>
+            </div>
+            <div class="row g-3 mt-1 app-calendar-field-row">
+                <div class="col-sm-7 app-calendar-field">
+                    <label class="form-label" for="appCalendarEventColor">Color</label>
+                    <input type="color" class="form-control form-control-color w-100" id="appCalendarEventColor" name="color" value="#2563eb" title="Choose event color">
+                </div>
+                <div class="col-sm-5 d-flex align-items-end app-calendar-field">
+                    <div class="form-check app-calendar-check">
+                        <input class="form-check-input" type="checkbox" id="appCalendarEventAllDay" name="is_all_day">
+                        <label class="form-check-label" for="appCalendarEventAllDay">All-day event</label>
+                    </div>
+                </div>
+            </div>
+            <div class="app-calendar-field mt-3">
+                <label class="form-label" for="appCalendarEventDescription">Description</label>
+                <textarea class="form-control" id="appCalendarEventDescription" name="description" rows="4"></textarea>
+            </div>
+            <div class="app-calendar-form-status mt-3" data-event-form-status></div>
+        </div>
+        <div class="app-calendar-modal-footer app-calendar-modal-actions">
+            <button type="button" class="btn btn-outline-danger d-none" data-event-delete>Delete Event</button>
+            <button type="button" class="btn btn-outline-light" data-close-event-panel>Cancel</button>
+            <button type="submit" class="btn btn-primary" data-event-submit>Save Event</button>
+        </div>
+    </form>
+</div>
+
+<script src="assets/vendors/js/datepicker.min.js"></script>
+<script src="assets/js/global-datepicker-init.js"></script>
 <script src="assets/js/modules/apps/apps-calendar-page.js"></script>
 <?php include 'includes/footer.php'; ?>

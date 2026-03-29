@@ -7,7 +7,8 @@ document.addEventListener('DOMContentLoaded', function () {
     var state = {
         currentDate: new Date(),
         selectedDateKey: formatDateKey(new Date()),
-        events: []
+        events: [],
+        editingEventId: 0
     };
 
     var monthLabel = root.querySelector('[data-month-label]');
@@ -21,8 +22,29 @@ document.addEventListener('DOMContentLoaded', function () {
     var navButtons = Array.prototype.slice.call(root.querySelectorAll('[data-action]'));
     var jumpMonth = root.querySelector('[data-jump-month]');
     var jumpYear = root.querySelector('[data-jump-year]');
+    var addEventButton = root.querySelector('[data-add-event]');
+    var panelElement = document.getElementById('appCalendarEventPanel');
+    var eventForm = document.querySelector('[data-event-form]');
+    var eventFormStatus = document.querySelector('[data-event-form-status]');
+    var eventSubmitButton = document.querySelector('[data-event-submit]');
+    var eventDeleteButton = document.querySelector('[data-event-delete]');
+    var closePanelButtons = Array.prototype.slice.call(document.querySelectorAll('[data-close-event-panel]'));
+    var panelTitle = document.querySelector('[data-event-panel-title]');
+    var panelSubtitle = document.querySelector('[data-event-panel-subtitle]');
+    var eventIdInput = document.getElementById('appCalendarEventId');
+    var titleInput = document.getElementById('appCalendarEventTitle');
+    var locationInput = document.getElementById('appCalendarEventLocation');
+    var startDateInput = document.getElementById('appCalendarEventStartDate');
+    var endDateInput = document.getElementById('appCalendarEventEndDate');
+    var startTimeInput = document.getElementById('appCalendarEventStartTime');
+    var endTimeInput = document.getElementById('appCalendarEventEndTime');
+    var colorInput = document.getElementById('appCalendarEventColor');
+    var allDayInput = document.getElementById('appCalendarEventAllDay');
+    var descriptionInput = document.getElementById('appCalendarEventDescription');
 
     buildJumpControls();
+    buildTimeOptions();
+    bindEventForm();
 
     navButtons.forEach(function (button) {
         button.addEventListener('click', function () {
@@ -58,6 +80,319 @@ document.addEventListener('DOMContentLoaded', function () {
     syncJumpControls();
     loadEvents().then(render).catch(renderError);
 
+    function bindEventForm() {
+        if (!eventForm) {
+            return;
+        }
+
+        if (addEventButton) {
+            addEventButton.addEventListener('click', function () {
+                openCreateModal();
+            });
+        }
+
+        if (allDayInput) {
+            allDayInput.addEventListener('change', function () {
+                syncAllDayFields();
+            });
+        }
+
+        eventForm.addEventListener('submit', function (event) {
+            event.preventDefault();
+            submitEventForm();
+        });
+
+        if (eventDeleteButton) {
+            eventDeleteButton.addEventListener('click', function () {
+                deleteEvent();
+            });
+        }
+
+        closePanelButtons.forEach(function (button) {
+            button.addEventListener('click', function () {
+                closeEventPanel();
+            });
+        });
+    }
+
+    function openCreateModal() {
+        if (!panelElement || !eventForm) {
+            return;
+        }
+
+        resetEventForm();
+
+        var baseDate = parseDateKey(state.selectedDateKey);
+        var startDate = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), 9, 0, 0);
+        var endDate = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), 10, 0, 0);
+
+        if (startDateInput) {
+            startDateInput.value = formatDateKey(startDate);
+        }
+        if (endDateInput) {
+            endDateInput.value = formatDateKey(endDate);
+        }
+        if (startTimeInput) {
+            startTimeInput.value = '09:00';
+        }
+        if (endTimeInput) {
+            endTimeInput.value = '10:00';
+        }
+        if (colorInput) {
+            colorInput.value = '#2563eb';
+        }
+
+        syncAllDayFields();
+        panelElement.hidden = false;
+        panelElement.classList.add('is-open');
+        if (titleInput) {
+            titleInput.focus();
+        }
+    }
+
+    function closeEventPanel() {
+        if (!panelElement) {
+            return;
+        }
+        panelElement.classList.remove('is-open');
+        panelElement.hidden = true;
+        resetEventForm();
+    }
+
+    function resetEventForm() {
+        if (!eventForm) {
+            return;
+        }
+
+        eventForm.reset();
+        if (colorInput) {
+            colorInput.value = '#2563eb';
+        }
+        state.editingEventId = 0;
+        if (eventIdInput) {
+            eventIdInput.value = '';
+        }
+        if (panelTitle) {
+            panelTitle.textContent = 'Add Event';
+        }
+        if (panelSubtitle) {
+            panelSubtitle.textContent = 'Create a custom schedule item for your BioTern calendar.';
+        }
+        if (eventSubmitButton) {
+            eventSubmitButton.textContent = 'Save Event';
+        }
+        if (eventDeleteButton) {
+            eventDeleteButton.classList.add('d-none');
+        }
+        setFormStatus('');
+        setSubmitting(false);
+        syncAllDayFields();
+    }
+
+    function openEditPanel(event) {
+        if (!panelElement || !eventForm || !event || event.type !== 'custom') {
+            return;
+        }
+
+        resetEventForm();
+        state.editingEventId = Number(event.id || 0);
+        if (eventIdInput) {
+            eventIdInput.value = String(state.editingEventId || '');
+        }
+        if (panelTitle) {
+            panelTitle.textContent = 'Edit Event';
+        }
+        if (panelSubtitle) {
+            panelSubtitle.textContent = 'Update or delete this saved calendar entry.';
+        }
+        if (eventSubmitButton) {
+            eventSubmitButton.textContent = 'Update Event';
+        }
+        if (eventDeleteButton) {
+            eventDeleteButton.classList.remove('d-none');
+        }
+
+        titleInput.value = event.title || '';
+        if (locationInput) {
+            locationInput.value = event.location || '';
+        }
+        if (descriptionInput) {
+            descriptionInput.value = event.description || '';
+        }
+        if (colorInput) {
+            colorInput.value = event.color || '#2563eb';
+        }
+        if (startDateInput) {
+            startDateInput.value = String(event.start_at || '').slice(0, 10);
+        }
+        if (endDateInput) {
+            endDateInput.value = String(event.end_at || event.start_at || '').slice(0, 10);
+        }
+        if (startTimeInput) {
+            startTimeInput.value = String(event.start_at || '').slice(11, 16) || '09:00';
+        }
+        if (endTimeInput) {
+            endTimeInput.value = String(event.end_at || event.start_at || '').slice(11, 16) || '10:00';
+        }
+        if (allDayInput) {
+            allDayInput.checked = !!Number(event.is_all_day || 0);
+        }
+
+        syncAllDayFields();
+        panelElement.hidden = false;
+        panelElement.classList.add('is-open');
+    }
+
+    function syncAllDayFields() {
+        if (!startTimeInput || !endTimeInput || !allDayInput) {
+            return;
+        }
+
+        if (allDayInput.checked) {
+            startTimeInput.value = '00:00';
+            endTimeInput.value = '23:59';
+            startTimeInput.disabled = true;
+            endTimeInput.disabled = true;
+            return;
+        }
+
+        startTimeInput.disabled = false;
+        endTimeInput.disabled = false;
+        if (!startTimeInput.value) {
+            startTimeInput.value = '09:00';
+        }
+        if (!endTimeInput.value || endTimeInput.value === '23:59') {
+            endTimeInput.value = '10:00';
+        }
+    }
+
+    function setSubmitting(isSubmitting) {
+        if (eventSubmitButton) {
+            eventSubmitButton.disabled = !!isSubmitting;
+        }
+    }
+
+    function setFormStatus(message, isError) {
+        if (!eventFormStatus) {
+            return;
+        }
+        eventFormStatus.textContent = message || '';
+        eventFormStatus.className = 'app-calendar-form-status' + (message ? (isError ? ' is-error' : ' is-success') : '');
+    }
+
+    function submitEventForm() {
+        if (!titleInput || !startDateInput || !endDateInput || !startTimeInput || !endTimeInput) {
+            return;
+        }
+
+        var startAt = combineDateAndTime(startDateInput.value, startTimeInput.value);
+        var endAt = combineDateAndTime(endDateInput.value, endTimeInput.value);
+
+        var payload = {
+            action: state.editingEventId > 0 ? 'update' : 'create',
+            id: state.editingEventId > 0 ? state.editingEventId : undefined,
+            title: (titleInput.value || '').trim(),
+            location: locationInput ? (locationInput.value || '').trim() : '',
+            description: descriptionInput ? (descriptionInput.value || '').trim() : '',
+            start_at: startAt,
+            end_at: endAt,
+            color: colorInput ? (colorInput.value || '#2563eb') : '#2563eb',
+            is_all_day: allDayInput && allDayInput.checked ? 1 : 0
+        };
+
+        if (!payload.title || !payload.start_at || !payload.end_at) {
+            setFormStatus('Title, start, and end are required.', true);
+            return;
+        }
+
+        setSubmitting(true);
+        setFormStatus(state.editingEventId > 0 ? 'Updating event...' : 'Saving event...');
+
+        fetch(endpoint, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify(payload)
+        })
+            .then(function (response) {
+                return response.json().catch(function () {
+                    return null;
+                }).then(function (data) {
+                    if (!response.ok || !data || data.success === false) {
+                        throw new Error(data && data.message ? data.message : 'Failed to save event.');
+                    }
+                    return data;
+                });
+            })
+            .then(function () {
+                setFormStatus(state.editingEventId > 0 ? 'Event updated.' : 'Event saved.', false);
+                state.selectedDateKey = payload.start_at.slice(0, 10);
+                return loadEvents();
+            })
+            .then(function () {
+                render();
+                closeEventPanel();
+            })
+            .catch(function (error) {
+                setFormStatus(error && error.message ? error.message : 'Failed to save event.', true);
+            })
+            .finally(function () {
+                setSubmitting(false);
+            });
+    }
+
+    function deleteEvent() {
+        if (!state.editingEventId) {
+            return;
+        }
+
+        if (!window.confirm('Delete this saved event?')) {
+            return;
+        }
+
+        setSubmitting(true);
+        setFormStatus('Deleting event...');
+
+        fetch(endpoint, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
+                action: 'delete',
+                id: state.editingEventId
+            })
+        })
+            .then(function (response) {
+                return response.json().catch(function () {
+                    return null;
+                }).then(function (data) {
+                    if (!response.ok || !data || data.success === false) {
+                        throw new Error(data && data.message ? data.message : 'Failed to delete event.');
+                    }
+                    return data;
+                });
+            })
+            .then(function () {
+                return loadEvents();
+            })
+            .then(function () {
+                render();
+                closeEventPanel();
+            })
+            .catch(function (error) {
+                setFormStatus(error && error.message ? error.message : 'Failed to delete event.', true);
+            })
+            .finally(function () {
+                setSubmitting(false);
+            });
+    }
+
     function buildJumpControls() {
         if (jumpMonth) {
             var monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -74,6 +409,26 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             jumpYear.innerHTML = years.join('');
         }
+    }
+
+    function buildTimeOptions() {
+        if (!startTimeInput || !endTimeInput) {
+            return;
+        }
+
+        var options = [];
+        for (var hour = 6; hour <= 20; hour += 1) {
+            for (var minute = 0; minute < 60; minute += 60) {
+                var value = String(hour).padStart(2, '0') + ':' + String(minute).padStart(2, '0');
+                options.push('<option value="' + value + '">' + formatTimeLabel(value) + '</option>');
+            }
+        }
+        options.push('<option value="23:59">11:59 PM</option>');
+
+        startTimeInput.innerHTML = options.join('');
+        endTimeInput.innerHTML = options.join('');
+        startTimeInput.value = '09:00';
+        endTimeInput.value = '10:00';
     }
 
     function syncJumpControls() {
@@ -226,9 +581,19 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         items.forEach(function (event) {
-            var card = document.createElement(event.person && event.person.profile_url ? 'a' : 'article');
-            card.className = 'app-calendar-event-card';
-            if (event.person && event.person.profile_url) {
+            var card;
+            if (event.type === 'custom') {
+                card = document.createElement('button');
+                card.type = 'button';
+                card.className = 'app-calendar-event-card app-calendar-event-card-button';
+                card.addEventListener('click', function () {
+                    openEditPanel(event);
+                });
+            } else {
+                card = document.createElement(event.person && event.person.profile_url ? 'a' : 'article');
+                card.className = 'app-calendar-event-card';
+            }
+            if (event.type !== 'custom' && event.person && event.person.profile_url) {
                 card.href = event.person.profile_url;
                 card.style.textDecoration = 'none';
             }
@@ -470,6 +835,25 @@ document.addEventListener('DOMContentLoaded', function () {
         return text.slice(0, Math.max(0, maxLength - 3)).trimEnd() + '...';
     }
 
+    function combineDateAndTime(dateValue, timeValue) {
+        if (!dateValue || !timeValue) {
+            return '';
+        }
+        return dateValue + ' ' + timeValue + ':00';
+    }
+
+    function formatTimeLabel(value) {
+        var parts = String(value).split(':');
+        var hour = Number(parts[0] || 0);
+        var minute = Number(parts[1] || 0);
+        var suffix = hour >= 12 ? 'PM' : 'AM';
+        var normalizedHour = hour % 12;
+        if (normalizedHour === 0) {
+            normalizedHour = 12;
+        }
+        return normalizedHour + ':' + String(minute).padStart(2, '0') + ' ' + suffix;
+    }
+
     function defaultDescription(event) {
         if (event.type === 'birthday') {
             return 'Birthday reminder for an OJT in BioTern.';
@@ -505,5 +889,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 });
+
 
 
