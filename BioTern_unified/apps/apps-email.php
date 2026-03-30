@@ -34,6 +34,13 @@ function email_preview(string $text, int $max = 90): string
     return strlen($text) > $max ? substr($text, 0, $max - 3) . '...' : $text;
 }
 
+function email_build_url(string $mailbox, array $params = []): string
+{
+    $query = array_merge(['mailbox' => $mailbox], $params);
+    $query = array_filter($query, static fn($value) => $value !== null && $value !== '');
+    return 'apps-email.php?' . http_build_query($query);
+}
+
 $currentUserId = (int)($_SESSION['user_id'] ?? 0);
 $currentUserName = trim((string)($_SESSION['name'] ?? $_SESSION['username'] ?? ''));
 if ($currentUserId <= 0) {
@@ -91,7 +98,14 @@ if ((string)($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && (string)($_POST['ac
             $subject = substr($subject, 0, 255);
         }
 
-        $recipientStmt = $conn->prepare('SELECT id FROM users WHERE id = ? LIMIT 1');
+        $recipientStmt = $conn->prepare(
+            "SELECT id
+             FROM users
+             WHERE id = ?
+               AND is_active = 1
+               AND (role <> 'student' OR COALESCE(application_status, 'approved') = 'approved')
+             LIMIT 1"
+        );
         $recipientExists = false;
         if ($recipientStmt) {
             $recipientStmt->bind_param('i', $recipientUserId);
@@ -130,14 +144,65 @@ if ((string)($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && (string)($_POST['ac
     }
 }
 
+if ((string)($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && (string)($_POST['action'] ?? '') === 'delete-email') {
+    $deleteId = (int)($_POST['email_id'] ?? 0);
+    $deleteMailbox = strtolower(trim((string)($_POST['mailbox'] ?? 'inbox')));
+    $deleteMailbox = in_array($deleteMailbox, ['inbox', 'sent'], true) ? $deleteMailbox : 'inbox';
+
+    if ($deleteId <= 0) {
+        $_SESSION['email_flash'] = ['error' => 'Email not found.'];
+        header('Location: ' . email_build_url($deleteMailbox));
+        exit;
+    }
+
+    if ($deleteMailbox === 'inbox') {
+        $deleteStmt = $conn->prepare('UPDATE app_emails SET recipient_deleted_at = NOW(), updated_at = NOW() WHERE id = ? AND recipient_user_id = ? AND recipient_deleted_at IS NULL LIMIT 1');
+    } else {
+        $deleteStmt = $conn->prepare('UPDATE app_emails SET sender_deleted_at = NOW(), updated_at = NOW() WHERE id = ? AND sender_user_id = ? AND sender_deleted_at IS NULL LIMIT 1');
+    }
+
+    if (!$deleteStmt) {
+        $_SESSION['email_flash'] = ['error' => 'Unable to delete this email right now.'];
+        header('Location: ' . email_build_url($deleteMailbox));
+        exit;
+    }
+
+    $deleteStmt->bind_param('ii', $deleteId, $currentUserId);
+    $deleteStmt->execute();
+    $deletedRows = (int)$deleteStmt->affected_rows;
+    $deleteStmt->close();
+
+    $_SESSION['email_flash'] = $deletedRows > 0
+        ? ['success' => 'Email moved out of your mailbox.']
+        : ['error' => 'Unable to delete this email.'];
+    header('Location: ' . email_build_url($deleteMailbox));
+    exit;
+}
+
 $mailbox = strtolower(trim((string)($_GET['mailbox'] ?? 'inbox')));
 if (!in_array($mailbox, ['inbox', 'sent'], true)) {
     $mailbox = 'inbox';
 }
 $viewId = (int)($_GET['view'] ?? 0);
+$search = trim((string)($_GET['q'] ?? ''));
+$filter = strtolower(trim((string)($_GET['filter'] ?? 'all')));
+if (!in_array($filter, ['all', 'unread'], true)) {
+    $filter = 'all';
+}
+$composeOpen = ((string)($_GET['compose'] ?? '') === '1');
+$composeRecipientId = (int)($_GET['to'] ?? 0);
+$composeSubject = trim((string)($_GET['subject'] ?? ''));
+$composeBody = trim((string)($_GET['body'] ?? ''));
 
 $users = [];
-$usersStmt = $conn->prepare('SELECT id, COALESCE(NULLIF(name, ""), username, email, CONCAT("User #", id)) AS display_name, email FROM users WHERE id <> ? ORDER BY display_name ASC');
+$usersStmt = $conn->prepare(
+    'SELECT id, COALESCE(NULLIF(name, ""), username, email, CONCAT("User #", id)) AS display_name, email
+     FROM users
+     WHERE id <> ?
+       AND is_active = 1
+       AND (role <> \'student\' OR COALESCE(application_status, \'approved\') = \'approved\')
+     ORDER BY display_name ASC'
+);
 if ($usersStmt) {
     $usersStmt->bind_param('i', $currentUserId);
     $usersStmt->execute();
@@ -181,6 +246,8 @@ if ($sentCountStmt) {
 }
 
 $list = [];
+$listParams = [$currentUserId];
+$listTypes = 'i';
 if ($mailbox === 'inbox') {
     $listSql = 'SELECT
             e.id,
@@ -193,7 +260,22 @@ if ($mailbox === 'inbox') {
             u.email AS sender_email
         FROM app_emails e
         LEFT JOIN users u ON u.id = e.sender_user_id
-        WHERE e.recipient_user_id = ? AND e.recipient_deleted_at IS NULL
+        WHERE e.recipient_user_id = ? AND e.recipient_deleted_at IS NULL';
+    if ($filter === 'unread') {
+        $listSql .= ' AND e.is_read = 0';
+    }
+    if ($search !== '') {
+        $listSql .= ' AND (
+            e.subject LIKE ?
+            OR e.body LIKE ?
+            OR COALESCE(NULLIF(u.name, ""), u.username, u.email, CONCAT("User #", u.id)) LIKE ?
+            OR COALESCE(u.email, "") LIKE ?
+        )';
+        $searchLike = '%' . $search . '%';
+        array_push($listParams, $searchLike, $searchLike, $searchLike, $searchLike);
+        $listTypes .= 'ssss';
+    }
+    $listSql .= '
         ORDER BY e.created_at DESC, e.id DESC
         LIMIT 200';
 } else {
@@ -208,14 +290,26 @@ if ($mailbox === 'inbox') {
             u.email AS recipient_email
         FROM app_emails e
         LEFT JOIN users u ON u.id = e.recipient_user_id
-        WHERE e.sender_user_id = ? AND e.sender_deleted_at IS NULL
+        WHERE e.sender_user_id = ? AND e.sender_deleted_at IS NULL';
+    if ($search !== '') {
+        $listSql .= ' AND (
+            e.subject LIKE ?
+            OR e.body LIKE ?
+            OR COALESCE(NULLIF(u.name, ""), u.username, u.email, CONCAT("User #", u.id)) LIKE ?
+            OR COALESCE(u.email, "") LIKE ?
+        )';
+        $searchLike = '%' . $search . '%';
+        array_push($listParams, $searchLike, $searchLike, $searchLike, $searchLike);
+        $listTypes .= 'ssss';
+    }
+    $listSql .= '
         ORDER BY e.created_at DESC, e.id DESC
         LIMIT 200';
 }
 
 $listStmt = $conn->prepare($listSql);
 if ($listStmt) {
-    $listStmt->bind_param('i', $currentUserId);
+    $listStmt->bind_param($listTypes, ...$listParams);
     $listStmt->execute();
     $res = $listStmt->get_result();
     while ($row = $res->fetch_assoc()) {
@@ -279,6 +373,8 @@ if ($viewId > 0) {
                 'body' => (string)($row['body'] ?? ''),
                 'is_read' => (int)($row['is_read'] ?? 0) === 1,
                 'created_at' => (string)($row['created_at'] ?? ''),
+                'sender_user_id' => (int)($row['sender_user_id'] ?? 0),
+                'recipient_user_id' => (int)($row['recipient_user_id'] ?? 0),
                 'sender_name' => (string)($row['sender_name'] ?? '-'),
                 'sender_email' => (string)($row['sender_email'] ?? ''),
                 'recipient_name' => (string)($row['recipient_name'] ?? '-'),
@@ -372,6 +468,20 @@ include 'includes/header.php';
 
     body.apps-email-page .email-meta {
         color: #475569;
+    }
+
+    body.apps-email-page .email-toolbar-form .form-control,
+    body.apps-email-page .email-toolbar-form .form-select {
+        min-width: 0;
+    }
+
+    body.apps-email-page .email-toolbar-form {
+        width: 100%;
+    }
+
+    body.apps-email-page .email-toolbar-actions {
+        gap: 0.75rem;
+        flex-wrap: wrap;
     }
 
     body.apps-email-page .modal-backdrop.show {
@@ -512,8 +622,24 @@ include 'includes/header.php';
                 </a>
                 <h5 class="mb-0 text-capitalize"><?php echo email_esc($mailbox); ?></h5>
             </div>
-            <div class="page-header-right ms-auto">
-                <span class="text-muted small"><?php echo count($list); ?> message(s)</span>
+            <div class="page-header-right ms-auto w-100" style="max-width: 620px;">
+                <form method="get" action="apps-email.php" class="d-flex align-items-center justify-content-end email-toolbar-form">
+                    <input type="hidden" name="mailbox" value="<?php echo email_esc($mailbox); ?>">
+                    <div class="d-flex align-items-center justify-content-end email-toolbar-actions w-100">
+                        <?php if ($mailbox === 'inbox'): ?>
+                            <select name="filter" class="form-select form-select-sm" style="max-width: 140px;">
+                                <option value="all" <?php echo $filter === 'all' ? 'selected' : ''; ?>>All Mail</option>
+                                <option value="unread" <?php echo $filter === 'unread' ? 'selected' : ''; ?>>Unread</option>
+                            </select>
+                        <?php endif; ?>
+                        <input type="search" name="q" class="form-control form-control-sm" placeholder="Search mail" value="<?php echo email_esc($search); ?>" style="max-width: 220px;">
+                        <button type="submit" class="btn btn-light btn-sm">Apply</button>
+                        <?php if ($search !== '' || ($mailbox === 'inbox' && $filter !== 'all')): ?>
+                            <a href="<?php echo email_esc(email_build_url($mailbox)); ?>" class="btn btn-link btn-sm text-decoration-none">Reset</a>
+                        <?php endif; ?>
+                        <span class="text-muted small"><?php echo count($list); ?> message(s)</span>
+                    </div>
+                </form>
             </div>
         </div>
 
@@ -565,6 +691,27 @@ include 'includes/header.php';
                                 <div><strong>To:</strong> <?php echo email_esc($selected['recipient_name']); ?><?php echo $selected['recipient_email'] !== '' ? ' &lt;' . email_esc($selected['recipient_email']) . '&gt;' : ''; ?></div>
                                 <div><strong>Date:</strong> <?php echo email_esc(email_time_label($selected['created_at'])); ?></div>
                             </div>
+                            <div class="d-flex flex-wrap gap-2 mb-3">
+                                <a
+                                    href="<?php echo email_esc(email_build_url($mailbox, [
+                                        'view' => $selected['id'],
+                                        'compose' => 1,
+                                        'to' => $mailbox === 'inbox' ? (int)$selected['sender_user_id'] : (int)$selected['recipient_user_id'],
+                                        'subject' => (stripos($selected['subject'], 'Re:') === 0 ? $selected['subject'] : ('Re: ' . $selected['subject'])),
+                                    ])); ?>"
+                                    class="btn btn-outline-primary btn-sm"
+                                >
+                                    <i class="feather-corner-up-left me-1"></i>Reply
+                                </a>
+                                <form method="post" action="apps-email.php" onsubmit="return confirm('Remove this email from your <?php echo email_esc($mailbox); ?>?');">
+                                    <input type="hidden" name="action" value="delete-email">
+                                    <input type="hidden" name="email_id" value="<?php echo (int)$selected['id']; ?>">
+                                    <input type="hidden" name="mailbox" value="<?php echo email_esc($mailbox); ?>">
+                                    <button type="submit" class="btn btn-outline-danger btn-sm">
+                                        <i class="feather-trash-2 me-1"></i>Delete
+                                    </button>
+                                </form>
+                            </div>
                             <hr>
                             <div class="mb-0 email-body" style="white-space: pre-wrap;"><?php echo nl2br(email_esc($selected['body'])); ?></div>
                         </div>
@@ -594,17 +741,17 @@ include 'includes/header.php';
                         <select name="recipient_user_id" class="form-select" required>
                             <option value="">Select recipient...</option>
                             <?php foreach ($users as $u): ?>
-                                <option value="<?php echo (int)$u['id']; ?>"><?php echo email_esc($u['display_name']); ?><?php echo $u['email'] !== '' ? ' (' . email_esc($u['email']) . ')' : ''; ?></option>
+                                <option value="<?php echo (int)$u['id']; ?>" <?php echo $composeRecipientId === (int)$u['id'] ? 'selected' : ''; ?>><?php echo email_esc($u['display_name']); ?><?php echo $u['email'] !== '' ? ' (' . email_esc($u['email']) . ')' : ''; ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Subject</label>
-                        <input type="text" name="subject" class="form-control" maxlength="255" required>
+                        <input type="text" name="subject" class="form-control" maxlength="255" required value="<?php echo email_esc($composeSubject); ?>">
                     </div>
                     <div class="mb-0">
                         <label class="form-label">Message</label>
-                        <textarea name="body" class="form-control" rows="7" placeholder="Write your message..."></textarea>
+                        <textarea name="body" class="form-control" rows="7" placeholder="Write your message..."><?php echo email_esc($composeBody); ?></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -647,6 +794,12 @@ include 'includes/header.php';
                 }
             });
         }
+
+        <?php if ($composeOpen): ?>
+        if (composeModal && window.bootstrap && window.bootstrap.Modal) {
+            window.bootstrap.Modal.getOrCreateInstance(composeModal).show();
+        }
+        <?php endif; ?>
     })();
 </script>
 

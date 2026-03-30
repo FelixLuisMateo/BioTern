@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/notifications.php';
 
@@ -38,19 +38,29 @@ function chat_normalize_reaction_emoji(string $emoji): string
     }
 
     $reactions = chat_supported_reactions();
+    $supported = array_values($reactions);
+    if (in_array($emoji, $supported, true)) {
+        return $emoji;
+    }
+
+    // Recover older mojibake reaction values without keeping broken-looking text in source.
+    $candidateEncodings = ['Windows-1252', 'ISO-8859-1'];
+    foreach ($candidateEncodings as $sourceEncoding) {
+        $converted = function_exists('mb_convert_encoding')
+            ? @mb_convert_encoding($emoji, 'UTF-8', $sourceEncoding)
+            : @iconv($sourceEncoding, 'UTF-8//IGNORE', $emoji);
+        if (is_string($converted) && $converted !== '' && in_array($converted, $supported, true)) {
+            return $converted;
+        }
+    }
+
     $aliases = [
-        'ðŸ‘' => $reactions['Like'],
         $reactions['Like'] => $reactions['Like'],
-        'â¤ï¸' => $reactions['Love'],
         html_entity_decode('&#10084;', ENT_QUOTES, 'UTF-8') => $reactions['Love'],
         $reactions['Love'] => $reactions['Love'],
-        'ðŸ˜‚' => $reactions['Haha'],
         $reactions['Haha'] => $reactions['Haha'],
-        'ðŸ˜®' => $reactions['Wow'],
         $reactions['Wow'] => $reactions['Wow'],
-        'ðŸ˜¢' => $reactions['Sad'],
         $reactions['Sad'] => $reactions['Sad'],
-        'ðŸ˜¡' => $reactions['Angry'],
         $reactions['Angry'] => $reactions['Angry'],
     ];
 
@@ -112,7 +122,7 @@ function chat_avatar_path(string $profilePicture, int $userId = 0): string
         return $normalized;
     }
 
-    // No picture stored â€“ use a numbered default avatar so different users look distinct
+    // No picture stored; use a numbered default avatar so different users look distinct.
     $num = $userId > 0 ? (($userId % 12) + 1) : 1;
     return 'assets/images/avatar/' . $num . '.png';
 }
@@ -348,7 +358,7 @@ function chat_moderation_error(string $text): string
         }
     }
 
-    // Native-script check — Korean Hangul, Japanese, Chinese, accented Spanish
+    // Native-script check for Korean Hangul, Japanese, Chinese, and accented Spanish
     $blockedNativeTerms = [
         '시발', '씨발', '개새끼', '병신', '지랄', '창녀', '보지', '자지',
         'くそ', 'くたばれ', 'ちんこ', 'まんこ', '死ね', 'うんこ',
@@ -433,7 +443,7 @@ function chat_normalize_messages(array $messages, int $currentUserId): array
         $createdAt = (string)($message['created_at'] ?? '');
         $ts = $createdAt !== '' ? strtotime($createdAt) : 0;
         $timeExact = $ts > 0
-            ? (date('Y-m-d', $ts) === $todayDate ? date('g:i A', $ts) : date('M j Â· g:i A', $ts))
+            ? (date('Y-m-d', $ts) === $todayDate ? date('g:i A', $ts) : date('M j · g:i A', $ts))
             : '';
         $timeFull = $ts > 0 ? date('F j, Y \a\t g:i A', $ts) : '';
         $timeClock = $ts > 0 ? date('g:i A', $ts) : '';
@@ -1851,7 +1861,7 @@ include 'includes/header.php';
             text-shadow: none;
         }
     }
-    /* â”€â”€ Light mode tokens (default) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    /* Light mode tokens (default) */
     :root {
         --chat-shell-bg: #eef2f6;
         --chat-shell-shadow: 0 4px 24px rgba(13, 16, 28, 0.08);
@@ -1896,7 +1906,7 @@ include 'includes/header.php';
         --chat-empty-color: rgba(17, 24, 39, 0.76);
     }
 
-    /* â”€â”€ Dark mode overrides â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    /* Dark mode overrides */
     html.app-skin-dark {
         --chat-shell-bg: #111827;
         --chat-shell-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
@@ -2055,7 +2065,7 @@ include 'includes/header.php';
         color: var(--chat-search-placeholder);
     }
 
-    /* Explicit dark-mode overrides â€“ beat the app theme's input rules */
+    /* Explicit dark-mode overrides to beat the app theme input rules */
     html.app-skin-dark .btchat-search {
         background-color: #121a2d !important;
         border-color: rgba(255, 255, 255, 0.2) !important;
@@ -3435,17 +3445,17 @@ include 'includes/header.php';
         width: 100%;
     }
 
-    /* â”€â”€ Message grouping â€“ own (right, teal) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    /* Message grouping: own (right, teal) */
     .msg-row.own .msg-bubble.msg-group-first  { border-radius: 14px 14px 6px 14px; }
     .msg-row.own .msg-bubble.msg-group-middle { border-radius: 14px 6px 6px 14px; }
     .msg-row.own .msg-bubble.msg-group-last   { border-radius: 6px 14px 14px 14px; }
 
-    /* â”€â”€ Message grouping â€“ other (left, gray) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    /* Message grouping: other (left, gray) */
     .msg-row:not(.own) .msg-bubble.msg-group-first  { border-radius: 14px 14px 14px 6px; }
     .msg-row:not(.own) .msg-bubble.msg-group-middle { border-radius: 6px 14px 14px 6px; }
     .msg-row:not(.own) .msg-bubble.msg-group-last   { border-radius: 6px 14px 14px 14px; }
 
-    /* â”€â”€ Thread avatar (left side, other's messages) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    /* Thread avatar (left side, other messages) */
     .msg-thread-avatar {
         width: 28px;
         height: 28px;
@@ -3479,7 +3489,7 @@ include 'includes/header.php';
         visibility: hidden;
     }
 
-    /* â”€â”€ Date separator â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    /* Date separator */
     .msg-date-sep {
         display: flex;
         align-items: center;
@@ -3498,7 +3508,7 @@ include 'includes/header.php';
         background: var(--chat-header-border);
     }
 
-    /* â”€â”€ Sent / Seen status â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    /* Sent / Seen status */
     .msg-seen {
         text-align: right;
         font-size: 0.74rem;
@@ -3508,7 +3518,7 @@ include 'includes/header.php';
         font-weight: 600;
     }
 
-    /* â”€â”€ Scroll-to-bottom button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    /* Scroll-to-bottom button */
     #chat-scroll-btn {
         position: absolute;
         bottom: 5.5rem;
@@ -6181,7 +6191,7 @@ include 'includes/header.php';
             });
         }
 
-        // â”€â”€ Media attach button & preview â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // Media attach button and preview
         var mediaInputEl = document.getElementById('chat-media-input');
         var attachBtnEl = document.getElementById('chat-attach-btn');
         var previewEl = document.getElementById('chat-media-preview');
@@ -6355,6 +6365,19 @@ include 'includes/header.php';
             attachBtnEl.addEventListener('click', function () {
                 mediaInputEl.click();
             });
+            attachBtnEl.addEventListener('keydown', function (event) {
+                if (event.key !== 'Enter' || event.shiftKey || isMobileLayout()) {
+                    return;
+                }
+                var hasMediaAttached = mediaInputEl.files && mediaInputEl.files.length > 0;
+                if (!hasMediaAttached) {
+                    return;
+                }
+                event.preventDefault();
+                if (formEl) {
+                    formEl.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+                }
+            });
             mediaInputEl.addEventListener('change', function () {
                 var file = mediaInputEl.files && mediaInputEl.files[0];
                 if (!file) { clearMediaPreview(); updateSendBtn(); return; }
@@ -6385,6 +6408,12 @@ include 'includes/header.php';
                     }
                 }
                 updateSendBtn();
+                if (attachBtnEl) { attachBtnEl.blur(); }
+                if (inputEl) {
+                    window.setTimeout(function () {
+                        inputEl.focus();
+                    }, 0);
+                }
             });
         }
 
@@ -6392,6 +6421,7 @@ include 'includes/header.php';
             previewRemoveEl.addEventListener('click', function () {
                 clearMediaPreview();
                 updateSendBtn();
+                if (inputEl) { inputEl.focus(); }
             });
         }
 
@@ -6534,29 +6564,43 @@ include 'includes/header.php';
             });
         }
 
-        // â”€â”€ BioTern Chat compose behavior: auto-grow + Enter to send â”€â”€
+        // BioTern Chat compose behavior: auto-grow + Enter to send
         function autoGrowInput() {
             if (!inputEl) { return; }
             inputEl.style.height = 'auto';
             inputEl.style.height = Math.min(inputEl.scrollHeight, 140) + 'px';
         }
 
+        function trySubmitComposeShortcut(event) {
+            if (!formEl || !inputEl) { return; }
+            if (event.key !== 'Enter' || event.shiftKey || isMobileLayout()) {
+                return;
+            }
+
+            var target = event.target;
+            if (target && target.closest && target.closest('#chat-emoji-picker')) {
+                return;
+            }
+            if (target && target.tagName) {
+                var tagName = String(target.tagName).toUpperCase();
+                if (tagName === 'BUTTON' || tagName === 'SELECT') {
+                    return;
+                }
+            }
+
+            var hasMediaOnEnter = mediaInputEl && mediaInputEl.files && mediaInputEl.files.length > 0;
+            var hasTextOnEnter = inputEl.value.replace(/[\r\n\s]+/g, '') !== '';
+            if (!hasTextOnEnter && !hasMediaOnEnter) {
+                return;
+            }
+
+            event.preventDefault();
+            formEl.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+        }
+
         if (inputEl) {
             inputEl.addEventListener('keydown', function (event) {
-                if (event.key === 'Enter' && !event.shiftKey) {
-                    if (isMobileLayout()) {
-                        return;
-                    }
-                    event.preventDefault();
-                    var hasMediaOnEnter = mediaInputEl && mediaInputEl.files && mediaInputEl.files.length > 0;
-                    var hasTextOnEnter = inputEl.value.replace(/[\r\n\s]+/g, '') !== '';
-                    if (!hasTextOnEnter && !hasMediaOnEnter) {
-                        return;
-                    }
-                    if (formEl) {
-                        formEl.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
-                    }
-                }
+                trySubmitComposeShortcut(event);
             });
             inputEl.addEventListener('input', function () {
                 autoGrowInput();
@@ -6567,6 +6611,12 @@ include 'includes/header.php';
         }
 
         if (formEl) {
+            formEl.addEventListener('keydown', function (event) {
+                if (event.defaultPrevented || event.target === inputEl) {
+                    return;
+                }
+                trySubmitComposeShortcut(event);
+            });
             formEl.addEventListener('submit', function (event) {
                 event.preventDefault();
                 if (!selectedUserId || !inputEl) {
@@ -6877,3 +6927,6 @@ if (empty($isAjaxRequest)) {
     }
 }
 ?>
+
+
+

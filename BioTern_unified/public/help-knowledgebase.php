@@ -118,7 +118,6 @@ if ($session_avatar !== '') {
                         <ul class="nxl-submenu">
                             <li class="nxl-item"><a class="nxl-link" href="apps-chat.php">Chat</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="apps-email.php">Email</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="apps-tasks.php">Tasks</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="apps-notes.php">Notes</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="apps-storage.php">Storage</a></li>
                             <li class="nxl-item"><a class="nxl-link" href="apps-calendar.php">Calendar</a></li>
