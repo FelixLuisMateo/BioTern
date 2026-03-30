@@ -12,7 +12,7 @@ $nav_is_student = ($nav_role === 'student');
 
 $nav_can_internship = ($nav_is_admin || $nav_is_coordinator || $nav_is_supervisor);
 $nav_can_academic = ($nav_is_admin || $nav_is_coordinator);
-$nav_can_workspace = ($nav_is_admin || $nav_is_coordinator);
+$nav_can_workspace = ($nav_is_admin || $nav_is_coordinator || $nav_is_supervisor || $nav_is_student);
 $nav_can_system = $nav_is_admin;
 $nav_can_reports = ($nav_is_admin || $nav_is_coordinator || $nav_is_supervisor);
 $nav_root = isset($base_href) && is_string($base_href) ? $base_href : '';
@@ -74,9 +74,15 @@ if (!function_exists('nav_page_href')) {
         $path = ltrim($file, '/');
         $host = strtolower((string)($_SERVER['HTTP_HOST'] ?? ''));
         $is_vercel = ((string)getenv('VERCEL') !== '') || strpos($host, 'vercel.app') !== false;
+        $rootFilePath = dirname(__DIR__) . '/' . $path;
 
         if ($is_vercel && preg_match('/\.php$/i', $path)) {
             $path = preg_replace('/\.php$/i', '', $path);
+            return htmlspecialchars($root . $path, ENT_QUOTES, 'UTF-8');
+        }
+
+        if (preg_match('/\.php$/i', $path) && !is_file($rootFilePath)) {
+            return htmlspecialchars($root . 'legacy_router.php?file=' . rawurlencode($path), ENT_QUOTES, 'UTF-8');
         }
 
         return htmlspecialchars($root . $path, ENT_QUOTES, 'UTF-8');
@@ -96,6 +102,14 @@ if (!function_exists('nav_page_href')) {
                 <li class="nxl-item nxl-caption">
                     <span>Main</span>
                 </li>
+                <?php if ($nav_is_student): ?>
+                <li class="nxl-item">
+                    <a href="<?php echo nav_page_href($nav_root, 'homepage.php'); ?>" class="nxl-link">
+                        <span class="nxl-micon"><i class="feather-airplay"></i></span>
+                        <span class="nxl-mtext">Dashboard</span>
+                    </a>
+                </li>
+                <?php else: ?>
                 <li class="nxl-item nxl-hasmenu">
                     <a href="javascript:void(0);" class="nxl-link">
                         <span class="nxl-micon"><i class="feather-airplay"></i></span>
@@ -106,6 +120,7 @@ if (!function_exists('nav_page_href')) {
                         <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'analytics.php'); ?>">Analytics</a></li>
                     </ul>
                 </li>
+                <?php endif; ?>
 
                 <?php if ($nav_can_internship): ?>
                 <li class="nxl-item nxl-caption">
@@ -167,27 +182,23 @@ if (!function_exists('nav_page_href')) {
                 <li class="nxl-item nxl-caption">
                     <span>Student</span>
                 </li>
-                <li class="nxl-item nxl-hasmenu">
-                    <a href="javascript:void(0);" class="nxl-link">
+                <li class="nxl-item">
+                    <a href="<?php echo nav_page_href($nav_root, 'student-profile.php'); ?>" class="nxl-link">
                         <span class="nxl-micon"><i class="feather-user"></i></span>
-                        <span class="nxl-mtext">My Account</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                        <span class="nxl-mtext">My Profile</span>
                     </a>
-                    <ul class="nxl-submenu">
-                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'student-profile.php'); ?>">My Profile</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'attendance.php'); ?>">My DTR</a></li>
-                    </ul>
                 </li>
-                <li class="nxl-item nxl-hasmenu">
-                    <a href="javascript:void(0);" class="nxl-link">
-                        <span class="nxl-micon"><i class="feather-file-text"></i></span>
-                        <span class="nxl-mtext">My Documents</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                <li class="nxl-item">
+                    <a href="<?php echo nav_page_href($nav_root, 'student-dtr.php'); ?>" class="nxl-link">
+                        <span class="nxl-micon"><i class="feather-clock"></i></span>
+                        <span class="nxl-mtext">My DTR</span>
                     </a>
-                    <ul class="nxl-submenu">
-                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'document_application.php'); ?>">Application</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'document_endorsement.php'); ?>">Endorsement</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'document_moa.php'); ?>">MOA</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'document_dau_moa.php'); ?>">Dau MOA</a></li>
-                    </ul>
+                </li>
+                <li class="nxl-item">
+                    <a href="<?php echo nav_page_href($nav_root, 'document_application.php'); ?>" class="nxl-link">
+                        <span class="nxl-micon"><i class="feather-file-text"></i></span>
+                        <span class="nxl-mtext">My Documents</span>
+                    </a>
                 </li>
                 <?php endif; ?>
 
@@ -214,6 +225,38 @@ if (!function_exists('nav_page_href')) {
                 <li class="nxl-item nxl-caption">
                     <span>Workspace</span>
                 </li>
+                <?php if ($nav_is_student): ?>
+                <li class="nxl-item">
+                    <a href="<?php echo nav_page_href($nav_root, 'apps-chat.php'); ?>" class="nxl-link">
+                        <span class="nxl-micon"><i class="feather-message-circle"></i></span>
+                        <span class="nxl-mtext">Chat</span>
+                    </a>
+                </li>
+                <li class="nxl-item">
+                    <a href="<?php echo nav_page_href($nav_root, 'apps-email.php'); ?>" class="nxl-link">
+                        <span class="nxl-micon"><i class="feather-mail"></i></span>
+                        <span class="nxl-mtext">Email</span>
+                    </a>
+                </li>
+                <li class="nxl-item">
+                    <a href="<?php echo nav_page_href($nav_root, 'apps-notes.php'); ?>" class="nxl-link">
+                        <span class="nxl-micon"><i class="feather-edit-3"></i></span>
+                        <span class="nxl-mtext">Notes</span>
+                    </a>
+                </li>
+                <li class="nxl-item">
+                    <a href="<?php echo nav_page_href($nav_root, 'apps-storage.php'); ?>" class="nxl-link">
+                        <span class="nxl-micon"><i class="feather-folder"></i></span>
+                        <span class="nxl-mtext">Storage</span>
+                    </a>
+                </li>
+                <li class="nxl-item">
+                    <a href="<?php echo nav_page_href($nav_root, 'apps-calendar.php'); ?>" class="nxl-link">
+                        <span class="nxl-micon"><i class="feather-calendar"></i></span>
+                        <span class="nxl-mtext">Calendar</span>
+                    </a>
+                </li>
+                <?php else: ?>
                 <li class="nxl-item nxl-hasmenu">
                     <a href="javascript:void(0);" class="nxl-link">
                         <span class="nxl-micon"><i class="feather-send"></i></span>
@@ -227,6 +270,7 @@ if (!function_exists('nav_page_href')) {
                         <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'apps-calendar.php'); ?>">Calendar</a></li>
                     </ul>
                 </li>
+                <?php endif; ?>
                 <?php endif; ?>
 
                 <?php if ($nav_can_system): ?>

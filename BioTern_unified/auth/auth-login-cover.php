@@ -1,6 +1,38 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
+
+if (!function_exists('biotern_session_cookie_path')) {
+    function biotern_session_cookie_path(): string
+    {
+        $scriptName = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
+        $requestUri = str_replace('\\', '/', (string)($_SERVER['REQUEST_URI'] ?? ''));
+        $marker = '/BioTern_unified/';
+
+        $pos = stripos($scriptName, $marker);
+        if ($pos === false) {
+            $pos = stripos($requestUri, $marker);
+            if ($pos !== false) {
+                $base = substr($requestUri, 0, $pos) . $marker;
+                return rtrim('/' . ltrim((string)$base, '/'), '/') . '/';
+            }
+        } else {
+            $base = substr($scriptName, 0, $pos) . $marker;
+            return rtrim('/' . ltrim((string)$base, '/'), '/') . '/';
+        }
+
+        $projectDir = '/' . basename(dirname(__DIR__)) . '/';
+        return preg_replace('#/+#', '/', $projectDir);
+    }
+}
+
 if (session_status() === PHP_SESSION_NONE) {
+    $sessionCookiePath = biotern_session_cookie_path();
+    session_set_cookie_params([
+        'path' => $sessionCookiePath,
+        'secure' => (!empty($_SERVER['HTTPS']) && strtolower((string)$_SERVER['HTTPS']) !== 'off'),
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
     session_start();
 }
 
@@ -232,6 +264,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $login_error = 'Your registration was rejected. Please contact an administrator.';
                     log_login_attempt($mysqli, (int)$user['id'], $identifier, (string)($user['role'] ?? ''), 'failed', 'rejected_application', $client_ip, $client_user_agent);
                 } else {
+                    session_regenerate_id(true);
                     $_SESSION['user_id'] = (int)$user['id'];
                     $_SESSION['name'] = (string)$user['name'];
                     $_SESSION['username'] = (string)$user['username'];

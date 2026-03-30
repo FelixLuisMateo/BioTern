@@ -380,7 +380,7 @@ if ($is_logged_in) {
   if (in_array($file, $academic_files, true) && !in_array($current_role, ['admin', 'coordinator'], true)) {
     $deny = true;
   }
-  if (in_array($file, $workspace_files, true) && !in_array($current_role, ['admin', 'coordinator'], true)) {
+  if (in_array($file, $workspace_files, true) && !in_array($current_role, ['admin', 'coordinator', 'supervisor', 'student'], true)) {
     $deny = true;
   }
   if (in_array($file, $system_files, true) && $current_role !== 'admin') {
@@ -399,6 +399,11 @@ if ($is_logged_in) {
       'document_endorsement.php',
       'document_moa.php',
       'document_dau_moa.php',
+      'apps-chat.php',
+      'apps-email.php',
+      'apps-notes.php',
+      'apps-storage.php',
+      'apps-calendar.php',
       'auth-login-cover.php',
     ];
     $student_readonly_documents = [
