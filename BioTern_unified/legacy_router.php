@@ -151,6 +151,7 @@ $map = [
 
   'api-biometric-event.php' => 'api/api-biometric-event.php',
   'calendar_events.php' => 'api/calendar_events.php',
+  'notes.php' => 'api/notes.php',
   'get_clock_status.php' => 'api/get_clock_status.php',
   'process_attendance.php' => 'api/process_attendance.php',
   'register_fingerprint.php' => 'api/register_fingerprint.php',
@@ -473,4 +474,5 @@ HTML;
 }
 
 require $target;
+
 

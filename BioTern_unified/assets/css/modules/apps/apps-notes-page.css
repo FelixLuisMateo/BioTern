@@ -1,0 +1,617 @@
+.app-notes-shell {
+    --notes-border: rgba(148, 163, 184, 0.18);
+    --notes-text: #e2e8f0;
+    --notes-muted: #94a3b8;
+    color: var(--notes-text);
+}
+
+.app-notes-shell .card {
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(15, 23, 42, 0.9));
+    border: 1px solid var(--notes-border);
+    border-radius: 24px;
+    box-shadow: 0 22px 55px rgba(2, 6, 23, 0.28);
+}
+
+.app-notes-kicker {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #60a5fa;
+}
+
+.app-notes-sidebar-head h2,
+.app-notes-list-head h3,
+.app-notes-editor-empty h3 {
+    margin: 0;
+    color: #f8fafc;
+    font-weight: 800;
+}
+
+.app-notes-editor-empty p,
+.app-notes-list-meta,
+.app-notes-editor-time {
+    margin: 0;
+    color: var(--notes-muted);
+}
+
+.app-notes-sidebar-card,
+.app-notes-list-card,
+.app-notes-editor-card {
+    overflow: visible;
+}
+
+.app-notes-sidebar-card {
+    position: sticky;
+    top: 96px;
+}
+
+.app-notes-sidebar-card .card-body,
+.app-notes-list-card .card-body,
+.app-notes-editor-card .card-body {
+    padding: 1.5rem;
+}
+
+.app-notes-sidebar-card .card-body {
+    display: grid;
+    gap: 1rem;
+}
+
+.app-notes-primary-button,
+.app-notes-secondary-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    width: 100%;
+    min-height: 52px;
+    border: 1px solid rgba(96, 165, 250, 0.28);
+    border-radius: 16px;
+    font-weight: 700;
+    color: #eff6ff;
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.app-notes-secondary-button {
+    width: auto;
+    padding: 0 1.15rem;
+    background: rgba(37, 99, 235, 0.12);
+    color: #bfdbfe;
+}
+
+.app-notes-primary-button:hover,
+.app-notes-secondary-button:hover,
+.app-notes-primary-button:focus-visible,
+.app-notes-secondary-button:focus-visible,
+.app-notes-icon-button:hover,
+.app-notes-icon-button:focus-visible,
+.app-notes-dropdown-item:hover,
+.app-notes-dropdown-item:focus-visible {
+    transform: translateY(-1px);
+}
+
+.app-notes-create-menu {
+    position: relative;
+}
+
+.app-notes-create-dropdown {
+    position: absolute;
+    top: calc(100% + 0.65rem);
+    left: 0;
+    right: 0;
+    z-index: 20;
+    display: grid;
+    gap: 0.45rem;
+    padding: 0.65rem;
+    border: 1px solid rgba(96, 165, 250, 0.18);
+    border-radius: 18px;
+    background: rgba(15, 23, 42, 0.98);
+    box-shadow: 0 18px 36px rgba(2, 6, 23, 0.28);
+}
+
+.app-notes-dropdown-item {
+    min-height: 44px;
+    padding: 0.75rem 0.95rem;
+    border: 1px solid var(--notes-border);
+    border-radius: 14px;
+    background: rgba(15, 23, 42, 0.72);
+    color: #e2e8f0;
+    font-weight: 600;
+    text-align: left;
+}
+
+.app-notes-dropdown-item:hover,
+.app-notes-dropdown-item:focus-visible {
+    border-color: rgba(96, 165, 250, 0.34);
+    background: rgba(37, 99, 235, 0.12);
+}
+
+.app-notes-search {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    min-height: 52px;
+    padding: 0 1rem;
+    border: 1px solid var(--notes-border);
+    border-radius: 16px;
+    background: rgba(15, 23, 42, 0.75);
+    color: var(--notes-muted);
+}
+
+.app-notes-search input,
+.app-notes-title-input,
+.app-notes-body-input,
+.app-notes-field .form-select,
+.app-notes-checklist-item input[type="text"] {
+    border: 0;
+    outline: 0;
+    box-shadow: none;
+    background: transparent;
+    color: #f8fafc;
+}
+
+.app-notes-search input {
+    width: 100%;
+}
+
+.app-notes-search input::placeholder,
+.app-notes-title-input::placeholder,
+.app-notes-body-input::placeholder,
+.app-notes-checklist-item input[type="text"]::placeholder {
+    color: #64748b;
+}
+
+.app-notes-filter-group {
+    display: grid;
+    gap: 0.65rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.app-notes-filter-chip {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.65rem;
+    min-height: 48px;
+    padding: 0 1rem;
+    border: 1px solid var(--notes-border);
+    border-radius: 15px;
+    background: rgba(15, 23, 42, 0.72);
+    color: #cbd5e1;
+    font-weight: 600;
+}
+
+.app-notes-filter-chip strong {
+    min-width: 30px;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    background: rgba(30, 41, 59, 0.95);
+    color: #e2e8f0;
+    font-size: 0.78rem;
+    text-align: center;
+}
+
+.app-notes-filter-chip.is-active {
+    border-color: rgba(96, 165, 250, 0.4);
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.18), rgba(14, 165, 233, 0.12));
+    color: #eff6ff;
+}
+
+.app-notes-list-card .card-body,
+.app-notes-editor-card .card-body {
+    min-height: 720px;
+}
+
+.app-notes-list-head,
+.app-notes-editor-head,
+.app-notes-editor-toolbar,
+.app-notes-checklist-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.app-notes-list-tools {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.app-notes-sort-field {
+    min-width: 116px;
+}
+
+.app-notes-sort-field .form-select {
+    min-height: 38px;
+    border-color: var(--notes-border);
+    border-radius: 12px;
+    background-color: rgba(15, 23, 42, 0.72);
+    color: #f8fafc;
+}
+
+.app-notes-list {
+    display: grid;
+    gap: 0.9rem;
+    margin-top: 1.4rem;
+}
+
+.app-notes-list-item,
+.app-notes-list-empty {
+    position: relative;
+    padding: 1rem 1.05rem;
+    border: 1px solid var(--notes-border);
+    border-radius: 18px;
+    background: linear-gradient(180deg, rgba(20, 31, 58, 0.84), rgba(15, 23, 42, 0.95));
+}
+
+.app-notes-list-item::before {
+    content: '';
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 4px;
+    border-radius: 18px 0 0 18px;
+    background: var(--note-accent, #2563eb);
+}
+
+.app-notes-list-item {
+    display: grid;
+    gap: 0.8rem;
+    cursor: pointer;
+    transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.app-notes-list-item:hover,
+.app-notes-list-item:focus-visible {
+    border-color: rgba(96, 165, 250, 0.38);
+    box-shadow: 0 16px 32px rgba(2, 6, 23, 0.2);
+}
+
+.app-notes-list-item.is-selected {
+    border-color: rgba(96, 165, 250, 0.48);
+    box-shadow: inset 0 0 0 1px rgba(96, 165, 250, 0.22), 0 18px 36px rgba(37, 99, 235, 0.12);
+}
+
+.app-notes-list-top,
+.app-notes-list-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.85rem;
+}
+
+.app-notes-list-title {
+    margin: 0;
+    color: #f8fafc;
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1.35;
+}
+
+.app-notes-list-preview {
+    margin: 0;
+    color: #94a3b8;
+    line-height: 1.6;
+}
+
+.app-notes-meta-badges {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.app-notes-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 28px;
+    padding: 0.2rem 0.7rem;
+    border-radius: 999px;
+    background: rgba(30, 41, 59, 0.92);
+    color: #cbd5e1;
+    font-size: 0.76rem;
+    font-weight: 700;
+}
+
+.app-notes-badge.is-pinned {
+    background: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
+}
+
+.app-notes-badge.is-archived {
+    background: rgba(148, 163, 184, 0.16);
+    color: #cbd5e1;
+}
+
+.app-notes-badge.is-deleted {
+    background: rgba(239, 68, 68, 0.14);
+    color: #fca5a5;
+}
+
+.app-notes-badge.is-category-internship {
+    background: rgba(37, 99, 235, 0.16);
+    color: #93c5fd;
+}
+
+.app-notes-badge.is-category-meeting {
+    background: rgba(139, 92, 246, 0.16);
+    color: #c4b5fd;
+}
+
+.app-notes-badge.is-category-requirement {
+    background: rgba(245, 158, 11, 0.16);
+    color: #fdba74;
+}
+
+.app-notes-badge.is-category-reminder {
+    background: rgba(16, 185, 129, 0.16);
+    color: #6ee7b7;
+}
+
+.app-notes-badge.is-category-personal {
+    background: rgba(236, 72, 153, 0.16);
+    color: #f9a8d4;
+}
+
+.app-notes-badge.is-checklist {
+    background: rgba(96, 165, 250, 0.16);
+    color: #bfdbfe;
+}
+
+.app-notes-badge.is-progress {
+    background: rgba(59, 130, 246, 0.12);
+    color: #dbeafe;
+}
+
+.app-notes-editor-empty,
+.app-notes-editor {
+    height: 100%;
+}
+
+.app-notes-editor-empty {
+    display: grid;
+    place-content: center;
+    gap: 0.95rem;
+    min-height: 650px;
+    text-align: center;
+}
+
+.app-notes-editor {
+    display: grid;
+    grid-template-rows: auto auto 1fr;
+    gap: 1.2rem;
+    min-height: 650px;
+}
+
+.app-notes-editor-head {
+    align-items: flex-start;
+}
+
+.app-notes-editor-title-wrap {
+    display: grid;
+    gap: 0.5rem;
+    width: 100%;
+}
+
+.app-notes-title-input {
+    width: 100%;
+    padding: 0;
+    font-size: clamp(1.8rem, 2vw, 2.4rem);
+    font-weight: 800;
+    line-height: 1.1;
+}
+
+.app-notes-editor-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+}
+
+.app-notes-icon-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border: 1px solid var(--notes-border);
+    border-radius: 14px;
+    background: rgba(15, 23, 42, 0.72);
+    color: #cbd5e1;
+}
+
+.app-notes-icon-button.is-active {
+    border-color: rgba(96, 165, 250, 0.4);
+    background: rgba(37, 99, 235, 0.14);
+    color: #bfdbfe;
+}
+
+.app-notes-icon-button.is-danger {
+    color: #fca5a5;
+}
+
+.app-notes-icon-button:hover,
+.app-notes-icon-button:focus-visible {
+    border-color: rgba(96, 165, 250, 0.38);
+    color: #f8fafc;
+}
+
+.app-notes-field {
+    display: grid;
+    gap: 0.55rem;
+    min-width: 0;
+}
+
+.app-notes-field > span,
+.app-notes-checklist-head span {
+    color: #cbd5e1;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.app-notes-field .form-select {
+    min-height: 48px;
+    padding: 0.75rem 2.2rem 0.75rem 1rem;
+    border: 1px solid var(--notes-border);
+    border-radius: 14px;
+    background-color: rgba(15, 23, 42, 0.72);
+    color: #f8fafc;
+}
+
+.app-notes-field-color .form-control-color {
+    width: 100%;
+    min-height: 48px;
+    border: 1px solid var(--notes-border);
+    border-radius: 14px;
+    background-color: rgba(15, 23, 42, 0.72);
+}
+
+.app-notes-editor-state {
+    display: grid;
+    justify-items: end;
+    gap: 0.45rem;
+}
+
+.app-notes-body-input {
+    width: 100%;
+    min-height: 420px;
+    padding: 1rem 1.1rem;
+    border: 1px solid var(--notes-border);
+    border-radius: 20px;
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.78), rgba(15, 23, 42, 0.92));
+    line-height: 1.8;
+    resize: none;
+}
+
+.app-notes-checklist {
+    display: grid;
+    gap: 1rem;
+}
+
+.app-notes-checklist-list {
+    display: grid;
+    gap: 0.8rem;
+}
+
+.app-notes-checklist-item {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 0.65rem;
+    align-items: center;
+    padding: 0.85rem 0.95rem;
+    border: 1px solid var(--notes-border);
+    border-radius: 16px;
+    background: rgba(15, 23, 42, 0.72);
+}
+
+.app-notes-checklist-item input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+}
+
+.app-notes-checklist-remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border: 1px solid rgba(239, 68, 68, 0.24);
+    border-radius: 12px;
+    background: rgba(239, 68, 68, 0.08);
+    color: #fca5a5;
+}
+
+.app-notes-checklist-empty,
+.app-notes-list-empty {
+    text-align: center;
+    color: var(--notes-muted);
+}
+
+.app-notes-checklist-empty {
+    padding: 1rem;
+    border: 1px dashed rgba(148, 163, 184, 0.25);
+    border-radius: 16px;
+}
+
+@media (max-width: 1399.98px) {
+    .app-notes-list-card .card-body,
+    .app-notes-editor-card .card-body {
+        min-height: auto;
+    }
+
+    .app-notes-editor-empty,
+    .app-notes-editor {
+        min-height: 560px;
+    }
+}
+
+@media (max-width: 991.98px) {
+    .app-notes-sidebar-card {
+        position: static;
+    }
+
+    .app-notes-sidebar-card .card-body,
+    .app-notes-list-card .card-body,
+    .app-notes-editor-card .card-body {
+        padding: 1.15rem;
+    }
+
+    .app-notes-editor-head,
+    .app-notes-editor-toolbar,
+    .app-notes-checklist-head {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .app-notes-editor-actions {
+        justify-content: flex-start;
+    }
+
+    .app-notes-editor-state {
+        justify-items: start;
+    }
+
+    .app-notes-list-tools {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .app-notes-body-input {
+        min-height: 320px;
+    }
+
+    .app-notes-filter-group {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .app-notes-primary-button,
+    .app-notes-secondary-button,
+    .app-notes-filter-chip {
+        min-height: 46px;
+    }
+
+    .app-notes-list-top,
+    .app-notes-list-bottom,
+    .app-notes-checklist-item {
+        grid-template-columns: 1fr;
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .app-notes-list-tools {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .app-notes-title-input {
+        font-size: 1.65rem;
+    }
+}
