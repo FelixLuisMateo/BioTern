@@ -282,6 +282,74 @@ if (!function_exists('isWithinConfiguredAttendanceWindow')) {
     }
 }
 
+if (!function_exists('biometricMachineSchoolHours')) {
+    function biometricMachineSchoolHours(array $machineConfig): array
+    {
+        $start = section_schedule_format_time_input((string)($machineConfig['attendanceStartTime'] ?? '08:00:00'));
+        $end = section_schedule_format_time_input((string)($machineConfig['attendanceEndTime'] ?? '19:00:00'));
+
+        return [
+            'schedule_time_in' => $start !== '' ? $start : '08:00',
+            'schedule_time_out' => $end !== '' ? $end : '19:00',
+            'late_after_time' => $start !== '' ? $start : '08:00',
+        ];
+    }
+}
+
+if (!function_exists('biometricMachineTimeWithOffset')) {
+    function biometricMachineTimeWithOffset(string $time, int $offsetMinutes): string
+    {
+        $ts = strtotime($time);
+        if ($ts === false) {
+            return $time;
+        }
+
+        return date('H:i:s', $ts + ($offsetMinutes * 60));
+    }
+}
+
+if (!function_exists('biometricMachineHardWindow')) {
+    function biometricMachineHardWindow(array $machineConfig, array $effectiveSchedule = []): array
+    {
+        $schoolHours = biometricMachineSchoolHours($machineConfig);
+        $scheduleIn = section_schedule_normalize_time_input((string)($schoolHours['schedule_time_in'] ?? '')) ?: '08:00:00';
+        $scheduleOut = section_schedule_normalize_time_input((string)($schoolHours['schedule_time_out'] ?? '')) ?: '19:00:00';
+
+        $earlyAllowance = isset($machineConfig['maxEarlyArrivalMinutes']) ? max(0, (int)$machineConfig['maxEarlyArrivalMinutes']) : 120;
+        $lateAllowance = isset($machineConfig['maxLateDepartureMinutes']) ? max(0, (int)$machineConfig['maxLateDepartureMinutes']) : 120;
+
+        return [
+            'start' => biometricMachineTimeWithOffset($scheduleIn, -$earlyAllowance),
+            'end' => biometricMachineTimeWithOffset($scheduleOut, $lateAllowance),
+            'early_allowance_minutes' => $earlyAllowance,
+            'late_allowance_minutes' => $lateAllowance,
+        ];
+    }
+}
+
+if (!function_exists('biometricMachineIsWithinHardWindow')) {
+    function biometricMachineIsWithinHardWindow(string $time, array $machineConfig, array $effectiveSchedule = []): bool
+    {
+        $time = section_schedule_normalize_time_input($time);
+        if ($time === null) {
+            return false;
+        }
+
+        $window = biometricMachineHardWindow($machineConfig, $effectiveSchedule);
+        $start = section_schedule_normalize_time_input((string)($window['start'] ?? ''));
+        $end = section_schedule_normalize_time_input((string)($window['end'] ?? ''));
+        if ($start === null || $end === null) {
+            return true;
+        }
+
+        if ($start <= $end) {
+            return $time >= $start && $time <= $end;
+        }
+
+        return $time >= $start || $time <= $end;
+    }
+}
+
 if (!function_exists('buildFingerprintStudentMap')) {
     function buildFingerprintStudentMap(mysqli $conn): array
     {
@@ -451,6 +519,30 @@ if (!function_exists('syncAttendanceFromBiometricLog')) {
     function syncAttendanceFromBiometricLog(mysqli $conn, int $studentId, string $date, string $time, int $clockType, ?string $hintColumn, ?int $rawLogId = null, ?int $fingerId = null, ?int $userId = null, array $machineConfig = [], array $studentSchedule = []): array
     {
         consolidateDuplicateBiometricAttendanceRows($conn, $studentId, $date);
+        $effectiveSchedule = section_schedule_effective_day($studentSchedule, $date, biometricMachineSchoolHours($machineConfig));
+
+        if (!biometricMachineIsWithinHardWindow($time, $machineConfig, $effectiveSchedule)) {
+            $hardWindow = biometricMachineHardWindow($machineConfig, $effectiveSchedule);
+            biometric_ops_record_anomaly(
+                $conn,
+                $rawLogId,
+                $fingerId,
+                $userId,
+                $studentId,
+                'outside_hard_attendance_window',
+                'warning',
+                $date . ' ' . $time,
+                'Biometric punch was skipped because it is too far outside the allowed school attendance safety window.',
+                [
+                    'attendance_date' => $date,
+                    'time' => $time,
+                    'hard_window_start' => $hardWindow['start'] ?? null,
+                    'hard_window_end' => $hardWindow['end'] ?? null,
+                    'window_source' => $effectiveSchedule['window_source'] ?? null,
+                ]
+            );
+            return ['changed' => false, 'anomalies_found' => 1];
+        }
 
         $existing = $conn->prepare("
             SELECT id, morning_time_in, morning_time_out, afternoon_time_in, afternoon_time_out
@@ -490,7 +582,7 @@ if (!function_exists('syncAttendanceFromBiometricLog')) {
             return ['changed' => false, 'anomalies_found' => 1];
         }
 
-        $column = resolveAttendanceColumnForPunch($row, $clockType, $hintColumn, $time, $machineConfig, $studentSchedule);
+        $column = resolveAttendanceColumnForPunch($row, $clockType, $hintColumn, $time, $machineConfig, $effectiveSchedule);
         if ($column === null) {
             biometric_ops_record_anomaly(
                 $conn,
@@ -556,7 +648,7 @@ if (!function_exists('resolveAttendanceColumnForPunch')) {
 
         // The F20H logs currently arrive as generic punches with type=1, so advance through slots in order.
         if ($clockType === 1) {
-            $session = section_schedule_normalize_session((string)($effectiveSchedule['attendance_session'] ?? 'whole_day'));
+            $session = section_schedule_inferred_session($effectiveSchedule);
             if (section_schedule_prefers_afternoon_entry($effectiveSchedule)) {
                 if (trim((string)($attendanceRow['afternoon_time_in'] ?? '')) === '') {
                     return 'afternoon_time_in';
@@ -684,24 +776,45 @@ if (!function_exists('resolveWholeDayAttendanceSplitTime')) {
         $scheduledIn = section_schedule_normalize_time_input((string)($schedule['schedule_time_in'] ?? ''));
         $scheduledOut = section_schedule_normalize_time_input((string)($schedule['schedule_time_out'] ?? ''));
 
-        if ($scheduledIn !== null && strcmp($scheduledIn, '12:00:00') >= 0) {
-            return '12:00:00';
+        if ($scheduledIn !== null && $scheduledOut !== null) {
+            $startTs = strtotime($scheduledIn);
+            $endTs = strtotime($scheduledOut);
+            if ($startTs !== false && $endTs !== false && $endTs > $startTs) {
+                $midpointTs = (int)round(($startTs + $endTs) / 2);
+                $splitTime = date('H:i:s', $midpointTs);
+                if (strcmp($splitTime, '11:00:00') < 0) {
+                    return '11:00:00';
+                }
+                if (strcmp($splitTime, '15:00:00') > 0) {
+                    return '15:00:00';
+                }
+                return $splitTime;
+            }
         }
 
-        if ($scheduledOut !== null && strcmp($scheduledOut, '12:00:00') <= 0) {
-            return '12:00:00';
-        }
-
-        return '12:00:00';
+        return '13:00:00';
     }
 }
 
 if (!function_exists('resolveWholeDayAttendanceExitTime')) {
     function resolveWholeDayAttendanceExitTime(array $schedule): string
     {
+        $splitTime = resolveWholeDayAttendanceSplitTime($schedule);
         $scheduledOut = section_schedule_normalize_time_input((string)($schedule['schedule_time_out'] ?? ''));
-        if ($scheduledOut !== null && strcmp($scheduledOut, '15:00:00') >= 0) {
-            return substr($scheduledOut, 0, 8);
+        if ($scheduledOut !== null) {
+            $endTs = strtotime($scheduledOut);
+            $splitTs = strtotime($splitTime);
+            if ($endTs !== false && $splitTs !== false && $endTs > $splitTs) {
+                $exitTs = (int)round($splitTs + (($endTs - $splitTs) * 0.5));
+                $exitTime = date('H:i:s', $exitTs);
+                if (strcmp($exitTime, '15:00:00') < 0) {
+                    return '15:00:00';
+                }
+                if (strcmp($exitTime, $scheduledOut) > 0) {
+                    return substr($scheduledOut, 0, 8);
+                }
+                return $exitTime;
+            }
         }
 
         return '15:00:00';

@@ -50,6 +50,66 @@ $hasDeptDeletedAt = has_col($deptCols, 'deleted_at');
 
 $flash = null;
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['sections_action'] ?? '') === 'bulk_delete') {
+    $selectedIds = array_values(array_unique(array_filter(array_map('intval', (array)($_POST['section_ids'] ?? [])))));
+    if ($selectedIds === []) {
+        $flash = 'No sections selected for deletion.';
+    } else {
+        $deletedCount = 0;
+        $skippedLabels = [];
+        foreach ($selectedIds as $sectionId) {
+            $checkStmt = $conn->prepare("
+                SELECT s.id, s.code, s.name, COUNT(st.id) AS student_count
+                FROM sections s
+                LEFT JOIN students st ON st.section_id = s.id
+                WHERE s.id = ?
+                GROUP BY s.id, s.code, s.name
+                LIMIT 1
+            ");
+            if (!$checkStmt) {
+                continue;
+            }
+            $checkStmt->bind_param('i', $sectionId);
+            $checkStmt->execute();
+            $sectionRow = $checkStmt->get_result()->fetch_assoc();
+            $checkStmt->close();
+            if (!$sectionRow) {
+                continue;
+            }
+
+            $studentCount = (int)($sectionRow['student_count'] ?? 0);
+            $sectionLabel = trim((string)($sectionRow['name'] ?? ''));
+            if ($sectionLabel === '') {
+                $sectionLabel = trim((string)($sectionRow['code'] ?? ''));
+            }
+            if ($studentCount > 0) {
+                $skippedLabels[] = $sectionLabel;
+                continue;
+            }
+
+            $deleteStmt = $conn->prepare("DELETE FROM sections WHERE id = ? LIMIT 1");
+            if (!$deleteStmt) {
+                continue;
+            }
+            $deleteStmt->bind_param('i', $sectionId);
+            $deleteStmt->execute();
+            if ($deleteStmt->affected_rows > 0) {
+                $deletedCount++;
+            }
+            $deleteStmt->close();
+        }
+
+        $messages = [];
+        if ($deletedCount > 0) {
+            $messages[] = $deletedCount . ' section(s) deleted.';
+        }
+        if ($skippedLabels !== []) {
+            $messages[] = 'Skipped sections with enrolled students: ' . implode(', ', array_slice($skippedLabels, 0, 8)) . (count($skippedLabels) > 8 ? '...' : '');
+        }
+        $flash = $messages !== [] ? implode(' ', $messages) : 'No sections were deleted.';
+    }
+}
+
 $filter_q = trim((string)($_GET['q'] ?? ''));
 $filter_course = isset($_GET['course_id']) ? (int)$_GET['course_id'] : 0;
 $filter_department = isset($_GET['department_id']) ? (int)$_GET['department_id'] : 0;
@@ -98,7 +158,7 @@ if ($hasSectionDepartment && $filter_department > 0) {
 if (!empty($optWhere)) {
     $sectionOptionSql .= " WHERE " . implode(' AND ', $optWhere);
 }
-$sectionOptionSql .= " ORDER BY code ASC, name ASC LIMIT 500";
+$sectionOptionSql .= " ORDER BY CAST(CASE WHEN name REGEXP '^[0-9]+[A-Za-z]$' THEN LEFT(name, CHAR_LENGTH(name) - 1) ELSE '9999' END AS UNSIGNED) ASC, CASE WHEN name REGEXP '^[0-9]+[A-Za-z]$' THEN RIGHT(name, 1) ELSE name END ASC, name ASC, id ASC LIMIT 500";
 $sectionOptRes = $conn->query($sectionOptionSql);
 if ($sectionOptRes) {
     while ($row = $sectionOptRes->fetch_assoc()) {
@@ -166,7 +226,7 @@ if ($hasSectionDepartment) {
 if (!empty($where)) {
     $sectionSql .= "WHERE " . implode(' AND ', $where) . " ";
 }
-$sectionSql .= "ORDER BY s.id DESC LIMIT 300";
+$sectionSql .= "ORDER BY CAST(CASE WHEN s.name REGEXP '^[0-9]+[A-Za-z]$' THEN LEFT(s.name, CHAR_LENGTH(s.name) - 1) ELSE '9999' END AS UNSIGNED) ASC, CASE WHEN s.name REGEXP '^[0-9]+[A-Za-z]$' THEN RIGHT(s.name, 1) ELSE s.name END ASC, s.name ASC, s.id ASC LIMIT 300";
 
 $sections = [];
 $sectionRes = $conn->query($sectionSql);
@@ -265,6 +325,23 @@ include 'includes/header.php';
     .select2-container {
         z-index: auto !important;
     }
+
+    .sections-delete-mode .sections-bulk-column,
+    .sections-delete-mode .sections-bulk-actions {
+        display: table-cell !important;
+    }
+
+    .sections-bulk-column,
+    .sections-bulk-actions {
+        display: none;
+    }
+
+    .sections-action-stack {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
 </style>
 <div class="page-header">
     <div class="page-header-left d-flex align-items-center">
@@ -277,6 +354,8 @@ include 'includes/header.php';
         </ul>
     </div>
     <div class="page-header-right ms-auto d-flex gap-2">
+        <button type="button" class="btn btn-outline-danger" id="toggleDeleteModeBtn">Delete Sections</button>
+        <button type="submit" form="sectionsBulkDeleteForm" class="btn btn-danger sections-bulk-actions" id="deleteSelectedSectionsBtn">Delete Selected</button>
         <a href="sections-create.php" class="btn btn-primary">Create Section</a>
     </div>
 </div>
@@ -357,15 +436,19 @@ include 'includes/header.php';
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover mb-0">
+                <form method="post" id="sectionsBulkDeleteForm">
+                    <input type="hidden" name="sections_action" value="bulk_delete">
+                <table class="table table-hover mb-0" id="sectionsTable">
                     <thead>
                         <tr>
+                            <th class="sections-bulk-column">
+                                <input type="checkbox" id="sectionsCheckAll">
+                            </th>
                             <th>ID</th>
                             <th>Code</th>
                             <th>Name</th>
                             <th>Course</th>
                             <?php if ($hasSectionDepartment): ?><th>Department</th><?php endif; ?>
-                            <th>Schedule</th>
                             <?php if ($hasSectionStatus || $hasSectionIsActive): ?><th>Status</th><?php endif; ?>
                             <?php if ($hasSectionCreatedAt): ?><th>Created</th><?php endif; ?>
                             <th>Actions</th>
@@ -375,18 +458,14 @@ include 'includes/header.php';
                     <?php if (!empty($sections)): ?>
                         <?php foreach ($sections as $sec): ?>
                             <tr>
+                                <td class="sections-bulk-column">
+                                    <input type="checkbox" class="sections-row-checkbox" name="section_ids[]" value="<?php echo (int)$sec['id']; ?>">
+                                </td>
                                 <td><?php echo (int)$sec['id']; ?></td>
                                 <td><?php echo htmlspecialchars((string)($sec['code'] ?? '')); ?></td>
                                 <td><?php echo htmlspecialchars((string)($sec['name'] ?? '')); ?></td>
                                 <td><?php echo htmlspecialchars((string)($sec['course_name'] ?? '-')); ?></td>
                                 <?php if ($hasSectionDepartment): ?><td><?php echo htmlspecialchars((string)($sec['department_name'] ?? '-')); ?></td><?php endif; ?>
-                                <td>
-                                    <?php
-                                    $schedule = section_schedule_from_row($sec);
-                                    $scheduleParts = section_schedule_summary_lines($schedule);
-                                    ?>
-                                    <small><?php echo htmlspecialchars(implode(' || ', $scheduleParts)); ?></small>
-                                </td>
                                 <?php if ($hasSectionStatus || $hasSectionIsActive): ?>
                                     <td>
                                         <?php
@@ -404,7 +483,9 @@ require_once dirname(__DIR__) . '/config/db.php';
                                 <?php endif; ?>
                                 <?php if ($hasSectionCreatedAt): ?><td><?php echo htmlspecialchars((string)($sec['created_at'] ?? '-')); ?></td><?php endif; ?>
                                 <td>
-                                    <a href="sections-edit.php?id=<?php echo (int)$sec['id']; ?>" class="btn btn-sm btn-outline-primary">Edit</a>
+                                    <div class="sections-action-stack">
+                                        <a href="sections-edit.php?id=<?php echo (int)$sec['id']; ?>" class="btn btn-sm btn-outline-primary">Edit</a>
+                                    </div>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -417,6 +498,7 @@ require_once dirname(__DIR__) . '/config/db.php';
                     <?php endif; ?>
                     </tbody>
                 </table>
+                </form>
             </div>
         </div>
     </div>
@@ -477,6 +559,58 @@ document.addEventListener('DOMContentLoaded', function () {
         ['#filter-course', '#filter-department', '#filter-section', '#filter-status'].forEach(function (selector) {
             if ($(selector).length) {
                 $(selector).on('select2:select select2:clear', submitFilters);
+            }
+        });
+    }
+
+    var sectionsTable = document.getElementById('sectionsTable');
+    var toggleDeleteModeBtn = document.getElementById('toggleDeleteModeBtn');
+    var deleteSelectedSectionsBtn = document.getElementById('deleteSelectedSectionsBtn');
+    var checkAll = document.getElementById('sectionsCheckAll');
+    var rowCheckboxes = Array.prototype.slice.call(document.querySelectorAll('.sections-row-checkbox'));
+
+    function setDeleteMode(enabled) {
+        if (!sectionsTable) return;
+        sectionsTable.classList.toggle('sections-delete-mode', enabled);
+        if (deleteSelectedSectionsBtn) {
+            deleteSelectedSectionsBtn.classList.toggle('sections-bulk-actions', !enabled);
+            deleteSelectedSectionsBtn.style.display = enabled ? '' : 'none';
+        }
+        if (toggleDeleteModeBtn) {
+            toggleDeleteModeBtn.textContent = enabled ? 'Cancel Delete' : 'Delete Sections';
+            toggleDeleteModeBtn.classList.toggle('btn-outline-danger', !enabled);
+            toggleDeleteModeBtn.classList.toggle('btn-secondary', enabled);
+        }
+        if (!enabled) {
+            rowCheckboxes.forEach(function (checkbox) { checkbox.checked = false; });
+            if (checkAll) checkAll.checked = false;
+        }
+    }
+
+    if (toggleDeleteModeBtn) {
+        toggleDeleteModeBtn.addEventListener('click', function () {
+            var enabled = !(sectionsTable && sectionsTable.classList.contains('sections-delete-mode'));
+            setDeleteMode(enabled);
+        });
+    }
+
+    if (checkAll) {
+        checkAll.addEventListener('change', function () {
+            rowCheckboxes.forEach(function (checkbox) { checkbox.checked = checkAll.checked; });
+        });
+    }
+
+    var bulkForm = document.getElementById('sectionsBulkDeleteForm');
+    if (bulkForm) {
+        bulkForm.addEventListener('submit', function (event) {
+            var selectedCount = rowCheckboxes.filter(function (checkbox) { return checkbox.checked; }).length;
+            if (selectedCount === 0) {
+                event.preventDefault();
+                alert('Select at least one section to delete.');
+                return;
+            }
+            if (!window.confirm('Delete the selected section(s)? Sections with enrolled students will be skipped.')) {
+                event.preventDefault();
             }
         });
     }

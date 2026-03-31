@@ -245,3 +245,30 @@ if (!function_exists('biometric_ops_fetch_open_anomaly_count')) {
         return (int)($row['total'] ?? 0);
     }
 }
+
+if (!function_exists('biometric_ops_close_anomaly')) {
+    function biometric_ops_close_anomaly(mysqli $conn, int $anomalyId): bool
+    {
+        biometric_ops_ensure_tables($conn);
+
+        if ($anomalyId <= 0) {
+            return false;
+        }
+
+        $stmt = $conn->prepare("
+            UPDATE biometric_anomalies
+            SET status = 'closed',
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ? AND status <> 'closed'
+        ");
+        if ($stmt === false) {
+            return false;
+        }
+        $stmt->bind_param('i', $anomalyId);
+        $stmt->execute();
+        $changed = $stmt->affected_rows > 0;
+        $stmt->close();
+
+        return $changed;
+    }
+}

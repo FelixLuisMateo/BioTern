@@ -5,6 +5,7 @@ require_once dirname(__DIR__) . '/tools/biometric_auto_import.php';
 require_once dirname(__DIR__) . '/tools/biometric_ops.php';
 require_once dirname(__DIR__) . '/tools/cleanup_biometric_duplicates.php';
 require_once dirname(__DIR__) . '/tools/rebuild_biometric_date.php';
+require_once dirname(__DIR__) . '/tools/repair_biometric_attendance.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -176,6 +177,118 @@ function machine_decode_raw_log_entry(string $rawData): array
     return is_array($decoded) ? $decoded : [];
 }
 
+function machine_repair_summary_text(array $result): string
+{
+    $audits = isset($result['audits']) && is_array($result['audits']) ? $result['audits'] : [];
+    $rebuilt = isset($result['rebuilt']) && is_array($result['rebuilt']) ? $result['rebuilt'] : [];
+    $flaggedDates = [];
+    foreach ($audits as $audit) {
+        if (!empty($audit['needs_rebuild']) && !empty($audit['date'])) {
+            $flaggedDates[] = (string)$audit['date'];
+        }
+    }
+
+    $summary = 'Audited ' . count($audits) . ' biometric date(s).';
+    if ($rebuilt !== []) {
+        $summary .= ' Rebuilt ' . count($rebuilt) . ' date(s).';
+    } elseif ($flaggedDates !== []) {
+        $summary .= ' ' . count($flaggedDates) . ' date(s) need repair.';
+    } else {
+        $summary .= ' No suspicious biometric dates were found.';
+    }
+
+    if ($flaggedDates !== []) {
+        $summary .= ' Dates: ' . implode(', ', array_slice($flaggedDates, 0, 10));
+        if (count($flaggedDates) > 10) {
+            $summary .= '...';
+        }
+    }
+
+    return $summary;
+}
+
+function machine_repair_rows(array $result): array
+{
+    $rows = [];
+    $audits = isset($result['audits']) && is_array($result['audits']) ? $result['audits'] : [];
+    $rebuiltByDate = [];
+    foreach ((isset($result['rebuilt']) && is_array($result['rebuilt']) ? $result['rebuilt'] : []) as $rebuilt) {
+        $date = (string)($rebuilt['date'] ?? '');
+        if ($date !== '') {
+            $rebuiltByDate[$date] = $rebuilt;
+        }
+    }
+
+    foreach ($audits as $audit) {
+        $date = (string)($audit['date'] ?? '');
+        if ($date === '') {
+            continue;
+        }
+        $rebuilt = $rebuiltByDate[$date] ?? [];
+        $rows[] = [
+            'date' => $date,
+            'raw_count' => (int)($audit['raw_count'] ?? 0),
+            'attendance_rows' => (int)($audit['attendance_rows'] ?? 0),
+            'filled_slots' => (int)($audit['filled_slots'] ?? 0),
+            'suspicious_count' => (int)($audit['suspicious_count'] ?? 0),
+            'needs_rebuild' => !empty($audit['needs_rebuild']),
+            'rebuilt' => $rebuilt !== [],
+            'changes' => (int)($rebuilt['attendance_changes_applied'] ?? 0),
+        ];
+    }
+
+    return $rows;
+}
+
+function machine_close_resolved_anomalies(mysqli $conn): int
+{
+    $machineConfig = loadBiometricMachineConfig();
+    $studentScheduleMap = buildStudentAttendanceScheduleMap($conn);
+    $fingerprintMap = buildFingerprintStudentMap($conn);
+
+    $closed = 0;
+    $res = $conn->query("
+        SELECT id, fingerprint_id, student_id, event_time, anomaly_type, status
+        FROM biometric_anomalies
+        WHERE status = 'open'
+          AND anomaly_type = 'outside_hard_attendance_window'
+        ORDER BY id DESC
+    ");
+    if (!$res instanceof mysqli_result) {
+        return 0;
+    }
+
+    while ($row = $res->fetch_assoc()) {
+        $eventTime = (string)($row['event_time'] ?? '');
+        if (!preg_match('/^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2})$/', $eventTime, $matches)) {
+            continue;
+        }
+
+        $date = $matches[1];
+        $time = $matches[2];
+        $studentId = (int)($row['student_id'] ?? 0);
+        if ($studentId <= 0) {
+            $fingerId = (int)($row['fingerprint_id'] ?? 0);
+            $studentId = (int)($fingerprintMap[$fingerId] ?? 0);
+        }
+
+        $schedule = section_schedule_effective_day(
+            $studentScheduleMap[$studentId] ?? section_schedule_from_row([]),
+            $date,
+            biometricMachineSchoolHours($machineConfig)
+        );
+
+        if (biometricMachineIsWithinHardWindow($time, $machineConfig, $schedule)) {
+            if (biometric_ops_close_anomaly($conn, (int)($row['id'] ?? 0))) {
+                $closed++;
+            }
+        }
+    }
+    $res->close();
+
+    return $closed;
+}
+
 function machine_fetch_fingerprint_identity_map(mysqli $conn): array
 {
     biotern_ensure_fingerprint_user_map_table($conn);
@@ -340,6 +453,10 @@ if (isset($_SESSION['machine_manager_flash']) && is_array($_SESSION['machine_man
     $flashType = (string)($_SESSION['machine_manager_flash']['type'] ?? 'info');
     $flashMessage = (string)($_SESSION['machine_manager_flash']['message'] ?? '');
     unset($_SESSION['machine_manager_flash']);
+}
+$lastRepairResult = [];
+if (isset($_SESSION['machine_manager_last_repair']) && is_array($_SESSION['machine_manager_last_repair'])) {
+    $lastRepairResult = $_SESSION['machine_manager_last_repair'];
 }
 
 if ((int)($_GET['load_users'] ?? 0) === 1) {
@@ -619,9 +736,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $existingConfig['outputPath'] = trim((string)($_POST['connector_output_path'] ?? ''));
                 $existingConfig['attendanceWindowEnabled'] = isset($_POST['attendance_window_enabled']);
                 $existingConfig['attendanceStartTime'] = trim((string)($_POST['attendance_start_time'] ?? '08:00:00'));
-                $existingConfig['attendanceEndTime'] = trim((string)($_POST['attendance_end_time'] ?? '20:00:00'));
+                $existingConfig['attendanceEndTime'] = trim((string)($_POST['attendance_end_time'] ?? '19:00:00'));
                 $existingConfig['duplicateGuardMinutes'] = max(1, (int)($_POST['duplicate_guard_minutes'] ?? 10));
                 $existingConfig['slotAdvanceMinimumMinutes'] = max(1, (int)($_POST['slot_advance_minimum_minutes'] ?? 10));
+                $existingConfig['maxEarlyArrivalMinutes'] = max(0, (int)($_POST['max_early_arrival_minutes'] ?? 120));
+                $existingConfig['maxLateDepartureMinutes'] = max(0, (int)($_POST['max_late_departure_minutes'] ?? 120));
                 $selectedRouterPreset = trim((string)($_POST['router_preset'] ?? 'custom'));
                 $allowedRouterPresets = ['router_1', 'router_2', 'custom'];
                 $existingConfig['selectedRouterPreset'] = in_array($selectedRouterPreset, $allowedRouterPresets, true) ? $selectedRouterPreset : 'custom';
@@ -635,6 +754,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 machine_connector_write_config($machineConfigPath, $existingConfig);
                 $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Quick connector settings updated.'];
+                machine_redirect_after_post([]);
+
+            case 'repair_attendance_dry_run':
+                $repairDryRun = repair_biometric_attendance($conn, true);
+                $_SESSION['machine_manager_last_repair'] = $repairDryRun;
+                $_SESSION['machine_manager_flash'] = [
+                    'type' => 'info',
+                    'message' => machine_repair_summary_text($repairDryRun),
+                ];
+                machine_redirect_after_post([]);
+
+            case 'repair_attendance_apply':
+                $repairResult = repair_biometric_attendance($conn, false);
+                $_SESSION['machine_manager_last_repair'] = $repairResult;
+                biometric_ops_log_audit(
+                    $conn,
+                    (int)($_SESSION['user_id'] ?? 0),
+                    $role,
+                    'repair_biometric_attendance',
+                    'biometric_attendance',
+                    null,
+                    ['repair_result' => $repairResult]
+                );
+                $_SESSION['machine_manager_flash'] = [
+                    'type' => 'success',
+                    'message' => machine_repair_summary_text($repairResult),
+                ];
+                machine_redirect_after_post([]);
+
+            case 'close_resolved_anomalies':
+                $closedCount = machine_close_resolved_anomalies($conn);
+                biometric_ops_log_audit(
+                    $conn,
+                    (int)($_SESSION['user_id'] ?? 0),
+                    $role,
+                    'close_resolved_anomalies',
+                    'biometric_anomalies',
+                    null,
+                    ['closed_count' => $closedCount]
+                );
+                $_SESSION['machine_manager_flash'] = [
+                    'type' => 'success',
+                    'message' => $closedCount > 0
+                        ? ('Closed ' . $closedCount . ' resolved anomaly record(s).')
+                        : 'No resolved anomalies needed closing.',
+                ];
                 machine_redirect_after_post([]);
 
             case 'clear_records':
@@ -767,9 +932,11 @@ $connectorPassword = is_array($connectorConfig) ? (string)($connectorConfig['com
 $connectorOutputPath = is_array($connectorConfig) ? (string)($connectorConfig['outputPath'] ?? '') : '';
 $connectorWindowEnabled = is_array($connectorConfig) ? !empty($connectorConfig['attendanceWindowEnabled']) : false;
 $connectorStartTime = is_array($connectorConfig) ? (string)($connectorConfig['attendanceStartTime'] ?? '08:00:00') : '08:00:00';
-$connectorEndTime = is_array($connectorConfig) ? (string)($connectorConfig['attendanceEndTime'] ?? '20:00:00') : '20:00:00';
+$connectorEndTime = is_array($connectorConfig) ? (string)($connectorConfig['attendanceEndTime'] ?? '19:00:00') : '19:00:00';
 $duplicateGuardMinutes = is_array($connectorConfig) ? (int)($connectorConfig['duplicateGuardMinutes'] ?? 10) : 10;
 $slotAdvanceMinimumMinutes = is_array($connectorConfig) ? (int)($connectorConfig['slotAdvanceMinimumMinutes'] ?? 10) : 10;
+$maxEarlyArrivalMinutes = is_array($connectorConfig) ? (int)($connectorConfig['maxEarlyArrivalMinutes'] ?? 120) : 120;
+$maxLateDepartureMinutes = is_array($connectorConfig) ? (int)($connectorConfig['maxLateDepartureMinutes'] ?? 120) : 120;
 $selectedRouterPreset = is_array($connectorConfig) ? (string)($connectorConfig['selectedRouterPreset'] ?? 'custom') : 'custom';
 $quickRouterOptions = [
     'router_1' => [
@@ -1343,11 +1510,19 @@ include __DIR__ . '/../includes/header.php';
                                 </div>
                                 <div class="col-sm-6">
                                     <label class="form-label">Window End</label>
-                                    <input type="text" name="attendance_end_time" class="form-control" value="<?php echo machine_h($connectorEndTime); ?>" placeholder="20:00:00">
+                                    <input type="text" name="attendance_end_time" class="form-control" value="<?php echo machine_h($connectorEndTime); ?>" placeholder="19:00:00">
+                                </div>
+                                <div class="col-sm-6">
+                                    <label class="form-label">Max Early Arrival</label>
+                                    <input type="number" name="max_early_arrival_minutes" class="form-control" value="<?php echo machine_h((string)$maxEarlyArrivalMinutes); ?>" min="0" max="360">
+                                </div>
+                                <div class="col-sm-6">
+                                    <label class="form-label">Max Late Departure</label>
+                                    <input type="number" name="max_late_departure_minutes" class="form-control" value="<?php echo machine_h((string)$maxLateDepartureMinutes); ?>" min="0" max="360">
                                 </div>
                                 <div class="col-12 d-flex flex-wrap gap-2">
                                     <button type="submit" class="btn btn-primary">Save Quick Router Settings</button>
-                                    <small class="text-muted align-self-center">Use 10 minutes as the safe duplicate guard and slot step when you want imports to ignore near-duplicate scans.</small>
+                                    <small class="text-muted align-self-center">Recommended baseline: 08:00:00 to 19:00:00, 10-minute duplicate guard, 120-minute early/late safety window.</small>
                                 </div>
                             </form>
                         </div>
@@ -1507,7 +1682,15 @@ include __DIR__ . '/../includes/header.php';
             <?php if ($isAdmin): ?>
                 <div class="col-xl-6">
                     <div class="card stretch stretch-full">
-                        <div class="card-header"><h6 class="card-title mb-0">Recent Anomalies</h6></div>
+                        <div class="card-header d-flex flex-wrap justify-content-between gap-2 align-items-start">
+                            <div>
+                                <h6 class="card-title mb-0">Recent Anomalies</h6>
+                            </div>
+                            <form method="post" class="m-0">
+                                <input type="hidden" name="machine_action" value="close_resolved_anomalies">
+                                <button type="submit" class="btn btn-sm btn-outline-secondary">Close Resolved</button>
+                            </form>
+                        </div>
                         <div class="card-body p-0">
                             <div class="table-responsive">
                                 <table class="table table-sm mb-0">
@@ -1543,10 +1726,90 @@ include __DIR__ . '/../includes/header.php';
                                         <?php endif; ?>
                                     </tbody>
                                 </table>
-                            </div>
+                </div>
+            </div>
+
+            <div class="col-12">
+                <div class="card stretch stretch-full">
+                    <div class="card-header d-flex flex-wrap justify-content-between gap-2 align-items-start">
+                        <div>
+                            <h6 class="card-title mb-0">Attendance Repair</h6>
+                            <div class="text-muted fs-12 mt-1">Audit raw biometric dates, detect suspicious days, and rebuild attendance safely from raw logs when needed.</div>
+                        </div>
+                        <div class="text-end">
+                            <div class="fw-semibold"><?php echo machine_h((string)$openAnomalyCount); ?> open anomalies</div>
+                            <small class="text-muted">Use dry run first, then apply repair if suspicious dates are reported.</small>
                         </div>
                     </div>
+                    <div class="card-body">
+                        <div class="row g-3 align-items-end">
+                            <div class="col-lg-8">
+                                <div class="border rounded p-3 h-100">
+                                    <div class="fw-semibold mb-2">Recommended routine</div>
+                                    <div class="text-muted fs-12">
+                                        1. Sync the machine.
+                                        2. Check anomalies and raw logs.
+                                        3. Run Dry Run Repair.
+                                        4. If suspicious dates are found, run Apply Repair.
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-4">
+                                <div class="d-flex flex-wrap gap-2 justify-content-lg-end">
+                                    <form method="post" class="m-0">
+                                        <input type="hidden" name="machine_action" value="repair_attendance_dry_run">
+                                        <button type="submit" class="btn btn-outline-primary">Dry Run Repair</button>
+                                    </form>
+                                    <form method="post" class="m-0">
+                                        <input type="hidden" name="machine_action" value="repair_attendance_apply">
+                                        <button type="submit" class="btn btn-primary">Apply Repair</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        <?php $lastRepairRows = machine_repair_rows($lastRepairResult); ?>
+                        <?php if ($lastRepairRows !== []): ?>
+                            <div class="table-responsive mt-3 border rounded">
+                                <table class="table table-sm mb-0 align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Raw</th>
+                                            <th>Rows</th>
+                                            <th>Slots</th>
+                                            <th>Suspicious</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($lastRepairRows as $repairRow): ?>
+                                            <tr>
+                                                <td><?php echo machine_h($repairRow['date']); ?></td>
+                                                <td><?php echo machine_h((string)$repairRow['raw_count']); ?></td>
+                                                <td><?php echo machine_h((string)$repairRow['attendance_rows']); ?></td>
+                                                <td><?php echo machine_h((string)$repairRow['filled_slots']); ?></td>
+                                                <td><?php echo machine_h((string)$repairRow['suspicious_count']); ?></td>
+                                                <td>
+                                                    <?php if ($repairRow['rebuilt']): ?>
+                                                        <span class="badge bg-soft-success text-success">Rebuilt</span>
+                                                        <div class="fs-12 text-muted mt-1"><?php echo machine_h((string)$repairRow['changes']); ?> change(s)</div>
+                                                    <?php elseif ($repairRow['needs_rebuild']): ?>
+                                                        <span class="badge bg-soft-warning text-warning">Needs Repair</span>
+                                                    <?php else: ?>
+                                                        <span class="badge bg-soft-secondary text-secondary">Clean</span>
+                                                    <?php endif; ?>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <?php endif; ?>
+                    </div>
                 </div>
+            </div>
+        </div>
+    </div>
 
                 <div class="col-xl-6">
                     <div class="card stretch stretch-full">
