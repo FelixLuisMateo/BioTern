@@ -1,7 +1,12 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/ojt_masterlist.php';
+require_once dirname(__DIR__) . '/includes/avatar.php';
 // Documents page - provides UI to generate student documents (Application Letter etc.)
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 $host = defined('DB_HOST') ? DB_HOST : 'localhost';
 $db_user = defined('DB_USER') ? DB_USER : 'root';
@@ -35,6 +40,121 @@ function application_document_student(mysqli $conn, int $id): array
     $stmt->close();
 
     return is_array($data) ? $data : [];
+}
+
+function application_document_root_path(): string
+{
+    $marker = '/BioTern_unified/';
+    $sources = [
+        str_replace('\\', '/', (string)($_SERVER['REQUEST_URI'] ?? '')),
+        str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? '')),
+        str_replace('\\', '/', (string)($_SERVER['PHP_SELF'] ?? '')),
+    ];
+
+    foreach ($sources as $source) {
+        $pos = stripos($source, $marker);
+        if ($pos === false) {
+            continue;
+        }
+
+        $prefix = substr($source, 0, $pos);
+        if (strpos($prefix, ':') !== false || stripos($prefix, '/htdocs/') !== false) {
+            $prefix = '';
+        }
+
+        $root = '/' . ltrim($prefix . $marker, '/');
+        $root = preg_replace('#/+#', '/', $root);
+
+        return rtrim((string)$root, '/') . '/';
+    }
+
+    return $marker;
+}
+
+function application_document_current_student_bundle(mysqli $conn): array
+{
+    $currentUserId = (int)($_SESSION['user_id'] ?? 0);
+    $currentRole = strtolower(trim((string)($_SESSION['role'] ?? '')));
+
+    if ($currentRole !== 'student' || $currentUserId <= 0) {
+        return [];
+    }
+
+    $bundle = [
+        'user' => null,
+        'student' => null,
+        'internship' => null,
+    ];
+
+    $userStmt = $conn->prepare('SELECT id, name, email, profile_picture FROM users WHERE id = ? LIMIT 1');
+    if ($userStmt) {
+        $userStmt->bind_param('i', $currentUserId);
+        $userStmt->execute();
+        $bundle['user'] = $userStmt->get_result()->fetch_assoc() ?: null;
+        $userStmt->close();
+    }
+
+    $studentLookupSql = "SELECT s.id, s.student_id, s.first_name, s.middle_name, s.last_name, s.email AS student_email,
+            s.phone, s.address, s.status AS student_status,
+            c.name AS course_name, d.name AS department_name, sec.code AS section_code, sec.name AS section_name
+        FROM students s
+        LEFT JOIN courses c ON c.id = s.course_id
+        LEFT JOIN departments d ON d.id = s.department_id
+        LEFT JOIN sections sec ON sec.id = s.section_id
+        WHERE s.user_id = ?
+        LIMIT 1";
+    $studentStmt = $conn->prepare($studentLookupSql);
+    if ($studentStmt) {
+        $studentStmt->bind_param('i', $currentUserId);
+        $studentStmt->execute();
+        $bundle['student'] = $studentStmt->get_result()->fetch_assoc() ?: null;
+        $studentStmt->close();
+    }
+
+    if (!$bundle['student'] && $bundle['user']) {
+        $fallbackEmail = trim((string)($bundle['user']['email'] ?? ''));
+        $fallbackName = trim((string)($bundle['user']['name'] ?? ''));
+
+        $fallbackStmt = $conn->prepare(
+            "SELECT s.id, s.student_id, s.first_name, s.middle_name, s.last_name, s.email AS student_email,
+                    s.phone, s.address, s.status AS student_status,
+                    c.name AS course_name, d.name AS department_name, sec.code AS section_code, sec.name AS section_name
+             FROM students s
+             LEFT JOIN courses c ON c.id = s.course_id
+             LEFT JOIN departments d ON d.id = s.department_id
+             LEFT JOIN sections sec ON sec.id = s.section_id
+             WHERE ((? <> '' AND LOWER(COALESCE(s.email, '')) = LOWER(?))
+                 OR (? <> '' AND LOWER(TRIM(CONCAT(COALESCE(s.first_name, ''), ' ', COALESCE(s.last_name, '')))) = LOWER(?)))
+             ORDER BY s.id DESC
+             LIMIT 1"
+        );
+
+        if ($fallbackStmt) {
+            $fallbackStmt->bind_param('ssss', $fallbackEmail, $fallbackEmail, $fallbackName, $fallbackName);
+            $fallbackStmt->execute();
+            $bundle['student'] = $fallbackStmt->get_result()->fetch_assoc() ?: null;
+            $fallbackStmt->close();
+        }
+    }
+
+    if ($bundle['student']) {
+        $studentId = (int)($bundle['student']['id'] ?? 0);
+        $internshipStmt = $conn->prepare(
+            "SELECT company_name, position, status, required_hours, rendered_hours, completion_percentage
+             FROM internships
+             WHERE student_id = ? AND deleted_at IS NULL
+             ORDER BY updated_at DESC, id DESC
+             LIMIT 1"
+        );
+        if ($internshipStmt) {
+            $internshipStmt->bind_param('i', $studentId);
+            $internshipStmt->execute();
+            $bundle['internship'] = $internshipStmt->get_result()->fetch_assoc() ?: null;
+            $internshipStmt->close();
+        }
+    }
+
+    return $bundle;
 }
 
 // Simple AJAX endpoints served by this file
@@ -90,6 +210,359 @@ if (isset($_GET['action'])) {
     }
 
     echo json_encode(new stdClass());
+    exit;
+}
+
+$currentRole = strtolower(trim((string)($_SESSION['role'] ?? '')));
+if ($currentRole === 'student') {
+    $studentBundle = application_document_current_student_bundle($conn);
+    $studentUser = $studentBundle['user'] ?? null;
+    $studentRecord = $studentBundle['student'] ?? null;
+    $studentInternship = $studentBundle['internship'] ?? null;
+    $studentId = (int)($studentRecord['id'] ?? 0);
+    $displayName = trim((string)($studentUser['name'] ?? ''));
+    if ($displayName === '') {
+        $displayName = trim((string)(
+            ($studentRecord['first_name'] ?? '') . ' ' .
+            ($studentRecord['middle_name'] ?? '') . ' ' .
+            ($studentRecord['last_name'] ?? '')
+        ));
+    }
+    if ($displayName === '') {
+        $displayName = 'Student User';
+    }
+
+    $courseParts = array_filter([
+        trim((string)($studentRecord['course_name'] ?? '')),
+        trim((string)($studentRecord['section_code'] ?? '')),
+    ]);
+    $courseSummary = !empty($courseParts) ? implode(' | ', $courseParts) : 'No course assigned yet';
+    $avatarSrc = biotern_avatar_public_src((string)($studentUser['profile_picture'] ?? ''), (int)($studentUser['id'] ?? 0));
+    $appRoot = application_document_root_path();
+    $applicationUrl = $studentId > 0 ? $appRoot . 'generate_application_letter.php?id=' . $studentId : '';
+    $resumeUrl = $studentId > 0 ? $appRoot . 'generate_resume.php?id=' . $studentId : '';
+    $resumeUploadUrl = $appRoot . 'apps-storage.php?upload_category=requirements&upload_title=' . rawurlencode('Student Resume') . '&upload_notes=' . rawurlencode('Upload your latest resume here.');
+    $applicationUploadUrl = $appRoot . 'apps-storage.php?upload_category=generated&upload_title=' . rawurlencode('Application Letter') . '&upload_notes=' . rawurlencode('Upload your signed or finalized application letter here.');
+    $page_title = 'BioTern || My Documents';
+    $page_styles = [
+        'assets/css/homepage-student.css',
+    ];
+    include __DIR__ . '/../includes/header.php';
+    ?>
+    <div class="main-content">
+        <div class="student-home-shell">
+            <style>
+                .student-documents-shell {
+                    display: grid;
+                    gap: 24px;
+                }
+
+                .student-documents-hero,
+                .student-documents-panel,
+                .student-documents-side {
+                    border: 1px solid rgba(148, 163, 184, 0.16);
+                    border-radius: 20px;
+                    background: var(--student-panel-bg, #ffffff);
+                    box-shadow: 0 14px 36px rgba(15, 23, 42, 0.06);
+                }
+
+                .student-documents-hero {
+                    padding: 26px 28px;
+                }
+
+                .student-documents-grid {
+                    display: grid;
+                    grid-template-columns: minmax(0, 2fr) minmax(280px, 360px);
+                    gap: 24px;
+                    align-items: start;
+                }
+
+                .student-documents-identity {
+                    display: flex;
+                    align-items: center;
+                    gap: 18px;
+                    margin-bottom: 18px;
+                }
+
+                .student-documents-avatar {
+                    width: 76px;
+                    height: 76px;
+                    border-radius: 22px;
+                    object-fit: cover;
+                    border: 3px solid rgba(59, 130, 246, 0.18);
+                    flex-shrink: 0;
+                }
+
+                .student-documents-kicker {
+                    display: inline-block;
+                    font-size: 11px;
+                    font-weight: 700;
+                    text-transform: uppercase;
+                    letter-spacing: .12em;
+                    color: #4f6de6;
+                    margin-bottom: 8px;
+                }
+
+                .student-documents-title {
+                    margin: 0;
+                    font-size: 2.1rem;
+                    font-weight: 800;
+                    line-height: 1.05;
+                    color: #10203b;
+                }
+
+                .student-documents-copy,
+                .student-documents-meta,
+                .student-documents-muted,
+                .student-documents-side-copy {
+                    color: #5f708a;
+                }
+
+                .student-documents-chip-row {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 10px;
+                    margin-top: 16px;
+                }
+
+                .student-documents-chip {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 8px;
+                    padding: 10px 14px;
+                    border-radius: 999px;
+                    border: 1px solid rgba(59, 130, 246, 0.16);
+                    background: rgba(59, 130, 246, 0.08);
+                    color: #2443a8;
+                    font-size: 13px;
+                    font-weight: 700;
+                }
+
+                .student-documents-panel {
+                    padding: 24px;
+                }
+
+                .student-documents-section-title {
+                    margin: 0 0 8px;
+                    color: #10203b;
+                    font-size: 1.35rem;
+                    font-weight: 800;
+                }
+
+                .student-documents-card-grid {
+                    display: grid;
+                    grid-template-columns: repeat(2, minmax(0, 1fr));
+                    gap: 18px;
+                    margin-top: 18px;
+                }
+
+                .student-documents-card {
+                    border: 1px solid rgba(148, 163, 184, 0.18);
+                    border-radius: 18px;
+                    padding: 22px;
+                    background: rgba(248, 250, 252, 0.88);
+                    display: grid;
+                    gap: 14px;
+                }
+
+                .student-documents-card h3 {
+                    margin: 0;
+                    font-size: 1.2rem;
+                    font-weight: 800;
+                    color: #10203b;
+                }
+
+                .student-documents-card p {
+                    margin: 0;
+                    color: #5f708a;
+                }
+
+                .student-documents-actions {
+                    display: flex;
+                    gap: 10px;
+                    flex-wrap: wrap;
+                }
+
+                .student-documents-actions .btn {
+                    min-width: 148px;
+                }
+
+                .student-documents-side {
+                    padding: 24px;
+                    display: grid;
+                    gap: 18px;
+                }
+
+                .student-documents-side-block {
+                    padding: 18px;
+                    border-radius: 16px;
+                    border: 1px solid rgba(148, 163, 184, 0.16);
+                    background: rgba(248, 250, 252, 0.88);
+                }
+
+                .student-documents-side-label {
+                    display: block;
+                    color: #6b7b92;
+                    font-size: 11px;
+                    font-weight: 700;
+                    text-transform: uppercase;
+                    letter-spacing: .08em;
+                    margin-bottom: 6px;
+                }
+
+                .student-documents-side-value {
+                    color: #10203b;
+                    font-size: 1rem;
+                    font-weight: 700;
+                }
+
+                html.app-skin-dark .student-documents-hero,
+                html.app-skin-dark .student-documents-panel,
+                html.app-skin-dark .student-documents-side {
+                    background: #121b31;
+                    border-color: rgba(71, 85, 105, 0.42);
+                    box-shadow: none;
+                }
+
+                html.app-skin-dark .student-documents-title,
+                html.app-skin-dark .student-documents-section-title,
+                html.app-skin-dark .student-documents-card h3,
+                html.app-skin-dark .student-documents-side-value {
+                    color: #f8fafc;
+                }
+
+                html.app-skin-dark .student-documents-copy,
+                html.app-skin-dark .student-documents-meta,
+                html.app-skin-dark .student-documents-muted,
+                html.app-skin-dark .student-documents-side-copy {
+                    color: #9fb0c6;
+                }
+
+                html.app-skin-dark .student-documents-card,
+                html.app-skin-dark .student-documents-side-block {
+                    background: #1a2740;
+                    border-color: rgba(71, 85, 105, 0.42);
+                }
+
+                html.app-skin-dark .student-documents-chip {
+                    background: rgba(59, 130, 246, 0.14);
+                    border-color: rgba(96, 165, 250, 0.22);
+                    color: #dbeafe;
+                }
+
+                @media (max-width: 1199px) {
+                    .student-documents-grid {
+                        grid-template-columns: 1fr;
+                    }
+                }
+
+                @media (max-width: 767px) {
+                    .student-documents-hero,
+                    .student-documents-panel,
+                    .student-documents-side {
+                        padding: 20px;
+                    }
+
+                    .student-documents-identity {
+                        align-items: flex-start;
+                    }
+
+                    .student-documents-card-grid {
+                        grid-template-columns: 1fr;
+                    }
+                }
+            </style>
+
+            <div class="student-documents-shell">
+                <section class="student-documents-hero">
+                    <span class="student-documents-kicker">My Documents</span>
+                    <div class="student-documents-identity">
+                        <img src="<?php echo htmlspecialchars($avatarSrc, ENT_QUOTES, 'UTF-8'); ?>" alt="Student Avatar" class="student-documents-avatar">
+                        <div>
+                            <h1 class="student-documents-title"><?php echo htmlspecialchars($displayName, ENT_QUOTES, 'UTF-8'); ?></h1>
+                            <div class="student-documents-meta"><?php echo htmlspecialchars($courseSummary, ENT_QUOTES, 'UTF-8'); ?></div>
+                            <p class="student-documents-copy mb-0">Print your own application letter and resume from here whenever you need a fresh copy.</p>
+                        </div>
+                    </div>
+                    <div class="student-documents-chip-row">
+                        <span class="student-documents-chip"><i class="feather-hash"></i> <?php echo htmlspecialchars(trim((string)($studentRecord['student_id'] ?? '')) ?: 'No student number yet', ENT_QUOTES, 'UTF-8'); ?></span>
+                        <span class="student-documents-chip"><i class="feather-file-text"></i> 2 printable documents</span>
+                        <span class="student-documents-chip"><i class="feather-calendar"></i> <?php echo htmlspecialchars(date('M d, Y'), ENT_QUOTES, 'UTF-8'); ?></span>
+                    </div>
+                </section>
+
+                <div class="student-documents-grid">
+                    <section class="student-documents-panel">
+                        <span class="student-documents-kicker">Printable Files</span>
+                        <h2 class="student-documents-section-title">Student Document Center</h2>
+                        <p class="student-documents-muted mb-0">Use the print buttons below to open your ready-to-print BioTern documents in a new tab.</p>
+
+                        <div class="student-documents-card-grid">
+                            <article class="student-documents-card">
+                                <div>
+                                    <h3>Application Letter</h3>
+                                    <p>Open your printable application letter with your student details already filled in, or upload the signed copy to Storage.</p>
+                                </div>
+                                <div class="student-documents-actions">
+                                    <?php if ($applicationUrl !== ''): ?>
+                                        <a href="<?php echo htmlspecialchars($applicationUrl, ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-primary" target="_blank" rel="noopener">Print Application</a>
+                                    <?php else: ?>
+                                        <button type="button" class="btn btn-outline-secondary" disabled>Unavailable</button>
+                                    <?php endif; ?>
+                                    <a href="<?php echo htmlspecialchars($applicationUploadUrl, ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-outline-secondary">Submit Application</a>
+                                </div>
+                            </article>
+
+                            <article class="student-documents-card">
+                                <div>
+                                    <h3>Resume</h3>
+                                    <p>Open your printable resume using the student information already saved in BioTern, or upload your latest resume file.</p>
+                                </div>
+                                <div class="student-documents-actions">
+                                    <?php if ($resumeUrl !== ''): ?>
+                                        <a href="<?php echo htmlspecialchars($resumeUrl, ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-outline-primary" target="_blank" rel="noopener">Print Resume</a>
+                                    <?php else: ?>
+                                        <button type="button" class="btn btn-outline-secondary" disabled>Unavailable</button>
+                                    <?php endif; ?>
+                                    <a href="<?php echo htmlspecialchars($resumeUploadUrl, ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-outline-secondary">Submit Resume</a>
+                                </div>
+                            </article>
+                        </div>
+                    </section>
+
+                    <aside class="student-documents-side">
+                        <div>
+                            <span class="student-documents-kicker">Internship</span>
+                            <h3 class="student-documents-section-title mb-2">Latest Details</h3>
+                            <p class="student-documents-side-copy mb-0">These details help confirm which student record your printable documents are using.</p>
+                        </div>
+
+                        <div class="student-documents-side-block">
+                            <span class="student-documents-side-label">Company</span>
+                            <div class="student-documents-side-value"><?php echo htmlspecialchars(trim((string)($studentInternship['company_name'] ?? '')) ?: 'No company assigned yet', ENT_QUOTES, 'UTF-8'); ?></div>
+                        </div>
+
+                        <div class="student-documents-side-block">
+                            <span class="student-documents-side-label">Position</span>
+                            <div class="student-documents-side-value"><?php echo htmlspecialchars(trim((string)($studentInternship['position'] ?? '')) ?: 'No position assigned yet', ENT_QUOTES, 'UTF-8'); ?></div>
+                        </div>
+
+                        <div class="student-documents-side-block">
+                            <span class="student-documents-side-label">Status</span>
+                            <div class="student-documents-side-value"><?php echo htmlspecialchars(trim((string)($studentInternship['status'] ?? '')) ?: 'Not started', ENT_QUOTES, 'UTF-8'); ?></div>
+                        </div>
+
+                        <div class="student-documents-side-block">
+                            <span class="student-documents-side-label">Email</span>
+                            <div class="student-documents-side-value"><?php echo htmlspecialchars(trim((string)($studentUser['email'] ?? $studentRecord['student_email'] ?? '')) ?: 'No email available', ENT_QUOTES, 'UTF-8'); ?></div>
+                        </div>
+                    </aside>
+                </div>
+            </div>
+        </div>
+    </div>
+    <?php
+    include __DIR__ . '/../includes/footer.php';
     exit;
 }
 
