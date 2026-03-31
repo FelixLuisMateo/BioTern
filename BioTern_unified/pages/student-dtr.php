@@ -88,6 +88,7 @@ $monthOptions = [
 
 $monthStart = $selectedMonth . '-01';
 $monthEnd = date('Y-m-t', strtotime($monthStart));
+$monthLabel = date('F Y', strtotime($monthStart));
 
 $user = null;
 $student = null;
@@ -99,6 +100,16 @@ $attendanceSummary = [
     'pending_logs' => 0,
     'rejected_logs' => 0,
     'total_hours' => 0.0,
+];
+$attendanceInsights = [
+    'approved_hours' => 0.0,
+    'pending_hours' => 0.0,
+    'rejected_hours' => 0.0,
+    'biometric_logs' => 0,
+    'manual_logs' => 0,
+    'days_present' => 0,
+    'average_hours' => 0.0,
+    'last_recorded_date' => '',
 ];
 
 $userStmt = $conn->prepare('SELECT id, name, email, profile_picture FROM users WHERE id = ? LIMIT 1');
@@ -186,18 +197,37 @@ if ($student) {
 
             $attendanceSummary['total_logs']++;
             $attendanceSummary['total_hours'] += $computedHours;
+            $attendanceInsights['days_present']++;
+
+            if ($attendanceInsights['last_recorded_date'] === '') {
+                $attendanceInsights['last_recorded_date'] = (string)($row['attendance_date'] ?? '');
+            }
 
             $statusKey = strtolower(trim((string)($row['status'] ?? 'pending')));
             if ($statusKey === 'approved') {
                 $attendanceSummary['approved_logs']++;
+                $attendanceInsights['approved_hours'] += $computedHours;
             } elseif ($statusKey === 'rejected') {
                 $attendanceSummary['rejected_logs']++;
+                $attendanceInsights['rejected_hours'] += $computedHours;
             } else {
                 $attendanceSummary['pending_logs']++;
+                $attendanceInsights['pending_hours'] += $computedHours;
+            }
+
+            $sourceKey = strtolower(trim((string)($row['source'] ?? 'manual')));
+            if ($sourceKey === 'biometric') {
+                $attendanceInsights['biometric_logs']++;
+            } else {
+                $attendanceInsights['manual_logs']++;
             }
         }
         $attendanceStmt->close();
     }
+}
+
+if ($attendanceSummary['total_logs'] > 0) {
+    $attendanceInsights['average_hours'] = round($attendanceSummary['total_hours'] / $attendanceSummary['total_logs'], 2);
 }
 
 $displayName = trim((string)($user['name'] ?? ''));
@@ -221,6 +251,9 @@ $track = strtolower(trim((string)($student['assignment_track'] ?? 'internal')));
 $remainingHours = $track === 'external'
     ? (int)($student['external_total_hours_remaining'] ?? 0)
     : (int)($student['internal_total_hours_remaining'] ?? 0);
+$lastRecordedDateText = $attendanceInsights['last_recorded_date'] !== ''
+    ? date('M d, Y', strtotime($attendanceInsights['last_recorded_date']))
+    : 'No entries yet';
 
 $page_title = 'BioTern || My DTR';
 $page_styles = [
@@ -230,102 +263,83 @@ $page_styles = [
 include 'includes/header.php';
 ?>
 <div class="main-content">
-    <div class="page-header student-page-header">
-        <div class="page-header-left d-flex align-items-center">
-            <div class="page-header-title">
-                <h5 class="m-b-10">My DTR</h5>
-            </div>
-            <ul class="breadcrumb">
-                <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
-                <li class="breadcrumb-item">Student</li>
-                <li class="breadcrumb-item">My DTR</li>
-            </ul>
-        </div>
-        <div class="page-header-right ms-auto">
-            <span class="badge bg-soft-primary text-primary fs-11">
-                <i class="feather-calendar me-1"></i> <?php echo htmlspecialchars(date('M d, Y'), ENT_QUOTES, 'UTF-8'); ?>
-            </span>
-        </div>
-    </div>
-
     <div class="student-home-shell student-dtr-shell">
-        <div class="row g-4 align-items-start">
-            <div class="col-12 col-xl-9">
-                <section class="card student-home-hero border-0 student-dtr-hero-card">
-                    <div class="card-body">
-                        <div class="student-dtr-hero">
+        <section class="card student-home-hero border-0 student-dtr-hero-card">
+            <div class="card-body">
+                <div class="student-dtr-hero">
+                    <div>
+                        <span class="student-home-eyebrow">Daily Time Record</span>
+                        <div class="student-dtr-persona">
+                            <img src="<?php echo htmlspecialchars($avatarSrc, ENT_QUOTES, 'UTF-8'); ?>" alt="Student Avatar" class="student-dtr-avatar">
                             <div>
-                                <span class="student-home-eyebrow">Daily Time Record</span>
-                                <div class="student-dtr-persona">
-                                    <img src="<?php echo htmlspecialchars($avatarSrc, ENT_QUOTES, 'UTF-8'); ?>" alt="Student Avatar" class="student-dtr-avatar">
-                                    <div>
-                                        <h2 class="student-dtr-title">My DTR</h2>
-                                        <div class="student-dtr-meta"><?php echo htmlspecialchars($displayName, ENT_QUOTES, 'UTF-8'); ?></div>
-                                    </div>
-                                </div>
-                                <div class="student-home-meta student-dtr-chip-row">
-                                    <span><i class="feather-hash me-1"></i><?php echo htmlspecialchars(trim((string)($student['student_id'] ?? '')) !== '' ? (string)$student['student_id'] : 'No student number', ENT_QUOTES, 'UTF-8'); ?></span>
-                                    <?php if (!empty($courseSection)): ?>
-                                    <span><i class="feather-book-open me-1"></i><?php echo htmlspecialchars(implode(' | ', $courseSection), ENT_QUOTES, 'UTF-8'); ?></span>
-                                    <?php endif; ?>
-                                    <span><i class="feather-calendar me-1"></i><?php echo htmlspecialchars(date('F Y', strtotime($monthStart)), ENT_QUOTES, 'UTF-8'); ?></span>
-                                </div>
-                            </div>
-
-                            <form method="get" class="student-dtr-filter">
-                                <div>
-                                    <label class="form-label" for="studentDtrMonthSelect">Month</label>
-                                    <select id="studentDtrMonthSelect" name="month_num" class="form-select">
-                                        <?php foreach ($monthOptions as $monthNumber => $monthLabel): ?>
-                                        <option value="<?php echo $monthNumber; ?>" <?php echo $monthNumber === $selectedMonthNumber ? 'selected' : ''; ?>>
-                                            <?php echo htmlspecialchars($monthLabel, ENT_QUOTES, 'UTF-8'); ?>
-                                        </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="form-label" for="studentDtrYearSelect">Year</label>
-                                    <select id="studentDtrYearSelect" name="year" class="form-select">
-                                        <?php foreach ($availableYears as $yearOption): ?>
-                                        <option value="<?php echo $yearOption; ?>" <?php echo $yearOption === $selectedYear ? 'selected' : ''; ?>>
-                                            <?php echo $yearOption; ?>
-                                        </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </div>
-                                <div>
-                                    <button type="submit" class="btn btn-primary">Apply</button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </section>
-
-                <section class="card mt-4">
-                    <div class="card-body">
-                        <span class="student-metric-label">Month Summary</span>
-                        <div class="student-dtr-metrics">
-                            <div class="student-metric-card student-dtr-metric">
-                                <div class="student-dtr-meta">Total Logs</div>
-                                <strong><?php echo (int)$attendanceSummary['total_logs']; ?></strong>
-                            </div>
-                            <div class="student-metric-card student-dtr-metric">
-                                <div class="student-dtr-meta">Approved</div>
-                                <strong><?php echo (int)$attendanceSummary['approved_logs']; ?></strong>
-                            </div>
-                            <div class="student-metric-card student-dtr-metric">
-                                <div class="student-dtr-meta">Pending</div>
-                                <strong><?php echo (int)$attendanceSummary['pending_logs']; ?></strong>
-                            </div>
-                            <div class="student-metric-card student-dtr-metric">
-                                <div class="student-dtr-meta">Logged Hours</div>
-                                <strong><?php echo number_format((float)$attendanceSummary['total_hours'], 2); ?></strong>
+                                <h2 class="student-dtr-title">My DTR</h2>
+                                <div class="student-dtr-meta"><?php echo htmlspecialchars($displayName, ENT_QUOTES, 'UTF-8'); ?></div>
                             </div>
                         </div>
+                        <div class="student-home-meta student-dtr-chip-row">
+                            <span><i class="feather-hash me-1"></i><?php echo htmlspecialchars(trim((string)($student['student_id'] ?? '')) !== '' ? (string)$student['student_id'] : 'No student number', ENT_QUOTES, 'UTF-8'); ?></span>
+                            <?php if (!empty($courseSection)): ?>
+                            <span><i class="feather-book-open me-1"></i><?php echo htmlspecialchars(implode(' | ', $courseSection), ENT_QUOTES, 'UTF-8'); ?></span>
+                            <?php endif; ?>
+                            <span><i class="feather-calendar me-1"></i><?php echo htmlspecialchars($monthLabel, ENT_QUOTES, 'UTF-8'); ?></span>
+                        </div>
                     </div>
-                </section>
 
-                <section class="card student-panel mt-4">
+                    <form method="get" class="student-dtr-filter">
+                        <div>
+                            <label class="form-label" for="studentDtrMonthSelect">Month</label>
+                            <select id="studentDtrMonthSelect" name="month_num" class="form-select">
+                                <?php foreach ($monthOptions as $monthNumber => $monthLabelOption): ?>
+                                <option value="<?php echo $monthNumber; ?>" <?php echo $monthNumber === $selectedMonthNumber ? 'selected' : ''; ?>>
+                                    <?php echo htmlspecialchars($monthLabelOption, ENT_QUOTES, 'UTF-8'); ?>
+                                </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label" for="studentDtrYearSelect">Year</label>
+                            <select id="studentDtrYearSelect" name="year" class="form-select">
+                                <?php foreach ($availableYears as $yearOption): ?>
+                                <option value="<?php echo $yearOption; ?>" <?php echo $yearOption === $selectedYear ? 'selected' : ''; ?>>
+                                    <?php echo $yearOption; ?>
+                                </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div>
+                            <button type="submit" class="btn btn-primary">Apply</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <div class="student-dtr-metrics">
+            <article class="student-metric-card student-dtr-metric">
+                <div class="student-dtr-meta">Total Logs</div>
+                <strong><?php echo (int)$attendanceSummary['total_logs']; ?></strong>
+                <small>Recorded entries for <?php echo htmlspecialchars($monthLabel, ENT_QUOTES, 'UTF-8'); ?>.</small>
+            </article>
+            <article class="student-metric-card student-dtr-metric">
+                <div class="student-dtr-meta">Approved</div>
+                <strong><?php echo (int)$attendanceSummary['approved_logs']; ?></strong>
+                <small><?php echo number_format((float)$attendanceInsights['approved_hours'], 2); ?> approved hours.</small>
+            </article>
+            <article class="student-metric-card student-dtr-metric">
+                <div class="student-dtr-meta">Pending</div>
+                <strong><?php echo (int)$attendanceSummary['pending_logs']; ?></strong>
+                <small><?php echo number_format((float)$attendanceInsights['pending_hours'], 2); ?> hours waiting.</small>
+            </article>
+            <article class="student-metric-card student-dtr-metric">
+                <div class="student-dtr-meta">Logged Hours</div>
+                <strong><?php echo number_format((float)$attendanceSummary['total_hours'], 2); ?></strong>
+                <small>Average <?php echo number_format((float)$attendanceInsights['average_hours'], 2); ?> hours per entry.</small>
+            </article>
+        </div>
+
+        <div class="row g-4 align-items-start mt-0">
+            <div class="col-12 col-xl-8">
+                <section class="card student-panel">
                     <div class="card-body">
                         <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
                             <div>
@@ -378,14 +392,14 @@ include 'includes/header.php';
                             </table>
                         </div>
                         <?php else: ?>
-                        <div class="student-dtr-empty">No DTR entries found for <?php echo htmlspecialchars(date('F Y', strtotime($monthStart)), ENT_QUOTES, 'UTF-8'); ?> yet.</div>
+                        <div class="student-dtr-empty">No DTR entries found for <?php echo htmlspecialchars($monthLabel, ENT_QUOTES, 'UTF-8'); ?> yet.</div>
                         <?php endif; ?>
                     </div>
                 </section>
             </div>
 
-            <div class="col-12 col-xl-3">
-                <section class="card student-panel">
+            <div class="col-12 col-xl-4">
+                <section class="card student-panel student-dtr-side-card">
                     <div class="card-body">
                         <span class="student-metric-label">Internship</span>
                         <h3 class="mb-3">Progress</h3>
@@ -413,6 +427,35 @@ include 'includes/header.php';
                             <div>
                                 <span>Remaining on record</span>
                                 <strong><?php echo number_format(max(0, $remainingHours), 0); ?> hrs</strong>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="card student-panel mt-4 student-dtr-side-card">
+                    <div class="card-body">
+                        <span class="student-metric-label">Month Snapshot</span>
+                        <h3 class="mb-3">Attendance Insight</h3>
+                        <div class="student-detail-list student-dtr-side-list">
+                            <div>
+                                <span>Days with logs</span>
+                                <strong><?php echo (int)$attendanceInsights['days_present']; ?></strong>
+                            </div>
+                            <div>
+                                <span>Biometric entries</span>
+                                <strong><?php echo (int)$attendanceInsights['biometric_logs']; ?></strong>
+                            </div>
+                            <div>
+                                <span>Manual entries</span>
+                                <strong><?php echo (int)$attendanceInsights['manual_logs']; ?></strong>
+                            </div>
+                            <div>
+                                <span>Rejected logs</span>
+                                <strong><?php echo (int)$attendanceSummary['rejected_logs']; ?></strong>
+                            </div>
+                            <div>
+                                <span>Last recorded day</span>
+                                <strong><?php echo htmlspecialchars($lastRecordedDateText, ENT_QUOTES, 'UTF-8'); ?></strong>
                             </div>
                         </div>
                     </div>

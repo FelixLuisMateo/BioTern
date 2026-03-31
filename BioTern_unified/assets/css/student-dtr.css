@@ -74,7 +74,6 @@
     color: #4a72d8;
 }
 
-.student-dtr-filter .form-control,
 .student-dtr-filter .form-select {
     min-width: 190px;
     height: 48px;
@@ -90,22 +89,10 @@
     appearance: none;
 }
 
-.student-dtr-filter .form-control:focus,
 .student-dtr-filter .form-select:focus {
     border-color: rgba(101, 144, 255, 0.7);
     box-shadow: 0 0 0 0.2rem rgba(76, 120, 240, 0.16);
     background: #ffffff;
-}
-
-.student-dtr-filter .form-control::-webkit-calendar-picker-indicator {
-    filter: invert(1);
-    opacity: 0.9;
-    cursor: pointer;
-}
-
-.student-dtr-filter .form-select {
-    padding-right: 2.5rem;
-    background-image: none;
 }
 
 .student-dtr-filter .btn {
@@ -141,6 +128,12 @@
     color: #0f172a;
     font-size: 1.65rem;
     font-weight: 800;
+}
+
+.student-dtr-metric small {
+    display: block;
+    margin-top: 0.35rem;
+    color: #64748b;
 }
 
 .student-dtr-table-wrap {
@@ -225,14 +218,16 @@
     color: #64748b;
 }
 
-html.app-skin-dark .student-dtr-filter .form-control,
+.student-dtr-side-card {
+    height: 100%;
+}
+
 html.app-skin-dark .student-dtr-filter .form-select {
     background: rgba(8, 15, 32, 0.58);
     border-color: rgba(120, 146, 214, 0.18);
     color: #f8fbff;
 }
 
-html.app-skin-dark .student-dtr-filter .form-control:focus,
 html.app-skin-dark .student-dtr-filter .form-select:focus {
     background: rgba(8, 15, 32, 0.72);
 }
@@ -252,7 +247,8 @@ html.app-skin-dark .student-dtr-title {
     color: #fff;
 }
 
-html.app-skin-dark .student-dtr-meta {
+html.app-skin-dark .student-dtr-meta,
+html.app-skin-dark .student-dtr-metric small {
     color: rgba(237, 242, 255, 0.82);
 }
 
@@ -268,10 +264,6 @@ html.app-skin-dark .student-dtr-shell .student-home-meta span {
 
 html.app-skin-dark .student-dtr-filter .form-label {
     color: rgba(224, 233, 255, 0.78);
-}
-
-html.app-skin-dark .student-dtr-filter .form-select {
-    background-image: none;
 }
 
 html.app-skin-dark .student-dtr-metric,
@@ -325,7 +317,6 @@ html.app-skin-dark .student-dtr-empty {
         flex: 1 1 auto;
     }
 
-    .student-dtr-filter .form-control,
     .student-dtr-filter .form-select,
     .student-dtr-filter .btn {
         width: 100%;
