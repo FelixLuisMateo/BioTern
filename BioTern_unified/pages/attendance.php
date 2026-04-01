@@ -331,7 +331,11 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
         foreach ($attendances as $idx => $attendance) {
             $checkboxId = 'checkBox_' . $attendance['id'] . '_' . $idx;
             echo '<tr class="single-item">';
-            echo '<td><div class="item-checkbox ms-1"><div class="custom-control custom-checkbox"><input type="checkbox" class="custom-control-input checkbox" id="' . $checkboxId . '" data-attendance-id="' . (int)$attendance['id'] . '"><label class="custom-control-label" for="' . $checkboxId . '"></label></div></div></td>';
+            if (attendanceCanReview($attendance)) {
+                echo '<td><div class="item-checkbox ms-1"><div class="custom-control custom-checkbox"><input type="checkbox" class="custom-control-input checkbox" id="' . $checkboxId . '" data-attendance-id="' . (int)$attendance['id'] . '"><label class="custom-control-label" for="' . $checkboxId . '"></label></div></div></td>';
+            } else {
+                echo '<td><span class="text-muted fs-12" title="Biometric records are auto-verified">Auto</span></td>';
+            }
             // build avatar (use uploaded profile picture when available)
             $avatar_html = '<a href="students-view.php?id=' . $attendance['student_id'] . '" class="hstack gap-3">';
             $pp_url = resolve_attendance_profile_image_url((string)($attendance['profile_picture'] ?? ''));
@@ -351,15 +355,14 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
             echo '<td>' . attendance_hours_cell_html($attendance) . '</td>';
             echo '<td>' . attendance_status_cell_html($attendance) . '</td>';
             echo '<td>' . getSourceBadge($attendance['source'] ?? 'manual', $attendance) . '</td>';
-            echo '<td>' . getStatusBadge($attendance['status']) . '</td>';
+            echo '<td>' . getReviewBadge($attendance) . '</td>';
             $student_name = trim((string)($attendance['first_name'] ?? '') . ' ' . (string)($attendance['last_name'] ?? ''));
             $approval_status_label = ucfirst((string)($attendance['status'] ?? 'pending'));
             $morning_in_text = $attendance['morning_time_in'] ? date('h:i A', strtotime($attendance['morning_time_in'])) : '-';
             $morning_out_text = $attendance['morning_time_out'] ? date('h:i A', strtotime($attendance['morning_time_out'])) : '-';
             $afternoon_in_text = $attendance['afternoon_time_in'] ? date('h:i A', strtotime($attendance['afternoon_time_in'])) : '-';
             $afternoon_out_text = $attendance['afternoon_time_out'] ? date('h:i A', strtotime($attendance['afternoon_time_out'])) : '-';
-            // actions (keep minimal for AJAX)
-            echo '<td><div class="hstack gap-2 justify-content-end"><a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="tooltip" title="View Details" onclick="viewDetails(' . intval($attendance['student_id']) . ')"><i class="feather feather-eye"></i></a><div class="dropdown"><a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="dropdown" data-bs-offset="0,21"><i class="feather feather-more-horizontal"></i></a><ul class="dropdown-menu dropdown-menu-end"><li><a class="dropdown-item" href="javascript:void(0)" onclick="approveAttendanceIndividual(' . intval($attendance['id']) . ')"><i class="feather feather-check-circle me-3"></i><span>Approve</span></a></li><li><a class="dropdown-item" href="javascript:void(0)" onclick="rejectAttendanceIndividual(' . intval($attendance['id']) . ')"><i class="feather feather-x-circle me-3"></i><span>Reject</span></a></li><li><a class="dropdown-item" href="javascript:void(0)" onclick="editAttendance(' . intval($attendance['id']) . ')"><i class="feather feather-edit-3 me-3"></i><span>Edit</span></a></li><li><a class="dropdown-item printBTN" href="javascript:void(0)" onclick="printAttendance(' . intval($attendance['id']) . ')"><i class="feather feather-printer me-3"></i><span>Print</span></a></li><li><a class="dropdown-item" href="javascript:void(0)" onclick="sendNotification(' . intval($attendance['id']) . ')"><i class="feather feather-mail me-3"></i><span>Send Notification</span></a></li><li class="dropdown-divider"></li><li><a class="dropdown-item" href="javascript:void(0)" onclick="deleteAttendanceIndividual(' . intval($attendance['id']) . ')"><i class="feather feather-trash-2 me-3"></i><span>Delete</span></a></li></ul></div></div></td>';
+            echo '<td>' . attendanceActionMenuItems($attendance) . '</td>';
             echo '</tr>';
         }
     }
@@ -572,7 +575,7 @@ function attendance_hours_cell_html(array $attendance): string {
         : calculateAttendanceRowHours($attendance);
     $metrics = attendance_window_metrics($attendance);
 
-    $meta = ['Official ' . attendance_format_hours_label((float)$metrics['official_hours'])];
+    $meta = ['Scheduled ' . attendance_format_hours_label((float)$metrics['official_hours'])];
     if ((float)$metrics['early_hours'] > 0) {
         $meta[] = 'Early ' . attendance_format_hours_label((float)$metrics['early_hours']);
     }
@@ -603,9 +606,6 @@ function attendance_status_cell_html(array $attendance): string {
         $notes[] = 'School hours';
     } elseif ((($metrics['schedule']['window_source'] ?? '') === 'section')) {
         $notes[] = 'Section schedule';
-    }
-    if ((float)($metrics['overtime_hours'] ?? 0) > 0) {
-        $notes[] = 'OT ' . attendance_format_hours_label((float)$metrics['overtime_hours']);
     }
 
     return $badge . ($notes !== []
@@ -785,6 +785,47 @@ function synchronizeAttendanceProgress(mysqli $conn, array &$attendances): void 
     if ($studentExternalUpdateStmt) {
         $studentExternalUpdateStmt->close();
     }
+}
+
+function attendanceIsBiometricRecord(array $attendance): bool
+{
+    return strtolower(trim((string)($attendance['source'] ?? ''))) === 'biometric';
+}
+
+function getReviewBadge(array $attendance): string
+{
+    if (attendanceIsBiometricRecord($attendance)) {
+        return '<span class="badge bg-soft-success text-success">Auto-Verified</span>';
+    }
+
+    return getStatusBadge(strtolower(trim((string)($attendance['status'] ?? 'pending'))));
+}
+
+function attendanceCanReview(array $attendance): bool
+{
+    return !attendanceIsBiometricRecord($attendance);
+}
+
+function attendanceActionMenuItems(array $attendance): string
+{
+    $attendanceId = (int)($attendance['id'] ?? 0);
+    $studentId = (int)($attendance['student_id'] ?? 0);
+    $items = [];
+
+    if (attendanceCanReview($attendance)) {
+        $items[] = '<li><a class="dropdown-item" href="javascript:void(0)" onclick="approveAttendanceIndividual(' . $attendanceId . ')"><i class="feather feather-check-circle me-3"></i><span>Approve</span></a></li>';
+        $items[] = '<li><a class="dropdown-item" href="javascript:void(0)" onclick="rejectAttendanceIndividual(' . $attendanceId . ')"><i class="feather feather-x-circle me-3"></i><span>Reject</span></a></li>';
+    } else {
+        $items[] = '<li><span class="dropdown-item-text text-muted"><i class="feather feather-shield me-3"></i><span>Auto-verified by machine</span></span></li>';
+    }
+
+    $items[] = '<li><a class="dropdown-item" href="javascript:void(0)" onclick="editAttendance(' . $attendanceId . ')"><i class="feather feather-edit-3 me-3"></i><span>Edit</span></a></li>';
+    $items[] = '<li><a class="dropdown-item printBTN" href="javascript:void(0)" onclick="printAttendance(' . $attendanceId . ')"><i class="feather feather-printer me-3"></i><span>Print</span></a></li>';
+    $items[] = '<li><a class="dropdown-item" href="javascript:void(0)" onclick="sendNotification(' . $attendanceId . ')"><i class="feather feather-mail me-3"></i><span>Send Notification</span></a></li>';
+    $items[] = '<li class="dropdown-divider"></li>';
+    $items[] = '<li><a class="dropdown-item" href="javascript:void(0)" onclick="deleteAttendanceIndividual(' . $attendanceId . ')"><i class="feather feather-trash-2 me-3"></i><span>Delete</span></a></li>';
+
+    return '<div class="hstack gap-2 justify-content-end"><a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="tooltip" title="View Details" onclick="viewDetails(' . $studentId . ')"><i class="feather feather-eye"></i></a><div class="dropdown"><a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="dropdown" data-bs-offset="0,21"><i class="feather feather-more-horizontal"></i></a><ul class="dropdown-menu dropdown-menu-end">' . implode('', $items) . '</ul></div></div>';
 }
 
 // Determine attendance status based on the section schedule.
@@ -1848,7 +1889,7 @@ echo $stats['total_count'] ?? 0; ?></span>
                                                 <th>Total Hours</th>
                                                 <th>Status</th>
                                                 <th>Source</th>
-                                                <th>Approval Status</th>
+                                                <th>Review</th>
                                                 <th class="text-end">Actions</th>
                                             </tr>
                                         </thead>
@@ -1861,6 +1902,7 @@ require_once dirname(__DIR__) . '/config/db.php';
 foreach ($attendances as $index => $attendance): ?>
                                                     <tr class="single-item">
                                                         <td>
+                                                            <?php if (attendanceCanReview($attendance)): ?>
                                                             <div class="item-checkbox ms-1">
                                                                 <div class="custom-control custom-checkbox">
                                                                     <input type="checkbox" class="custom-control-input checkbox" id="checkBox_<?php
@@ -1877,6 +1919,9 @@ require_once dirname(__DIR__) . '/config/db.php';
 echo (int)$index; ?>"></label>
                                                                 </div>
                                                             </div>
+                                                            <?php else: ?>
+                                                            <span class="text-muted fs-12" title="Biometric records are auto-verified">Auto</span>
+                                                            <?php endif; ?>
                                                         </td>
                                                         <td>
                                                             <a href="students-view.php?id=<?php
@@ -1933,71 +1978,9 @@ require_once dirname(__DIR__) . '/config/db.php';
 echo getSourceBadge($attendance['source'] ?? 'manual', $attendance); ?></td>
                                                         <td><?php
 require_once dirname(__DIR__) . '/config/db.php';
-echo getStatusBadge($attendance['status']); ?></td>
+echo getReviewBadge($attendance); ?></td>
                                                         <td>
-                                                            <div class="hstack gap-2 justify-content-end">
-                                                                <a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="tooltip" title="View Details" onclick="viewDetails(<?php
-require_once dirname(__DIR__) . '/config/db.php';
-echo (int)$attendance['student_id']; ?>)">
-                                                                    <i class="feather feather-eye"></i>
-                                                                </a>
-                                                                <div class="dropdown">
-                                                                    <a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="dropdown" data-bs-offset="0,21">
-                                                                        <i class="feather feather-more-horizontal"></i>
-                                                                    </a>
-                                                                    <ul class="dropdown-menu dropdown-menu-end">
-                                                                        <li>
-                                                                            <a class="dropdown-item" href="javascript:void(0)" onclick="approveAttendanceIndividual(<?php
-require_once dirname(__DIR__) . '/config/db.php';
-echo intval($attendance['id']); ?>)">
-                                                                                <i class="feather feather-check-circle me-3"></i>
-                                                                                <span>Approve</span>
-                                                                            </a>
-                                                                        </li>
-                                                                        <li>
-                                                                            <a class="dropdown-item" href="javascript:void(0)" onclick="rejectAttendanceIndividual(<?php
-require_once dirname(__DIR__) . '/config/db.php';
-echo intval($attendance['id']); ?>)">
-                                                                                <i class="feather feather-x-circle me-3"></i>
-                                                                                <span>Reject</span>
-                                                                            </a>
-                                                                        </li>
-                                                                        <li>
-                                                                            <a class="dropdown-item" href="javascript:void(0)" onclick="editAttendance(<?php
-require_once dirname(__DIR__) . '/config/db.php';
-echo $attendance['id']; ?>)">
-                                                                                <i class="feather feather-edit-3 me-3"></i>
-                                                                                <span>Edit</span>
-                                                                            </a>
-                                                                        </li>
-                                                                        <li>
-                                                                            <a class="dropdown-item printBTN" href="javascript:void(0)" onclick="printAttendance(<?php
-require_once dirname(__DIR__) . '/config/db.php';
-echo $attendance['id']; ?>)">
-                                                                                <i class="feather feather-printer me-3"></i>
-                                                                                <span>Print</span>
-                                                                            </a>
-                                                                        </li>
-                                                                        <li>
-                                                                            <a class="dropdown-item" href="javascript:void(0)" onclick="sendNotification(<?php
-require_once dirname(__DIR__) . '/config/db.php';
-echo $attendance['id']; ?>)">
-                                                                                <i class="feather feather-mail me-3"></i>
-                                                                                <span>Send Notification</span>
-                                                                            </a>
-                                                                        </li>
-                                                                        <li class="dropdown-divider"></li>
-                                                                        <li>
-                                                                            <a class="dropdown-item" href="javascript:void(0)" onclick="deleteAttendanceIndividual(<?php
-require_once dirname(__DIR__) . '/config/db.php';
-echo intval($attendance['id']); ?>)">
-                                                                                <i class="feather feather-trash-2 me-3"></i>
-                                                                                <span>Delete</span>
-                                                                            </a>
-                                                                        </li>
-                                                                    </ul>
-                                                                </div>
-                                                            </div>
+                                                            <?php echo attendanceActionMenuItems($attendance); ?>
                                                         </td>
                                                     </tr>
                                                 <?php

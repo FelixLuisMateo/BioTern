@@ -78,7 +78,12 @@ try {
             $decision = isset($_POST['decision']) ? trim($_POST['decision']) : '';
             $response = reviewCorrection($conn, $ids, $decision, $remarks, $current_user_id);
             break;
-            
+
+        case 'submit_machine_down':
+            require_roles_json(['student']);
+            $response = submitMachineDownAttendance($conn, $current_user_id, $remarks);
+            break;
+             
         default:
             $response['message'] = 'Unknown action: ' . htmlspecialchars($action);
             break;
@@ -426,6 +431,120 @@ function reviewCorrection($conn, $ids, $decision, $remarks, $current_user_id) {
         'success' => $count > 0,
         'message' => $count > 0 ? "Reviewed $count correction request(s)." : 'No correction request was updated.',
         'updated_count' => $count
+    ];
+}
+
+function submitMachineDownAttendance($conn, $current_user_id, $remarks) {
+    $attendance_date = isset($_POST['attendance_date']) ? trim((string)$_POST['attendance_date']) : '';
+    $morning_in = isset($_POST['morning_time_in']) ? trim((string)$_POST['morning_time_in']) : '';
+    $morning_out = isset($_POST['morning_time_out']) ? trim((string)$_POST['morning_time_out']) : '';
+    $afternoon_in = isset($_POST['afternoon_time_in']) ? trim((string)$_POST['afternoon_time_in']) : '';
+    $afternoon_out = isset($_POST['afternoon_time_out']) ? trim((string)$_POST['afternoon_time_out']) : '';
+
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $attendance_date)) {
+        return ['success' => false, 'message' => 'Valid attendance date is required.', 'updated_count' => 0];
+    }
+    if ($remarks === '') {
+        return ['success' => false, 'message' => 'Reason/details are required for machine-down fallback.', 'updated_count' => 0];
+    }
+
+    $studentStmt = $conn->prepare("SELECT id FROM students WHERE user_id = ? LIMIT 1");
+    if (!$studentStmt) {
+        throw new Exception("Prepare failed: " . $conn->error);
+    }
+    $studentStmt->bind_param('i', $current_user_id);
+    $studentStmt->execute();
+    $student = $studentStmt->get_result()->fetch_assoc();
+    $studentStmt->close();
+    $student_id = (int)($student['id'] ?? 0);
+    if ($student_id <= 0) {
+        return ['success' => false, 'message' => 'Student profile not found.', 'updated_count' => 0];
+    }
+
+    $existsStmt = $conn->prepare("SELECT id, source FROM attendances WHERE student_id = ? AND attendance_date = ? ORDER BY id DESC LIMIT 1");
+    if (!$existsStmt) {
+        throw new Exception("Prepare failed: " . $conn->error);
+    }
+    $existsStmt->bind_param('is', $student_id, $attendance_date);
+    $existsStmt->execute();
+    $existing = $existsStmt->get_result()->fetch_assoc();
+    $existsStmt->close();
+    if ($existing) {
+        $existingSource = strtolower(trim((string)($existing['source'] ?? 'manual')));
+        if ($existingSource === 'biometric') {
+            return ['success' => false, 'message' => 'A biometric record already exists for this date. Use correction request instead.', 'updated_count' => 0];
+        }
+        return ['success' => false, 'message' => 'A fallback/manual attendance already exists for this date.', 'updated_count' => 0];
+    }
+
+    $normalize = static function (string $value): ?string {
+        if ($value === '') {
+            return null;
+        }
+        if (preg_match('/^\d{2}:\d{2}$/', $value)) {
+            return $value . ':00';
+        }
+        if (preg_match('/^\d{2}:\d{2}:\d{2}$/', $value)) {
+            return $value;
+        }
+        return null;
+    };
+
+    $morning_in = $normalize($morning_in);
+    $morning_out = $normalize($morning_out);
+    $afternoon_in = $normalize($afternoon_in);
+    $afternoon_out = $normalize($afternoon_out);
+
+    if ($morning_in === null && $morning_out === null && $afternoon_in === null && $afternoon_out === null) {
+        return ['success' => false, 'message' => 'Enter at least one fallback time.', 'updated_count' => 0];
+    }
+
+    $record = [
+        'morning_time_in' => $morning_in,
+        'morning_time_out' => $morning_out,
+        'break_time_in' => null,
+        'break_time_out' => null,
+        'afternoon_time_in' => $afternoon_in,
+        'afternoon_time_out' => $afternoon_out,
+    ];
+    $validation = attendance_validate_full_record($record);
+    if (!($validation['ok'] ?? false)) {
+        return ['success' => false, 'message' => (string)($validation['message'] ?? 'Invalid attendance record.'), 'updated_count' => 0];
+    }
+
+    $insert = $conn->prepare("
+        INSERT INTO attendances (
+            student_id, attendance_date, morning_time_in, morning_time_out, afternoon_time_in, afternoon_time_out,
+            source, status, remarks, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, 'manual', 'pending', ?, NOW(), NOW())
+    ");
+    if (!$insert) {
+        throw new Exception("Prepare failed: " . $conn->error);
+    }
+    $insert->bind_param('issssss', $student_id, $attendance_date, $morning_in, $morning_out, $afternoon_in, $afternoon_out, $remarks);
+    $insert->execute();
+    $affected_rows = $insert->affected_rows;
+    $newId = (int)$insert->insert_id;
+    $insert->close();
+
+    if ($affected_rows > 0) {
+        insert_audit_log(
+            $conn,
+            $current_user_id,
+            'attendance_machine_down_submit',
+            'attendance',
+            (string)$newId,
+            ['attendance_date' => $attendance_date],
+            ['source' => 'manual', 'status' => 'pending'],
+            $_SERVER['REMOTE_ADDR'] ?? '',
+            $_SERVER['HTTP_USER_AGENT'] ?? ''
+        );
+    }
+
+    return [
+        'success' => $affected_rows > 0,
+        'message' => $affected_rows > 0 ? 'Machine-down fallback attendance submitted for review.' : 'No attendance was submitted.',
+        'updated_count' => $affected_rows
     ];
 }
 

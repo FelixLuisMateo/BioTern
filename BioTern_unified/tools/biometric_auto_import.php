@@ -617,7 +617,7 @@ if (!function_exists('syncAttendanceFromBiometricLog')) {
                 return ['changed' => false, 'anomalies_found' => 1];
             }
 
-            $update = $conn->prepare("UPDATE attendances SET $column = ?, source = 'biometric', updated_at = NOW() WHERE id = ?");
+            $update = $conn->prepare("UPDATE attendances SET $column = ?, source = 'biometric', status = 'approved', approved_at = COALESCE(approved_at, NOW()), updated_at = NOW() WHERE id = ?");
             if ($update === false) {
                 throw new RuntimeException('Database error: failed to prepare attendance update. Error: ' . $conn->error);
             }
@@ -628,7 +628,7 @@ if (!function_exists('syncAttendanceFromBiometricLog')) {
             return ['changed' => $affected, 'anomalies_found' => 0];
         }
 
-        $insert = $conn->prepare("INSERT INTO attendances (student_id, attendance_date, $column, source, status, created_at, updated_at) VALUES (?, ?, ?, 'biometric', 'pending', NOW(), NOW())");
+        $insert = $conn->prepare("INSERT INTO attendances (student_id, attendance_date, $column, source, status, approved_at, created_at, updated_at) VALUES (?, ?, ?, 'biometric', 'approved', NOW(), NOW(), NOW())");
         if ($insert === false) {
             throw new RuntimeException('Database error: failed to prepare attendance insert. Error: ' . $conn->error);
         }
@@ -649,6 +649,7 @@ if (!function_exists('resolveAttendanceColumnForPunch')) {
         // The F20H logs currently arrive as generic punches with type=1, so advance through slots in order.
         if ($clockType === 1) {
             $session = section_schedule_inferred_session($effectiveSchedule);
+            $afternoonBoundary = '12:00:00';
             if (section_schedule_prefers_afternoon_entry($effectiveSchedule)) {
                 if (trim((string)($attendanceRow['afternoon_time_in'] ?? '')) === '') {
                     return 'afternoon_time_in';
@@ -662,12 +663,44 @@ if (!function_exists('resolveAttendanceColumnForPunch')) {
             }
 
             if ($session === 'morning_only') {
-                if (trim((string)($attendanceRow['morning_time_in'] ?? '')) === '') {
+                $slotAdvanceMinimumMinutes = biometricMachineConfigInt($machineConfig, 'slotAdvanceMinimumMinutes', 10);
+                $morningIn = trim((string)($attendanceRow['morning_time_in'] ?? ''));
+                $morningOut = trim((string)($attendanceRow['morning_time_out'] ?? ''));
+                $afternoonIn = trim((string)($attendanceRow['afternoon_time_in'] ?? ''));
+                $afternoonOut = trim((string)($attendanceRow['afternoon_time_out'] ?? ''));
+
+                if (
+                    $morningIn === ''
+                    && $morningOut === ''
+                    && strcmp($incomingTime, $afternoonBoundary) >= 0
+                ) {
+                    if ($afternoonIn === '') {
+                        return 'afternoon_time_in';
+                    }
+                    if ($afternoonOut === '') {
+                        $minutesSinceAfternoonIn = minutesBetweenPunches($afternoonIn, $incomingTime);
+                        return ($minutesSinceAfternoonIn !== null && $minutesSinceAfternoonIn < $slotAdvanceMinimumMinutes) ? null : 'afternoon_time_out';
+                    }
+                    return null;
+                }
+
+                if ($morningIn !== '' && $morningOut !== '' && strcmp($incomingTime, $afternoonBoundary) >= 0) {
+                    if ($afternoonIn === '') {
+                        $minutesSinceMorningOut = minutesBetweenPunches($morningOut, $incomingTime);
+                        return ($minutesSinceMorningOut !== null && $minutesSinceMorningOut < $slotAdvanceMinimumMinutes) ? null : 'afternoon_time_in';
+                    }
+                    if ($afternoonOut === '') {
+                        $minutesSinceAfternoonIn = minutesBetweenPunches($afternoonIn, $incomingTime);
+                        return ($minutesSinceAfternoonIn !== null && $minutesSinceAfternoonIn < $slotAdvanceMinimumMinutes) ? null : 'afternoon_time_out';
+                    }
+                    return null;
+                }
+
+                if ($morningIn === '') {
                     return 'morning_time_in';
                 }
-                if (trim((string)($attendanceRow['morning_time_out'] ?? '')) === '') {
-                    $minutesSinceLast = minutesBetweenPunches((string)($attendanceRow['morning_time_in'] ?? ''), $incomingTime);
-                    $slotAdvanceMinimumMinutes = biometricMachineConfigInt($machineConfig, 'slotAdvanceMinimumMinutes', 10);
+                if ($morningOut === '') {
+                    $minutesSinceLast = minutesBetweenPunches($morningIn, $incomingTime);
                     return ($minutesSinceLast !== null && $minutesSinceLast < $slotAdvanceMinimumMinutes) ? null : 'morning_time_out';
                 }
                 return null;
