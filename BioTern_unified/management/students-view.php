@@ -24,8 +24,20 @@ $current_user_id = (int)($_SESSION['user_id'] ?? 0);
 $current_user_role = strtolower(trim((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? '')));
 $can_manage_eval_unlock = in_array($current_user_role, ['admin', 'coordinator'], true);
 $can_delete_student = in_array($current_user_role, ['admin', 'coordinator', 'supervisor'], true);
+$supervisor_view_profile_id = 0;
 $eval_flash_message = '';
 $eval_flash_type = 'success';
+
+if ($current_user_role === 'supervisor' && $current_user_id > 0) {
+    $supervisor_view_stmt = $conn->prepare('SELECT id FROM supervisors WHERE user_id = ? LIMIT 1');
+    if ($supervisor_view_stmt) {
+        $supervisor_view_stmt->bind_param('i', $current_user_id);
+        $supervisor_view_stmt->execute();
+        $supervisor_view_row = $supervisor_view_stmt->get_result()->fetch_assoc();
+        $supervisor_view_profile_id = (int)($supervisor_view_row['id'] ?? 0);
+        $supervisor_view_stmt->close();
+    }
+}
 
 if (!function_exists('table_exists')) {
     function table_exists(mysqli $conn, string $table): bool {
@@ -179,6 +191,18 @@ if ($result->num_rows == 0) {
 }
 
 $student = $result->fetch_assoc();
+
+if ($current_user_role === 'supervisor') {
+    $student_supervisor_id = (int)($student['supervisor_id'] ?? 0);
+    $is_assigned_supervisor = ($student_supervisor_id === $current_user_id);
+    if (!$is_assigned_supervisor && $supervisor_view_profile_id > 0) {
+        $is_assigned_supervisor = ($student_supervisor_id === $supervisor_view_profile_id);
+    }
+    if (!$is_assigned_supervisor) {
+        header('Location: idnotfound-404.php?source=students-view&id=' . urlencode((string)$student_id));
+        exit;
+    }
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['action'] ?? '') === 'delete_student') {
     if (!$can_delete_student) {

@@ -198,6 +198,13 @@ html.app-skin-dark .select2-container--default .select2-results__option--highlig
     left: auto !important;
     margin-top: 10px !important;
     transform: none !important;
+    width: min(320px, calc(100vw - 1.5rem));
+    padding: 0;
+    overflow: hidden;
+    border-radius: 16px;
+    border: 1px solid #dbe3ee;
+    background: #ffffff;
+    box-shadow: 0 24px 48px rgba(15, 23, 42, 0.16);
 }
 
 .nxl-header .nxl-user-dropdown .user-dropdown-label {
@@ -214,6 +221,160 @@ html.app-skin-dark .nxl-header .nxl-user-dropdown .user-dropdown-label {
 
 html.app-skin-dark .nxl-header .nxl-user-dropdown .user-dropdown-value {
     color: #c0cee4;
+}
+
+.nxl-header .nxl-user-dropdown .user-dropdown-hero {
+    padding: 16px 18px 14px;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+}
+
+.nxl-header .nxl-user-dropdown .user-dropdown-identity {
+    min-width: 0;
+    margin-left: 12px;
+}
+
+.nxl-header .nxl-user-dropdown .user-dropdown-name {
+    font-size: 18px;
+    font-weight: 800;
+    color: #0f172a !important;
+    line-height: 1.15;
+}
+
+.nxl-header .nxl-user-dropdown .user-dropdown-email {
+    display: block;
+    margin-top: 2px;
+}
+
+.nxl-header .nxl-user-dropdown .user-dropdown-role-inline {
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.nxl-header .nxl-user-dropdown .user-dropdown-meta-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 2px;
+}
+
+.nxl-header .nxl-user-dropdown .dropdown-divider {
+    margin: 0;
+    border-top-color: #e2e8f0;
+}
+
+.nxl-header .nxl-user-dropdown .user-dropdown-section-title {
+    padding: 12px 18px 0;
+    letter-spacing: 0.08em;
+}
+
+.nxl-header .nxl-user-dropdown .user-dropdown-status-grid {
+    display: grid;
+    gap: 6px;
+    padding: 8px 12px 12px;
+}
+
+.nxl-header .nxl-user-dropdown .user-dropdown-status-item {
+    margin: 0;
+    padding: 10px 10px;
+    border: 1px solid #edf2f7;
+    border-radius: 12px;
+    background: #f8fafc;
+}
+
+.nxl-header .nxl-user-dropdown .user-dropdown-links {
+    padding: 8px 8px 12px;
+    display: grid;
+    gap: 4px;
+}
+
+.nxl-header .nxl-user-dropdown .dropdown-item {
+    border-radius: 12px;
+    padding: 11px 12px;
+    color: #1f2937;
+    font-weight: 700;
+}
+
+.nxl-header .nxl-user-dropdown .dropdown-item i {
+    width: 18px;
+    margin-right: 10px;
+    color: #475569;
+}
+
+.nxl-header .nxl-user-dropdown .dropdown-item:hover,
+.nxl-header .nxl-user-dropdown .dropdown-item:focus {
+    background: #f1f5f9;
+    color: #0f172a;
+}
+
+.nxl-header .nxl-user-dropdown .user-dropdown-logout {
+    margin: 8px;
+    color: #b91c1c;
+}
+
+.nxl-header .nxl-user-dropdown .user-dropdown-logout i {
+    color: #b91c1c;
+}
+
+.nxl-header .nxl-user-dropdown .user-dropdown-logout:hover,
+.nxl-header .nxl-user-dropdown .user-dropdown-logout:focus {
+    background: #fff1f2;
+    color: #991b1b;
+}
+
+html.app-skin-dark .nxl-header .dropdown-menu.nxl-user-dropdown {
+    border-color: #1b2436;
+    background: #0f172a;
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.42);
+}
+
+html.app-skin-dark .nxl-header .nxl-user-dropdown .user-dropdown-hero {
+    background: linear-gradient(180deg, #111c31 0%, #0f172a 100%);
+}
+
+html.app-skin-dark .nxl-header .nxl-user-dropdown .user-dropdown-name {
+    color: #f8fbff !important;
+}
+
+html.app-skin-dark .nxl-header .nxl-user-dropdown .user-dropdown-role-inline {
+    color: #9fb0cc;
+}
+
+html.app-skin-dark .nxl-header .nxl-user-dropdown .dropdown-divider {
+    border-top-color: #1b2436;
+}
+
+html.app-skin-dark .nxl-header .nxl-user-dropdown .user-dropdown-status-item {
+    border-color: #1b2436;
+    background: #111c31;
+}
+
+html.app-skin-dark .nxl-header .nxl-user-dropdown .dropdown-item {
+    color: #e6edf8;
+}
+
+html.app-skin-dark .nxl-header .nxl-user-dropdown .dropdown-item i {
+    color: #9fb0cc;
+}
+
+html.app-skin-dark .nxl-header .nxl-user-dropdown .dropdown-item:hover,
+html.app-skin-dark .nxl-header .nxl-user-dropdown .dropdown-item:focus {
+    background: #162238;
+    color: #ffffff;
+}
+
+html.app-skin-dark .nxl-header .nxl-user-dropdown .user-dropdown-logout {
+    color: #fda4af;
+}
+
+html.app-skin-dark .nxl-header .nxl-user-dropdown .user-dropdown-logout i {
+    color: #fda4af;
+}
+
+html.app-skin-dark .nxl-header .nxl-user-dropdown .user-dropdown-logout:hover,
+html.app-skin-dark .nxl-header .nxl-user-dropdown .user-dropdown-logout:focus {
+    background: #2b1620;
+    color: #fecdd3;
 }
 
 /* Keep notifications dropdown pinned directly under the bell icon. */

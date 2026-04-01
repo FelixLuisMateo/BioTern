@@ -1,6 +1,7 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/includes/avatar.php';
+require_once dirname(__DIR__) . '/lib/notifications.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -23,6 +24,17 @@ if ($stmt) {
 if (!$user) {
     header('Location: auth-login-cover.php?logout=1');
     exit;
+}
+
+biotern_notifications_ensure_table($conn);
+
+function profile_details_preview(string $value, int $limit = 72): string
+{
+    $value = trim(preg_replace('/\s+/', ' ', $value) ?? $value);
+    if ($value === '') {
+        return '';
+    }
+    return strlen($value) > $limit ? substr($value, 0, $limit - 3) . '...' : $value;
 }
 
 $profile_flash_message = '';
@@ -203,6 +215,45 @@ if (!empty($lastLoginAt)) {
         $lastLoginDisplay = date('M d, Y h:i A', $ts);
     }
 }
+
+$notificationUnreadCount = biotern_notifications_count_unread($conn, $userId);
+$notificationTotalCount = 0;
+$notificationTotalStmt = $conn->prepare('SELECT COUNT(*) AS total FROM notifications WHERE user_id = ?');
+if ($notificationTotalStmt) {
+    $notificationTotalStmt->bind_param('i', $userId);
+    $notificationTotalStmt->execute();
+    $notificationTotal = $notificationTotalStmt->get_result()->fetch_assoc();
+    $notificationTotalCount = (int)($notificationTotal['total'] ?? 0);
+    $notificationTotalStmt->close();
+}
+
+$loginEventCount = 0;
+$loginCountStmt = $conn->prepare('SELECT COUNT(*) AS total FROM login_logs WHERE user_id = ?');
+if ($loginCountStmt) {
+    $loginCountStmt->bind_param('i', $userId);
+    $loginCountStmt->execute();
+    $loginCount = $loginCountStmt->get_result()->fetch_assoc();
+    $loginEventCount = (int)($loginCount['total'] ?? 0);
+    $loginCountStmt->close();
+}
+
+$auditEventCount = 0;
+$auditCheck = $conn->query("SHOW TABLES LIKE 'audit_logs'");
+if ($auditCheck instanceof mysqli_result && $auditCheck->num_rows > 0) {
+    $auditCountStmt = $conn->prepare('SELECT COUNT(*) AS total FROM audit_logs WHERE user_id = ?');
+    if ($auditCountStmt) {
+        $auditCountStmt->bind_param('i', $userId);
+        $auditCountStmt->execute();
+        $auditCount = $auditCountStmt->get_result()->fetch_assoc();
+        $auditEventCount = (int)($auditCount['total'] ?? 0);
+        $auditCountStmt->close();
+    }
+}
+
+$accountSecurityState = ((int)($user['is_active'] ?? 0) === 1) ? 'Protected' : 'Restricted';
+$roleWorkspaceLabel = ucfirst((string)($user['role'] ?? 'user')) . ' Workspace';
+$contactPhone = trim((string)($studentProfile['phone'] ?? ''));
+$contactAddress = trim((string)($studentProfile['address'] ?? ''));
 
 $page_title = 'BioTern || Profile Details';
 include 'includes/header.php';
@@ -400,6 +451,107 @@ include 'includes/header.php';
 
     .profile-field.full {
         grid-column: 1 / -1;
+    }
+
+    .profile-summary-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 14px;
+        margin-bottom: 24px;
+    }
+
+    .profile-summary-card {
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.92);
+        padding: 16px 18px;
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+    }
+
+    .profile-summary-label {
+        color: #64748b;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        font-weight: 700;
+    }
+
+    .profile-summary-value {
+        margin-top: 8px;
+        font-size: 24px;
+        line-height: 1;
+        font-weight: 800;
+        color: #0f172a;
+    }
+
+    .profile-summary-note {
+        margin-top: 8px;
+        color: #64748b;
+        font-size: 12px;
+    }
+
+    .profile-nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+
+    .profile-nav-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 14px;
+        border-radius: 999px;
+        border: 1px solid rgba(37, 99, 235, 0.16);
+        background: rgba(255, 255, 255, 0.82);
+        color: #1d4ed8;
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 700;
+    }
+
+    .profile-nav-link:hover {
+        color: #1e3a8a;
+        border-color: rgba(37, 99, 235, 0.3);
+    }
+
+    .profile-status-list {
+        display: grid;
+        gap: 10px;
+    }
+
+    .profile-status-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        border-radius: 12px;
+        padding: 12px 14px;
+        background: #f8fafc;
+    }
+
+    .profile-status-copy {
+        display: grid;
+        gap: 4px;
+    }
+
+    .profile-status-copy strong {
+        color: #0f172a;
+        font-size: 13px;
+    }
+
+    .profile-status-copy span {
+        color: #64748b;
+        font-size: 12px;
+    }
+
+    .profile-inline-badge {
+        border-radius: 999px;
+        padding: 5px 10px;
+        font-size: 11px;
+        font-weight: 700;
     }
 
     .profile-action-btn {
@@ -609,6 +761,10 @@ include 'includes/header.php';
             border-radius: 12px;
         }
 
+        .profile-summary-grid {
+            grid-template-columns: 1fr;
+        }
+
         .profile-grid {
             grid-template-columns: 1fr;
         }
@@ -634,6 +790,7 @@ include 'includes/header.php';
     }
 
     html.app-skin-dark .profile-kpi,
+    html.app-skin-dark .profile-summary-card,
     html.app-skin-dark .profile-field,
     html.app-skin-dark .profile-panel .card-header,
     html.app-skin-dark .profile-panel .card-body {
@@ -709,6 +866,27 @@ include 'includes/header.php';
     html.app-skin-dark .profile-subtitle,
     html.app-skin-dark .profile-password-hint {
         color: #94a3b8;
+    }
+
+    html.app-skin-dark .profile-summary-value,
+    html.app-skin-dark .profile-status-copy strong {
+        color: #e2e8f0;
+    }
+
+    html.app-skin-dark .profile-summary-note,
+    html.app-skin-dark .profile-status-copy span {
+        color: #94a3b8;
+    }
+
+    html.app-skin-dark .profile-nav-link {
+        background: rgba(15, 31, 60, 0.85);
+        border-color: rgba(96, 165, 250, 0.22);
+        color: #93c5fd;
+    }
+
+    html.app-skin-dark .profile-status-item {
+        background: #0d1929;
+        border-color: rgba(148, 163, 184, 0.18);
     }
 
     html.app-skin-dark .profile-password-toggle {
@@ -845,6 +1023,13 @@ include 'includes/header.php';
             </div>
             <?php endif; ?>
 
+            <div class="profile-nav">
+                <a class="profile-nav-link" href="profile-details.php"><i class="feather-user"></i><span>Profile Details</span></a>
+                <a class="profile-nav-link" href="profile-details.php#account-settings"><i class="feather-settings"></i><span>Account Settings</span></a>
+                <a class="profile-nav-link" href="activity-feed.php"><i class="feather-activity"></i><span>Activity Feed</span></a>
+                <a class="profile-nav-link" href="notifications.php"><i class="feather-bell"></i><span>Notifications</span></a>
+            </div>
+
             <div class="profile-hero">
                 <div class="profile-persona">
                     <div class="profile-avatar"><?php if ($profile_avatar_src !== ''): ?><img src="<?php echo htmlspecialchars($profile_avatar_src, ENT_QUOTES, 'UTF-8'); ?>" alt="Profile Picture"><?php else: ?><?php echo htmlspecialchars($initials, ENT_QUOTES, 'UTF-8'); ?><?php endif; ?></div>
@@ -871,6 +1056,29 @@ include 'includes/header.php';
                         <div class="profile-kpi-label">Username</div>
                         <div class="profile-kpi-value"><?php echo htmlspecialchars((string)($user['username'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></div>
                     </div>
+                </div>
+            </div>
+
+            <div class="profile-summary-grid">
+                <div class="profile-summary-card">
+                    <div class="profile-summary-label">Unread Notifications</div>
+                    <div class="profile-summary-value"><?php echo (int)$notificationUnreadCount; ?></div>
+                    <div class="profile-summary-note"><?php echo (int)$notificationTotalCount; ?> total alerts saved in your account.</div>
+                </div>
+                <div class="profile-summary-card">
+                    <div class="profile-summary-label">Activity Events</div>
+                    <div class="profile-summary-value"><?php echo (int)($loginEventCount + $auditEventCount + $notificationTotalCount); ?></div>
+                    <div class="profile-summary-note"><?php echo (int)$loginEventCount; ?> login records and <?php echo (int)$auditEventCount; ?> tracked changes.</div>
+                </div>
+                <div class="profile-summary-card">
+                    <div class="profile-summary-label">Workspace</div>
+                    <div class="profile-summary-value" style="font-size: 18px; line-height: 1.25;"><?php echo htmlspecialchars($roleWorkspaceLabel, ENT_QUOTES, 'UTF-8'); ?></div>
+                    <div class="profile-summary-note">Your profile tools, alerts, and account actions are linked here.</div>
+                </div>
+                <div class="profile-summary-card">
+                    <div class="profile-summary-label">Security</div>
+                    <div class="profile-summary-value" style="font-size: 18px; line-height: 1.25;"><?php echo htmlspecialchars($accountSecurityState, ENT_QUOTES, 'UTF-8'); ?></div>
+                    <div class="profile-summary-note">Password reset, profile photo, and account status controls are available below.</div>
                 </div>
             </div>
 
@@ -920,6 +1128,7 @@ include 'includes/header.php';
                         </div>
                         <div class="card-body">
                             <div class="d-grid gap-2">
+                                <a class="btn btn-primary profile-action-btn" href="profile-details.php#account-settings">Open Account Settings</a>
                                 <a class="btn btn-outline-primary profile-action-btn" href="notifications.php">Open My Notifications</a>
                                 <a class="btn btn-outline-secondary profile-action-btn" href="activity-feed.php">Open My Activity Feed</a>
                                 <a class="btn btn-outline-dark profile-action-btn" href="auth-login-cover.php?logout=1">Logout</a>
@@ -971,6 +1180,29 @@ include 'includes/header.php';
                         </div>
                         <div class="card-body">
                             <p class="profile-action-note mb-3">Quick actions for your own account.</p>
+                            <div class="profile-status-list mb-3">
+                                <div class="profile-status-item">
+                                    <div class="profile-status-copy">
+                                        <strong>Account access</strong>
+                                        <span>Your user account is currently <?php echo ((int)($user['is_active'] ?? 0) === 1) ? 'enabled and ready to use.' : 'restricted and may need admin review.'; ?></span>
+                                    </div>
+                                    <span class="badge <?php echo ((int)($user['is_active'] ?? 0) === 1) ? 'bg-soft-success text-success' : 'bg-soft-danger text-danger'; ?> profile-inline-badge"><?php echo ((int)($user['is_active'] ?? 0) === 1) ? 'Active' : 'Inactive'; ?></span>
+                                </div>
+                                <div class="profile-status-item">
+                                    <div class="profile-status-copy">
+                                        <strong>Contact channel</strong>
+                                        <span><?php echo htmlspecialchars($contactPhone !== '' ? $contactPhone : 'No phone number saved in your linked student record yet.', ENT_QUOTES, 'UTF-8'); ?></span>
+                                    </div>
+                                    <span class="badge bg-soft-primary text-primary profile-inline-badge"><?php echo $contactPhone !== '' ? 'Saved' : 'Missing'; ?></span>
+                                </div>
+                                <div class="profile-status-item">
+                                    <div class="profile-status-copy">
+                                        <strong>Address record</strong>
+                                        <span><?php echo htmlspecialchars($contactAddress !== '' ? profile_details_preview($contactAddress, 72) : 'Add an address to keep your records complete.', ENT_QUOTES, 'UTF-8'); ?></span>
+                                    </div>
+                                    <span class="badge bg-soft-warning text-warning profile-inline-badge"><?php echo $contactAddress !== '' ? 'On file' : 'Review'; ?></span>
+                                </div>
+                            </div>
                             <form method="post" enctype="multipart/form-data" class="mb-3">
                                 <input type="hidden" name="action" value="upload_profile_picture">
                                 <label class="form-label mb-2" style="font-weight: 600; display: flex; align-items: center; gap: 6px;"><span>📷</span>Update Profile Photo</label>
@@ -1001,6 +1233,14 @@ include 'includes/header.php';
                                 <button type="submit" class="btn btn-outline-primary profile-action-btn w-100">Change Password</button>
                                 <div class="profile-password-hint">Use at least 8 characters with uppercase, lowercase, and a number.</div>
                             </form>
+
+                            <div class="profile-section-divider"></div>
+
+                            <div class="profile-subtitle">Account Workspace</div>
+                            <div class="d-grid gap-2">
+                                <a class="btn btn-outline-primary profile-action-btn" href="notifications.php">Review notifications and alerts</a>
+                                <a class="btn btn-outline-secondary profile-action-btn" href="activity-feed.php">Review recent account activity</a>
+                            </div>
                         </div>
                     </div>
                 </div>
