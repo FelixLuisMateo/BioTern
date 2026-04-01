@@ -624,10 +624,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <form method="post" class="w-100 mt-4 pt-2">
                         <input type="hidden" name="next" value="<?php echo htmlspecialchars($next, ENT_QUOTES, 'UTF-8'); ?>">
                         <div class="mb-4">
-                            <input type="text" name="identifier" id="identifier" class="form-control" placeholder="Student ID, Email, or Admin Username" value="<?php echo isset($_POST['identifier']) ? htmlspecialchars((string)$_POST['identifier']) : ''; ?>" required aria-required="true" aria-label="Student ID, Email, or Admin Username" autofocus>
+                            <input type="text" name="identifier" id="identifier" class="form-control" placeholder="Student ID, Email, or Admin Username" value="<?php echo isset($_POST['identifier']) ? htmlspecialchars((string)$_POST['identifier']) : ''; ?>" required aria-required="true" aria-label="Student ID, Email, or Admin Username" autocomplete="username" autocapitalize="none" spellcheck="false" autofocus>
                         </div>
                         <div class="mb-3 input-group">
-                            <input type="password" name="password" id="passwordInput" class="form-control" placeholder="Password" required aria-required="true" aria-label="Password">
+                            <input type="password" name="password" id="passwordInput" class="form-control" placeholder="Password" required aria-required="true" aria-label="Password" autocomplete="current-password">
                             <button class="btn btn-outline-secondary" type="button" id="togglePassword" aria-label="Show password"><i></i></button>
                         </div>
                         <div class="d-flex align-items-center justify-content-between">

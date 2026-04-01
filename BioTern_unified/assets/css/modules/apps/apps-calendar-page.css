@@ -178,11 +178,12 @@ body {
 .app-calendar-jump-controls {
     gap: 0.35rem;
     padding: 0.38rem;
+    flex-wrap: nowrap;
 }
 
 .app-calendar-jump-controls .form-select {
-    min-width: 106px;
-    height: 40px;
+    min-width: 122px;
+    height: 42px;
     border: 1px solid transparent;
     border-radius: 12px;
     background-color: transparent;
@@ -190,7 +191,11 @@ body {
     font-size: 0.81rem;
     font-weight: 700;
     box-shadow: none;
-    padding-right: 2rem;
+    padding-left: 0.95rem;
+    padding-right: 2.4rem;
+    background-position: right 0.85rem center;
+    background-size: 14px 10px;
+    line-height: 1.2;
 }
 
 .app-calendar-jump-controls .form-select:focus {
@@ -203,6 +208,14 @@ body {
     background-color: transparent;
     border-color: transparent;
     color: #e2e8f0;
+}
+
+.app-calendar-jump-controls [data-jump-month] {
+    min-width: 132px;
+}
+
+.app-calendar-jump-controls [data-jump-year] {
+    min-width: 96px;
 }
 
 .app-calendar-nav-buttons button {
