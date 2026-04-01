@@ -356,7 +356,11 @@ usort($print_students, function ($a, $b) {
         })();
     </script>
     <title>BioTern || Students</title>
-    <link rel="shortcut icon" type="image/x-icon" href="/BioTern/BioTern_unified/assets/images/favicon.ico?v=20260310">
+    <link rel="icon" type="image/png" sizes="192x192" href="/BioTern/BioTern_unified/assets/images/logo-abbr.png?v=20260310">
+    <link rel="icon" type="image/png" sizes="64x64" href="/BioTern/BioTern_unified/assets/images/favicon-rounded.png?v=20260310">
+    <link rel="apple-touch-icon" href="/BioTern/BioTern_unified/assets/images/logo-abbr.png?v=20260310">
+    <link rel="icon" type="image/png" href="/BioTern/BioTern_unified/assets/images/favicon-rounded.png?v=20260310">
+    <link rel="shortcut icon" type="image/png" href="/BioTern/BioTern_unified/assets/images/favicon-rounded.png?v=20260310">
     <script src="assets/js/theme-preload-init.min.js"></script>
     <link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/vendors.min.css">

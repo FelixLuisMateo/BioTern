@@ -200,6 +200,22 @@ html.app-skin-dark .select2-container--default .select2-results__option--highlig
     transform: none !important;
 }
 
+.nxl-header .nxl-user-dropdown .user-dropdown-label {
+    color: #334155;
+}
+
+.nxl-header .nxl-user-dropdown .user-dropdown-value {
+    color: #475569;
+}
+
+html.app-skin-dark .nxl-header .nxl-user-dropdown .user-dropdown-label {
+    color: #dce7ff;
+}
+
+html.app-skin-dark .nxl-header .nxl-user-dropdown .user-dropdown-value {
+    color: #c0cee4;
+}
+
 /* Keep notifications dropdown pinned directly under the bell icon. */
 .nxl-header .header-notification-dropdown {
     position: relative;

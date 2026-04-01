@@ -7,6 +7,9 @@
     const userRole = String(app.dataset.userRole || '').toLowerCase();
     const canManageShared = app.dataset.canManageShared === '1';
     const isStudent = userRole === 'student';
+    const startUploadCategory = String(app.dataset.startUploadCategory || '').trim().toLowerCase();
+    const startUploadTitle = String(app.dataset.startUploadTitle || '').trim();
+    const startUploadNotes = String(app.dataset.startUploadNotes || '').trim();
 
     const state = {
         files: [], activity: [], requiredDocuments: [], historyCache: {},
@@ -274,7 +277,7 @@
         }
     }
 
-    function openUploadPanel(file = null) {
+    function openUploadPanel(file = null, preset = null) {
         if (!els.uploadPanel || !els.uploadForm) return;
         els.uploadForm.reset();
         els.uploadPanel.hidden = false;
@@ -302,6 +305,18 @@
             if (els.uploadAudience) els.uploadAudience.value = 'all';
             if (els.uploadTargetUser) els.uploadTargetUser.value = '';
             setUploadMessage('PDF, images, Office files, and ZIP uploads are supported.');
+
+            if (preset) {
+                if (els.uploadCategory && preset.category) {
+                    els.uploadCategory.value = preset.category;
+                }
+                if (els.uploadTitle && preset.title) {
+                    els.uploadTitle.value = preset.title;
+                }
+                if (els.uploadNotes && preset.notes) {
+                    els.uploadNotes.value = preset.notes;
+                }
+            }
         }
         syncAudienceField();
         updateDropzoneLabel();
@@ -397,6 +412,17 @@
     document.addEventListener('keydown', (event) => { if (event.key === 'Escape') closeUploadPanel(); });
     updateDropzoneLabel();
     syncAudienceField();
+    if (startUploadCategory) {
+        const presetCategory = ['requirements', 'generated', 'internship', 'images', 'reports', 'other'].includes(startUploadCategory)
+            ? startUploadCategory
+            : 'requirements';
+        state.category = presetCategory;
+        openUploadPanel(null, {
+            category: presetCategory,
+            title: startUploadTitle,
+            notes: startUploadNotes,
+        });
+    }
     fetchFiles();
 })();
 

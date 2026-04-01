@@ -45,6 +45,9 @@ include 'includes/header.php';
     data-user-name="<?php echo htmlspecialchars($storage_user_name, ENT_QUOTES, 'UTF-8'); ?>"
     data-user-role="<?php echo htmlspecialchars($storage_user_role, ENT_QUOTES, 'UTF-8'); ?>"
     data-can-manage-shared="<?php echo $storage_can_manage_shared ? '1' : '0'; ?>"
+    data-start-upload-category="<?php echo htmlspecialchars(trim((string)($_GET['upload_category'] ?? '')), ENT_QUOTES, 'UTF-8'); ?>"
+    data-start-upload-title="<?php echo htmlspecialchars(trim((string)($_GET['upload_title'] ?? '')), ENT_QUOTES, 'UTF-8'); ?>"
+    data-start-upload-notes="<?php echo htmlspecialchars(trim((string)($_GET['upload_notes'] ?? '')), ENT_QUOTES, 'UTF-8'); ?>"
 >
     <div class="row g-4 align-items-start">
         <div class="col-12 col-xl-3">

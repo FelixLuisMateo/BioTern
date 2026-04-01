@@ -5,18 +5,22 @@
 .student-home-shell {
     display: grid;
     gap: 1rem;
+    padding: 0.35rem 0 1rem;
+}
+
+.student-home-shell > .row {
+    margin-top: 0 !important;
 }
 
 .student-home-hero {
-    background:
-        radial-gradient(circle at top right, rgba(74, 132, 255, 0.24), transparent 34%),
-        linear-gradient(135deg, #12203d 0%, #18294f 55%, #21407a 100%);
-    border: 1px solid rgba(92, 143, 255, 0.22);
-    box-shadow: 0 20px 40px rgba(15, 23, 42, 0.16);
+    background: #ffffff;
+    border: 1px solid rgba(17, 24, 39, 0.08);
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+    margin-bottom: 0.45rem;
 }
 
 .student-home-hero .card-body {
-    padding: 1.75rem;
+    padding: 2rem 2.1rem;
 }
 
 .student-home-hero__content {
@@ -32,13 +36,13 @@
     font-size: 0.72rem;
     letter-spacing: 0.18em;
     text-transform: uppercase;
-    color: rgba(224, 233, 255, 0.78);
+    color: #4a72d8;
     font-weight: 700;
 }
 
 .student-home-hero h2 {
     margin: 0 0 0.55rem;
-    color: #fff;
+    color: #0f172a;
     font-size: clamp(1.8rem, 3vw, 2.6rem);
     line-height: 1.05;
 }
@@ -46,7 +50,7 @@
 .student-home-hero p {
     margin: 0;
     max-width: 44rem;
-    color: rgba(237, 242, 255, 0.82);
+    color: #64748b;
     font-size: 0.98rem;
 }
 
@@ -62,9 +66,9 @@
     align-items: center;
     padding: 0.45rem 0.8rem;
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.09);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    color: #f8fbff;
+    background: #f8fbff;
+    border: 1px solid rgba(59, 93, 201, 0.12);
+    color: #1e3a8a;
     font-size: 0.82rem;
     font-weight: 600;
 }
@@ -74,12 +78,13 @@
     flex-wrap: wrap;
     justify-content: flex-end;
     gap: 0.75rem;
+    align-self: center;
 }
 
 .student-home-actions .btn-light-brand {
-    background: rgba(255, 255, 255, 0.12);
-    border-color: rgba(255, 255, 255, 0.18);
-    color: #fff;
+    background: #f8fbff;
+    border-color: rgba(59, 93, 201, 0.16);
+    color: #355ed6;
 }
 
 .student-metric-card,
@@ -252,6 +257,36 @@ html.app-skin-dark .student-panel {
     box-shadow: 0 16px 32px rgba(2, 8, 23, 0.28);
 }
 
+html.app-skin-dark .student-home-hero {
+    background: #18223a;
+    border: 1px solid rgba(120, 146, 214, 0.16);
+    box-shadow: 0 16px 32px rgba(2, 8, 23, 0.24);
+}
+
+html.app-skin-dark .student-home-eyebrow {
+    color: rgba(224, 233, 255, 0.78);
+}
+
+html.app-skin-dark .student-home-hero h2 {
+    color: #fff;
+}
+
+html.app-skin-dark .student-home-hero p {
+    color: rgba(237, 242, 255, 0.82);
+}
+
+html.app-skin-dark .student-home-meta span {
+    background: rgba(255, 255, 255, 0.09);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #f8fbff;
+}
+
+html.app-skin-dark .student-home-actions .btn-light-brand {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.18);
+    color: #fff;
+}
+
 html.app-skin-dark .student-metric-card h3,
 html.app-skin-dark .student-panel .card-title,
 html.app-skin-dark .student-shortcut-card,
@@ -297,6 +332,7 @@ html.app-skin-dark .student-shortcut-card i {
 
     .student-home-actions {
         justify-content: flex-start;
+        align-self: stretch;
     }
 }
 
@@ -305,6 +341,10 @@ html.app-skin-dark .student-shortcut-card i {
     .student-metric-card .card-body,
     .student-panel .card-body {
         padding: 1rem;
+    }
+
+    .student-home-shell {
+        padding-top: 0.1rem;
     }
 
     .student-quick-grid {

@@ -41,12 +41,40 @@ if (!function_exists('header_notification_badge_text')) {
     }
 }
 
+if (!function_exists('biotern_unified_header_root')) {
+    function biotern_unified_header_root(): string
+    {
+        $marker = '/BioTern_unified/';
+        $sources = [
+            str_replace('\\', '/', (string)($_SERVER['REQUEST_URI'] ?? '')),
+            str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? '')),
+            str_replace('\\', '/', (string)($_SERVER['PHP_SELF'] ?? '')),
+        ];
+
+        foreach ($sources as $source) {
+            $pos = stripos($source, $marker);
+            if ($pos === false) {
+                continue;
+            }
+
+            $prefix = substr($source, 0, $pos);
+            if (strpos($prefix, ':') !== false || stripos($prefix, '/htdocs/') !== false) {
+                $prefix = '';
+            }
+
+            $root = '/' . ltrim($prefix . $marker, '/');
+            $root = preg_replace('#/+#', '/', $root);
+
+            return rtrim((string)$root, '/') . '/';
+        }
+
+        return $marker;
+    }
+}
+
 // Build the login URL dynamically so it always points to BioTern_unified regardless of server path.
-$_header_script = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
-$_header_unified_pos = stripos($_header_script, '/BioTern_unified/');
-$_header_login_url = ($_header_unified_pos !== false)
-    ? substr($_header_script, 0, $_header_unified_pos) . '/BioTern_unified/auth/auth-login-cover.php'
-    : '/BioTern_unified/auth/auth-login-cover.php';
+$base_href = biotern_unified_header_root();
+$_header_login_url = $base_href . 'auth-login-cover.php';
 
 // Enforce authenticated session for all pages using the shared app header.
 $header_user_id_session = (int)($_SESSION['user_id'] ?? 0);
@@ -145,9 +173,6 @@ if (!$header_conn->connect_errno) {
 if (!isset($page_title) || trim($page_title) === '') {
     $page_title = 'BioTern';
 }
-
-// FORCE base_href to the correct web root-relative path to prevent file system paths in <base href>
-$base_href = '/BioTern/BioTern_unified/';
 
 $favicon_root = $base_href;
 $favicon_ico_path = dirname(__DIR__) . '/assets/images/favicon.ico';
@@ -305,12 +330,12 @@ echo htmlspecialchars($favicon_png_href, ENT_QUOTES, 'UTF-8'); ?>">
     <link rel="apple-touch-icon" href="<?php
 require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars($favicon_logo_href, ENT_QUOTES, 'UTF-8'); ?>">
-    <link rel="icon" type="image/x-icon" href="<?php
+    <link rel="icon" type="image/png" href="<?php
 require_once dirname(__DIR__) . '/config/db.php';
-echo htmlspecialchars($favicon_ico_href, ENT_QUOTES, 'UTF-8'); ?>">
-    <link rel="shortcut icon" type="image/x-icon" href="<?php
+echo htmlspecialchars($favicon_png_href, ENT_QUOTES, 'UTF-8'); ?>">
+    <link rel="shortcut icon" type="image/png" href="<?php
 require_once dirname(__DIR__) . '/config/db.php';
-echo htmlspecialchars($favicon_ico_href, ENT_QUOTES, 'UTF-8'); ?>">
+echo htmlspecialchars($favicon_png_href, ENT_QUOTES, 'UTF-8'); ?>">
     <!--! END: Favicon-->
     <script src="assets/js/pace-options.js"></script>
     <script>
@@ -587,31 +612,31 @@ echo htmlspecialchars($header_user_email, ENT_QUOTES, 'UTF-8'); ?></span>
                             </div>
                             <div class="dropdown-item-text pt-1 pb-1">
                                 <span class="hstack justify-content-between gap-2">
-                                    <span class="d-inline-flex align-items-center text-nowrap fw-medium text-light"><i class="wd-10 ht-10 border border-2 border-gray-1 <?php echo $header_account_status_text === 'Active' ? 'bg-success' : 'bg-secondary'; ?> rounded-circle me-2"></i>Account</span>
+                                    <span class="d-inline-flex align-items-center text-nowrap fw-medium user-dropdown-label"><i class="wd-10 ht-10 border border-2 border-gray-1 <?php echo $header_account_status_text === 'Active' ? 'bg-success' : 'bg-secondary'; ?> rounded-circle me-2"></i>Account</span>
                                     <span class="badge <?php echo $header_account_status_text === 'Active' ? 'bg-soft-success text-success' : 'bg-soft-secondary text-secondary'; ?>"><?php echo htmlspecialchars($header_account_status_text, ENT_QUOTES, 'UTF-8'); ?></span>
                                 </span>
                             </div>
                             <div class="dropdown-item-text pt-1 pb-1">
                                 <span class="hstack justify-content-between gap-2">
-                                    <span class="d-inline-flex align-items-center text-nowrap fw-medium text-light"><i class="feather-shield me-2"></i>Role</span>
+                                    <span class="d-inline-flex align-items-center text-nowrap fw-medium user-dropdown-label"><i class="feather-shield me-2"></i>Role</span>
                                     <span class="badge <?php echo get_role_badge_color($header_user_role); ?>"><?php echo htmlspecialchars($header_user_role !== '' ? ucfirst($header_user_role) : 'User', ENT_QUOTES, 'UTF-8'); ?></span>
                                 </span>
                             </div>
                             <div class="dropdown-item-text pt-1 pb-1">
                                 <span class="hstack justify-content-between gap-2">
-                                    <span class="d-inline-flex align-items-center text-nowrap fw-medium text-light"><i class="feather-calendar me-2"></i>Member Since</span>
-                                    <span class="fs-12 text-light"><?php echo htmlspecialchars($header_member_since_text, ENT_QUOTES, 'UTF-8'); ?></span>
+                                    <span class="d-inline-flex align-items-center text-nowrap fw-medium user-dropdown-label"><i class="feather-calendar me-2"></i>Member Since</span>
+                                    <span class="fs-12 user-dropdown-value"><?php echo htmlspecialchars($header_member_since_text, ENT_QUOTES, 'UTF-8'); ?></span>
                                 </span>
                             </div>
                             <div class="dropdown-item-text pt-1 pb-1">
                                 <span class="hstack justify-content-between gap-2">
-                                    <span class="d-inline-flex align-items-center text-nowrap fw-medium text-light"><i class="feather-clock me-2"></i>Last Login</span>
-                                    <span class="fs-12 text-light text-end"><?php echo htmlspecialchars($header_last_login_text, ENT_QUOTES, 'UTF-8'); ?></span>
+                                    <span class="d-inline-flex align-items-center text-nowrap fw-medium user-dropdown-label"><i class="feather-clock me-2"></i>Last Login</span>
+                                    <span class="fs-12 user-dropdown-value text-end"><?php echo htmlspecialchars($header_last_login_text, ENT_QUOTES, 'UTF-8'); ?></span>
                                 </span>
                             </div>
                             <div class="dropdown-item-text pt-1 pb-2">
                                 <span class="hstack justify-content-between gap-2">
-                                    <span class="d-inline-flex align-items-center text-nowrap fw-medium text-light"><i class="feather-bell me-2"></i>Notifications</span>
+                                    <span class="d-inline-flex align-items-center text-nowrap fw-medium user-dropdown-label"><i class="feather-bell me-2"></i>Notifications</span>
                                     <span class="badge <?php echo (int)$header_notifications_unread > 0 ? 'bg-soft-warning text-warning' : 'bg-soft-secondary text-secondary'; ?>"><?php echo (int)$header_notifications_unread > 0 ? ((int)$header_notifications_unread . ' unread') : 'All read'; ?></span>
                                 </span>
                             </div>

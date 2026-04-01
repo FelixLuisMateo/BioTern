@@ -4,6 +4,37 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+if (!function_exists('biotern_unified_web_root')) {
+    function biotern_unified_web_root(): string
+    {
+        $marker = '/BioTern_unified/';
+        $sources = [
+            str_replace('\\', '/', (string)($_SERVER['REQUEST_URI'] ?? '')),
+            str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? '')),
+            str_replace('\\', '/', (string)($_SERVER['PHP_SELF'] ?? '')),
+        ];
+
+        foreach ($sources as $source) {
+            $pos = stripos($source, $marker);
+            if ($pos === false) {
+                continue;
+            }
+
+            $prefix = substr($source, 0, $pos);
+            if (strpos($prefix, ':') !== false || stripos($prefix, '/htdocs/') !== false) {
+                $prefix = '';
+            }
+
+            $root = '/' . ltrim($prefix . $marker, '/');
+            $root = preg_replace('#/+#', '/', $root);
+
+            return rtrim((string)$root, '/') . '/';
+        }
+
+        return $marker;
+    }
+}
+
 if ((int)($_SESSION['user_id'] ?? 0) <= 0) {
     $index_conn = @new mysqli(
         defined('DB_HOST') ? DB_HOST : '127.0.0.1',
@@ -35,8 +66,7 @@ $landing_theme_api = 'api/theme-customizer.php';
 
 
 
-// Hardcode the web root-relative path for correct URL generation
-$landing_app_root = '/biotern/biotern_unified';
+$landing_app_root = biotern_unified_web_root();
 
 $favicon_root = $landing_app_root . '/';
 $favicon_ico_path = __DIR__ . '/assets/images/favicon.ico';
@@ -48,11 +78,11 @@ $favicon_png_version = ($favicon_png_mtime !== false) ? (string)$favicon_png_mti
 $favicon_ico_href = $favicon_root . 'assets/images/favicon.ico?v=' . rawurlencode($favicon_ico_version);
 $favicon_png_href = $favicon_root . 'assets/images/favicon-rounded.png?v=' . rawurlencode($favicon_png_version);
 
-$landing_apply_href = $landing_app_root . '/auth/auth-register-creative.php?role=student';
-$landing_start_href = $landing_app_root . '/auth/auth-register-creative.php?role=student';
+$landing_apply_href = $landing_app_root . 'auth-register-creative.php?role=student';
+$landing_start_href = $landing_app_root . 'auth-register-creative.php?role=student';
 $landing_signin_href = $landing_logged_in
-    ? ($landing_app_root . '/homepage.php')
-    : '/BioTern/BioTern_unified/auth/auth-login-cover.php';
+    ? ($landing_app_root . 'homepage.php')
+    : ($landing_app_root . 'auth-login-cover.php');
 $landing_hero_href = $landing_signin_href;
 ?>
 <!DOCTYPE html>
@@ -63,8 +93,8 @@ $landing_hero_href = $landing_signin_href;
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>BioTern || Internship Monitoring</title>
     <link rel="icon" type="image/png" sizes="64x64" href="<?php echo htmlspecialchars($favicon_png_href, ENT_QUOTES, 'UTF-8'); ?>">
-    <link rel="icon" type="image/x-icon" href="<?php echo htmlspecialchars($favicon_ico_href, ENT_QUOTES, 'UTF-8'); ?>">
-    <link rel="shortcut icon" type="image/x-icon" href="<?php echo htmlspecialchars($favicon_ico_href, ENT_QUOTES, 'UTF-8'); ?>">
+    <link rel="icon" type="image/png" href="<?php echo htmlspecialchars($favicon_png_href, ENT_QUOTES, 'UTF-8'); ?>">
+    <link rel="shortcut icon" type="image/png" href="<?php echo htmlspecialchars($favicon_png_href, ENT_QUOTES, 'UTF-8'); ?>">
     <script src="assets/js/theme-preload-init.min.js"></script>
     <link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/vendors.min.css">
@@ -362,8 +392,8 @@ $landing_hero_href = $landing_signin_href;
     <header class="nxl-header landing-header">
         <div class="header-wrapper">
             <div class="header-left d-flex align-items-center gap-4">
-                <a href="<?php echo htmlspecialchars($landing_app_root . '/index.php', ENT_QUOTES, 'UTF-8'); ?>" class="d-flex align-items-center">
-                    <img src="<?php echo htmlspecialchars($landing_app_root . '/assets/images/logo-full-header.png', ENT_QUOTES, 'UTF-8'); ?>" alt="BioTern" class="landing-brand-logo">
+                <a href="<?php echo htmlspecialchars($landing_app_root . 'index.php', ENT_QUOTES, 'UTF-8'); ?>" class="d-flex align-items-center">
+                    <img src="<?php echo htmlspecialchars($landing_app_root . 'assets/images/logo-full-header.png', ENT_QUOTES, 'UTF-8'); ?>" alt="BioTern" class="landing-brand-logo">
                 </a>
             </div>
             <div class="header-right ms-auto">
@@ -376,8 +406,10 @@ $landing_hero_href = $landing_signin_href;
                             <i class="feather-sun"></i>
                         </a>
                     </div>
+                    <?php if (!$landing_logged_in): ?>
                     <a href="<?php echo htmlspecialchars($landing_apply_href, ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-sm btn-light-brand">Apply</a>
-                    <a href="/BioTern/BioTern_unified/auth/auth-login-cover.php" class="btn btn-sm btn-primary"><?php echo htmlspecialchars($landing_signin_label, ENT_QUOTES, 'UTF-8'); ?></a>
+                    <?php endif; ?>
+                    <a href="<?php echo htmlspecialchars($landing_signin_href, ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-sm btn-primary"><?php echo htmlspecialchars($landing_signin_label, ENT_QUOTES, 'UTF-8'); ?></a>
                 </div>
             </div>
         </div>
@@ -395,12 +427,14 @@ $landing_hero_href = $landing_signin_href;
                             <p class="hero-subtitle mb-4">Track attendance with biometric confidence, monitor internship progress, and generate key documents and reports without juggling multiple systems.</p>
                             <div class="hero-cta">
                                 <a href="<?php echo htmlspecialchars($landing_hero_href, ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-primary btn-lg"><?php echo htmlspecialchars($landing_hero_label, ENT_QUOTES, 'UTF-8'); ?></a>
+                                <?php if (!$landing_logged_in): ?>
                                 <a href="<?php echo htmlspecialchars($landing_start_href, ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-light-brand btn-lg">Start Application</a>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>
                     <div class="col-lg-4 d-flex justify-content-center p-4 p-lg-0">
-                        <img class="hero-college-logo" src="<?php echo htmlspecialchars($landing_app_root . '/assets/images/auth/auth-cover-login-bg.png', ENT_QUOTES, 'UTF-8'); ?>" alt="Clark College Logo">
+                        <img class="hero-college-logo" src="<?php echo htmlspecialchars($landing_app_root . 'assets/images/auth/auth-cover-login-bg.png', ENT_QUOTES, 'UTF-8'); ?>" alt="Clark College Logo">
                     </div>
                 </div>
             </div>
@@ -452,11 +486,11 @@ $landing_hero_href = $landing_signin_href;
         </div>
     </footer>
 
-    <script src="<?php echo htmlspecialchars($landing_app_root . '/assets/vendors/js/vendors.min.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
-    <script src="<?php echo htmlspecialchars($landing_app_root . '/assets/js/common-init.min.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
-    <script src="<?php echo htmlspecialchars($landing_app_root . '/assets/js/global-ui-helpers.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
-    <script src="<?php echo htmlspecialchars($landing_app_root . '/assets/js/theme-preferences-runtime.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
-    <script src="<?php echo htmlspecialchars($landing_app_root . '/assets/js/theme-customizer-init.min.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
+    <script src="<?php echo htmlspecialchars($landing_app_root . 'assets/vendors/js/vendors.min.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
+    <script src="<?php echo htmlspecialchars($landing_app_root . 'assets/js/common-init.min.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
+    <script src="<?php echo htmlspecialchars($landing_app_root . 'assets/js/global-ui-helpers.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
+    <script src="<?php echo htmlspecialchars($landing_app_root . 'assets/js/theme-preferences-runtime.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
+    <script src="<?php echo htmlspecialchars($landing_app_root . 'assets/js/theme-customizer-init.min.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
 </body>
 </html>
 
