@@ -233,13 +233,87 @@ if (!function_exists('section_schedule_for_date')) {
     }
 }
 
+if (!function_exists('section_schedule_has_configured_day')) {
+    function section_schedule_has_configured_day(array $schedule, ?string $date = null): bool
+    {
+        $resolved = section_schedule_for_date($schedule, $date);
+        if (trim((string)($resolved['schedule_time_in'] ?? '')) !== '') {
+            return true;
+        }
+        if (trim((string)($resolved['schedule_time_out'] ?? '')) !== '') {
+            return true;
+        }
+        if (trim((string)($resolved['late_after_time'] ?? '')) !== '') {
+            return true;
+        }
+
+        return section_schedule_normalize_session((string)($resolved['attendance_session'] ?? 'whole_day')) !== 'whole_day';
+    }
+}
+
+if (!function_exists('section_schedule_effective_day')) {
+    function section_schedule_effective_day(array $schedule, ?string $date = null, array $fallback = []): array
+    {
+        $resolved = section_schedule_for_date($schedule, $date);
+        $hasSectionWindow = section_schedule_has_configured_day($schedule, $date);
+
+        $fallbackIn = section_schedule_format_time_input((string)($fallback['schedule_time_in'] ?? ''));
+        $fallbackOut = section_schedule_format_time_input((string)($fallback['schedule_time_out'] ?? ''));
+        $fallbackLate = section_schedule_format_time_input((string)($fallback['late_after_time'] ?? ''));
+
+        if ($resolved['schedule_time_in'] === '' && $fallbackIn !== '') {
+            $resolved['schedule_time_in'] = $fallbackIn;
+        }
+        if ($resolved['schedule_time_out'] === '' && $fallbackOut !== '') {
+            $resolved['schedule_time_out'] = $fallbackOut;
+        }
+        if ($resolved['late_after_time'] === '') {
+            if ($fallbackLate !== '') {
+                $resolved['late_after_time'] = $fallbackLate;
+            } elseif ($resolved['schedule_time_in'] !== '') {
+                $resolved['late_after_time'] = $resolved['schedule_time_in'];
+            }
+        }
+
+        if ($hasSectionWindow) {
+            $resolved['window_source'] = 'section';
+        } elseif ($resolved['schedule_time_in'] !== '' || $resolved['schedule_time_out'] !== '') {
+            $resolved['window_source'] = 'school';
+        } else {
+            $resolved['window_source'] = 'none';
+        }
+
+        return $resolved;
+    }
+}
+
+if (!function_exists('section_schedule_allows_punch_time')) {
+    function section_schedule_allows_punch_time(array $schedule, ?string $date, string $time): bool
+    {
+        $resolved = section_schedule_for_date($schedule, $date);
+        $time = section_schedule_normalize_time_input($time);
+        $scheduleIn = section_schedule_normalize_time_input((string)($resolved['schedule_time_in'] ?? ''));
+        $scheduleOut = section_schedule_normalize_time_input((string)($resolved['schedule_time_out'] ?? ''));
+
+        if ($time === null || $scheduleIn === null || $scheduleOut === null) {
+            return true;
+        }
+
+        if ($scheduleIn <= $scheduleOut) {
+            return $time >= $scheduleIn && $time <= $scheduleOut;
+        }
+
+        return $time >= $scheduleIn || $time <= $scheduleOut;
+    }
+}
+
 if (!function_exists('section_schedule_summary_lines')) {
     function section_schedule_summary_lines(array $schedule): array
     {
         $lines = [];
         foreach (section_schedule_weekday_order() as $dayKey) {
             $resolved = section_schedule_for_date($schedule, $dayKey);
-            $sessionLabel = match ($resolved['attendance_session']) {
+            $sessionLabel = match (section_schedule_inferred_session($resolved)) {
                 'morning_only' => 'Morning',
                 'afternoon_only' => 'Afternoon',
                 default => 'Whole day',
@@ -266,10 +340,33 @@ if (!function_exists('section_schedule_summary_lines')) {
     }
 }
 
-if (!function_exists('section_schedule_first_in_column')) {
-    function section_schedule_prefers_afternoon_entry(array $schedule): bool
+if (!function_exists('section_schedule_inferred_session')) {
+    function section_schedule_inferred_session(array $schedule): string
     {
         $session = section_schedule_normalize_session((string)($schedule['attendance_session'] ?? 'whole_day'));
+        if ($session !== 'whole_day') {
+            return $session;
+        }
+
+        $scheduledIn = section_schedule_normalize_time_input((string)($schedule['schedule_time_in'] ?? ''));
+        $scheduledOut = section_schedule_normalize_time_input((string)($schedule['schedule_time_out'] ?? ''));
+        if ($scheduledIn !== null && $scheduledOut !== null) {
+            if (strcmp($scheduledOut, '12:00:00') <= 0) {
+                return 'morning_only';
+            }
+            if (strcmp($scheduledIn, '12:00:00') >= 0) {
+                return 'afternoon_only';
+            }
+        }
+
+        return $session;
+    }
+}
+
+if (!function_exists('section_schedule_prefers_afternoon_entry')) {
+    function section_schedule_prefers_afternoon_entry(array $schedule): bool
+    {
+        $session = section_schedule_inferred_session($schedule);
         if ($session === 'afternoon_only') {
             return true;
         }

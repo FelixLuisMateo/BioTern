@@ -70,21 +70,21 @@ function attendance_redirect_self(): void
     exit;
 }
 
-$machineConfig = attendance_load_machine_config();
-$attendanceTestingModeEnabled = empty($machineConfig['attendanceWindowEnabled']);
+function attendance_school_hours_config(?array $machineConfig = null): array
+{
+    $machineConfig = is_array($machineConfig) ? $machineConfig : attendance_load_machine_config();
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['attendance_action'] ?? '') === 'toggle_testing_mode') {
-    $enableTestingMode = (string)($_POST['testing_mode'] ?? '') === '1';
-    $machineConfig['attendanceWindowEnabled'] = !$enableTestingMode;
-    attendance_write_machine_config($machineConfig);
-    $_SESSION['attendance_sync_flash'] = [
-        'type' => 'success',
-        'message' => $enableTestingMode
-            ? 'Testing mode enabled. Attendance window is disabled, so all-day punches will be accepted on the next sync or replay.'
-            : 'Testing mode disabled. Attendance window filtering is active again.',
+    $start = section_schedule_format_time_input((string)($machineConfig['attendanceStartTime'] ?? '08:00:00'));
+    $end = section_schedule_format_time_input((string)($machineConfig['attendanceEndTime'] ?? '19:00:00'));
+
+    return [
+        'schedule_time_in' => $start !== '' ? $start : '08:00',
+        'schedule_time_out' => $end !== '' ? $end : '19:00',
+        'late_after_time' => $start !== '' ? $start : '08:00',
     ];
-    attendance_redirect_self();
 }
+
+$machineConfig = attendance_load_machine_config();
 
 // Fetch Attendance Statistics
 $stats_query = "
@@ -249,13 +249,15 @@ $attendance_query = "
         s.student_id as student_number,
         s.first_name,
         s.last_name,
-        s.email,
-        s.section_id,
-        s.supervisor_name,
-        s.coordinator_name,
-        c.name as course_name,
-        d.name as department_name,
-        sec.attendance_session,
+         s.email,
+         s.section_id,
+         s.supervisor_name,
+         s.coordinator_name,
+         sec.code AS section_code,
+         sec.name AS section_name,
+         c.name as course_name,
+         d.name as department_name,
+         sec.attendance_session,
         sec.schedule_time_in,
         sec.schedule_time_out,
         sec.late_after_time,
@@ -311,6 +313,18 @@ if (count($attendances) > 1) {
 
 synchronizeAttendanceProgress($conn, $attendances);
 
+$missingScheduleAttendances = [];
+foreach ($attendances as $attendance) {
+    if (strtolower(trim((string)($attendance['source'] ?? ''))) !== 'biometric') {
+        continue;
+    }
+
+    $schedule = attendance_effective_schedule($attendance);
+    if (($schedule['window_source'] ?? 'none') === 'none') {
+        $missingScheduleAttendances[] = $attendance;
+    }
+}
+
 // If requested via AJAX, return only the table rows HTML so frontend can replace tbody
 if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
     if (!empty($attendances)) {
@@ -334,24 +348,9 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
             echo '<td><span class="badge bg-soft-success text-success">' . ( $attendance['morning_time_out'] ? date('h:i A', strtotime($attendance['morning_time_out'])) : '-' ) . '</span></td>';
             echo '<td><span class="badge bg-soft-warning text-warning">' . ( $attendance['afternoon_time_in'] ? date('h:i A', strtotime($attendance['afternoon_time_in'])) : '-' ) . '</span></td>';
             echo '<td><span class="badge bg-soft-warning text-warning">' . ( $attendance['afternoon_time_out'] ? date('h:i A', strtotime($attendance['afternoon_time_out'])) : '-' ) . '</span></td>';
-            $total_hours = isset($attendance['computed_total_hours'])
-                ? $attendance['computed_total_hours']
-                : calculateAttendanceRowHours($attendance);
-            echo '<td><span class="badge bg-soft-secondary text-secondary">' . $total_hours . 'h</span></td>';
-            // attendance status
-            $att_status = getAttendanceStatus($attendance);
-            if ($att_status === 'present') {
-                $status_html = '<span class="badge bg-soft-success text-success">Present</span>';
-                $att_status_label = 'Present';
-            } elseif ($att_status === 'late') {
-                $status_html = '<span class="badge bg-soft-warning text-warning">Late</span>';
-                $att_status_label = 'Late';
-            } else {
-                $status_html = '<span class="badge bg-soft-danger text-danger">Absent</span>';
-                $att_status_label = 'Absent';
-            }
-            echo '<td>' . $status_html . '</td>';
-            echo '<td>' . getSourceBadge($attendance['source'] ?? 'manual') . '</td>';
+            echo '<td>' . attendance_hours_cell_html($attendance) . '</td>';
+            echo '<td>' . attendance_status_cell_html($attendance) . '</td>';
+            echo '<td>' . getSourceBadge($attendance['source'] ?? 'manual', $attendance) . '</td>';
             echo '<td>' . getStatusBadge($attendance['status']) . '</td>';
             $student_name = trim((string)($attendance['first_name'] ?? '') . ' ' . (string)($attendance['last_name'] ?? ''));
             $approval_status_label = ucfirst((string)($attendance['status'] ?? 'pending'));
@@ -402,10 +401,51 @@ function getStatusBadge($status) {
     }
 }
 
-function getSourceBadge($source) {
+function attendancePlacementContextLabel(array $attendance): string {
+    if (strtolower(trim((string)($attendance['source'] ?? ''))) !== 'biometric') {
+        return '';
+    }
+
+    $schedule = attendance_effective_schedule($attendance);
+    if (($schedule['window_source'] ?? '') === 'section') {
+        return 'Placed using the student section schedule for this day.';
+    }
+
+    if (($schedule['window_source'] ?? '') === 'school') {
+        return 'Placed using school open hours because the student section has no schedule for this day.';
+    }
+
+    return 'No attendance window is configured for this student or the school hours fallback.';
+}
+
+function attendancePlacementContextShortLabel(array $attendance): string {
+    if (strtolower(trim((string)($attendance['source'] ?? ''))) !== 'biometric') {
+        return '';
+    }
+
+    $schedule = attendance_effective_schedule($attendance);
+    if (($schedule['window_source'] ?? '') === 'section') {
+        return 'Section Schedule';
+    }
+    if (($schedule['window_source'] ?? '') === 'school') {
+        return 'School Hours';
+    }
+
+    return 'No Window';
+}
+
+function getSourceBadge($source, array $attendance = []) {
+    $placementLabel = attendancePlacementContextLabel($attendance);
+    $placementShortLabel = attendancePlacementContextShortLabel($attendance);
+    $titleAttr = $placementLabel !== '' ? (' title="' . htmlspecialchars($placementLabel, ENT_QUOTES, 'UTF-8') . '" data-bs-toggle="tooltip"') : '';
+
     switch (strtolower(trim((string)$source))) {
         case 'biometric':
-            return '<span class="badge bg-soft-primary text-primary">Biometric</span>';
+            $html = '<span class="badge bg-soft-primary text-primary"' . $titleAttr . '>Biometric</span>';
+            if ($placementShortLabel !== '') {
+                $html .= '<div class="fs-11 text-muted mt-1">' . htmlspecialchars($placementShortLabel, ENT_QUOTES, 'UTF-8') . '</div>';
+            }
+            return $html;
         case 'uploaded':
             return '<span class="badge bg-soft-info text-info">Uploaded</span>';
         default:
@@ -438,6 +478,139 @@ function parseAttendanceTime($time) {
 
     $timestamp = strtotime($value);
     return $timestamp === false ? null : $timestamp;
+}
+
+function attendance_effective_schedule(array $attendance): array {
+    global $machineConfig;
+    return section_schedule_effective_day(
+        section_schedule_from_row($attendance),
+        (string)($attendance['attendance_date'] ?? ''),
+        attendance_school_hours_config($machineConfig ?? [])
+    );
+}
+
+function attendance_collect_punch_values(array $attendance): array {
+    $values = [];
+    foreach (['morning_time_in', 'morning_time_out', 'afternoon_time_in', 'afternoon_time_out'] as $column) {
+        $value = trim((string)($attendance[$column] ?? ''));
+        if ($value === '' || $value === '00:00:00') {
+            continue;
+        }
+        $values[] = $value;
+    }
+
+    usort($values, static function (string $left, string $right): int {
+        return strcmp($left, $right);
+    });
+
+    return $values;
+}
+
+function attendance_window_metrics(array $attendance): array {
+    $schedule = attendance_effective_schedule($attendance);
+    $punches = attendance_collect_punch_values($attendance);
+    $firstPunch = $punches[0] ?? null;
+    $lastPunch = $punches !== [] ? $punches[count($punches) - 1] : null;
+    $hasCompletedRange = $firstPunch !== null && $lastPunch !== null && strcmp($lastPunch, $firstPunch) > 0;
+
+    $officialStart = section_schedule_normalize_time_input((string)($schedule['schedule_time_in'] ?? '')) ?: '08:00:00';
+    $officialEnd = section_schedule_normalize_time_input((string)($schedule['schedule_time_out'] ?? '')) ?: '19:00:00';
+    $lateAfter = section_schedule_normalize_time_input((string)($schedule['late_after_time'] ?? '')) ?: $officialStart;
+
+    $earlyHours = 0.0;
+    $officialHours = 0.0;
+    $overtimeHours = 0.0;
+
+    if ($firstPunch !== null && strcmp($firstPunch, $officialStart) < 0) {
+        $earlySeconds = max(0, strtotime($officialStart) - strtotime($firstPunch));
+        $earlyHours = round($earlySeconds / 3600, 2);
+    }
+
+    if ($hasCompletedRange) {
+        $rangeStart = max(strtotime($firstPunch), strtotime($officialStart));
+        $rangeEnd = min(strtotime($lastPunch), strtotime($officialEnd));
+        if ($rangeEnd > $rangeStart) {
+            $officialHours = round(($rangeEnd - $rangeStart) / 3600, 2);
+        }
+
+        if (strcmp($lastPunch, $officialEnd) > 0) {
+            $overtimeSeconds = max(0, strtotime($lastPunch) - strtotime($officialEnd));
+            $overtimeHours = round($overtimeSeconds / 3600, 2);
+        }
+    }
+
+    $arrivalStatus = 'absent';
+    if ($firstPunch !== null) {
+        if (strcmp($firstPunch, $officialStart) < 0) {
+            $arrivalStatus = 'early';
+        } elseif (strcmp($firstPunch, $lateAfter) > 0) {
+            $arrivalStatus = 'late';
+        } else {
+            $arrivalStatus = 'present';
+        }
+    }
+
+    return [
+        'schedule' => $schedule,
+        'first_punch' => $firstPunch,
+        'last_punch' => $lastPunch,
+        'has_completed_range' => $hasCompletedRange,
+        'arrival_status' => $arrivalStatus,
+        'official_hours' => $officialHours,
+        'early_hours' => $earlyHours,
+        'overtime_hours' => $overtimeHours,
+    ];
+}
+
+function attendance_format_hours_label(float $hours): string {
+    return number_format($hours, 2) . 'h';
+}
+
+function attendance_hours_cell_html(array $attendance): string {
+    $computedHours = isset($attendance['computed_total_hours'])
+        ? (float)$attendance['computed_total_hours']
+        : calculateAttendanceRowHours($attendance);
+    $metrics = attendance_window_metrics($attendance);
+
+    $meta = ['Official ' . attendance_format_hours_label((float)$metrics['official_hours'])];
+    if ((float)$metrics['early_hours'] > 0) {
+        $meta[] = 'Early ' . attendance_format_hours_label((float)$metrics['early_hours']);
+    }
+    if ((float)$metrics['overtime_hours'] > 0) {
+        $meta[] = 'OT ' . attendance_format_hours_label((float)$metrics['overtime_hours']);
+    }
+
+    return '<span class="badge bg-soft-secondary text-secondary">' . attendance_format_hours_label($computedHours) . '</span>'
+        . '<div class="fs-11 text-muted mt-1">' . htmlspecialchars(implode(' | ', $meta), ENT_QUOTES, 'UTF-8') . '</div>';
+}
+
+function attendance_status_cell_html(array $attendance): string {
+    $metrics = attendance_window_metrics($attendance);
+    $status = (string)($metrics['arrival_status'] ?? 'absent');
+
+    if ($status === 'early') {
+        $badge = '<span class="badge bg-soft-info text-info">Early</span>';
+    } elseif ($status === 'present') {
+        $badge = '<span class="badge bg-soft-success text-success">Present</span>';
+    } elseif ($status === 'late') {
+        $badge = '<span class="badge bg-soft-warning text-warning">Late</span>';
+    } else {
+        $badge = '<span class="badge bg-soft-danger text-danger">Absent</span>';
+    }
+
+    $notes = [];
+    if ((($metrics['schedule']['window_source'] ?? '') === 'school')) {
+        $notes[] = 'School hours';
+    } elseif ((($metrics['schedule']['window_source'] ?? '') === 'section')) {
+        $notes[] = 'Section schedule';
+    }
+    if ((float)($metrics['overtime_hours'] ?? 0) > 0) {
+        $notes[] = 'OT ' . attendance_format_hours_label((float)$metrics['overtime_hours']);
+    }
+
+    return $badge . ($notes !== []
+        ? '<div class="fs-11 text-muted mt-1">' . htmlspecialchars(implode(' | ', $notes), ENT_QUOTES, 'UTF-8') . '</div>'
+        : '');
 }
 
 function calculateAttendanceRowHours(array $attendance): float {
@@ -616,7 +789,7 @@ function synchronizeAttendanceProgress(mysqli $conn, array &$attendances): void 
 
 // Determine attendance status based on the section schedule.
 function getAttendanceStatus(array $attendance) {
-    return section_schedule_status($attendance, section_schedule_from_row($attendance));
+    return (string)(attendance_window_metrics($attendance)['arrival_status'] ?? 'absent');
 }
 
 function attendanceFilledSlotScore(array $attendance): int {
@@ -1269,14 +1442,6 @@ echo htmlspecialchars((string)($_SESSION['email'] ?? 'admin@biotern.local'), ENT
                                 <i class="feather-cpu me-2"></i>
                                 <span>Machine Manager</span>
                             </a>
-                            <form method="POST" class="d-inline-block m-0">
-                                <input type="hidden" name="attendance_action" value="toggle_testing_mode">
-                                <input type="hidden" name="testing_mode" value="<?php echo $attendanceTestingModeEnabled ? '0' : '1'; ?>">
-                                <button type="submit" class="btn <?php echo $attendanceTestingModeEnabled ? 'btn-warning' : 'btn-outline-warning'; ?>">
-                                    <i class="feather-<?php echo $attendanceTestingModeEnabled ? 'toggle-right' : 'toggle-left'; ?> me-2"></i>
-                                    <span><?php echo $attendanceTestingModeEnabled ? 'Testing Mode: ON' : 'Testing Mode: OFF'; ?></span>
-                                </button>
-                            </form>
                             <button type="button" class="btn btn-primary" id="manualSyncMachineButton">
                                 <i class="feather-refresh-cw me-2"></i>
                                 <span>Sync Machine</span>
@@ -1354,6 +1519,27 @@ echo htmlspecialchars((string)($_SESSION['email'] ?? 'admin@biotern.local'), ENT
             ?>
                 <div class="alert alert-<?php echo htmlspecialchars((string)($attendance_sync_flash['type'] ?? 'info'), ENT_QUOTES, 'UTF-8'); ?> alert-dismissible fade show mx-3" role="alert" id="attendanceSyncAlert">
                     <?php echo nl2br(htmlspecialchars((string)$attendance_sync_flash['message'], ENT_QUOTES, 'UTF-8')); ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            <?php endif; ?>
+            <?php if (!empty($missingScheduleAttendances)): ?>
+                <?php
+                $missingScheduleLabels = [];
+                foreach ($missingScheduleAttendances as $attendance) {
+                    $studentLabel = trim((string)($attendance['first_name'] ?? '') . ' ' . (string)($attendance['last_name'] ?? ''));
+                    $sectionLabel = trim((string)($attendance['section_code'] ?? ''));
+                    if ($sectionLabel === '') {
+                        $sectionLabel = trim((string)($attendance['section_name'] ?? ''));
+                    }
+                    $missingScheduleLabels[] = trim($studentLabel . ($sectionLabel !== '' ? (' [' . $sectionLabel . ']') : ''));
+                }
+                $missingScheduleLabels = array_values(array_unique(array_filter($missingScheduleLabels)));
+                ?>
+                <div class="alert alert-warning alert-dismissible fade show mx-3" role="alert">
+                    Section schedule is missing for some biometric rows on this page. Review the section schedule before trusting their slot placement.
+                    <?php if ($missingScheduleLabels !== []): ?>
+                        <div class="mt-2 small"><?php echo htmlspecialchars(implode(', ', array_slice($missingScheduleLabels, 0, 8)), ENT_QUOTES, 'UTF-8'); ?><?php echo count($missingScheduleLabels) > 8 ? '...' : ''; ?></div>
+                    <?php endif; ?>
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
             <?php endif; ?>
@@ -1732,30 +1918,19 @@ echo formatTime($attendance['afternoon_time_in']); ?></span></td>
 require_once dirname(__DIR__) . '/config/db.php';
 echo formatTime($attendance['afternoon_time_out']); ?></span></td>
                                                         <td>
-                                                            <span class="badge bg-soft-secondary text-secondary">
-                                                                <?php
+                                                            <?php
 require_once dirname(__DIR__) . '/config/db.php';
-echo isset($attendance['computed_total_hours'])
-    ? $attendance['computed_total_hours']
-    : calculateAttendanceRowHours($attendance); ?>h
-                                                            </span>
+echo attendance_hours_cell_html($attendance); ?>
                                                         </td>
                                                         <td>
                                                             <?php
 require_once dirname(__DIR__) . '/config/db.php';
-$att_status = getAttendanceStatus($attendance);
-                                                                if ($att_status === 'present') {
-                                                                    echo '<span class="badge bg-soft-success text-success">Present</span>';
-                                                                } elseif ($att_status === 'late') {
-                                                                    echo '<span class="badge bg-soft-warning text-warning">Late</span>';
-                                                                } else {
-                                                                    echo '<span class="badge bg-soft-danger text-danger">Absent</span>';
-                                                                }
+echo attendance_status_cell_html($attendance);
                                                             ?>
                                                         </td>
                                                         <td><?php
 require_once dirname(__DIR__) . '/config/db.php';
-echo getSourceBadge($attendance['source'] ?? 'manual'); ?></td>
+echo getSourceBadge($attendance['source'] ?? 'manual', $attendance); ?></td>
                                                         <td><?php
 require_once dirname(__DIR__) . '/config/db.php';
 echo getStatusBadge($attendance['status']); ?></td>
