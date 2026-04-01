@@ -28,6 +28,11 @@ function getCurrentSchoolYearLabel($timestamp = null) {
     return sprintf('%d-%d', $startYear, $startYear + 1);
 }
 
+function studentApplicationRedirect(string $status, string $message): void {
+    header('Location: auth-register-creative.php?registered=' . rawurlencode($status) . '&msg=' . urlencode($message));
+    exit;
+}
+
 function resolveDepartmentIdByCode($mysqli, $departmentCode) {
     $code = trim((string)$departmentCode);
     if ($code === '') {
@@ -250,8 +255,7 @@ if ($role === 'student') {
     $password = getPost('password');
     $confirm_password = getPost('confirm_password');
     if ($password !== $confirm_password) {
-        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Passwords do not match'));
-        exit;
+        studentApplicationRedirect('error', 'Passwords do not match.');
     }
     
     $student_id = getPost('student_id');
@@ -327,42 +331,36 @@ if ($role === 'student') {
 
     // Strict server-side integrity checks for tampered submissions.
     if ($course_id <= 0) {
-        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Invalid academic assignment selection. Please choose course.'));
-        exit;
+        studentApplicationRedirect('error', 'Please choose your course before submitting your application.');
     }
     if ($section_id <= 0) {
-        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Invalid academic assignment selection. Please choose a valid existing section.'));
-        exit;
+        studentApplicationRedirect('error', 'Please choose a valid section before submitting your application.');
     }
 
     $course_check = $mysqli->prepare("SELECT id FROM courses WHERE id = ? AND deleted_at IS NULL LIMIT 1");
     if (!$course_check) {
-        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Unable to validate selected course.'));
-        exit;
+        studentApplicationRedirect('error', 'We could not validate your selected course right now. Please try again.');
     }
     $course_check->bind_param('i', $course_id);
     $course_check->execute();
     $course_ok = $course_check->get_result()->fetch_assoc();
     $course_check->close();
     if (!$course_ok) {
-        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Selected course is invalid.'));
-        exit;
+        studentApplicationRedirect('error', 'The selected course is invalid. Please choose another one.');
     }
 
     $department_id_int = !empty($department_id) ? (int)$department_id : 0;
     if ($department_id_int > 0) {
         $dept_check = $mysqli->prepare("SELECT id FROM departments WHERE id = ? AND deleted_at IS NULL LIMIT 1");
         if (!$dept_check) {
-            header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Unable to validate selected department.'));
-            exit;
+            studentApplicationRedirect('error', 'We could not validate your selected department right now. Please try again.');
         }
         $dept_check->bind_param('i', $department_id_int);
         $dept_check->execute();
         $dept_ok = $dept_check->get_result()->fetch_assoc();
         $dept_check->close();
         if (!$dept_ok) {
-            header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Selected department is invalid.'));
-            exit;
+            studentApplicationRedirect('error', 'The selected department is invalid. Please choose another one.');
         }
     }
 
@@ -379,16 +377,14 @@ if ($role === 'student') {
                 LIMIT 1
             ");
             if (!$section_check) {
-                header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Unable to validate selected section.'));
-                exit;
+                studentApplicationRedirect('error', 'We could not validate your selected section right now. Please try again.');
             }
             $section_check->bind_param('iii', $section_id, $course_id, $department_id_int);
             $section_check->execute();
             $section_ok = $section_check->get_result()->fetch_assoc();
             $section_check->close();
             if (!$section_ok) {
-                header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Selected section does not belong to the selected course and department.'));
-                exit;
+                studentApplicationRedirect('error', 'The selected section does not match your chosen course and department.');
             }
         } else {
             $section_check = $mysqli->prepare("
@@ -401,16 +397,14 @@ if ($role === 'student') {
                 LIMIT 1
             ");
             if (!$section_check) {
-                header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Unable to validate selected section.'));
-                exit;
+                studentApplicationRedirect('error', 'We could not validate your selected section right now. Please try again.');
             }
             $section_check->bind_param('ii', $section_id, $course_id);
             $section_check->execute();
             $section_row = $section_check->get_result()->fetch_assoc();
             $section_check->close();
             if (!$section_row) {
-                header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Selected section does not belong to the selected course.'));
-                exit;
+                studentApplicationRedirect('error', 'The selected section does not match your chosen course.');
             }
             if (!empty($section_row['department_id'])) {
                 $department_id_int = (int)$section_row['department_id'];
@@ -430,16 +424,14 @@ if ($role === 'student') {
             LIMIT 1
         ");
         if (!$coord_check) {
-            header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Unable to validate selected coordinator.'));
-            exit;
+            studentApplicationRedirect('error', 'We could not validate the selected coordinator right now. Please try again.');
         }
         $coord_check->bind_param('ii', $coordinator_id, $department_id_int);
         $coord_check->execute();
         $coord_row = $coord_check->get_result()->fetch_assoc();
         $coord_check->close();
         if (!$coord_row) {
-            header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Selected coordinator is not valid for the chosen department.'));
-            exit;
+            studentApplicationRedirect('error', 'The selected coordinator is not valid for the chosen department.');
         }
         $coordinator_name = isset($coord_row['full_name']) ? (string)$coord_row['full_name'] : null;
     } elseif (!empty($coordinator_id)) {
@@ -452,16 +444,14 @@ if ($role === 'student') {
             LIMIT 1
         ");
         if (!$coord_check) {
-            header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Unable to validate selected coordinator.'));
-            exit;
+            studentApplicationRedirect('error', 'We could not validate the selected coordinator right now. Please try again.');
         }
         $coord_check->bind_param('i', $coordinator_id);
         $coord_check->execute();
         $coord_row = $coord_check->get_result()->fetch_assoc();
         $coord_check->close();
         if (!$coord_row) {
-            header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Selected coordinator is invalid.'));
-            exit;
+            studentApplicationRedirect('error', 'The selected coordinator is invalid.');
         }
         $coordinator_name = isset($coord_row['full_name']) ? (string)$coord_row['full_name'] : null;
     }
@@ -477,16 +467,14 @@ if ($role === 'student') {
             LIMIT 1
         ");
         if (!$sup_check) {
-            header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Unable to validate selected supervisor.'));
-            exit;
+            studentApplicationRedirect('error', 'We could not validate the selected supervisor right now. Please try again.');
         }
         $sup_check->bind_param('ii', $supervisor_id, $department_id_int);
         $sup_check->execute();
         $sup_row = $sup_check->get_result()->fetch_assoc();
         $sup_check->close();
         if (!$sup_row) {
-            header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Selected supervisor is not valid for the chosen department.'));
-            exit;
+            studentApplicationRedirect('error', 'The selected supervisor is not valid for the chosen department.');
         }
         $supervisor_name = isset($sup_row['full_name']) ? (string)$sup_row['full_name'] : null;
     } elseif (!empty($supervisor_id)) {
@@ -499,16 +487,14 @@ if ($role === 'student') {
             LIMIT 1
         ");
         if (!$sup_check) {
-            header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Unable to validate selected supervisor.'));
-            exit;
+            studentApplicationRedirect('error', 'We could not validate the selected supervisor right now. Please try again.');
         }
         $sup_check->bind_param('i', $supervisor_id);
         $sup_check->execute();
         $sup_row = $sup_check->get_result()->fetch_assoc();
         $sup_check->close();
         if (!$sup_row) {
-            header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Selected supervisor is invalid.'));
-            exit;
+            studentApplicationRedirect('error', 'The selected supervisor is invalid.');
         }
         $supervisor_name = isset($sup_row['full_name']) ? (string)$sup_row['full_name'] : null;
     }
@@ -540,19 +526,16 @@ if ($role === 'student') {
             $stmt_user->close();
             // 1062 = duplicate entry
             if ($code === 1062 || strpos($msg, 'Duplicate entry') !== false) {
-                header('Location: auth-register-creative.php?registered=exists&msg=' . urlencode('An account with that email already exists'));
-                exit;
+                studentApplicationRedirect('exists', 'An application or account already exists for that email address.');
             }
-            header('Location: auth-register-creative.php?registered=error&msg=' . urlencode($msg));
-            exit;
+            studentApplicationRedirect('error', 'We could not submit your application right now. Please try again.');
         }
         $stmt_user->close();
     }
 
     // Validate that user_id was created successfully
     if (!$user_id) {
-        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Failed to create user account'));
-        exit;
+        studentApplicationRedirect('error', 'We could not finish your application submission. Please try again.');
     }
 
     // Now insert into students table using the user_id
@@ -560,8 +543,7 @@ if ($role === 'student') {
     $stmt = $mysqli->prepare("INSERT INTO students (user_id, course_id, student_id, first_name, last_name, middle_name, password, email, department_id, section_id, semester, address, phone, date_of_birth, gender, supervisor_id, supervisor_name, coordinator_id, coordinator_name, internal_total_hours, internal_total_hours_remaining, external_total_hours, external_total_hours_remaining, assignment_track, emergency_contact, school_year, application_status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULLIF(?, 0), NULLIF(?, ''), ?, ?, ?, ?, NULLIF(?, 0), ?, NULLIF(?, 0), ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW())");
     
     if (!$stmt) {
-        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Database statement error: ' . $mysqli->error));
-        exit;
+        studentApplicationRedirect('error', 'We could not prepare your student application record. Please try again.');
     }
     
     // Combine emergency contact info for storage (Name: Phone format for display)
@@ -614,13 +596,11 @@ if ($role === 'student') {
         if (!$stmt->execute()) {
             $error = $stmt->error;
             $stmt->close();
-            header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Student record error: ' . $error));
-            exit;
+            studentApplicationRedirect('error', 'Your account was created, but the student application record could not be saved. Please contact the administrator.');
         }
     } catch (mysqli_sql_exception $e) {
         $stmt->close();
-        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Student record error: ' . $e->getMessage()));
-        exit;
+        studentApplicationRedirect('error', 'Your account was created, but the student application record could not be completed. Please contact the administrator.');
     }
     
     $new_student_id = (int)$mysqli->insert_id;
@@ -637,8 +617,7 @@ if ($role === 'student') {
 
     // Internship record is created only after the application is approved.
 
-    header('Location: auth-register-creative.php?registered=pending&msg=' . urlencode('Application submitted. Please wait for approval from admin/coordinator/supervisor.'));
-    exit;
+    studentApplicationRedirect('pending', 'Application sent successfully. Please wait for approval from the admin, coordinator, or supervisor.');
 }
 
 if ($role === 'coordinator') {

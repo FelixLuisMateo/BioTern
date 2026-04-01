@@ -197,6 +197,7 @@ function auth_login_ensure_users_schema(mysqli $mysqli): void
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $identifier = isset($_POST['identifier']) ? trim((string)$_POST['identifier']) : '';
     $password = isset($_POST['password']) ? (string)$_POST['password'] : '';
+    $remember_me = isset($_POST['remember_me']) && (string)$_POST['remember_me'] === '1';
     $client_ip = isset($_SERVER['REMOTE_ADDR']) ? (string)$_SERVER['REMOTE_ADDR'] : '';
     $client_user_agent = isset($_SERVER['HTTP_USER_AGENT']) ? substr((string)$_SERVER['HTTP_USER_AGENT'], 0, 255) : '';
     $posted_next = isset($_POST['next']) ? basename((string)$_POST['next']) : '';
@@ -273,7 +274,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['profile_picture'] = (string)($user['profile_picture'] ?? '');
                     $_SESSION['logged_in'] = true;
 
-                    biotern_auth_issue_persistent_login($mysqli, (int)$user['id']);
+                    if ($remember_me) {
+                        biotern_auth_issue_persistent_login($mysqli, (int)$user['id']);
+                    } else {
+                        biotern_auth_clear_persistent_login($mysqli);
+                    }
 
                     log_login_attempt($mysqli, (int)$user['id'], $identifier, (string)($user['role'] ?? ''), 'success', 'login_success', $client_ip, $client_user_agent);
 
@@ -628,7 +633,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <div class="d-flex align-items-center justify-content-between">
                             <div>
                                 <div class="form-check">
-                                    <input type="checkbox" class="form-check-input" id="rememberMe">
+                                    <input type="checkbox" class="form-check-input" id="rememberMe" name="remember_me" value="1"<?php echo !empty($_POST['remember_me']) ? ' checked' : ''; ?>>
                                     <label class="form-check-label c-pointer" for="rememberMe">Remember Me</label>
                                 </div>
                             </div>
