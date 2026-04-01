@@ -197,6 +197,7 @@ function auth_login_ensure_users_schema(mysqli $mysqli): void
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $identifier = isset($_POST['identifier']) ? trim((string)$_POST['identifier']) : '';
     $password = isset($_POST['password']) ? (string)$_POST['password'] : '';
+    $remember_me = isset($_POST['remember_me']) && (string)$_POST['remember_me'] === '1';
     $client_ip = isset($_SERVER['REMOTE_ADDR']) ? (string)$_SERVER['REMOTE_ADDR'] : '';
     $client_user_agent = isset($_SERVER['HTTP_USER_AGENT']) ? substr((string)$_SERVER['HTTP_USER_AGENT'], 0, 255) : '';
     $posted_next = isset($_POST['next']) ? basename((string)$_POST['next']) : '';
@@ -273,7 +274,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['profile_picture'] = (string)($user['profile_picture'] ?? '');
                     $_SESSION['logged_in'] = true;
 
-                    biotern_auth_issue_persistent_login($mysqli, (int)$user['id']);
+                    if ($remember_me) {
+                        biotern_auth_issue_persistent_login($mysqli, (int)$user['id']);
+                    } else {
+                        biotern_auth_clear_persistent_login($mysqli);
+                    }
 
                     log_login_attempt($mysqli, (int)$user['id'], $identifier, (string)($user['role'] ?? ''), 'success', 'login_success', $client_ip, $client_user_agent);
 
@@ -619,16 +624,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <form method="post" class="w-100 mt-4 pt-2">
                         <input type="hidden" name="next" value="<?php echo htmlspecialchars($next, ENT_QUOTES, 'UTF-8'); ?>">
                         <div class="mb-4">
-                            <input type="text" name="identifier" id="identifier" class="form-control" placeholder="Student ID, Email, or Admin Username" value="<?php echo isset($_POST['identifier']) ? htmlspecialchars((string)$_POST['identifier']) : ''; ?>" required aria-required="true" aria-label="Student ID, Email, or Admin Username" autofocus>
+                            <input type="text" name="identifier" id="identifier" class="form-control" placeholder="Student ID, Email, or Admin Username" value="<?php echo isset($_POST['identifier']) ? htmlspecialchars((string)$_POST['identifier']) : ''; ?>" required aria-required="true" aria-label="Student ID, Email, or Admin Username" autocomplete="username" autocapitalize="none" spellcheck="false" autofocus>
                         </div>
                         <div class="mb-3 input-group">
-                            <input type="password" name="password" id="passwordInput" class="form-control" placeholder="Password" required aria-required="true" aria-label="Password">
+                            <input type="password" name="password" id="passwordInput" class="form-control" placeholder="Password" required aria-required="true" aria-label="Password" autocomplete="current-password">
                             <button class="btn btn-outline-secondary" type="button" id="togglePassword" aria-label="Show password"><i></i></button>
                         </div>
                         <div class="d-flex align-items-center justify-content-between">
                             <div>
                                 <div class="form-check">
-                                    <input type="checkbox" class="form-check-input" id="rememberMe">
+                                    <input type="checkbox" class="form-check-input" id="rememberMe" name="remember_me" value="1"<?php echo !empty($_POST['remember_me']) ? ' checked' : ''; ?>>
                                     <label class="form-check-label c-pointer" for="rememberMe">Remember Me</label>
                                 </div>
                             </div>

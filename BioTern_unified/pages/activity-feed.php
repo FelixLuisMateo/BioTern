@@ -11,6 +11,46 @@ if ($userId <= 0) {
     exit;
 }
 
+$accountUser = null;
+$userStmt = $conn->prepare('SELECT name, role, email, is_active FROM users WHERE id = ? LIMIT 1');
+if ($userStmt) {
+    $userStmt->bind_param('i', $userId);
+    $userStmt->execute();
+    $accountUser = $userStmt->get_result()->fetch_assoc();
+    $userStmt->close();
+}
+
+$activityUserName = trim((string)($accountUser['name'] ?? ($_SESSION['name'] ?? 'BioTern User')));
+if ($activityUserName === '') {
+    $activityUserName = 'BioTern User';
+}
+
+$activityUserRole = ucfirst((string)($accountUser['role'] ?? ($_SESSION['role'] ?? 'user')));
+$notificationUnreadCount = biotern_notifications_count_unread($conn, $userId);
+$activityRoleKey = strtolower((string)($accountUser['role'] ?? ($_SESSION['role'] ?? '')));
+$showAssignmentFeed = $activityRoleKey !== 'student';
+$isStudentActivity = $activityRoleKey === 'student';
+$studentActivityRecord = null;
+
+if ($isStudentActivity) {
+    $studentStmt = $conn->prepare(
+        "SELECT s.id, s.student_id, s.first_name, s.last_name, s.email
+         FROM students s
+         WHERE s.user_id = ?
+            OR LOWER(TRIM(COALESCE(s.email, ''))) = LOWER(TRIM(?))
+            OR LOWER(TRIM(CONCAT(COALESCE(s.first_name, ''), ' ', COALESCE(s.last_name, '')))) = LOWER(TRIM(?))
+         ORDER BY CASE WHEN s.user_id = ? THEN 0 ELSE 1 END, s.id DESC
+         LIMIT 1"
+    );
+    if ($studentStmt) {
+        $userEmail = (string)($accountUser['email'] ?? '');
+        $studentStmt->bind_param('issi', $userId, $userEmail, $activityUserName, $userId);
+        $studentStmt->execute();
+        $studentActivityRecord = $studentStmt->get_result()->fetch_assoc();
+        $studentStmt->close();
+    }
+}
+
 function activity_feed_table_exists(mysqli $conn, string $table): bool
 {
     $safe = $conn->real_escape_string($table);
@@ -115,6 +155,30 @@ if (activity_feed_table_exists($conn, 'login_logs')) {
     }
 }
 
+if ($isStudentActivity && is_array($studentActivityRecord) && !empty($studentActivityRecord['id']) && activity_feed_table_exists($conn, 'attendances')) {
+    $studentDbId = (int)$studentActivityRecord['id'];
+    $attendanceStmt = $conn->prepare('SELECT attendance_date, status, total_hours, source, updated_at, created_at FROM attendances WHERE student_id = ? ORDER BY attendance_date DESC, id DESC LIMIT 40');
+    if ($attendanceStmt) {
+        $attendanceStmt->bind_param('i', $studentDbId);
+        $attendanceStmt->execute();
+        $attendanceResult = $attendanceStmt->get_result();
+        while ($row = $attendanceResult->fetch_assoc()) {
+            $statusText = ucfirst(trim((string)($row['status'] ?? 'pending')));
+            $sourceText = ucfirst(trim((string)($row['source'] ?? 'manual')));
+            $hoursText = number_format((float)($row['total_hours'] ?? 0), 2);
+            $events[] = [
+                'source' => 'Attendance',
+                'title' => 'DTR entry recorded',
+                'detail' => 'Attendance for ' . date('M d, Y', strtotime((string)($row['attendance_date'] ?? 'now'))) . ' is ' . $statusText . ' with ' . $hoursText . ' rendered hours via ' . $sourceText . '.',
+                'created_at' => (string)($row['updated_at'] ?? $row['created_at'] ?? ''),
+                'badge_class' => 'bg-soft-success text-success',
+                'type_key' => 'attendance',
+            ];
+        }
+        $attendanceStmt->close();
+    }
+}
+
 $notifications = biotern_notifications_fetch($conn, $userId, 40);
 foreach ($notifications as $item) {
     $events[] = [
@@ -127,7 +191,73 @@ foreach ($notifications as $item) {
     ];
 }
 
-if (activity_feed_table_exists($conn, 'audit_logs')) {
+if ($isStudentActivity && activity_feed_table_exists($conn, 'storage_activity_logs')) {
+    $storageStmt = $conn->prepare('SELECT action_type, title, details, created_at FROM storage_activity_logs WHERE user_id = ? ORDER BY id DESC LIMIT 40');
+    if ($storageStmt) {
+        $storageStmt->bind_param('i', $userId);
+        $storageStmt->execute();
+        $storageResult = $storageStmt->get_result();
+        while ($row = $storageResult->fetch_assoc()) {
+            $actionType = strtolower(trim((string)($row['action_type'] ?? 'update')));
+            $title = trim((string)($row['title'] ?? 'Document'));
+            $verbMap = [
+                'upload' => 'Uploaded document',
+                'replace' => 'Updated document',
+                'update' => 'Edited document details',
+                'delete' => 'Moved document to trash',
+                'restore' => 'Restored document',
+                'toggle_star' => 'Updated starred document',
+                'bulk_delete' => 'Bulk document cleanup',
+                'bulk_restore' => 'Bulk document restore',
+            ];
+            $events[] = [
+                'source' => 'Documents',
+                'title' => $verbMap[$actionType] ?? 'Document activity',
+                'detail' => ($title !== '' ? ($title . ' | ') : '') . trim((string)($row['details'] ?? 'Document change recorded')),
+                'created_at' => (string)($row['created_at'] ?? ''),
+                'badge_class' => 'bg-soft-secondary text-secondary',
+                'type_key' => 'documents',
+            ];
+        }
+        $storageStmt->close();
+    }
+}
+
+if ($isStudentActivity && activity_feed_table_exists($conn, 'audit_logs')) {
+    $auditStudentStmt = $conn->prepare('SELECT action, entity_type, entity_id, before_data, after_data, created_at FROM audit_logs WHERE user_id = ? ORDER BY created_at DESC LIMIT 60');
+    if ($auditStudentStmt) {
+        $auditStudentStmt->bind_param('i', $userId);
+        $auditStudentStmt->execute();
+        $auditStudentResult = $auditStudentStmt->get_result();
+        while ($row = $auditStudentResult->fetch_assoc()) {
+            $entityType = strtolower(trim((string)($row['entity_type'] ?? '')));
+            if ($entityType !== '' && strpos($entityType, 'student') === false && strpos($entityType, 'user') === false && strpos($entityType, 'profile') === false && strpos($entityType, 'account') === false) {
+                continue;
+            }
+
+            $before = activity_feed_parse_json((string)($row['before_data'] ?? ''));
+            $after = activity_feed_parse_json((string)($row['after_data'] ?? ''));
+            $changes = activity_feed_build_change_details($before, $after);
+            $detailParts = [];
+            foreach (array_slice($changes, 0, 3) as $change) {
+                $label = ucwords(str_replace('_', ' ', (string)$change['key']));
+                $detailParts[] = $label . ': ' . $change['after'];
+            }
+            $detail = !empty($detailParts) ? implode(' | ', $detailParts) : 'Your profile or account information was updated.';
+            $events[] = [
+                'source' => 'Profile',
+                'title' => 'Updated profile details',
+                'detail' => $detail,
+                'created_at' => (string)($row['created_at'] ?? ''),
+                'badge_class' => 'bg-soft-warning text-warning',
+                'type_key' => 'profile',
+            ];
+        }
+        $auditStudentStmt->close();
+    }
+}
+
+if (!$isStudentActivity && activity_feed_table_exists($conn, 'audit_logs')) {
     $stmt = $conn->prepare('SELECT action, entity_type, entity_id, before_data, after_data, created_at FROM audit_logs WHERE user_id = ? ORDER BY created_at DESC LIMIT 60');
     if ($stmt) {
         $stmt->bind_param('i', $userId);
@@ -181,7 +311,7 @@ if (activity_feed_table_exists($conn, 'audit_logs')) {
     }
 }
 
-if (activity_feed_table_exists($conn, 'ojt_edit_audit')) {
+if (!$isStudentActivity && activity_feed_table_exists($conn, 'ojt_edit_audit')) {
     $stmt = $conn->prepare('SELECT student_id, reason, changes_text, created_at FROM ojt_edit_audit WHERE editor_user_id = ? ORDER BY created_at DESC LIMIT 80');
     if ($stmt) {
         $stmt->bind_param('i', $userId);
@@ -231,7 +361,12 @@ foreach ($events as &$evt) {
 unset($evt);
 
 $feed = strtolower(trim((string)($_GET['feed'] ?? 'all')));
-$allowedFeeds = ['all', 'assignment', 'student', 'login', 'notification'];
+$allowedFeeds = $isStudentActivity
+    ? ['all', 'profile', 'attendance', 'documents', 'login', 'notification']
+    : ['all', 'student', 'login', 'notification'];
+if (!$isStudentActivity && $showAssignmentFeed) {
+    array_splice($allowedFeeds, 1, 0, ['assignment']);
+}
 if (!in_array($feed, $allowedFeeds, true)) {
     $feed = 'all';
 }
@@ -239,6 +374,9 @@ if (!in_array($feed, $allowedFeeds, true)) {
 $countAll = count($events);
 $countAssignment = 0;
 $countStudent = 0;
+$countProfile = 0;
+$countAttendance = 0;
+$countDocuments = 0;
 $countLogin = 0;
 $countNotification = 0;
 
@@ -248,6 +386,12 @@ foreach ($events as $event) {
         $countAssignment++;
     } elseif ($typeKey === 'student') {
         $countStudent++;
+    } elseif ($typeKey === 'profile') {
+        $countProfile++;
+    } elseif ($typeKey === 'attendance') {
+        $countAttendance++;
+    } elseif ($typeKey === 'documents') {
+        $countDocuments++;
     } elseif ($typeKey === 'login') {
         $countLogin++;
     } elseif ($typeKey === 'notification') {
@@ -376,6 +520,67 @@ include 'includes/header.php';
         line-height: 1.5;
     }
 
+    body.apps-activity-page .account-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 16px;
+        border-bottom: 1px solid #e2e8f0;
+        background: #ffffff;
+    }
+
+    body.apps-activity-page .account-toolbar a {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 14px;
+        border-radius: 999px;
+        border: 1px solid #dbe3ee;
+        background: #f8fafc;
+        color: #1d4ed8;
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 700;
+    }
+
+    body.apps-activity-page .activity-summary-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 14px;
+        padding: 16px;
+        border-bottom: 1px solid #e2e8f0;
+        background: #ffffff;
+    }
+
+    body.apps-activity-page .activity-summary-card {
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        background: #f8fafc;
+        padding: 16px;
+    }
+
+    body.apps-activity-page .activity-summary-label {
+        color: #64748b;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        font-weight: 700;
+    }
+
+    body.apps-activity-page .activity-summary-value {
+        margin-top: 8px;
+        font-size: 24px;
+        line-height: 1;
+        font-weight: 800;
+        color: #0f172a;
+    }
+
+    body.apps-activity-page .activity-summary-note {
+        margin-top: 8px;
+        color: #64748b;
+        font-size: 12px;
+    }
+
     html.app-skin-dark body.apps-activity-page .content-sidebar,
     html.app-skin-dark body.apps-activity-page .content-area {
         border-color: #1b2436 !important;
@@ -426,6 +631,44 @@ include 'includes/header.php';
     html.app-skin-dark body.apps-activity-page .text-muted {
         color: #9fb0cc !important;
     }
+
+    html.app-skin-dark body.apps-activity-page .account-toolbar,
+    html.app-skin-dark body.apps-activity-page .activity-summary-grid {
+        background: #0f172a;
+        border-bottom-color: #1b2436;
+    }
+
+    html.app-skin-dark body.apps-activity-page .account-toolbar a {
+        border-color: #334155;
+        background: #111c31;
+        color: #93c5fd;
+    }
+
+    html.app-skin-dark body.apps-activity-page .activity-summary-card {
+        border-color: #334155;
+        background: #111c31;
+    }
+
+    html.app-skin-dark body.apps-activity-page .activity-summary-value {
+        color: #e6edf8;
+    }
+
+    html.app-skin-dark body.apps-activity-page .activity-summary-note,
+    html.app-skin-dark body.apps-activity-page .activity-summary-label {
+        color: #9fb0cc;
+    }
+
+    @media (max-width: 991.98px) {
+        body.apps-activity-page .activity-summary-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 575.98px) {
+        body.apps-activity-page .activity-summary-grid {
+            grid-template-columns: 1fr;
+        }
+    }
 </style>
 
 <script>
@@ -459,6 +702,7 @@ include 'includes/header.php';
                         <span class="badge bg-soft-primary text-primary"><?php echo (int)$countAll; ?></span>
                     </a>
                 </li>
+                <?php if ($showAssignmentFeed): ?>
                 <li class="nav-item">
                     <a class="nav-link d-flex align-items-center justify-content-between<?php echo $feed === 'assignment' ? ' active' : ''; ?>" href="activity-feed.php?feed=assignment">
                         <span class="d-flex align-items-center">
@@ -468,6 +712,36 @@ include 'includes/header.php';
                         <span class="badge bg-soft-success text-success"><?php echo (int)$countAssignment; ?></span>
                     </a>
                 </li>
+                <?php endif; ?>
+                <?php if ($isStudentActivity): ?>
+                <li class="nav-item">
+                    <a class="nav-link d-flex align-items-center justify-content-between<?php echo $feed === 'profile' ? ' active' : ''; ?>" href="activity-feed.php?feed=profile">
+                        <span class="d-flex align-items-center">
+                            <i class="feather-edit-2 me-3"></i>
+                            <span>Profile & Records</span>
+                        </span>
+                        <span class="badge bg-soft-warning text-warning"><?php echo (int)$countProfile; ?></span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link d-flex align-items-center justify-content-between<?php echo $feed === 'attendance' ? ' active' : ''; ?>" href="activity-feed.php?feed=attendance">
+                        <span class="d-flex align-items-center">
+                            <i class="feather-clock me-3"></i>
+                            <span>Attendance</span>
+                        </span>
+                        <span class="badge bg-soft-success text-success"><?php echo (int)$countAttendance; ?></span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link d-flex align-items-center justify-content-between<?php echo $feed === 'documents' ? ' active' : ''; ?>" href="activity-feed.php?feed=documents">
+                        <span class="d-flex align-items-center">
+                            <i class="feather-file-text me-3"></i>
+                            <span>Documents</span>
+                        </span>
+                        <span class="badge bg-soft-secondary text-secondary"><?php echo (int)$countDocuments; ?></span>
+                    </a>
+                </li>
+                <?php else: ?>
                 <li class="nav-item">
                     <a class="nav-link d-flex align-items-center justify-content-between<?php echo $feed === 'student' ? ' active' : ''; ?>" href="activity-feed.php?feed=student">
                         <span class="d-flex align-items-center">
@@ -477,6 +751,7 @@ include 'includes/header.php';
                         <span class="badge bg-soft-warning text-warning"><?php echo (int)$countStudent; ?></span>
                     </a>
                 </li>
+                <?php endif; ?>
                 <li class="nav-item">
                     <a class="nav-link d-flex align-items-center justify-content-between<?php echo $feed === 'login' ? ' active' : ''; ?>" href="activity-feed.php?feed=login">
                         <span class="d-flex align-items-center">
@@ -513,6 +788,36 @@ include 'includes/header.php';
         </div>
 
         <div class="content-area-body p-0">
+            <div class="account-toolbar">
+                <a href="profile-details.php"><i class="feather-user"></i><span>Profile Details</span></a>
+                <a href="profile-details.php#account-settings"><i class="feather-settings"></i><span>Account Settings</span></a>
+                <a href="activity-feed.php?feed=<?php echo urlencode($feed); ?>"><i class="feather-activity"></i><span>Activity Feed</span></a>
+                <a href="notifications.php"><i class="feather-bell"></i><span>Notifications</span></a>
+            </div>
+
+            <div class="activity-summary-grid">
+                <div class="activity-summary-card">
+                    <div class="activity-summary-label">Account Owner</div>
+                    <div class="activity-summary-value" style="font-size: 19px; line-height: 1.25;"><?php echo activity_feed_esc($activityUserName); ?></div>
+                    <div class="activity-summary-note"><?php echo activity_feed_esc($activityUserRole); ?> workspace activity is collected here.</div>
+                </div>
+                <div class="activity-summary-card">
+                    <div class="activity-summary-label">Visible Events</div>
+                    <div class="activity-summary-value"><?php echo (int)count($filteredEvents); ?></div>
+                    <div class="activity-summary-note"><?php echo activity_feed_esc($isStudentActivity ? 'Student-friendly ' . strtolower(ucfirst(str_replace('-', ' ', $feed))) . ' view currently loaded.' : ucfirst(str_replace('-', ' ', $feed)) . ' view currently loaded.'); ?></div>
+                </div>
+                <div class="activity-summary-card">
+                    <div class="activity-summary-label">Unread Alerts</div>
+                    <div class="activity-summary-value"><?php echo (int)$notificationUnreadCount; ?></div>
+                    <div class="activity-summary-note">Notifications needing review in your account center.</div>
+                </div>
+                <div class="activity-summary-card">
+                    <div class="activity-summary-label"><?php echo $isStudentActivity ? 'Attendance Logs' : 'Login Records'; ?></div>
+                    <div class="activity-summary-value"><?php echo (int)($isStudentActivity ? $countAttendance : $countLogin); ?></div>
+                    <div class="activity-summary-note"><?php echo activity_feed_esc($isStudentActivity ? 'DTR-related events collected from your attendance history.' : 'Recent access history linked to your account.'); ?></div>
+                </div>
+            </div>
+
             <div class="row g-0">
                 <div class="col-lg-5 activity-list-pane">
                     <?php if (empty($filteredEvents)): ?>

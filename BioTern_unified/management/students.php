@@ -23,6 +23,20 @@ $current_role = strtolower(trim((string) (
     ''
 )));
 $is_student_user = ($current_role === 'student');
+$is_supervisor_user = ($current_role === 'supervisor');
+$supervisor_scope_user_id = $is_supervisor_user ? $current_user_id : 0;
+$supervisor_scope_profile_id = 0;
+
+if ($is_supervisor_user && $current_user_id > 0) {
+    $supervisor_scope_stmt = $conn->prepare('SELECT id FROM supervisors WHERE user_id = ? LIMIT 1');
+    if ($supervisor_scope_stmt) {
+        $supervisor_scope_stmt->bind_param('i', $current_user_id);
+        $supervisor_scope_stmt->execute();
+        $supervisor_scope_row = $supervisor_scope_stmt->get_result()->fetch_assoc();
+        $supervisor_scope_profile_id = (int)($supervisor_scope_row['id'] ?? 0);
+        $supervisor_scope_stmt->close();
+    }
+}
 
 // Database Connection
 $host = defined('DB_HOST') ? DB_HOST : 'localhost';
@@ -51,6 +65,16 @@ $stats_query = "
     LEFT JOIN users u ON u.id = s.user_id
     WHERE COALESCE(u.application_status, 'approved') = 'approved'
 ";
+$stats_scope_parts = [];
+if ($is_supervisor_user && $supervisor_scope_user_id > 0) {
+    $stats_scope_parts[] = "s.supervisor_id = " . (int)$supervisor_scope_user_id;
+    if ($supervisor_scope_profile_id > 0 && $supervisor_scope_profile_id !== $supervisor_scope_user_id) {
+        $stats_scope_parts[] = "s.supervisor_id = " . (int)$supervisor_scope_profile_id;
+    }
+    if (!empty($stats_scope_parts)) {
+        $stats_query .= " AND (" . implode(' OR ', $stats_scope_parts) . ")";
+    }
+}
 $stats_result = $conn->query($stats_query);
 $stats = $stats_result->fetch_assoc();
 
@@ -142,6 +166,13 @@ if ($coor_res && $coor_res->num_rows) {
 // Build WHERE clauses depending on provided filters
 $where = [];
 $where[] = "COALESCE(u_student.application_status, 'approved') = 'approved'";
+if ($is_supervisor_user && $supervisor_scope_user_id > 0) {
+    $scopeParts = ["(i.supervisor_id = " . (int)$supervisor_scope_user_id . " OR s.supervisor_id = " . (int)$supervisor_scope_user_id . ")"];
+    if ($supervisor_scope_profile_id > 0 && $supervisor_scope_profile_id !== $supervisor_scope_user_id) {
+        $scopeParts[] = "(i.supervisor_id = " . (int)$supervisor_scope_profile_id . " OR s.supervisor_id = " . (int)$supervisor_scope_profile_id . ")";
+    }
+    $where[] = '(' . implode(' OR ', $scopeParts) . ')';
+}
 if ($filter_date !== '') {
     // Filter students that have attendance logs on the selected date.
     $safe_date = $conn->real_escape_string($filter_date);

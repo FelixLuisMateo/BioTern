@@ -63,7 +63,7 @@
 
 .student-home-meta span {
     display: inline-flex;
-    align-items: center;
+    align-items: flex-start;
     padding: 0.45rem 0.8rem;
     border-radius: 999px;
     background: #f8fbff;
@@ -71,6 +71,12 @@
     color: #1e3a8a;
     font-size: 0.82rem;
     font-weight: 600;
+    line-height: 1.35;
+    gap: 0.45rem;
+    max-width: 100%;
+    white-space: normal;
+    word-break: break-word;
+    text-align: left;
 }
 
 .student-home-actions {

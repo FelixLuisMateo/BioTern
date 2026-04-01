@@ -351,6 +351,17 @@ $student_dashboard = array(
     'recent_attendance' => array(),
 );
 
+$supervisor_dashboard = array(
+    'supervisor' => null,
+    'assigned_students' => 0,
+    'active_internships' => 0,
+    'pending_logs' => 0,
+    'completed_students' => 0,
+    'average_completion' => 0.0,
+    'recent_students' => array(),
+    'recent_attendance' => array(),
+);
+
 if ($dashboard_role === 'student' && isset($conn) && $dashboard_user_id > 0) {
     $student_stmt = $conn->prepare(
         "SELECT s.id, s.student_id, s.first_name, s.last_name, s.email, s.section_id,
@@ -429,6 +440,147 @@ if ($dashboard_role === 'student' && isset($conn) && $dashboard_user_id > 0) {
     }
 }
 
+if ($dashboard_role === 'supervisor' && isset($conn) && $dashboard_user_id > 0) {
+    $supervisor_profile_stmt = $conn->prepare(
+        "SELECT id, first_name, middle_name, last_name, email, phone, department_id
+         FROM supervisors
+         WHERE user_id = ? AND deleted_at IS NULL
+         LIMIT 1"
+    );
+    if ($supervisor_profile_stmt) {
+        $supervisor_profile_stmt->bind_param('i', $dashboard_user_id);
+        $supervisor_profile_stmt->execute();
+        $supervisor_dashboard['supervisor'] = $supervisor_profile_stmt->get_result()->fetch_assoc() ?: null;
+        $supervisor_profile_stmt->close();
+    }
+
+    $supervisor_profile_id = (int)($supervisor_dashboard['supervisor']['id'] ?? 0);
+    $student_where = 's.supervisor_id = ?';
+    $student_type = 'i';
+    $student_values = array($dashboard_user_id);
+    if ($supervisor_profile_id > 0 && $supervisor_profile_id !== $dashboard_user_id) {
+        $student_where = '(s.supervisor_id = ? OR s.supervisor_id = ?)';
+        $student_type = 'ii';
+        $student_values[] = $supervisor_profile_id;
+    }
+
+    $assigned_students_sql = "SELECT COUNT(*) AS count FROM students s WHERE {$student_where}";
+    $assigned_stmt = $conn->prepare($assigned_students_sql);
+    if ($assigned_stmt) {
+        $assigned_stmt->bind_param($student_type, ...$student_values);
+        $assigned_stmt->execute();
+        $assigned_row = $assigned_stmt->get_result()->fetch_assoc() ?: array();
+        $supervisor_dashboard['assigned_students'] = (int)($assigned_row['count'] ?? 0);
+        $assigned_stmt->close();
+    }
+
+    $active_stmt = $conn->prepare(
+        "SELECT COUNT(*) AS count
+         FROM internships i
+         LEFT JOIN students s ON s.id = i.student_id
+         WHERE i.deleted_at IS NULL
+           AND i.status = 'ongoing'
+           AND (i.supervisor_id = ? OR {$student_where})"
+    );
+    if ($active_stmt) {
+        $active_type = 'i' . $student_type;
+        $active_values = array_merge(array($dashboard_user_id), $student_values);
+        $active_stmt->bind_param($active_type, ...$active_values);
+        $active_stmt->execute();
+        $active_row = $active_stmt->get_result()->fetch_assoc() ?: array();
+        $supervisor_dashboard['active_internships'] = (int)($active_row['count'] ?? 0);
+        $active_stmt->close();
+    }
+
+    $pending_stmt = $conn->prepare(
+        "SELECT COUNT(*) AS count
+         FROM attendances a
+         INNER JOIN students s ON s.id = a.student_id
+         WHERE LOWER(COALESCE(a.status, 'pending')) = 'pending'
+           AND {$student_where}"
+    );
+    if ($pending_stmt) {
+        $pending_stmt->bind_param($student_type, ...$student_values);
+        $pending_stmt->execute();
+        $pending_row = $pending_stmt->get_result()->fetch_assoc() ?: array();
+        $supervisor_dashboard['pending_logs'] = (int)($pending_row['count'] ?? 0);
+        $pending_stmt->close();
+    }
+
+    $completion_stmt = $conn->prepare(
+        "SELECT
+            SUM(CASE WHEN COALESCE(i.completion_percentage, 0) >= 100 THEN 1 ELSE 0 END) AS completed_students,
+            AVG(COALESCE(i.completion_percentage, 0)) AS average_completion
+         FROM internships i
+         INNER JOIN students s ON s.id = i.student_id
+         WHERE i.deleted_at IS NULL
+           AND (i.supervisor_id = ? OR {$student_where})"
+    );
+    if ($completion_stmt) {
+        $completion_type = 'i' . $student_type;
+        $completion_values = array_merge(array($dashboard_user_id), $student_values);
+        $completion_stmt->bind_param($completion_type, ...$completion_values);
+        $completion_stmt->execute();
+        $completion_row = $completion_stmt->get_result()->fetch_assoc() ?: array();
+        $supervisor_dashboard['completed_students'] = (int)($completion_row['completed_students'] ?? 0);
+        $supervisor_dashboard['average_completion'] = (float)($completion_row['average_completion'] ?? 0);
+        $completion_stmt->close();
+    }
+
+    $recent_students_stmt = $conn->prepare(
+        "SELECT
+            s.id,
+            s.student_id,
+            s.first_name,
+            s.last_name,
+            c.name AS course_name,
+            sec.code AS section_code,
+            i.company_name,
+            i.status AS internship_status,
+            COALESCE(i.completion_percentage, 0) AS completion_percentage
+         FROM students s
+         LEFT JOIN courses c ON c.id = s.course_id
+         LEFT JOIN sections sec ON sec.id = s.section_id
+         LEFT JOIN internships i ON i.student_id = s.id AND i.deleted_at IS NULL
+         WHERE {$student_where}
+         ORDER BY s.updated_at DESC, s.id DESC
+         LIMIT 6"
+    );
+    if ($recent_students_stmt) {
+        $recent_students_stmt->bind_param($student_type, ...$student_values);
+        $recent_students_stmt->execute();
+        $recent_students_result = $recent_students_stmt->get_result();
+        while ($recent_students_result && ($row = $recent_students_result->fetch_assoc())) {
+            $supervisor_dashboard['recent_students'][] = $row;
+        }
+        $recent_students_stmt->close();
+    }
+
+    $recent_attendance_stmt = $conn->prepare(
+        "SELECT
+            a.attendance_date,
+            a.status,
+            a.total_hours,
+            s.id AS student_id,
+            s.first_name,
+            s.last_name
+         FROM attendances a
+         INNER JOIN students s ON s.id = a.student_id
+         WHERE {$student_where}
+         ORDER BY a.attendance_date DESC, a.id DESC
+         LIMIT 6"
+    );
+    if ($recent_attendance_stmt) {
+        $recent_attendance_stmt->bind_param($student_type, ...$student_values);
+        $recent_attendance_stmt->execute();
+        $recent_attendance_result = $recent_attendance_stmt->get_result();
+        while ($recent_attendance_result && ($row = $recent_attendance_result->fetch_assoc())) {
+            $supervisor_dashboard['recent_attendance'][] = $row;
+        }
+        $recent_attendance_stmt->close();
+    }
+}
+
 $page_title = 'BioTern || Dashboard';
 $dashboard_css = 'assets/css/homepage-dashboard.css';
 $dashboard_css_path = dirname(__DIR__) . '/' . $dashboard_css;
@@ -439,6 +591,11 @@ if ($dashboard_role === 'student') {
     $student_dashboard_css_path = dirname(__DIR__) . '/' . $student_dashboard_css;
     $student_dashboard_css_ver = file_exists($student_dashboard_css_path) ? filemtime($student_dashboard_css_path) : time();
     $page_styles[] = $student_dashboard_css . '?v=' . $student_dashboard_css_ver;
+} elseif ($dashboard_role === 'supervisor') {
+    $supervisor_dashboard_css = 'assets/css/homepage-supervisor.css';
+    $supervisor_dashboard_css_path = dirname(__DIR__) . '/' . $supervisor_dashboard_css;
+    $supervisor_dashboard_css_ver = file_exists($supervisor_dashboard_css_path) ? filemtime($supervisor_dashboard_css_path) : time();
+    $page_styles[] = $supervisor_dashboard_css . '?v=' . $supervisor_dashboard_css_ver;
 }
 include 'includes/header.php';
 ?>
@@ -647,6 +804,189 @@ include 'includes/header.php';
                                 <div class="student-empty-state">
                                     No attendance records yet. Your DTR entries will appear here once you start logging them.
                                 </div>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <?php elseif ($dashboard_role === 'supervisor'): ?>
+            <?php
+                $supervisor_name = trim((string)(
+                    ($supervisor_dashboard['supervisor']['first_name'] ?? '') . ' ' .
+                    ($supervisor_dashboard['supervisor']['last_name'] ?? '')
+                ));
+                if ($supervisor_name === '') {
+                    $supervisor_name = trim((string)($_SESSION['name'] ?? 'Supervisor'));
+                }
+            ?>
+            <div class="page-header supervisor-page-header">
+                <div class="page-header-left d-flex align-items-center">
+                    <div class="page-header-title">
+                        <h5 class="m-b-10">Supervisor Workspace</h5>
+                    </div>
+                    <ul class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
+                        <li class="breadcrumb-item">Supervisor</li>
+                    </ul>
+                </div>
+                <div class="page-header-right ms-auto">
+                    <span class="badge bg-soft-warning text-warning fs-11">
+                        <i class="feather-calendar me-1"></i> <?php echo date('M d, Y'); ?>
+                    </span>
+                </div>
+            </div>
+            <div class="main-content supervisor-home-shell">
+                <div class="supervisor-home-hero card border-0">
+                    <div class="card-body">
+                        <div class="supervisor-home-hero__content">
+                            <div>
+                                <span class="supervisor-home-eyebrow">Supervisor Desk</span>
+                                <h2><?php echo htmlspecialchars($supervisor_name !== '' ? 'Welcome back, ' . $supervisor_name : 'Supervisor Workspace', ENT_QUOTES, 'UTF-8'); ?></h2>
+                                <p>Track assigned students, review attendance, monitor internship progress, and jump into evaluation work from one place.</p>
+                            </div>
+                            <div class="supervisor-home-actions">
+                                <a href="attendance.php" class="btn btn-primary">
+                                    <i class="feather-check-square me-1"></i> Review Attendance
+                                </a>
+                                <a href="ojt.php" class="btn btn-light-brand">
+                                    <i class="feather-briefcase me-1"></i> OJT List
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-3 supervisor-home-stats">
+                    <div class="col-xl-3 col-md-6">
+                        <div class="card supervisor-metric-card h-100">
+                            <div class="card-body">
+                                <span class="supervisor-metric-label">Assigned Students</span>
+                                <h3><?php echo (int)$supervisor_dashboard['assigned_students']; ?></h3>
+                                <p>Students currently assigned under your supervision.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-xl-3 col-md-6">
+                        <div class="card supervisor-metric-card h-100">
+                            <div class="card-body">
+                                <span class="supervisor-metric-label">Active Internships</span>
+                                <h3><?php echo (int)$supervisor_dashboard['active_internships']; ?></h3>
+                                <p>Ongoing internship placements you are overseeing.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-xl-3 col-md-6">
+                        <div class="card supervisor-metric-card h-100">
+                            <div class="card-body">
+                                <span class="supervisor-metric-label">Pending Logs</span>
+                                <h3><?php echo (int)$supervisor_dashboard['pending_logs']; ?></h3>
+                                <p>Attendance entries still waiting for review.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-xl-3 col-md-6">
+                        <div class="card supervisor-metric-card h-100">
+                            <div class="card-body">
+                                <span class="supervisor-metric-label">Avg Completion</span>
+                                <h3><?php echo number_format((float)$supervisor_dashboard['average_completion'], 0); ?>%</h3>
+                                <p><?php echo (int)$supervisor_dashboard['completed_students']; ?> students already reached full completion.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-3 mt-1">
+                    <div class="col-xxl-7">
+                        <div class="card supervisor-panel h-100">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">Assigned Students</h5>
+                            </div>
+                            <div class="card-body">
+                                <?php if (!empty($supervisor_dashboard['recent_students'])): ?>
+                                <div class="supervisor-student-list">
+                                    <?php foreach ($supervisor_dashboard['recent_students'] as $supervised_student): ?>
+                                    <?php
+                                        $student_name = trim((string)(($supervised_student['first_name'] ?? '') . ' ' . ($supervised_student['last_name'] ?? '')));
+                                        $student_meta = array_filter(array(
+                                            trim((string)($supervised_student['student_id'] ?? '')),
+                                            trim((string)($supervised_student['course_name'] ?? '')),
+                                            trim((string)($supervised_student['section_code'] ?? '')),
+                                        ));
+                                    ?>
+                                    <div class="supervisor-student-card">
+                                        <div>
+                                            <strong><?php echo htmlspecialchars($student_name !== '' ? $student_name : 'Student', ENT_QUOTES, 'UTF-8'); ?></strong>
+                                            <span><?php echo htmlspecialchars(!empty($student_meta) ? implode(' | ', $student_meta) : 'No academic details yet', ENT_QUOTES, 'UTF-8'); ?></span>
+                                        </div>
+                                        <div class="supervisor-student-side">
+                                            <small><?php echo htmlspecialchars(trim((string)($supervised_student['company_name'] ?? '')) !== '' ? (string)$supervised_student['company_name'] : 'No company assigned yet', ENT_QUOTES, 'UTF-8'); ?></small>
+                                            <b><?php echo number_format((float)($supervised_student['completion_percentage'] ?? 0), 0); ?>%</b>
+                                        </div>
+                                    </div>
+                                    <?php endforeach; ?>
+                                </div>
+                                <?php else: ?>
+                                <div class="supervisor-empty-state">No students are assigned to this supervisor yet.</div>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-xxl-5">
+                        <div class="card supervisor-panel h-100">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">Quick Actions</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="supervisor-quick-grid">
+                                    <a href="attendance.php" class="supervisor-shortcut-card">
+                                        <i class="feather-check-square"></i>
+                                        <span>Attendance Review</span>
+                                        <small>Check the daily logs of your assigned students.</small>
+                                    </a>
+                                    <a href="ojt.php" class="supervisor-shortcut-card">
+                                        <i class="feather-briefcase"></i>
+                                        <span>OJT Management</span>
+                                        <small>Monitor internship status and assignments.</small>
+                                    </a>
+                                    <a href="applications-review.php" class="supervisor-shortcut-card">
+                                        <i class="feather-user-check"></i>
+                                        <span>Applications</span>
+                                        <small>Review and follow student application progress.</small>
+                                    </a>
+                                    <a href="apps-chat.php" class="supervisor-shortcut-card">
+                                        <i class="feather-message-circle"></i>
+                                        <span>Chat</span>
+                                        <small>Coordinate with students and other staff quickly.</small>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-3 mt-1">
+                    <div class="col-12">
+                        <div class="card supervisor-panel">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">Recent Attendance Activity</h5>
+                            </div>
+                            <div class="card-body">
+                                <?php if (!empty($supervisor_dashboard['recent_attendance'])): ?>
+                                <div class="supervisor-attendance-list">
+                                    <?php foreach ($supervisor_dashboard['recent_attendance'] as $attendance_row): ?>
+                                    <?php $attendance_student_name = trim((string)(($attendance_row['first_name'] ?? '') . ' ' . ($attendance_row['last_name'] ?? ''))); ?>
+                                    <div class="supervisor-attendance-item">
+                                        <div>
+                                            <strong><?php echo htmlspecialchars($attendance_student_name !== '' ? $attendance_student_name : 'Student', ENT_QUOTES, 'UTF-8'); ?></strong>
+                                            <span><?php echo htmlspecialchars(date('F j, Y', strtotime((string)$attendance_row['attendance_date'])), ENT_QUOTES, 'UTF-8'); ?> | <?php echo htmlspecialchars(ucfirst((string)($attendance_row['status'] ?? 'pending')), ENT_QUOTES, 'UTF-8'); ?></span>
+                                        </div>
+                                        <b><?php echo number_format((float)($attendance_row['total_hours'] ?? 0), 2); ?> hrs</b>
+                                    </div>
+                                    <?php endforeach; ?>
+                                </div>
+                                <?php else: ?>
+                                <div class="supervisor-empty-state">No recent attendance activity for your assigned students yet.</div>
                                 <?php endif; ?>
                             </div>
                         </div>

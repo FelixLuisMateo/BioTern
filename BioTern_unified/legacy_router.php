@@ -387,7 +387,7 @@ if ($is_logged_in) {
     $deny = true;
   }
 
-  if ($current_role === 'student') {
+    if ($current_role === 'student') {
     $student_allowed_files = [
       'homepage.php',
       'profile-details.php',
@@ -404,6 +404,7 @@ if ($is_logged_in) {
       'apps-notes.php',
       'apps-storage.php',
       'apps-calendar.php',
+      'calendar_events.php',
       'auth-login-cover.php',
     ];
     $student_readonly_documents = [

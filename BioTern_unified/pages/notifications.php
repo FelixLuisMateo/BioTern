@@ -11,6 +11,22 @@ if ($userId <= 0) {
     exit;
 }
 
+$accountUser = null;
+$userStmt = $conn->prepare('SELECT name, role FROM users WHERE id = ? LIMIT 1');
+if ($userStmt) {
+    $userStmt->bind_param('i', $userId);
+    $userStmt->execute();
+    $accountUser = $userStmt->get_result()->fetch_assoc();
+    $userStmt->close();
+}
+
+$notificationUserName = trim((string)($accountUser['name'] ?? ($_SESSION['name'] ?? 'BioTern User')));
+if ($notificationUserName === '') {
+    $notificationUserName = 'BioTern User';
+}
+
+$notificationUserRole = ucfirst((string)($accountUser['role'] ?? ($_SESSION['role'] ?? 'user')));
+
 biotern_notifications_ensure_table($conn);
 $columns = biotern_notification_columns($conn);
 
@@ -313,9 +329,72 @@ include 'includes/header.php';
         margin-bottom: 14px;
     }
 
+    .account-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 16px;
+    }
+
+    .account-toolbar a {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 14px;
+        border-radius: 999px;
+        border: 1px solid #dbe3ee;
+        background: #f8fafc;
+        color: #1d4ed8;
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 700;
+    }
+
+    .notifications-summary-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 14px;
+        margin-bottom: 16px;
+    }
+
+    .notifications-summary-card {
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        background: #f8fafc;
+        padding: 16px;
+    }
+
+    .notifications-summary-label {
+        color: #64748b;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        font-weight: 700;
+    }
+
+    .notifications-summary-value {
+        margin-top: 8px;
+        font-size: 24px;
+        line-height: 1;
+        font-weight: 800;
+        color: #0f172a;
+    }
+
+    .notifications-summary-note {
+        margin-top: 8px;
+        color: #64748b;
+        font-size: 12px;
+    }
+
     html.app-skin-dark .notifications-advanced-filters {
         border-color: #334155;
         background: #0f172a;
+    }
+
+    html.app-skin-dark .account-toolbar a {
+        border-color: #334155;
+        background: #0f172a;
+        color: #93c5fd;
     }
 
     html.app-skin-dark .notifications-filter-pill {
@@ -332,6 +411,32 @@ include 'includes/header.php';
 
     html.app-skin-dark .notifications-time {
         color: #94a3b8;
+    }
+
+    html.app-skin-dark .notifications-summary-card {
+        border-color: #334155;
+        background: #0f172a;
+    }
+
+    html.app-skin-dark .notifications-summary-value {
+        color: #e6edf8;
+    }
+
+    html.app-skin-dark .notifications-summary-note,
+    html.app-skin-dark .notifications-summary-label {
+        color: #94a3b8;
+    }
+
+    @media (max-width: 991.98px) {
+        .notifications-summary-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 575.98px) {
+        .notifications-summary-grid {
+            grid-template-columns: 1fr;
+        }
     }
 </style>
 
@@ -363,6 +468,36 @@ include 'includes/header.php';
         </div>
 
         <div class="content-area-body p-3">
+            <div class="account-toolbar">
+                <a href="profile-details.php"><i class="feather-user"></i><span>Profile Details</span></a>
+                <a href="profile-details.php#account-settings"><i class="feather-settings"></i><span>Account Settings</span></a>
+                <a href="activity-feed.php"><i class="feather-activity"></i><span>Activity Feed</span></a>
+                <a href="notifications.php"><i class="feather-bell"></i><span>Notifications</span></a>
+            </div>
+
+            <div class="notifications-summary-grid">
+                <div class="notifications-summary-card">
+                    <div class="notifications-summary-label">Account Owner</div>
+                    <div class="notifications-summary-value" style="font-size: 19px; line-height: 1.25;"><?php echo htmlspecialchars($notificationUserName, ENT_QUOTES, 'UTF-8'); ?></div>
+                    <div class="notifications-summary-note"><?php echo htmlspecialchars($notificationUserRole, ENT_QUOTES, 'UTF-8'); ?> alert center for account and workspace updates.</div>
+                </div>
+                <div class="notifications-summary-card">
+                    <div class="notifications-summary-label">Unread</div>
+                    <div class="notifications-summary-value"><?php echo (int)$unreadCount; ?></div>
+                    <div class="notifications-summary-note">Items still waiting for review.</div>
+                </div>
+                <div class="notifications-summary-card">
+                    <div class="notifications-summary-label">Filtered Results</div>
+                    <div class="notifications-summary-value"><?php echo (int)$total; ?></div>
+                    <div class="notifications-summary-note">Current list after search, date, and category filters.</div>
+                </div>
+                <div class="notifications-summary-card">
+                    <div class="notifications-summary-label">Categories</div>
+                    <div class="notifications-summary-value"><?php echo (int)count(array_filter($filterCounts, static function ($value, $key) { return $key !== 'all' && $key !== 'unread' && (int)$value > 0; }, ARRAY_FILTER_USE_BOTH)); ?></div>
+                    <div class="notifications-summary-note">Alert types currently represented in your feed.</div>
+                </div>
+            </div>
+
             <div class="card">
                 <div class="card-body">
                     <form method="get" class="notifications-advanced-filters">

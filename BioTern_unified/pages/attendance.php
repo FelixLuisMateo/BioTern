@@ -10,6 +10,9 @@ if ($attendance_role === 'student') {
     require __DIR__ . '/student-dtr.php';
     return;
 }
+$attendance_user_id = (int)($_SESSION['user_id'] ?? 0);
+$attendance_is_supervisor = ($attendance_role === 'supervisor');
+$attendance_supervisor_profile_id = 0;
 
 // Database Connection
 $host = defined('DB_HOST') ? DB_HOST : 'localhost';
@@ -26,6 +29,17 @@ try {
     section_schedule_ensure_columns($conn);
 } catch (Exception $e) {
     die("Database Error: " . $e->getMessage());
+}
+
+if ($attendance_is_supervisor && $attendance_user_id > 0) {
+    $attendance_scope_stmt = $conn->prepare('SELECT id FROM supervisors WHERE user_id = ? LIMIT 1');
+    if ($attendance_scope_stmt) {
+        $attendance_scope_stmt->bind_param('i', $attendance_user_id);
+        $attendance_scope_stmt->execute();
+        $attendance_scope_row = $attendance_scope_stmt->get_result()->fetch_assoc();
+        $attendance_supervisor_profile_id = (int)($attendance_scope_row['id'] ?? 0);
+        $attendance_scope_stmt->close();
+    }
 }
 
 function attendance_machine_config_path(): string
@@ -95,6 +109,26 @@ $stats_query = "
         COUNT(*) as total_count
     FROM attendances
 ";
+$attendance_stats_where = [];
+if ($attendance_is_supervisor && $attendance_user_id > 0) {
+    $attendance_stats_scope = ["(i.supervisor_id = " . (int)$attendance_user_id . " OR s.supervisor_id = " . (int)$attendance_user_id . ")"];
+    if ($attendance_supervisor_profile_id > 0 && $attendance_supervisor_profile_id !== $attendance_user_id) {
+        $attendance_stats_scope[] = "(i.supervisor_id = " . (int)$attendance_supervisor_profile_id . " OR s.supervisor_id = " . (int)$attendance_supervisor_profile_id . ")";
+    }
+    $attendance_stats_where[] = '(' . implode(' OR ', $attendance_stats_scope) . ')';
+}
+if (!empty($attendance_stats_where)) {
+    $stats_query = "
+        SELECT 
+            SUM(CASE WHEN a.status = 'approved' THEN 1 ELSE 0 END) as approved_count,
+            SUM(CASE WHEN a.status = 'pending' THEN 1 ELSE 0 END) as pending_count,
+            SUM(CASE WHEN a.status = 'rejected' THEN 1 ELSE 0 END) as rejected_count,
+            COUNT(*) as total_count
+        FROM attendances a
+        LEFT JOIN students s ON a.student_id = s.id
+        LEFT JOIN internships i ON s.id = i.student_id AND i.status = 'ongoing'
+        WHERE " . implode(' AND ', $attendance_stats_where);
+}
 $stats_result = $conn->query($stats_query);
 $stats = $stats_result->fetch_assoc();
 // Prepare filter inputs (defaults: today's date)
@@ -188,6 +222,13 @@ if ($coor_res && $coor_res->num_rows) {
 // Build attendance query filtered by provided inputs. Default shows today's records.
 // Build WHERE clauses depending on provided filters
 $where = [];
+if ($attendance_is_supervisor && $attendance_user_id > 0) {
+    $attendanceScopeParts = ["(i.supervisor_id = " . (int)$attendance_user_id . " OR s.supervisor_id = " . (int)$attendance_user_id . ")"];
+    if ($attendance_supervisor_profile_id > 0 && $attendance_supervisor_profile_id !== $attendance_user_id) {
+        $attendanceScopeParts[] = "(i.supervisor_id = " . (int)$attendance_supervisor_profile_id . " OR s.supervisor_id = " . (int)$attendance_supervisor_profile_id . ")";
+    }
+    $where[] = '(' . implode(' OR ', $attendanceScopeParts) . ')';
+}
 if (!empty($start_date) && !empty($end_date)) {
     $where[] = "a.attendance_date BETWEEN '" . $conn->real_escape_string($start_date) . "' AND '" . $conn->real_escape_string($end_date) . "'";
 } elseif (!empty($filter_date)) {

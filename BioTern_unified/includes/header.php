@@ -580,27 +580,21 @@ require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars($header_avatar, ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar me-0">
                         </a>
                         <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-user-dropdown">
-                            <div class="dropdown-header">
+                            <div class="dropdown-header user-dropdown-hero">
                                 <div class="d-flex align-items-center">
                                     <img src="<?php
 require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars($header_avatar, ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar">
-                                    <div>
-                                        <h6 class="text-dark mb-0">
+                                    <div class="user-dropdown-identity">
+                                        <h6 class="text-dark mb-0 user-dropdown-name">
                                             <?php
 require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars($header_user_name, ENT_QUOTES, 'UTF-8'); ?>
-                                            <?php
-require_once dirname(__DIR__) . '/config/db.php';
-if ($header_user_role !== ''): ?>
-                                                <span class="badge <?php echo get_role_badge_color($header_user_role); ?> ms-1"><?php
-require_once dirname(__DIR__) . '/config/db.php';
-echo htmlspecialchars(ucfirst($header_user_role), ENT_QUOTES, 'UTF-8'); ?></span>
-                                            <?php
-require_once dirname(__DIR__) . '/config/db.php';
-endif; ?>
                                         </h6>
-                                        <span class="fs-12 fw-medium text-muted"><?php
+                                        <div class="user-dropdown-meta-row">
+                                            <span class="user-dropdown-role-inline"><?php echo htmlspecialchars($header_user_role !== '' ? ucfirst($header_user_role) : 'User', ENT_QUOTES, 'UTF-8'); ?></span>
+                                        </div>
+                                        <span class="fs-12 fw-medium text-muted user-dropdown-email"><?php
 require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars($header_user_email, ENT_QUOTES, 'UTF-8'); ?></span>
                                     </div>
@@ -608,57 +602,64 @@ echo htmlspecialchars($header_user_email, ENT_QUOTES, 'UTF-8'); ?></span>
                             </div>
                             <div class="dropdown-divider"></div>
                             <div class="dropdown-item-text pb-1">
-                                <div class="fs-11 fw-semibold text-muted text-uppercase">Status</div>
+                                <div class="fs-11 fw-semibold text-muted text-uppercase user-dropdown-section-title">Status</div>
                             </div>
-                            <div class="dropdown-item-text pt-1 pb-1">
-                                <span class="hstack justify-content-between gap-2">
-                                    <span class="d-inline-flex align-items-center text-nowrap fw-medium user-dropdown-label"><i class="wd-10 ht-10 border border-2 border-gray-1 <?php echo $header_account_status_text === 'Active' ? 'bg-success' : 'bg-secondary'; ?> rounded-circle me-2"></i>Account</span>
-                                    <span class="badge <?php echo $header_account_status_text === 'Active' ? 'bg-soft-success text-success' : 'bg-soft-secondary text-secondary'; ?>"><?php echo htmlspecialchars($header_account_status_text, ENT_QUOTES, 'UTF-8'); ?></span>
-                                </span>
-                            </div>
-                            <div class="dropdown-item-text pt-1 pb-1">
-                                <span class="hstack justify-content-between gap-2">
-                                    <span class="d-inline-flex align-items-center text-nowrap fw-medium user-dropdown-label"><i class="feather-shield me-2"></i>Role</span>
-                                    <span class="badge <?php echo get_role_badge_color($header_user_role); ?>"><?php echo htmlspecialchars($header_user_role !== '' ? ucfirst($header_user_role) : 'User', ENT_QUOTES, 'UTF-8'); ?></span>
-                                </span>
-                            </div>
-                            <div class="dropdown-item-text pt-1 pb-1">
-                                <span class="hstack justify-content-between gap-2">
-                                    <span class="d-inline-flex align-items-center text-nowrap fw-medium user-dropdown-label"><i class="feather-calendar me-2"></i>Member Since</span>
-                                    <span class="fs-12 user-dropdown-value"><?php echo htmlspecialchars($header_member_since_text, ENT_QUOTES, 'UTF-8'); ?></span>
-                                </span>
-                            </div>
-                            <div class="dropdown-item-text pt-1 pb-1">
-                                <span class="hstack justify-content-between gap-2">
-                                    <span class="d-inline-flex align-items-center text-nowrap fw-medium user-dropdown-label"><i class="feather-clock me-2"></i>Last Login</span>
-                                    <span class="fs-12 user-dropdown-value text-end"><?php echo htmlspecialchars($header_last_login_text, ENT_QUOTES, 'UTF-8'); ?></span>
-                                </span>
-                            </div>
-                            <div class="dropdown-item-text pt-1 pb-2">
-                                <span class="hstack justify-content-between gap-2">
-                                    <span class="d-inline-flex align-items-center text-nowrap fw-medium user-dropdown-label"><i class="feather-bell me-2"></i>Notifications</span>
-                                    <span class="badge <?php echo (int)$header_notifications_unread > 0 ? 'bg-soft-warning text-warning' : 'bg-soft-secondary text-secondary'; ?>"><?php echo (int)$header_notifications_unread > 0 ? ((int)$header_notifications_unread . ' unread') : 'All read'; ?></span>
-                                </span>
+                            <div class="user-dropdown-status-grid">
+                                <div class="dropdown-item-text pt-1 pb-1 user-dropdown-status-item">
+                                    <span class="hstack justify-content-between gap-2">
+                                        <span class="d-inline-flex align-items-center text-nowrap fw-medium user-dropdown-label"><i class="wd-10 ht-10 border border-2 border-gray-1 <?php echo $header_account_status_text === 'Active' ? 'bg-success' : 'bg-secondary'; ?> rounded-circle me-2"></i>Account</span>
+                                        <span class="badge <?php echo $header_account_status_text === 'Active' ? 'bg-soft-success text-success' : 'bg-soft-secondary text-secondary'; ?>"><?php echo htmlspecialchars($header_account_status_text, ENT_QUOTES, 'UTF-8'); ?></span>
+                                    </span>
+                                </div>
+                                <div class="dropdown-item-text pt-1 pb-1 user-dropdown-status-item">
+                                    <span class="hstack justify-content-between gap-2">
+                                        <span class="d-inline-flex align-items-center text-nowrap fw-medium user-dropdown-label"><i class="feather-shield me-2"></i>Role</span>
+                                        <span class="badge <?php echo get_role_badge_color($header_user_role); ?>"><?php echo htmlspecialchars($header_user_role !== '' ? ucfirst($header_user_role) : 'User', ENT_QUOTES, 'UTF-8'); ?></span>
+                                    </span>
+                                </div>
+                                <div class="dropdown-item-text pt-1 pb-1 user-dropdown-status-item">
+                                    <span class="hstack justify-content-between gap-2">
+                                        <span class="d-inline-flex align-items-center text-nowrap fw-medium user-dropdown-label"><i class="feather-calendar me-2"></i>Member Since</span>
+                                        <span class="fs-12 user-dropdown-value"><?php echo htmlspecialchars($header_member_since_text, ENT_QUOTES, 'UTF-8'); ?></span>
+                                    </span>
+                                </div>
+                                <div class="dropdown-item-text pt-1 pb-1 user-dropdown-status-item">
+                                    <span class="hstack justify-content-between gap-2">
+                                        <span class="d-inline-flex align-items-center text-nowrap fw-medium user-dropdown-label"><i class="feather-clock me-2"></i>Last Login</span>
+                                        <span class="fs-12 user-dropdown-value text-end"><?php echo htmlspecialchars($header_last_login_text, ENT_QUOTES, 'UTF-8'); ?></span>
+                                    </span>
+                                </div>
+                                <div class="dropdown-item-text pt-1 pb-2 user-dropdown-status-item">
+                                    <span class="hstack justify-content-between gap-2">
+                                        <span class="d-inline-flex align-items-center text-nowrap fw-medium user-dropdown-label"><i class="feather-bell me-2"></i>Notifications</span>
+                                        <span class="badge <?php echo (int)$header_notifications_unread > 0 ? 'bg-soft-warning text-warning' : 'bg-soft-secondary text-secondary'; ?>"><?php echo (int)$header_notifications_unread > 0 ? ((int)$header_notifications_unread . ' unread') : 'All read'; ?></span>
+                                    </span>
+                                </div>
                             </div>
                             <div class="dropdown-divider"></div>
-                            <a href="<?php echo htmlspecialchars($header_profile_url, ENT_QUOTES, 'UTF-8'); ?>" class="dropdown-item">
-                                <i class="feather-user"></i>
-                                <span>Profile Details</span>
-                            </a>
-                            <a href="<?php echo htmlspecialchars($header_activity_url, ENT_QUOTES, 'UTF-8'); ?>" class="dropdown-item">
-                                <i class="feather-activity"></i>
-                                <span>Activity Feed</span>
-                            </a>
-                            <a href="<?php echo htmlspecialchars($header_notifications_url, ENT_QUOTES, 'UTF-8'); ?>" class="dropdown-item">
-                                <i class="feather-bell"></i>
-                                <span>Notifications</span>
-                            </a>
-                            <a href="<?php echo htmlspecialchars($header_account_settings_url, ENT_QUOTES, 'UTF-8'); ?>" class="dropdown-item">
-                                <i class="feather-settings"></i>
-                                <span>Account Settings</span>
-                            </a>
+                            <div class="dropdown-item-text pb-1">
+                                <div class="fs-11 fw-semibold text-muted text-uppercase user-dropdown-section-title">Workspace</div>
+                            </div>
+                            <div class="user-dropdown-links">
+                                <a href="<?php echo htmlspecialchars($header_profile_url, ENT_QUOTES, 'UTF-8'); ?>" class="dropdown-item">
+                                    <i class="feather-user"></i>
+                                    <span>Profile Details</span>
+                                </a>
+                                <a href="<?php echo htmlspecialchars($header_activity_url, ENT_QUOTES, 'UTF-8'); ?>" class="dropdown-item">
+                                    <i class="feather-activity"></i>
+                                    <span>Activity Feed</span>
+                                </a>
+                                <a href="<?php echo htmlspecialchars($header_notifications_url, ENT_QUOTES, 'UTF-8'); ?>" class="dropdown-item">
+                                    <i class="feather-bell"></i>
+                                    <span>Notifications</span>
+                                </a>
+                                <a href="<?php echo htmlspecialchars($header_account_settings_url, ENT_QUOTES, 'UTF-8'); ?>" class="dropdown-item">
+                                    <i class="feather-settings"></i>
+                                    <span>Account Settings</span>
+                                </a>
+                            </div>
                             <div class="dropdown-divider"></div>
-                            <a href="auth-login-cover.php?logout=1" class="dropdown-item">
+                            <a href="auth-login-cover.php?logout=1" class="dropdown-item user-dropdown-logout">
                                 <i class="feather-log-out"></i>
                                 <span>Logout</span>
                             </a>
