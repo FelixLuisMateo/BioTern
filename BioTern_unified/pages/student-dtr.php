@@ -5,6 +5,35 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+$studentDtrFlash = $_SESSION['student_dtr_flash'] ?? null;
+if (isset($_SESSION['student_dtr_flash'])) {
+    unset($_SESSION['student_dtr_flash']);
+}
+
+function student_dtr_ensure_runtime_dir(string $path): bool
+{
+    if (is_dir($path)) {
+        return true;
+    }
+
+    $parent = dirname($path);
+    if (!is_dir($parent) || !is_writable($parent)) {
+        return false;
+    }
+
+    return @mkdir($path, 0755, true) || is_dir($path);
+}
+
+function student_dtr_manual_upload_dir(): string
+{
+    return dirname(__DIR__) . '/uploads/manual_dtr';
+}
+
+function student_dtr_manual_upload_web_path(string $relativePath): string
+{
+    return '../uploads/manual_dtr/' . ltrim(str_replace('\\', '/', $relativePath), '/');
+}
+
 function student_dtr_calculate_hours(array $attendance): float
 {
     $segments = [
@@ -44,6 +73,23 @@ function student_dtr_format_time(?string $value): string
 
     $ts = strtotime($raw);
     return $ts !== false ? date('g:i A', $ts) : $raw;
+}
+
+function student_dtr_review_meta(array $attendance): array
+{
+    if (strtolower(trim((string)($attendance['source'] ?? ''))) === 'biometric') {
+        return ['label' => 'Auto-Verified', 'class' => 'approved'];
+    }
+
+    $status = strtolower(trim((string)($attendance['status'] ?? 'pending')));
+    if ($status === 'approved') {
+        return ['label' => 'Reviewed', 'class' => 'approved'];
+    }
+    if ($status === 'rejected') {
+        return ['label' => 'Rejected', 'class' => 'rejected'];
+    }
+
+    return ['label' => 'Needs Review', 'class' => 'pending'];
 }
 
 $currentUserId = (int)($_SESSION['user_id'] ?? 0);
@@ -161,6 +207,7 @@ if (!$student && $user) {
 
 if ($student) {
     $studentId = (int)($student['id'] ?? 0);
+    student_dtr_ensure_runtime_dir(student_dtr_manual_upload_dir());
 
     $internshipStmt = $conn->prepare(
         "SELECT company_name, position, status, start_date, end_date, required_hours, rendered_hours, completion_percentage
@@ -224,6 +271,233 @@ if ($student) {
         }
         $attendanceStmt->close();
     }
+
+    if ($attendanceRows !== []) {
+        $attendanceIds = [];
+        foreach ($attendanceRows as $attendanceRow) {
+            $attendanceId = (int)($attendanceRow['id'] ?? 0);
+            if ($attendanceId > 0) {
+                $attendanceIds[] = $attendanceId;
+            }
+        }
+
+        if ($attendanceIds !== []) {
+            $idList = implode(',', array_map('intval', array_unique($attendanceIds)));
+            $proofMap = [];
+            $proofResult = $conn->query("
+                SELECT attendance_id, file_path, file_name
+                FROM manual_dtr_attachments
+                WHERE deleted_at IS NULL
+                  AND attendance_id IN ($idList)
+                ORDER BY id ASC
+            ");
+            if ($proofResult) {
+                while ($proofRow = $proofResult->fetch_assoc()) {
+                    $attendanceId = (int)($proofRow['attendance_id'] ?? 0);
+                    if ($attendanceId <= 0 || isset($proofMap[$attendanceId])) {
+                        continue;
+                    }
+
+                    $proofMap[$attendanceId] = [
+                        'file_path' => (string)($proofRow['file_path'] ?? ''),
+                        'file_name' => (string)($proofRow['file_name'] ?? ''),
+                    ];
+                }
+            }
+
+            foreach ($attendanceRows as &$attendanceRow) {
+                $attendanceId = (int)($attendanceRow['id'] ?? 0);
+                $attendanceRow['proof_attachment'] = $proofMap[$attendanceId] ?? null;
+            }
+            unset($attendanceRow);
+        }
+    }
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['student_action']) && $_POST['student_action'] === 'submit_machine_down' && !empty($student)) {
+    require_once dirname(__DIR__) . '/lib/attendance_rules.php';
+
+    $attendanceDate = trim((string)($_POST['attendance_date'] ?? ''));
+    $morningIn = trim((string)($_POST['morning_time_in'] ?? ''));
+    $morningOut = trim((string)($_POST['morning_time_out'] ?? ''));
+    $afternoonIn = trim((string)($_POST['afternoon_time_in'] ?? ''));
+    $afternoonOut = trim((string)($_POST['afternoon_time_out'] ?? ''));
+    $fallbackReason = trim((string)($_POST['fallback_reason'] ?? ''));
+    $proofClockTime = trim((string)($_POST['proof_clock_time'] ?? ''));
+    $proofFile = $_FILES['proof_image'] ?? null;
+
+    $normalize = static function (string $value): ?string {
+        if ($value === '') {
+            return null;
+        }
+        if (preg_match('/^\d{2}:\d{2}$/', $value)) {
+            return $value . ':00';
+        }
+        if (preg_match('/^\d{2}:\d{2}:\d{2}$/', $value)) {
+            return $value;
+        }
+        return null;
+    };
+
+    $payload = [
+        'morning_time_in' => $normalize($morningIn),
+        'morning_time_out' => $normalize($morningOut),
+        'break_time_in' => null,
+        'break_time_out' => null,
+        'afternoon_time_in' => $normalize($afternoonIn),
+        'afternoon_time_out' => $normalize($afternoonOut),
+    ];
+
+    $errors = [];
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $attendanceDate)) {
+        $errors[] = 'Valid attendance date is required.';
+    }
+    if ($fallbackReason === '') {
+        $errors[] = 'Reason/details are required.';
+    }
+    if (!is_array($proofFile) || (int)($proofFile['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+        $errors[] = 'Proof image is required.';
+    }
+    if ($payload['morning_time_in'] === null && $payload['morning_time_out'] === null && $payload['afternoon_time_in'] === null && $payload['afternoon_time_out'] === null) {
+        $errors[] = 'Enter at least one time.';
+    }
+    $validation = attendance_validate_full_record($payload);
+    if (!($validation['ok'] ?? false)) {
+        $errors[] = (string)($validation['message'] ?? 'Invalid attendance values.');
+    }
+
+    if ($errors === []) {
+        $allowedMimeTypes = [
+            'image/jpeg' => 'jpg',
+            'image/png' => 'png',
+            'image/webp' => 'webp',
+        ];
+        $fileError = (int)($proofFile['error'] ?? UPLOAD_ERR_NO_FILE);
+        if ($fileError !== UPLOAD_ERR_OK) {
+            $errors[] = 'Proof image upload failed.';
+        } else {
+            $tmpPath = (string)($proofFile['tmp_name'] ?? '');
+            $fileSize = (int)($proofFile['size'] ?? 0);
+            $detectedMime = $tmpPath !== '' && function_exists('mime_content_type') ? (string)@mime_content_type($tmpPath) : '';
+            if (!isset($allowedMimeTypes[$detectedMime])) {
+                $errors[] = 'Proof image must be JPG, PNG, or WEBP.';
+            }
+            if ($fileSize <= 0 || $fileSize > 5 * 1024 * 1024) {
+                $errors[] = 'Proof image must be 5MB or smaller.';
+            }
+        }
+    }
+
+    if ($errors === []) {
+        $existingStmt = $conn->prepare("SELECT id, source FROM attendances WHERE student_id = ? AND attendance_date = ? ORDER BY id DESC LIMIT 1");
+        if ($existingStmt) {
+            $existingStmt->bind_param('is', $studentId, $attendanceDate);
+            $existingStmt->execute();
+            $existing = $existingStmt->get_result()->fetch_assoc() ?: null;
+            $existingStmt->close();
+            if ($existing) {
+                $existingSource = strtolower(trim((string)($existing['source'] ?? 'manual')));
+                $errors[] = $existingSource === 'biometric'
+                    ? 'A biometric attendance already exists for this date. Please request a correction instead.'
+                    : 'A manual fallback entry already exists for this date.';
+            }
+        }
+    }
+
+    if ($errors === []) {
+        $uploadDir = student_dtr_manual_upload_dir();
+        $proofRelativePath = '';
+        $proofOriginalName = trim((string)($proofFile['name'] ?? 'proof-image'));
+        $proofMime = (string)@mime_content_type((string)$proofFile['tmp_name']);
+        $proofExtension = $allowedMimeTypes[$proofMime] ?? 'jpg';
+        $safeDatePart = preg_replace('/[^0-9]/', '', $attendanceDate) ?: date('Ymd');
+        $targetFileName = sprintf('student_%d_%s_%s.%s', $studentId, $safeDatePart, date('His'), $proofExtension);
+        $targetPath = rtrim($uploadDir, '/\\') . DIRECTORY_SEPARATOR . $targetFileName;
+
+        if (!student_dtr_ensure_runtime_dir($uploadDir) || !@move_uploaded_file((string)$proofFile['tmp_name'], $targetPath)) {
+            $_SESSION['student_dtr_flash'] = [
+                'type' => 'danger',
+                'message' => 'Could not save the proof image.',
+            ];
+            $redirectMonth = preg_match('/^\d{4}\-\d{2}$/', $selectedMonth) ? $selectedMonth : date('Y-m');
+            header('Location: student-dtr.php?month=' . urlencode($redirectMonth));
+            exit;
+        }
+
+        $proofRelativePath = $targetFileName;
+        $insert = $conn->prepare("
+            INSERT INTO attendances (
+                student_id, attendance_date, morning_time_in, morning_time_out, afternoon_time_in, afternoon_time_out,
+                source, status, remarks, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, 'manual', 'pending', ?, NOW(), NOW())
+        ");
+        if ($insert) {
+            $insert->bind_param(
+                'issssss',
+                $studentId,
+                $attendanceDate,
+                $payload['morning_time_in'],
+                $payload['morning_time_out'],
+                $payload['afternoon_time_in'],
+                $payload['afternoon_time_out'],
+                $fallbackReason
+            );
+            $insert->execute();
+            $success = $insert->affected_rows > 0;
+            $newAttendanceId = (int)$insert->insert_id;
+            $insert->close();
+            if ($success && $newAttendanceId > 0) {
+                $attachmentReason = 'Machine-down fallback proof';
+                if ($proofClockTime !== '') {
+                    $attachmentReason .= ' | submitted at ' . $proofClockTime;
+                }
+
+                $attachmentStmt = $conn->prepare("
+                    INSERT INTO manual_dtr_attachments (
+                        student_id, attendance_id, attendance_date, file_path, file_name, file_type, file_size, reason, uploaded_by, created_at, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+                ");
+                if ($attachmentStmt) {
+                    $fileSize = (int)($proofFile['size'] ?? 0);
+                    $uploadedBy = $currentUserId;
+                    $attachmentStmt->bind_param(
+                        'iissssisi',
+                        $studentId,
+                        $newAttendanceId,
+                        $attendanceDate,
+                        $proofRelativePath,
+                        $proofOriginalName,
+                        $proofMime,
+                        $fileSize,
+                        $attachmentReason,
+                        $uploadedBy
+                    );
+                    $attachmentStmt->execute();
+                    $attachmentStmt->close();
+                }
+            }
+            $_SESSION['student_dtr_flash'] = [
+                'type' => $success ? 'success' : 'danger',
+                'message' => $success
+                    ? 'Machine-down fallback attendance submitted for review.'
+                    : 'Could not submit the fallback attendance.',
+            ];
+        } else {
+            $_SESSION['student_dtr_flash'] = [
+                'type' => 'danger',
+                'message' => 'Could not prepare fallback attendance submission.',
+            ];
+        }
+    } else {
+        $_SESSION['student_dtr_flash'] = [
+            'type' => 'danger',
+            'message' => implode(' ', $errors),
+        ];
+    }
+
+    $redirectMonth = preg_match('/^\d{4}\-\d{2}$/', $selectedMonth) ? $selectedMonth : date('Y-m');
+    header('Location: student-dtr.php?month=' . urlencode($redirectMonth));
+    exit;
 }
 
 if ($attendanceSummary['total_logs'] > 0) {
@@ -272,8 +546,81 @@ include 'includes/header.php';
                         <div class="student-dtr-persona">
                             <img src="<?php echo htmlspecialchars($avatarSrc, ENT_QUOTES, 'UTF-8'); ?>" alt="Student Avatar" class="student-dtr-avatar">
                             <div>
+<<<<<<< HEAD
+                                <span class="student-home-eyebrow">Daily Time Record</span>
+                                <div class="student-dtr-persona">
+                                    <img src="<?php echo htmlspecialchars($avatarSrc, ENT_QUOTES, 'UTF-8'); ?>" alt="Student Avatar" class="student-dtr-avatar">
+                                    <div>
+                                        <h2 class="student-dtr-title">My DTR</h2>
+                                        <div class="student-dtr-meta"><?php echo htmlspecialchars($displayName, ENT_QUOTES, 'UTF-8'); ?></div>
+                                    </div>
+                                </div>
+                                <div class="student-home-meta student-dtr-chip-row">
+                                    <span><i class="feather-hash me-1"></i><?php echo htmlspecialchars(trim((string)($student['student_id'] ?? '')) !== '' ? (string)$student['student_id'] : 'No student number', ENT_QUOTES, 'UTF-8'); ?></span>
+                                    <?php if (!empty($courseSection)): ?>
+                                    <span><i class="feather-book-open me-1"></i><?php echo htmlspecialchars(implode(' | ', $courseSection), ENT_QUOTES, 'UTF-8'); ?></span>
+                                    <?php endif; ?>
+                                    <span><i class="feather-calendar me-1"></i><?php echo htmlspecialchars(date('F Y', strtotime($monthStart)), ENT_QUOTES, 'UTF-8'); ?></span>
+                                </div>
+                            </div>
+
+                            <form method="get" class="student-dtr-filter">
+                                <div>
+                                    <label class="form-label" for="studentDtrMonthSelect">Month</label>
+                                    <select id="studentDtrMonthSelect" name="month_num" class="form-select">
+                                        <?php foreach ($monthOptions as $monthNumber => $monthLabel): ?>
+                                        <option value="<?php echo $monthNumber; ?>" <?php echo $monthNumber === $selectedMonthNumber ? 'selected' : ''; ?>>
+                                            <?php echo htmlspecialchars($monthLabel, ENT_QUOTES, 'UTF-8'); ?>
+                                        </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="form-label" for="studentDtrYearSelect">Year</label>
+                                    <select id="studentDtrYearSelect" name="year" class="form-select">
+                                        <?php foreach ($availableYears as $yearOption): ?>
+                                        <option value="<?php echo $yearOption; ?>" <?php echo $yearOption === $selectedYear ? 'selected' : ''; ?>>
+                                            <?php echo $yearOption; ?>
+                                        </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                                <div>
+                                    <button type="submit" class="btn btn-primary">Apply</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="card mt-4">
+                    <div class="card-body">
+                        <?php if (is_array($studentDtrFlash) && !empty($studentDtrFlash['message'])): ?>
+                        <div class="alert alert-<?php echo htmlspecialchars((string)($studentDtrFlash['type'] ?? 'info'), ENT_QUOTES, 'UTF-8'); ?> mb-3">
+                            <?php echo htmlspecialchars((string)$studentDtrFlash['message'], ENT_QUOTES, 'UTF-8'); ?>
+                        </div>
+                        <?php endif; ?>
+                        <span class="student-metric-label">Month Summary</span>
+                        <div class="student-dtr-metrics">
+                            <div class="student-metric-card student-dtr-metric">
+                                <div class="student-dtr-meta">Total Logs</div>
+                                <strong><?php echo (int)$attendanceSummary['total_logs']; ?></strong>
+                            </div>
+                            <div class="student-metric-card student-dtr-metric">
+                                <div class="student-dtr-meta">Approved</div>
+                                <strong><?php echo (int)$attendanceSummary['approved_logs']; ?></strong>
+                            </div>
+                            <div class="student-metric-card student-dtr-metric">
+                                <div class="student-dtr-meta">Pending</div>
+                                <strong><?php echo (int)$attendanceSummary['pending_logs']; ?></strong>
+                            </div>
+                            <div class="student-metric-card student-dtr-metric">
+                                <div class="student-dtr-meta">Logged Hours</div>
+                                <strong><?php echo number_format((float)$attendanceSummary['total_hours'], 2); ?></strong>
+=======
                                 <h2 class="student-dtr-title">My DTR</h2>
                                 <div class="student-dtr-meta"><?php echo htmlspecialchars($displayName, ENT_QUOTES, 'UTF-8'); ?></div>
+>>>>>>> 7d0e50eb0a543bcfdbc9c9e6d55ea66f3baa50d1
                             </div>
                         </div>
                         <div class="student-home-meta student-dtr-chip-row">
@@ -285,6 +632,64 @@ include 'includes/header.php';
                         </div>
                     </div>
 
+<<<<<<< HEAD
+                <section class="card mt-4">
+                    <div class="card-body">
+                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+                            <div>
+                                <span class="student-metric-label">Machine Down Fallback</span>
+                                <h3 class="mb-1">Submit Manual DTR</h3>
+                                <div class="student-dtr-meta">Use this only when the biometric machine is unavailable. Manual fallback entries stay in review until checked by the school.</div>
+                            </div>
+                        </div>
+                        <form method="post" enctype="multipart/form-data" class="row g-3">
+                            <input type="hidden" name="student_action" value="submit_machine_down">
+                            <input type="hidden" name="proof_clock_time" id="proofClockTime" value="">
+                            <div class="col-md-4">
+                                <label class="form-label" for="fallbackAttendanceDate">Date</label>
+                                <input type="date" class="form-control" id="fallbackAttendanceDate" name="attendance_date" value="<?php echo htmlspecialchars(date('Y-m-d'), ENT_QUOTES, 'UTF-8'); ?>" max="<?php echo htmlspecialchars(date('Y-m-d'), ENT_QUOTES, 'UTF-8'); ?>">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Proof Clock</label>
+                                <div class="form-control d-flex align-items-center justify-content-between">
+                                    <strong id="proofClockDisplay">--:--:--</strong>
+                                    <span class="text-muted small" id="proofClockDate">--</span>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="proofImage">Proof Image</label>
+                                <input type="file" class="form-control" id="proofImage" name="proof_image" accept="image/png,image/jpeg,image/webp" capture="environment" required>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label" for="fallbackMorningIn">Morning In</label>
+                                <input type="time" class="form-control" id="fallbackMorningIn" name="morning_time_in">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label" for="fallbackMorningOut">Morning Out</label>
+                                <input type="time" class="form-control" id="fallbackMorningOut" name="morning_time_out">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label" for="fallbackAfternoonIn">Afternoon In</label>
+                                <input type="time" class="form-control" id="fallbackAfternoonIn" name="afternoon_time_in">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label" for="fallbackAfternoonOut">Afternoon Out</label>
+                                <input type="time" class="form-control" id="fallbackAfternoonOut" name="afternoon_time_out">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label" for="fallbackReason">Reason / What happened</label>
+                                <textarea class="form-control" id="fallbackReason" name="fallback_reason" rows="3" placeholder="Example: Biometric machine was offline from 8:00 AM to 5:00 PM. Supervisor confirmed my time in/out."></textarea>
+                            </div>
+                            <div class="col-12 d-flex flex-wrap gap-2 align-items-center">
+                                <button type="submit" class="btn btn-warning">Submit Fallback Attendance</button>
+                                <small class="text-muted">Upload a clear photo proof and submit it on the same day while the machine is down.</small>
+                            </div>
+                        </form>
+                    </div>
+                </section>
+
+                <section class="card student-panel mt-4">
+=======
                     <form method="get" class="student-dtr-filter">
                         <div>
                             <label class="form-label" for="studentDtrMonthSelect">Month</label>
@@ -340,6 +745,7 @@ include 'includes/header.php';
         <div class="row g-4 align-items-start mt-0">
             <div class="col-12 col-xl-8">
                 <section class="card student-panel">
+>>>>>>> 7d0e50eb0a543bcfdbc9c9e6d55ea66f3baa50d1
                     <div class="card-body">
                         <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
                             <div>
@@ -369,12 +775,17 @@ include 'includes/header.php';
                                 </thead>
                                 <tbody>
                                     <?php foreach ($attendanceRows as $row): ?>
-                                    <?php $statusClass = strtolower(trim((string)($row['status'] ?? 'pending'))); ?>
+                                    <?php $reviewMeta = student_dtr_review_meta($row); ?>
                                     <tr>
                                         <td>
                                             <strong><?php echo htmlspecialchars(date('M d, Y', strtotime((string)$row['attendance_date'])), ENT_QUOTES, 'UTF-8'); ?></strong>
                                             <?php if (trim((string)($row['remarks'] ?? '')) !== ''): ?>
                                             <div class="student-dtr-cell-note mt-1"><?php echo htmlspecialchars((string)$row['remarks'], ENT_QUOTES, 'UTF-8'); ?></div>
+                                            <?php endif; ?>
+                                            <?php if (!empty($row['proof_attachment']['file_path'])): ?>
+                                            <div class="student-dtr-cell-note mt-1">
+                                                <a href="<?php echo htmlspecialchars(student_dtr_manual_upload_web_path((string)$row['proof_attachment']['file_path']), ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer">View proof image</a>
+                                            </div>
                                             <?php endif; ?>
                                         </td>
                                         <td><?php echo htmlspecialchars(student_dtr_format_time($row['morning_time_in'] ?? null), ENT_QUOTES, 'UTF-8'); ?></td>
@@ -384,7 +795,7 @@ include 'includes/header.php';
                                         <td><?php echo htmlspecialchars(student_dtr_format_time($row['afternoon_time_in'] ?? null), ENT_QUOTES, 'UTF-8'); ?></td>
                                         <td><?php echo htmlspecialchars(student_dtr_format_time($row['afternoon_time_out'] ?? null), ENT_QUOTES, 'UTF-8'); ?></td>
                                         <td><strong><?php echo number_format((float)($row['display_hours'] ?? 0), 2); ?>h</strong></td>
-                                        <td><span class="student-dtr-status <?php echo htmlspecialchars($statusClass, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(ucfirst($statusClass), ENT_QUOTES, 'UTF-8'); ?></span></td>
+                                        <td><span class="student-dtr-status <?php echo htmlspecialchars((string)$reviewMeta['class'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars((string)$reviewMeta['label'], ENT_QUOTES, 'UTF-8'); ?></span></td>
                                         <td><?php echo htmlspecialchars(ucfirst((string)($row['source'] ?? 'manual')), ENT_QUOTES, 'UTF-8'); ?></td>
                                     </tr>
                                     <?php endforeach; ?>
@@ -475,4 +886,37 @@ include 'includes/header.php';
         </div>
     </div>
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const clockDisplay = document.getElementById('proofClockDisplay');
+    const clockDate = document.getElementById('proofClockDate');
+    const clockInput = document.getElementById('proofClockTime');
+
+    if (!clockDisplay || !clockDate || !clockInput) {
+        return;
+    }
+
+    const updateClock = function () {
+        const now = new Date();
+        const pad = function (value) {
+            return value.toString().padStart(2, '0');
+        };
+
+        clockDisplay.textContent = now.toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
+        clockDate.textContent = now.toLocaleDateString([], {
+            year: 'numeric',
+            month: 'short',
+            day: '2-digit'
+        });
+        clockInput.value = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate()) + ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
+    };
+
+    updateClock();
+    window.setInterval(updateClock, 1000);
+});
+</script>
 <?php include 'includes/footer.php'; ?>
