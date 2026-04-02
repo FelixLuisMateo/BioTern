@@ -218,6 +218,100 @@
     color: #64748b;
 }
 
+.student-dtr-fallback-card .form-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #4a72d8;
+}
+
+.student-dtr-fallback-card .form-control,
+.student-dtr-fallback-card .form-control[type="file"] {
+    min-height: 48px;
+    border-radius: 0.85rem;
+    background: #f8fbff;
+    border: 1px solid rgba(59, 93, 201, 0.14);
+    color: #0f172a;
+    font-weight: 600;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.24);
+}
+
+.student-dtr-fallback-card .form-select {
+    min-height: 48px;
+    border-radius: 0.85rem;
+    background-color: #f8fbff;
+    border: 1px solid rgba(59, 93, 201, 0.14);
+    color: #0f172a;
+    font-weight: 600;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.24);
+    padding-inline: 0.95rem 2.5rem;
+    background-position: right 0.9rem center;
+    background-size: 14px 10px;
+}
+
+.student-dtr-fallback-card textarea.form-control {
+    min-height: 120px;
+    padding-top: 0.85rem;
+    padding-bottom: 0.85rem;
+    resize: vertical;
+}
+
+.student-dtr-fallback-card .form-control:focus {
+    border-color: rgba(101, 144, 255, 0.7);
+    box-shadow: 0 0 0 0.2rem rgba(76, 120, 240, 0.16);
+    background: #ffffff;
+}
+
+.student-dtr-fallback-card .form-select:focus {
+    border-color: rgba(101, 144, 255, 0.7);
+    box-shadow: 0 0 0 0.2rem rgba(76, 120, 240, 0.16);
+    background-color: #ffffff;
+}
+
+.student-dtr-fallback-card .form-control[type="file"]::file-selector-button {
+    margin: -0.75rem 0.85rem -0.75rem -0.95rem;
+    padding: 0.75rem 1rem;
+    border: 0;
+    border-right: 1px solid rgba(59, 93, 201, 0.14);
+    background: rgba(59, 93, 201, 0.12);
+    color: #1e3a8a;
+    font-weight: 700;
+}
+
+.student-dtr-fallback-card .form-control[type="file"]::-webkit-file-upload-button {
+    margin: -0.75rem 0.85rem -0.75rem -0.95rem;
+    padding: 0.75rem 1rem;
+    border: 0;
+    border-right: 1px solid rgba(59, 93, 201, 0.14);
+    background: rgba(59, 93, 201, 0.12);
+    color: #1e3a8a;
+    font-weight: 700;
+}
+
+.student-dtr-proof-clock {
+    min-height: 48px;
+    border-radius: 0.85rem;
+    background: #f8fbff;
+    border: 1px solid rgba(59, 93, 201, 0.14);
+    color: #0f172a;
+    font-weight: 700;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.24);
+}
+
+.student-dtr-proof-clock .text-muted,
+.student-dtr-fallback-card .text-muted {
+    color: #64748b !important;
+}
+
+.student-dtr-fallback-card .btn-warning {
+    min-height: 48px;
+    border-radius: 0.85rem;
+    font-weight: 700;
+}
+
 .student-dtr-side-card {
     height: 100%;
 }
@@ -273,6 +367,51 @@ html.app-skin-dark .student-dtr-empty {
     border-color: rgba(120, 146, 214, 0.14);
 }
 
+html.app-skin-dark .student-dtr-fallback-card .form-label {
+    color: rgba(224, 233, 255, 0.78);
+}
+
+html.app-skin-dark .student-dtr-fallback-card .form-control,
+html.app-skin-dark .student-dtr-fallback-card .form-control[type="file"],
+html.app-skin-dark .student-dtr-proof-clock {
+    background: rgba(8, 15, 32, 0.58);
+    border-color: rgba(120, 146, 214, 0.18);
+    color: #f8fbff;
+    box-shadow: none;
+}
+
+html.app-skin-dark .student-dtr-fallback-card .form-select {
+    background-color: rgba(8, 15, 32, 0.58);
+    border-color: rgba(120, 146, 214, 0.18);
+    color: #f8fbff;
+    box-shadow: none;
+}
+
+html.app-skin-dark .student-dtr-fallback-card .form-control:focus {
+    background: rgba(8, 15, 32, 0.72);
+}
+
+html.app-skin-dark .student-dtr-fallback-card .form-select:focus {
+    background-color: rgba(8, 15, 32, 0.72);
+}
+
+html.app-skin-dark .student-dtr-fallback-card .form-control[type="file"]::file-selector-button {
+    border-right-color: rgba(120, 146, 214, 0.18);
+    background: rgba(96, 165, 250, 0.16);
+    color: #dbeafe;
+}
+
+html.app-skin-dark .student-dtr-fallback-card .form-control[type="file"]::-webkit-file-upload-button {
+    border-right-color: rgba(120, 146, 214, 0.18);
+    background: rgba(96, 165, 250, 0.16);
+    color: #dbeafe;
+}
+
+html.app-skin-dark .student-dtr-proof-clock .text-muted,
+html.app-skin-dark .student-dtr-fallback-card .text-muted {
+    color: #a9b8de !important;
+}
+
 html.app-skin-dark .student-dtr-table th {
     color: #8fb4ff;
 }
@@ -320,5 +459,88 @@ html.app-skin-dark .student-dtr-empty {
     .student-dtr-filter .form-select,
     .student-dtr-filter .btn {
         width: 100%;
+    }
+
+    .student-dtr-fallback-card .row > [class*="col-"] {
+        width: 100%;
+    }
+
+    .student-dtr-fallback-card .btn-warning {
+        width: 100%;
+    }
+
+    .student-dtr-proof-clock {
+        gap: 0.75rem;
+        flex-wrap: wrap;
+        align-items: flex-start !important;
+    }
+
+    .student-dtr-table {
+        min-width: 0;
+        border-spacing: 0;
+    }
+
+    .student-dtr-table thead {
+        display: none;
+    }
+
+    .student-dtr-table,
+    .student-dtr-table tbody,
+    .student-dtr-table tr,
+    .student-dtr-table td {
+        display: block;
+        width: 100%;
+    }
+
+    .student-dtr-table tr {
+        margin-bottom: 1rem;
+    }
+
+    .student-dtr-table td {
+        position: relative;
+        padding: 0.85rem 1rem 0.85rem 8.2rem;
+        border-left: 1px solid rgba(59, 93, 201, 0.08);
+        border-right: 1px solid rgba(59, 93, 201, 0.08);
+        border-radius: 0;
+        min-height: 52px;
+        display: flex;
+        align-items: center;
+    }
+
+    .student-dtr-table td::before {
+        content: attr(data-label);
+        position: absolute;
+        left: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 6.25rem;
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #4a72d8;
+        white-space: normal;
+    }
+
+    .student-dtr-table td:first-child {
+        border-top-left-radius: 1rem;
+        border-top-right-radius: 1rem;
+    }
+
+    .student-dtr-table td:last-child {
+        border-bottom-left-radius: 1rem;
+        border-bottom-right-radius: 1rem;
+    }
+
+    .student-dtr-table td strong,
+    .student-dtr-table td .student-dtr-status,
+    .student-dtr-table td a,
+    .student-dtr-table td div {
+        position: relative;
+        z-index: 1;
+    }
+
+    html.app-skin-dark .student-dtr-table td::before {
+        color: #8fb4ff;
     }
 }

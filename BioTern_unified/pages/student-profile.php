@@ -198,6 +198,7 @@ $contactAddress = trim((string)($student['address'] ?? ''));
 $birthDate = trim((string)($student['date_of_birth'] ?? ''));
 $gender = trim((string)($student['gender'] ?? ''));
 $emergencyContact = trim((string)($student['emergency_contact'] ?? ''));
+$genderDisplay = $gender !== '' ? ucwords(strtolower($gender)) : 'Not yet available';
 $avatarSrc = biotern_avatar_public_src((string)($user['profile_picture'] ?? ''), $currentUserId);
 $completionPercentage = min(100, max(0, (float)($internship['completion_percentage'] ?? 0)));
 $renderedHours = (float)($internship['rendered_hours'] ?? 0);
@@ -388,7 +389,7 @@ include 'includes/header.php';
                             </div>
                             <div class="student-profile-field">
                                 <span class="student-profile-field-label">Gender</span>
-                                <strong><?php echo htmlspecialchars(student_profile_value($gender, 'Not yet available'), ENT_QUOTES, 'UTF-8'); ?></strong>
+                                <strong><?php echo htmlspecialchars($genderDisplay, ENT_QUOTES, 'UTF-8'); ?></strong>
                             </div>
                             <div class="student-profile-field student-profile-field--full">
                                 <span class="student-profile-field-label">Emergency Contact</span>

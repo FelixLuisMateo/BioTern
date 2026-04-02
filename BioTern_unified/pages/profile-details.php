@@ -37,13 +37,76 @@ function profile_details_preview(string $value, int $limit = 72): string
     return strlen($value) > $limit ? substr($value, 0, $limit - 3) . '...' : $value;
 }
 
+function profile_details_value(?string $value, string $fallback = 'Not yet available'): string
+{
+    $value = trim((string)$value);
+    return $value !== '' ? $value : $fallback;
+}
+
+function profile_details_format_date(?string $value, string $fallback = 'Not yet available'): string
+{
+    $value = trim((string)$value);
+    if ($value === '' || $value === '0000-00-00' || $value === '0000-00-00 00:00:00') {
+        return $fallback;
+    }
+
+    $timestamp = strtotime($value);
+    return $timestamp !== false ? date('M d, Y', $timestamp) : $fallback;
+}
+
 $profile_flash_message = '';
 $profile_flash_type = 'success';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $profile_action = (string)($_POST['action'] ?? '');
 
-    if ($profile_action === 'upload_profile_picture') {
+    if ($profile_action === 'update_student_profile') {
+        $currentRole = strtolower(trim((string)($user['role'] ?? $_SESSION['role'] ?? '')));
+        if ($currentRole !== 'student') {
+            $profile_flash_message = 'Only student accounts can update student profile details here.';
+            $profile_flash_type = 'warning';
+        } else {
+            $studentRecordId = (int)($_POST['student_record_id'] ?? 0);
+            $studentEmail = trim((string)($_POST['student_email'] ?? ''));
+            $phone = trim((string)($_POST['phone'] ?? ''));
+            $address = trim((string)($_POST['address'] ?? ''));
+            $dateOfBirth = trim((string)($_POST['date_of_birth'] ?? ''));
+            $gender = trim((string)($_POST['gender'] ?? ''));
+            $emergencyContact = trim((string)($_POST['emergency_contact'] ?? ''));
+
+            if ($dateOfBirth !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateOfBirth) !== 1) {
+                $profile_flash_message = 'Birth date must use a valid date.';
+                $profile_flash_type = 'warning';
+            } else {
+                $updateSql = "UPDATE students
+                    SET email = ?, phone = ?, address = ?, date_of_birth = ?, gender = ?, emergency_contact = ?
+                    WHERE ";
+                if ($studentRecordId > 0) {
+                    $updateSql .= "id = ? LIMIT 1";
+                } else {
+                    $updateSql .= "user_id = ? LIMIT 1";
+                }
+
+                $studentUpdateStmt = $conn->prepare($updateSql);
+                if (!$studentUpdateStmt) {
+                    $profile_flash_message = 'Could not prepare student profile update.';
+                    $profile_flash_type = 'danger';
+                } else {
+                    $dateParam = $dateOfBirth !== '' ? $dateOfBirth : null;
+                    $recordTarget = $studentRecordId > 0 ? $studentRecordId : $userId;
+                    $studentUpdateStmt->bind_param('ssssssi', $studentEmail, $phone, $address, $dateParam, $gender, $emergencyContact, $recordTarget);
+                    if ($studentUpdateStmt->execute()) {
+                        $profile_flash_message = 'Student profile details updated successfully.';
+                        $profile_flash_type = 'success';
+                    } else {
+                        $profile_flash_message = 'Failed to update student profile details.';
+                        $profile_flash_type = 'danger';
+                    }
+                    $studentUpdateStmt->close();
+                }
+            }
+        }
+    } elseif ($profile_action === 'upload_profile_picture') {
         if (!isset($_FILES['profile_picture']) || !is_array($_FILES['profile_picture'])) {
             $profile_flash_message = 'Please choose an image file.';
             $profile_flash_type = 'warning';
@@ -153,8 +216,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $studentProfile = null;
 $currentRole = strtolower(trim((string)($user['role'] ?? $_SESSION['role'] ?? '')));
 if ($currentRole === 'student') {
-    $studentStmt = $conn->prepare("SELECT s.student_id, s.first_name, s.last_name, s.email AS student_email, s.phone, s.address,
-        c.name AS course_name, d.name AS department_name, sec.name AS section_name
+    $studentStmt = $conn->prepare("SELECT s.id, s.student_id, s.first_name, s.middle_name, s.last_name, s.email AS student_email, s.phone, s.address,
+        s.date_of_birth, s.gender, s.emergency_contact, s.status AS student_status,
+        c.name AS course_name, d.name AS department_name, sec.code AS section_code, sec.name AS section_name
         FROM students s
         LEFT JOIN courses c ON c.id = s.course_id
         LEFT JOIN departments d ON d.id = s.department_id
@@ -166,6 +230,46 @@ if ($currentRole === 'student') {
         $studentStmt->execute();
         $studentProfile = $studentStmt->get_result()->fetch_assoc();
         $studentStmt->close();
+    }
+
+    if (!$studentProfile) {
+        $fallbackEmail = trim((string)($user['email'] ?? ''));
+        $fallbackName = trim((string)($user['name'] ?? ''));
+        $fallbackStmt = $conn->prepare(
+            "SELECT s.id, s.student_id, s.first_name, s.middle_name, s.last_name, s.email AS student_email, s.phone, s.address,
+                    s.date_of_birth, s.gender, s.emergency_contact, s.status AS student_status,
+                    c.name AS course_name, d.name AS department_name, sec.code AS section_code, sec.name AS section_name
+             FROM students s
+             LEFT JOIN courses c ON c.id = s.course_id
+             LEFT JOIN departments d ON d.id = s.department_id
+             LEFT JOIN sections sec ON sec.id = s.section_id
+             WHERE ((? <> '' AND LOWER(COALESCE(s.email, '')) = LOWER(?))
+                 OR (? <> '' AND LOWER(TRIM(CONCAT(COALESCE(s.first_name, ''), ' ', COALESCE(s.last_name, '')))) = LOWER(?)))
+             ORDER BY
+                CASE
+                    WHEN (? <> '' AND LOWER(COALESCE(s.email, '')) = LOWER(?)) THEN 0
+                    WHEN (? <> '' AND LOWER(TRIM(CONCAT(COALESCE(s.first_name, ''), ' ', COALESCE(s.last_name, '')))) = LOWER(?)) THEN 1
+                    ELSE 2
+                END
+             LIMIT 1"
+        );
+
+        if ($fallbackStmt) {
+            $fallbackStmt->bind_param(
+                'ssssssss',
+                $fallbackEmail,
+                $fallbackEmail,
+                $fallbackName,
+                $fallbackName,
+                $fallbackEmail,
+                $fallbackEmail,
+                $fallbackName,
+                $fallbackName
+            );
+            $fallbackStmt->execute();
+            $studentProfile = $fallbackStmt->get_result()->fetch_assoc() ?: null;
+            $fallbackStmt->close();
+        }
     }
 }
 
@@ -254,6 +358,21 @@ $accountSecurityState = ((int)($user['is_active'] ?? 0) === 1) ? 'Protected' : '
 $roleWorkspaceLabel = ucfirst((string)($user['role'] ?? 'user')) . ' Workspace';
 $contactPhone = trim((string)($studentProfile['phone'] ?? ''));
 $contactAddress = trim((string)($studentProfile['address'] ?? ''));
+$studentSectionParts = array_filter([
+    trim((string)($studentProfile['section_code'] ?? '')),
+    trim((string)($studentProfile['section_name'] ?? '')),
+]);
+$studentSectionDisplay = !empty($studentSectionParts) ? implode(' | ', $studentSectionParts) : trim((string)($studentProfile['section_name'] ?? ''));
+$studentStatusRaw = trim((string)($studentProfile['student_status'] ?? ''));
+$studentStatusDisplay = match (strtolower($studentStatusRaw)) {
+    '1', 'true', 'active', 'approved' => 'Active',
+    '0', 'false', 'inactive', 'rejected' => 'Inactive',
+    'pending' => 'Pending',
+    default => profile_details_value($studentStatusRaw),
+};
+$studentGenderDisplay = trim((string)($studentProfile['gender'] ?? '')) !== ''
+    ? ucwords(strtolower(trim((string)($studentProfile['gender'] ?? ''))))
+    : 'Not yet available';
 
 $page_title = 'BioTern || Profile Details';
 include 'includes/header.php';
@@ -1124,7 +1243,7 @@ include 'includes/header.php';
 
                     <div class="card profile-panel mt-3">
                         <div class="card-header">
-                            <h6 class="mb-0"><span>🔗</span> Quick Access</h6>
+                            <h6 class="mb-0">Quick Access</h6>
                         </div>
                         <div class="card-body">
                             <div class="d-grid gap-2">
@@ -1139,33 +1258,53 @@ include 'includes/header.php';
                     <?php if (is_array($studentProfile)): ?>
                     <div class="card profile-panel mt-3">
                         <div class="card-header">
-                            <h6 class="mb-0"><span>🎓</span> Student Profile</h6>
+                            <h6 class="mb-0">Student Profile</h6>
                         </div>
                         <div class="card-body">
                             <div class="profile-grid">
                                 <div class="profile-field">
                                     <div class="profile-field-label">Student ID</div>
-                                    <div class="profile-field-value"><?php echo htmlspecialchars((string)($studentProfile['student_id'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></div>
+                                    <div class="profile-field-value"><?php echo htmlspecialchars(profile_details_value((string)($studentProfile['student_id'] ?? '')), ENT_QUOTES, 'UTF-8'); ?></div>
+                                </div>
+                                <div class="profile-field">
+                                    <div class="profile-field-label">Student Status</div>
+                                    <div class="profile-field-value"><?php echo htmlspecialchars($studentStatusDisplay, ENT_QUOTES, 'UTF-8'); ?></div>
                                 </div>
                                 <div class="profile-field">
                                     <div class="profile-field-label">Course</div>
-                                    <div class="profile-field-value"><?php echo htmlspecialchars((string)($studentProfile['course_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></div>
+                                    <div class="profile-field-value"><?php echo htmlspecialchars(profile_details_value((string)($studentProfile['course_name'] ?? '')), ENT_QUOTES, 'UTF-8'); ?></div>
+                                </div>
+                                <div class="profile-field">
+                                    <div class="profile-field-label">Department</div>
+                                    <div class="profile-field-value"><?php echo htmlspecialchars(profile_details_value((string)($studentProfile['department_name'] ?? '')), ENT_QUOTES, 'UTF-8'); ?></div>
                                 </div>
                                 <div class="profile-field">
                                     <div class="profile-field-label">Section</div>
-                                    <div class="profile-field-value"><?php echo htmlspecialchars((string)($studentProfile['section_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></div>
+                                    <div class="profile-field-value"><?php echo htmlspecialchars(profile_details_value($studentSectionDisplay, 'Not yet assigned'), ENT_QUOTES, 'UTF-8'); ?></div>
                                 </div>
                                 <div class="profile-field">
                                     <div class="profile-field-label">Phone</div>
-                                    <div class="profile-field-value"><?php echo htmlspecialchars((string)($studentProfile['phone'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></div>
+                                    <div class="profile-field-value"><?php echo htmlspecialchars(profile_details_value((string)($studentProfile['phone'] ?? '')), ENT_QUOTES, 'UTF-8'); ?></div>
                                 </div>
                                 <div class="profile-field">
                                     <div class="profile-field-label">Student Email</div>
-                                    <div class="profile-field-value"><?php echo htmlspecialchars((string)($studentProfile['student_email'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></div>
+                                    <div class="profile-field-value"><?php echo htmlspecialchars(profile_details_value((string)($studentProfile['student_email'] ?? ($user['email'] ?? ''))), ENT_QUOTES, 'UTF-8'); ?></div>
+                                </div>
+                                <div class="profile-field">
+                                    <div class="profile-field-label">Birth Date</div>
+                                    <div class="profile-field-value"><?php echo htmlspecialchars(profile_details_format_date((string)($studentProfile['date_of_birth'] ?? '')), ENT_QUOTES, 'UTF-8'); ?></div>
+                                </div>
+                                <div class="profile-field">
+                                    <div class="profile-field-label">Gender</div>
+                                    <div class="profile-field-value"><?php echo htmlspecialchars($studentGenderDisplay, ENT_QUOTES, 'UTF-8'); ?></div>
+                                </div>
+                                <div class="profile-field full">
+                                    <div class="profile-field-label">Emergency Contact</div>
+                                    <div class="profile-field-value"><?php echo htmlspecialchars(profile_details_value((string)($studentProfile['emergency_contact'] ?? '')), ENT_QUOTES, 'UTF-8'); ?></div>
                                 </div>
                                 <div class="profile-field full">
                                     <div class="profile-field-label">Address</div>
-                                    <div class="profile-field-value"><?php echo nl2br(htmlspecialchars((string)($studentProfile['address'] ?? ''), ENT_QUOTES, 'UTF-8')); ?></div>
+                                    <div class="profile-field-value"><?php echo nl2br(htmlspecialchars(profile_details_value((string)($studentProfile['address'] ?? '')), ENT_QUOTES, 'UTF-8')); ?></div>
                                 </div>
                             </div>
                         </div>
@@ -1176,7 +1315,7 @@ include 'includes/header.php';
                 <div class="col-lg-5" id="account-settings">
                     <div class="card profile-panel">
                         <div class="card-header">
-                            <h6 class="mb-0"><span>⚙️</span> Individual Account Settings</h6>
+                            <h6 class="mb-0">Individual Account Settings</h6>
                         </div>
                         <div class="card-body">
                             <p class="profile-action-note mb-3">Quick actions for your own account.</p>
@@ -1203,12 +1342,53 @@ include 'includes/header.php';
                                     <span class="badge bg-soft-warning text-warning profile-inline-badge"><?php echo $contactAddress !== '' ? 'On file' : 'Review'; ?></span>
                                 </div>
                             </div>
+                            <?php if (is_array($studentProfile)): ?>
+                            <form method="post" class="mb-3">
+                                <input type="hidden" name="action" value="update_student_profile">
+                                <input type="hidden" name="student_record_id" value="<?php echo (int)($studentProfile['id'] ?? 0); ?>">
+                                <div class="profile-subtitle">Student Details</div>
+                                <div class="profile-grid mb-3">
+                                    <div class="profile-field">
+                                        <div class="profile-field-label">Student Email</div>
+                                        <input type="email" name="student_email" class="form-control profile-password-input" value="<?php echo htmlspecialchars((string)($studentProfile['student_email'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" placeholder="Student email">
+                                    </div>
+                                    <div class="profile-field">
+                                        <div class="profile-field-label">Phone</div>
+                                        <input type="text" name="phone" class="form-control profile-password-input" value="<?php echo htmlspecialchars((string)($studentProfile['phone'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" placeholder="Phone number">
+                                    </div>
+                                    <div class="profile-field">
+                                        <div class="profile-field-label">Birth Date</div>
+                                        <input type="date" name="date_of_birth" class="form-control profile-password-input" value="<?php echo htmlspecialchars((string)($studentProfile['date_of_birth'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+                                    </div>
+                                    <div class="profile-field">
+                                        <div class="profile-field-label">Gender</div>
+                                        <select name="gender" class="form-control profile-password-input">
+                                            <option value="">Select gender</option>
+                                            <option value="male" <?php echo strtolower((string)($studentProfile['gender'] ?? '')) === 'male' ? 'selected' : ''; ?>>Male</option>
+                                            <option value="female" <?php echo strtolower((string)($studentProfile['gender'] ?? '')) === 'female' ? 'selected' : ''; ?>>Female</option>
+                                            <option value="other" <?php echo strtolower((string)($studentProfile['gender'] ?? '')) === 'other' ? 'selected' : ''; ?>>Other</option>
+                                        </select>
+                                    </div>
+                                    <div class="profile-field full">
+                                        <div class="profile-field-label">Emergency Contact</div>
+                                        <input type="text" name="emergency_contact" class="form-control profile-password-input" value="<?php echo htmlspecialchars((string)($studentProfile['emergency_contact'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" placeholder="Emergency contact person and number">
+                                    </div>
+                                    <div class="profile-field full">
+                                        <div class="profile-field-label">Address</div>
+                                        <textarea name="address" class="form-control profile-password-input" rows="3" placeholder="Home address"><?php echo htmlspecialchars((string)($studentProfile['address'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-primary profile-action-btn w-100 mb-3">Save Student Details</button>
+                            </form>
+
+                            <div class="profile-section-divider"></div>
+                            <?php endif; ?>
                             <form method="post" enctype="multipart/form-data" class="mb-3">
                                 <input type="hidden" name="action" value="upload_profile_picture">
-                                <label class="form-label mb-2" style="font-weight: 600; display: flex; align-items: center; gap: 6px;"><span>📷</span>Update Profile Photo</label>
+                                <label class="form-label mb-2" style="font-weight: 600; display: flex; align-items: center; gap: 6px;">Update Profile Photo</label>
                                 <input type="file" name="profile_picture" class="form-control profile-upload-input mb-3" accept="image/*" required>
                                 <button type="submit" class="btn btn-primary profile-action-btn w-100 mb-3">
-                                    <span style="margin-right: 6px;">⬆️</span>Upload Photo
+                                    Upload Photo
                                 </button>
                                 <div class="profile-upload-status">
                                     Current source: <?php echo htmlspecialchars($profile_picture_src !== '' ? $profile_picture_src : 'Default avatar', ENT_QUOTES, 'UTF-8'); ?>

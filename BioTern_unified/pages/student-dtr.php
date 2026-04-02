@@ -92,6 +92,24 @@ function student_dtr_review_meta(array $attendance): array
     return ['label' => 'Needs Review', 'class' => 'pending'];
 }
 
+function student_dtr_time_options(int $stepMinutes = 30, int $startHour = 5, int $endHour = 20): array
+{
+    $options = [];
+    $stepMinutes = max(5, $stepMinutes);
+    $startMinutes = max(0, min(23 * 60 + 55, $startHour * 60));
+    $endMinutes = max($startMinutes, min(24 * 60 - $stepMinutes, $endHour * 60));
+
+    for ($minutes = $startMinutes; $minutes <= $endMinutes; $minutes += $stepMinutes) {
+        $hour = intdiv($minutes, 60);
+        $minute = $minutes % 60;
+        $value = sprintf('%02d:%02d', $hour, $minute);
+        $label = date('g:i A', strtotime($value . ':00'));
+        $options[$value] = $label;
+    }
+
+    return $options;
+}
+
 $currentUserId = (int)($_SESSION['user_id'] ?? 0);
 $currentRole = strtolower(trim((string)($_SESSION['role'] ?? '')));
 if ($currentRole !== 'student' || $currentUserId <= 0) {
@@ -131,6 +149,7 @@ $monthOptions = [
     11 => 'November',
     12 => 'December',
 ];
+$manualTimeOptions = student_dtr_time_options(30, 5, 20);
 
 $monthStart = $selectedMonth . '-01';
 $monthEnd = date('Y-m-t', strtotime($monthStart));
@@ -541,155 +560,7 @@ include 'includes/header.php';
         <section class="card student-home-hero border-0 student-dtr-hero-card">
             <div class="card-body">
                 <div class="student-dtr-hero">
-                    <div>
-                        <span class="student-home-eyebrow">Daily Time Record</span>
-                        <div class="student-dtr-persona">
-                            <img src="<?php echo htmlspecialchars($avatarSrc, ENT_QUOTES, 'UTF-8'); ?>" alt="Student Avatar" class="student-dtr-avatar">
-                            <div>
-<<<<<<< HEAD
-                                <span class="student-home-eyebrow">Daily Time Record</span>
-                                <div class="student-dtr-persona">
-                                    <img src="<?php echo htmlspecialchars($avatarSrc, ENT_QUOTES, 'UTF-8'); ?>" alt="Student Avatar" class="student-dtr-avatar">
-                                    <div>
-                                        <h2 class="student-dtr-title">My DTR</h2>
-                                        <div class="student-dtr-meta"><?php echo htmlspecialchars($displayName, ENT_QUOTES, 'UTF-8'); ?></div>
-                                    </div>
-                                </div>
-                                <div class="student-home-meta student-dtr-chip-row">
-                                    <span><i class="feather-hash me-1"></i><?php echo htmlspecialchars(trim((string)($student['student_id'] ?? '')) !== '' ? (string)$student['student_id'] : 'No student number', ENT_QUOTES, 'UTF-8'); ?></span>
-                                    <?php if (!empty($courseSection)): ?>
-                                    <span><i class="feather-book-open me-1"></i><?php echo htmlspecialchars(implode(' | ', $courseSection), ENT_QUOTES, 'UTF-8'); ?></span>
-                                    <?php endif; ?>
-                                    <span><i class="feather-calendar me-1"></i><?php echo htmlspecialchars(date('F Y', strtotime($monthStart)), ENT_QUOTES, 'UTF-8'); ?></span>
-                                </div>
-                            </div>
-
-                            <form method="get" class="student-dtr-filter">
-                                <div>
-                                    <label class="form-label" for="studentDtrMonthSelect">Month</label>
-                                    <select id="studentDtrMonthSelect" name="month_num" class="form-select">
-                                        <?php foreach ($monthOptions as $monthNumber => $monthLabel): ?>
-                                        <option value="<?php echo $monthNumber; ?>" <?php echo $monthNumber === $selectedMonthNumber ? 'selected' : ''; ?>>
-                                            <?php echo htmlspecialchars($monthLabel, ENT_QUOTES, 'UTF-8'); ?>
-                                        </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="form-label" for="studentDtrYearSelect">Year</label>
-                                    <select id="studentDtrYearSelect" name="year" class="form-select">
-                                        <?php foreach ($availableYears as $yearOption): ?>
-                                        <option value="<?php echo $yearOption; ?>" <?php echo $yearOption === $selectedYear ? 'selected' : ''; ?>>
-                                            <?php echo $yearOption; ?>
-                                        </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </div>
-                                <div>
-                                    <button type="submit" class="btn btn-primary">Apply</button>
-                                </div>
-                            </form>
-                        </div>
                     </div>
-                </section>
-
-                <section class="card mt-4">
-                    <div class="card-body">
-                        <?php if (is_array($studentDtrFlash) && !empty($studentDtrFlash['message'])): ?>
-                        <div class="alert alert-<?php echo htmlspecialchars((string)($studentDtrFlash['type'] ?? 'info'), ENT_QUOTES, 'UTF-8'); ?> mb-3">
-                            <?php echo htmlspecialchars((string)$studentDtrFlash['message'], ENT_QUOTES, 'UTF-8'); ?>
-                        </div>
-                        <?php endif; ?>
-                        <span class="student-metric-label">Month Summary</span>
-                        <div class="student-dtr-metrics">
-                            <div class="student-metric-card student-dtr-metric">
-                                <div class="student-dtr-meta">Total Logs</div>
-                                <strong><?php echo (int)$attendanceSummary['total_logs']; ?></strong>
-                            </div>
-                            <div class="student-metric-card student-dtr-metric">
-                                <div class="student-dtr-meta">Approved</div>
-                                <strong><?php echo (int)$attendanceSummary['approved_logs']; ?></strong>
-                            </div>
-                            <div class="student-metric-card student-dtr-metric">
-                                <div class="student-dtr-meta">Pending</div>
-                                <strong><?php echo (int)$attendanceSummary['pending_logs']; ?></strong>
-                            </div>
-                            <div class="student-metric-card student-dtr-metric">
-                                <div class="student-dtr-meta">Logged Hours</div>
-                                <strong><?php echo number_format((float)$attendanceSummary['total_hours'], 2); ?></strong>
-=======
-                                <h2 class="student-dtr-title">My DTR</h2>
-                                <div class="student-dtr-meta"><?php echo htmlspecialchars($displayName, ENT_QUOTES, 'UTF-8'); ?></div>
->>>>>>> 7d0e50eb0a543bcfdbc9c9e6d55ea66f3baa50d1
-                            </div>
-                        </div>
-                        <div class="student-home-meta student-dtr-chip-row">
-                            <span><i class="feather-hash me-1"></i><?php echo htmlspecialchars(trim((string)($student['student_id'] ?? '')) !== '' ? (string)$student['student_id'] : 'No student number', ENT_QUOTES, 'UTF-8'); ?></span>
-                            <?php if (!empty($courseSection)): ?>
-                            <span><i class="feather-book-open me-1"></i><?php echo htmlspecialchars(implode(' | ', $courseSection), ENT_QUOTES, 'UTF-8'); ?></span>
-                            <?php endif; ?>
-                            <span><i class="feather-calendar me-1"></i><?php echo htmlspecialchars($monthLabel, ENT_QUOTES, 'UTF-8'); ?></span>
-                        </div>
-                    </div>
-
-<<<<<<< HEAD
-                <section class="card mt-4">
-                    <div class="card-body">
-                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
-                            <div>
-                                <span class="student-metric-label">Machine Down Fallback</span>
-                                <h3 class="mb-1">Submit Manual DTR</h3>
-                                <div class="student-dtr-meta">Use this only when the biometric machine is unavailable. Manual fallback entries stay in review until checked by the school.</div>
-                            </div>
-                        </div>
-                        <form method="post" enctype="multipart/form-data" class="row g-3">
-                            <input type="hidden" name="student_action" value="submit_machine_down">
-                            <input type="hidden" name="proof_clock_time" id="proofClockTime" value="">
-                            <div class="col-md-4">
-                                <label class="form-label" for="fallbackAttendanceDate">Date</label>
-                                <input type="date" class="form-control" id="fallbackAttendanceDate" name="attendance_date" value="<?php echo htmlspecialchars(date('Y-m-d'), ENT_QUOTES, 'UTF-8'); ?>" max="<?php echo htmlspecialchars(date('Y-m-d'), ENT_QUOTES, 'UTF-8'); ?>">
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label">Proof Clock</label>
-                                <div class="form-control d-flex align-items-center justify-content-between">
-                                    <strong id="proofClockDisplay">--:--:--</strong>
-                                    <span class="text-muted small" id="proofClockDate">--</span>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label" for="proofImage">Proof Image</label>
-                                <input type="file" class="form-control" id="proofImage" name="proof_image" accept="image/png,image/jpeg,image/webp" capture="environment" required>
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label" for="fallbackMorningIn">Morning In</label>
-                                <input type="time" class="form-control" id="fallbackMorningIn" name="morning_time_in">
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label" for="fallbackMorningOut">Morning Out</label>
-                                <input type="time" class="form-control" id="fallbackMorningOut" name="morning_time_out">
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label" for="fallbackAfternoonIn">Afternoon In</label>
-                                <input type="time" class="form-control" id="fallbackAfternoonIn" name="afternoon_time_in">
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label" for="fallbackAfternoonOut">Afternoon Out</label>
-                                <input type="time" class="form-control" id="fallbackAfternoonOut" name="afternoon_time_out">
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label" for="fallbackReason">Reason / What happened</label>
-                                <textarea class="form-control" id="fallbackReason" name="fallback_reason" rows="3" placeholder="Example: Biometric machine was offline from 8:00 AM to 5:00 PM. Supervisor confirmed my time in/out."></textarea>
-                            </div>
-                            <div class="col-12 d-flex flex-wrap gap-2 align-items-center">
-                                <button type="submit" class="btn btn-warning">Submit Fallback Attendance</button>
-                                <small class="text-muted">Upload a clear photo proof and submit it on the same day while the machine is down.</small>
-                            </div>
-                        </form>
-                    </div>
-                </section>
-
-                <section class="card student-panel mt-4">
-=======
                     <form method="get" class="student-dtr-filter">
                         <div>
                             <label class="form-label" for="studentDtrMonthSelect">Month</label>
@@ -719,6 +590,12 @@ include 'includes/header.php';
             </div>
         </section>
 
+        <?php if (is_array($studentDtrFlash) && !empty($studentDtrFlash['message'])): ?>
+        <div class="alert alert-<?php echo htmlspecialchars((string)($studentDtrFlash['type'] ?? 'info'), ENT_QUOTES, 'UTF-8'); ?> mt-4">
+            <?php echo htmlspecialchars((string)$studentDtrFlash['message'], ENT_QUOTES, 'UTF-8'); ?>
+        </div>
+        <?php endif; ?>
+
         <div class="student-dtr-metrics">
             <article class="student-metric-card student-dtr-metric">
                 <div class="student-dtr-meta">Total Logs</div>
@@ -742,10 +619,84 @@ include 'includes/header.php';
             </article>
         </div>
 
+        <section class="card student-panel mt-4 student-dtr-fallback-card">
+            <div class="card-body">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+                    <div>
+                        <span class="student-metric-label">Machine Down Fallback</span>
+                        <h3 class="mb-1">Submit Manual DTR</h3>
+                        <div class="student-dtr-meta">Use this only when the biometric machine is unavailable. Manual fallback entries stay in review until checked by the school.</div>
+                    </div>
+                </div>
+                <form method="post" enctype="multipart/form-data" class="row g-3">
+                    <input type="hidden" name="student_action" value="submit_machine_down">
+                    <input type="hidden" name="proof_clock_time" id="proofClockTime" value="">
+                    <div class="col-md-4">
+                        <label class="form-label" for="fallbackAttendanceDate">Date</label>
+                        <input type="date" class="form-control" id="fallbackAttendanceDate" name="attendance_date" value="<?php echo htmlspecialchars(date('Y-m-d'), ENT_QUOTES, 'UTF-8'); ?>" max="<?php echo htmlspecialchars(date('Y-m-d'), ENT_QUOTES, 'UTF-8'); ?>">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Proof Clock</label>
+                        <div class="form-control d-flex align-items-center justify-content-between student-dtr-proof-clock">
+                            <strong id="proofClockDisplay">--:--:--</strong>
+                            <span class="text-muted small" id="proofClockDate">--</span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="proofImage">Proof Image</label>
+                        <input type="file" class="form-control" id="proofImage" name="proof_image" accept="image/png,image/jpeg,image/webp" capture="environment" required>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label" for="fallbackMorningIn">Morning In</label>
+                        <select class="form-select student-dtr-time-select" id="fallbackMorningIn" name="morning_time_in">
+                            <option value="">Select time</option>
+                            <?php foreach ($manualTimeOptions as $timeValue => $timeLabel): ?>
+                            <option value="<?php echo htmlspecialchars($timeValue, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($timeLabel, ENT_QUOTES, 'UTF-8'); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label" for="fallbackMorningOut">Morning Out</label>
+                        <select class="form-select student-dtr-time-select" id="fallbackMorningOut" name="morning_time_out">
+                            <option value="">Select time</option>
+                            <?php foreach ($manualTimeOptions as $timeValue => $timeLabel): ?>
+                            <option value="<?php echo htmlspecialchars($timeValue, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($timeLabel, ENT_QUOTES, 'UTF-8'); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label" for="fallbackAfternoonIn">Afternoon In</label>
+                        <select class="form-select student-dtr-time-select" id="fallbackAfternoonIn" name="afternoon_time_in">
+                            <option value="">Select time</option>
+                            <?php foreach ($manualTimeOptions as $timeValue => $timeLabel): ?>
+                            <option value="<?php echo htmlspecialchars($timeValue, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($timeLabel, ENT_QUOTES, 'UTF-8'); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label" for="fallbackAfternoonOut">Afternoon Out</label>
+                        <select class="form-select student-dtr-time-select" id="fallbackAfternoonOut" name="afternoon_time_out">
+                            <option value="">Select time</option>
+                            <?php foreach ($manualTimeOptions as $timeValue => $timeLabel): ?>
+                            <option value="<?php echo htmlspecialchars($timeValue, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($timeLabel, ENT_QUOTES, 'UTF-8'); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label" for="fallbackReason">Reason / What happened</label>
+                        <textarea class="form-control" id="fallbackReason" name="fallback_reason" rows="3" placeholder="Example: Biometric machine was offline from 8:00 AM to 5:00 PM. Supervisor confirmed my time in/out."></textarea>
+                    </div>
+                    <div class="col-12 d-flex flex-wrap gap-2 align-items-center">
+                        <button type="submit" class="btn btn-warning">Submit Fallback Attendance</button>
+                        <small class="text-muted">Upload a clear photo proof and submit it on the same day while the machine is down.</small>
+                    </div>
+                </form>
+            </div>
+        </section>
+
         <div class="row g-4 align-items-start mt-0">
             <div class="col-12 col-xl-8">
                 <section class="card student-panel">
->>>>>>> 7d0e50eb0a543bcfdbc9c9e6d55ea66f3baa50d1
                     <div class="card-body">
                         <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
                             <div>
@@ -777,7 +728,7 @@ include 'includes/header.php';
                                     <?php foreach ($attendanceRows as $row): ?>
                                     <?php $reviewMeta = student_dtr_review_meta($row); ?>
                                     <tr>
-                                        <td>
+                                        <td data-label="Date">
                                             <strong><?php echo htmlspecialchars(date('M d, Y', strtotime((string)$row['attendance_date'])), ENT_QUOTES, 'UTF-8'); ?></strong>
                                             <?php if (trim((string)($row['remarks'] ?? '')) !== ''): ?>
                                             <div class="student-dtr-cell-note mt-1"><?php echo htmlspecialchars((string)$row['remarks'], ENT_QUOTES, 'UTF-8'); ?></div>
@@ -788,15 +739,15 @@ include 'includes/header.php';
                                             </div>
                                             <?php endif; ?>
                                         </td>
-                                        <td><?php echo htmlspecialchars(student_dtr_format_time($row['morning_time_in'] ?? null), ENT_QUOTES, 'UTF-8'); ?></td>
-                                        <td><?php echo htmlspecialchars(student_dtr_format_time($row['morning_time_out'] ?? null), ENT_QUOTES, 'UTF-8'); ?></td>
-                                        <td><?php echo htmlspecialchars(student_dtr_format_time($row['break_time_in'] ?? null), ENT_QUOTES, 'UTF-8'); ?></td>
-                                        <td><?php echo htmlspecialchars(student_dtr_format_time($row['break_time_out'] ?? null), ENT_QUOTES, 'UTF-8'); ?></td>
-                                        <td><?php echo htmlspecialchars(student_dtr_format_time($row['afternoon_time_in'] ?? null), ENT_QUOTES, 'UTF-8'); ?></td>
-                                        <td><?php echo htmlspecialchars(student_dtr_format_time($row['afternoon_time_out'] ?? null), ENT_QUOTES, 'UTF-8'); ?></td>
-                                        <td><strong><?php echo number_format((float)($row['display_hours'] ?? 0), 2); ?>h</strong></td>
-                                        <td><span class="student-dtr-status <?php echo htmlspecialchars((string)$reviewMeta['class'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars((string)$reviewMeta['label'], ENT_QUOTES, 'UTF-8'); ?></span></td>
-                                        <td><?php echo htmlspecialchars(ucfirst((string)($row['source'] ?? 'manual')), ENT_QUOTES, 'UTF-8'); ?></td>
+                                        <td data-label="Morning In"><?php echo htmlspecialchars(student_dtr_format_time($row['morning_time_in'] ?? null), ENT_QUOTES, 'UTF-8'); ?></td>
+                                        <td data-label="Morning Out"><?php echo htmlspecialchars(student_dtr_format_time($row['morning_time_out'] ?? null), ENT_QUOTES, 'UTF-8'); ?></td>
+                                        <td data-label="Break In"><?php echo htmlspecialchars(student_dtr_format_time($row['break_time_in'] ?? null), ENT_QUOTES, 'UTF-8'); ?></td>
+                                        <td data-label="Break Out"><?php echo htmlspecialchars(student_dtr_format_time($row['break_time_out'] ?? null), ENT_QUOTES, 'UTF-8'); ?></td>
+                                        <td data-label="Afternoon In"><?php echo htmlspecialchars(student_dtr_format_time($row['afternoon_time_in'] ?? null), ENT_QUOTES, 'UTF-8'); ?></td>
+                                        <td data-label="Afternoon Out"><?php echo htmlspecialchars(student_dtr_format_time($row['afternoon_time_out'] ?? null), ENT_QUOTES, 'UTF-8'); ?></td>
+                                        <td data-label="Hours"><strong><?php echo number_format((float)($row['display_hours'] ?? 0), 2); ?>h</strong></td>
+                                        <td data-label="Status"><span class="student-dtr-status <?php echo htmlspecialchars((string)$reviewMeta['class'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars((string)$reviewMeta['label'], ENT_QUOTES, 'UTF-8'); ?></span></td>
+                                        <td data-label="Source"><?php echo htmlspecialchars(ucfirst((string)($row['source'] ?? 'manual')), ENT_QUOTES, 'UTF-8'); ?></td>
                                     </tr>
                                     <?php endforeach; ?>
                                 </tbody>
