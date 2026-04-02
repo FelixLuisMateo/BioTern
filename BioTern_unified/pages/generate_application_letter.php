@@ -38,13 +38,29 @@ $address = $student['address'] ?? '';
 $phone = $student['phone'] ?? '';
 $today = date('F j, Y');
 
+$savedApplicationLetter = [];
+if ($student_id > 0) {
+    $savedStmt = $conn->prepare("SELECT date, application_person, position, company_name, company_address
+        FROM application_letter
+        WHERE user_id = ?
+        ORDER BY id DESC
+        LIMIT 1");
+    if ($savedStmt) {
+        $savedStmt->bind_param('i', $student_id);
+        $savedStmt->execute();
+        $savedApplicationLetter = $savedStmt->get_result()->fetch_assoc() ?: [];
+        $savedStmt->close();
+    }
+}
+
 // Allow overriding some fields via query string when generating from document_application.php
-$ap_name = isset($_GET['ap_name']) ? trim($_GET['ap_name']) : '';
-$ap_position = isset($_GET['ap_position']) ? trim($_GET['ap_position']) : '';
-$ap_company = isset($_GET['ap_company']) ? trim($_GET['ap_company']) : '';
-$ap_company_address = isset($_GET['ap_address']) ? trim($_GET['ap_address']) : '';
+$ap_name = isset($_GET['ap_name']) ? trim($_GET['ap_name']) : trim((string)($savedApplicationLetter['application_person'] ?? ''));
+$ap_position = isset($_GET['ap_position']) ? trim($_GET['ap_position']) : trim((string)($savedApplicationLetter['position'] ?? ''));
+$ap_company = isset($_GET['ap_company']) ? trim($_GET['ap_company']) : trim((string)($savedApplicationLetter['company_name'] ?? ''));
+$ap_company_address = isset($_GET['ap_address']) ? trim($_GET['ap_address']) : trim((string)($savedApplicationLetter['company_address'] ?? ''));
 $ap_hours = isset($_GET['ap_hours']) ? trim($_GET['ap_hours']) : '250';
-$print_date = isset($_GET['date']) ? trim($_GET['date']) : $today;
+$savedPrintDate = trim((string)($savedApplicationLetter['date'] ?? ''));
+$print_date = isset($_GET['date']) ? trim($_GET['date']) : ($savedPrintDate !== '' ? date('F j, Y', strtotime($savedPrintDate)) : $today);
 $use_saved_template = isset($_GET['use_saved_template']) && $_GET['use_saved_template'] === '1';
 
 // do NOT default recipient name to student; leave blank unless provided

@@ -84,6 +84,7 @@ function application_document_current_student_bundle(mysqli $conn): array
         'user' => null,
         'student' => null,
         'internship' => null,
+        'application_letter' => null,
     ];
 
     $userStmt = $conn->prepare('SELECT id, name, email, profile_picture FROM users WHERE id = ? LIMIT 1');
@@ -152,6 +153,20 @@ function application_document_current_student_bundle(mysqli $conn): array
             $bundle['internship'] = $internshipStmt->get_result()->fetch_assoc() ?: null;
             $internshipStmt->close();
         }
+
+        $applicationStmt = $conn->prepare(
+            "SELECT date, application_person, position, company_name, company_address
+             FROM application_letter
+             WHERE user_id = ?
+             ORDER BY id DESC
+             LIMIT 1"
+        );
+        if ($applicationStmt) {
+            $applicationStmt->bind_param('i', $studentId);
+            $applicationStmt->execute();
+            $bundle['application_letter'] = $applicationStmt->get_result()->fetch_assoc() ?: null;
+            $applicationStmt->close();
+        }
     }
 
     return $bundle;
@@ -214,11 +229,59 @@ if (isset($_GET['action'])) {
 }
 
 $currentRole = strtolower(trim((string)($_SESSION['role'] ?? '')));
+$studentDocumentFlash = '';
+$studentDocumentFlashType = 'success';
+
+if ($currentRole === 'student' && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_student_application_letter'])) {
+    $studentBundleForSave = application_document_current_student_bundle($conn);
+    $studentRecordForSave = $studentBundleForSave['student'] ?? null;
+    $studentRecordId = (int)($studentRecordForSave['id'] ?? 0);
+
+    if ($studentRecordId > 0) {
+        $dateVal = trim((string)($_POST['date'] ?? ''));
+        if ($dateVal === '') {
+            $dateVal = date('Y-m-d');
+        }
+
+        $personVal = trim((string)($_POST['application_person'] ?? ''));
+        $positionVal = trim((string)($_POST['position'] ?? ''));
+        $companyNameVal = trim((string)($_POST['company_name'] ?? ''));
+        $companyAddressVal = trim((string)($_POST['company_address'] ?? ''));
+
+        $saveStmt = $conn->prepare("INSERT INTO application_letter (user_id, date, application_person, position, company_name, company_address)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE
+                date = VALUES(date),
+                application_person = VALUES(application_person),
+                position = VALUES(position),
+                company_name = VALUES(company_name),
+                company_address = VALUES(company_address)");
+
+        if ($saveStmt) {
+            $saveStmt->bind_param('isssss', $studentRecordId, $dateVal, $personVal, $positionVal, $companyNameVal, $companyAddressVal);
+            if ($saveStmt->execute()) {
+                $studentDocumentFlash = 'Application details saved. Admin, coordinator, and supervisor pages can now use this information.';
+            } else {
+                $studentDocumentFlash = 'Failed to save your application details.';
+                $studentDocumentFlashType = 'danger';
+            }
+            $saveStmt->close();
+        } else {
+            $studentDocumentFlash = 'Could not prepare the application save request.';
+            $studentDocumentFlashType = 'danger';
+        }
+    } else {
+        $studentDocumentFlash = 'Your student record is not linked yet, so the application details could not be saved.';
+        $studentDocumentFlashType = 'danger';
+    }
+}
+
 if ($currentRole === 'student') {
     $studentBundle = application_document_current_student_bundle($conn);
     $studentUser = $studentBundle['user'] ?? null;
     $studentRecord = $studentBundle['student'] ?? null;
     $studentInternship = $studentBundle['internship'] ?? null;
+    $studentApplicationLetter = $studentBundle['application_letter'] ?? null;
     $studentId = (int)($studentRecord['id'] ?? 0);
     $displayName = trim((string)($studentUser['name'] ?? ''));
     if ($displayName === '') {
@@ -243,6 +306,12 @@ if ($currentRole === 'student') {
     $resumeUrl = $studentId > 0 ? $appRoot . 'generate_resume.php?id=' . $studentId : '';
     $resumeUploadUrl = $appRoot . 'apps-storage.php?upload_category=requirements&upload_title=' . rawurlencode('Student Resume') . '&upload_notes=' . rawurlencode('Upload your latest resume here.');
     $applicationUploadUrl = $appRoot . 'apps-storage.php?upload_category=generated&upload_title=' . rawurlencode('Application Letter') . '&upload_notes=' . rawurlencode('Upload your signed or finalized application letter here.');
+    $applicationPrepared = is_array($studentApplicationLetter) && array_filter([
+        trim((string)($studentApplicationLetter['application_person'] ?? '')),
+        trim((string)($studentApplicationLetter['position'] ?? '')),
+        trim((string)($studentApplicationLetter['company_name'] ?? '')),
+        trim((string)($studentApplicationLetter['company_address'] ?? '')),
+    ]) !== [];
     $page_title = 'BioTern || My Documents';
     $page_styles = [
         'assets/css/homepage-student.css',
@@ -340,6 +409,83 @@ if ($currentRole === 'student') {
 
                 .student-documents-panel {
                     padding: 24px;
+                }
+
+                .student-documents-form-grid {
+                    display: grid;
+                    grid-template-columns: repeat(2, minmax(0, 1fr));
+                    gap: 16px;
+                    margin-top: 18px;
+                }
+
+                .student-documents-field {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 8px;
+                }
+
+                .student-documents-field.is-full {
+                    grid-column: 1 / -1;
+                }
+
+                .student-documents-label {
+                    display: block;
+                    color: #6b7b92;
+                    font-size: 11px;
+                    font-weight: 700;
+                    text-transform: uppercase;
+                    letter-spacing: .08em;
+                }
+
+                .student-documents-input,
+                .student-documents-textarea {
+                    width: 100%;
+                    border-radius: 14px;
+                    border: 1px solid rgba(148, 163, 184, 0.24);
+                    background: rgba(248, 250, 252, 0.88);
+                    color: #10203b;
+                    padding: 12px 14px;
+                    font-size: 14px;
+                    outline: none;
+                    transition: border-color .18s ease, box-shadow .18s ease;
+                }
+
+                .student-documents-input:focus,
+                .student-documents-textarea:focus {
+                    border-color: rgba(79, 109, 230, 0.55);
+                    box-shadow: 0 0 0 3px rgba(79, 109, 230, 0.12);
+                }
+
+                .student-documents-textarea {
+                    min-height: 96px;
+                    resize: vertical;
+                }
+
+                .student-documents-form-actions {
+                    display: flex;
+                    gap: 10px;
+                    flex-wrap: wrap;
+                    margin-top: 18px;
+                }
+
+                .student-documents-alert {
+                    margin-top: 18px;
+                    padding: 14px 16px;
+                    border-radius: 16px;
+                    font-size: 14px;
+                    font-weight: 600;
+                }
+
+                .student-documents-alert.is-success {
+                    background: rgba(34, 197, 94, 0.12);
+                    border: 1px solid rgba(34, 197, 94, 0.22);
+                    color: #166534;
+                }
+
+                .student-documents-alert.is-danger {
+                    background: rgba(239, 68, 68, 0.1);
+                    border: 1px solid rgba(239, 68, 68, 0.22);
+                    color: #b91c1c;
                 }
 
                 .student-documents-section-title {
@@ -444,6 +590,25 @@ if ($currentRole === 'student') {
                     border-color: rgba(71, 85, 105, 0.42);
                 }
 
+                html.app-skin-dark .student-documents-label {
+                    color: #9fb0c6;
+                }
+
+                html.app-skin-dark .student-documents-input,
+                html.app-skin-dark .student-documents-textarea {
+                    background: #1a2740;
+                    border-color: rgba(71, 85, 105, 0.42);
+                    color: #f8fafc;
+                }
+
+                html.app-skin-dark .student-documents-alert.is-success {
+                    color: #bbf7d0;
+                }
+
+                html.app-skin-dark .student-documents-alert.is-danger {
+                    color: #fecaca;
+                }
+
                 html.app-skin-dark .student-documents-chip {
                     background: rgba(59, 130, 246, 0.14);
                     border-color: rgba(96, 165, 250, 0.22);
@@ -468,6 +633,10 @@ if ($currentRole === 'student') {
                     }
 
                     .student-documents-card-grid {
+                        grid-template-columns: 1fr;
+                    }
+
+                    .student-documents-form-grid {
                         grid-template-columns: 1fr;
                     }
                 }
@@ -497,11 +666,69 @@ if ($currentRole === 'student') {
                         <h2 class="student-documents-section-title">Student Document Center</h2>
                         <p class="student-documents-muted mb-0">Use the print buttons below to open your ready-to-print BioTern documents in a new tab.</p>
 
+                        <?php if ($studentDocumentFlash !== ''): ?>
+                            <div class="student-documents-alert <?php echo $studentDocumentFlashType === 'danger' ? 'is-danger' : 'is-success'; ?>">
+                                <?php echo htmlspecialchars($studentDocumentFlash, ENT_QUOTES, 'UTF-8'); ?>
+                            </div>
+                        <?php endif; ?>
+
+                        <form method="post" class="mt-4">
+                            <input type="hidden" name="save_student_application_letter" value="1">
+                            <span class="student-documents-kicker">Application Form</span>
+                            <h3 class="student-documents-section-title">Fill Up Application Details</h3>
+                            <p class="student-documents-muted mb-0">Save the recipient and company details here first. The same saved data will appear on admin and higher-up document pages.</p>
+
+                            <div class="student-documents-form-grid">
+                                <label class="student-documents-field">
+                                    <span class="student-documents-label">Date</span>
+                                    <input type="date" name="date" class="student-documents-input" value="<?php echo htmlspecialchars(trim((string)($studentApplicationLetter['date'] ?? '')) ?: date('Y-m-d'), ENT_QUOTES, 'UTF-8'); ?>">
+                                </label>
+
+                                <label class="student-documents-field">
+                                    <span class="student-documents-label">Recipient Name</span>
+                                    <input type="text" name="application_person" class="student-documents-input" value="<?php echo htmlspecialchars((string)($studentApplicationLetter['application_person'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" placeholder="Mr./Ms. full name">
+                                </label>
+
+                                <label class="student-documents-field">
+                                    <span class="student-documents-label">Position</span>
+                                    <input type="text" name="position" class="student-documents-input" value="<?php echo htmlspecialchars((string)($studentApplicationLetter['position'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" placeholder="Recipient position">
+                                </label>
+
+                                <label class="student-documents-field">
+                                    <span class="student-documents-label">Company Name</span>
+                                    <input type="text" name="company_name" class="student-documents-input" value="<?php echo htmlspecialchars((string)($studentApplicationLetter['company_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" placeholder="Company name">
+                                </label>
+
+                                <label class="student-documents-field is-full">
+                                    <span class="student-documents-label">Company Address</span>
+                                    <textarea name="company_address" class="student-documents-textarea" placeholder="Company address"><?php echo htmlspecialchars((string)($studentApplicationLetter['company_address'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea>
+                                </label>
+                            </div>
+
+                            <div class="student-documents-form-actions">
+                                <button type="submit" class="btn btn-primary">Save Application Info</button>
+                                <?php if ($applicationUrl !== ''): ?>
+                                    <a href="<?php echo htmlspecialchars($applicationUrl, ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-outline-secondary" target="_blank" rel="noopener">Preview Current Print</a>
+                                <?php endif; ?>
+                            </div>
+                        </form>
+
                         <div class="student-documents-card-grid">
                             <article class="student-documents-card">
                                 <div>
                                     <h3>Application Letter</h3>
-                                    <p>Open your printable application letter with your student details already filled in, or upload the signed copy to Storage.</p>
+                                    <p>
+                                        <?php if ($applicationPrepared): ?>
+                                            Open your printable application letter using the company and recipient details saved by the school, or upload the signed copy to Storage.
+                                        <?php else: ?>
+                                            Open your printable application letter with your student details already filled in, or upload the signed copy to Storage.
+                                        <?php endif; ?>
+                                    </p>
+                                    <?php if ($applicationPrepared): ?>
+                                        <div class="student-documents-muted mb-2">
+                                            Prepared for <?php echo htmlspecialchars(trim((string)($studentApplicationLetter['company_name'] ?? '')) ?: 'your assigned company', ENT_QUOTES, 'UTF-8'); ?>
+                                        </div>
+                                    <?php endif; ?>
                                 </div>
                                 <div class="student-documents-actions">
                                     <?php if ($applicationUrl !== ''): ?>
