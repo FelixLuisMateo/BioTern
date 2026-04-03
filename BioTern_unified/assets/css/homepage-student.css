@@ -149,7 +149,7 @@
     padding: 1rem;
     border-radius: 1rem;
     border: 1px solid rgba(59, 93, 201, 0.12);
-    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+    background: #f8fbff;
     color: #0f172a;
     text-decoration: none;
     transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
@@ -357,9 +357,23 @@ html.app-skin-dark .student-shortcut-card i {
         grid-template-columns: 1fr;
     }
 
+    .student-home-actions .btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .student-home-meta span {
+        width: 100%;
+    }
+
     .student-attendance-item,
     .student-detail-list div {
         flex-direction: column;
         align-items: flex-start;
+    }
+
+    .student-detail-list strong,
+    .student-attendance-item b {
+        text-align: left;
     }
 }

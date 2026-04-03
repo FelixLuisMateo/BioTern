@@ -43,9 +43,23 @@ function email_build_url(string $mailbox, array $params = []): string
 
 $currentUserId = (int)($_SESSION['user_id'] ?? 0);
 $currentUserName = trim((string)($_SESSION['name'] ?? $_SESSION['username'] ?? ''));
+$currentUserRole = strtolower(trim((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? '')));
+$isStudentEmailUser = ($currentUserRole === 'student');
+$currentStudentCourseId = 0;
 if ($currentUserId <= 0) {
     header('Location: index.php');
     exit;
+}
+
+if ($isStudentEmailUser) {
+    $studentCourseStmt = $conn->prepare('SELECT course_id FROM students WHERE user_id = ? LIMIT 1');
+    if ($studentCourseStmt) {
+        $studentCourseStmt->bind_param('i', $currentUserId);
+        $studentCourseStmt->execute();
+        $studentCourseRow = $studentCourseStmt->get_result()->fetch_assoc();
+        $studentCourseStmt->close();
+        $currentStudentCourseId = (int)($studentCourseRow['course_id'] ?? 0);
+    }
 }
 
 $conn->query(
@@ -98,24 +112,40 @@ if ((string)($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && (string)($_POST['ac
             $subject = substr($subject, 0, 255);
         }
 
-        $recipientStmt = $conn->prepare(
-            "SELECT id
+        $recipientSql = "SELECT id
              FROM users
              WHERE id = ?
                AND is_active = 1
-               AND (role <> 'student' OR COALESCE(application_status, 'approved') = 'approved')
-             LIMIT 1"
-        );
+               AND (role <> 'student' OR COALESCE(application_status, 'approved') = 'approved')";
+        if ($isStudentEmailUser) {
+            $recipientSql .= " AND (
+                role <> 'student'
+                OR EXISTS (
+                    SELECT 1
+                    FROM students su
+                    WHERE su.user_id = users.id
+                      AND su.course_id = ?
+                )
+            )";
+        }
+        $recipientSql .= " LIMIT 1";
+        $recipientStmt = $conn->prepare($recipientSql);
         $recipientExists = false;
         if ($recipientStmt) {
-            $recipientStmt->bind_param('i', $recipientUserId);
+            if ($isStudentEmailUser) {
+                $recipientStmt->bind_param('ii', $recipientUserId, $currentStudentCourseId);
+            } else {
+                $recipientStmt->bind_param('i', $recipientUserId);
+            }
             $recipientStmt->execute();
             $recipientExists = (bool)$recipientStmt->get_result()->fetch_assoc();
             $recipientStmt->close();
         }
 
         if (!$recipientExists) {
-            $_SESSION['email_flash'] = ['error' => 'Recipient not found.'];
+            $_SESSION['email_flash'] = ['error' => $isStudentEmailUser
+                ? 'Students can only email school staff or classmates from the same course.'
+                : 'Recipient not found.'];
             header('Location: apps-email.php?mailbox=inbox');
             exit;
         } else {
@@ -195,16 +225,32 @@ $composeSubject = trim((string)($_GET['subject'] ?? ''));
 $composeBody = trim((string)($_GET['body'] ?? ''));
 
 $users = [];
-$usersStmt = $conn->prepare(
+$usersSql =
     'SELECT id, COALESCE(NULLIF(name, ""), username, email, CONCAT("User #", id)) AS display_name, email
      FROM users
      WHERE id <> ?
        AND is_active = 1
-       AND (role <> \'student\' OR COALESCE(application_status, \'approved\') = \'approved\')
-     ORDER BY display_name ASC'
-);
+       AND (role <> \'student\' OR COALESCE(application_status, \'approved\') = \'approved\')';
+if ($isStudentEmailUser) {
+    $usersSql .= '
+       AND (
+            role <> \'student\'
+            OR EXISTS (
+                SELECT 1
+                FROM students su
+                WHERE su.user_id = users.id
+                  AND su.course_id = ?
+            )
+       )';
+}
+$usersSql .= ' ORDER BY display_name ASC';
+$usersStmt = $conn->prepare($usersSql);
 if ($usersStmt) {
-    $usersStmt->bind_param('i', $currentUserId);
+    if ($isStudentEmailUser) {
+        $usersStmt->bind_param('ii', $currentUserId, $currentStudentCourseId);
+    } else {
+        $usersStmt->bind_param('i', $currentUserId);
+    }
     $usersStmt->execute();
     $res = $usersStmt->get_result();
     while ($row = $res->fetch_assoc()) {
@@ -216,6 +262,18 @@ if ($usersStmt) {
     }
     $usersStmt->close();
 }
+
+$mailboxTitle = $isStudentEmailUser ? 'Student Mail' : ucfirst($mailbox);
+$mailboxSearchPlaceholder = $isStudentEmailUser ? 'Search conversations' : 'Search mail';
+$mailboxComposeLabel = $isStudentEmailUser ? 'New Message' : 'Compose';
+$mailboxEmptyText = $isStudentEmailUser
+    ? ('No student mail in ' . $mailbox . ' yet.')
+    : ('No messages in ' . $mailbox . '.');
+$mailboxReadPrompt = $isStudentEmailUser ? 'Select a message to open your student mailbox.' : 'Select a message to read.';
+$recipientPlaceholder = $isStudentEmailUser ? 'Select classmate or staff...' : 'Select recipient...';
+$recipientHelpText = $isStudentEmailUser
+    ? 'Students can email school staff and classmates from the same course.'
+    : 'Choose any active BioTern account.';
 
 $inboxCount = 0;
 $inboxUnreadCount = 0;
@@ -586,7 +644,7 @@ include 'includes/header.php';
         <div class="content-sidebar-header">
             <a href="javascript:void(0);" class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#composeMail">
                 <i class="feather-plus me-2"></i>
-                <span>Compose</span>
+                <span><?php echo email_esc($mailboxComposeLabel); ?></span>
             </a>
         </div>
 
@@ -620,7 +678,7 @@ include 'includes/header.php';
                 <a href="javascript:void(0);" class="app-sidebar-open-trigger me-2">
                     <i class="feather-align-left fs-20"></i>
                 </a>
-                <h5 class="mb-0 text-capitalize"><?php echo email_esc($mailbox); ?></h5>
+                <h5 class="mb-0"><?php echo email_esc($mailboxTitle); ?></h5>
             </div>
             <div class="page-header-right ms-auto w-100" style="max-width: 620px;">
                 <form method="get" action="apps-email.php" class="d-flex align-items-center justify-content-end email-toolbar-form">
@@ -632,7 +690,7 @@ include 'includes/header.php';
                                 <option value="unread" <?php echo $filter === 'unread' ? 'selected' : ''; ?>>Unread</option>
                             </select>
                         <?php endif; ?>
-                        <input type="search" name="q" class="form-control form-control-sm" placeholder="Search mail" value="<?php echo email_esc($search); ?>" style="max-width: 220px;">
+                        <input type="search" name="q" class="form-control form-control-sm" placeholder="<?php echo email_esc($mailboxSearchPlaceholder); ?>" value="<?php echo email_esc($search); ?>" style="max-width: 220px;">
                         <button type="submit" class="btn btn-light btn-sm">Apply</button>
                         <?php if ($search !== '' || ($mailbox === 'inbox' && $filter !== 'all')): ?>
                             <a href="<?php echo email_esc(email_build_url($mailbox)); ?>" class="btn btn-link btn-sm text-decoration-none">Reset</a>
@@ -660,7 +718,7 @@ include 'includes/header.php';
             <div class="row g-0">
                 <div class="col-lg-5 email-list-pane">
                     <?php if (empty($list)): ?>
-                        <div class="p-4 text-muted text-center">No messages in <?php echo email_esc($mailbox); ?>.</div>
+                        <div class="p-4 text-muted text-center"><?php echo email_esc($mailboxEmptyText); ?></div>
                     <?php else: ?>
                         <?php foreach ($list as $item): ?>
                             <?php $isActive = (int)$item['id'] === $viewId; ?>
@@ -681,7 +739,7 @@ include 'includes/header.php';
                 <div class="col-lg-7 email-detail-pane">
                     <?php if ($selected === null): ?>
                         <div class="p-4 text-center text-muted">
-                            Select a message to read.
+                            <?php echo email_esc($mailboxReadPrompt); ?>
                         </div>
                     <?php else: ?>
                         <div class="p-4">
@@ -726,7 +784,7 @@ include 'includes/header.php';
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Compose Email</h5>
+                <h5 class="modal-title"><?php echo email_esc($mailboxComposeLabel); ?></h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form method="post" action="apps-email.php?mailbox=inbox">
@@ -739,11 +797,12 @@ include 'includes/header.php';
                     <div class="mb-3">
                         <label class="form-label">To</label>
                         <select name="recipient_user_id" class="form-select" required>
-                            <option value="">Select recipient...</option>
+                            <option value=""><?php echo email_esc($recipientPlaceholder); ?></option>
                             <?php foreach ($users as $u): ?>
                                 <option value="<?php echo (int)$u['id']; ?>" <?php echo $composeRecipientId === (int)$u['id'] ? 'selected' : ''; ?>><?php echo email_esc($u['display_name']); ?><?php echo $u['email'] !== '' ? ' (' . email_esc($u['email']) . ')' : ''; ?></option>
                             <?php endforeach; ?>
                         </select>
+                        <div class="form-text"><?php echo email_esc($recipientHelpText); ?></div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Subject</label>

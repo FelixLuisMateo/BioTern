@@ -188,6 +188,18 @@ html.app-skin-dark .student-profile-field-label {
 }
 
 @media (max-width: 767.98px) {
+    .student-profile-center {
+        text-align: left;
+    }
+
+    .student-profile-avatar {
+        margin: 0 0 16px;
+    }
+
+    .student-profile-chip-row {
+        justify-content: flex-start;
+    }
+
     .student-profile-field-grid {
         grid-template-columns: 1fr;
     }
@@ -200,5 +212,9 @@ html.app-skin-dark .student-profile-field-label {
     .student-profile-section-copy {
         text-align: left;
         max-width: none;
+    }
+
+    .student-profile-actions .btn {
+        width: 100%;
     }
 }

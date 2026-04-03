@@ -772,17 +772,105 @@ $currentUserId = (int)($_SESSION['user_id'] ?? 0);
 $currentUserName = trim((string)($_SESSION['name'] ?? $_SESSION['username'] ?? 'BioTern User'));
 $currentUserRole = strtolower(trim((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? '')));
 $isStudentChatUser = ($currentUserRole === 'student');
-$currentStudentCourseId = 0;
-$studentScopeErrorMessage = 'Students can only chat with students from the same course.';
+$currentStudentSupervisorId = 0;
+$currentStudentRecordId = 0;
+$currentUserEmail = '';
+$studentScopeErrorMessage = 'Students can only chat with their assigned supervisor or OJT classmates under the same supervisor.';
+$chatSidebarTitle = $isStudentChatUser ? 'OJT Chat' : 'Inbox';
+$chatSearchPlaceholder = $isStudentChatUser ? 'Search OJT classmates' : 'Search contacts';
+$chatEmptyContactsText = $isStudentChatUser ? 'No OJT classmates available yet.' : 'No users available.';
+$chatEmptyThreadTitle = 'No messages yet';
+$chatEmptyThreadText = $isStudentChatUser
+    ? 'Start the conversation with an OJT classmate under the same supervisor.'
+    : 'Start the conversation with this user.';
 
 if ($isStudentChatUser && $currentUserId > 0) {
-    $studentCourseStmt = $conn->prepare('SELECT course_id FROM students WHERE user_id = ? LIMIT 1');
-    if ($studentCourseStmt) {
-        $studentCourseStmt->bind_param('i', $currentUserId);
-        $studentCourseStmt->execute();
-        $studentCourseRow = $studentCourseStmt->get_result()->fetch_assoc();
-        $studentCourseStmt->close();
-        $currentStudentCourseId = (int)($studentCourseRow['course_id'] ?? 0);
+    $currentUserStmt = $conn->prepare('SELECT email, name, username FROM users WHERE id = ? LIMIT 1');
+    if ($currentUserStmt) {
+        $currentUserStmt->bind_param('i', $currentUserId);
+        $currentUserStmt->execute();
+        $currentUserRow = $currentUserStmt->get_result()->fetch_assoc();
+        $currentUserStmt->close();
+        $currentUserEmail = trim((string)($currentUserRow['email'] ?? ''));
+        if ($currentUserName === '') {
+            $currentUserName = trim((string)($currentUserRow['name'] ?? $currentUserRow['username'] ?? ''));
+        }
+    }
+
+    $studentSupervisorStmt = $conn->prepare(
+        "SELECT
+            s.id,
+            s.supervisor_id,
+            (
+                SELECT i.supervisor_id
+                FROM internships i
+                WHERE i.student_id = s.id
+                  AND i.supervisor_id IS NOT NULL
+                  AND i.supervisor_id <> 0
+                ORDER BY
+                    CASE
+                        WHEN i.status = 'ongoing' THEN 0
+                        WHEN i.status = 'completed' THEN 1
+                        ELSE 2
+                    END,
+                    i.updated_at DESC,
+                    i.id DESC
+                LIMIT 1
+            ) AS internship_supervisor_id
+         FROM students s
+         WHERE s.user_id = ?
+         LIMIT 1"
+    );
+    $studentSupervisorRow = null;
+    if ($studentSupervisorStmt) {
+        $studentSupervisorStmt->bind_param('i', $currentUserId);
+        $studentSupervisorStmt->execute();
+        $studentSupervisorRow = $studentSupervisorStmt->get_result()->fetch_assoc() ?: null;
+        $studentSupervisorStmt->close();
+    }
+
+    if (!$studentSupervisorRow && ($currentUserEmail !== '' || $currentUserName !== '')) {
+        $fallbackEmail = $currentUserEmail;
+        $fallbackName = trim(preg_replace('/\s+/', ' ', $currentUserName) ?? $currentUserName);
+        $studentFallbackStmt = $conn->prepare(
+            "SELECT
+                s.id,
+                s.supervisor_id,
+                (
+                    SELECT i.supervisor_id
+                    FROM internships i
+                    WHERE i.student_id = s.id
+                      AND i.supervisor_id IS NOT NULL
+                      AND i.supervisor_id <> 0
+                    ORDER BY
+                        CASE
+                            WHEN i.status = 'ongoing' THEN 0
+                            WHEN i.status = 'completed' THEN 1
+                            ELSE 2
+                        END,
+                        i.updated_at DESC,
+                        i.id DESC
+                    LIMIT 1
+                ) AS internship_supervisor_id
+             FROM students s
+             WHERE (? <> '' AND LOWER(TRIM(COALESCE(s.email, ''))) = LOWER(TRIM(?)))
+                OR (? <> '' AND LOWER(TRIM(CONCAT(COALESCE(s.first_name, ''), ' ', COALESCE(s.last_name, '')))) = LOWER(TRIM(?)))
+             LIMIT 1"
+        );
+        if ($studentFallbackStmt) {
+            $studentFallbackStmt->bind_param('ssss', $fallbackEmail, $fallbackEmail, $fallbackName, $fallbackName);
+            $studentFallbackStmt->execute();
+            $studentSupervisorRow = $studentFallbackStmt->get_result()->fetch_assoc() ?: null;
+            $studentFallbackStmt->close();
+        }
+    }
+
+    if ($studentSupervisorRow) {
+        $currentStudentRecordId = (int)($studentSupervisorRow['id'] ?? 0);
+        $currentStudentSupervisorId = (int)($studentSupervisorRow['internship_supervisor_id'] ?? 0);
+        if ($currentStudentSupervisorId <= 0) {
+            $currentStudentSupervisorId = (int)($studentSupervisorRow['supervisor_id'] ?? 0);
+        }
     }
 }
 
@@ -1277,7 +1365,7 @@ if ($requestMethod === 'POST' && (string)($_POST['action'] ?? '') === 'send-mess
     } elseif ($draftMessage === '' && $uploadedMediaPath === '') {
         $errorMessage = 'Message cannot be empty.';
     } elseif ($errorMessage === '') {
-        $recipientStmt = $conn->prepare("SELECT id, name FROM users WHERE id = ? AND (is_active = 1 OR is_active IS NULL) LIMIT 1");
+        $recipientStmt = $conn->prepare("SELECT id, name, role FROM users WHERE id = ? AND (is_active = 1 OR is_active IS NULL) LIMIT 1");
         $recipient = null;
         if ($recipientStmt) {
             $recipientStmt->bind_param('i', $selectedUserId);
@@ -1289,20 +1377,38 @@ if ($requestMethod === 'POST' && (string)($_POST['action'] ?? '') === 'send-mess
         if (!$recipient) {
             $errorMessage = 'The selected recipient was not found.';
         } elseif ($isStudentChatUser && $selectedUserId !== $currentUserId) {
-            if ($currentStudentCourseId <= 0) {
-                $errorMessage = $studentScopeErrorMessage;
-            } else {
-                $sameCourseStmt = $conn->prepare('SELECT 1 FROM students WHERE user_id = ? AND course_id = ? LIMIT 1');
-                $isSameCourseRecipient = false;
-                if ($sameCourseStmt) {
-                    $sameCourseStmt->bind_param('ii', $selectedUserId, $currentStudentCourseId);
-                    $sameCourseStmt->execute();
-                    $isSameCourseRecipient = (bool)$sameCourseStmt->get_result()->fetch_assoc();
-                    $sameCourseStmt->close();
-                }
-                if (!$isSameCourseRecipient) {
+            $recipientRole = strtolower(trim((string)($recipient['role'] ?? '')));
+            if ($recipientRole === 'student') {
+                if ($currentStudentSupervisorId <= 0) {
                     $errorMessage = $studentScopeErrorMessage;
+                } else {
+                    $sameSupervisorStmt = $conn->prepare(
+                        "SELECT 1
+                         FROM students su
+                         LEFT JOIN internships i
+                           ON i.student_id = su.id
+                          AND i.supervisor_id IS NOT NULL
+                          AND i.supervisor_id <> 0
+                         WHERE su.user_id = ?
+                           AND (
+                               su.supervisor_id = ?
+                               OR i.supervisor_id = ?
+                           )
+                         LIMIT 1"
+                    );
+                    $isSameSupervisorRecipient = false;
+                    if ($sameSupervisorStmt) {
+                        $sameSupervisorStmt->bind_param('iii', $selectedUserId, $currentStudentSupervisorId, $currentStudentSupervisorId);
+                        $sameSupervisorStmt->execute();
+                        $isSameSupervisorRecipient = (bool)$sameSupervisorStmt->get_result()->fetch_assoc();
+                        $sameSupervisorStmt->close();
+                    }
+                    if (!$isSameSupervisorRecipient) {
+                        $errorMessage = $studentScopeErrorMessage;
+                    }
                 }
+            } elseif ($recipientRole !== 'supervisor' || $currentStudentSupervisorId <= 0 || $selectedUserId !== $currentStudentSupervisorId) {
+                $errorMessage = $studentScopeErrorMessage;
             }
         } else {
             if ($replyToMessageId > 0 && $messageMeta['id_col'] !== '') {
@@ -1469,10 +1575,28 @@ if ($currentUserId > 0 && $messageMeta['ready']) {
 
     $studentScopeFilterSql = '';
     if ($isStudentChatUser) {
-        $studentScopeFilterSql = ' AND (u.id = ? OR EXISTS (SELECT 1 FROM students su WHERE su.user_id = u.id AND su.course_id = ?))';
-        $contactTypes .= 'ii';
+        $studentScopeFilterSql = ' AND (
+            u.id = ?
+            OR (COALESCE(u.role, "") = "supervisor" AND u.id = ?)
+            OR EXISTS (
+                SELECT 1
+                FROM students su
+                LEFT JOIN internships i
+                  ON i.student_id = su.id
+                 AND i.supervisor_id IS NOT NULL
+                 AND i.supervisor_id <> 0
+                WHERE su.user_id = u.id
+                  AND (
+                        su.supervisor_id = ?
+                        OR i.supervisor_id = ?
+                  )
+            )
+        )';
+        $contactTypes .= 'iiii';
         $contactParams[] = $currentUserId;
-        $contactParams[] = $currentStudentCourseId;
+        $contactParams[] = $currentStudentSupervisorId;
+        $contactParams[] = $currentStudentSupervisorId;
+        $contactParams[] = $currentStudentSupervisorId;
     }
 
     $contactsSql = '
@@ -4248,14 +4372,14 @@ include 'includes/header.php';
     <div class="btchat-shell" id="btchat-app" data-selected-user-id="<?php echo (int)$selectedUserId; ?>">
         <aside class="btchat-left">
             <div class="btchat-left-header">
-                <h2 class="btchat-left-title">Inbox</h2>
+                <h2 class="btchat-left-title"><?php echo chat_esc($chatSidebarTitle); ?></h2>
             </div>
             <div class="btchat-search-wrap">
-                <input type="search" class="btchat-search" id="btchat-search" placeholder="Search contacts">
+                <input type="search" class="btchat-search" id="btchat-search" placeholder="<?php echo chat_esc($chatSearchPlaceholder); ?>">
             </div>
             <div class="btchat-list" id="btchat-list">
                 <?php if (empty($contacts)): ?>
-                    <div class="px-3 py-4 text-white-50">No users available.</div>
+                    <div class="px-3 py-4 text-white-50"><?php echo chat_esc($chatEmptyContactsText); ?></div>
                 <?php else: ?>
                     <?php foreach ($normalizedContacts as $contact): ?>
                         <?php
@@ -4328,8 +4452,14 @@ include 'includes/header.php';
                     <?php if (empty($normalizedMessages)): ?>
                         <div class="btchat-empty">
                             <div>
-                                <h6 class="mb-2 text-white">No messages yet</h6>
-                                <div class="text-white-50">Start the conversation with <?php echo chat_esc($selectedName); ?>.</div>
+                                <h6 class="mb-2 text-white"><?php echo chat_esc($chatEmptyThreadTitle); ?></h6>
+                                <div class="text-white-50">
+                                    <?php if ($isStudentChatUser): ?>
+                                        <?php echo chat_esc($chatEmptyThreadText); ?>
+                                    <?php else: ?>
+                                        Start the conversation with <?php echo chat_esc($selectedName); ?>.
+                                    <?php endif; ?>
+                                </div>
                             </div>
                         </div>
                     <?php else: ?>
@@ -5904,7 +6034,11 @@ include 'includes/header.php';
             if (!threadEl) { return; }
             var items = Array.isArray(messages) ? messages : [];
             if (!items.length) {
-                threadEl.innerHTML = '<div class="btchat-empty"><div><h6 class="mb-2 text-white">No messages yet</h6><div class="text-white-50">Start the conversation with ' + escapeHtml(selectedContact ? selectedContact.name : 'this user') + '.</div></div></div>';
+                if (<?php echo $isStudentChatUser ? 'true' : 'false'; ?>) {
+                    threadEl.innerHTML = '<div class="btchat-empty"><div><h6 class="mb-2 text-white">No messages yet</h6><div class="text-white-50">Start the conversation with an OJT classmate under the same supervisor.</div></div></div>';
+                } else {
+                    threadEl.innerHTML = '<div class="btchat-empty"><div><h6 class="mb-2 text-white">No messages yet</h6><div class="text-white-50">Start the conversation with ' + escapeHtml(selectedContact ? selectedContact.name : 'this user') + '.</div></div></div>';
+                }
                 return;
             }
 

@@ -16,6 +16,15 @@ $notes_user_id = (int)($_SESSION['user_id'] ?? 0);
 $notes_user_name = trim((string)($_SESSION['name'] ?? $_SESSION['username'] ?? 'BioTern User'));
 $notes_user_role = strtolower(trim((string)($_SESSION['role'] ?? '')));
 $notes_is_student = ($notes_user_role === 'student');
+$notes_workspace_kicker = $notes_is_student ? 'Student Notes' : 'Notes Workspace';
+$notes_page_title = $notes_is_student ? 'My Notes' : 'Notes';
+$notes_list_kicker = $notes_is_student ? 'Student Notes' : 'Your Notes';
+$notes_list_title = $notes_is_student ? 'Recent notes and checklists' : 'Recent notes';
+$notes_editor_empty_title = $notes_is_student ? 'Select a note to track your internship tasks.' : 'Select a note to start working.';
+$notes_editor_empty_copy = $notes_is_student
+    ? 'Create reminders, requirement checklists, or internship logs and keep them in one place.'
+    : 'Create a fresh note or open one from the list to edit it here.';
+$notes_create_first_label = $notes_is_student ? 'Create your first student note' : 'Create your first note';
 
 include 'includes/header.php';
 ?>
@@ -33,8 +42,8 @@ include 'includes/header.php';
             <section class="card app-notes-sidebar-card">
                 <div class="card-body">
                     <div class="app-notes-sidebar-head">
-                        <span class="app-notes-kicker">Notes Workspace</span>
-                        <h2>Notes</h2>
+                        <span class="app-notes-kicker"><?php echo htmlspecialchars($notes_workspace_kicker, ENT_QUOTES, 'UTF-8'); ?></span>
+                        <h2><?php echo htmlspecialchars($notes_page_title, ENT_QUOTES, 'UTF-8'); ?></h2>
                     </div>
 
                     <div class="app-notes-create-menu" data-create-menu>
@@ -84,8 +93,8 @@ include 'includes/header.php';
                 <div class="card-body">
                     <div class="app-notes-list-head">
                         <div>
-                            <span class="app-notes-kicker">Your Notes</span>
-                            <h3>Recent notes</h3>
+                            <span class="app-notes-kicker"><?php echo htmlspecialchars($notes_list_kicker, ENT_QUOTES, 'UTF-8'); ?></span>
+                            <h3><?php echo htmlspecialchars($notes_list_title, ENT_QUOTES, 'UTF-8'); ?></h3>
                         </div>
                         <div class="app-notes-list-tools">
                             <div class="app-notes-list-meta">
@@ -113,11 +122,11 @@ include 'includes/header.php';
                 <div class="card-body">
                     <div class="app-notes-editor-empty" data-editor-empty>
                         <span class="app-notes-kicker">Editor</span>
-                        <h3>Select a note to start working.</h3>
-                        <p>Create a fresh note or open one from the list to edit it here.</p>
+                        <h3><?php echo htmlspecialchars($notes_editor_empty_title, ENT_QUOTES, 'UTF-8'); ?></h3>
+                        <p><?php echo htmlspecialchars($notes_editor_empty_copy, ENT_QUOTES, 'UTF-8'); ?></p>
                         <button type="button" class="app-notes-secondary-button" data-create-note>
                             <i class="feather-edit-3"></i>
-                            <span>Create your first note</span>
+                            <span><?php echo htmlspecialchars($notes_create_first_label, ENT_QUOTES, 'UTF-8'); ?></span>
                         </button>
                     </div>
 
