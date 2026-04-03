@@ -1441,6 +1441,43 @@ body {
 }
 
 @media (max-width: 767.98px) {
+    .app-calendar-board .card-body,
+    .app-calendar-sidecard .card-body {
+        padding: 1rem;
+    }
+
+    .app-calendar-toolbar {
+        gap: 0.85rem;
+    }
+
+    .app-calendar-toolbar-actions {
+        width: 100%;
+        justify-content: stretch;
+    }
+
+    .app-calendar-jump-controls,
+    .app-calendar-nav-buttons {
+        width: 100%;
+    }
+
+    .app-calendar-jump-controls .form-select {
+        min-width: 0;
+        flex: 1 1 0;
+    }
+
+    .app-calendar-nav-buttons {
+        justify-content: space-between;
+    }
+
+    .app-calendar-legend-bar {
+        padding: 0.85rem 0.9rem;
+    }
+
+    .app-calendar-legend-note {
+        width: 100%;
+        padding-top: 0.2rem;
+    }
+
     .app-calendar-day {
         padding-bottom: 2rem;
     }
@@ -1448,6 +1485,21 @@ body {
     .app-calendar-day-add {
         right: 0.58rem;
         bottom: 0.58rem;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .app-calendar-month-title,
+    .app-calendar-sidecard h3 {
+        font-size: 1.3rem;
+    }
+
+    .app-calendar-jump-controls {
+        flex-wrap: wrap;
+    }
+
+    .app-calendar-jump-controls .form-select {
+        width: 100%;
     }
 }
 

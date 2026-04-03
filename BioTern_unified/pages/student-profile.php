@@ -242,8 +242,8 @@ include 'includes/header.php';
                         <div class="student-profile-center">
                             <img src="<?php echo htmlspecialchars($avatarSrc, ENT_QUOTES, 'UTF-8'); ?>" alt="Profile Avatar" class="student-profile-avatar">
                             <h2 class="student-profile-name"><?php echo htmlspecialchars($displayName, ENT_QUOTES, 'UTF-8'); ?></h2>
-                            <span class="student-profile-role"><i class="feather-user me-1"></i> Student Workspace</span>
-                            <p class="student-profile-copy">Your account identity, school information, internship progress, and latest attendance activity live here.</p>
+                            <span class="student-profile-role"><i class="feather-user me-1"></i> Student Profile</span>
+                            <p class="student-profile-copy">Review your account details, school information, internship progress, and recent attendance activity here.</p>
                         </div>
 
                         <div class="student-home-meta student-profile-chip-row">
@@ -320,7 +320,7 @@ include 'includes/header.php';
                                 <span class="student-metric-label">Academic Info</span>
                                 <h3 class="mb-1">Student Information</h3>
                             </div>
-                            <div class="student-profile-section-copy">Your main school record currently linked to this account.</div>
+                            <div class="student-profile-section-copy">Your main school record linked to this account.</div>
                         </div>
                         <div class="student-profile-field-grid">
                             <div class="student-profile-field">
@@ -354,7 +354,7 @@ include 'includes/header.php';
                                 <span class="student-metric-label">Contact</span>
                                 <h3 class="mb-1">Account And Contact</h3>
                             </div>
-                            <div class="student-profile-section-copy">Main contact details currently saved in BioTern.</div>
+                            <div class="student-profile-section-copy">Main contact details saved in BioTern.</div>
                         </div>
                         <div class="student-profile-field-grid">
                             <div class="student-profile-field">
@@ -380,7 +380,7 @@ include 'includes/header.php';
                                 <span class="student-metric-label">Personal</span>
                                 <h3 class="mb-1">Personal Details</h3>
                             </div>
-                            <div class="student-profile-section-copy">The extra profile details tied to your student record.</div>
+                            <div class="student-profile-section-copy">Additional profile details saved in your student record.</div>
                         </div>
                         <div class="student-profile-field-grid">
                             <div class="student-profile-field">

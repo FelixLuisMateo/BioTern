@@ -639,6 +639,15 @@ if ($currentRole === 'student') {
                     .student-documents-form-grid {
                         grid-template-columns: 1fr;
                     }
+
+                    .student-documents-title {
+                        font-size: 1.7rem;
+                    }
+
+                    .student-documents-form-actions .btn,
+                    .student-documents-actions .btn {
+                        width: 100%;
+                    }
                 }
             </style>
 
@@ -650,7 +659,7 @@ if ($currentRole === 'student') {
                         <div>
                             <h1 class="student-documents-title"><?php echo htmlspecialchars($displayName, ENT_QUOTES, 'UTF-8'); ?></h1>
                             <div class="student-documents-meta"><?php echo htmlspecialchars($courseSummary, ENT_QUOTES, 'UTF-8'); ?></div>
-                            <p class="student-documents-copy mb-0">Print your own application letter and resume from here whenever you need a fresh copy.</p>
+                            <p class="student-documents-copy mb-0">Prepare, print, and submit your student application letter and resume from one place.</p>
                         </div>
                     </div>
                     <div class="student-documents-chip-row">
@@ -664,7 +673,7 @@ if ($currentRole === 'student') {
                     <section class="student-documents-panel">
                         <span class="student-documents-kicker">Printable Files</span>
                         <h2 class="student-documents-section-title">Student Document Center</h2>
-                        <p class="student-documents-muted mb-0">Use the print buttons below to open your ready-to-print BioTern documents in a new tab.</p>
+                        <p class="student-documents-muted mb-0">Use the cards below to fill in application details, open printable copies, and jump to Storage when you are ready to submit files.</p>
 
                         <?php if ($studentDocumentFlash !== ''): ?>
                             <div class="student-documents-alert <?php echo $studentDocumentFlashType === 'danger' ? 'is-danger' : 'is-success'; ?>">
@@ -676,7 +685,7 @@ if ($currentRole === 'student') {
                             <input type="hidden" name="save_student_application_letter" value="1">
                             <span class="student-documents-kicker">Application Form</span>
                             <h3 class="student-documents-section-title">Fill Up Application Details</h3>
-                            <p class="student-documents-muted mb-0">Save the recipient and company details here first. The same saved data will appear on admin and higher-up document pages.</p>
+                            <p class="student-documents-muted mb-0">Save the recipient and company details here first. The same saved data will be available to admin, coordinator, and supervisor document pages.</p>
 
                             <div class="student-documents-form-grid">
                                 <label class="student-documents-field">

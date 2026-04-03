@@ -19,6 +19,13 @@ $calendar_can_manage_events = !in_array($calendar_user_role, ['student', 'superv
 $calendar_toolbar_subtitle = $calendar_can_manage_events
     ? "Browse the month, check what's happening each day, and manage saved events."
     : "Browse the month and check holidays, birthdays, and important schedule updates.";
+$calendar_details_title = $calendar_can_manage_events ? 'Choose a day' : 'Month details';
+$calendar_details_summary = $calendar_can_manage_events
+    ? 'Select a day on the calendar to see all matching events.'
+    : 'Select a day on the calendar to see holidays, birthdays, and saved updates.';
+$calendar_legend_note = $calendar_can_manage_events
+    ? 'Tap any date to open its agenda.'
+    : 'Tap any date to see what is scheduled.';
 
 include 'includes/header.php';
 ?>
@@ -63,7 +70,7 @@ include 'includes/header.php';
                             <span><i class="app-calendar-dot is-custom"></i>Saved calendar entries</span>
                             <span><i class="app-calendar-dot is-today"></i>Today</span>
                         </div>
-                        <div class="app-calendar-legend-note">Tap any date to open its agenda.</div>
+                        <div class="app-calendar-legend-note"><?php echo htmlspecialchars($calendar_legend_note, ENT_QUOTES, 'UTF-8'); ?></div>
                     </div>
 
                     <div class="app-calendar-weekdays" aria-hidden="true">
@@ -87,9 +94,9 @@ include 'includes/header.php';
                     <div class="card-body">
                         <div class="app-calendar-sidecard-head">
                             <span class="app-calendar-sidecard-kicker">Details</span>
-                            <h3 data-selected-date-label>Choose a day</h3>
+                            <h3 data-selected-date-label><?php echo htmlspecialchars($calendar_details_title, ENT_QUOTES, 'UTF-8'); ?></h3>
                         </div>
-                        <div class="app-calendar-day-summary" data-selected-summary>Select a day on the calendar to see all matching events.</div>
+                        <div class="app-calendar-day-summary" data-selected-summary><?php echo htmlspecialchars($calendar_details_summary, ENT_QUOTES, 'UTF-8'); ?></div>
                         <div class="app-calendar-day-list" data-selected-events></div>
                         <div class="app-calendar-sidecard-section">
                             <span class="app-calendar-sidecard-kicker">Upcoming Birthdays</span>

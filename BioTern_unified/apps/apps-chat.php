@@ -7055,6 +7055,30 @@ include 'includes/header.php';
 
 <?php
 if (empty($isAjaxRequest)) {
+?>
+<style>
+    .btchat-shell {
+        height: auto !important;
+        max-height: none !important;
+        min-height: calc(100vh - 240px);
+    }
+
+    .btchat-left,
+    .btchat-main {
+        height: auto !important;
+        max-height: none !important;
+        min-height: calc(100vh - 240px);
+    }
+
+    @media (max-width: 991.98px) {
+        .btchat-shell,
+        .btchat-left,
+        .btchat-main {
+            min-height: auto;
+        }
+    }
+</style>
+<?php
     include 'includes/footer.php';
     if (isset($conn) && $conn instanceof mysqli) {
         $conn->close();
