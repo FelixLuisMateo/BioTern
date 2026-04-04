@@ -44,6 +44,10 @@
       "dest": "/$1"
     },
     {
+      "src": "^/api/(.*\\.php)$",
+      "dest": "/legacy_router.php?file=$1"
+    },
+    {
       "src": "^/([A-Za-z0-9_-]+)/?$",
       "dest": "/legacy_router.php?slug=$1"
     },

@@ -1,4 +1,6 @@
 <?php
+require_once dirname(__DIR__) . '/config/db.php';
+require_once dirname(__DIR__) . '/tools/biometric_db.php';
 require_once dirname(__DIR__) . '/lib/ops_helpers.php';
 require_once dirname(__DIR__) . '/lib/attendance_rules.php';
 // Start session if not already started
@@ -6,19 +8,10 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Database Connection
-$host = 'localhost';
-$db_user = 'root';
-$db_password = '';
-$db_name = 'biotern_db';
-
 header('Content-Type: application/json');
 
 try {
-    $conn = new mysqli($host, $db_user, $db_password, $db_name);
-    if ($conn->connect_error) {
-        throw new Exception("Connection failed: " . $conn->connect_error);
-    }
+    $conn = biometric_shared_db();
 } catch (Exception $e) {
     http_response_code(500);
     die(json_encode(['success' => false, 'message' => 'Database Error: ' . $e->getMessage()]));

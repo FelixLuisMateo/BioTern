@@ -240,6 +240,7 @@ $map = [
   'apps-calendar.php' => 'apps/apps-calendar.php',
 
   'api-biometric-event.php' => 'api/api-biometric-event.php',
+  'f20h_ingest.php' => 'api/f20h_ingest.php',
   'get_clock_status.php' => 'api/get_clock_status.php',
   'process_attendance.php' => 'api/process_attendance.php',
   'register_fingerprint.php' => 'api/register_fingerprint.php',

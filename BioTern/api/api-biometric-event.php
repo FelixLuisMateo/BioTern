@@ -1,10 +1,12 @@
 <?php
+require_once dirname(__DIR__) . '/config/db.php';
+require_once dirname(__DIR__) . '/tools/biometric_db.php';
 require_once dirname(__DIR__) . '/lib/attendance_rules.php';
 require_once dirname(__DIR__) . '/lib/ops_helpers.php';
 
 header('Content-Type: application/json');
 
-$conn = new mysqli('localhost', 'root', '', 'biotern_db');
+$conn = biometric_shared_db();
 if ($conn->connect_error) {
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Database connection failed']);
@@ -23,7 +25,7 @@ $student_id = isset($_POST['student_id']) ? (int)$_POST['student_id'] : 0;
 $attendance_date = isset($_POST['attendance_date']) ? trim((string)$_POST['attendance_date']) : date('Y-m-d');
 $clock_type = isset($_POST['clock_type']) ? trim((string)$_POST['clock_type']) : '';
 $clock_time = isset($_POST['clock_time']) ? trim((string)$_POST['clock_time']) : date('H:i:s');
-$source = isset($_POST['source']) ? trim((string)$_POST['source']) : 'device';
+$source = isset($_POST['source']) ? trim((string)$_POST['source']) : 'biometric-machine';
 
 $column = attendance_action_to_column($clock_type);
 if ($student_id <= 0 || $column === null) {
@@ -66,7 +68,7 @@ insert_audit_log(
     $_SERVER['HTTP_USER_AGENT'] ?? ''
 );
 
-echo json_encode(['success' => true, 'queue_id' => $queue_id, 'message' => 'Biometric event queued']);
+echo json_encode(['success' => true, 'queue_id' => $queue_id, 'message' => 'Biometric machine event queued']);
 
 
 

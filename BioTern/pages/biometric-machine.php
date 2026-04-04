@@ -476,7 +476,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $existingConfig['port'] = max(1, (int)($_POST['connector_port'] ?? 5001));
                 $existingConfig['deviceNumber'] = max(1, (int)($_POST['connector_device_number'] ?? 1));
                 $existingConfig['communicationPassword'] = trim((string)($_POST['connector_password'] ?? '0'));
+                $selectedSyncMode = strtolower(trim((string)($_POST['sync_mode'] ?? 'direct_ingest')));
+                $existingConfig['syncMode'] = in_array($selectedSyncMode, ['direct_ingest', 'connector_fallback'], true)
+                    ? $selectedSyncMode
+                    : 'direct_ingest';
                 $existingConfig['outputPath'] = trim((string)($_POST['connector_output_path'] ?? ''));
+                $existingConfig['autoImportOnIngest'] = !isset($_POST['disable_auto_import_on_ingest']);
                 $existingConfig['attendanceWindowEnabled'] = isset($_POST['attendance_window_enabled']);
                 $existingConfig['attendanceStartTime'] = trim((string)($_POST['attendance_start_time'] ?? '08:00:00'));
                 $existingConfig['attendanceEndTime'] = trim((string)($_POST['attendance_end_time'] ?? '20:00:00'));
@@ -624,7 +629,9 @@ $connectorDeviceNo = is_array($connectorConfig) ? (string)($connectorConfig['dev
 $connectorGateway = is_array($connectorConfig) ? (string)($connectorConfig['gateway'] ?? '') : '';
 $connectorMask = is_array($connectorConfig) ? (string)($connectorConfig['mask'] ?? '255.255.255.0') : '255.255.255.0';
 $connectorPassword = is_array($connectorConfig) ? (string)($connectorConfig['communicationPassword'] ?? '0') : '0';
+$syncMode = is_array($connectorConfig) ? (string)($connectorConfig['syncMode'] ?? 'direct_ingest') : 'direct_ingest';
 $connectorOutputPath = is_array($connectorConfig) ? (string)($connectorConfig['outputPath'] ?? '') : '';
+$autoImportOnIngest = !is_array($connectorConfig) || !array_key_exists('autoImportOnIngest', $connectorConfig) || !empty($connectorConfig['autoImportOnIngest']);
 $connectorWindowEnabled = is_array($connectorConfig) ? !empty($connectorConfig['attendanceWindowEnabled']) : false;
 $connectorStartTime = is_array($connectorConfig) ? (string)($connectorConfig['attendanceStartTime'] ?? '08:00:00') : '08:00:00';
 $connectorEndTime = is_array($connectorConfig) ? (string)($connectorConfig['attendanceEndTime'] ?? '20:00:00') : '20:00:00';
@@ -991,6 +998,13 @@ include __DIR__ . '/../includes/header.php';
                                     </select>
                                 </div>
                                 <div class="col-sm-6">
+                                    <label class="form-label">Sync Mode</label>
+                                    <select class="form-select" name="sync_mode">
+                                        <option value="direct_ingest" <?php echo $syncMode === 'direct_ingest' ? 'selected' : ''; ?>>Direct machine ingest</option>
+                                        <option value="connector_fallback" <?php echo $syncMode === 'connector_fallback' ? 'selected' : ''; ?>>Connector fallback worker</option>
+                                    </select>
+                                </div>
+                                <div class="col-sm-6">
                                     <label class="form-label">Attendance File</label>
                                     <input type="text" name="connector_output_path" class="form-control" value="<?php echo machine_h($connectorOutputPath); ?>" placeholder="C:\xampp\htdocs\BioTern\attendance.txt">
                                 </div>
@@ -1032,6 +1046,12 @@ include __DIR__ . '/../includes/header.php';
                                         <label class="form-check-label" for="attendanceWindowEnabled">Use Attendance Window</label>
                                     </div>
                                 </div>
+                                <div class="col-12">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="disable_auto_import_on_ingest" id="disableAutoImportOnIngest" <?php echo !$autoImportOnIngest ? 'checked' : ''; ?>>
+                                        <label class="form-check-label" for="disableAutoImportOnIngest">Disable automatic attendance import after direct ingest</label>
+                                    </div>
+                                </div>
                                 <div class="col-sm-6">
                                     <label class="form-label">Window Start</label>
                                     <input type="text" name="attendance_start_time" class="form-control" value="<?php echo machine_h($connectorStartTime); ?>" placeholder="08:00:00">
@@ -1042,7 +1062,17 @@ include __DIR__ . '/../includes/header.php';
                                 </div>
                                 <div class="col-12 d-flex flex-wrap gap-2">
                                     <button type="submit" class="btn btn-primary">Save Quick Router Settings</button>
-                                    <small class="text-muted align-self-center">Use 10 minutes as the safe duplicate guard and slot step when you want imports to ignore near-duplicate scans.</small>
+                                    <small class="text-muted align-self-center">Use direct ingest for Vercel deployments. Use connector fallback only when the Windows worker needs to pull logs from the F20H and write `attendance.txt` first.</small>
+                                </div>
+                                <div class="col-12">
+                                    <div class="border rounded p-3 bg-light">
+                                        <div class="fw-semibold mb-1">Dedicated F20H Ingest Endpoint</div>
+                                        <div class="text-muted fs-12 mb-2">Point the machine or bridge to this endpoint for raw F20H payload delivery. The same `BIOTERN_API_TOKEN` header/token used by the biometric API is accepted here.</div>
+                                        <div class="d-flex flex-column gap-1">
+                                            <code>/api/f20h_ingest.php</code>
+                                            <small class="text-muted">Vercel fallback route: <code>/f20h_ingest.php</code></small>
+                                        </div>
+                                    </div>
                                 </div>
                             </form>
                         </div>

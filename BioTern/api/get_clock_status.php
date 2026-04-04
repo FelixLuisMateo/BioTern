@@ -1,12 +1,12 @@
 <?php
-// Database Connection
-$host = 'localhost';
-$db_user = 'root';
-$db_password = '';
-$db_name = 'biotern_db';
+require_once dirname(__DIR__) . '/config/db.php';
+require_once dirname(__DIR__) . '/tools/biometric_db.php';
 
-$conn = new mysqli($host, $db_user, $db_password, $db_name);
-if ($conn->connect_error) {
+header('Content-Type: application/json');
+
+try {
+    $conn = biometric_shared_db();
+} catch (Throwable $e) {
     http_response_code(500);
     echo json_encode(['error' => 'Database connection failed']);
     exit;
@@ -56,7 +56,6 @@ if ($record) {
     }
 }
 
-header('Content-Type: application/json');
 echo json_encode(['is_clocked_in' => $is_clocked_in]);
 
 $conn->close();
