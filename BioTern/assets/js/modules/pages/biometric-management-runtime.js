@@ -11,6 +11,8 @@ document.addEventListener('DOMContentLoaded', function () {
     var presetSelect = document.getElementById('routerPresetSelect');
     var bridgePresetSelect = document.getElementById('bridgePresetSelect');
     var copyButton = document.getElementById('copyConnectorToMachineBtn');
+    var bridgeWorkerCommandField = document.getElementById('bridgeWorkerCommandField');
+    var copyBridgeWorkerCmdBtn = document.getElementById('copyBridgeWorkerCmdBtn');
     var connectorFields = {
         ip: document.getElementById('connectorIpField'),
         gateway: document.getElementById('connectorGatewayField'),
@@ -115,6 +117,51 @@ document.addEventListener('DOMContentLoaded', function () {
         if (bridgeFields.outputPath) {
             bridgeFields.outputPath.value = option.dataset.outputPath || '';
         }
+
+        refreshBridgeWorkerCommand();
+    }
+
+    function buildBridgeWorkerCommand() {
+        var siteBaseUrl = bridgeFields.cloudBaseUrl && bridgeFields.cloudBaseUrl.value
+            ? bridgeFields.cloudBaseUrl.value.trim()
+            : 'https://your-app.vercel.app';
+        var bridgeToken = bridgeFields && document.getElementById('bridgeTokenField')
+            ? document.getElementById('bridgeTokenField').value.trim()
+            : 'YOUR_BRIDGE_TOKEN';
+
+        if (!bridgeToken) {
+            bridgeToken = 'YOUR_BRIDGE_TOKEN';
+        }
+
+        return 'powershell -NoProfile -ExecutionPolicy Bypass -File ".\\tools\\bridge-worker.ps1" -SiteBaseUrl "'
+            + siteBaseUrl
+            + '" -BridgeToken "'
+            + bridgeToken
+            + '" -WorkspaceRoot "."';
+    }
+
+    function refreshBridgeWorkerCommand() {
+        if (!bridgeWorkerCommandField) {
+            return;
+        }
+
+        bridgeWorkerCommandField.value = buildBridgeWorkerCommand();
+    }
+
+    function copyBridgeWorkerCommand() {
+        if (!bridgeWorkerCommandField) {
+            return;
+        }
+
+        bridgeWorkerCommandField.focus();
+        bridgeWorkerCommandField.select();
+
+        var value = bridgeWorkerCommandField.value;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(value);
+        } else {
+            document.execCommand('copy');
+        }
     }
 
     if (presetSelect) {
@@ -128,4 +175,19 @@ document.addEventListener('DOMContentLoaded', function () {
     if (bridgePresetSelect) {
         bridgePresetSelect.addEventListener('change', applyBridgePreset);
     }
+
+    if (bridgeFields.cloudBaseUrl) {
+        bridgeFields.cloudBaseUrl.addEventListener('input', refreshBridgeWorkerCommand);
+    }
+
+    var bridgeTokenField = document.getElementById('bridgeTokenField');
+    if (bridgeTokenField) {
+        bridgeTokenField.addEventListener('input', refreshBridgeWorkerCommand);
+    }
+
+    if (copyBridgeWorkerCmdBtn) {
+        copyBridgeWorkerCmdBtn.addEventListener('click', copyBridgeWorkerCommand);
+    }
+
+    refreshBridgeWorkerCommand();
 });

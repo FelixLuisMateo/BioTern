@@ -151,6 +151,7 @@ $map = [
 
   'api-biometric-event.php' => 'api/api-biometric-event.php',
   'f20h_ingest.php' => 'api/f20h_ingest.php',
+  'bridge_profile.php' => 'api/bridge_profile.php',
   'calendar_events.php' => 'api/calendar_events.php',
   'notes.php' => 'api/notes.php',
   'storage_files.php' => 'api/storage_files.php',
@@ -264,6 +265,7 @@ set_include_path(__DIR__ . PATH_SEPARATOR . get_include_path());
 $public_files = [
   'index.php',
   'f20h_ingest.php',
+  'bridge_profile.php',
   'auth-login-cover.php',
   'auth-register-creative.php',
   'auth-reset-cover.php',

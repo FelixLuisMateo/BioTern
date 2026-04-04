@@ -59,7 +59,6 @@ function bridge_profile_token_candidates(array $row): array
         $candidates[] = trim($envToken);
     }
 
-    // Fallback: allow using ingest token if worker was configured with that token.
     $dbIngestToken = trim((string)($row['ingest_api_token'] ?? ''));
     if ($dbIngestToken !== '') {
         $candidates[] = $dbIngestToken;

@@ -89,6 +89,65 @@ function machine_make_bridge_token(): string
     }
 }
 
+function machine_bridge_default_cloud_base_url(): string
+{
+    $appUrl = getenv('APP_URL');
+    if (is_string($appUrl) && trim($appUrl) !== '') {
+        $normalized = rtrim(trim($appUrl), '/');
+        if (stripos($normalized, 'http://') === 0) {
+            $normalized = 'https://' . substr($normalized, 7);
+        }
+        return $normalized;
+    }
+
+    $host = trim((string)($_SERVER['HTTP_HOST'] ?? ''));
+    if ($host !== '') {
+        return 'https://' . $host;
+    }
+
+    return '';
+}
+
+function machine_probe_bridge_profile_endpoint(string $baseUrl, string $bridgeToken): array
+{
+    $base = rtrim(trim($baseUrl), '/');
+    if ($base === '' || $bridgeToken === '') {
+        return ['ok' => false, 'status' => 0, 'url' => '', 'message' => 'Cloud base URL and bridge token are required.'];
+    }
+
+    $url = $base . '/bridge_profile.php?bridge_token=' . rawurlencode($bridgeToken);
+    $context = stream_context_create([
+        'http' => [
+            'method' => 'GET',
+            'timeout' => 20,
+            'ignore_errors' => true,
+        ],
+    ]);
+
+    $body = @file_get_contents($url, false, $context);
+    $status = 0;
+    if (isset($http_response_header) && is_array($http_response_header)) {
+        foreach ($http_response_header as $line) {
+            if (preg_match('/^HTTP\/\S+\s+(\d{3})/', (string)$line, $m)) {
+                $status = (int)$m[1];
+                break;
+            }
+        }
+    }
+
+    $decoded = is_string($body) ? json_decode($body, true) : null;
+    if ($status === 200 && is_array($decoded) && !empty($decoded['success'])) {
+        return ['ok' => true, 'status' => $status, 'url' => $url, 'message' => 'Bridge profile endpoint is reachable and token is valid.'];
+    }
+
+    $apiMessage = is_array($decoded) ? trim((string)($decoded['message'] ?? '')) : '';
+    if ($apiMessage === '') {
+        $apiMessage = 'Endpoint check failed with HTTP ' . $status . '.';
+    }
+
+    return ['ok' => false, 'status' => $status, 'url' => $url, 'message' => $apiMessage];
+}
+
 function machine_ensure_ingest_events_table(mysqli $conn): void
 {
     $conn->query("CREATE TABLE IF NOT EXISTS biometric_ingest_events (
@@ -501,6 +560,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'save_network',
             'save_connector_config',
             'save_bridge_profile',
+            'quick_fill_bridge_router_2',
             'clear_records',
             'clear_users',
             'clear_admin',
@@ -807,6 +867,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         }
                     }
                 }
+                if (stripos($cloudBaseUrl, 'http://') === 0) {
+                    $cloudBaseUrl = 'https://' . substr($cloudBaseUrl, 7);
+                }
                 if ($ingestApiToken === '') {
                     $envApiToken = getenv('BIOTERN_API_TOKEN');
                     if (is_string($envApiToken) && trim($envApiToken) !== '') {
@@ -840,6 +903,63 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ], (int)($_SESSION['user_id'] ?? 0));
 
                 $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Laptop bridge profile saved. Token: ' . $bridgeToken];
+                machine_redirect_after_post([]);
+
+            case 'quick_fill_bridge_router_2':
+                $bridgeToken = trim((string)($_POST['bridge_token'] ?? ''));
+                if ($bridgeToken === '') {
+                    $bridgeToken = machine_make_bridge_token();
+                }
+
+                $ingestApiToken = trim((string)($_POST['ingest_api_token'] ?? ''));
+                if ($ingestApiToken === '') {
+                    $envApiToken = getenv('BIOTERN_API_TOKEN');
+                    if (is_string($envApiToken) && trim($envApiToken) !== '') {
+                        $ingestApiToken = trim($envApiToken);
+                    }
+                }
+                if ($ingestApiToken === '') {
+                    $ingestApiToken = $bridgeToken;
+                }
+
+                $cloudBaseUrl = machine_bridge_default_cloud_base_url();
+                if ($cloudBaseUrl === '') {
+                    throw new RuntimeException('Unable to infer cloud base URL. Set APP_URL or open from the live domain.');
+                }
+
+                machine_save_bridge_profile($conn, [
+                    'bridge_enabled' => 1,
+                    'bridge_token' => $bridgeToken,
+                    'cloud_base_url' => $cloudBaseUrl,
+                    'ingest_path' => '/api/f20h_ingest.php',
+                    'ingest_api_token' => $ingestApiToken,
+                    'poll_seconds' => 30,
+                    'ip_address' => '192.168.110.201',
+                    'gateway' => '192.168.110.1',
+                    'mask' => '255.255.255.0',
+                    'port' => 5001,
+                    'device_number' => 1,
+                    'communication_password' => '0',
+                    'output_path' => 'C:\\BioTern\\attendance.txt',
+                ], (int)($_SESSION['user_id'] ?? 0));
+
+                $_SESSION['machine_manager_flash'] = [
+                    'type' => 'success',
+                    'message' => 'Computer Bridge (Router 2) defaults were applied and saved to shared bridge profile. Bridge token: ' . $bridgeToken,
+                ];
+                machine_redirect_after_post([]);
+
+            case 'test_bridge_profile':
+                $savedProfile = machine_fetch_bridge_profile($conn);
+                $probeBaseUrl = trim((string)($savedProfile['cloud_base_url'] ?? ''));
+                $probeToken = trim((string)($savedProfile['bridge_token'] ?? ''));
+                $probe = machine_probe_bridge_profile_endpoint($probeBaseUrl, $probeToken);
+                $_SESSION['machine_manager_flash'] = [
+                    'type' => $probe['ok'] ? 'success' : 'warning',
+                    'message' => ($probe['ok'] ? 'Bridge test passed. ' : 'Bridge test failed. ')
+                        . ($probe['message'] ?? '')
+                        . (($probe['url'] ?? '') !== '' ? (' Endpoint: ' . $probe['url']) : ''),
+                ];
                 machine_redirect_after_post([]);
 
             case 'clear_records':
@@ -1014,10 +1134,12 @@ if ($bridgeCloudBaseUrl === '') {
     } else {
         $host = trim((string)($_SERVER['HTTP_HOST'] ?? ''));
         if ($host !== '') {
-            $scheme = (!empty($_SERVER['HTTPS']) && strtolower((string)$_SERVER['HTTPS']) !== 'off') ? 'https' : 'http';
-            $bridgeCloudBaseUrl = $scheme . '://' . $host;
+            $bridgeCloudBaseUrl = 'https://' . $host;
         }
     }
+}
+if (stripos($bridgeCloudBaseUrl, 'http://') === 0) {
+    $bridgeCloudBaseUrl = 'https://' . substr($bridgeCloudBaseUrl, 7);
 }
 
 if ($bridgeIngestApiToken === '') {
@@ -1027,11 +1149,16 @@ if ($bridgeIngestApiToken === '') {
     }
 }
 
+$bridgeWorkerCommand = 'powershell -NoProfile -ExecutionPolicy Bypass -File ".\\tools\\bridge-worker.ps1"'
+    . ' -SiteBaseUrl "' . str_replace('"', '\\"', $bridgeCloudBaseUrl !== '' ? $bridgeCloudBaseUrl : 'https://your-app.vercel.app') . '"'
+    . ' -BridgeToken "' . str_replace('"', '\\"', $bridgeToken !== '' ? $bridgeToken : 'YOUR_BRIDGE_TOKEN') . '"'
+    . ' -WorkspaceRoot "."';
+
 $selectedBridgePreset = 'laptop_custom';
 if ($bridgeIpAddress === '192.168.100.201' && $bridgeGateway === '192.168.100.1') {
     $selectedBridgePreset = 'laptop_router_1';
 } elseif ($bridgeIpAddress === '192.168.110.201' && $bridgeGateway === '192.168.110.1') {
-    $selectedBridgePreset = 'laptop_router_2';
+    $selectedBridgePreset = 'computer_router_2';
 }
 
 $quickBridgeOptions = [
@@ -1162,7 +1289,9 @@ include __DIR__ . '/../includes/header.php';
                     <div class="card-body">
                         <div class="text-muted fs-12 mb-1">Loaded Machine Users</div>
                         <div class="fs-3 fw-bold"><?php echo count($loadedUserRows); ?></div>
-                        <div class="text-muted">Use “Read All Users” to refresh this page view.</div>
+                        <div class="text-muted"><?php echo $cloudRuntime
+                            ? 'Cloud mode: direct F20H user reads are disabled. Use your bridge computer and direct ingest.'
+                            : 'Use “Read All Users” to refresh this page view.'; ?></div>
                     </div>
                 </div>
             </div>
@@ -1281,11 +1410,11 @@ include __DIR__ . '/../includes/header.php';
                         <div class="d-grid gap-2">
                             <form method="post">
                                 <input type="hidden" name="machine_action" value="get_config">
-                                <button type="submit" class="btn btn-outline-secondary w-100">Read Device Config</button>
+                                <button type="submit" class="btn btn-outline-secondary w-100" <?php echo $cloudRuntime ? 'disabled title="Unavailable in cloud runtime"' : ''; ?>>Read Device Config</button>
                             </form>
                             <form method="post">
                                 <input type="hidden" name="machine_action" value="list_users">
-                                <button type="submit" class="btn btn-outline-secondary w-100">Read All Users</button>
+                                <button type="submit" class="btn btn-outline-secondary w-100" <?php echo $cloudRuntime ? 'disabled title="Unavailable in cloud runtime"' : ''; ?>><?php echo $cloudRuntime ? 'Read All Users (Local Only)' : 'Read All Users'; ?></button>
                             </form>
                             <a href="attendance.php" class="btn btn-outline-secondary w-100">Open Attendance DTR</a>
                         </div>
@@ -1297,6 +1426,11 @@ include __DIR__ . '/../includes/header.php';
                 <div class="card stretch stretch-full machine-users-card">
                     <div class="card-header"><h6 class="card-title mb-0">Users on Machine</h6></div>
                     <div class="card-body">
+                        <?php if ($cloudRuntime): ?>
+                            <div class="alert alert-warning">
+                                Direct machine user commands are disabled on cloud runtime. Run the bridge worker on your computer in Router 2, then process logs via ingest.
+                            </div>
+                        <?php endif; ?>
                         <form method="post" class="row g-2 align-items-end mb-3">
                             <input type="hidden" name="machine_action" value="get_user">
                             <div class="col-sm-6">
@@ -1304,7 +1438,7 @@ include __DIR__ . '/../includes/header.php';
                                 <input type="number" name="user_id" class="form-control" value="<?php echo machine_h($selectedUserId); ?>" min="1">
                             </div>
                             <div class="col-sm-6">
-                                <button type="submit" class="btn btn-primary w-100">Load User Record</button>
+                                <button type="submit" class="btn btn-primary w-100" <?php echo $cloudRuntime ? 'disabled title="Unavailable in cloud runtime"' : ''; ?>>Load User Record</button>
                             </div>
                         </form>
 
@@ -1534,8 +1668,18 @@ include __DIR__ . '/../includes/header.php';
                                         <label class="form-label">Local Output Path (bridge PC)</label>
                                         <input type="text" name="bridge_output_path" id="bridgeOutputPathField" class="form-control" value="<?php echo machine_h($bridgeOutputPath); ?>" placeholder="C:\\BioTern\\attendance.txt">
                                     </div>
+                                    <div class="col-12">
+                                        <label class="form-label">Start Bridge Worker Command (run on bridge computer)</label>
+                                        <div class="input-group">
+                                            <input type="text" class="form-control" id="bridgeWorkerCommandField" value="<?php echo machine_h($bridgeWorkerCommand); ?>" readonly>
+                                            <button type="button" class="btn btn-outline-secondary" id="copyBridgeWorkerCmdBtn">Copy</button>
+                                        </div>
+                                        <small class="text-muted">Open PowerShell in your BioTern folder, paste this command, then press Enter.</small>
+                                    </div>
                                     <div class="col-12 d-flex flex-wrap gap-2">
                                         <button type="submit" class="btn btn-secondary btn-sm">Save Laptop Bridge Profile</button>
+                                        <button type="submit" class="btn btn-outline-primary btn-sm" formaction="" formmethod="post" name="machine_action" value="quick_fill_bridge_router_2">Fill Shared Bridge (Router 2)</button>
+                                        <button type="submit" class="btn btn-outline-info btn-sm" formaction="" formmethod="post" name="machine_action" value="test_bridge_profile">Test Shared Bridge</button>
                                         <small class="text-muted align-self-center">Laptop worker fetches this profile from /bridge_profile.php using the bridge token.</small>
                                     </div>
                                 </form>

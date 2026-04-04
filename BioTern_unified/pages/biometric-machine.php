@@ -1041,7 +1041,9 @@ include __DIR__ . '/../includes/header.php';
                     <div class="card-body">
                         <div class="text-muted fs-12 mb-1">Loaded Machine Users</div>
                         <div class="fs-3 fw-bold"><?php echo count($loadedUserRows); ?></div>
-                        <div class="text-muted">Use “Read All Users” to refresh this page view.</div>
+                        <div class="text-muted"><?php echo $cloudRuntime
+                            ? 'Cloud mode: direct F20H user reads are disabled. Use your bridge computer and direct ingest.'
+                            : 'Use “Read All Users” to refresh this page view.'; ?></div>
                     </div>
                 </div>
             </div>
@@ -1136,11 +1138,11 @@ include __DIR__ . '/../includes/header.php';
                         <div class="d-grid gap-2">
                             <form method="post">
                                 <input type="hidden" name="machine_action" value="get_config">
-                                <button type="submit" class="btn btn-outline-secondary w-100">Read Device Config</button>
+                                <button type="submit" class="btn btn-outline-secondary w-100" <?php echo $cloudRuntime ? 'disabled title="Unavailable in cloud runtime"' : ''; ?>>Read Device Config</button>
                             </form>
                             <form method="post">
                                 <input type="hidden" name="machine_action" value="list_users">
-                                <button type="submit" class="btn btn-outline-secondary w-100">Read All Users</button>
+                                <button type="submit" class="btn btn-outline-secondary w-100" <?php echo $cloudRuntime ? 'disabled title="Unavailable in cloud runtime"' : ''; ?>><?php echo $cloudRuntime ? 'Read All Users (Local Only)' : 'Read All Users'; ?></button>
                             </form>
                             <a href="attendance.php" class="btn btn-outline-secondary w-100">Open Attendance DTR</a>
                         </div>
@@ -1281,6 +1283,11 @@ include __DIR__ . '/../includes/header.php';
                 <div class="card stretch stretch-full machine-users-card">
                     <div class="card-header"><h6 class="card-title mb-0">Users on Machine</h6></div>
                     <div class="card-body">
+                        <?php if ($cloudRuntime): ?>
+                            <div class="alert alert-warning">
+                                Direct machine user commands are disabled on cloud runtime. Run the bridge worker on your computer in Router 2, then process logs via ingest.
+                            </div>
+                        <?php endif; ?>
                         <form method="post" class="row g-2 align-items-end mb-3">
                             <input type="hidden" name="machine_action" value="get_user">
                             <div class="col-sm-6">
@@ -1288,7 +1295,7 @@ include __DIR__ . '/../includes/header.php';
                                 <input type="number" name="user_id" class="form-control" value="<?php echo machine_h($selectedUserId); ?>" min="1">
                             </div>
                             <div class="col-sm-6">
-                                <button type="submit" class="btn btn-primary w-100">Load User Record</button>
+                                <button type="submit" class="btn btn-primary w-100" <?php echo $cloudRuntime ? 'disabled title="Unavailable in cloud runtime"' : ''; ?>>Load User Record</button>
                             </div>
                         </form>
 
