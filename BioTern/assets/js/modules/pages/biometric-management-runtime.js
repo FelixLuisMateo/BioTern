@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     var presetSelect = document.getElementById('routerPresetSelect');
+    var bridgePresetSelect = document.getElementById('bridgePresetSelect');
     var copyButton = document.getElementById('copyConnectorToMachineBtn');
     var connectorFields = {
         ip: document.getElementById('connectorIpField'),
@@ -21,6 +22,18 @@ document.addEventListener('DOMContentLoaded', function () {
         gateway: document.getElementById('machineGatewayField'),
         mask: document.getElementById('machineMaskField'),
         port: document.getElementById('machinePortField')
+    };
+    var bridgeFields = {
+        cloudBaseUrl: document.getElementById('bridgeCloudBaseUrlField'),
+        ingestPath: document.getElementById('bridgeIngestPathField'),
+        ingestApiToken: document.getElementById('bridgeIngestApiTokenField'),
+        pollSeconds: document.getElementById('bridgePollSecondsField'),
+        ip: document.getElementById('bridgeIpField'),
+        gateway: document.getElementById('bridgeGatewayField'),
+        mask: document.getElementById('bridgeMaskField'),
+        port: document.getElementById('bridgePortField'),
+        deviceNumber: document.getElementById('bridgeDeviceNumberField'),
+        outputPath: document.getElementById('bridgeOutputPathField')
     };
 
     function applyPreset() {
@@ -62,11 +75,57 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    function applyBridgePreset() {
+        if (!bridgePresetSelect) {
+            return;
+        }
+
+        var option = bridgePresetSelect.options[bridgePresetSelect.selectedIndex];
+        if (!option) {
+            return;
+        }
+
+        if (bridgeFields.cloudBaseUrl) {
+            bridgeFields.cloudBaseUrl.value = option.dataset.cloudBaseUrl || '';
+        }
+        if (bridgeFields.ingestPath) {
+            bridgeFields.ingestPath.value = option.dataset.ingestPath || '/api/f20h_ingest.php';
+        }
+        if (bridgeFields.ingestApiToken) {
+            bridgeFields.ingestApiToken.value = option.dataset.ingestApiToken || '';
+        }
+        if (bridgeFields.pollSeconds) {
+            bridgeFields.pollSeconds.value = option.dataset.pollSeconds || '30';
+        }
+        if (bridgeFields.ip) {
+            bridgeFields.ip.value = option.dataset.ip || '';
+        }
+        if (bridgeFields.gateway) {
+            bridgeFields.gateway.value = option.dataset.gateway || '';
+        }
+        if (bridgeFields.mask) {
+            bridgeFields.mask.value = option.dataset.mask || '255.255.255.0';
+        }
+        if (bridgeFields.port) {
+            bridgeFields.port.value = option.dataset.port || '5001';
+        }
+        if (bridgeFields.deviceNumber) {
+            bridgeFields.deviceNumber.value = option.dataset.deviceNumber || '1';
+        }
+        if (bridgeFields.outputPath) {
+            bridgeFields.outputPath.value = option.dataset.outputPath || '';
+        }
+    }
+
     if (presetSelect) {
         presetSelect.addEventListener('change', applyPreset);
     }
 
     if (copyButton) {
         copyButton.addEventListener('click', copyConnectorToMachine);
+    }
+
+    if (bridgePresetSelect) {
+        bridgePresetSelect.addEventListener('change', applyBridgePreset);
     }
 });

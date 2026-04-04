@@ -243,6 +243,7 @@ $map = [
 
   'api-biometric-event.php' => 'api/api-biometric-event.php',
   'f20h_ingest.php' => 'api/f20h_ingest.php',
+  'bridge_profile.php' => 'api/bridge_profile.php',
   'get_clock_status.php' => 'api/get_clock_status.php',
   'process_attendance.php' => 'api/process_attendance.php',
   'register_fingerprint.php' => 'api/register_fingerprint.php',
@@ -319,6 +320,8 @@ set_include_path(implode(PATH_SEPARATOR, array_values(array_unique($router_norma
 // Global auth guard so all routed pages are tied to a logged-in account.
 $public_files = [
   'index.php',
+  'f20h_ingest.php',
+  'bridge_profile.php',
   'auth-login-cover.php',
   'auth-register-creative.php',
   'auth-reset-cover.php',

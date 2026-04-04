@@ -1220,10 +1220,20 @@ include dirname(__DIR__) . '/includes/header.php';
         padding: 1.5rem;
     }
 }
+
+.transfer-status-alert {
+    margin-top: 72px;
+}
+
+@media (max-width: 991.98px) {
+    .transfer-status-alert {
+        margin-top: 12px;
+    }
+}
 </style>
 <div class="container-xxl py-4">
     <?php if ($statusType !== ''): ?>
-        <div class="alert alert-<?php echo $statusType === 'success' ? 'success' : 'danger'; ?> alert-dismissible fade show mb-4" role="alert">
+        <div class="alert alert-<?php echo $statusType === 'success' ? 'success' : 'danger'; ?> alert-dismissible fade show mb-4 transfer-status-alert" role="alert">
             <strong><?php echo $statusType === 'success' ? 'Success:' : 'Import error:'; ?></strong>
             <?php echo htmlspecialchars($statusMessage, ENT_QUOTES, 'UTF-8'); ?>
             <?php if ($showStudentsEditLink): ?>

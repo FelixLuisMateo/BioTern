@@ -14,26 +14,47 @@ if (!function_exists('biometric_machine_paths')) {
     }
 }
 
+if (!function_exists('biometric_machine_is_windows')) {
+    function biometric_machine_is_windows(): bool
+    {
+        return strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
+    }
+}
+
+if (!function_exists('biometric_machine_dotnet_env_prefix')) {
+    function biometric_machine_dotnet_env_prefix(string $dotnetHome): string
+    {
+        if (biometric_machine_is_windows()) {
+            return 'set DOTNET_CLI_HOME=' . escapeshellarg($dotnetHome) . ' && ';
+        }
+
+        return 'DOTNET_CLI_HOME=' . escapeshellarg($dotnetHome) . ' ';
+    }
+}
+
 if (!function_exists('biometric_machine_ensure_connector_built')) {
     function biometric_machine_ensure_connector_built(): array
     {
         $paths = biometric_machine_paths();
-        if (file_exists($paths['exe']) || file_exists($paths['dll'])) {
+        $hasExe = file_exists($paths['exe']);
+        $hasDll = file_exists($paths['dll']);
+
+        if ((biometric_machine_is_windows() && ($hasExe || $hasDll)) || (!biometric_machine_is_windows() && $hasDll)) {
             return ['success' => true, 'output' => []];
         }
 
-        $command = sprintf(
-            'set DOTNET_CLI_HOME=%s && dotnet build %s -c Release 2>&1',
-            escapeshellarg($paths['dotnet_home']),
-            escapeshellarg($paths['project'])
-        );
+        $command = biometric_machine_dotnet_env_prefix($paths['dotnet_home'])
+            . sprintf('dotnet build %s -c Release 2>&1', escapeshellarg($paths['project']));
 
         $output = [];
         $code = 0;
         exec($command, $output, $code);
 
+        $hasExe = file_exists($paths['exe']);
+        $hasDll = file_exists($paths['dll']);
+
         return [
-            'success' => $code === 0 && (file_exists($paths['exe']) || file_exists($paths['dll'])),
+            'success' => $code === 0 && ((biometric_machine_is_windows() && ($hasExe || $hasDll)) || (!biometric_machine_is_windows() && $hasDll)),
             'output' => $output,
             'code' => $code,
         ];
@@ -44,6 +65,20 @@ if (!function_exists('biometric_machine_run_command')) {
     function biometric_machine_run_command(string $command = 'sync', array $args = []): array
     {
         $paths = biometric_machine_paths();
+
+        if (!biometric_machine_is_windows() && !file_exists($paths['dll'])) {
+            return [
+                'success' => false,
+                'stage' => 'runtime',
+                'output' => [
+                    'Machine connector is Windows-only for direct LAN sync.',
+                    'Run this page from your local Windows XAMPP host, or use direct ingest endpoint /api/f20h_ingest.php for cloud deployments.',
+                ],
+                'code' => 1,
+                'text' => 'Machine connector is Windows-only for direct LAN sync. Run this page from your local Windows XAMPP host, or use direct ingest endpoint /api/f20h_ingest.php for cloud deployments.',
+            ];
+        }
+
         $build = biometric_machine_ensure_connector_built();
         if (!$build['success']) {
             return [
@@ -55,10 +90,10 @@ if (!function_exists('biometric_machine_run_command')) {
         }
 
         $parts = [];
-        if (file_exists($paths['exe'])) {
+        if (biometric_machine_is_windows() && file_exists($paths['exe'])) {
             $parts[] = escapeshellarg($paths['exe']);
         } else {
-            $parts[] = 'set DOTNET_CLI_HOME=' . escapeshellarg($paths['dotnet_home']) . ' &&';
+            $parts[] = biometric_machine_dotnet_env_prefix($paths['dotnet_home']);
             $parts[] = 'dotnet';
             $parts[] = escapeshellarg($paths['dll']);
         }

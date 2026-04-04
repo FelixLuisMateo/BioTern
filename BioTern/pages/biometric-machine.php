@@ -52,7 +52,236 @@ function machine_connector_write_config(string $machineConfigPath, array $config
         throw new RuntimeException('Failed to encode connector config.');
     }
 
-    file_put_contents($machineConfigPath, $json . PHP_EOL);
+    machine_write_local_config_file($machineConfigPath, $json . PHP_EOL);
+}
+
+function machine_is_cloud_runtime(): bool
+{
+    return getenv('VERCEL') !== false
+        || getenv('RAILWAY_ENVIRONMENT') !== false
+        || getenv('RAILWAY_STATIC_URL') !== false
+        || getenv('K_SERVICE') !== false;
+}
+
+function machine_write_local_config_file(string $path, string $contents): void
+{
+    if (machine_is_cloud_runtime()) {
+        throw new RuntimeException('Connector profile changes are disabled on cloud runtime because local files are read-only. Update connector settings on the always-on teacher PC bridge worker.');
+    }
+
+    $dir = dirname($path);
+    if (!is_dir($dir) || !is_writable($dir)) {
+        throw new RuntimeException('Config directory is not writable: ' . $dir);
+    }
+
+    $written = @file_put_contents($path, $contents);
+    if ($written === false) {
+        throw new RuntimeException('Failed to write connector config file.');
+    }
+}
+
+function machine_make_bridge_token(): string
+{
+    try {
+        return bin2hex(random_bytes(16));
+    } catch (Throwable $e) {
+        return bin2hex(pack('N2', time(), mt_rand(100000, 999999)));
+    }
+}
+
+function machine_ensure_ingest_events_table(mysqli $conn): void
+{
+    $conn->query("CREATE TABLE IF NOT EXISTS biometric_ingest_events (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        received_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        source_ip VARCHAR(64) DEFAULT '',
+        source_node VARCHAR(120) DEFAULT '',
+        token_status VARCHAR(32) DEFAULT 'unknown',
+        http_status INT NOT NULL DEFAULT 0,
+        events_received INT NOT NULL DEFAULT 0,
+        events_accepted INT NOT NULL DEFAULT 0,
+        auto_import TINYINT(1) NOT NULL DEFAULT 0,
+        import_message TEXT NULL,
+        note VARCHAR(255) DEFAULT '',
+        PRIMARY KEY (id),
+        KEY idx_received_at (received_at),
+        KEY idx_source_node (source_node),
+        KEY idx_token_status (token_status)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+    $conn->query("ALTER TABLE biometric_ingest_events ADD COLUMN IF NOT EXISTS source_node VARCHAR(120) DEFAULT '' AFTER source_ip");
+    $conn->query("CREATE INDEX IF NOT EXISTS idx_source_node ON biometric_ingest_events (source_node)");
+}
+
+function machine_fetch_ingest_health(mysqli $conn): array
+{
+    machine_ensure_ingest_events_table($conn);
+
+    $summary = [
+        'last_received_at' => '',
+        'last_source_ip' => '',
+        'last_source_node' => 'unknown-node',
+        'last_token_status' => 'unknown',
+        'last_http_status' => 0,
+        'total_today' => 0,
+        'accepted_today' => 0,
+    ];
+    $recent = [];
+
+    $summaryRes = $conn->query("SELECT
+        MAX(received_at) AS last_received_at,
+        SUBSTRING_INDEX(GROUP_CONCAT(source_ip ORDER BY id DESC SEPARATOR ','), ',', 1) AS last_source_ip,
+        SUBSTRING_INDEX(GROUP_CONCAT(source_node ORDER BY id DESC SEPARATOR ','), ',', 1) AS last_source_node,
+        SUBSTRING_INDEX(GROUP_CONCAT(token_status ORDER BY id DESC SEPARATOR ','), ',', 1) AS last_token_status,
+        SUBSTRING_INDEX(GROUP_CONCAT(http_status ORDER BY id DESC SEPARATOR ','), ',', 1) AS last_http_status,
+        SUM(CASE WHEN DATE(received_at) = CURRENT_DATE THEN 1 ELSE 0 END) AS total_today,
+        SUM(CASE WHEN DATE(received_at) = CURRENT_DATE THEN events_accepted ELSE 0 END) AS accepted_today
+    FROM biometric_ingest_events");
+    if ($summaryRes instanceof mysqli_result) {
+        $row = $summaryRes->fetch_assoc() ?: [];
+        $summary['last_received_at'] = (string)($row['last_received_at'] ?? '');
+        $summary['last_source_ip'] = (string)($row['last_source_ip'] ?? '');
+        $summary['last_source_node'] = (string)($row['last_source_node'] ?? 'unknown-node');
+        $summary['last_token_status'] = (string)($row['last_token_status'] ?? 'unknown');
+        $summary['last_http_status'] = (int)($row['last_http_status'] ?? 0);
+        $summary['total_today'] = (int)($row['total_today'] ?? 0);
+        $summary['accepted_today'] = (int)($row['accepted_today'] ?? 0);
+        $summaryRes->close();
+    }
+
+    $recentRes = $conn->query("SELECT received_at, source_ip, source_node, token_status, http_status, events_received, events_accepted, note
+        FROM biometric_ingest_events
+        ORDER BY id DESC
+        LIMIT 8");
+    if ($recentRes instanceof mysqli_result) {
+        while ($row = $recentRes->fetch_assoc()) {
+            $recent[] = $row;
+        }
+        $recentRes->close();
+    }
+
+    return ['summary' => $summary, 'recent' => $recent];
+}
+
+function machine_ensure_bridge_profile_table(mysqli $conn): void
+{
+    $conn->query("CREATE TABLE IF NOT EXISTS biometric_bridge_profile (
+        id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+        profile_name VARCHAR(100) NOT NULL DEFAULT 'default',
+        bridge_enabled TINYINT(1) NOT NULL DEFAULT 1,
+        bridge_token VARCHAR(255) NOT NULL DEFAULT '',
+        cloud_base_url VARCHAR(255) NOT NULL DEFAULT '',
+        ingest_path VARCHAR(255) NOT NULL DEFAULT '/api/f20h_ingest.php',
+        ingest_api_token VARCHAR(255) NOT NULL DEFAULT '',
+        poll_seconds INT NOT NULL DEFAULT 30,
+        ip_address VARCHAR(100) NOT NULL DEFAULT '',
+        gateway VARCHAR(100) NOT NULL DEFAULT '',
+        mask VARCHAR(100) NOT NULL DEFAULT '255.255.255.0',
+        port INT NOT NULL DEFAULT 5001,
+        device_number INT NOT NULL DEFAULT 1,
+        communication_password VARCHAR(255) NOT NULL DEFAULT '0',
+        output_path VARCHAR(255) NOT NULL DEFAULT '',
+        updated_by INT NOT NULL DEFAULT 0,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY uniq_profile_name (profile_name)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+}
+
+function machine_fetch_bridge_profile(mysqli $conn): array
+{
+    machine_ensure_bridge_profile_table($conn);
+
+    $defaults = [
+        'profile_name' => 'default',
+        'bridge_enabled' => 1,
+        'bridge_token' => '',
+        'cloud_base_url' => '',
+        'ingest_path' => '/api/f20h_ingest.php',
+        'ingest_api_token' => '',
+        'poll_seconds' => 30,
+        'ip_address' => '',
+        'gateway' => '',
+        'mask' => '255.255.255.0',
+        'port' => 5001,
+        'device_number' => 1,
+        'communication_password' => '0',
+        'output_path' => '',
+        'updated_at' => '',
+    ];
+
+    $res = $conn->query("SELECT * FROM biometric_bridge_profile WHERE profile_name = 'default' LIMIT 1");
+    if ($res instanceof mysqli_result) {
+        $row = $res->fetch_assoc() ?: [];
+        $res->close();
+        if ($row !== []) {
+            return array_merge($defaults, $row);
+        }
+    }
+
+    return $defaults;
+}
+
+function machine_save_bridge_profile(mysqli $conn, array $profile, int $updatedBy): void
+{
+    machine_ensure_bridge_profile_table($conn);
+
+    $stmt = $conn->prepare("INSERT INTO biometric_bridge_profile
+        (profile_name, bridge_enabled, bridge_token, cloud_base_url, ingest_path, ingest_api_token, poll_seconds, ip_address, gateway, mask, port, device_number, communication_password, output_path, updated_by)
+        VALUES ('default', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+            bridge_enabled = VALUES(bridge_enabled),
+            bridge_token = VALUES(bridge_token),
+            cloud_base_url = VALUES(cloud_base_url),
+            ingest_path = VALUES(ingest_path),
+            ingest_api_token = VALUES(ingest_api_token),
+            poll_seconds = VALUES(poll_seconds),
+            ip_address = VALUES(ip_address),
+            gateway = VALUES(gateway),
+            mask = VALUES(mask),
+            port = VALUES(port),
+            device_number = VALUES(device_number),
+            communication_password = VALUES(communication_password),
+            output_path = VALUES(output_path),
+            updated_by = VALUES(updated_by)");
+    if (!$stmt) {
+        throw new RuntimeException('Failed to prepare bridge profile save query.');
+    }
+
+    $bridgeEnabled = !empty($profile['bridge_enabled']) ? 1 : 0;
+    $bridgeToken = (string)($profile['bridge_token'] ?? '');
+    $cloudBaseUrl = (string)($profile['cloud_base_url'] ?? '');
+    $ingestPath = (string)($profile['ingest_path'] ?? '/api/f20h_ingest.php');
+    $ingestApiToken = (string)($profile['ingest_api_token'] ?? '');
+    $pollSeconds = max(10, (int)($profile['poll_seconds'] ?? 30));
+    $ipAddress = (string)($profile['ip_address'] ?? '');
+    $gateway = (string)($profile['gateway'] ?? '');
+    $mask = (string)($profile['mask'] ?? '255.255.255.0');
+    $port = max(1, (int)($profile['port'] ?? 5001));
+    $deviceNumber = max(1, (int)($profile['device_number'] ?? 1));
+    $communicationPassword = (string)($profile['communication_password'] ?? '0');
+    $outputPath = (string)($profile['output_path'] ?? '');
+
+    $stmt->bind_param(
+        'issssisssiissi',
+        $bridgeEnabled,
+        $bridgeToken,
+        $cloudBaseUrl,
+        $ingestPath,
+        $ingestApiToken,
+        $pollSeconds,
+        $ipAddress,
+        $gateway,
+        $mask,
+        $port,
+        $deviceNumber,
+        $communicationPassword,
+        $outputPath,
+        $updatedBy
+    );
+    $stmt->execute();
+    $stmt->close();
 }
 
 function machine_render_pairs(array $data): string
@@ -271,6 +500,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'save_config',
             'save_network',
             'save_connector_config',
+            'save_bridge_profile',
             'clear_records',
             'clear_users',
             'clear_admin',
@@ -281,15 +511,60 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             throw new RuntimeException('Only admins can perform that machine action.');
         }
 
+        $connectorBoundActions = [
+            'list_users',
+            'get_user',
+            'save_user_json',
+            'save_user_name',
+            'save_list_user_name',
+            'delete_user',
+            'delete_fingerprint',
+            'get_device_info',
+            'get_config',
+            'save_config',
+            'get_network',
+            'save_network',
+            'get_time',
+            'set_time',
+            'clear_records',
+            'clear_users',
+            'clear_admin',
+            'restart',
+            'save_device_identity',
+        ];
+        if (machine_is_cloud_runtime() && in_array($action, $connectorBoundActions, true)) {
+            throw new RuntimeException('Direct machine commands are disabled in cloud runtime. Use F20H direct ingest by posting events to /api/f20h_ingest.php, then run Sync Now to reconcile logs into attendance.');
+        }
+
         switch ($action) {
             case 'sync':
-                $connector = biometric_machine_run_command('sync');
-                if (!$connector['success']) {
-                    throw new RuntimeException(trim(implode("\n", $connector['output'] ?? [])));
+                $existingConfig = json_decode($machineConfigJson, true);
+                if (!is_array($existingConfig)) {
+                    $existingConfig = [];
                 }
+
+                $syncMode = strtolower(trim((string)($existingConfig['syncMode'] ?? 'direct_ingest')));
+                if (!in_array($syncMode, ['direct_ingest', 'connector_fallback'], true)) {
+                    $syncMode = 'direct_ingest';
+                }
+
+                $cloudRuntime = machine_is_cloud_runtime();
+                $connectorText = '';
+
+                if ($syncMode === 'connector_fallback' && !$cloudRuntime) {
+                    $connector = biometric_machine_run_command('sync');
+                    if (!$connector['success']) {
+                        throw new RuntimeException(trim(implode("\n", $connector['output'] ?? [])));
+                    }
+                    $connectorText = trim((string)($connector['text'] ?? ''));
+                } else {
+                    $connectorText = 'Connector step skipped. Processing direct-ingest queue from database.';
+                }
+
+                $importMessage = run_biometric_auto_import();
                 $_SESSION['machine_manager_flash'] = [
                     'type' => 'success',
-                    'message' => trim(($connector['text'] ?? '') . "\n" . run_biometric_auto_import()),
+                    'message' => trim($connectorText . "\n" . $importMessage),
                 ];
                 machine_redirect_after_post(['load_users' => 1]);
 
@@ -460,7 +735,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (json_decode($machineConfigJson, true) === null && json_last_error() !== JSON_ERROR_NONE) {
                     throw new RuntimeException('Connector config must be valid JSON.');
                 }
-                file_put_contents($machineConfigPath, $machineConfigJson . PHP_EOL);
+                machine_write_local_config_file($machineConfigPath, $machineConfigJson . PHP_EOL);
                 $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Connector config updated.'];
                 machine_redirect_after_post([]);
 
@@ -500,6 +775,71 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 machine_connector_write_config($machineConfigPath, $existingConfig);
                 $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Quick connector settings updated.'];
+                machine_redirect_after_post([]);
+
+            case 'save_bridge_profile':
+                $bridgeEnabled = isset($_POST['bridge_enabled']);
+                $bridgeToken = trim((string)($_POST['bridge_token'] ?? ''));
+                $cloudBaseUrl = rtrim(trim((string)($_POST['cloud_base_url'] ?? '')), '/');
+                $ingestPath = trim((string)($_POST['ingest_path'] ?? '/api/f20h_ingest.php'));
+                $ingestApiToken = trim((string)($_POST['ingest_api_token'] ?? ''));
+                $pollSeconds = max(10, (int)($_POST['poll_seconds'] ?? 30));
+                $bridgeIp = trim((string)($_POST['bridge_ip'] ?? ''));
+                $bridgeGateway = trim((string)($_POST['bridge_gateway'] ?? ''));
+                $bridgeMask = trim((string)($_POST['bridge_mask'] ?? '255.255.255.0'));
+                $bridgePort = max(1, (int)($_POST['bridge_port'] ?? 5001));
+                $bridgeDeviceNo = max(1, (int)($_POST['bridge_device_number'] ?? 1));
+                $bridgePassword = trim((string)($_POST['bridge_password'] ?? '0'));
+                $bridgeOutputPath = trim((string)($_POST['bridge_output_path'] ?? 'C:\\BioTern\\attendance.txt'));
+
+                if ($bridgeToken === '') {
+                    $bridgeToken = machine_make_bridge_token();
+                }
+                if ($cloudBaseUrl === '') {
+                    $appUrl = getenv('APP_URL');
+                    if (is_string($appUrl) && trim($appUrl) !== '') {
+                        $cloudBaseUrl = rtrim(trim($appUrl), '/');
+                    } else {
+                        $host = trim((string)($_SERVER['HTTP_HOST'] ?? ''));
+                        if ($host !== '') {
+                            $scheme = (!empty($_SERVER['HTTPS']) && strtolower((string)$_SERVER['HTTPS']) !== 'off') ? 'https' : 'http';
+                            $cloudBaseUrl = $scheme . '://' . $host;
+                        }
+                    }
+                }
+                if ($ingestApiToken === '') {
+                    $envApiToken = getenv('BIOTERN_API_TOKEN');
+                    if (is_string($envApiToken) && trim($envApiToken) !== '') {
+                        $ingestApiToken = trim($envApiToken);
+                    }
+                }
+                if ($bridgeIp === '') {
+                    throw new RuntimeException('Bridge F20H IP address is required.');
+                }
+                if ($cloudBaseUrl === '') {
+                    throw new RuntimeException('Cloud base URL is required.');
+                }
+                if ($ingestApiToken === '') {
+                    throw new RuntimeException('Ingest API token is required.');
+                }
+
+                machine_save_bridge_profile($conn, [
+                    'bridge_enabled' => $bridgeEnabled ? 1 : 0,
+                    'bridge_token' => $bridgeToken,
+                    'cloud_base_url' => $cloudBaseUrl,
+                    'ingest_path' => $ingestPath,
+                    'ingest_api_token' => $ingestApiToken,
+                    'poll_seconds' => $pollSeconds,
+                    'ip_address' => $bridgeIp,
+                    'gateway' => $bridgeGateway,
+                    'mask' => $bridgeMask,
+                    'port' => $bridgePort,
+                    'device_number' => $bridgeDeviceNo,
+                    'communication_password' => $bridgePassword,
+                    'output_path' => $bridgeOutputPath,
+                ], (int)($_SESSION['user_id'] ?? 0));
+
+                $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Laptop bridge profile saved. Token: ' . $bridgeToken];
                 machine_redirect_after_post([]);
 
             case 'clear_records':
@@ -622,6 +962,10 @@ if ($syncAttemptResult instanceof mysqli_result) {
     }
     $syncAttemptResult->close();
 }
+$ingestHealth = machine_fetch_ingest_health($conn);
+$ingestSummary = $ingestHealth['summary'] ?? [];
+$recentIngestEvents = $ingestHealth['recent'] ?? [];
+$bridgeProfile = machine_fetch_bridge_profile($conn);
 $connectorConfig = json_decode($machineConfigJson, true);
 $connectorIp = is_array($connectorConfig) ? (string)($connectorConfig['ipAddress'] ?? '') : '';
 $connectorPort = is_array($connectorConfig) ? (string)($connectorConfig['port'] ?? '') : '';
@@ -629,7 +973,11 @@ $connectorDeviceNo = is_array($connectorConfig) ? (string)($connectorConfig['dev
 $connectorGateway = is_array($connectorConfig) ? (string)($connectorConfig['gateway'] ?? '') : '';
 $connectorMask = is_array($connectorConfig) ? (string)($connectorConfig['mask'] ?? '255.255.255.0') : '255.255.255.0';
 $connectorPassword = is_array($connectorConfig) ? (string)($connectorConfig['communicationPassword'] ?? '0') : '0';
-$syncMode = is_array($connectorConfig) ? (string)($connectorConfig['syncMode'] ?? 'direct_ingest') : 'direct_ingest';
+$syncMode = is_array($connectorConfig) ? strtolower(trim((string)($connectorConfig['syncMode'] ?? 'direct_ingest'))) : 'direct_ingest';
+if (!in_array($syncMode, ['direct_ingest', 'connector_fallback'], true)) {
+    $syncMode = 'direct_ingest';
+}
+$cloudRuntime = machine_is_cloud_runtime();
 $connectorOutputPath = is_array($connectorConfig) ? (string)($connectorConfig['outputPath'] ?? '') : '';
 $autoImportOnIngest = !is_array($connectorConfig) || !array_key_exists('autoImportOnIngest', $connectorConfig) || !empty($connectorConfig['autoImportOnIngest']);
 $connectorWindowEnabled = is_array($connectorConfig) ? !empty($connectorConfig['attendanceWindowEnabled']) : false;
@@ -638,6 +986,108 @@ $connectorEndTime = is_array($connectorConfig) ? (string)($connectorConfig['atte
 $duplicateGuardMinutes = is_array($connectorConfig) ? (int)($connectorConfig['duplicateGuardMinutes'] ?? 10) : 10;
 $slotAdvanceMinimumMinutes = is_array($connectorConfig) ? (int)($connectorConfig['slotAdvanceMinimumMinutes'] ?? 10) : 10;
 $selectedRouterPreset = is_array($connectorConfig) ? (string)($connectorConfig['selectedRouterPreset'] ?? 'custom') : 'custom';
+$bridgeEnabled = !empty($bridgeProfile['bridge_enabled']);
+$bridgeToken = (string)($bridgeProfile['bridge_token'] ?? '');
+$bridgeCloudBaseUrl = (string)($bridgeProfile['cloud_base_url'] ?? '');
+$bridgeIngestPath = (string)($bridgeProfile['ingest_path'] ?? '/api/f20h_ingest.php');
+$bridgeIngestApiToken = (string)($bridgeProfile['ingest_api_token'] ?? '');
+$bridgePollSeconds = (int)($bridgeProfile['poll_seconds'] ?? 30);
+$bridgeIpAddress = (string)($bridgeProfile['ip_address'] ?? $connectorIp);
+$bridgeGateway = (string)($bridgeProfile['gateway'] ?? $connectorGateway);
+$bridgeMask = (string)($bridgeProfile['mask'] ?? $connectorMask);
+$bridgePort = (int)($bridgeProfile['port'] ?? ($connectorPort !== '' ? (int)$connectorPort : 5001));
+$bridgeDeviceNumber = (int)($bridgeProfile['device_number'] ?? ($connectorDeviceNo !== '' ? (int)$connectorDeviceNo : 1));
+$bridgePassword = (string)($bridgeProfile['communication_password'] ?? $connectorPassword);
+$bridgeOutputPath = (string)($bridgeProfile['output_path'] ?? ($connectorOutputPath !== '' ? $connectorOutputPath : 'C:\\BioTern\\attendance.txt'));
+
+if ($bridgeToken === '') {
+    $bridgeTokenEnv = getenv('BIOTERN_BRIDGE_TOKEN');
+    if (is_string($bridgeTokenEnv) && trim($bridgeTokenEnv) !== '') {
+        $bridgeToken = trim($bridgeTokenEnv);
+    }
+}
+
+if ($bridgeCloudBaseUrl === '') {
+    $appUrl = getenv('APP_URL');
+    if (is_string($appUrl) && trim($appUrl) !== '') {
+        $bridgeCloudBaseUrl = rtrim(trim($appUrl), '/');
+    } else {
+        $host = trim((string)($_SERVER['HTTP_HOST'] ?? ''));
+        if ($host !== '') {
+            $scheme = (!empty($_SERVER['HTTPS']) && strtolower((string)$_SERVER['HTTPS']) !== 'off') ? 'https' : 'http';
+            $bridgeCloudBaseUrl = $scheme . '://' . $host;
+        }
+    }
+}
+
+if ($bridgeIngestApiToken === '') {
+    $apiTokenEnv = getenv('BIOTERN_API_TOKEN');
+    if (is_string($apiTokenEnv) && trim($apiTokenEnv) !== '') {
+        $bridgeIngestApiToken = trim($apiTokenEnv);
+    }
+}
+
+$selectedBridgePreset = 'laptop_custom';
+if ($bridgeIpAddress === '192.168.100.201' && $bridgeGateway === '192.168.100.1') {
+    $selectedBridgePreset = 'laptop_router_1';
+} elseif ($bridgeIpAddress === '192.168.110.201' && $bridgeGateway === '192.168.110.1') {
+    $selectedBridgePreset = 'laptop_router_2';
+}
+
+$quickBridgeOptions = [
+    'laptop_router_1' => [
+        'label' => 'Laptop Bridge - Router 1',
+        'ip' => '192.168.100.201',
+        'gateway' => '192.168.100.1',
+        'mask' => '255.255.255.0',
+        'port' => '5001',
+        'device_number' => '1',
+        'poll_seconds' => (string)$bridgePollSeconds,
+        'cloud_base_url' => $bridgeCloudBaseUrl,
+        'ingest_path' => $bridgeIngestPath,
+        'ingest_api_token' => $bridgeIngestApiToken,
+        'output_path' => $bridgeOutputPath,
+    ],
+    'laptop_router_2' => [
+        'label' => 'Laptop Bridge - Router 2',
+        'ip' => '192.168.110.201',
+        'gateway' => '192.168.110.1',
+        'mask' => '255.255.255.0',
+        'port' => '5001',
+        'device_number' => '1',
+        'poll_seconds' => (string)$bridgePollSeconds,
+        'cloud_base_url' => $bridgeCloudBaseUrl,
+        'ingest_path' => $bridgeIngestPath,
+        'ingest_api_token' => $bridgeIngestApiToken,
+        'output_path' => $bridgeOutputPath,
+    ],
+    'computer_router_2' => [
+        'label' => 'Computer Bridge - WiFi Router 2',
+        'ip' => '192.168.110.201',
+        'gateway' => '192.168.110.1',
+        'mask' => '255.255.255.0',
+        'port' => '5001',
+        'device_number' => '1',
+        'poll_seconds' => (string)$bridgePollSeconds,
+        'cloud_base_url' => $bridgeCloudBaseUrl,
+        'ingest_path' => $bridgeIngestPath,
+        'ingest_api_token' => $bridgeIngestApiToken,
+        'output_path' => $bridgeOutputPath,
+    ],
+    'laptop_custom' => [
+        'label' => 'Laptop Bridge - Custom',
+        'ip' => $bridgeIpAddress,
+        'gateway' => $bridgeGateway,
+        'mask' => $bridgeMask,
+        'port' => (string)$bridgePort,
+        'device_number' => (string)$bridgeDeviceNumber,
+        'poll_seconds' => (string)$bridgePollSeconds,
+        'cloud_base_url' => $bridgeCloudBaseUrl,
+        'ingest_path' => $bridgeIngestPath,
+        'ingest_api_token' => $bridgeIngestApiToken,
+        'output_path' => $bridgeOutputPath,
+    ],
+];
 $quickRouterOptions = [
     'router_1' => [
         'label' => 'Router 1',
@@ -756,6 +1206,34 @@ include __DIR__ . '/../includes/header.php';
                     </div>
                 </div>
             </div>
+            <div class="col-md-4">
+                <div class="card stretch stretch-full">
+                    <div class="card-body">
+                        <div class="text-muted fs-12 mb-1">Last Ingest Event</div>
+                        <div class="fw-bold"><?php echo machine_h((string)($ingestSummary['last_received_at'] ?? 'No ingest yet')); ?></div>
+                        <div class="text-muted">Node: <?php echo machine_h((string)($ingestSummary['last_source_node'] ?? 'unknown-node')); ?> | IP: <?php echo machine_h((string)($ingestSummary['last_source_ip'] ?? '-')); ?></div>
+                        <div class="text-muted">Token: <?php echo machine_h((string)($ingestSummary['last_token_status'] ?? 'unknown')); ?></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card stretch stretch-full">
+                    <div class="card-body">
+                        <div class="text-muted fs-12 mb-1">Ingest Today</div>
+                        <div class="fs-3 fw-bold"><?php echo machine_h((string)($ingestSummary['total_today'] ?? 0)); ?></div>
+                        <div class="text-muted">Accepted events: <?php echo machine_h((string)($ingestSummary['accepted_today'] ?? 0)); ?></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card stretch stretch-full">
+                    <div class="card-body">
+                        <div class="text-muted fs-12 mb-1">Last Ingest HTTP Status</div>
+                        <div class="fs-3 fw-bold"><?php echo machine_h((string)($ingestSummary['last_http_status'] ?? 0)); ?></div>
+                        <div class="text-muted">200 means accepted; 401 token mismatch; 422 invalid payload.</div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="row g-3">
@@ -763,10 +1241,12 @@ include __DIR__ . '/../includes/header.php';
                 <div class="card stretch stretch-full">
                     <div class="card-header"><h6 class="card-title mb-0">Machine Sync</h6></div>
                     <div class="card-body">
-                        <p class="text-muted">Pull new logs from the F20H, then reconcile them into BioTern attendance.</p>
+                        <p class="text-muted"><?php echo $cloudRuntime || $syncMode === 'direct_ingest'
+                                ? 'Process queued direct-ingest logs from Railway and reconcile them into attendance.'
+                                : 'Pull new logs from the F20H, then reconcile them into BioTern attendance.'; ?></p>
                         <form method="post">
                             <input type="hidden" name="machine_action" value="sync">
-                            <button type="submit" class="btn btn-primary w-100">Sync Now</button>
+                            <button type="submit" class="btn btn-primary w-100"><?php echo $cloudRuntime || $syncMode === 'direct_ingest' ? 'Process Ingest Queue' : 'Sync Now'; ?></button>
                         </form>
                     </div>
                 </div>
@@ -968,17 +1448,113 @@ include __DIR__ . '/../includes/header.php';
 
             <div class="col-xl-6">
                 <div class="card stretch stretch-full">
-                    <div class="card-header"><h6 class="card-title mb-0">Network and Time</h6></div>
+                    <div class="card-header"><h6 class="card-title mb-0">Laptop Bridge Profile</h6></div>
                     <div class="card-body">
-                        <div class="quick-router-panel mb-4">
-                            <div class="d-flex flex-wrap justify-content-between gap-2 align-items-start">
-                                <div>
-                                    <div class="fw-semibold">Quick Router Switch</div>
-                                    <div class="text-muted fs-12">Choose a router preset, adjust any values you want, then save. BioTern will use these settings the next time you sync.</div>
-                                </div>
-                                <button type="button" class="btn btn-sm btn-primary" id="copyConnectorToMachineBtn">Copy to Network Form</button>
-                            </div>
-                            <form method="post" class="row g-2 mt-1">
+                        <div class="machine-config-pane h-100">
+                            <div class="text-muted fs-12 mb-3">Use this profile for your laptop bridge worker now. It is saved in Railway and used by Vercel endpoints.</div>
+                            <?php if (!$isAdmin): ?>
+                                <div class="alert alert-info mb-0">Only admins can change bridge profile settings.</div>
+                            <?php else: ?>
+                                <form method="post" class="row g-2 machine-compact-form">
+                                    <input type="hidden" name="machine_action" value="save_bridge_profile">
+                                    <div class="col-sm-4">
+                                        <label class="form-label">Laptop Bridge Preset</label>
+                                        <select class="form-select" id="bridgePresetSelect" name="bridge_preset_preview">
+                                            <?php foreach ($quickBridgeOptions as $presetKey => $preset): ?>
+                                                <option
+                                                    value="<?php echo machine_h($presetKey); ?>"
+                                                    data-cloud-base-url="<?php echo machine_h((string)$preset['cloud_base_url']); ?>"
+                                                    data-ingest-path="<?php echo machine_h((string)$preset['ingest_path']); ?>"
+                                                    data-ingest-api-token="<?php echo machine_h((string)$preset['ingest_api_token']); ?>"
+                                                    data-poll-seconds="<?php echo machine_h((string)$preset['poll_seconds']); ?>"
+                                                    data-ip="<?php echo machine_h((string)$preset['ip']); ?>"
+                                                    data-gateway="<?php echo machine_h((string)$preset['gateway']); ?>"
+                                                    data-mask="<?php echo machine_h((string)$preset['mask']); ?>"
+                                                    data-port="<?php echo machine_h((string)$preset['port']); ?>"
+                                                    data-device-number="<?php echo machine_h((string)$preset['device_number']); ?>"
+                                                    data-output-path="<?php echo machine_h((string)$preset['output_path']); ?>"
+                                                    <?php echo $selectedBridgePreset === $presetKey ? 'selected' : ''; ?>
+                                                >
+                                                    <?php echo machine_h((string)$preset['label']); ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                    <div class="col-sm-4 d-flex align-items-end">
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input" type="checkbox" name="bridge_enabled" id="bridgeEnabled" <?php echo $bridgeEnabled ? 'checked' : ''; ?>>
+                                            <label class="form-check-label" for="bridgeEnabled">Laptop Bridge Enabled</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-4">
+                                        <label class="form-label">Bridge Token</label>
+                                        <input type="text" name="bridge_token" id="bridgeTokenField" class="form-control" value="<?php echo machine_h($bridgeToken); ?>" placeholder="shared token for bridge_profile.php">
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <label class="form-label">Cloud Base URL</label>
+                                        <input type="text" name="cloud_base_url" id="bridgeCloudBaseUrlField" class="form-control" value="<?php echo machine_h($bridgeCloudBaseUrl); ?>" placeholder="https://your-app.vercel.app">
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <label class="form-label">Ingest Path</label>
+                                        <input type="text" name="ingest_path" id="bridgeIngestPathField" class="form-control" value="<?php echo machine_h($bridgeIngestPath); ?>" placeholder="/api/f20h_ingest.php">
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <label class="form-label">Ingest API Token</label>
+                                        <input type="text" name="ingest_api_token" id="bridgeIngestApiTokenField" class="form-control" value="<?php echo machine_h($bridgeIngestApiToken); ?>" placeholder="BIOTERN_API_TOKEN">
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <label class="form-label">Poll Seconds</label>
+                                        <input type="number" name="poll_seconds" id="bridgePollSecondsField" class="form-control" value="<?php echo machine_h((string)$bridgePollSeconds); ?>" min="10" max="300">
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <label class="form-label">F20H IP</label>
+                                        <input type="text" name="bridge_ip" id="bridgeIpField" class="form-control" value="<?php echo machine_h($bridgeIpAddress); ?>" placeholder="192.168.110.201">
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <label class="form-label">Gateway</label>
+                                        <input type="text" name="bridge_gateway" id="bridgeGatewayField" class="form-control" value="<?php echo machine_h($bridgeGateway); ?>" placeholder="192.168.110.1">
+                                    </div>
+                                    <div class="col-sm-4">
+                                        <label class="form-label">Mask</label>
+                                        <input type="text" name="bridge_mask" id="bridgeMaskField" class="form-control" value="<?php echo machine_h($bridgeMask); ?>" placeholder="255.255.255.0">
+                                    </div>
+                                    <div class="col-sm-4">
+                                        <label class="form-label">Port</label>
+                                        <input type="number" name="bridge_port" id="bridgePortField" class="form-control" value="<?php echo machine_h((string)$bridgePort); ?>" min="1">
+                                    </div>
+                                    <div class="col-sm-4">
+                                        <label class="form-label">Device Number</label>
+                                        <input type="number" name="bridge_device_number" id="bridgeDeviceNumberField" class="form-control" value="<?php echo machine_h((string)$bridgeDeviceNumber); ?>" min="1">
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <label class="form-label">Communication Password</label>
+                                        <input type="text" name="bridge_password" id="bridgePasswordField" class="form-control" value="<?php echo machine_h($bridgePassword); ?>" placeholder="0">
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <label class="form-label">Local Output Path (bridge PC)</label>
+                                        <input type="text" name="bridge_output_path" id="bridgeOutputPathField" class="form-control" value="<?php echo machine_h($bridgeOutputPath); ?>" placeholder="C:\\BioTern\\attendance.txt">
+                                    </div>
+                                    <div class="col-12 d-flex flex-wrap gap-2">
+                                        <button type="submit" class="btn btn-secondary btn-sm">Save Laptop Bridge Profile</button>
+                                        <small class="text-muted align-self-center">Laptop worker fetches this profile from /bridge_profile.php using the bridge token.</small>
+                                    </div>
+                                </form>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-6">
+                <div class="card stretch stretch-full">
+                    <div class="card-header d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                        <h6 class="card-title mb-0">Quick Router Switch</h6>
+                        <button type="button" class="btn btn-sm btn-secondary" id="copyConnectorToMachineBtn">Copy to Network Form</button>
+                    </div>
+                    <div class="card-body">
+                        <div class="machine-config-pane h-100">
+                            <div class="text-muted fs-12 mb-2">Choose a router preset, adjust values, then save.</div>
+                            <form method="post" class="row g-2 mt-1 machine-compact-form">
                                 <input type="hidden" name="machine_action" value="save_connector_profile">
                                 <div class="col-sm-6">
                                     <label class="form-label">Router Preset</label>
@@ -1061,13 +1637,13 @@ include __DIR__ . '/../includes/header.php';
                                     <input type="text" name="attendance_end_time" class="form-control" value="<?php echo machine_h($connectorEndTime); ?>" placeholder="20:00:00">
                                 </div>
                                 <div class="col-12 d-flex flex-wrap gap-2">
-                                    <button type="submit" class="btn btn-primary">Save Quick Router Settings</button>
-                                    <small class="text-muted align-self-center">Use direct ingest for Vercel deployments. Use connector fallback only when the Windows worker needs to pull logs from the F20H and write `attendance.txt` first.</small>
+                                    <button type="submit" class="btn btn-secondary btn-sm">Save Quick Router Settings</button>
+                                    <small class="text-muted align-self-center">Use direct ingest for Vercel deployments. Use connector fallback when a Windows worker pulls from F20H first.</small>
                                 </div>
                                 <div class="col-12">
-                                    <div class="border rounded p-3 bg-light">
+                                    <div class="machine-endpoint-box border rounded p-3">
                                         <div class="fw-semibold mb-1">Dedicated F20H Ingest Endpoint</div>
-                                        <div class="text-muted fs-12 mb-2">Point the machine or bridge to this endpoint for raw F20H payload delivery. The same `BIOTERN_API_TOKEN` header/token used by the biometric API is accepted here.</div>
+                                        <div class="text-muted fs-12 mb-2">Point the machine or bridge to this endpoint for raw F20H payload delivery. The same BIOTERN_API_TOKEN header/token used by the biometric API is accepted here.</div>
                                         <div class="d-flex flex-column gap-1">
                                             <code>/api/f20h_ingest.php</code>
                                             <small class="text-muted">Vercel fallback route: <code>/f20h_ingest.php</code></small>
@@ -1076,48 +1652,61 @@ include __DIR__ . '/../includes/header.php';
                                 </div>
                             </form>
                         </div>
+                    </div>
+                </div>
+            </div>
 
-                        <form method="post" class="row g-2 mb-4">
-                            <input type="hidden" name="machine_action" value="save_network">
-                            <div class="col-sm-6">
-                                <label class="form-label">IP Address</label>
-                                <input type="text" name="ip_address" id="machineIpField" class="form-control" value="<?php echo machine_h($connectorIp); ?>" placeholder="192.168.100.201">
-                            </div>
-                            <div class="col-sm-6">
-                                <label class="form-label">Gateway</label>
-                                <input type="text" name="gateway" id="machineGatewayField" class="form-control" value="<?php echo machine_h($connectorGateway); ?>" placeholder="192.168.100.1">
-                            </div>
-                            <div class="col-sm-6">
-                                <label class="form-label">Mask</label>
-                                <input type="text" name="mask" id="machineMaskField" class="form-control" value="<?php echo machine_h($connectorMask); ?>" placeholder="255.255.255.0">
-                            </div>
-                            <div class="col-sm-6">
-                                <label class="form-label">Port</label>
-                                <input type="number" name="port" id="machinePortField" class="form-control" value="<?php echo machine_h($connectorPort !== '' ? $connectorPort : '5001'); ?>" placeholder="5001">
-                            </div>
-                            <div class="col-12">
-                                <button type="submit" class="btn btn-outline-primary">Save Network Settings</button>
-                            </div>
-                        </form>
+            <div class="col-12">
+                <div class="card stretch stretch-full">
+                    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <h6 class="card-title mb-0">Direct Device Controls</h6>
+                        <button class="btn btn-sm machine-section-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#machineNetworkDirectControls" aria-expanded="false" aria-controls="machineNetworkDirectControls">Toggle Device Controls</button>
+                    </div>
+                    <div class="card-body">
+                        <div class="text-muted fs-12 mb-2">Optional controls for direct machine networking and time adjustments.</div>
+                        <div class="collapse" id="machineNetworkDirectControls">
+                            <form method="post" class="row g-2 mb-4">
+                                <input type="hidden" name="machine_action" value="save_network">
+                                <div class="col-sm-6">
+                                    <label class="form-label">IP Address</label>
+                                    <input type="text" name="ip_address" id="machineIpField" class="form-control" value="<?php echo machine_h($connectorIp); ?>" placeholder="192.168.100.201">
+                                </div>
+                                <div class="col-sm-6">
+                                    <label class="form-label">Gateway</label>
+                                    <input type="text" name="gateway" id="machineGatewayField" class="form-control" value="<?php echo machine_h($connectorGateway); ?>" placeholder="192.168.100.1">
+                                </div>
+                                <div class="col-sm-6">
+                                    <label class="form-label">Mask</label>
+                                    <input type="text" name="mask" id="machineMaskField" class="form-control" value="<?php echo machine_h($connectorMask); ?>" placeholder="255.255.255.0">
+                                </div>
+                                <div class="col-sm-6">
+                                    <label class="form-label">Port</label>
+                                    <input type="number" name="port" id="machinePortField" class="form-control" value="<?php echo machine_h($connectorPort !== '' ? $connectorPort : '5001'); ?>" placeholder="5001">
+                                </div>
+                                <div class="col-12">
+                                    <button type="submit" class="btn btn-secondary">Save Network Settings</button>
+                                </div>
+                            </form>
 
-                        <form method="post" class="row g-2">
-                            <input type="hidden" name="machine_action" value="set_time">
-                            <div class="col-sm-8">
-                                <label class="form-label">Device Time</label>
-                                <input type="text" name="time_value" class="form-control" placeholder="2026-03-25 08:00:00">
-                            </div>
-                            <div class="col-sm-4 d-flex align-items-end">
-                                <button type="submit" class="btn btn-outline-secondary w-100">Set Time</button>
-                            </div>
-                        </form>
+                            <form method="post" class="row g-2">
+                                <input type="hidden" name="machine_action" value="set_time">
+                                <div class="col-sm-8">
+                                    <label class="form-label">Device Time</label>
+                                    <input type="text" name="time_value" class="form-control" placeholder="2026-03-25 08:00:00">
+                                </div>
+                                <div class="col-sm-4 d-flex align-items-end">
+                                    <button type="submit" class="btn btn-secondary w-100">Set Time</button>
+                                </div>
+                            </form>
 
-                        <div class="mt-3">
-                            <label class="form-label">Last Network Readback</label>
-                            <textarea class="form-control" rows="4" readonly><?php echo machine_h($networkRaw); ?></textarea>
-                        </div>
-                        <div class="mt-3">
-                            <label class="form-label">Last Time Readback</label>
-                            <textarea class="form-control" rows="2" readonly><?php echo machine_h($timeRaw); ?></textarea>
+                            <div class="mt-3">
+                                <label class="form-label">Last Network Readback</label>
+                                <textarea class="form-control" rows="4" readonly><?php echo machine_h($networkRaw); ?></textarea>
+                            </div>
+                            <div class="mt-3">
+                                <label class="form-label">Last Time Readback</label>
+                                <textarea class="form-control" rows="2" readonly><?php echo machine_h($timeRaw); ?></textarea>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1133,9 +1722,12 @@ include __DIR__ . '/../includes/header.php';
                         <div class="text-end">
                             <div class="fw-semibold"><?php echo machine_h((string)$rawLogTotal); ?> total logs</div>
                             <small class="text-muted"><?php echo machine_h((string)$rawLogProcessedTotal); ?> processed<?php echo $latestRawImportAt !== '' ? ' | Last import ' . machine_h($latestRawImportAt) : ''; ?></small>
+                            <div class="mt-2">
+                                <button class="btn btn-sm btn-outline-secondary machine-section-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#machineRawLogsCollapse" aria-expanded="false" aria-controls="machineRawLogsCollapse">Toggle Logs</button>
+                            </div>
                         </div>
                     </div>
-                    <div class="card-body p-0">
+                    <div class="card-body p-0 collapse" id="machineRawLogsCollapse">
                         <div class="table-responsive">
                             <table class="table table-sm mb-0 align-middle">
                                 <thead>
@@ -1190,8 +1782,11 @@ include __DIR__ . '/../includes/header.php';
 
             <div class="col-xl-4">
                 <div class="card stretch stretch-full">
-                    <div class="card-header"><h6 class="card-title mb-0">Sync Attempts</h6></div>
-                    <div class="card-body p-0">
+                    <div class="card-header d-flex justify-content-between align-items-center gap-2">
+                        <h6 class="card-title mb-0">Sync Attempts</h6>
+                        <button class="btn btn-sm btn-outline-secondary machine-section-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#machineSyncAttemptsCollapse" aria-expanded="false" aria-controls="machineSyncAttemptsCollapse">Toggle</button>
+                    </div>
+                    <div class="card-body p-0 collapse" id="machineSyncAttemptsCollapse">
                         <div class="table-responsive">
                             <table class="table table-sm mb-0 align-middle">
                                 <thead>
@@ -1229,7 +1824,57 @@ include __DIR__ . '/../includes/header.php';
                 </div>
             </div>
 
+            <div class="col-xl-12">
+                <div class="card stretch stretch-full">
+                    <div class="card-header d-flex justify-content-between align-items-center gap-2">
+                        <h6 class="card-title mb-0">Ingest Health Monitor</h6>
+                        <button class="btn btn-sm btn-outline-secondary machine-section-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#machineIngestHealthCollapse" aria-expanded="false" aria-controls="machineIngestHealthCollapse">Toggle</button>
+                    </div>
+                    <div class="card-body p-0 collapse" id="machineIngestHealthCollapse">
+                        <div class="table-responsive">
+                            <table class="table table-sm mb-0 align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>Received</th>
+                                        <th>Bridge Node</th>
+                                        <th>Source IP</th>
+                                        <th>Token</th>
+                                        <th>HTTP</th>
+                                        <th>Events</th>
+                                        <th>Accepted</th>
+                                        <th>Note</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php if (empty($recentIngestEvents)): ?>
+                                        <tr><td colspan="8" class="text-center text-muted py-3">No ingest requests captured yet.</td></tr>
+                                    <?php else: ?>
+                                        <?php foreach ($recentIngestEvents as $event): ?>
+                                            <tr>
+                                                <td><?php echo machine_h((string)($event['received_at'] ?? '-')); ?></td>
+                                                <td><?php echo machine_h((string)($event['source_node'] ?? 'unknown-node')); ?></td>
+                                                <td><?php echo machine_h((string)($event['source_ip'] ?? '-')); ?></td>
+                                                <td><?php echo machine_h((string)($event['token_status'] ?? 'unknown')); ?></td>
+                                                <td><?php echo machine_h((string)($event['http_status'] ?? 0)); ?></td>
+                                                <td><?php echo machine_h((string)($event['events_received'] ?? 0)); ?></td>
+                                                <td><?php echo machine_h((string)($event['events_accepted'] ?? 0)); ?></td>
+                                                <td><?php echo machine_h((string)($event['note'] ?? '')); ?></td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <?php if ($isAdmin): ?>
+                <div class="col-12 d-flex justify-content-end">
+                    <button class="btn btn-sm btn-outline-secondary machine-section-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#machineAdminAdvancedPanels" aria-expanded="false" aria-controls="machineAdminAdvancedPanels">Toggle Admin Advanced Panels</button>
+                </div>
+                <div class="col-12 collapse" id="machineAdminAdvancedPanels">
+                    <div class="row g-3">
                 <div class="col-xl-6">
                     <div class="card stretch stretch-full">
                         <div class="card-header"><h6 class="card-title mb-0">Recent Anomalies</h6></div>
@@ -1377,6 +2022,8 @@ include __DIR__ . '/../includes/header.php';
                                 </form>
                             </div>
                         </div>
+                    </div>
+                </div>
                     </div>
                 </div>
             <?php endif; ?>

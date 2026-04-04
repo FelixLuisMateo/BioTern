@@ -99,8 +99,6 @@ $nav_active_users = biotern_nav_any_active($nav_current_file, [
 ]);
 $nav_active_settings = biotern_nav_any_active($nav_current_file, [
     'settings-support.php', 'account-settings.php', 'notifications.php', 'theme-customizer.php',
-]);
-$nav_active_data_transfer = biotern_nav_any_active($nav_current_file, [
     'import-sql.php', 'import-students-excel.php',
 ]);
 $nav_active_help = biotern_nav_any_active($nav_current_file, [
@@ -255,16 +253,8 @@ $nav_active_help = biotern_nav_any_active($nav_current_file, [
                         <li class="nxl-item<?php echo biotern_nav_is_active('notifications.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="notifications.php">Notifications</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('settings-support.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="settings-support.php">Support</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('theme-customizer.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="theme-customizer.php">Theme Customizer</a></li>
-                    </ul>
-                </li>
-                <li class="nxl-item nxl-hasmenu<?php echo $nav_active_data_transfer ? ' active nxl-trigger' : ''; ?>">
-                    <a href="javascript:void(0);" class="nxl-link">
-                        <span class="nxl-micon"><i class="feather-upload-cloud"></i></span>
-                        <span class="nxl-mtext">Data Transfer</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                    </a>
-                    <ul class="nxl-submenu">
-                        <li class="nxl-item<?php echo biotern_nav_is_active('import-sql.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="import-sql.php">SQL Import</a></li>
-                        <li class="nxl-item<?php echo biotern_nav_is_active('import-students-excel.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="import-students-excel.php">Student Excel Import</a></li>
+                        <li class="nxl-item<?php echo biotern_nav_is_active('import-sql.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="import-sql.php">Data Transfer SQL Import</a></li>
+                        <li class="nxl-item<?php echo biotern_nav_is_active('import-students-excel.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="import-students-excel.php">Data Transfer Student Excel</a></li>
                     </ul>
                 </li>
                 <li class="nxl-item nxl-hasmenu<?php echo $nav_active_help ? ' active nxl-trigger' : ''; ?>">
