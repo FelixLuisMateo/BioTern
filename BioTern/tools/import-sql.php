@@ -41,6 +41,26 @@ if (!function_exists('transfer_sql_normalize')) {
     }
 }
 
+if (!function_exists('transfer_host_is_local_target')) {
+    function transfer_host_is_local_target(string $host): bool
+    {
+        $normalized = strtolower(trim($host));
+        if ($normalized === '') {
+            return true;
+        }
+
+        if (in_array($normalized, ['localhost', '127.0.0.1', '::1', '[::1]'], true)) {
+            return true;
+        }
+
+        if (preg_match('/^127\./', $normalized)) {
+            return true;
+        }
+
+        return false;
+    }
+}
+
 if (!function_exists('transfer_sql_inspect')) {
     function transfer_sql_inspect(mysqli $mysqli, string $sql, string $databaseName): array
     {
@@ -760,6 +780,11 @@ $confirmPartialForce = isset($_POST['confirm_partial_force']) && (string)$_POST[
 $replaceConfirmText = (string)($_POST['replace_confirm_text'] ?? '');
 $sqlInspection = null;
 $sqlInspectionRisk = 'medium';
+$connectedHost = (string)DB_HOST;
+$connectedDatabase = (string)DB_NAME;
+$connectedPort = (int)DB_PORT;
+$connectedIsLocalTarget = transfer_host_is_local_target($connectedHost);
+$allowLocalImport = isset($_POST['allow_local_import']) && (string)$_POST['allow_local_import'] === '1';
 
 if ($download !== '') {
     if ($download === 'students_template') {
@@ -821,6 +846,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     } elseif ($action === 'sql_import') {
+        if ($connectedIsLocalTarget && !$allowLocalImport) {
+            $statusType = 'danger';
+            $statusMessage = 'Import blocked: current target is local (' . $connectedHost . '). Enable the confirmation checkbox to run locally, or switch DB env vars to Railway before importing.';
+        }
+
         $replaceAllChecked = isset($_POST['replace_all']) && (string)$_POST['replace_all'] === '1';
         $mergeSchemaChecked = !$replaceAllChecked && (!isset($_POST['merge_schema']) || (string)$_POST['merge_schema'] === '1');
         $pastedSql = (string)($_POST['sql_text'] ?? '');
@@ -873,6 +903,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $statusDetails[] = 'CREATE TABLE statements: ' . (int)($sqlInspection['create_table_count'] ?? 0);
             $statusDetails[] = 'Current DB objects: ' . (int)($sqlInspection['current_table_count'] ?? 0);
             $statusDetails[] = 'Import risk assessment: ' . strtoupper($sqlInspectionRisk);
+            $statusDetails[] = 'Connected host: ' . $connectedHost . ':' . $connectedPort;
+            $statusDetails[] = 'Target database: ' . $connectedDatabase;
 
             if ($replaceAllChecked) {
                 $allReplaceChecksPassed =
@@ -1201,6 +1233,14 @@ include dirname(__DIR__) . '/includes/header.php';
             </div>
         </div>
 
+        <?php if ($connectedIsLocalTarget): ?>
+            <div class="alert alert-warning border-warning-subtle mb-4" role="alert">
+                <strong>Active target is local database:</strong>
+                <?php echo htmlspecialchars($connectedHost . ':' . $connectedPort . ' / ' . $connectedDatabase, ENT_QUOTES, 'UTF-8'); ?>.
+                Railway will not change until this page is connected to Railway DB credentials.
+            </div>
+        <?php endif; ?>
+
         <div class="transfer-grid">
             <div class="transfer-stack">
                 <div class="card transfer-panel">
@@ -1232,6 +1272,17 @@ include dirname(__DIR__) . '/includes/header.php';
                         <form method="post" enctype="multipart/form-data">
                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
                             <input type="hidden" name="action" value="sql_import">
+
+                            <?php if ($connectedIsLocalTarget): ?>
+                                <div class="alert alert-warning mb-3" role="alert">
+                                    <div class="form-check mb-0">
+                                        <input class="form-check-input" type="checkbox" value="1" id="allow_local_import" name="allow_local_import" <?php echo $allowLocalImport ? 'checked' : ''; ?>>
+                                        <label class="form-check-label" for="allow_local_import">
+                                            I understand this import will run on local database <?php echo htmlspecialchars($connectedHost . ':' . $connectedPort . ' / ' . $connectedDatabase, ENT_QUOTES, 'UTF-8'); ?>.
+                                        </label>
+                                    </div>
+                                </div>
+                            <?php endif; ?>
 
                             <div class="mb-3">
                                 <label for="sql_file" class="form-label fw-semibold">1. Upload SQL file</label>

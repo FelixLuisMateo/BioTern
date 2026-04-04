@@ -30,6 +30,27 @@ body {
   }
 }
 
+/* Keep shell offsets aligned while desktop sidebar is still visible. */
+@media (min-width: 1025px) and (max-width: 1199.98px) {
+  html:not(.minimenu) .nxl-container {
+    margin-left: 280px !important;
+  }
+
+  html:not(.minimenu) .page-header,
+  html:not(.minimenu) .nxl-header {
+    left: 280px !important;
+  }
+
+  html.minimenu .nxl-container {
+    margin-left: 100px !important;
+  }
+
+  html.minimenu .page-header,
+  html.minimenu .nxl-header {
+    left: 100px !important;
+  }
+}
+
 /* Force click-only behavior for selected header dropdowns (no hover-open). */
 .click-only-dropdown > .dropdown-menu {
   display: none !important;

@@ -44,6 +44,9 @@ $resolvedPass = '';
 $resolvedName = '';
 $resolvedPort = '';
 
+$requestedTarget = strtolower(trim(biotern_env_pick(['BIOTERN_DB_TARGET'], '')));
+$targetRemoteFirst = in_array($requestedTarget, ['vercel', 'remote', 'railway', 'cloud'], true);
+
 if ($databaseUrl !== '') {
     $parsed = parse_url($databaseUrl);
     if (is_array($parsed)) {
@@ -56,19 +59,34 @@ if ($databaseUrl !== '') {
 }
 
 if ($resolvedHost === '') {
-    $resolvedHost = biotern_env_pick(['DB_HOST', 'MYSQLHOST', 'RAILWAY_MYSQL_HOST'], '127.0.0.1');
+    $hostKeys = $targetRemoteFirst
+        ? ['MYSQLHOST', 'RAILWAY_MYSQL_HOST', 'DB_HOST_ONLINE', 'DB_HOST']
+        : ['DB_HOST', 'MYSQLHOST', 'RAILWAY_MYSQL_HOST', 'DB_HOST_ONLINE'];
+    $resolvedHost = biotern_env_pick($hostKeys, '127.0.0.1');
 }
 if ($resolvedUser === '') {
-    $resolvedUser = biotern_env_pick(['DB_USER', 'MYSQLUSER', 'RAILWAY_MYSQL_USER'], 'root');
+    $userKeys = $targetRemoteFirst
+        ? ['MYSQLUSER', 'RAILWAY_MYSQL_USER', 'DB_USER_ONLINE', 'DB_USER']
+        : ['DB_USER', 'MYSQLUSER', 'RAILWAY_MYSQL_USER', 'DB_USER_ONLINE'];
+    $resolvedUser = biotern_env_pick($userKeys, 'root');
 }
 if ($resolvedPass === '') {
-    $resolvedPass = biotern_env_pick(['DB_PASS', 'MYSQLPASSWORD', 'RAILWAY_MYSQL_PASSWORD'], '');
+    $passKeys = $targetRemoteFirst
+        ? ['MYSQLPASSWORD', 'RAILWAY_MYSQL_PASSWORD', 'DB_PASS_ONLINE', 'DB_PASS']
+        : ['DB_PASS', 'MYSQLPASSWORD', 'RAILWAY_MYSQL_PASSWORD', 'DB_PASS_ONLINE'];
+    $resolvedPass = biotern_env_pick($passKeys, '');
 }
 if ($resolvedName === '') {
-    $resolvedName = biotern_env_pick(['DB_NAME', 'MYSQLDATABASE', 'RAILWAY_MYSQL_DATABASE'], 'biotern_db');
+    $nameKeys = $targetRemoteFirst
+        ? ['MYSQLDATABASE', 'RAILWAY_MYSQL_DATABASE', 'DB_NAME_ONLINE', 'DB_NAME']
+        : ['DB_NAME', 'MYSQLDATABASE', 'RAILWAY_MYSQL_DATABASE', 'DB_NAME_ONLINE'];
+    $resolvedName = biotern_env_pick($nameKeys, 'biotern_db');
 }
 if ($resolvedPort === '') {
-    $resolvedPort = biotern_env_pick(['DB_PORT', 'MYSQLPORT', 'RAILWAY_MYSQL_PORT'], '3306');
+    $portKeys = $targetRemoteFirst
+        ? ['MYSQLPORT', 'RAILWAY_MYSQL_PORT', 'DB_PORT_ONLINE', 'DB_PORT']
+        : ['DB_PORT', 'MYSQLPORT', 'RAILWAY_MYSQL_PORT', 'DB_PORT_ONLINE'];
+    $resolvedPort = biotern_env_pick($portKeys, '3306');
 }
 
 $resolvedPortInt = (int)$resolvedPort;
@@ -141,16 +159,29 @@ $connectionProfiles = [[
 $isLocalRuntime = biotern_is_local_runtime();
 $primaryHostLower = strtolower((string)$resolvedHost);
 $primaryIsLocalHost = in_array($primaryHostLower, ['127.0.0.1', 'localhost', '::1'], true);
+$dbTarget = $requestedTarget;
 $preferVercel = biotern_env_truthy(['VERCEL', 'BIOTERN_PRIORITIZE_VERCEL']);
 
+$hasRemoteEnvConfig = (
+    biotern_env_pick(['DATABASE_URL', 'MYSQL_URL', 'DB_URL'], '') !== ''
+    || biotern_env_pick(['MYSQLHOST', 'RAILWAY_MYSQL_HOST', 'DB_HOST_ONLINE'], '') !== ''
+);
+
+$forceRemoteTarget = in_array($dbTarget, ['vercel', 'remote', 'railway', 'cloud'], true)
+    || biotern_env_truthy(['VERCEL']);
+
+$forceLocalTarget = in_array($dbTarget, ['local', 'xampp'], true);
+
+// If remote DB config is present (or explicitly requested), do not silently fall back to local.
+$disableLocalFallback = (!$forceLocalTarget) && ($forceRemoteTarget || $hasRemoteEnvConfig);
+
 if (!$preferVercel) {
-    $dbTarget = strtolower(trim(biotern_env_pick(['BIOTERN_DB_TARGET'], '')));
     if ($dbTarget === 'vercel' || $dbTarget === 'remote' || $dbTarget === 'railway') {
         $preferVercel = true;
     }
 }
 
-if ($isLocalRuntime && !$primaryIsLocalHost && !$preferVercel) {
+if ($isLocalRuntime && !$primaryIsLocalHost && !$preferVercel && !$disableLocalFallback) {
     $localPort = (int)biotern_env_pick(['LOCAL_DB_PORT'], '3306');
     if ($localPort <= 0) {
         $localPort = 3306;
