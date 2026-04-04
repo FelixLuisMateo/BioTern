@@ -126,8 +126,19 @@ function machine_probe_bridge_profile_endpoint(string $baseUrl, string $bridgeTo
 
     $body = @file_get_contents($url, false, $context);
     $status = 0;
-    if (isset($http_response_header) && is_array($http_response_header)) {
-        foreach ($http_response_header as $line) {
+    $responseHeaders = [];
+    if (function_exists('http_get_last_response_headers')) {
+        $headers = http_get_last_response_headers();
+        if (is_array($headers)) {
+            $responseHeaders = $headers;
+        }
+    }
+    if ($responseHeaders === [] && isset($http_response_header) && is_array($http_response_header)) {
+        $responseHeaders = $http_response_header;
+    }
+
+    if ($responseHeaders !== []) {
+        foreach ($responseHeaders as $line) {
             if (preg_match('/^HTTP\/\S+\s+(\d{3})/', (string)$line, $m)) {
                 $status = (int)$m[1];
                 break;
@@ -341,6 +352,60 @@ function machine_save_bridge_profile(mysqli $conn, array $profile, int $updatedB
     );
     $stmt->execute();
     $stmt->close();
+}
+
+function machine_ensure_bridge_user_cache_table(mysqli $conn): void
+{
+    $conn->query("CREATE TABLE IF NOT EXISTS biometric_bridge_user_cache (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        source_node VARCHAR(120) NOT NULL DEFAULT '',
+        users_json LONGTEXT NOT NULL,
+        users_count INT NOT NULL DEFAULT 0,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        KEY idx_created_at (created_at),
+        KEY idx_source_node (source_node)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+}
+
+function machine_load_user_list_from_bridge_cache(mysqli $conn, &$userListRaw, &$userListDecoded): array
+{
+    machine_ensure_bridge_user_cache_table($conn);
+
+    $res = $conn->query("SELECT source_node, users_json, users_count, created_at FROM biometric_bridge_user_cache ORDER BY id DESC LIMIT 1");
+    $row = ($res instanceof mysqli_result) ? ($res->fetch_assoc() ?: []) : [];
+    if ($res instanceof mysqli_result) {
+        $res->close();
+    }
+
+    if ($row === []) {
+        throw new RuntimeException('No bridge user cache available yet. Start the bridge worker first, then click Read All Users again.');
+    }
+
+    $json = trim((string)($row['users_json'] ?? ''));
+    if ($json === '') {
+        throw new RuntimeException('Bridge user cache is empty.');
+    }
+
+    $decoded = json_decode($json, true);
+    if (!is_array($decoded)) {
+        throw new RuntimeException('Bridge user cache payload is invalid JSON.');
+    }
+
+    // Normalize to the same shape expected by machine_extract_rows().
+    if (array_keys($decoded) !== range(0, count($decoded) - 1) && isset($decoded['users']) && is_array($decoded['users'])) {
+        $decoded = $decoded['users'];
+        $json = json_encode($decoded, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    }
+
+    $userListDecoded = $decoded;
+    $userListRaw = is_string($json) ? $json : json_encode($decoded, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+
+    return [
+        'source_node' => (string)($row['source_node'] ?? ''),
+        'users_count' => (int)($row['users_count'] ?? count(machine_extract_rows($userListDecoded))),
+        'created_at' => (string)($row['created_at'] ?? ''),
+    ];
 }
 
 function machine_render_pairs(array $data): string
@@ -629,16 +694,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 machine_redirect_after_post(['load_users' => 1]);
 
             case 'list_users':
-                machine_load_user_list_into_state($userListRaw, $userListDecoded);
-                $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Machine user list loaded.'];
+                if (machine_is_cloud_runtime()) {
+                    $cacheMeta = machine_load_user_list_from_bridge_cache($conn, $userListRaw, $userListDecoded);
+                    $_SESSION['machine_manager_flash'] = [
+                        'type' => 'success',
+                        'message' => 'Bridge user cache loaded from '
+                            . (($cacheMeta['source_node'] ?? '') !== '' ? ($cacheMeta['source_node'] . ' ') : '')
+                            . '(' . (int)($cacheMeta['users_count'] ?? 0) . ' users, updated ' . (string)($cacheMeta['created_at'] ?? '-') . ').',
+                    ];
+                } else {
+                    machine_load_user_list_into_state($userListRaw, $userListDecoded);
+                    $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Machine user list loaded.'];
+                }
                 machine_redirect_after_post(['load_users' => 1]);
 
             case 'get_user':
                 if ($selectedUserId <= 0) {
                     throw new RuntimeException('Enter a valid user ID.');
                 }
-                machine_load_user_details_into_state($selectedUserId, $userDetailsRaw, $userDetailsDecoded);
-                $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Machine user record loaded.'];
+                if (machine_is_cloud_runtime()) {
+                    $cacheMeta = machine_load_user_list_from_bridge_cache($conn, $userListRaw, $userListDecoded);
+                    $rows = machine_extract_rows($userListDecoded);
+                    $matched = null;
+                    foreach ($rows as $row) {
+                        $rowUserId = (int)trim(machine_row_value($row, ['id', 'ID', 'user_id', 'userId', 'EnrollNumber']));
+                        if ($rowUserId === $selectedUserId) {
+                            $matched = $row;
+                            break;
+                        }
+                    }
+
+                    if (!is_array($matched)) {
+                        throw new RuntimeException('User ID not found in latest bridge cache. Click Read All Users first to refresh cache.');
+                    }
+
+                    $userDetailsDecoded = $matched;
+                    $userDetailsRaw = (string)json_encode($matched, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+                    $_SESSION['machine_manager_flash'] = [
+                        'type' => 'success',
+                        'message' => 'Machine user record loaded from bridge cache (' . (string)($cacheMeta['created_at'] ?? '-') . ').',
+                    ];
+                } else {
+                    machine_load_user_details_into_state($selectedUserId, $userDetailsRaw, $userDetailsDecoded);
+                    $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Machine user record loaded.'];
+                }
                 machine_redirect_after_post(['selected_user_id' => $selectedUserId, 'load_users' => 1, 'load_user' => 1]);
 
             case 'save_user_json':
@@ -1290,7 +1389,7 @@ include __DIR__ . '/../includes/header.php';
                         <div class="text-muted fs-12 mb-1">Loaded Machine Users</div>
                         <div class="fs-3 fw-bold"><?php echo count($loadedUserRows); ?></div>
                         <div class="text-muted"><?php echo $cloudRuntime
-                            ? 'Cloud mode: direct F20H user reads are disabled. Use your bridge computer and direct ingest.'
+                            ? 'Cloud mode: Read All Users uses bridge cache uploaded by your bridge computer.'
                             : 'Use “Read All Users” to refresh this page view.'; ?></div>
                     </div>
                 </div>
@@ -1414,7 +1513,7 @@ include __DIR__ . '/../includes/header.php';
                             </form>
                             <form method="post">
                                 <input type="hidden" name="machine_action" value="list_users">
-                                <button type="submit" class="btn btn-outline-secondary w-100" <?php echo $cloudRuntime ? 'disabled title="Unavailable in cloud runtime"' : ''; ?>><?php echo $cloudRuntime ? 'Read All Users (Local Only)' : 'Read All Users'; ?></button>
+                                <button type="submit" class="btn btn-outline-secondary w-100" title="<?php echo $cloudRuntime ? 'Loads latest user list from bridge cache' : 'Reads directly from machine'; ?>"><?php echo $cloudRuntime ? 'Read All Users (Bridge Cache)' : 'Read All Users'; ?></button>
                             </form>
                             <a href="attendance.php" class="btn btn-outline-secondary w-100">Open Attendance DTR</a>
                         </div>
@@ -1428,7 +1527,7 @@ include __DIR__ . '/../includes/header.php';
                     <div class="card-body">
                         <?php if ($cloudRuntime): ?>
                             <div class="alert alert-warning">
-                                Direct machine user commands are disabled on cloud runtime. Run the bridge worker on your computer in Router 2, then process logs via ingest.
+                                Direct LAN reads are not available in Vercel runtime. Use Read All Users (Bridge Cache) after bridge worker sync from Router 2.
                             </div>
                         <?php endif; ?>
                         <form method="post" class="row g-2 align-items-end mb-3">
@@ -1438,7 +1537,7 @@ include __DIR__ . '/../includes/header.php';
                                 <input type="number" name="user_id" class="form-control" value="<?php echo machine_h($selectedUserId); ?>" min="1">
                             </div>
                             <div class="col-sm-6">
-                                <button type="submit" class="btn btn-primary w-100" <?php echo $cloudRuntime ? 'disabled title="Unavailable in cloud runtime"' : ''; ?>>Load User Record</button>
+                                <button type="submit" class="btn btn-primary w-100" title="<?php echo $cloudRuntime ? 'Loads selected user from bridge cache' : 'Loads selected user from machine'; ?>">Load User Record</button>
                             </div>
                         </form>
 

@@ -95,6 +95,98 @@ function Invoke-ConnectorSync {
     throw "Connector binary not found. Expected at $connectorExePath or $connectorDllPath"
 }
 
+function Get-ConnectorUserListRaw {
+    if (Test-Path $connectorExePath) {
+        $output = & $connectorExePath $connectorConfigPath get-user-list 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            throw "Connector get-user-list failed: $($output -join ' ')"
+        }
+        return ($output -join "`n")
+    }
+
+    if (Test-Path $connectorDllPath) {
+        $output = & dotnet $connectorDllPath $connectorConfigPath get-user-list 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            throw "Connector get-user-list failed: $($output -join ' ')"
+        }
+        return ($output -join "`n")
+    }
+
+    throw "Connector binary not found. Expected at $connectorExePath or $connectorDllPath"
+}
+
+function Get-UsersPayloadJson {
+    $raw = Get-ConnectorUserListRaw
+    if ([string]::IsNullOrWhiteSpace($raw)) {
+        throw 'Connector user list output is empty.'
+    }
+
+    $startArray = $raw.IndexOf('[')
+    $startObject = $raw.IndexOf('{')
+    $start = -1
+
+    if ($startArray -ge 0 -and $startObject -ge 0) {
+        $start = [Math]::Min($startArray, $startObject)
+    } elseif ($startArray -ge 0) {
+        $start = $startArray
+    } elseif ($startObject -ge 0) {
+        $start = $startObject
+    }
+
+    if ($start -lt 0) {
+        throw 'Could not locate JSON payload in connector user list output.'
+    }
+
+    $jsonCandidate = $raw.Substring($start).Trim()
+    try {
+        $obj = $jsonCandidate | ConvertFrom-Json -ErrorAction Stop
+    } catch {
+        throw 'Connector user list payload is not valid JSON.'
+    }
+
+    return ($obj | ConvertTo-Json -Depth 20 -Compress)
+}
+
+function Publish-UserCache {
+    param([hashtable]$BridgeConfig)
+
+    $base = ([string]($BridgeConfig.cloud_base_url)).TrimEnd('/')
+    if ([string]::IsNullOrWhiteSpace($base)) {
+        throw 'Bridge profile cloud_base_url is empty.'
+    }
+
+    $usersJson = Get-UsersPayloadJson
+    $headers = @{
+        'X-BRIDGE-TOKEN' = $BridgeToken
+        'X-BRIDGE-NODE' = $bridgeNodeName
+    }
+
+    $candidates = @(
+        "$base/bridge_users_sync.php",
+        "$base/api/bridge_users_sync.php"
+    )
+
+    $lastError = $null
+    foreach ($uri in $candidates) {
+        try {
+            $response = Invoke-RestMethod -Method Post -Uri $uri -Headers $headers -ContentType 'application/json' -Body $usersJson -TimeoutSec 60
+            if ($response.success) {
+                Write-BridgeLog "User cache sync success. Users=$($response.users_count)"
+                return
+            }
+            throw "User cache sync failed: $($response.message)"
+        } catch {
+            $lastError = $_
+        }
+    }
+
+    if ($lastError) {
+        throw $lastError
+    }
+
+    throw 'Unable to upload user cache to any known endpoint.'
+}
+
 function Publish-Ingest {
     param([hashtable]$BridgeConfig)
 
@@ -161,6 +253,7 @@ while ($true) {
         Update-ConnectorConfig -BridgeConfig $bridgeConfig
         $connectorOutput = Invoke-ConnectorSync
         Write-BridgeLog (($connectorOutput -join ' ') -replace '\s+', ' ')
+        Publish-UserCache -BridgeConfig $bridgeConfig
         Publish-Ingest -BridgeConfig $bridgeConfig
 
         $pollSeconds = [int]($bridgeConfig.poll_seconds)
