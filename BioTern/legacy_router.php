@@ -207,6 +207,8 @@ $map = [
   'fingerprint_mapping.php' => 'pages/fingerprint_mapping.php',
   'biometric-machine.php' => 'pages/biometric-machine.php',
   'biometric_machine_sync.php' => 'tools/biometric_machine_sync.php',
+  'import-sql.php' => 'tools/import-sql.php',
+  'import-students-excel.php' => 'tools/import-students-excel.php',
   'print_attendance.php' => 'pages/print_attendance.php',
 
   'document_application.php' => 'documents/document_application.php',
@@ -423,7 +425,7 @@ if ($is_logged_in) {
   ];
   $system_files = [
     'auth-register-creative.php', 'users.php', 'create_admin.php',
-    'settings-support.php',
+    'settings-support.php', 'import-sql.php', 'import-students-excel.php',
   ];
 
   $deny = false;
