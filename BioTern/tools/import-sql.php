@@ -377,26 +377,65 @@ if (!function_exists('transfer_sql_split_statements')) {
 }
 
 if (!function_exists('transfer_sql_execute_merge')) {
+    function transfer_sql_strip_leading_comments(string $sql): string
+    {
+        $out = ltrim($sql);
+
+        while ($out !== '') {
+            if (preg_match('/^--[^\r\n]*(\r\n|\r|\n)?/', $out, $m) === 1) {
+                $out = ltrim(substr($out, strlen((string)$m[0])));
+                continue;
+            }
+
+            if (preg_match('/^#[^\r\n]*(\r\n|\r|\n)?/', $out, $m) === 1) {
+                $out = ltrim(substr($out, strlen((string)$m[0])));
+                continue;
+            }
+
+            if (preg_match('/^\/\*![\s\S]*?\*\//', $out, $m) === 1) {
+                // Preserve MySQL versioned comments as executable SQL.
+                break;
+            }
+
+            if (preg_match('/^\/\*[\s\S]*?\*\//', $out, $m) === 1) {
+                $out = ltrim(substr($out, strlen((string)$m[0])));
+                continue;
+            }
+
+            break;
+        }
+
+        return $out;
+    }
+
     function transfer_sql_execute_merge(mysqli $mysqli, string $sql, array &$summary, string &$errorMessage): bool
     {
         $ignorableCodes = [1050, 1060, 1061, 1062, 1091, 1831];
         $statements = transfer_sql_split_statements($sql);
         $summary['executed_statements'] = 0;
         $summary['ignored_statement_errors'] = 0;
+        $summary['insert_statements_seen'] = 0;
+        $summary['insert_rows_affected'] = 0;
 
         foreach ($statements as $statement) {
-            $stmt = trim($statement);
-            if ($stmt === '' || strpos($stmt, '--') === 0 || strpos($stmt, '/*') === 0) {
+            $stmt = transfer_sql_strip_leading_comments((string)$statement);
+            $stmt = trim($stmt);
+            if ($stmt === '') {
                 continue;
             }
 
+            $isInsert = preg_match('/^INSERT\s+INTO\s+/i', $stmt) === 1;
             if (preg_match('/^INSERT\s+INTO\s+/i', $stmt)) {
                 $stmt = preg_replace('/^INSERT\s+INTO\s+/i', 'INSERT IGNORE INTO ', $stmt);
+                $summary['insert_statements_seen'] = (int)($summary['insert_statements_seen'] ?? 0) + 1;
             }
 
             $ok = $mysqli->query($stmt);
             if ($ok) {
                 $summary['executed_statements'] = (int)($summary['executed_statements'] ?? 0) + 1;
+                if ($isInsert) {
+                    $summary['insert_rows_affected'] = (int)($summary['insert_rows_affected'] ?? 0) + (int)$mysqli->affected_rows;
+                }
                 continue;
             }
 
@@ -948,6 +987,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $statusDetails[] = 'New tables created: ' . (int)($mergeSummary['new_tables_seen'] ?? 0);
                     $statusDetails[] = 'Missing columns added: ' . (int)($mergeSummary['added_columns'] ?? 0);
                     $statusDetails[] = 'Statements executed: ' . (int)($mergeSummary['executed_statements'] ?? 0);
+                    $statusDetails[] = 'INSERT statements processed: ' . (int)($mergeSummary['insert_statements_seen'] ?? 0);
+                    $statusDetails[] = 'Rows inserted/merged: ' . (int)($mergeSummary['insert_rows_affected'] ?? 0);
                     $statusDetails[] = 'Ignored duplicate/schema conflicts: ' . (int)($mergeSummary['ignored_statement_errors'] ?? 0);
                 }
             } elseif ($statusType === '') {

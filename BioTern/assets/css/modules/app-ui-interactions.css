@@ -295,4 +295,14 @@ html.theme-preload .nxl-navigation .nxl-item.nxl-hasmenu.nxl-trigger > .nxl-subm
   html.minimenu .nxl-navigation:hover .nxl-arrow {
     transform: translateX(6px);
   }
+
+  /* Keep desktop content clear of expanded mini sidebar (matches unified behavior). */
+  html.minimenu .nxl-navigation:hover ~ .nxl-header,
+  html.minimenu .nxl-navigation:hover ~ .nxl-container .page-header {
+    left: 280px !important;
+  }
+
+  html.minimenu .nxl-navigation:hover ~ .nxl-container {
+    margin-left: 280px !important;
+  }
 }
