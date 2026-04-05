@@ -25,28 +25,46 @@ function se_h(string $value): string
 
 function se_ensure_system_settings_table(mysqli $conn): void
 {
-    $sql = "CREATE TABLE IF NOT EXISTS system_settings (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        category VARCHAR(100) NOT NULL,
-        setting_key VARCHAR(150) NOT NULL,
-        setting_value TEXT NULL,
-        updated_by INT NULL,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        UNIQUE KEY uniq_category_key (category, setting_key)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci";
+    $sql = <<<'SQL'
+CREATE TABLE IF NOT EXISTS system_settings (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `key` VARCHAR(191) NOT NULL UNIQUE,
+    `value` TEXT NOT NULL,
+    `description` VARCHAR(255) NULL,
+    `category` VARCHAR(100) NOT NULL DEFAULT 'general',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+SQL;
     $conn->query($sql);
+
+    $columns = [];
+    if ($result = $conn->query('SHOW COLUMNS FROM system_settings')) {
+        while ($row = $result->fetch_assoc()) {
+            $columns[(string)$row['Field']] = true;
+        }
+        $result->close();
+    }
+
+    if (!isset($columns['description'])) {
+        $conn->query('ALTER TABLE system_settings ADD COLUMN `description` VARCHAR(255) NULL AFTER `value`');
+    }
+
+    if (!isset($columns['category'])) {
+        $conn->query("ALTER TABLE system_settings ADD COLUMN `category` VARCHAR(100) NOT NULL DEFAULT 'general' AFTER `description`");
+    }
 }
 
 function se_fetch_settings(mysqli $conn, string $category, array $defaults): array
 {
     $settings = $defaults;
-    $stmt = $conn->prepare('SELECT setting_key, setting_value FROM system_settings WHERE category = ?');
+    $stmt = $conn->prepare('SELECT `key`, `value` FROM system_settings WHERE category = ?');
     if ($stmt) {
         $stmt->bind_param('s', $category);
         $stmt->execute();
         $result = $stmt->get_result();
         while ($row = $result->fetch_assoc()) {
-            $settings[$row['setting_key']] = (string) ($row['setting_value'] ?? '');
+            $settings[(string)$row['key']] = (string)($row['value'] ?? '');
         }
         $stmt->close();
     }
@@ -54,17 +72,22 @@ function se_fetch_settings(mysqli $conn, string $category, array $defaults): arr
     return $settings;
 }
 
-function se_store_setting(mysqli $conn, string $category, string $key, string $value, int $userId): void
+function se_store_setting(mysqli $conn, string $key, string $value, string $description, string $category): bool
 {
     $stmt = $conn->prepare(
-        'INSERT INTO system_settings (category, setting_key, setting_value, updated_by) VALUES (?, ?, ?, ?)
-         ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value), updated_by = VALUES(updated_by), updated_at = CURRENT_TIMESTAMP'
+        'INSERT INTO system_settings (`key`, `value`, `description`, `category`, created_at, updated_at)
+         VALUES (?, ?, ?, ?, NOW(), NOW())
+         ON DUPLICATE KEY UPDATE `value` = VALUES(`value`), `description` = VALUES(`description`), `category` = VALUES(`category`), updated_at = NOW()'
     );
-    if ($stmt) {
-        $stmt->bind_param('sssi', $category, $key, $value, $userId);
-        $stmt->execute();
-        $stmt->close();
+    if (!$stmt) {
+        return false;
     }
+
+    $stmt->bind_param('ssss', $key, $value, $description, $category);
+    $ok = $stmt->execute();
+    $stmt->close();
+
+    return $ok;
 }
 
 se_ensure_system_settings_table($conn);
@@ -81,6 +104,19 @@ $defaults = [
     'reply_to_email' => 'support@biotern.local',
     'enable_email_notifications' => '1',
     'send_application_updates' => '1',
+];
+
+$field_meta = [
+    'smtp_host' => 'Default SMTP server hostname.',
+    'smtp_port' => 'Default SMTP server port.',
+    'smtp_encryption' => 'Default email encryption mode.',
+    'smtp_username' => 'Username used to authenticate to the SMTP server.',
+    'smtp_password' => 'Password or app password used to authenticate to the SMTP server.',
+    'mail_from_name' => 'Default sender name for outgoing emails.',
+    'mail_from_email' => 'Default sender email address for outgoing emails.',
+    'reply_to_email' => 'Reply-to address used in outgoing emails.',
+    'enable_email_notifications' => 'Global toggle for BioTern email notifications.',
+    'send_application_updates' => 'Send application status updates through email.',
 ];
 
 $settings = se_fetch_settings($conn, $category, $defaults);
@@ -119,11 +155,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (!$errors) {
-        $userId = (int) $_SESSION['user_id'];
+        $ok = true;
         foreach ($settings as $key => $value) {
-            se_store_setting($conn, $category, $key, (string) $value, $userId);
+            if (!se_store_setting($conn, $key, (string)$value, $field_meta[$key] ?? '', $category)) {
+                $ok = false;
+                break;
+            }
         }
-        $success = 'Email settings saved successfully.';
+        if ($ok) {
+            $success = 'Email settings saved successfully.';
+        } else {
+            $errors[] = 'Unable to save one or more settings right now.';
+        }
     }
 }
 
