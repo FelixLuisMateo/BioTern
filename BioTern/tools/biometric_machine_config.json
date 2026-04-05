@@ -1,5 +1,5 @@
 ﻿{
-    "autoImportOnIngest":  false,
+    "autoImportOnIngest":  true,
     "deviceNumber":  1,
     "gateway":  "192.168.100.1",
     "outputPath":  "C:\\BioTern\\attendance.txt",

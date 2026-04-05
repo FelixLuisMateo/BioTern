@@ -29,7 +29,28 @@ function Write-BridgeLog {
 
     $stamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
     $line = "[$stamp] $Message"
-    Add-Content -Path $bridgeLogPath -Value $line
+
+    # Never let log I/O failures stop the bridge loop.
+    $written = $false
+    for ($attempt = 0; $attempt -lt 4; $attempt++) {
+        try {
+            Add-Content -Path $bridgeLogPath -Value $line -ErrorAction Stop
+            $written = $true
+            break
+        } catch {
+            Start-Sleep -Milliseconds 150
+        }
+    }
+
+    if (-not $written) {
+        try {
+            [System.IO.File]::AppendAllText($bridgeLogPath, $line + [Environment]::NewLine)
+            $written = $true
+        } catch {
+            # Ignore final failure; console output below is still useful.
+        }
+    }
+
     Write-Host $line
 }
 

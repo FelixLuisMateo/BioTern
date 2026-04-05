@@ -779,3 +779,41 @@
 [2026-04-05 20:40:48] Bridge worker started.
 [2026-04-05 20:40:51] Bridge loop error: The remote server returned an error: (401) Unauthorized.
 [2026-04-05 20:41:12] Bridge loop error: The remote server returned an error: (401) Unauthorized.
+[2026-04-05 20:49:08] Bridge worker started.
+[2026-04-05 20:49:14] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-05 20:49:16] User cache sync success. Users=8
+[2026-04-05 20:49:17] No new F20H logs to upload.
+[2026-04-05 20:49:54] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-05 20:49:58] User cache sync success. Users=8
+[2026-04-05 20:50:00] No new F20H logs to upload.
+[2026-04-05 20:50:35] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-05 20:50:37] User cache sync success. Users=8
+[2026-04-05 20:50:37] No new F20H logs to upload.
+[2026-04-05 20:51:12] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-05 20:51:14] User cache sync success. Users=8
+[2026-04-05 20:51:14] No new F20H logs to upload.
+[2026-04-05 20:51:46] Executing bridge command #1: rename_user
+[2026-04-05 20:51:49] Bridge command #1 completed.
+[2026-04-05 20:51:51] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-05 20:51:54] User cache sync success. Users=8
+[2026-04-05 20:51:54] No new F20H logs to upload.
+[2026-04-05 20:52:26] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-05 20:52:28] User cache sync success. Users=8
+[2026-04-05 20:52:28] No new F20H logs to upload.
+[2026-04-05 20:53:01] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-05 20:53:03] User cache sync success. Users=8
+[2026-04-05 20:53:03] No new F20H logs to upload.
+[2026-04-05 20:53:35] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-05 20:53:37] User cache sync success. Users=8
+[2026-04-05 20:53:37] No new F20H logs to upload.
+[2026-04-05 20:54:10] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-05 20:54:12] User cache sync success. Users=8
+[2026-04-05 20:54:12] No new F20H logs to upload.
+[2026-04-05 20:54:45] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-05 20:54:47] User cache sync success. Users=8
+[2026-04-05 20:54:47] No new F20H logs to upload.
+[2026-04-05 20:55:20] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-05 20:55:24] User cache sync success. Users=8
+[2026-04-05 20:55:25] No new F20H logs to upload.
+[2026-04-05 20:55:59] Executing bridge command #2: rename_user
+[2026-04-05 20:56:06] Bridge command #2 completed.
