@@ -36,8 +36,8 @@ function Get-BridgeConfigRemote {
     $base = $SiteBaseUrl.TrimEnd('/')
     $tokenQuery = [uri]::EscapeDataString($BridgeToken)
     $candidates = @(
-        "$base/bridge_profile.php?bridge_token=$tokenQuery",
-        "$base/api/bridge_profile.php?bridge_token=$tokenQuery"
+        ('{0}/bridge_profile.php?bridge_token={1}' -f $base, $tokenQuery),
+        ('{0}/api/bridge_profile.php?bridge_token={1}' -f $base, $tokenQuery)
     )
 
     $lastError = $null
@@ -162,8 +162,8 @@ function Publish-UserCache {
     }
 
     $candidates = @(
-        "$base/bridge_users_sync.php",
-        "$base/api/bridge_users_sync.php"
+        ('{0}/bridge_users_sync.php' -f $base),
+        ('{0}/api/bridge_users_sync.php' -f $base)
     )
 
     $lastError = $null

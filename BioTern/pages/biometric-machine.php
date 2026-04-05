@@ -329,6 +329,9 @@ function machine_save_bridge_profile(mysqli $conn, array $profile, int $updatedB
     $communicationPassword = (string)($profile['communication_password'] ?? '0');
     $outputPath = (string)($profile['output_path'] ?? '');
 
+    $stmt = null;
+    $lastPrepareError = '';
+
     if ($hasPresetColumn) {
         $stmt = $conn->prepare("INSERT INTO biometric_bridge_profile
             (profile_name, selected_bridge_preset, bridge_enabled, bridge_token, cloud_base_url, ingest_path, ingest_api_token, poll_seconds, ip_address, gateway, mask, port, device_number, communication_password, output_path, updated_by)
@@ -349,29 +352,32 @@ function machine_save_bridge_profile(mysqli $conn, array $profile, int $updatedB
                 communication_password = VALUES(communication_password),
                 output_path = VALUES(output_path),
                 updated_by = VALUES(updated_by)");
-        if (!$stmt) {
-            throw new RuntimeException('Failed to prepare bridge profile save query.');
-        }
 
-        $stmt->bind_param(
-            'sissssisssiissi',
-            $selectedBridgePreset,
-            $bridgeEnabled,
-            $bridgeToken,
-            $cloudBaseUrl,
-            $ingestPath,
-            $ingestApiToken,
-            $pollSeconds,
-            $ipAddress,
-            $gateway,
-            $mask,
-            $port,
-            $deviceNumber,
-            $communicationPassword,
-            $outputPath,
-            $updatedBy
-        );
-    } else {
+        if ($stmt) {
+            $stmt->bind_param(
+                'sissssisssiissi',
+                $selectedBridgePreset,
+                $bridgeEnabled,
+                $bridgeToken,
+                $cloudBaseUrl,
+                $ingestPath,
+                $ingestApiToken,
+                $pollSeconds,
+                $ipAddress,
+                $gateway,
+                $mask,
+                $port,
+                $deviceNumber,
+                $communicationPassword,
+                $outputPath,
+                $updatedBy
+            );
+        } else {
+            $lastPrepareError = (string)$conn->error;
+        }
+    }
+
+    if (!$stmt) {
         $stmt = $conn->prepare("INSERT INTO biometric_bridge_profile
             (profile_name, bridge_enabled, bridge_token, cloud_base_url, ingest_path, ingest_api_token, poll_seconds, ip_address, gateway, mask, port, device_number, communication_password, output_path, updated_by)
             VALUES ('default', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -390,30 +396,36 @@ function machine_save_bridge_profile(mysqli $conn, array $profile, int $updatedB
                 communication_password = VALUES(communication_password),
                 output_path = VALUES(output_path),
                 updated_by = VALUES(updated_by)");
-        if (!$stmt) {
-            throw new RuntimeException('Failed to prepare bridge profile save query.');
-        }
 
-        $stmt->bind_param(
-            'issssisssiissi',
-            $bridgeEnabled,
-            $bridgeToken,
-            $cloudBaseUrl,
-            $ingestPath,
-            $ingestApiToken,
-            $pollSeconds,
-            $ipAddress,
-            $gateway,
-            $mask,
-            $port,
-            $deviceNumber,
-            $communicationPassword,
-            $outputPath,
-            $updatedBy
-        );
+        if ($stmt) {
+            $stmt->bind_param(
+                'issssisssiissi',
+                $bridgeEnabled,
+                $bridgeToken,
+                $cloudBaseUrl,
+                $ingestPath,
+                $ingestApiToken,
+                $pollSeconds,
+                $ipAddress,
+                $gateway,
+                $mask,
+                $port,
+                $deviceNumber,
+                $communicationPassword,
+                $outputPath,
+                $updatedBy
+            );
+        } else {
+            $lastPrepareError = trim($lastPrepareError . ' | ' . (string)$conn->error, ' |');
+            throw new RuntimeException('Failed to prepare bridge profile save query. DB error: ' . $lastPrepareError);
+        }
     }
 
-    $stmt->execute();
+    if (!$stmt->execute()) {
+        $executeError = (string)$stmt->error;
+        $stmt->close();
+        throw new RuntimeException('Failed to execute bridge profile save query. DB error: ' . $executeError);
+    }
     $stmt->close();
 }
 
