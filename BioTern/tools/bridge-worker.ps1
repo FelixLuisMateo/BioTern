@@ -57,6 +57,24 @@ function Get-BridgeConfigRemote {
     throw 'Unable to load bridge profile from any known endpoint.'
 }
 
+function Get-ApiBaseCandidates {
+    param($BridgeConfig)
+
+    $bases = @()
+
+    $siteBase = $SiteBaseUrl.TrimEnd('/')
+    if (-not [string]::IsNullOrWhiteSpace($siteBase)) {
+        $bases += $siteBase
+    }
+
+    $profileBase = ([string]($BridgeConfig.cloud_base_url)).TrimEnd('/')
+    if (-not [string]::IsNullOrWhiteSpace($profileBase)) {
+        $bases += $profileBase
+    }
+
+    return $bases | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique
+}
+
 function Update-ConnectorConfig {
     param($BridgeConfig)
 
@@ -207,8 +225,8 @@ function Invoke-BridgeCommandResultPublish {
         [string]$ResultText
     )
 
-    $base = ([string]($BridgeConfig.cloud_base_url)).TrimEnd('/')
-    if ([string]::IsNullOrWhiteSpace($base)) {
+    $bases = Get-ApiBaseCandidates -BridgeConfig $BridgeConfig
+    if (-not $bases -or $bases.Count -eq 0) {
         throw 'Bridge profile cloud_base_url is empty.'
     }
 
@@ -224,10 +242,11 @@ function Invoke-BridgeCommandResultPublish {
         'X-BRIDGE-NODE' = $bridgeNodeName
     }
 
-    $candidates = @(
-        ('{0}/bridge_commands_complete.php' -f $base),
-        ('{0}/api/bridge_commands_complete.php' -f $base)
-    )
+    $candidates = @()
+    foreach ($base in $bases) {
+        $candidates += ('{0}/bridge_commands_complete.php' -f $base)
+        $candidates += ('{0}/api/bridge_commands_complete.php' -f $base)
+    }
 
     $lastError = $null
     foreach ($uri in $candidates) {
@@ -252,8 +271,8 @@ function Invoke-BridgeCommandResultPublish {
 function Get-NextBridgeCommand {
     param($BridgeConfig)
 
-    $base = ([string]($BridgeConfig.cloud_base_url)).TrimEnd('/')
-    if ([string]::IsNullOrWhiteSpace($base)) {
+    $bases = Get-ApiBaseCandidates -BridgeConfig $BridgeConfig
+    if (-not $bases -or $bases.Count -eq 0) {
         throw 'Bridge profile cloud_base_url is empty.'
     }
 
@@ -262,10 +281,11 @@ function Get-NextBridgeCommand {
         'X-BRIDGE-NODE' = $bridgeNodeName
     }
 
-    $candidates = @(
-        ('{0}/bridge_commands_claim.php' -f $base),
-        ('{0}/api/bridge_commands_claim.php' -f $base)
-    )
+    $candidates = @()
+    foreach ($base in $bases) {
+        $candidates += ('{0}/bridge_commands_claim.php' -f $base)
+        $candidates += ('{0}/api/bridge_commands_claim.php' -f $base)
+    }
 
     $lastError = $null
     foreach ($uri in $candidates) {
@@ -443,8 +463,8 @@ function Process-BridgeCommandQueue {
 function Publish-UserCache {
     param($BridgeConfig)
 
-    $base = ([string]($BridgeConfig.cloud_base_url)).TrimEnd('/')
-    if ([string]::IsNullOrWhiteSpace($base)) {
+    $bases = Get-ApiBaseCandidates -BridgeConfig $BridgeConfig
+    if (-not $bases -or $bases.Count -eq 0) {
         throw 'Bridge profile cloud_base_url is empty.'
     }
 
@@ -454,10 +474,11 @@ function Publish-UserCache {
         'X-BRIDGE-NODE' = $bridgeNodeName
     }
 
-    $candidates = @(
-        ('{0}/bridge_users_sync.php' -f $base),
-        ('{0}/api/bridge_users_sync.php' -f $base)
-    )
+    $candidates = @()
+    foreach ($base in $bases) {
+        $candidates += ('{0}/bridge_users_sync.php' -f $base)
+        $candidates += ('{0}/api/bridge_users_sync.php' -f $base)
+    }
 
     $lastError = $null
     foreach ($uri in $candidates) {
@@ -503,7 +524,11 @@ function Publish-Ingest {
         throw 'Bridge profile ingest_api_token is empty.'
     }
 
-    $base = ([string]($BridgeConfig.cloud_base_url)).TrimEnd('/')
+    $bases = Get-ApiBaseCandidates -BridgeConfig $BridgeConfig
+    if (-not $bases -or $bases.Count -eq 0) {
+        throw 'Bridge profile cloud_base_url is empty.'
+    }
+    $base = [string]$bases[0]
     $path = [string]($BridgeConfig.ingest_path)
     if ([string]::IsNullOrWhiteSpace($path)) {
         $path = '/api/f20h_ingest.php'
@@ -518,9 +543,34 @@ function Publish-Ingest {
         'X-BRIDGE-NODE' = $bridgeNodeName
     }
 
-    $response = Invoke-RestMethod -Method Post -Uri $uri -Headers $headers -ContentType 'application/json' -Body $payload -TimeoutSec 60
-    if (-not $response.success) {
-        throw "Ingest failed: $($response.message)"
+    $candidates = @($uri)
+    foreach ($extraBase in $bases) {
+        $extraUri = "{0}{1}" -f $extraBase, $path
+        if (-not ($candidates -contains $extraUri)) {
+            $candidates += $extraUri
+        }
+    }
+
+    $lastError = $null
+    $response = $null
+    foreach ($candidateUri in $candidates) {
+        try {
+            $response = Invoke-RestMethod -Method Post -Uri $candidateUri -Headers $headers -ContentType 'application/json' -Body $payload -TimeoutSec 60
+            if ($response.success) {
+                break
+            }
+            throw "Ingest failed: $($response.message)"
+        } catch {
+            $lastError = $_
+            $response = $null
+        }
+    }
+
+    if ($null -eq $response) {
+        if ($lastError) {
+            throw $lastError
+        }
+        throw 'Ingest failed on all candidate endpoints.'
     }
 
     Set-Content -Path $outputPath -Value '[]' -Encoding UTF8
