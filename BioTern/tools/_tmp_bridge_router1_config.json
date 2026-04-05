@@ -1,0 +1,1 @@
+﻿{"ipAddress":"192.168.100.201","gateway":"192.168.100.1","mask":"255.255.255.0","port":5001,"deviceNumber":1,"communicationPassword":"0","outputPath":"C:\\BioTern\\attendance.txt","syncMode":"connector_fallback","autoImportOnIngest":false}

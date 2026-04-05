@@ -5,7 +5,8 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$BridgeToken,
     [string]$WorkspaceRoot = "",
-    [int]$DefaultPollSeconds = 30
+    [int]$DefaultPollSeconds = 30,
+    [bool]$PreferLocalConnectorNetwork = $true
 )
 
 $ErrorActionPreference = 'Stop'
@@ -57,16 +58,46 @@ function Get-BridgeConfigRemote {
 }
 
 function Update-ConnectorConfig {
-    param([hashtable]$BridgeConfig)
+    param($BridgeConfig)
+
+    $existingConfig = $null
+    if ($PreferLocalConnectorNetwork -and (Test-Path $connectorConfigPath)) {
+        try {
+            $existingRaw = Get-Content -Path $connectorConfigPath -Raw
+            if (-not [string]::IsNullOrWhiteSpace($existingRaw)) {
+                $existingConfig = $existingRaw | ConvertFrom-Json -ErrorAction Stop
+            }
+        } catch {
+            $existingConfig = $null
+        }
+    }
+
+    $ipAddress = [string]($BridgeConfig.ip_address)
+    $gateway = [string]($BridgeConfig.gateway)
+    $mask = [string]($BridgeConfig.mask)
+    $port = [int]($BridgeConfig.port)
+    $deviceNumber = [int]($BridgeConfig.device_number)
+    $communicationPassword = [string]($BridgeConfig.communication_password)
+    $outputPath = [string]($BridgeConfig.output_path)
+
+    if ($PreferLocalConnectorNetwork -and $existingConfig) {
+        if (-not [string]::IsNullOrWhiteSpace([string]$existingConfig.ipAddress)) { $ipAddress = [string]$existingConfig.ipAddress }
+        if (-not [string]::IsNullOrWhiteSpace([string]$existingConfig.gateway)) { $gateway = [string]$existingConfig.gateway }
+        if (-not [string]::IsNullOrWhiteSpace([string]$existingConfig.mask)) { $mask = [string]$existingConfig.mask }
+        if ([int]$existingConfig.port -gt 0) { $port = [int]$existingConfig.port }
+        if ([int]$existingConfig.deviceNumber -gt 0) { $deviceNumber = [int]$existingConfig.deviceNumber }
+        if (-not [string]::IsNullOrWhiteSpace([string]$existingConfig.communicationPassword)) { $communicationPassword = [string]$existingConfig.communicationPassword }
+        if (-not [string]::IsNullOrWhiteSpace([string]$existingConfig.outputPath)) { $outputPath = [string]$existingConfig.outputPath }
+    }
 
     $cfg = @{
-        ipAddress = [string]($BridgeConfig.ip_address)
-        gateway = [string]($BridgeConfig.gateway)
-        mask = [string]($BridgeConfig.mask)
-        port = [int]($BridgeConfig.port)
-        deviceNumber = [int]($BridgeConfig.device_number)
-        communicationPassword = [string]($BridgeConfig.communication_password)
-        outputPath = [string]($BridgeConfig.output_path)
+        ipAddress = $ipAddress
+        gateway = $gateway
+        mask = $mask
+        port = $port
+        deviceNumber = $deviceNumber
+        communicationPassword = $communicationPassword
+        outputPath = $outputPath
         syncMode = 'connector_fallback'
         autoImportOnIngest = $false
     }
@@ -138,6 +169,21 @@ function Get-UsersPayloadJson {
     }
 
     $jsonCandidate = $raw.Substring($start).Trim()
+
+    # Connector output can append plain-text status lines after JSON (e.g., 'Device disconnected.').
+    if ($jsonCandidate.StartsWith('[')) {
+        $endIndex = $jsonCandidate.LastIndexOf(']')
+        if ($endIndex -ge 0) {
+            $jsonCandidate = $jsonCandidate.Substring(0, $endIndex + 1)
+        }
+    } elseif ($jsonCandidate.StartsWith('{')) {
+        $endIndex = $jsonCandidate.LastIndexOf('}')
+        if ($endIndex -ge 0) {
+            $jsonCandidate = $jsonCandidate.Substring(0, $endIndex + 1)
+        }
+    }
+
+    $jsonCandidate = $jsonCandidate.Trim()
     try {
         $obj = $jsonCandidate | ConvertFrom-Json -ErrorAction Stop
     } catch {
@@ -148,7 +194,7 @@ function Get-UsersPayloadJson {
 }
 
 function Publish-UserCache {
-    param([hashtable]$BridgeConfig)
+    param($BridgeConfig)
 
     $base = ([string]($BridgeConfig.cloud_base_url)).TrimEnd('/')
     if ([string]::IsNullOrWhiteSpace($base)) {
@@ -188,7 +234,7 @@ function Publish-UserCache {
 }
 
 function Publish-Ingest {
-    param([hashtable]$BridgeConfig)
+    param($BridgeConfig)
 
     $outputPath = [string]($BridgeConfig.output_path)
     if ([string]::IsNullOrWhiteSpace($outputPath)) {
