@@ -347,12 +347,18 @@ if (!function_exists('nav_page_href')) {
                     </a>
                     <ul class="nxl-submenu">
                         <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'settings-general.php'); ?>">General</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'settings-tags.php'); ?>">Tags</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'settings-email.php'); ?>">Email</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'settings-tasks.php'); ?>">Tasks</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'settings-ojt.php'); ?>">Leads</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'settings-ojt.php'); ?>">OJT Settings</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'settings-support.php'); ?>">Support</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'settings-students.php'); ?>">Students</a></li>
+                    </ul>
+                </li>
+                <li class="nxl-item nxl-hasmenu">
+                    <a href="javascript:void(0);" class="nxl-link">
+                        <span class="nxl-micon"><i class="feather-tool"></i></span>
+                        <span class="nxl-mtext">Tools</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                    </a>
+                    <ul class="nxl-submenu">
                         <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'import-students-excel.php'); ?>">Excel Import</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'import-sql.php'); ?>">Data Transfer</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'theme-customizer.php'); ?>">Theme Customizer</a></li>
