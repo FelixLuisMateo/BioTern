@@ -39,7 +39,7 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                     'applications-review.php', 'attendance.php', 'attendance-corrections.php', 'print_attendance.php', 'demo-biometric.php',
                     'fingerprint_mapping.php', 'biometric-machine.php', 'biometric_machine_sync.php',
                     'ojt.php', 'ojt-create.php', 'ojt-edit.php', 'ojt-view.php', 'ojt-workflow-board.php',
-                    'reports-ojt.php', 'reports-project.php', 'reports-timesheets.php', 'reports-attendance-operations.php',
+                    'reports-ojt.php', 'reports-project.php', 'reports-timesheets.php', 'reports-attendance-operations.php', 'reports-attendance-exceptions.php',
                     'reports-chat-logs.php', 'reports-chat-reports.php', 'reports-login-logs.php',
                 ],
                 'sections' => [
@@ -82,6 +82,7 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                             ['label' => 'Project Report', 'href' => 'reports-project.php', 'icon' => 'feather-activity'],
                             ['label' => 'Timesheets Report', 'href' => 'reports-timesheets.php', 'icon' => 'feather-clock'],
                             ['label' => 'Attendance Operations', 'href' => 'reports-attendance-operations.php', 'icon' => 'feather-clipboard'],
+                            ['label' => 'Attendance Exceptions', 'href' => 'reports-attendance-exceptions.php', 'icon' => 'feather-sunrise'],
                             ['label' => 'Chat Logs', 'href' => 'reports-chat-logs.php', 'icon' => 'feather-message-circle'],
                             ['label' => 'Reported Chats', 'href' => 'reports-chat-reports.php', 'icon' => 'feather-flag'],
                             ['label' => 'Login Logs', 'href' => 'reports-login-logs.php', 'icon' => 'feather-log-in'],

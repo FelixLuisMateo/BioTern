@@ -9,6 +9,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $workspaceRoot = Split-Path -Parent $PSScriptRoot
+$bridgeLogPath = Join-Path $workspaceRoot 'tools\bridge-worker.log'
 
 function Invoke-Install {
     param($taskName, $baseUrl, $token, $preferLocal)
@@ -42,12 +43,37 @@ switch ($Action) {
     'status' {
         $task = Get-ScheduledTask -TaskName $TaskName
         $info = Get-ScheduledTaskInfo -TaskName $TaskName
+        $logExists = Test-Path $bridgeLogPath
+        $lastLogWrite = $null
+        $logAgeSeconds = $null
+
+        if ($logExists) {
+            $lastLogWrite = (Get-Item $bridgeLogPath).LastWriteTime
+            $logAgeSeconds = [int][Math]::Max(0, ((Get-Date) - $lastLogWrite).TotalSeconds)
+        }
+
+        $bridgeProcCount = (Get-CimInstance Win32_Process | Where-Object {
+            ($_.CommandLine -like '*bridge-worker.ps1*') -or ($_.CommandLine -like '*bridge-worker-autostart.ps1*')
+        } | Measure-Object).Count
+
+        $healthStatus = 'OFFLINE'
+        if ($task.State -eq 'Running' -or ($bridgeProcCount -gt 0 -and $logAgeSeconds -ne $null -and $logAgeSeconds -le 180)) {
+            $healthStatus = 'ONLINE'
+        } elseif ($logAgeSeconds -ne $null -and $logAgeSeconds -le 180) {
+            $healthStatus = 'LIKELY ONLINE'
+        }
+
         [pscustomobject]@{
             TaskName = $task.TaskName
             State = $task.State
             LastRunTime = $info.LastRunTime
             LastTaskResult = $info.LastTaskResult
             NextRunTime = $info.NextRunTime
+            BridgeHealth = $healthStatus
+            BridgeProcesses = $bridgeProcCount
+            BridgeLogExists = $logExists
+            BridgeLogLastWrite = $lastLogWrite
+            BridgeLogAgeSeconds = $logAgeSeconds
         } | Format-List
     }
     'uninstall' {

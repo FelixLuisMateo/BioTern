@@ -16,25 +16,44 @@ if ([string]::IsNullOrWhiteSpace($WorkspaceRoot)) {
 
 $workerPath = Join-Path $WorkspaceRoot 'tools\bridge-worker.ps1'
 $logPath = Join-Path $WorkspaceRoot 'tools\bridge-worker-autostart.log'
-$mutexName = 'Global\BioTernBridgeWorkerAutostart'
+$mutexNameCandidates = @(
+    'Global\BioTernBridgeWorkerAutostart',
+    'Local\BioTernBridgeWorkerAutostart'
+)
 
 if (-not (Test-Path $workerPath)) {
     throw "Bridge worker script not found at $workerPath"
 }
 
-$mutex = New-Object System.Threading.Mutex($false, $mutexName)
+$mutex = $null
 $acquired = $false
+$mutexEnabled = $false
+
+foreach ($mutexName in $mutexNameCandidates) {
+    try {
+        $mutex = New-Object System.Threading.Mutex($false, $mutexName)
+        $mutexEnabled = $true
+        break
+    } catch {
+        $mutex = $null
+    }
+}
 
 try {
-    try {
-        $acquired = $mutex.WaitOne(0)
-    } catch {
-        $acquired = $false
-    }
+    if ($mutexEnabled -and $mutex -ne $null) {
+        try {
+            $acquired = $mutex.WaitOne(0)
+        } catch {
+            $acquired = $false
+        }
 
-    if (-not $acquired) {
-        # Another autostart instance is already running.
-        exit 0
+        if (-not $acquired) {
+            # Another autostart instance is already running.
+            exit 0
+        }
+    } else {
+        # If mutex setup fails in restricted user context, continue without mutex.
+        $acquired = $false
     }
 
     while ($true) {
@@ -59,7 +78,7 @@ try {
     }
 }
 finally {
-    if ($acquired) {
+    if ($mutexEnabled -and $mutex -ne $null -and $acquired) {
         try {
             $mutex.ReleaseMutex() | Out-Null
         } catch {
@@ -67,5 +86,7 @@ finally {
         }
     }
 
-    $mutex.Dispose()
+    if ($mutex -ne $null) {
+        $mutex.Dispose()
+    }
 }

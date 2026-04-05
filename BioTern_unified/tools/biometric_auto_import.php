@@ -363,22 +363,10 @@ if (!function_exists('biometricMachineIsWithinHardWindow')) {
     function biometricMachineIsWithinHardWindow(string $time, array $machineConfig, array $effectiveSchedule = []): bool
     {
         $time = section_schedule_normalize_time_input($time);
-        if ($time === null) {
-            return false;
-        }
-
-        $window = biometricMachineHardWindow($machineConfig, $effectiveSchedule);
-        $start = section_schedule_normalize_time_input((string)($window['start'] ?? ''));
-        $end = section_schedule_normalize_time_input((string)($window['end'] ?? ''));
-        if ($start === null || $end === null) {
-            return true;
-        }
-
-        if ($start <= $end) {
-            return $time >= $start && $time <= $end;
-        }
-
-        return $time >= $start || $time <= $end;
+        // Keep every valid punch for audit/reporting.
+        // Credited attendance time is clamped later against the official schedule,
+        // while early arrivals and late departures are surfaced in reports.
+        return $time !== null;
     }
 }
 
@@ -779,9 +767,6 @@ if (!function_exists('resolveAttendanceColumnForPunch')) {
                 }
 
                 if ($afternoonIn === '') {
-                    if (strcmp($incomingTime, $lateDayBoundary) >= 0 && $afternoonOut === '') {
-                        return 'afternoon_time_out';
-                    }
                     return 'afternoon_time_in';
                 }
             }

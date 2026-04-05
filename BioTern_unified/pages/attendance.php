@@ -335,7 +335,7 @@ if ($attendance_result && $attendance_result->num_rows > 0) {
     }
 }
 
-// Remove same-day duplicates per student, preferring the row that has actual punches.
+// Consolidate same-day duplicates per student so split biometric rows still render as one full attendance record.
 if (count($attendances) > 1) {
     $attendance_by_student_date = [];
     foreach ($attendances as $attendance) {
@@ -345,9 +345,15 @@ if (count($attendances) > 1) {
             ? ($student_id_key . '|' . $attendance_date_key)
             : ('id|' . (string)($attendance['id'] ?? ''));
 
-        if (!isset($attendance_by_student_date[$dedupe_key]) || shouldPreferAttendanceRow($attendance, $attendance_by_student_date[$dedupe_key])) {
+        if (!isset($attendance_by_student_date[$dedupe_key])) {
             $attendance_by_student_date[$dedupe_key] = $attendance;
+            continue;
         }
+
+        $attendance_by_student_date[$dedupe_key] = mergeAttendanceRows(
+            $attendance_by_student_date[$dedupe_key],
+            $attendance
+        );
     }
     $attendances = array_values($attendance_by_student_date);
 }
@@ -550,19 +556,74 @@ function attendance_collect_punch_values(array $attendance): array {
     return $values;
 }
 
-function attendance_window_metrics(array $attendance): array {
+function attendance_schedule_bounds(array $attendance): array {
     $schedule = attendance_effective_schedule($attendance);
+
+    return [
+        'schedule' => $schedule,
+        'official_start' => section_schedule_normalize_time_input((string)($schedule['schedule_time_in'] ?? '')) ?: '08:00:00',
+        'official_end' => section_schedule_normalize_time_input((string)($schedule['schedule_time_out'] ?? '')) ?: '19:00:00',
+        'late_after' => section_schedule_normalize_time_input((string)($schedule['late_after_time'] ?? ''))
+            ?: (section_schedule_normalize_time_input((string)($schedule['schedule_time_in'] ?? '')) ?: '08:00:00'),
+    ];
+}
+
+function attendance_clamped_duration_seconds(?int $startTs, ?int $endTs, string $windowStart, string $windowEnd): int
+{
+    if ($startTs === null || $endTs === null || $endTs <= $startTs) {
+        return 0;
+    }
+
+    $windowStartTs = strtotime($windowStart);
+    $windowEndTs = strtotime($windowEnd);
+    if ($windowStartTs === false || $windowEndTs === false) {
+        return max(0, $endTs - $startTs);
+    }
+
+    $clampedStart = max($startTs, $windowStartTs);
+    $clampedEnd = min($endTs, $windowEndTs);
+    return max(0, $clampedEnd - $clampedStart);
+}
+
+function attendance_credited_seconds(array $attendance, ?array $bounds = null): int
+{
+    $bounds = is_array($bounds) ? $bounds : attendance_schedule_bounds($attendance);
+    $officialStart = (string)($bounds['official_start'] ?? '08:00:00');
+    $officialEnd = (string)($bounds['official_end'] ?? '19:00:00');
+
+    $totalSeconds = 0;
+    $pairs = [
+        ['morning_time_in', 'morning_time_out'],
+        ['afternoon_time_in', 'afternoon_time_out'],
+    ];
+
+    foreach ($pairs as $pair) {
+        $startTs = parseAttendanceTime($attendance[$pair[0]] ?? null);
+        $endTs = parseAttendanceTime($attendance[$pair[1]] ?? null);
+        $totalSeconds += attendance_clamped_duration_seconds($startTs, $endTs, $officialStart, $officialEnd);
+    }
+
+    $breakInTs = parseAttendanceTime($attendance['break_time_in'] ?? null);
+    $breakOutTs = parseAttendanceTime($attendance['break_time_out'] ?? null);
+    $totalSeconds -= attendance_clamped_duration_seconds($breakInTs, $breakOutTs, $officialStart, $officialEnd);
+
+    return max(0, $totalSeconds);
+}
+
+function attendance_window_metrics(array $attendance): array {
+    $bounds = attendance_schedule_bounds($attendance);
+    $schedule = $bounds['schedule'];
     $punches = attendance_collect_punch_values($attendance);
     $firstPunch = $punches[0] ?? null;
     $lastPunch = $punches !== [] ? $punches[count($punches) - 1] : null;
     $hasCompletedRange = $firstPunch !== null && $lastPunch !== null && strcmp($lastPunch, $firstPunch) > 0;
 
-    $officialStart = section_schedule_normalize_time_input((string)($schedule['schedule_time_in'] ?? '')) ?: '08:00:00';
-    $officialEnd = section_schedule_normalize_time_input((string)($schedule['schedule_time_out'] ?? '')) ?: '19:00:00';
-    $lateAfter = section_schedule_normalize_time_input((string)($schedule['late_after_time'] ?? '')) ?: $officialStart;
+    $officialStart = (string)$bounds['official_start'];
+    $officialEnd = (string)$bounds['official_end'];
+    $lateAfter = (string)$bounds['late_after'];
 
     $earlyHours = 0.0;
-    $officialHours = 0.0;
+    $officialHours = round(attendance_credited_seconds($attendance, $bounds) / 3600, 2);
     $overtimeHours = 0.0;
 
     if ($firstPunch !== null && strcmp($firstPunch, $officialStart) < 0) {
@@ -571,12 +632,6 @@ function attendance_window_metrics(array $attendance): array {
     }
 
     if ($hasCompletedRange) {
-        $rangeStart = max(strtotime($firstPunch), strtotime($officialStart));
-        $rangeEnd = min(strtotime($lastPunch), strtotime($officialEnd));
-        if ($rangeEnd > $rangeStart) {
-            $officialHours = round(($rangeEnd - $rangeStart) / 3600, 2);
-        }
-
         if (strcmp($lastPunch, $officialEnd) > 0) {
             $overtimeSeconds = max(0, strtotime($lastPunch) - strtotime($officialEnd));
             $overtimeHours = round($overtimeSeconds / 3600, 2);
@@ -655,33 +710,7 @@ function attendance_status_cell_html(array $attendance): string {
 }
 
 function calculateAttendanceRowHours(array $attendance): float {
-    $totalSeconds = 0;
-    $pairs = [
-        ['morning_time_in', 'morning_time_out'],
-        ['afternoon_time_in', 'afternoon_time_out'],
-    ];
-
-    foreach ($pairs as $pair) {
-        $startTs = parseAttendanceTime($attendance[$pair[0]] ?? null);
-        $endTs = parseAttendanceTime($attendance[$pair[1]] ?? null);
-        if ($startTs === null || $endTs === null || $endTs <= $startTs) {
-            continue;
-        }
-
-        $totalSeconds += ($endTs - $startTs);
-    }
-
-    $breakInTs = parseAttendanceTime($attendance['break_time_in'] ?? null);
-    $breakOutTs = parseAttendanceTime($attendance['break_time_out'] ?? null);
-    if ($breakInTs !== null && $breakOutTs !== null && $breakOutTs > $breakInTs) {
-        $totalSeconds -= ($breakOutTs - $breakInTs);
-    }
-
-    if ($totalSeconds < 0) {
-        $totalSeconds = 0;
-    }
-
-    return round($totalSeconds / 3600, 2);
+    return round(attendance_credited_seconds($attendance) / 3600, 2);
 }
 
 function synchronizeAttendanceProgress(mysqli $conn, array &$attendances): void {
@@ -705,8 +734,9 @@ function synchronizeAttendanceProgress(mysqli $conn, array &$attendances): void 
         $storedHours = isset($attendance['total_hours']) && $attendance['total_hours'] !== null && $attendance['total_hours'] !== ''
             ? (float)$attendance['total_hours']
             : null;
+        $isMergedRow = !empty($attendance['is_merged_attendance_row']);
 
-        if ($attendanceId > 0 && $updateAttendanceStmt && ($storedHours === null || abs($storedHours - $computedHours) > 0.009)) {
+        if (!$isMergedRow && $attendanceId > 0 && $updateAttendanceStmt && ($storedHours === null || abs($storedHours - $computedHours) > 0.009)) {
             $updateAttendanceStmt->bind_param('di', $computedHours, $attendanceId);
             $updateAttendanceStmt->execute();
             $attendance['total_hours'] = $computedHours;
@@ -876,13 +906,96 @@ function getAttendanceStatus(array $attendance) {
 
 function attendanceFilledSlotScore(array $attendance): int {
     $score = 0;
-    foreach (['morning_time_in', 'morning_time_out', 'afternoon_time_in', 'afternoon_time_out'] as $column) {
+    foreach (['morning_time_in', 'morning_time_out', 'break_time_in', 'break_time_out', 'afternoon_time_in', 'afternoon_time_out'] as $column) {
         $value = trim((string)($attendance[$column] ?? ''));
         if ($value !== '' && $value !== '00:00:00') {
             $score++;
         }
     }
     return $score;
+}
+
+function attendanceValueIsFilled($value): bool
+{
+    $text = trim((string)$value);
+    return $text !== '' && $text !== '00:00:00';
+}
+
+function attendancePreferTimeValue($currentValue, $incomingValue, bool $preferEarliest)
+{
+    $currentFilled = attendanceValueIsFilled($currentValue);
+    $incomingFilled = attendanceValueIsFilled($incomingValue);
+
+    if (!$currentFilled) {
+        return $incomingFilled ? $incomingValue : $currentValue;
+    }
+    if (!$incomingFilled) {
+        return $currentValue;
+    }
+
+    $currentTs = strtotime((string)$currentValue);
+    $incomingTs = strtotime((string)$incomingValue);
+    if ($currentTs === false || $incomingTs === false) {
+        return $preferEarliest
+            ? (((string)$incomingValue < (string)$currentValue) ? $incomingValue : $currentValue)
+            : (((string)$incomingValue > (string)$currentValue) ? $incomingValue : $currentValue);
+    }
+
+    if ($preferEarliest) {
+        return $incomingTs < $currentTs ? $incomingValue : $currentValue;
+    }
+
+    return $incomingTs > $currentTs ? $incomingValue : $currentValue;
+}
+
+function mergeAttendanceRows(array $base, array $incoming): array
+{
+    $merged = shouldPreferAttendanceRow($incoming, $base) ? array_merge($base, $incoming) : array_merge($incoming, $base);
+
+    $timePreferences = [
+        'morning_time_in' => true,
+        'morning_time_out' => false,
+        'break_time_in' => true,
+        'break_time_out' => false,
+        'afternoon_time_in' => true,
+        'afternoon_time_out' => false,
+    ];
+
+    foreach ($timePreferences as $column => $preferEarliest) {
+        $merged[$column] = attendancePreferTimeValue(
+            $base[$column] ?? null,
+            $incoming[$column] ?? null,
+            $preferEarliest
+        );
+    }
+
+    $mergedIds = [];
+    foreach ([$base['merged_attendance_ids'] ?? null, $incoming['merged_attendance_ids'] ?? null] as $idList) {
+        if (!is_array($idList)) {
+            continue;
+        }
+        foreach ($idList as $idValue) {
+            $id = (int)$idValue;
+            if ($id > 0) {
+                $mergedIds[$id] = true;
+            }
+        }
+    }
+    foreach ([$base['id'] ?? 0, $incoming['id'] ?? 0] as $idValue) {
+        $id = (int)$idValue;
+        if ($id > 0) {
+            $mergedIds[$id] = true;
+        }
+    }
+
+    if ($mergedIds !== []) {
+        $merged['merged_attendance_ids'] = array_map('intval', array_keys($mergedIds));
+        rsort($merged['merged_attendance_ids']);
+        $merged['id'] = (int)$merged['merged_attendance_ids'][0];
+        $merged['is_merged_attendance_row'] = count($merged['merged_attendance_ids']) > 1;
+    }
+
+    return $merged;
 }
 
 function shouldPreferAttendanceRow(array $candidate, array $existing): bool {

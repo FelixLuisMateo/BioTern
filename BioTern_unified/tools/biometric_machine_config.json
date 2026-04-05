@@ -10,7 +10,7 @@
     "attendanceStartTime": "08:00:00",
     "attendanceEndTime": "19:00:00",
     "maxEarlyArrivalMinutes": 120,
-    "maxLateDepartureMinutes": 120,
+    "maxLateDepartureMinutes": 180,
     "duplicateGuardMinutes": 10,
     "slotAdvanceMinimumMinutes": 10,
     "selectedRouterPreset": "router_1"

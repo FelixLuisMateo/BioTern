@@ -230,6 +230,85 @@ function machine_fetch_ingest_health(mysqli $conn): array
     return ['summary' => $summary, 'recent' => $recent];
 }
 
+function machine_fetch_bridge_runtime_status(mysqli $conn, int $pollSeconds): array
+{
+    machine_ensure_bridge_user_cache_table($conn);
+    machine_ensure_ingest_events_table($conn);
+    machine_ensure_bridge_command_queue_table($conn);
+
+    $latestCacheAt = '';
+    $cacheRes = $conn->query("SELECT created_at FROM biometric_bridge_user_cache ORDER BY id DESC LIMIT 1");
+    if ($cacheRes instanceof mysqli_result) {
+        $row = $cacheRes->fetch_assoc() ?: [];
+        $latestCacheAt = (string)($row['created_at'] ?? '');
+        $cacheRes->close();
+    }
+
+    $latestIngestAt = '';
+    $ingestRes = $conn->query("SELECT received_at FROM biometric_ingest_events ORDER BY id DESC LIMIT 1");
+    if ($ingestRes instanceof mysqli_result) {
+        $row = $ingestRes->fetch_assoc() ?: [];
+        $latestIngestAt = (string)($row['received_at'] ?? '');
+        $ingestRes->close();
+    }
+
+    $latestCommandAt = '';
+    $commandRes = $conn->query("SELECT GREATEST(
+            COALESCE(MAX(claimed_at), '1970-01-01 00:00:00'),
+            COALESCE(MAX(completed_at), '1970-01-01 00:00:00'),
+            COALESCE(MAX(created_at), '1970-01-01 00:00:00')
+        ) AS latest_command_at
+        FROM biometric_bridge_command_queue");
+    if ($commandRes instanceof mysqli_result) {
+        $row = $commandRes->fetch_assoc() ?: [];
+        $latestCommandAt = (string)($row['latest_command_at'] ?? '');
+        $commandRes->close();
+    }
+
+    $candidates = array_values(array_filter([$latestCacheAt, $latestIngestAt, $latestCommandAt], static function ($value): bool {
+        return trim((string)$value) !== '' && trim((string)$value) !== '1970-01-01 00:00:00';
+    }));
+
+    $lastSeenAt = '';
+    $lastSeenTs = 0;
+    foreach ($candidates as $candidate) {
+        $ts = strtotime((string)$candidate);
+        if ($ts !== false && $ts > $lastSeenTs) {
+            $lastSeenTs = $ts;
+            $lastSeenAt = (string)$candidate;
+        }
+    }
+
+    $pollSeconds = max(3, $pollSeconds);
+    $onlineThreshold = max(45, $pollSeconds * 3);
+    $ageSeconds = null;
+    $isOnline = false;
+
+    if ($lastSeenTs > 0) {
+        $ageSeconds = max(0, time() - $lastSeenTs);
+        $isOnline = $ageSeconds <= $onlineThreshold;
+    }
+
+    if ($lastSeenTs <= 0) {
+        return [
+            'label' => 'Bridge Status Unknown',
+            'badge_class' => 'secondary',
+            'detail' => 'No bridge activity seen yet.',
+            'last_seen_at' => '',
+            'is_online' => false,
+        ];
+    }
+
+    return [
+        'label' => $isOnline ? 'Bridge Online' : 'Bridge Offline',
+        'badge_class' => $isOnline ? 'success' : 'danger',
+        'detail' => ($isOnline ? 'Last activity ' : 'Last activity stale: ') . $lastSeenAt
+            . ' (poll ' . $pollSeconds . 's, age ' . (int)$ageSeconds . 's).',
+        'last_seen_at' => $lastSeenAt,
+        'is_online' => $isOnline,
+    ];
+}
+
 function machine_ensure_bridge_profile_table(mysqli $conn): void
 {
     $conn->query("CREATE TABLE IF NOT EXISTS biometric_bridge_profile (
@@ -1557,6 +1636,7 @@ $bridgePort = (int)($bridgeProfile['port'] ?? ($connectorPort !== '' ? (int)$con
 $bridgeDeviceNumber = (int)($bridgeProfile['device_number'] ?? ($connectorDeviceNo !== '' ? (int)$connectorDeviceNo : 1));
 $bridgePassword = (string)($bridgeProfile['communication_password'] ?? $connectorPassword);
 $bridgeOutputPath = (string)($bridgeProfile['output_path'] ?? ($connectorOutputPath !== '' ? $connectorOutputPath : 'C:\\BioTern\\attendance.txt'));
+$bridgeRuntimeStatus = machine_fetch_bridge_runtime_status($conn, $bridgePollSeconds);
 
 if ($bridgeToken === '') {
     $bridgeTokenEnv = getenv('BIOTERN_BRIDGE_TOKEN');
@@ -1708,6 +1788,14 @@ include __DIR__ . '/../includes/header.php';
                     <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
                     <li class="breadcrumb-item">F20H Machine Manager</li>
                 </ul>
+            </div>
+            <div class="page-header-right ms-auto text-end">
+                <div>
+                    <span class="badge bg-soft-<?php echo machine_h((string)($bridgeRuntimeStatus['badge_class'] ?? 'secondary')); ?> text-<?php echo machine_h((string)($bridgeRuntimeStatus['badge_class'] ?? 'secondary')); ?>">
+                        <?php echo machine_h((string)($bridgeRuntimeStatus['label'] ?? 'Bridge Status Unknown')); ?>
+                    </span>
+                </div>
+                <small class="text-muted d-block mt-1"><?php echo machine_h((string)($bridgeRuntimeStatus['detail'] ?? '')); ?></small>
             </div>
         </div>
 
