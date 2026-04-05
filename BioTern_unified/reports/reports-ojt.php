@@ -81,7 +81,11 @@ html.app-skin-dark .ojt-at-risk { background-color: rgba(220, 38, 38, 0.15) !imp
 .breadcrumb-item a:hover { color: #3454d1; }
 .breadcrumb-item.active { color: #64748b; font-weight: 500; }
 .breadcrumb-item + .breadcrumb-item::before { color: #94a3b8; }
-.report-hero { border: 1px solid rgba(80, 102, 144, 0.15); background: linear-gradient(135deg, rgba(26, 64, 132, 0.08), rgba(24, 153, 132, 0.08)); border-radius: 14px; padding: 1.1rem 1.25rem; margin-bottom: 1rem; }
+.page-header .page-header-title { border-right: 0 !important; padding-right: 0 !important; margin-right: 0 !important; display: flex; align-items: center; gap: 0.85rem; flex-wrap: wrap; }
+.page-header-left { align-items: center !important; }
+.page-header .page-header-title h5 { margin: 0; }
+.page-header .breadcrumb { display: flex; align-items: center; flex-wrap: wrap; margin: 0; }
+.report-hero { border: 1px solid rgba(80, 102, 144, 0.15); background: #ffffff; border-radius: 14px; padding: 1.1rem 1.25rem; margin-bottom: 1rem; }
 .report-summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.75rem; margin-bottom: 1rem; }
 .report-kpi { border: 1px solid rgba(80, 102, 144, 0.14); border-radius: 12px; padding: 0.85rem 1rem; background: #fff; text-align: center; }
 .report-kpi-label { font-size: 0.75rem; letter-spacing: 0.04em; text-transform: uppercase; color: #6b7280; margin-bottom: 0.4rem; }
@@ -91,27 +95,45 @@ html.app-skin-dark .ojt-at-risk { background-color: rgba(220, 38, 38, 0.15) !imp
 .report-kpi.ongoing .report-kpi-value { color: #3b82f6; }
 .report-kpi.completed .report-kpi-value { color: #059669; }
 .report-kpi.cancelled .report-kpi-value { color: #dc2626; }
-.report-filter-wrap { border: 1px solid rgba(80, 102, 144, 0.14); border-radius: 12px; padding: 0.9rem; background: #fff; margin-bottom: 1rem; }
+.report-filter-wrap { border: 1px solid rgba(80, 102, 144, 0.14); border-radius: 12px; padding: 0.6rem 0.75rem; background: #fff; margin-bottom: 1rem; }
+.report-filter-row { display: flex; align-items: end; gap: 0.45rem; flex-wrap: wrap; }
+.report-filter-field { min-width: 220px; max-width: 280px; flex: 0 1 260px; }
+.report-filter-actions { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.report-filter-wrap .form-label { font-size: 0.72rem; letter-spacing: 0.03em; text-transform: uppercase; color: #64748b; margin-bottom: 0.25rem; }
+.report-filter-wrap .form-select { min-height: 40px; padding-top: 0.45rem; padding-bottom: 0.45rem; }
+.report-filter-wrap .btn { min-height: 40px; padding: 0.45rem 0.9rem; }
 .report-table-card { border: 1px solid rgba(80, 102, 144, 0.14); border-radius: 12px; overflow: hidden; background: #fff; }
 .report-table-card .table { margin-bottom: 0; }
 .report-table-card thead th { font-size: 0.75rem; letter-spacing: 0.04em; text-transform: uppercase; color: #64748b; background: #f8fafc; border-bottom: 1px solid #e2e8f0; padding: 0.75rem; }
 .report-pill { border-radius: 999px; padding: 0.4rem 0.75rem; font-size: 0.75rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.35rem; }
 .progress-bar-custom { height: 4px; background: #e5e7eb; border-radius: 2px; overflow: hidden; }
 .progress-bar-custom .bar { height: 100%; background: linear-gradient(90deg, #3b82f6, #2563eb); }
-html.app-skin-dark .report-hero { border-color: rgba(129, 153, 199, 0.25); background: linear-gradient(135deg, rgba(32, 65, 124, 0.28), rgba(18, 101, 89, 0.28)); }
+html.app-skin-dark .report-hero { border-color: rgba(129, 153, 199, 0.25); background: #162033; }
 html.app-skin-dark .report-hero h6 { color: #e5edff; }
 html.app-skin-dark .report-kpi, html.app-skin-dark .report-filter-wrap, html.app-skin-dark .report-table-card { background: #0f172a; border-color: rgba(129, 153, 199, 0.24); color: #dce7ff; }
-html.app-skin-dark .report-kpi-label { color: #9fb0d3; }
+html.app-skin-dark .report-kpi-label,
+html.app-skin-dark .report-filter-wrap .form-label { color: #9fb0d3; }
 html.app-skin-dark .report-table-card thead th { background: #111f36; color: #9fb0d3; border-bottom-color: rgba(129, 153, 199, 0.25); }
 html.app-skin-dark .report-table-card .table { --bs-table-bg: #0f172a; --bs-table-hover-bg: #18243d; --bs-table-border-color: rgba(129, 153, 199, 0.2); }
 @media (max-width: 768px) { .report-summary-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 768px) { .report-filter-field { min-width: 100%; max-width: none; flex-basis: 100%; } }
 </style>
-<div class="page-header"><nav class="breadcrumb-wrapper"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="index.php">Reports</a></li><li class="breadcrumb-item active">OJT Programs</li></ol></nav></div>
+<div class="page-header">
+    <div class="page-header-left d-flex align-items-center">
+        <div class="page-header-title">
+            <h5 class="m-b-10">OJT Report</h5>
+            <ul class="breadcrumb">
+                <li class="breadcrumb-item"><a href="index.php">Reports</a></li>
+                <li class="breadcrumb-item">OJT Programs</li>
+            </ul>
+        </div>
+    </div>
+</div>
 <div class="main-content pb-5">
 <div class="report-hero d-flex flex-wrap align-items-center justify-content-between gap-3">
 <div>
 <h6 class="mb-1 fw-bold">OJT Program Overview</h6>
-<p class="text-muted mb-0">Real-time tracking of student progress, completion rates, and training milestones.</p>
+<p class="text-muted mb-0">Review internship status, completion risk, rendered hours, and program health in one place.</p>
 </div>
 <span class="report-pill bg-soft-primary text-primary"><i class="feather feather-briefcase"></i><?php echo $total_ojt; ?> Programs</span>
 </div>
@@ -125,8 +147,8 @@ html.app-skin-dark .report-table-card .table { --bs-table-bg: #0f172a; --bs-tabl
 </div>
 
 <div class="report-filter-wrap">
-<form method="get" class="row g-2 align-items-end">
-<div class="col-sm-6 col-md-4">
+<form method="get" class="report-filter-row">
+<div class="report-filter-field">
 <label class="form-label mb-1">Filter by Status</label>
 <select class="form-select" name="status">
 <option value="all" <?php echo $status_filter === 'all' ? 'selected' : ''; ?>>All Programs</option>
@@ -136,10 +158,8 @@ html.app-skin-dark .report-table-card .table { --bs-table-bg: #0f172a; --bs-tabl
 <option value="cancelled" <?php echo $status_filter === 'cancelled' ? 'selected' : ''; ?>>Cancelled</option>
 </select>
 </div>
-<div class="col-auto">
+<div class="report-filter-actions">
 <button type="submit" class="btn btn-primary"><i class="feather feather-filter me-1"></i>Filter</button>
-</div>
-<div class="col-auto">
 <a href="reports-ojt.php" class="btn btn-outline-secondary">Reset</a>
 </div>
 </form>

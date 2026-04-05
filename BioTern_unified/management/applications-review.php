@@ -140,6 +140,31 @@ function getCurrentSchoolYearLabel($timestamp = null)
     return sprintf('%d-%d', $startYear, $startYear + 1);
 }
 
+function formatSectionDisplayLabel($code, $name)
+{
+    $code = trim((string)$code);
+    $name = trim((string)$name);
+
+    if ($code === '' && $name === '') {
+        return '';
+    }
+
+    if ($code !== '' && $name !== '') {
+        $compactName = strtoupper(preg_replace('/\s+/', '', $name));
+
+        if (
+            preg_match('/^([A-Za-z]+)\s*-?\s*([0-9]+[A-Za-z]?)$/', $code, $matches)
+            && strtoupper($matches[2]) === $compactName
+        ) {
+            return strtoupper($matches[1]) . ' - ' . $name;
+        }
+
+        return $code . ' - ' . $name;
+    }
+
+    return $code !== '' ? $code : $name;
+}
+
 $flashType = '';
 $flashMessage = '';
 if (isset($_SESSION['flash_message'])) {
@@ -295,7 +320,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $conn->commit();
                 $flashType = 'success';
-                $flashMessage = 'Application approved and student hours updated.';
+                $flashMessage = 'Application approved. Student assignments and required hours were updated successfully.';
             } catch (Throwable $e) {
                 $conn->rollback();
                 $flashType = 'danger';
@@ -329,7 +354,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $studentStmt->close();
                 $conn->commit();
                 $flashType = 'warning';
-                $flashMessage = 'Application rejected and assignments updated.';
+                $flashMessage = 'Application rejected. Student assignment details were updated successfully.';
             } catch (Throwable $e) {
                 $conn->rollback();
                 $flashType = 'danger';
@@ -365,6 +390,7 @@ $courseFilter = isset($_GET['course_id']) ? (int)$_GET['course_id'] : 0;
 $sectionFilter = isset($_GET['section_id']) ? (int)$_GET['section_id'] : 0;
 $coordinatorFilter = isset($_GET['coordinator_id']) ? (int)$_GET['coordinator_id'] : 0;
 $supervisorFilter = isset($_GET['supervisor_id']) ? (int)$_GET['supervisor_id'] : 0;
+$effectiveStatusSql = "COALESCE(NULLIF(s_link.application_status, ''), NULLIF(s_fallback.application_status, ''), u.application_status)";
 
 $sql = "
     SELECT
@@ -372,58 +398,72 @@ $sql = "
         u.username,
         u.email,
         u.role,
-        u.application_status,
+        {$effectiveStatusSql} AS application_status,
         u.application_submitted_at,
         u.approved_at,
         u.rejected_at,
         u.approval_notes,
         u.disciplinary_remark,
-        s.student_id,
-        s.first_name,
-        s.middle_name,
-        s.last_name,
-        s.address,
-        s.phone,
-        s.date_of_birth,
-        s.gender,
-        s.emergency_contact,
-        s.emergency_contact_phone,
-        s.department_id,
-        s.coordinator_id,
-        s.supervisor_id,
-        s.coordinator_name,
-        s.supervisor_name,
-        s.internal_total_hours,
-        s.external_total_hours,
-        s.school_year,
-        s.semester,
+        COALESCE(s_link.student_id, s_fallback.student_id) AS student_id,
+        COALESCE(s_link.first_name, s_fallback.first_name) AS first_name,
+        COALESCE(s_link.middle_name, s_fallback.middle_name) AS middle_name,
+        COALESCE(s_link.last_name, s_fallback.last_name) AS last_name,
+        COALESCE(s_link.address, s_fallback.address) AS address,
+        COALESCE(s_link.phone, s_fallback.phone) AS phone,
+        COALESCE(s_link.date_of_birth, s_fallback.date_of_birth) AS date_of_birth,
+        COALESCE(s_link.gender, s_fallback.gender) AS gender,
+        COALESCE(s_link.emergency_contact, s_fallback.emergency_contact) AS emergency_contact,
+        COALESCE(s_link.emergency_contact_phone, s_fallback.emergency_contact_phone) AS emergency_contact_phone,
+        COALESCE(s_link.department_id, s_fallback.department_id) AS department_id,
+        COALESCE(s_link.coordinator_id, s_fallback.coordinator_id) AS coordinator_id,
+        COALESCE(s_link.supervisor_id, s_fallback.supervisor_id) AS supervisor_id,
+        COALESCE(s_link.coordinator_name, s_fallback.coordinator_name) AS coordinator_name,
+        COALESCE(s_link.supervisor_name, s_fallback.supervisor_name) AS supervisor_name,
+        COALESCE(s_link.internal_total_hours, s_fallback.internal_total_hours) AS internal_total_hours,
+        COALESCE(s_link.external_total_hours, s_fallback.external_total_hours) AS external_total_hours,
+        COALESCE(s_link.school_year, s_fallback.school_year) AS school_year,
+        COALESCE(s_link.semester, s_fallback.semester) AS semester,
         c.name AS course_name,
         d.name AS department_name,
         sec.code AS section_code,
         sec.name AS section_name
     FROM users u
-    LEFT JOIN students s ON s.user_id = u.id
-    LEFT JOIN courses c ON c.id = s.course_id
-    LEFT JOIN departments d ON d.id = s.department_id
-    LEFT JOIN sections sec ON sec.id = s.section_id
+    LEFT JOIN students s_link ON s_link.user_id = u.id
+    LEFT JOIN students s_fallback ON s_link.id IS NULL
+        AND LOWER(TRIM(COALESCE(s_fallback.email, ''))) <> ''
+        AND LOWER(TRIM(COALESCE(s_fallback.email, ''))) = LOWER(TRIM(COALESCE(u.email, '')))
+    LEFT JOIN courses c ON c.id = COALESCE(s_link.course_id, s_fallback.course_id)
+    LEFT JOIN departments d ON d.id = COALESCE(s_link.department_id, s_fallback.department_id)
+    LEFT JOIN sections sec ON sec.id = COALESCE(s_link.section_id, s_fallback.section_id)
     WHERE u.role = 'student'
+    AND (
+        LOWER(TRIM(COALESCE(u.email, ''))) = ''
+        OR NOT EXISTS (
+            SELECT 1
+            FROM users u_dupe
+            WHERE u_dupe.id <> u.id
+              AND LOWER(TRIM(COALESCE(u_dupe.email, ''))) = LOWER(TRIM(COALESCE(u.email, '')))
+              AND u.application_status <> 'approved'
+              AND u_dupe.application_status = 'approved'
+        )
+    )
 ";
 
 if ($statusFilter !== 'all') {
-    $sql .= " AND u.application_status = '" . $conn->real_escape_string($statusFilter) . "'";
+    $sql .= " AND {$effectiveStatusSql} = '" . $conn->real_escape_string($statusFilter) . "'";
 }
 
 if ($courseFilter > 0) {
-    $sql .= " AND s.course_id = " . (int)$courseFilter;
+    $sql .= " AND COALESCE(s_link.course_id, s_fallback.course_id) = " . (int)$courseFilter;
 }
 if ($sectionFilter > 0) {
-    $sql .= " AND s.section_id = " . (int)$sectionFilter;
+    $sql .= " AND COALESCE(s_link.section_id, s_fallback.section_id) = " . (int)$sectionFilter;
 }
 if ($coordinatorFilter > 0) {
-    $sql .= " AND s.coordinator_id = " . (int)$coordinatorFilter;
+    $sql .= " AND COALESCE(s_link.coordinator_id, s_fallback.coordinator_id) = " . (int)$coordinatorFilter;
 }
 if ($supervisorFilter > 0) {
-    $sql .= " AND s.supervisor_id = " . (int)$supervisorFilter;
+    $sql .= " AND COALESCE(s_link.supervisor_id, s_fallback.supervisor_id) = " . (int)$supervisorFilter;
 }
 
 $sql .= " ORDER BY COALESCE(u.application_submitted_at, u.created_at) DESC, u.id DESC";
@@ -433,20 +473,44 @@ $page_title = 'BioTern || Student Applications';
 include 'includes/header.php';
 ?>
 <style>
-    .apps-review-shell {
-        padding-top: 0;
+    html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
     }
 
-    .apps-review-shell .apps-review-title-row {
-        margin-bottom: 0 !important;
-        margin-top: 0 !important;
-        padding-bottom: 0 !important;
-        background: transparent !important;
-        border: 0 !important;
-        box-shadow: none !important;
+    body {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
     }
-    .apps-review-shell .apps-review-title-row,
-    .apps-review-shell .main-content {
+
+    main.nxl-container {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .nxl-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        padding-top: 12px;
+    }
+
+    footer.footer {
+        margin-top: auto;
+    }
+
+    .apps-review-shell {
+        padding-top: 0;
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+    }
+
+    .apps-review-shell .page-header,
+    .apps-review-shell .apps-review-toolbar-shell {
         width: 100%;
         max-width: none;
         margin-left: 0;
@@ -455,22 +519,84 @@ include 'includes/header.php';
         padding-right: 8px;
         box-sizing: border-box;
     }
-    .apps-review-shell .page-subtitle { color: #8a93a6; font-size: 13px; margin-top: 4px; }
+
+    .apps-review-shell .main-content {
+        width: 100%;
+        max-width: none;
+        margin-left: 0;
+        margin-right: 0;
+        padding-left: 0;
+        padding-right: 0;
+        box-sizing: border-box;
+    }
+    .apps-review-shell .page-header {
+        margin-top: 10px !important;
+        margin-bottom: 14px !important;
+    }
+
+    .apps-review-shell .page-header-title {
+        border-right: 0 !important;
+        padding-right: 0 !important;
+        margin-right: 0 !important;
+        display: flex;
+        align-items: center;
+        gap: 0.85rem;
+        flex-wrap: wrap;
+        min-width: 0;
+    }
+
     .apps-review-shell .page-header-title h5 {
-        margin-bottom: 0 !important;
-        margin-left: 0;
+        margin: 0;
+        white-space: nowrap;
     }
-    .apps-review-shell .page-subtitle {
-        margin-top: 2px;
+
+    .apps-review-shell .breadcrumb {
         margin-bottom: 0;
-        margin-left: 0;
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.15rem;
+        white-space: nowrap;
     }
-    .apps-review-shell .apps-review-title-row {
+
+    .apps-review-shell .apps-review-toolbar-shell {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 10px;
+        gap: 12px;
+        margin-bottom: 12px;
+        padding: 12px 14px;
+        border: 1px solid #e4ebf7;
+        border-radius: 14px;
+        background: #ffffff;
+        box-shadow: 0 6px 18px rgba(15, 23, 42, 0.04);
     }
+
+    .apps-review-toolbar-left {
+        min-width: 0;
+        flex: 1 1 auto;
+    }
+
+    .apps-review-toolbar-shell .page-subtitle {
+        color: #6c7a92;
+        font-size: 12px;
+        line-height: 1.4;
+        margin: 0;
+        max-width: 72ch;
+    }
+
+    .apps-review-toolbar-shell .btn {
+        flex-shrink: 0;
+    }
+
+    .apps-review-toolbar-actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 8px;
+        flex: 0 0 auto;
+    }
+
     .filter-toggle-btn {
         border-radius: 10px;
         border: 1px solid rgba(57, 78, 138, 0.24);
@@ -488,22 +614,31 @@ include 'includes/header.php';
     .apps-review-card {
         border: 1px solid rgba(140, 160, 190, 0.18);
         border-radius: 14px;
-        overflow: hidden;
+        overflow: visible;
         width: 100%;
         margin-top: 0;
+        margin-bottom: 18px;
         position: relative;
         z-index: 1;
         box-sizing: border-box;
+        height: auto !important;
+        min-height: 0 !important;
+        flex: 0 0 auto !important;
     }
 
     .apps-review-shell .main-content {
         margin-top: 0 !important;
-        padding-top: 0 !important;
-        padding-bottom: 0 !important;
+        padding: 0 !important;
+        display: flex;
+        flex-direction: column;
+        flex: 0 0 auto;
+        min-height: 0;
+        height: auto;
     }
 
     .apps-review-card .card-body {
         padding: 14px;
+        overflow: visible;
     }
 
     .apps-review-shell .main-content > .apps-review-card,
@@ -515,8 +650,11 @@ include 'includes/header.php';
         border: 1px solid rgba(140, 160, 190, 0.2);
         border-radius: 12px;
         background: #f8faff;
-        padding: 10px;
-        margin-bottom: 10px;
+        padding: 8px;
+        margin-bottom: 8px;
+        overflow: visible;
+        position: relative;
+        z-index: 5;
     }
 
     .filter-panel-head {
@@ -524,7 +662,7 @@ include 'includes/header.php';
         align-items: center;
         justify-content: space-between;
         gap: 10px;
-        margin-bottom: 8px;
+        margin-bottom: 6px;
         flex-wrap: wrap;
     }
 
@@ -535,7 +673,7 @@ include 'includes/header.php';
     }
 
     .filter-panel-label {
-        font-size: 13px;
+        font-size: 12px;
         font-weight: 700;
         color: #1f2a44;
         margin: 0;
@@ -544,22 +682,82 @@ include 'includes/header.php';
 
     .filter-panel-sub {
         margin: 2px 0 0;
-        font-size: 11px;
+        font-size: 10.5px;
         color: #6a768f;
     }
 
     .apps-review-toolbar {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+        grid-template-columns: repeat(5, minmax(0, 1fr));
         gap: 8px;
         margin-bottom: 0;
         align-items: end;
+        overflow: visible;
     }
 
-    .apps-review-toolbar .form-label { font-size: 12px; margin-bottom: 6px; color: #8a93a6; }
+    .apps-review-toolbar .form-label { font-size: 11px; margin-bottom: 4px; color: #8a93a6; }
+
+    .filter-panel .form-control,
+    .filter-panel .form-select {
+        min-height: 38px;
+        padding-top: 6px;
+        padding-bottom: 6px;
+        text-align: center;
+        text-align-last: center;
+    }
+
+    .apps-review-toolbar > div {
+        position: relative;
+        overflow: visible;
+    }
+
+    .filter-panel select.form-control,
+    .filter-panel select.form-select {
+        padding-left: 12px;
+        padding-right: 30px;
+    }
+
+    .filter-panel .select2-container {
+        width: 100% !important;
+    }
+
+    .filter-panel .select2-container--default .select2-selection--single {
+        min-height: 38px;
+        display: flex;
+        align-items: center;
+    }
+
+    .filter-panel .select2-container--default .select2-selection--single .select2-selection__rendered {
+        width: 100%;
+        line-height: 36px;
+        padding-left: 12px;
+        padding-right: 30px;
+        text-align: center;
+    }
+
+    .filter-panel .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 36px;
+    }
+
+    .filter-panel .select2-dropdown,
+    .filter-panel .select2-container--open .select2-dropdown {
+        z-index: 99999;
+    }
+
+    .filter-panel-head-actions .btn {
+        min-height: 34px;
+        padding-top: 4px;
+        padding-bottom: 4px;
+        font-size: 11px;
+    }
 
     .app-skin-dark .filter-panel {
         background: rgba(30, 45, 80, 0.16);
+        border-color: rgba(140, 160, 190, 0.28);
+    }
+
+    .app-skin-dark .apps-review-toolbar-shell {
+        background: rgba(30, 45, 80, 0.22);
         border-color: rgba(140, 160, 190, 0.28);
     }
 
@@ -586,7 +784,8 @@ include 'includes/header.php';
 
     .apps-review-table {
         width: 100%;
-        table-layout: auto;
+        min-width: 0;
+        table-layout: fixed;
     }
 
     .apps-review-table thead th {
@@ -606,13 +805,17 @@ include 'includes/header.php';
     }
 
     .apps-review-table th:nth-child(1),
-    .apps-review-table td:nth-child(1) { width: 30%; }
+    .apps-review-table td:nth-child(1) { width: 29%; }
     .apps-review-table th:nth-child(2),
-    .apps-review-table td:nth-child(2) { width: 23%; }
+    .apps-review-table td:nth-child(2) { width: 26%; }
+    .apps-review-table th:nth-child(3),
+    .apps-review-table td:nth-child(3) { width: 9%; }
+    .apps-review-table th:nth-child(4),
+    .apps-review-table td:nth-child(4) { width: 10%; }
     .apps-review-table th:nth-child(5),
-    .apps-review-table td:nth-child(5) { width: 14%; white-space: nowrap; }
+    .apps-review-table td:nth-child(5) { width: 17%; }
     .apps-review-table th:nth-child(6),
-    .apps-review-table td:nth-child(6) { width: 12%; text-align: center; }
+    .apps-review-table td:nth-child(6) { width: 9%; text-align: center; white-space: nowrap; }
 
     .student-block small {
         overflow-wrap: anywhere;
@@ -627,8 +830,12 @@ include 'includes/header.php';
     .hours-pill { display: inline-block; border: 1px solid rgba(140, 160, 190, 0.3); border-radius: 999px; padding: 3px 9px; font-weight: 600; }
 
     .apps-review-table > :not(caption) > * > * {
-        padding: 10px 10px;
+        padding: 10px 8px;
         vertical-align: middle;
+    }
+
+    .apps-review-table td:nth-child(5) {
+        line-height: 1.3;
     }
 
     .expand-btn {
@@ -741,12 +948,15 @@ include 'includes/header.php';
     }
 
     .table-responsive {
-        overflow-x: auto;
+        overflow-x: visible;
         overflow-y: visible;
     }
 
-    .apps-review-table {
-        min-width: 980px;
+    .apps-review-table-wrap {
+        margin-left: 0;
+        margin-right: 0;
+        margin-bottom: 0;
+        width: 100%;
     }
 
 .apps-review-table td[data-label="Status"],
@@ -761,6 +971,7 @@ include 'includes/header.php';
 .apps-review-table td[data-label="Review"],
 .apps-review-table th:nth-child(6) {
     text-align: center !important;
+    vertical-align: middle;
 }
 
 .apps-review-table .expand-btn {
@@ -784,18 +995,87 @@ include 'includes/header.php';
     opacity: 0;
 }
 
+    @media (max-width: 1399.98px) {
+        .apps-review-table > :not(caption) > * > * {
+            padding: 9px 6px;
+        }
+
+        .apps-review-table thead th {
+            font-size: 10.5px;
+        }
+
+        .apps-review-table td {
+            font-size: 12px;
+        }
+
+        .apps-review-table th:nth-child(1),
+        .apps-review-table td:nth-child(1) { width: 28%; }
+        .apps-review-table th:nth-child(2),
+        .apps-review-table td:nth-child(2) { width: 25%; }
+        .apps-review-table th:nth-child(3),
+        .apps-review-table td:nth-child(3) { width: 9%; }
+        .apps-review-table th:nth-child(4),
+        .apps-review-table td:nth-child(4) { width: 10%; }
+        .apps-review-table th:nth-child(5),
+        .apps-review-table td:nth-child(5) { width: 18%; }
+        .apps-review-table th:nth-child(6),
+        .apps-review-table td:nth-child(6) { width: 10%; }
+    }
+
     @media (max-width: 1200px) {
         .apps-review-table th:nth-child(1),
-        .apps-review-table td:nth-child(1) { width: 29%; }
+        .apps-review-table td:nth-child(1) { width: 28%; }
         .apps-review-table th:nth-child(2),
-        .apps-review-table td:nth-child(2) { width: 22%; }
+        .apps-review-table td:nth-child(2) { width: 24%; }
+        .apps-review-table th:nth-child(3),
+        .apps-review-table td:nth-child(3) { width: 9%; }
+        .apps-review-table th:nth-child(4),
+        .apps-review-table td:nth-child(4) { width: 10%; }
         .apps-review-table th:nth-child(5),
-        .apps-review-table td:nth-child(5) { width: 15%; }
+        .apps-review-table td:nth-child(5) { width: 18%; }
         .apps-review-table th:nth-child(6),
-        .apps-review-table td:nth-child(6) { width: 13%; }
+        .apps-review-table td:nth-child(6) { width: 11%; }
+    }
+
+    @media (max-width: 1399.98px) {
+        .apps-review-shell .page-header,
+        .apps-review-shell .apps-review-toolbar-shell {
+            padding-left: 4px;
+            padding-right: 4px;
+        }
+
+        .apps-review-shell .page-header,
+        .apps-review-shell .apps-review-toolbar-shell {
+            flex-wrap: wrap;
+            align-items: flex-start;
+        }
+
+        .apps-review-toolbar-actions {
+            width: 100%;
+            justify-content: flex-end;
+        }
+
+        .apps-review-shell .page-header-title {
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .filter-panel-head {
+            flex-wrap: wrap;
+        }
+
+        .filter-panel-head-actions {
+            width: auto;
+            margin-left: auto;
+        }
+
     }
 
     @media (max-width: 1100px) {
+        .apps-review-toolbar {
+            grid-template-columns: repeat(2, minmax(180px, 1fr));
+        }
+
         .apps-review-table thead {
             display: none;
         }
@@ -881,6 +1161,9 @@ include 'includes/header.php';
             flex-direction: column;
             align-items: flex-start;
         }
+        .apps-review-toolbar {
+            grid-template-columns: 1fr;
+        }
         .filter-panel-head-actions {
             width: 100%;
         }
@@ -890,14 +1173,20 @@ include 'includes/header.php';
     }
 
     @media (max-width: 767px) {
-        .apps-review-shell .apps-review-title-row,
+        .apps-review-shell .page-header,
+        .apps-review-shell .apps-review-toolbar-shell,
         .apps-review-shell .main-content {
             padding-left: 2px;
             padding-right: 2px;
         }
-        .apps-review-shell .apps-review-title-row {
+        .apps-review-shell .page-header,
+        .apps-review-shell .apps-review-toolbar-shell {
             flex-direction: column;
             align-items: flex-start;
+        }
+        .apps-review-toolbar-actions {
+            width: 100%;
+            justify-content: flex-start;
         }
         .apps-review-card .card-body { padding: 10px; }
         .apps-review-toolbar { grid-template-columns: 1fr; }
@@ -909,17 +1198,29 @@ include 'includes/header.php';
     }
 </style>
 <div class="apps-review-shell">
-        <div class="apps-review-title-row">
+        <div class="page-header">
             <div class="page-header-left d-flex align-items-center">
                 <div class="page-header-title">
                     <h5 class="m-b-10">Student Applications</h5>
-                    <p class="page-subtitle mb-0">Review, approve, and manage internship applications in one clean view.</p>
+                    <ul class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
+                        <li class="breadcrumb-item"><a href="students.php">Students</a></li>
+                        <li class="breadcrumb-item">Applications Review</li>
+                    </ul>
                 </div>
             </div>
-            <button type="button" class="btn filter-toggle-btn" data-bs-toggle="collapse" data-bs-target="#applicationsFilterCollapse" aria-expanded="false" aria-controls="applicationsFilterCollapse">
-                <i class="feather-filter me-2"></i>
-                <span>Filters</span>
-            </button>
+        </div>
+
+        <div class="apps-review-toolbar-shell">
+            <div class="apps-review-toolbar-left">
+                <p class="page-subtitle">Review each student application, assign coordinator and supervisor details, and confirm internship hour settings in one place.</p>
+            </div>
+            <div class="apps-review-toolbar-actions">
+                <button type="button" class="btn filter-toggle-btn" data-bs-toggle="collapse" data-bs-target="#applicationsFilterCollapse" aria-expanded="false" aria-controls="applicationsFilterCollapse">
+                    <i class="feather-filter me-2"></i>
+                    <span>Filters</span>
+                </button>
+            </div>
         </div>
 
         <div class="main-content">
@@ -976,7 +1277,7 @@ include 'includes/header.php';
                                         $secId = (int)($sec['id'] ?? 0);
                                         $secCode = trim((string)($sec['code'] ?? ''));
                                         $secName = trim((string)($sec['name'] ?? ''));
-                                        $secLabel = $secCode !== '' && $secName !== '' ? ($secCode . ' - ' . $secName) : ($secCode !== '' ? $secCode : $secName);
+                                        $secLabel = formatSectionDisplayLabel($secCode, $secName);
                                     ?>
                                     <option value="<?php echo $secId; ?>" <?php echo $sectionFilter === $secId ? 'selected' : ''; ?>><?php echo htmlspecialchars($secLabel !== '' ? $secLabel : ('Section #' . $secId), ENT_QUOTES, 'UTF-8'); ?></option>
                                 <?php endforeach; ?>
@@ -1006,7 +1307,7 @@ include 'includes/header.php';
                     </div>
                     </div>
 
-                    <div class="table-responsive">
+                    <div class="table-responsive apps-review-table-wrap">
                         <table class="table table-bordered table-hover align-middle apps-review-table">
                             <thead>
                                 <tr>
@@ -1061,13 +1362,9 @@ include 'includes/header.php';
 
                                             $courseLabel = $courseName !== '' ? $courseName : 'To be assigned';
                                             $departmentLabel = $departmentName !== '' ? $departmentName : 'To be assigned';
-                                            $sectionLabel = 'To be assigned';
-                                            if ($sectionCode !== '' && $sectionName !== '') {
-                                                $sectionLabel = $sectionCode . ' - ' . $sectionName;
-                                            } elseif ($sectionCode !== '') {
-                                                $sectionLabel = $sectionCode;
-                                            } elseif ($sectionName !== '') {
-                                                $sectionLabel = $sectionName;
+                                            $sectionLabel = formatSectionDisplayLabel($sectionCode, $sectionName);
+                                            if ($sectionLabel === '') {
+                                                $sectionLabel = 'To be assigned';
                                             }
                                             $coordinatorLabel = $coordinatorName !== '' ? $coordinatorName : 'To be assigned';
                                             $supervisorLabel = $supervisorName !== '' ? $supervisorName : 'To be assigned';
@@ -1202,7 +1499,7 @@ include 'includes/header.php';
                                     <?php endwhile; ?>
                                 <?php else: ?>
                                     <tr>
-                                        <td colspan="6" class="text-center text-muted py-4">No applications found.</td>
+                                        <td colspan="6" class="text-center text-muted py-4">No applications match the current filter.</td>
                                     </tr>
                                 <?php endif; ?>
                             </tbody>
@@ -1263,7 +1560,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     allowClear: false,
                     dropdownAutoWidth: false,
                     minimumResultsForSearch: Infinity,
-                    dropdownParent: $applicationsFilterForm
+                    dropdownParent: $(document.body)
                 });
             }
         });
@@ -1273,7 +1570,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     width: '100%',
                     allowClear: false,
                     dropdownAutoWidth: false,
-                    dropdownParent: $applicationsFilterForm
+                    dropdownParent: $(document.body)
                 });
             }
         });

@@ -125,7 +125,7 @@ include 'includes/header.php';
 
     .logs-hero {
         border: 1px solid rgba(80, 102, 144, 0.15);
-        background: linear-gradient(135deg, rgba(26, 64, 132, 0.08), rgba(24, 153, 132, 0.08));
+        background: #ffffff;
         border-radius: 14px;
         padding: 1.1rem 1.25rem;
         margin-bottom: 1rem;
@@ -216,7 +216,7 @@ include 'includes/header.php';
 
     html.app-skin-dark .logs-hero {
         border-color: rgba(129, 153, 199, 0.25);
-        background: linear-gradient(135deg, rgba(32, 65, 124, 0.28), rgba(18, 101, 89, 0.28));
+        background: #162033;
     }
 
     html.app-skin-dark .logs-hero h6 {

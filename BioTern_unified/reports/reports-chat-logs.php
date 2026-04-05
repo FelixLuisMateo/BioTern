@@ -740,7 +740,15 @@ include 'includes/header.php';
 </style>
 
 <div class="page-header">
-    <nav class="breadcrumb-wrapper"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="index.php">Reports</a></li><li class="breadcrumb-item active">Chat Logs</li></ol></nav>
+    <div class="page-header-left d-flex align-items-center">
+        <div class="page-header-title">
+            <h5 class="m-b-10">Chat Logs</h5>
+            <ul class="breadcrumb">
+                <li class="breadcrumb-item"><a href="index.php">Reports</a></li>
+                <li class="breadcrumb-item">Chat Logs</li>
+            </ul>
+        </div>
+    </div>
 </div>
 
 <div class="main-content pb-5">

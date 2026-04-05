@@ -1,5 +1,4 @@
 <?php
-require_once dirname(__DIR__) . '/config/db.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -203,14 +202,16 @@ if (!empty($filter_supervisor)) {
     $esc_sup = $conn->real_escape_string($filter_supervisor);
     $where[] = "(
         TRIM(CONCAT_WS(' ', sup.first_name, sup.middle_name, sup.last_name)) LIKE '%{$esc_sup}%'
-        OR s.supervisor_name LIKE '%{$esc_sup}%'
+        OR TRIM(CONCAT_WS(' ', sup_student.first_name, sup_student.middle_name, sup_student.last_name)) LIKE '%{$esc_sup}%'
+        OR (NULLIF(TRIM(CAST(s.supervisor_name AS CHAR)), '') IS NOT NULL AND TRIM(CAST(s.supervisor_name AS CHAR)) <> '0' AND s.supervisor_name LIKE '%{$esc_sup}%')
     )";
 }
 if (!empty($filter_coordinator)) {
     $esc_coor = $conn->real_escape_string($filter_coordinator);
     $where[] = "(
         TRIM(CONCAT_WS(' ', coor.first_name, coor.middle_name, coor.last_name)) LIKE '%{$esc_coor}%'
-        OR s.coordinator_name LIKE '%{$esc_coor}%'
+        OR TRIM(CONCAT_WS(' ', coor_student.first_name, coor_student.middle_name, coor_student.last_name)) LIKE '%{$esc_coor}%'
+        OR (NULLIF(TRIM(CAST(s.coordinator_name AS CHAR)), '') IS NOT NULL AND TRIM(CAST(s.coordinator_name AS CHAR)) <> '0' AND s.coordinator_name LIKE '%{$esc_coor}%')
     )";
 }
 if ($filter_status >= 0) {
@@ -271,12 +272,14 @@ $students_query = "
         i.coordinator_id,
         COALESCE(
             NULLIF(TRIM(CONCAT_WS(' ', sup.first_name, sup.middle_name, sup.last_name)), ''),
-            NULLIF(TRIM(s.supervisor_name), ''),
+            NULLIF(TRIM(CONCAT_WS(' ', sup_student.first_name, sup_student.middle_name, sup_student.last_name)), ''),
+            NULLIF(NULLIF(TRIM(CAST(s.supervisor_name AS CHAR)), ''), '0'),
             '-'
         ) AS supervisor_name,
         COALESCE(
             NULLIF(TRIM(CONCAT_WS(' ', coor.first_name, coor.middle_name, coor.last_name)), ''),
-            NULLIF(TRIM(s.coordinator_name), ''),
+            NULLIF(TRIM(CONCAT_WS(' ', coor_student.first_name, coor_student.middle_name, coor_student.last_name)), ''),
+            NULLIF(NULLIF(TRIM(CAST(s.coordinator_name AS CHAR)), ''), '0'),
             '-'
         ) AS coordinator_name
     FROM students s
@@ -290,6 +293,8 @@ $students_query = "
        AND COALESCE(i.semester, '') = COALESCE(s.semester, '')
     LEFT JOIN supervisors sup ON i.supervisor_id = sup.id
     LEFT JOIN coordinators coor ON i.coordinator_id = coor.id
+    LEFT JOIN supervisors sup_student ON s.supervisor_id = sup_student.id
+    LEFT JOIN coordinators coor_student ON s.coordinator_id = coor_student.id
     " . (count($where) > 0 ? "WHERE " . implode(' AND ', $where) : "") . "
     ORDER BY s.first_name ASC
     LIMIT 100
@@ -315,6 +320,13 @@ function getStatusBadge($status) {
 function formatDate($date) {
     if ($date) {
         return date('M d, Y h:i A', strtotime($date));
+    }
+    return '-';
+}
+
+function formatDateCompact($date) {
+    if ($date) {
+        return date('M d, y h:iA', strtotime($date));
     }
     return '-';
 }
@@ -420,9 +432,45 @@ usort($print_students, function ($a, $b) {
         }
         div.nxl-content {
             flex: 1;
+            padding-top: 12px;
+            padding-bottom: 18px;
         }
         footer.footer {
             margin-top: auto;
+        }
+
+        .nxl-content > .page-header,
+        .nxl-content > .students-toolbar,
+        .nxl-content > .collapse,
+        .nxl-content > .main-content {
+            margin-bottom: 14px !important;
+        }
+
+        .main-content {
+            margin-top: 0 !important;
+            padding: 0 !important;
+        }
+
+        .main-content > .row {
+            --bs-gutter-x: 0;
+            margin-left: 0;
+            margin-right: 0;
+        }
+
+        .main-content > .row > [class*="col-"] {
+            padding-left: 0;
+            padding-right: 0;
+        }
+
+        .main-content > .row {
+            --bs-gutter-x: 0;
+            margin-left: 0;
+            margin-right: 0;
+        }
+
+        .main-content > .row > [class*="col-"] {
+            padding-left: 0;
+            padding-right: 0;
         }
         
         /* Dark mode select and Select2 styling */
@@ -725,6 +773,84 @@ usort($print_students, function ($a, $b) {
             z-index: 2900 !important;
         }
 
+        .page-header .page-header-title {
+            border-right: 0 !important;
+            padding-right: 0 !important;
+            margin-right: 0 !important;
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+            flex-wrap: wrap;
+        }
+
+        .page-header .page-header-title h5 {
+            margin: 0;
+        }
+
+        .page-header .breadcrumb {
+            margin-bottom: 0;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.15rem;
+        }
+
+        .students-toolbar {
+            margin-bottom: 12px;
+            padding: 14px 16px;
+            border: 1px solid #e4ebf7;
+            border-radius: 14px;
+            background: #ffffff;
+            box-shadow: 0 6px 18px rgba(15, 23, 42, 0.04);
+            display: block;
+        }
+
+        .students-toolbar-left {
+            min-width: 0;
+            max-width: none;
+        }
+
+        .students-toolbar .page-subtitle {
+            font-size: 12px;
+            color: #6c7a92;
+            line-height: 1.4;
+            margin: 0;
+            max-width: 72ch;
+        }
+
+        .students-toolbar-right {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            align-content: flex-end;
+            flex-wrap: wrap;
+            row-gap: 6px;
+            column-gap: 6px !important;
+            width: 100%;
+            margin-top: 12px;
+        }
+
+        .students-toolbar-right .btn,
+        .students-toolbar-right a.btn,
+        .students-toolbar-right .dropdown {
+            flex: 0 0 auto;
+        }
+
+        .students-toolbar-right .btn,
+        .students-toolbar-right a.btn {
+            min-height: 32px;
+            border-radius: 8px;
+            font-size: 10.5px;
+            font-weight: 700;
+            letter-spacing: .01em;
+            padding: 0.28rem 0.58rem;
+            line-height: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+        }
+
         .filter-form,
         .filter-form .select2-container,
         .filter-form .select2-container--open,
@@ -800,10 +926,36 @@ usort($print_students, function ($a, $b) {
             flex-wrap: wrap;
         }
 
+        html.app-skin-dark .students-toolbar {
+            border-color: #253252;
+            background: #111a2e;
+            box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+        }
+
         @media (max-width: 575.98px) {
             .footer {
                 flex-direction: column;
                 align-items: flex-start;
+            }
+
+            .students-toolbar-right {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 991.98px) {
+            .students-toolbar-right {
+                display: grid !important;
+                grid-template-columns: 1fr 1fr;
+                gap: 8px !important;
+                justify-content: stretch;
+            }
+
+            .students-toolbar-right .btn,
+            .students-toolbar-right a.btn,
+            .students-toolbar-right .dropdown,
+            .students-toolbar-right .dropdown > .btn {
+                width: 100%;
             }
         }
 
@@ -811,21 +963,141 @@ usort($print_students, function ($a, $b) {
             display: none;
         }
 
-        /* Keep wide student table usable at normal zoom by allowing horizontal scroll. */
+        /* Keep the student list as one table and let cells wrap instead of flipping into cards. */
         .students-table-wrap {
-            overflow-x: auto;
-            overflow-y: hidden;
-            -webkit-overflow-scrolling: touch;
+            overflow: visible;
+            max-width: 100%;
         }
 
         .students-table-wrap #customerList,
         .students-table-wrap .dataTables_wrapper {
-            min-width: 1180px;
+            min-width: 100%;
+        }
+
+        .students-table-wrap .dataTables_wrapper,
+        .students-table-wrap .dataTables_scroll,
+        .students-table-wrap .dataTables_scrollHead,
+        .students-table-wrap .dataTables_scrollBody {
+            max-width: 100%;
+            overflow: visible !important;
+        }
+
+        .students-table-wrap .dataTables_wrapper {
+            padding: 0.1rem 0 0;
+        }
+
+        .students-table-wrap .dataTables_wrapper > .row:first-child {
+            margin: 0 !important;
+            padding: 0 0.45rem 0.2rem;
+        }
+
+        .students-table-wrap .dataTables_wrapper > .row:last-child {
+            margin: 0 !important;
+            padding: 0.2rem 0.45rem 0.25rem;
+        }
+
+        .students-table-wrap .dataTables_wrapper > .row > [class*="col-"] {
+            padding-left: 0;
+            padding-right: 0;
+        }
+
+        .students-table-wrap table.table {
+            margin-bottom: 0;
+        }
+
+        .students-table-wrap #customerList {
+            width: 100%;
+            table-layout: fixed;
         }
 
         .students-table-wrap th,
         .students-table-wrap td {
             white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            vertical-align: middle;
+            font-size: 11px;
+            padding: 0.55rem 0.45rem;
+            min-width: 0;
+        }
+
+        .students-table-wrap th:first-child,
+        .students-table-wrap td:first-child {
+            width: 3%;
+            min-width: 40px;
+            white-space: nowrap;
+        }
+
+        .students-table-wrap th:nth-child(2),
+        .students-table-wrap td:nth-child(2) {
+            width: 14%;
+        }
+
+        .students-table-wrap th:nth-child(3),
+        .students-table-wrap td:nth-child(3) {
+            width: 8%;
+            white-space: nowrap;
+        }
+
+        .students-table-wrap th:nth-child(4),
+        .students-table-wrap td:nth-child(4) {
+            width: 18%;
+        }
+
+        .students-table-wrap th:nth-child(5),
+        .students-table-wrap td:nth-child(5) {
+            width: 6%;
+            white-space: nowrap;
+        }
+
+        .students-table-wrap th:nth-child(6),
+        .students-table-wrap td:nth-child(6),
+        .students-table-wrap th:nth-child(7),
+        .students-table-wrap td:nth-child(7) {
+            width: 10%;
+        }
+
+        .students-table-wrap th:nth-child(8),
+        .students-table-wrap td:nth-child(8) {
+            width: 13%;
+            white-space: nowrap;
+        }
+
+        .students-table-wrap th:nth-child(9),
+        .students-table-wrap td:nth-child(9) {
+            width: 7%;
+            white-space: nowrap;
+        }
+
+        .students-table-wrap th:last-child,
+        .students-table-wrap td:last-child {
+            width: 11%;
+            white-space: nowrap;
+        }
+
+        .students-table-wrap td .text-truncate-1-line {
+            white-space: nowrap !important;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .students-table-wrap td a.hstack,
+        .students-table-wrap td a.hstack > div,
+        .students-table-wrap td .fw-semibold,
+        .students-table-wrap td .text-dark {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .students-table-wrap .avatar-image.avatar-md {
+            width: 34px;
+            height: 34px;
+            min-width: 34px;
+        }
+
+        .students-table-wrap td a.hstack {
+            gap: 0.55rem !important;
         }
 
         .students-action-menu-portal {
@@ -844,10 +1116,256 @@ usort($print_students, function ($a, $b) {
             box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2);
         }
 
-        @media (max-width: 991.98px) {
-            .students-table-wrap #customerList,
-            .students-table-wrap .dataTables_wrapper {
-                min-width: 980px;
+        .students-table-wrap td[data-label="Actions"] .avatar-text.avatar-md {
+            width: 30px;
+            height: 30px;
+            min-width: 30px;
+            font-size: 12px;
+        }
+
+        @media (max-width: 1599.98px) {
+            .students-table-wrap #customerList {
+                table-layout: fixed;
+            }
+
+            .students-table-wrap th,
+            .students-table-wrap td {
+                font-size: 10px;
+                padding: 0.45rem 0.3rem;
+            }
+
+            .students-table-wrap .avatar-image.avatar-md {
+                width: 30px;
+                height: 30px;
+                min-width: 30px;
+            }
+
+            .students-table-wrap td a.hstack {
+                gap: 0.4rem !important;
+            }
+
+            .students-table-wrap th:nth-child(2),
+            .students-table-wrap td:nth-child(2) {
+                width: 15%;
+            }
+
+            .students-table-wrap th:nth-child(4),
+            .students-table-wrap td:nth-child(4) {
+                width: 16%;
+            }
+
+            .students-table-wrap th:nth-child(5),
+            .students-table-wrap td:nth-child(5) {
+                width: 5%;
+            }
+
+            .students-table-wrap th:nth-child(8),
+            .students-table-wrap td:nth-child(8) {
+                width: 11%;
+            }
+
+            .students-table-wrap th:last-child,
+            .students-table-wrap td:last-child {
+                width: 9%;
+            }
+
+            .students-table-wrap td[data-label="Actions"] .avatar-text.avatar-md {
+                width: 28px;
+                height: 28px;
+                min-width: 28px;
+                font-size: 11px;
+            }
+        }
+
+        @media (max-width: 1439.98px) {
+            .students-table-wrap th,
+            .students-table-wrap td {
+                font-size: 9.5px;
+                padding: 0.38rem 0.22rem;
+            }
+
+            .students-table-wrap .avatar-image.avatar-md {
+                width: 26px;
+                height: 26px;
+                min-width: 26px;
+            }
+
+            .students-table-wrap td a.hstack {
+                gap: 0.3rem !important;
+            }
+
+            .students-table-wrap th:nth-child(2),
+            .students-table-wrap td:nth-child(2) {
+                width: 14%;
+            }
+
+            .students-table-wrap th:nth-child(3),
+            .students-table-wrap td:nth-child(3) {
+                width: 8%;
+            }
+
+            .students-table-wrap th:nth-child(4),
+            .students-table-wrap td:nth-child(4) {
+                width: 15%;
+            }
+
+            .students-table-wrap th:nth-child(5),
+            .students-table-wrap td:nth-child(5) {
+                width: 5%;
+            }
+
+            .students-table-wrap th:nth-child(6),
+            .students-table-wrap td:nth-child(6),
+            .students-table-wrap th:nth-child(7),
+            .students-table-wrap td:nth-child(7) {
+                width: 9%;
+            }
+
+            .students-table-wrap th:nth-child(8),
+            .students-table-wrap td:nth-child(8) {
+                width: 10%;
+            }
+
+            .students-table-wrap th:nth-child(9),
+            .students-table-wrap td:nth-child(9) {
+                width: 6%;
+            }
+
+            .students-table-wrap th:last-child,
+            .students-table-wrap td:last-child {
+                width: 7%;
+            }
+
+            .students-table-wrap td[data-label="Actions"] .avatar-text.avatar-md {
+                width: 26px;
+                height: 26px;
+                min-width: 26px;
+                font-size: 10px;
+            }
+        }
+
+        @media (max-width: 1199.98px) {
+            .students-table-wrap th,
+            .students-table-wrap td {
+                font-size: 9.5px;
+                padding: 0.4rem 0.25rem;
+            }
+
+            .students-table-wrap th:nth-child(6),
+            .students-table-wrap td:nth-child(6),
+            .students-table-wrap th:nth-child(7),
+            .students-table-wrap td:nth-child(7) {
+                width: 9%;
+            }
+
+            .students-table-wrap th:nth-child(8),
+            .students-table-wrap td:nth-child(8) {
+                width: 10%;
+            }
+
+            .students-table-wrap th:last-child,
+            .students-table-wrap td:last-child {
+                width: 8%;
+            }
+        }
+
+        @media (min-width: 1025px) and (max-width: 1399.98px) {
+            html:not(.minimenu) .students-table-wrap th,
+            html:not(.minimenu) .students-table-wrap td,
+            html.minimenu .nxl-navigation:hover ~ .nxl-container .students-table-wrap th,
+            html.minimenu .nxl-navigation:hover ~ .nxl-container .students-table-wrap td {
+                font-size: 10.25px;
+                padding: 0.46rem 0.26rem;
+            }
+
+            html:not(.minimenu) .students-table-wrap .avatar-image.avatar-md,
+            html.minimenu .nxl-navigation:hover ~ .nxl-container .students-table-wrap .avatar-image.avatar-md {
+                width: 28px;
+                height: 28px;
+                min-width: 28px;
+            }
+
+            html:not(.minimenu) .students-table-wrap td a.hstack,
+            html.minimenu .nxl-navigation:hover ~ .nxl-container .students-table-wrap td a.hstack {
+                gap: 0.36rem !important;
+            }
+
+            html:not(.minimenu) .students-table-wrap .dataTables_wrapper > .row:first-child,
+            html.minimenu .nxl-navigation:hover ~ .nxl-container .students-table-wrap .dataTables_wrapper > .row:first-child {
+                padding: 0 0.35rem 0.18rem;
+            }
+
+            html:not(.minimenu) .students-table-wrap .dataTables_wrapper > .row:last-child,
+            html.minimenu .nxl-navigation:hover ~ .nxl-container .students-table-wrap .dataTables_wrapper > .row:last-child {
+                padding: 0.18rem 0.35rem 0.22rem;
+            }
+
+            html:not(.minimenu) .students-table-wrap th:nth-child(2),
+            html:not(.minimenu) .students-table-wrap td:nth-child(2),
+            html.minimenu .nxl-navigation:hover ~ .nxl-container .students-table-wrap th:nth-child(2),
+            html.minimenu .nxl-navigation:hover ~ .nxl-container .students-table-wrap td:nth-child(2) {
+                width: 13%;
+            }
+
+            html:not(.minimenu) .students-table-wrap th:nth-child(3),
+            html:not(.minimenu) .students-table-wrap td:nth-child(3),
+            html.minimenu .nxl-navigation:hover ~ .nxl-container .students-table-wrap th:nth-child(3),
+            html.minimenu .nxl-navigation:hover ~ .nxl-container .students-table-wrap td:nth-child(3) {
+                width: 7.5%;
+            }
+
+            html:not(.minimenu) .students-table-wrap th:nth-child(4),
+            html:not(.minimenu) .students-table-wrap td:nth-child(4),
+            html.minimenu .nxl-navigation:hover ~ .nxl-container .students-table-wrap th:nth-child(4),
+            html.minimenu .nxl-navigation:hover ~ .nxl-container .students-table-wrap td:nth-child(4) {
+                width: 15%;
+            }
+
+            html:not(.minimenu) .students-table-wrap th:nth-child(5),
+            html:not(.minimenu) .students-table-wrap td:nth-child(5),
+            html.minimenu .nxl-navigation:hover ~ .nxl-container .students-table-wrap th:nth-child(5),
+            html.minimenu .nxl-navigation:hover ~ .nxl-container .students-table-wrap td:nth-child(5) {
+                width: 4.5%;
+            }
+
+            html:not(.minimenu) .students-table-wrap th:nth-child(6),
+            html:not(.minimenu) .students-table-wrap td:nth-child(6),
+            html:not(.minimenu) .students-table-wrap th:nth-child(7),
+            html:not(.minimenu) .students-table-wrap td:nth-child(7),
+            html.minimenu .nxl-navigation:hover ~ .nxl-container .students-table-wrap th:nth-child(6),
+            html.minimenu .nxl-navigation:hover ~ .nxl-container .students-table-wrap td:nth-child(6),
+            html.minimenu .nxl-navigation:hover ~ .nxl-container .students-table-wrap th:nth-child(7),
+            html.minimenu .nxl-navigation:hover ~ .nxl-container .students-table-wrap td:nth-child(7) {
+                width: 8.5%;
+            }
+
+            html:not(.minimenu) .students-table-wrap th:nth-child(8),
+            html:not(.minimenu) .students-table-wrap td:nth-child(8),
+            html.minimenu .nxl-navigation:hover ~ .nxl-container .students-table-wrap th:nth-child(8),
+            html.minimenu .nxl-navigation:hover ~ .nxl-container .students-table-wrap td:nth-child(8) {
+                width: 10%;
+            }
+
+            html:not(.minimenu) .students-table-wrap th:nth-child(9),
+            html:not(.minimenu) .students-table-wrap td:nth-child(9),
+            html.minimenu .nxl-navigation:hover ~ .nxl-container .students-table-wrap th:nth-child(9),
+            html.minimenu .nxl-navigation:hover ~ .nxl-container .students-table-wrap td:nth-child(9) {
+                width: 6%;
+            }
+
+            html:not(.minimenu) .students-table-wrap th:last-child,
+            html:not(.minimenu) .students-table-wrap td:last-child,
+            html.minimenu .nxl-navigation:hover ~ .nxl-container .students-table-wrap th:last-child,
+            html.minimenu .nxl-navigation:hover ~ .nxl-container .students-table-wrap td:last-child {
+                width: 6%;
+            }
+
+            html:not(.minimenu) .students-table-wrap td[data-label="Actions"] .avatar-text.avatar-md,
+            html.minimenu .nxl-navigation:hover ~ .nxl-container .students-table-wrap td[data-label="Actions"] .avatar-text.avatar-md {
+                width: 26px;
+                height: 26px;
+                min-width: 26px;
+                font-size: 11px;
             }
         }
 
@@ -969,10 +1487,8 @@ usort($print_students, function ($a, $b) {
         </div>
         <div class="print-title">STUDENT SECTION LIST</div>
         <div class="print-meta"><strong>SECTION:</strong> <?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars($selected_section_label); ?></div>
         <div class="print-meta"><strong>ADVISER:</strong> <?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars($selected_adviser); ?></div>
         <table>
             <thead>
@@ -987,48 +1503,37 @@ echo htmlspecialchars($selected_adviser); ?></div>
             </thead>
             <tbody>
                 <?php
-require_once dirname(__DIR__) . '/config/db.php';
 if (!empty($print_students)): ?>
                     <?php
-require_once dirname(__DIR__) . '/config/db.php';
 foreach ($print_students as $i => $student): ?>
                         <tr>
                             <td class="col-index"><?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo (int)$i + 1; ?></td>
                             <td><?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars((string)($student['student_id'] ?? '')); ?></td>
                             <td><?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars((string)($student['last_name'] ?? '')); ?></td>
                             <td><?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars((string)($student['first_name'] ?? '')); ?></td>
                             <td><?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars((string)($student['middle_name'] ?? '')); ?></td>
                             <td></td>
                         </tr>
                     <?php
-require_once dirname(__DIR__) . '/config/db.php';
 endforeach; ?>
                 <?php
-require_once dirname(__DIR__) . '/config/db.php';
 else: ?>
                     <tr>
                         <td class="col-index">1</td>
                         <td colspan="5">No students found for current filter.</td>
                     </tr>
                 <?php
-require_once dirname(__DIR__) . '/config/db.php';
 endif; ?>
             </tbody>
         </table>
     </section>
 
     <?php
-require_once dirname(__DIR__) . '/config/db.php';
 include_once dirname(__DIR__) . '/includes/navigation.php'; ?>
 
     <!--! Header !-->
@@ -1099,32 +1604,25 @@ include_once dirname(__DIR__) . '/includes/navigation.php'; ?>
                     <div class="dropdown nxl-h-item">
                         <a href="javascript:void(0);" data-bs-toggle="dropdown" role="button" data-bs-auto-close="outside">
                             <img src="<?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars($current_profile_img, ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar me-0" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
                         </a>
                         <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-user-dropdown">
                             <div class="dropdown-header">
                                 <div class="d-flex align-items-center">
                                     <img src="<?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars($current_profile_img, ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
                                     <div>
                                         <h6 class="text-dark mb-0">
                                             <?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars($current_user_name, ENT_QUOTES, 'UTF-8'); ?>
                                             <?php
-require_once dirname(__DIR__) . '/config/db.php';
 if ($current_user_role_badge !== ''): ?>
                                                 <span class="badge bg-soft-success text-success ms-1"><?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars(ucfirst($current_user_role_badge), ENT_QUOTES, 'UTF-8'); ?></span>
                                             <?php
-require_once dirname(__DIR__) . '/config/db.php';
 endif; ?>
                                         </h6>
                                         <span class="fs-12 fw-medium text-muted"><?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars($current_user_email, ENT_QUOTES, 'UTF-8'); ?></span>
                                     </div>
                                 </div>
@@ -1166,77 +1664,68 @@ echo htmlspecialchars($current_user_email, ENT_QUOTES, 'UTF-8'); ?></span>
                 <div class="page-header-left d-flex align-items-center">
                     <div class="page-header-title">
                         <h5 class="m-b-10">Students</h5>
+                        <ul class="breadcrumb">
+                            <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
+                            <li class="breadcrumb-item">Students</li>
+                        </ul>
                     </div>
-                    <ul class="breadcrumb">
-                        <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
-                        <li class="breadcrumb-item">Students</li>
-                    </ul>
                 </div>
-                <div class="page-header-right ms-auto">
-                    <div class="page-header-right-items">
-                        <div class="d-flex d-md-none">
-                            <a href="javascript:void(0)" class="page-header-right-close-toggle">
-                                <i class="feather-arrow-left me-2"></i>
-                                <span>Back</span>
-                            </a>
-                        </div>
-                        <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
-                            <button type="button" class="btn btn-light-brand" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="false" aria-controls="collapseOne">
-                                <i class="feather-bar-chart me-2"></i>
-                                <span>Statistics</span>
-                            </button>
-                            <button type="button" class="btn filter-toggle-btn" data-bs-toggle="collapse" data-bs-target="#studentsFilterCollapse" aria-expanded="false" aria-controls="studentsFilterCollapse">
-                                <i class="feather-filter me-2"></i>
-                                <span>Filters</span>
-                            </button>
-                            <div class="dropdown">
-                                <a class="btn btn-light-brand" data-bs-toggle="dropdown" data-bs-offset="0, 10" data-bs-auto-close="outside" role="button" aria-label="Export options">
-                                    <i class="feather-paperclip me-2"></i>
-                                    <span>Export</span>
-                                </a>
-                                <div class="dropdown-menu dropdown-menu-end">
-                                    <a href="javascript:void(0);" class="dropdown-item js-export" data-export="pdf">
-                                        <i class="bi bi-filetype-pdf me-3"></i>
-                                        <span>PDF</span>
-                                    </a>
-                                    <a href="javascript:void(0);" class="dropdown-item js-export" data-export="csv">
-                                        <i class="bi bi-filetype-csv me-3"></i>
-                                        <span>CSV</span>
-                                    </a>
-                                    <a href="javascript:void(0);" class="dropdown-item js-export" data-export="xml">
-                                        <i class="bi bi-filetype-xml me-3"></i>
-                                        <span>XML</span>
-                                    </a>
-                                    <a href="javascript:void(0);" class="dropdown-item js-export" data-export="txt">
-                                        <i class="bi bi-filetype-txt me-3"></i>
-                                        <span>Text</span>
-                                    </a>
-                                    <a href="javascript:void(0);" class="dropdown-item js-export" data-export="excel">
-                                        <i class="bi bi-filetype-exe me-3"></i>
-                                        <span>Excel</span>
-                                    </a>
-                                    <div class="dropdown-divider"></div>
-                                    <a href="javascript:void(0);" class="dropdown-item js-print-page">
-                                        <i class="bi bi-printer me-3"></i>
-                                        <span>Print</span>
-                                    </a>
-                                </div>
-                            </div>
-                            <button type="button" class="btn btn-light js-print-page">
-                                <i class="feather-printer me-2"></i>
-                                <span>Print List</span>
-                            </button>
-                            <a href="students-create.php" class="btn btn-primary">
-                                <i class="feather-plus me-2"></i>
-                                <span>Create Students</span>
-                            </a>
-                        </div>
-                    </div>
-                    <div class="d-md-none d-flex align-items-center">
-                        <a href="javascript:void(0)" class="page-header-right-open-toggle">
-                            <i class="feather-align-right fs-20"></i>
+            </div>
+
+            <div class="students-toolbar">
+                <div class="students-toolbar-left">
+                    <div class="page-subtitle">Review student records, monitor status, and manage account-level actions in one place.</div>
+                </div>
+                <div class="students-toolbar-right">
+                    <button type="button" class="btn btn-light-brand" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="false" aria-controls="collapseOne">
+                        <i class="feather-bar-chart me-2"></i>
+                        <span>Statistics</span>
+                    </button>
+                    <button type="button" class="btn filter-toggle-btn" data-bs-toggle="collapse" data-bs-target="#studentsFilterCollapse" aria-expanded="false" aria-controls="studentsFilterCollapse">
+                        <i class="feather-filter me-2"></i>
+                        <span>Filters</span>
+                    </button>
+                    <div class="dropdown">
+                        <a class="btn btn-light-brand" data-bs-toggle="dropdown" data-bs-offset="0, 10" data-bs-auto-close="outside" role="button" aria-label="Export options">
+                            <i class="feather-paperclip me-2"></i>
+                            <span>Export</span>
                         </a>
+                        <div class="dropdown-menu dropdown-menu-end">
+                            <a href="javascript:void(0);" class="dropdown-item js-export" data-export="pdf">
+                                <i class="bi bi-filetype-pdf me-3"></i>
+                                <span>PDF</span>
+                            </a>
+                            <a href="javascript:void(0);" class="dropdown-item js-export" data-export="csv">
+                                <i class="bi bi-filetype-csv me-3"></i>
+                                <span>CSV</span>
+                            </a>
+                            <a href="javascript:void(0);" class="dropdown-item js-export" data-export="xml">
+                                <i class="bi bi-filetype-xml me-3"></i>
+                                <span>XML</span>
+                            </a>
+                            <a href="javascript:void(0);" class="dropdown-item js-export" data-export="txt">
+                                <i class="bi bi-filetype-txt me-3"></i>
+                                <span>Text</span>
+                            </a>
+                            <a href="javascript:void(0);" class="dropdown-item js-export" data-export="excel">
+                                <i class="bi bi-filetype-exe me-3"></i>
+                                <span>Excel</span>
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <a href="javascript:void(0);" class="dropdown-item js-print-page">
+                                <i class="bi bi-printer me-3"></i>
+                                <span>Print</span>
+                            </a>
+                        </div>
                     </div>
+                    <button type="button" class="btn btn-light js-print-page">
+                        <i class="feather-printer me-2"></i>
+                        <span>Print List</span>
+                    </button>
+                    <a href="students-create.php" class="btn btn-primary">
+                        <i class="feather-plus me-2"></i>
+                        <span>Create Students</span>
+                    </a>
                 </div>
             </div>
 
@@ -1263,24 +1752,18 @@ echo htmlspecialchars($current_user_email, ENT_QUOTES, 'UTF-8'); ?></span>
                             <select id="filter-school-year" name="school_year" class="form-control">
                                 <option value="">-- All School Years --</option>
                                 <?php
-require_once dirname(__DIR__) . '/config/db.php';
 foreach ($school_year_options as $school_year): ?>
                                     <option value="<?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars($school_year, ENT_QUOTES, 'UTF-8'); ?>" <?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo $filter_school_year === $school_year ? 'selected' : ''; ?>><?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars($school_year, ENT_QUOTES, 'UTF-8'); ?></option>
                                 <?php
-require_once dirname(__DIR__) . '/config/db.php';
 endforeach; ?>
                             </select>
                         </div>
                         <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
                             <label class="form-label" for="filter-date">Date</label>
                             <input id="filter-date" type="date" name="date" class="form-control" value="<?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars($_GET['date'] ?? ''); ?>">
                         </div>
                         <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
@@ -1288,17 +1771,12 @@ echo htmlspecialchars($_GET['date'] ?? ''); ?>">
                             <select id="filter-course" name="course_id" class="form-control">
                                 <option value="0">-- All Courses --</option>
                                 <?php
-require_once dirname(__DIR__) . '/config/db.php';
 foreach ($courses as $course): ?>
                                     <option value="<?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo $course['id']; ?>" <?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo $filter_course == $course['id'] ? 'selected' : ''; ?>><?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars($course['name']); ?></option>
                                 <?php
-require_once dirname(__DIR__) . '/config/db.php';
 endforeach; ?>
                             </select>
                         </div>
@@ -1307,17 +1785,12 @@ endforeach; ?>
                             <select id="filter-department" name="department_id" class="form-control">
                                 <option value="0">-- All Departments --</option>
                                 <?php
-require_once dirname(__DIR__) . '/config/db.php';
 foreach ($departments as $dept): ?>
                                     <option value="<?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo $dept['id']; ?>" <?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo $filter_department == $dept['id'] ? 'selected' : ''; ?>><?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars($dept['name']); ?></option>
                                 <?php
-require_once dirname(__DIR__) . '/config/db.php';
 endforeach; ?>
                             </select>
                         </div>
@@ -1326,17 +1799,12 @@ endforeach; ?>
                             <select id="filter-section" name="section_id" class="form-control">
                                 <option value="0">-- All Sections --</option>
                                 <?php
-require_once dirname(__DIR__) . '/config/db.php';
 foreach ($sections as $section): ?>
                                     <option value="<?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo (int)$section['id']; ?>" <?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo $filter_section == $section['id'] ? 'selected' : ''; ?>><?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars($section['section_label']); ?></option>
                                 <?php
-require_once dirname(__DIR__) . '/config/db.php';
 endforeach; ?>
                             </select>
                         </div>
@@ -1356,17 +1824,12 @@ endforeach; ?>
                             <select id="filter-supervisor" name="supervisor" class="form-control">
                                 <option value="">-- Any Supervisor --</option>
                                 <?php
-require_once dirname(__DIR__) . '/config/db.php';
 foreach ($supervisors as $sup): ?>
                                     <option value="<?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars($sup); ?>" <?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo $filter_supervisor == $sup ? 'selected' : ''; ?>><?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars($sup); ?></option>
                                 <?php
-require_once dirname(__DIR__) . '/config/db.php';
 endforeach; ?>
                             </select>
                         </div>
@@ -1375,17 +1838,12 @@ endforeach; ?>
                             <select id="filter-coordinator" name="coordinator" class="form-control">
                                 <option value="">-- Any Coordinator --</option>
                                 <?php
-require_once dirname(__DIR__) . '/config/db.php';
 foreach ($coordinators as $coor): ?>
                                     <option value="<?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars($coor); ?>" <?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo $filter_coordinator == $coor ? 'selected' : ''; ?>><?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars($coor); ?></option>
                                 <?php
-require_once dirname(__DIR__) . '/config/db.php';
 endforeach; ?>
                             </select>
                         </div>
@@ -1410,7 +1868,6 @@ endforeach; ?>
                                             <a href="javascript:void(0);" class="fw-bold d-block">
                                                 <span class="text-truncate-1-line">Total Students</span>
                                                 <span class="fs-24 fw-bolder d-block"><?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo $stats['total_students'] ? $stats['total_students'] : '0'; ?></span>
                                             </a>
                                         </div>
@@ -1429,7 +1886,6 @@ echo $stats['total_students'] ? $stats['total_students'] : '0'; ?></span>
                                             <a href="javascript:void(0);" class="fw-bold d-block">
                                                 <span class="text-truncate-1-line">Active Students</span>
                                                 <span class="fs-24 fw-bolder d-block"><?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo $stats['active_students'] ? $stats['active_students'] : '0'; ?></span>
                                             </a>
                                         </div>
@@ -1448,7 +1904,6 @@ echo $stats['active_students'] ? $stats['active_students'] : '0'; ?></span>
                                             <a href="javascript:void(0);" class="fw-bold d-block">
                                                 <span class="text-truncate-1-line">Inactive Students</span>
                                                 <span class="fs-24 fw-bolder d-block"><?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo $stats['inactive_students'] ? $stats['inactive_students'] : '0'; ?></span>
                                             </a>
                                         </div>
@@ -1467,7 +1922,6 @@ echo $stats['inactive_students'] ? $stats['inactive_students'] : '0'; ?></span>
                                             <a href="javascript:void(0);" class="fw-bold d-block">
                                                 <span class="text-truncate-1-line">Biometric Registered</span>
                                                 <span class="fs-24 fw-bolder d-block"><?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo $stats['biometric_registered'] ? $stats['biometric_registered'] : '0'; ?></span>
                                             </a>
                                         </div>
@@ -1510,31 +1964,25 @@ echo $stats['biometric_registered'] ? $stats['biometric_registered'] : '0'; ?></
                                         </thead>
                                         <tbody>
                                             <?php
-require_once dirname(__DIR__) . '/config/db.php';
 if (count($students) > 0): ?>
                                                 <?php
-require_once dirname(__DIR__) . '/config/db.php';
 foreach ($students as $index => $student): ?>
                                                     <tr class="single-item">
-                                                        <td>
+                                                        <td data-label="Select">
                                                             <div class="item-checkbox ms-1">
                                                                 <div class="custom-control custom-checkbox">
                                                                     <input type="checkbox" class="custom-control-input checkbox" id="checkBox_<?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo $student['id']; ?>">
                                                                     <label class="custom-control-label" for="checkBox_<?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo $student['id']; ?>"></label>
                                                                 </div>
                                                             </div>
                                                         </td>
-                                                        <td>
+                                                        <td data-label="Name">
                                                             <a href="students-view.php?id=<?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo $student['id']; ?>" class="hstack gap-3">
                                                                 <div class="avatar-image avatar-md">
                                                                     <?php
-require_once dirname(__DIR__) . '/config/db.php';
 $pp = $student['profile_picture'] ?? '';
                                                                     $pp_url = resolve_profile_image_url($pp);
                                                                     if ($pp_url !== null) {
@@ -1546,48 +1994,37 @@ $pp = $student['profile_picture'] ?? '';
                                                                 </div>
                                                                 <div>
                                                                     <span class="text-truncate-1-line"><?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars($student['first_name'] . ' ' . $student['last_name']); ?></span>
                                                                 </div>
                                                             </a>
                                                         </td>
-                                                        <td><a href="students-view.php?id=<?php
-require_once dirname(__DIR__) . '/config/db.php';
+                                                        <td data-label="Student ID"><a href="students-view.php?id=<?php
 echo $student['id']; ?>"><?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars($student['student_id']); ?></a></td>
-                                                        <td><a href="javascript:void(0);"><?php
-require_once dirname(__DIR__) . '/config/db.php';
-echo htmlspecialchars($student['course_name'] ?? 'N/A'); ?></a></td>
-                                                        <td><a href="javascript:void(0);"><?php
-require_once dirname(__DIR__) . '/config/db.php';
+                                                        <td data-label="Course"><span class="fw-semibold text-dark"><?php
+echo htmlspecialchars($student['course_name'] ?? 'N/A'); ?></span></td>
+                                                        <td data-label="Section"><span class="text-dark"><?php
 $sectionSemester = trim((string)($student['section_name'] ?? '-'));
 $semesterLabel = trim((string)($student['semester'] ?? ''));
 if ($semesterLabel !== '' && $semesterLabel !== '-') {
     $sectionSemester .= ' / ' . $semesterLabel;
 }
-echo htmlspecialchars($sectionSemester); ?></a></td>
-                                                        <td><a href="javascript:void(0);"><?php
-require_once dirname(__DIR__) . '/config/db.php';
-echo htmlspecialchars($student['supervisor_name'] ?? '-'); ?></a></td>
-                                                        <td><a href="javascript:void(0);"><?php
-require_once dirname(__DIR__) . '/config/db.php';
-echo htmlspecialchars($student['coordinator_name'] ?? '-'); ?></a></td>
-                                                        <td><?php
-require_once dirname(__DIR__) . '/config/db.php';
-echo formatDate($student['created_at']); ?></td>
-                                                        <td><?php
-require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($sectionSemester); ?></span></td>
+                                                        <td data-label="Supervisor"><span class="text-dark"><?php
+echo htmlspecialchars($student['supervisor_name'] ?? '-'); ?></span></td>
+                                                        <td data-label="Coordinator"><span class="text-dark"><?php
+echo htmlspecialchars($student['coordinator_name'] ?? '-'); ?></span></td>
+                                                        <td data-label="Last Logged"><?php
+echo formatDateCompact($student['created_at']); ?></td>
+                                                        <td data-label="Status"><?php
 echo getStatusBadge($student['live_clock_status']); ?></td>
-                                                        <td>
+                                                        <td data-label="Actions">
                                                             <div class="hstack gap-2 justify-content-end">
                                                                 <a href="students-view.php?id=<?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo $student['id']; ?>" class="avatar-text avatar-md" title="View">
                                                                     <i class="feather feather-eye"></i>
                                                                 </a>
                                                                 <?php
-require_once dirname(__DIR__) . '/config/db.php';
 if (!$is_student_user): ?>
                                                                     <div class="dropdown students-action-dropdown">
                                                                         <a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="dropdown" data-bs-offset="0,21">
@@ -1614,15 +2051,15 @@ if (!$is_student_user): ?>
                                                                             </li>
                                                                             <li class="dropdown-divider"></li>
                                                                             <li>
-                                                                                <a class="dropdown-item" href="javascript:void(0)">
-                                                                                    <i class="feather feather-archive me-3"></i>
-                                                                                    <span>Archive</span>
+                                                                                <a class="dropdown-item" href="students-dtr.php?id=<?php echo (int)$student['id']; ?>">
+                                                                                    <i class="feather feather-clock me-3"></i>
+                                                                                    <span>Open DTR</span>
                                                                                 </a>
                                                                             </li>
                                                                             <li>
-                                                                                <a class="dropdown-item" href="javascript:void(0)">
-                                                                                    <i class="feather feather-alert-octagon me-3"></i>
-                                                                                    <span>Report Spam</span>
+                                                                                <a class="dropdown-item" href="ojt-view.php?id=<?php echo (int)$student['id']; ?>">
+                                                                                    <i class="feather feather-briefcase me-3"></i>
+                                                                                    <span>Open OJT View</span>
                                                                                 </a>
                                                                             </li>
                                                                             <li class="dropdown-divider"></li>
@@ -1639,16 +2076,13 @@ if (!$is_student_user): ?>
                                                                         </ul>
                                                                     </div>
                                                                 <?php
-require_once dirname(__DIR__) . '/config/db.php';
 endif; ?>
                                                             </div>
                                                         </td>
                                                     </tr>
                                                 <?php
-require_once dirname(__DIR__) . '/config/db.php';
 endforeach; ?>
                                             <?php
-require_once dirname(__DIR__) . '/config/db.php';
 endif; ?>
                                         </tbody>
                                     </table>
@@ -1897,6 +2331,53 @@ endif; ?>
                     positionActionMenu(activeActionMenu.dropdown, activeActionMenu.menu);
                 }
             }, true);
+
+            function refreshStudentsTableLayout() {
+                var tableEl = document.getElementById('customerList');
+                if (!tableEl) return;
+
+                if (window.jQuery && $.fn.dataTable && $.fn.dataTable.isDataTable(tableEl)) {
+                    try {
+                        $(tableEl).DataTable().columns.adjust().draw(false);
+                    } catch (error) {
+                        // Fall back to DOM refresh below if DataTables adjust is unavailable.
+                    }
+                }
+
+                tableEl.style.width = '100%';
+                var wrapper = tableEl.closest('.students-table-wrap');
+                if (wrapper) {
+                    wrapper.scrollLeft = 0;
+                }
+            }
+
+            function queueStudentsTableRefresh() {
+                [0, 160, 320, 480].forEach(function (delay) {
+                    window.setTimeout(refreshStudentsTableLayout, delay);
+                });
+            }
+
+            ['menu-mini-button', 'menu-expend-button', 'mobile-collapse'].forEach(function (id) {
+                var trigger = document.getElementById(id);
+                if (trigger) {
+                    trigger.addEventListener('click', queueStudentsTableRefresh);
+                }
+            });
+
+            var htmlEl = document.documentElement;
+            if (window.MutationObserver && htmlEl) {
+                var sidebarObserver = new MutationObserver(function (mutations) {
+                    var shouldRefresh = mutations.some(function (mutation) {
+                        return mutation.type === 'attributes' && mutation.attributeName === 'class';
+                    });
+                    if (shouldRefresh) {
+                        queueStudentsTableRefresh();
+                    }
+                });
+                sidebarObserver.observe(htmlEl, { attributes: true, attributeFilter: ['class'] });
+            }
+
+            queueStudentsTableRefresh();
 
             function tableToRows() {
                 var rows = [];

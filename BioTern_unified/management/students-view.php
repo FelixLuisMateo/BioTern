@@ -1,5 +1,4 @@
-﻿<?php
-require_once dirname(__DIR__) . '/config/db.php';
+<?php
 // Database Connection
 $host = defined('DB_HOST') ? DB_HOST : 'localhost';
 $db_user = defined('DB_USER') ? DB_USER : 'root';
@@ -1098,16 +1097,19 @@ endif; ?>
                                     <li class="profile-contact-item mb-4">
                                         <span class="text-muted fw-medium hstack gap-3"><i class="feather-map-pin"></i>Location</span>
                                         <a href="javascript:void(0);" class="profile-contact-value"><?php
+require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars($student['address'] ?? 'N/A'); ?></a>
                                     </li>
                                     <li class="profile-contact-item mb-4">
                                         <span class="text-muted fw-medium hstack gap-3"><i class="feather-phone"></i>Mobile Phone</span>
                                         <a href="javascript:void(0);" class="profile-contact-value"><?php
+require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars($student['phone'] ?? 'N/A'); ?></a>
                                     </li>
                                     <li class="profile-contact-item mb-0">
                                         <span class="text-muted fw-medium hstack gap-3"><i class="feather-mail"></i>Email</span>
                                         <a href="javascript:void(0);" class="profile-contact-value"><?php
+require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars($student['email']); ?></a>
                                     </li>
                                 </ul>
@@ -1357,9 +1359,11 @@ echo formatDateTime($activity['created_at']); ?>]</span>
                                                             </span>
                                                             <span class="text">
                                                                 Morning: <a href="javascript:void(0);" class="fw-bold text-primary"><?php
+require_once dirname(__DIR__) . '/config/db.php';
 echo formatTimeRange($activity['morning_time_in'], $activity['morning_time_out']); ?></a>
                                                                 &nbsp;|&nbsp;
                                                                 Afternoon: <a href="javascript:void(0);" class="fw-bold text-primary"><?php
+require_once dirname(__DIR__) . '/config/db.php';
 echo formatTimeRange($activity['afternoon_time_in'], $activity['afternoon_time_out']); ?></a>
                                                                 &nbsp;|&nbsp;
                                                                 Total: <strong><?php

@@ -45,7 +45,7 @@ $current_role = strtolower((string)($_SESSION['role'] ?? $_SESSION['user_role'] 
 $can_edit_controls = in_array($current_role, ['admin', 'coordinator'], true);
 
 $student_id = isset($_GET['id']) ? intval($_GET['id']) : intval($_POST['student_id'] ?? 0);
-$message = defined('DB_PASS') ? DB_PASS : ''; 
+$message = '';
 $message_type = 'success';
 $change_log = [];
 
@@ -118,7 +118,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_ojt'])) {
         try {
                 $student_cols = get_columns($conn, 'students');
                 $updates = [];
-                $types = defined('DB_PASS') ? DB_PASS : ''; 
+                $types = '';
                 $values = [];
 
                 $editable_student_fields = [
@@ -173,8 +173,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_ojt'])) {
                     $i_end = trim((string)($_POST['end_date'] ?? ''));
                     $selected_supervisor_id = max(0, intval($_POST['supervisor_user_id'] ?? 0));
                     $selected_coordinator_id = max(0, intval($_POST['coordinator_user_id'] ?? 0));
-                    $selected_supervisor_name = defined('DB_PASS') ? DB_PASS : ''; 
-                    $selected_coordinator_name = defined('DB_PASS') ? DB_PASS : ''; 
+                    $selected_supervisor_name = '';
+                    $selected_coordinator_name = '';
                     if ($selected_supervisor_id > 0) {
                         $stmt_u = $conn->prepare("SELECT name FROM users WHERE id = ? LIMIT 1");
                         $stmt_u->bind_param('i', $selected_supervisor_id);
@@ -195,7 +195,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_ojt'])) {
 
                     if ($internship) {
                         $i_updates = [];
-                        $i_types = defined('DB_PASS') ? DB_PASS : ''; 
+                        $i_types = '';
                         $i_vals = [];
 
                         if (in_array('status', $intern_cols, true) && $i_status !== (string)($internship['status'] ?? '')) {
@@ -400,14 +400,36 @@ if ($student_id > 0 && ojt_edit_table_exists($conn, 'ojt_supervisor_reviews')) {
     <script src="assets/js/theme-preload-init.min.js"></script>
     <link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/vendors.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/vendors/css/select2-theme.min.css">
     <link rel="stylesheet" type="text/css" href="assets/vendors/css/datepicker.min.css">
     <link rel="stylesheet" type="text/css" href="assets/css/theme.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/css/layout-shared-overrides.css">
     <link rel="stylesheet" type="text/css" href="assets/css/datepicker-global.css">
     <style>
         body { background: #f5f7fb; }
         .card { border: 1px solid #e8edf6; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04); }
         .form-label { font-weight: 600; font-size: 12px; letter-spacing: 0.2px; }
         .section-subtitle { font-size: 12px; color: #6c7a92; margin-top: -6px; }
+        .page-header .page-header-left {
+            align-items: center !important;
+        }
+        .page-header .page-header-title {
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+            flex-wrap: wrap;
+        }
+        .page-header .page-header-title h5 {
+            margin: 0;
+        }
+        .page-header .breadcrumb {
+            margin-bottom: 0;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.15rem;
+        }
         .app-skin-dark body { background: #0b1220; }
         .app-skin-dark .card { border-color: #253252; background: #111a2e; box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35); }
         .app-skin-dark .section-subtitle,
@@ -416,6 +438,64 @@ if ($student_id > 0 && ojt_edit_table_exists($conn, 'ojt_supervisor_reviews')) {
         .app-skin-dark .form-select { background: #0f172a; border-color: #2a3a57; color: #d8e2f4; }
         .app-skin-dark .table { color: #d8e2f4; }
         .app-skin-dark .table-bordered > :not(caption) > * { border-color: #253252; }
+        .nxl-navigation .m-header .b-brand {
+            display: flex;
+            align-items: center;
+        }
+        .ojt-edit-select + .select2-container {
+            width: 100% !important;
+        }
+        .ojt-edit-select + .select2-container .select2-selection--single {
+            min-height: 38px;
+            border-radius: 0.375rem;
+            display: flex;
+            align-items: center;
+        }
+        .ojt-edit-select + .select2-container .select2-selection__rendered {
+            line-height: 36px !important;
+            padding-left: 0.9rem !important;
+            padding-right: 2rem !important;
+        }
+        .ojt-edit-select + .select2-container .select2-selection__arrow {
+            height: 36px !important;
+            right: 8px !important;
+        }
+        .app-skin-dark .select2-container--default .select2-selection--single {
+            background: #0f172a;
+            border-color: #2a3a57;
+            color: #d8e2f4;
+        }
+        .app-skin-dark .select2-container--default .select2-selection--single .select2-selection__rendered {
+            color: #d8e2f4;
+        }
+        .app-skin-dark .select2-container--default .select2-selection--single .select2-selection__arrow b {
+            border-color: #9fb2d1 transparent transparent transparent;
+        }
+        .select2-dropdown {
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+        .app-skin-dark .select2-dropdown {
+            background: #0f172a;
+            border-color: #2a3a57;
+            color: #d8e2f4;
+        }
+        .app-skin-dark .select2-search--dropdown .select2-search__field {
+            background: #111a2e;
+            border-color: #2a3a57;
+            color: #d8e2f4;
+        }
+        .app-skin-dark .select2-results__option {
+            color: #d8e2f4;
+        }
+        .app-skin-dark .select2-results__option--highlighted[aria-selected] {
+            background: #1d4ed8;
+            color: #ffffff;
+        }
+        .app-skin-dark .select2-results__option[aria-selected=true] {
+            background: #172554;
+            color: #dbeafe;
+        }
         @media (max-width: 991.98px) {
             .page-header { display: block !important; }
             .page-header .d-flex.gap-2 {
@@ -519,10 +599,19 @@ if ($student_id > 0 && ojt_edit_table_exists($conn, 'ojt_supervisor_reviews')) {
 <main class="nxl-container">
     <div class="nxl-content">
         <div class="page-header d-flex justify-content-between align-items-center">
-            <h5 class="m-b-10">OJT Edit Control</h5>
+            <div class="page-header-left d-flex align-items-center">
+                <div class="page-header-title">
+                    <h5 class="m-b-10">Edit OJT Assignment</h5>
+                    <ul class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
+                        <li class="breadcrumb-item"><a href="ojt.php">OJT</a></li>
+                        <li class="breadcrumb-item">Edit</li>
+                    </ul>
+                </div>
+            </div>
             <div class="d-flex gap-2">
                 <a href="ojt.php" class="btn btn-light">Back to OJT List</a>
-                <?php if ($student_id > 0): ?><a href="ojt-view.php?id=<?php echo (int)$student_id; ?>" class="btn btn-primary">Open OJT View</a><?php endif; ?>
+                <?php if ($student_id > 0): ?><a href="ojt-view.php?id=<?php echo (int)$student_id; ?>" class="btn btn-primary">Open OJT Record</a><?php endif; ?>
             </div>
         </div>
 
@@ -531,7 +620,7 @@ if ($student_id > 0 && ojt_edit_table_exists($conn, 'ojt_supervisor_reviews')) {
         <?php endif; ?>
 
         <?php if (!$student): ?>
-            <div class="card card-body"><div class="alert alert-warning mb-0">Select a valid student from OJT List first.</div></div>
+            <div class="card card-body"><div class="alert alert-warning mb-0">Open this page from the OJT list with a valid student selected first.</div></div>
         <?php else: ?>
             <div class="card card-body mb-3">
                 <h6 class="fw-bold mb-3">Student Context</h6>
@@ -548,21 +637,21 @@ if ($student_id > 0 && ojt_edit_table_exists($conn, 'ojt_supervisor_reviews')) {
                 <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>">
 
                 <h6 class="fw-bold mb-1">Operational Controls</h6>
-                <div class="section-subtitle mb-3">Use this panel for audited internship data maintenance.</div>
+                <div class="section-subtitle mb-3">Use this panel to update internship controls, assignments, and tracked hours with an audit trail.</div>
                 <?php if (!$can_edit_controls): ?>
                     <div class="alert alert-info">Your role is <strong><?php echo htmlspecialchars($current_role ?: 'unknown'); ?></strong>. You can add review notes, but control fields are read-only.</div>
                 <?php endif; ?>
                 <div class="row g-3">
                     <div class="col-md-3">
                         <label class="form-label">Student Status</label>
-                        <select name="status" class="form-select" <?php echo $can_edit_controls ? '' : 'disabled'; ?>>
+                        <select name="status" class="form-select ojt-edit-select" <?php echo $can_edit_controls ? '' : 'disabled'; ?>>
                             <option value="1" <?php echo intval($student['status'] ?? 0) === 1 ? 'selected' : ''; ?>>Active</option>
                             <option value="0" <?php echo intval($student['status'] ?? 0) === 0 ? 'selected' : ''; ?>>Inactive</option>
                         </select>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Assignment Track</label>
-                        <select name="assignment_track" class="form-select" <?php echo $can_edit_controls ? '' : 'disabled'; ?>>
+                        <select name="assignment_track" class="form-select ojt-edit-select" <?php echo $can_edit_controls ? '' : 'disabled'; ?>>
                             <option value="internal" <?php echo (($student['assignment_track'] ?? 'internal') === 'internal') ? 'selected' : ''; ?>>Internal</option>
                             <option value="external" <?php echo (($student['assignment_track'] ?? '') === 'external') ? 'selected' : ''; ?>>External</option>
                         </select>
@@ -571,7 +660,7 @@ if ($student_id > 0 && ojt_edit_table_exists($conn, 'ojt_supervisor_reviews')) {
                     <?php $current_co_id = intval($internship['coordinator_id'] ?? 0); ?>
                     <div class="col-md-3">
                         <label class="form-label">Supervisor (User)</label>
-                        <select name="supervisor_user_id" class="form-select" <?php echo $can_edit_controls ? '' : 'disabled'; ?>>
+                        <select name="supervisor_user_id" class="form-select ojt-edit-select" <?php echo $can_edit_controls ? '' : 'disabled'; ?>>
                             <option value="0">Unassigned</option>
                             <?php foreach ($supervisor_users as $su): ?>
                                 <option value="<?php echo intval($su['id']); ?>" <?php echo $current_sup_id === intval($su['id']) ? 'selected' : ''; ?>><?php echo htmlspecialchars($su['name']); ?></option>
@@ -580,7 +669,7 @@ if ($student_id > 0 && ojt_edit_table_exists($conn, 'ojt_supervisor_reviews')) {
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Coordinator (User)</label>
-                        <select name="coordinator_user_id" class="form-select" <?php echo $can_edit_controls ? '' : 'disabled'; ?>>
+                        <select name="coordinator_user_id" class="form-select ojt-edit-select" <?php echo $can_edit_controls ? '' : 'disabled'; ?>>
                             <option value="0">Unassigned</option>
                             <?php foreach ($coordinator_users as $cu): ?>
                                 <option value="<?php echo intval($cu['id']); ?>" <?php echo $current_co_id === intval($cu['id']) ? 'selected' : ''; ?>><?php echo htmlspecialchars($cu['name']); ?></option>
@@ -597,7 +686,7 @@ if ($student_id > 0 && ojt_edit_table_exists($conn, 'ojt_supervisor_reviews')) {
 
                     <div class="col-md-3">
                         <label class="form-label">Internship Status</label>
-                        <select name="internship_status" class="form-select" <?php echo $can_edit_controls ? '' : 'disabled'; ?>>
+                        <select name="internship_status" class="form-select ojt-edit-select" <?php echo $can_edit_controls ? '' : 'disabled'; ?>>
                             <?php $ist = strtolower((string)($internship['status'] ?? 'ongoing')); ?>
                             <option value="ongoing" <?php echo $ist === 'ongoing' ? 'selected' : ''; ?>>Ongoing</option>
                             <option value="completed" <?php echo $ist === 'completed' ? 'selected' : ''; ?>>Completed</option>
@@ -614,9 +703,8 @@ if ($student_id > 0 && ojt_edit_table_exists($conn, 'ojt_supervisor_reviews')) {
                     </div>
                 </div>
                 <div class="mt-3 d-flex gap-2 edit-actions">
-                    <button type="submit" class="btn btn-primary" <?php echo $can_edit_controls ? '' : 'disabled'; ?>>Save Controlled Changes</button>
-                    <a href="#previous-changes" class="btn btn-outline-info">Previous Changes</a>
-                    <a href="ojt-view.php?id=<?php echo (int)$student_id; ?>" class="btn btn-success">Return to OJT View</a>
+                    <button type="submit" class="btn btn-primary" <?php echo $can_edit_controls ? '' : 'disabled'; ?>>Save OJT Changes</button>
+                    <a href="ojt-view.php?id=<?php echo (int)$student_id; ?>" class="btn btn-success">Return to OJT Record</a>
                 </div>
             </form>
 
@@ -624,7 +712,7 @@ if ($student_id > 0 && ojt_edit_table_exists($conn, 'ojt_supervisor_reviews')) {
                 <input type="hidden" name="save_review_note" value="1">
                 <input type="hidden" name="student_id" value="<?php echo (int)$student_id; ?>">
                 <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf); ?>">
-                <h6 class="fw-bold mb-3">Supervisor/Reviewer Notes</h6>
+                <h6 class="fw-bold mb-3">Reviewer Notes</h6>
                 <div class="row g-2">
                     <div class="col-12">
                         <textarea name="review_note" class="form-control" rows="2" placeholder="Add monitoring note, concern, or recommendation."></textarea>
@@ -661,7 +749,6 @@ if ($student_id > 0 && ojt_edit_table_exists($conn, 'ojt_supervisor_reviews')) {
                             </div>
                             <div><?php echo htmlspecialchars((string)$audit['reason']); ?></div>
                             <?php
-require_once dirname(__DIR__) . '/config/db.php';
                             $lines = preg_split('/\r\n|\r|\n/', (string)($audit['changes_text'] ?? ''));
                             ?>
                             <div class="table-responsive mt-2">
@@ -676,7 +763,6 @@ require_once dirname(__DIR__) . '/config/db.php';
                                     <tbody>
                                         <?php foreach ($lines as $ln): ?>
                                             <?php
-require_once dirname(__DIR__) . '/config/db.php';
                                             $ln = trim($ln);
                                             if ($ln === '') continue;
                                             $field = $ln;
@@ -707,11 +793,41 @@ require_once dirname(__DIR__) . '/config/db.php';
     </div>
 </main>
 <script src="assets/vendors/js/vendors.min.js"></script>
+<script src="assets/vendors/js/select2.min.js"></script>
 <script src="assets/vendors/js/datepicker.min.js"></script>
 <script src="assets/js/global-ui-helpers.js"></script>
 <script src="assets/js/global-datepicker-init.js"></script>
 <script src="assets/js/common-init.min.js"></script>
 <script src="assets/js/theme-customizer-init.min.js"></script>
+<script>
+    (function () {
+        document.addEventListener('DOMContentLoaded', function () {
+            if (!window.jQuery || !jQuery.fn.select2) {
+                return;
+            }
+
+            var $selects = jQuery('.ojt-edit-select');
+            if (!$selects.length) {
+                return;
+            }
+
+            $selects.each(function () {
+                var $el = jQuery(this);
+                var isDisabled = $el.is(':disabled');
+
+                $el.select2({
+                    width: '100%',
+                    minimumResultsForSearch: 8,
+                    dropdownAutoWidth: false
+                });
+
+                if (isDisabled) {
+                    $el.prop('disabled', true).trigger('change.select2');
+                }
+            });
+        });
+    })();
+</script>
 <script>
     (function () {
         function setDark(isDark) {

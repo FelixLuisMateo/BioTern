@@ -191,6 +191,7 @@ if (!function_exists('nav_page_href')) {
                         <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'reports-ojt.php'); ?>">OJT Report</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'reports-project.php'); ?>">Project Report</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'reports-timesheets.php'); ?>">Timesheets Report</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'reports-attendance-operations.php'); ?>">Attendance Operations</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'reports-chat-logs.php'); ?>">Chat Logs</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'reports-chat-reports.php'); ?>">Reported Chats</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'reports-login-logs.php'); ?>">Login Logs</a></li>
