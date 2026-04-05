@@ -670,7 +670,11 @@ if (isset($_SESSION['machine_manager_flash']) && is_array($_SESSION['machine_man
 
 if ((int)($_GET['load_users'] ?? 0) === 1) {
     try {
-        machine_load_user_list_into_state($userListRaw, $userListDecoded);
+        if (machine_is_cloud_runtime()) {
+            machine_load_user_list_from_bridge_cache($conn, $userListRaw, $userListDecoded);
+        } else {
+            machine_load_user_list_into_state($userListRaw, $userListDecoded);
+        }
     } catch (Throwable $e) {
         if ($flashMessage === '') {
             $flashType = 'danger';
@@ -681,7 +685,27 @@ if ((int)($_GET['load_users'] ?? 0) === 1) {
 
 if ($selectedUserId > 0 && (int)($_GET['load_user'] ?? 0) === 1) {
     try {
-        machine_load_user_details_into_state($selectedUserId, $userDetailsRaw, $userDetailsDecoded);
+        if (machine_is_cloud_runtime()) {
+            machine_load_user_list_from_bridge_cache($conn, $userListRaw, $userListDecoded);
+            $rows = machine_extract_rows($userListDecoded);
+            $matched = null;
+            foreach ($rows as $row) {
+                $rowUserId = (int)trim(machine_row_value($row, ['id', 'ID', 'user_id', 'userId', 'EnrollNumber']));
+                if ($rowUserId === $selectedUserId) {
+                    $matched = $row;
+                    break;
+                }
+            }
+
+            if (!is_array($matched)) {
+                throw new RuntimeException('User ID not found in latest bridge cache. Click Read All Users first to refresh cache.');
+            }
+
+            $userDetailsDecoded = $matched;
+            $userDetailsRaw = (string)json_encode($matched, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        } else {
+            machine_load_user_details_into_state($selectedUserId, $userDetailsRaw, $userDetailsDecoded);
+        }
     } catch (Throwable $e) {
         if ($flashMessage === '') {
             $flashType = 'danger';
