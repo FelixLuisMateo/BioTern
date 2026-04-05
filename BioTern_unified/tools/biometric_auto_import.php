@@ -1,8 +1,48 @@
 <?php
 // BioTern_unified/tools/biometric_auto_import.php
 // Imports new machine logs into biometric_raw_logs and reconciles them into attendances.
+require_once dirname(__DIR__) . '/config/db.php';
 require_once __DIR__ . '/biometric_ops.php';
 require_once dirname(__DIR__) . '/lib/section_schedule.php';
+
+if (!function_exists('biometric_auto_import_open_db')) {
+    function biometric_auto_import_open_db(): mysqli
+    {
+        $db = new mysqli(
+            defined('DB_HOST') ? DB_HOST : 'localhost',
+            defined('DB_USER') ? DB_USER : 'root',
+            defined('DB_PASS') ? DB_PASS : '',
+            defined('DB_NAME') ? DB_NAME : 'biotern_db',
+            defined('DB_PORT') ? (int)DB_PORT : 3306
+        );
+
+        if ($db->connect_error) {
+            throw new RuntimeException('Connection failed: ' . $db->connect_error);
+        }
+
+        $db->set_charset('utf8mb4');
+        return $db;
+    }
+}
+
+if (!function_exists('biometric_auto_import_resolve_attendance_file')) {
+    function biometric_auto_import_resolve_attendance_file(array $machineConfig): string
+    {
+        $envPath = trim((string)(getenv('BIOTERN_ATTENDANCE_FILE') ?: ''));
+        $configPath = trim((string)($machineConfig['outputPath'] ?? ''));
+        $candidate = $envPath !== '' ? $envPath : $configPath;
+
+        if ($candidate === '') {
+            return __DIR__ . '/../../attendance.txt';
+        }
+
+        if (preg_match('/^(?:[A-Za-z]:[\\\\\\/]|\\\\\\\\|\/)/', $candidate) === 1) {
+            return $candidate;
+        }
+
+        return dirname(__DIR__) . '/' . ltrim(str_replace('\\\\', '/', $candidate), '/');
+    }
+}
 
 if (!function_exists('run_biometric_auto_import')) {
     function run_biometric_auto_import(?string $attendanceFile = null): string
@@ -15,18 +55,10 @@ if (!function_exists('run_biometric_auto_import')) {
 if (!function_exists('run_biometric_auto_import_stats')) {
     function run_biometric_auto_import_stats(?string $attendanceFile = null): array
     {
-        $attendanceFile = $attendanceFile ?: (__DIR__ . '/../../attendance.txt');
         $machineConfig = loadBiometricMachineConfig();
-        $host = 'localhost';
-        $db_user = 'root';
-        $db_password = '';
-        $db_name = 'biotern_db';
+        $attendanceFile = $attendanceFile ?: biometric_auto_import_resolve_attendance_file($machineConfig);
 
-        $conn = new mysqli($host, $db_user, $db_password, $db_name);
-        if ($conn->connect_error) {
-            throw new RuntimeException('Connection failed: ' . $conn->connect_error);
-        }
-        $conn->set_charset('utf8mb4');
+        $conn = biometric_auto_import_open_db();
         section_schedule_ensure_columns($conn);
 
         $conn->query("

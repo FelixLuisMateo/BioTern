@@ -5,6 +5,69 @@
     padding: 1rem;
 }
 
+.machine-config-pane {
+    border: 1px solid rgba(148, 163, 184, 0.24);
+    border-radius: 0.8rem;
+    background: rgba(255, 255, 255, 0.75);
+    padding: 0.85rem;
+}
+
+.machine-endpoint-box {
+    background: rgba(248, 250, 252, 0.85);
+    border-color: rgba(148, 163, 184, 0.28) !important;
+}
+
+.machine-compact-form .form-label {
+    margin-bottom: 0.2rem;
+    font-size: 0.76rem;
+    font-weight: 600;
+}
+
+.machine-compact-form .form-control,
+.machine-compact-form .form-select {
+    min-height: 34px;
+    padding-top: 0.3rem;
+    padding-bottom: 0.3rem;
+    font-size: 0.82rem;
+}
+
+.machine-config-grid .text-muted,
+.machine-config-pane .text-muted {
+    font-size: 0.75rem;
+}
+
+.page-biometric-machine .nxl-content {
+    padding-bottom: 5rem;
+}
+
+.machine-section-toggle {
+    background: #2563eb;
+    border: 1px solid #2563eb;
+    color: #fff;
+    border-radius: 999px;
+    letter-spacing: 0.02em;
+}
+
+.machine-section-toggle:hover,
+.machine-section-toggle:focus {
+    background: #1d4ed8;
+    border-color: #1d4ed8;
+    color: #fff;
+}
+
+.page-biometric-machine .btn-secondary {
+    background: #334155;
+    border-color: #334155;
+    color: #fff;
+}
+
+.page-biometric-machine .btn-secondary:hover,
+.page-biometric-machine .btn-secondary:focus {
+    background: #1f2937;
+    border-color: #1f2937;
+    color: #fff;
+}
+
 .machine-users-card .table td,
 .machine-users-card .table th {
     vertical-align: middle;
@@ -48,6 +111,40 @@ html.app-skin-dark .quick-router-panel {
     background: rgba(15, 23, 42, 0.72);
     border-color: rgba(148, 163, 184, 0.22);
     color: #e5eefc;
+}
+
+html.app-skin-dark .machine-config-pane {
+    background: rgba(15, 23, 42, 0.86);
+    border-color: rgba(148, 163, 184, 0.35);
+    color: #e5eefc;
+}
+
+html.app-skin-dark .machine-endpoint-box {
+    background: rgba(30, 41, 59, 0.88);
+    border-color: rgba(148, 163, 184, 0.35) !important;
+}
+
+html.app-skin-dark .machine-compact-form .form-control,
+html.app-skin-dark .machine-compact-form .form-select {
+    background: rgba(15, 23, 42, 0.9);
+    border-color: rgba(148, 163, 184, 0.36);
+    color: #e2e8f0;
+}
+
+html.app-skin-dark .machine-compact-form .form-control::placeholder {
+    color: rgba(148, 163, 184, 0.8);
+}
+
+html.app-skin-dark .machine-section-toggle {
+    background: #1d4ed8;
+    border-color: #1d4ed8;
+    color: #eff6ff;
+}
+
+html.app-skin-dark .machine-section-toggle:hover {
+    background: #1e40af;
+    border-color: #1e40af;
+    color: #f8fafc;
 }
 
 html.app-skin-dark .quick-router-panel .text-muted,

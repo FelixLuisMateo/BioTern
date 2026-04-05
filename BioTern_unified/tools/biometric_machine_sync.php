@@ -1,7 +1,18 @@
 <?php
+require_once dirname(__DIR__) . '/config/db.php';
 require_once __DIR__ . '/biometric_machine_runtime.php';
 require_once __DIR__ . '/biometric_auto_import.php';
 require_once __DIR__ . '/biometric_ops.php';
+
+if (!function_exists('biometric_machine_sync_is_cloud_runtime')) {
+    function biometric_machine_sync_is_cloud_runtime(): bool
+    {
+        return getenv('VERCEL') !== false
+            || getenv('RAILWAY_ENVIRONMENT') !== false
+            || getenv('RAILWAY_STATIC_URL') !== false
+            || getenv('K_SERVICE') !== false;
+    }
+}
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -32,28 +43,42 @@ if (!$opsDb->connect_error) {
     $syncRunId = biometric_ops_start_sync_run($opsDb, (int)($_SESSION['user_id'] ?? 0), $triggerSource);
 }
 
-$connector = biometric_machine_run_command('sync');
-if (!$connector['success']) {
-    $message = "Machine sync failed.\n" . trim(implode("\n", $connector['output'] ?? []));
-    if ($opsDb instanceof mysqli && !$opsDb->connect_error) {
-        biometric_ops_finish_sync_run($opsDb, $syncRunId, 'failed', trim(($connector['text'] ?? '') . "\n" . $message), null, 0, 0, 0, 0);
-        biometric_ops_log_audit($opsDb, (int)($_SESSION['user_id'] ?? 0), (string)($_SESSION['role'] ?? ''), 'machine_sync_failed', 'machine_sync', null, ['message' => $message]);
-        $opsDb->close();
-    }
-    if ($jsonMode) {
-        header('Content-Type: application/json; charset=utf-8');
-        echo json_encode(['success' => false, 'stage' => $connector['stage'] ?? 'run', 'message' => $message]);
+$cloudMode = biometric_machine_sync_is_cloud_runtime();
+$executionMode = $cloudMode ? 'cloud-direct-ingest' : 'local-connector';
+$connector = [
+    'success' => true,
+    'stage' => $cloudMode ? 'cloud-skip' : 'run',
+    'output' => [],
+    'code' => 0,
+    'text' => '',
+];
+
+if (!$cloudMode) {
+    $connector = biometric_machine_run_command('sync');
+    if (!$connector['success']) {
+        $message = "Machine sync failed.\n" . trim(implode("\n", $connector['output'] ?? []));
+        if ($opsDb instanceof mysqli && !$opsDb->connect_error) {
+            biometric_ops_finish_sync_run($opsDb, $syncRunId, 'failed', trim(($connector['text'] ?? '') . "\n" . $message), null, 0, 0, 0, 0);
+            biometric_ops_log_audit($opsDb, (int)($_SESSION['user_id'] ?? 0), (string)($_SESSION['role'] ?? ''), 'machine_sync_failed', 'machine_sync', null, ['message' => $message]);
+            $opsDb->close();
+        }
+        if ($jsonMode) {
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode(['success' => false, 'stage' => $connector['stage'] ?? 'run', 'message' => $message]);
+            exit;
+        }
+        if ($allowRedirect) {
+            $_SESSION['attendance_sync_flash'] = ['type' => 'danger', 'message' => $message];
+            header('Location: ' . $redirect);
+            exit;
+        }
+        header('Content-Type: text/plain; charset=utf-8');
+        http_response_code(500);
+        echo $message . "\n";
         exit;
     }
-    if ($allowRedirect) {
-        $_SESSION['attendance_sync_flash'] = ['type' => 'danger', 'message' => $message];
-        header('Location: ' . $redirect);
-        exit;
-    }
-    header('Content-Type: text/plain; charset=utf-8');
-    http_response_code(500);
-    echo $message . "\n";
-    exit;
+} else {
+    $connector['text'] = 'Connector step skipped in cloud mode; processing direct-ingest queue only.';
 }
 
 try {
@@ -82,7 +107,7 @@ try {
     exit;
 }
 
-$message = trim("Machine sync complete.\n" . ($connector['text'] ?? '') . "\n" . $importMessage);
+$message = trim("Machine sync complete ({$executionMode}).\n" . ($connector['text'] ?? '') . "\n" . $importMessage);
 if ($opsDb instanceof mysqli && !$opsDb->connect_error) {
     biometric_ops_finish_sync_run(
         $opsDb,
@@ -103,6 +128,7 @@ if ($jsonMode) {
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode([
         'success' => true,
+        'mode' => $executionMode,
         'message' => 'Machine sync complete.',
         'connector_output' => $connector['output'] ?? [],
         'import_output' => [$importMessage],

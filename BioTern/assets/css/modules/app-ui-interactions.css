@@ -30,6 +30,27 @@ body {
   }
 }
 
+/* Keep shell offsets aligned while desktop sidebar is still visible. */
+@media (min-width: 1025px) and (max-width: 1199.98px) {
+  html:not(.minimenu) .nxl-container {
+    margin-left: 280px !important;
+  }
+
+  html:not(.minimenu) .page-header,
+  html:not(.minimenu) .nxl-header {
+    left: 280px !important;
+  }
+
+  html.minimenu .nxl-container {
+    margin-left: 100px !important;
+  }
+
+  html.minimenu .page-header,
+  html.minimenu .nxl-header {
+    left: 100px !important;
+  }
+}
+
 /* Force click-only behavior for selected header dropdowns (no hover-open). */
 .click-only-dropdown > .dropdown-menu {
   display: none !important;
@@ -273,5 +294,15 @@ html.theme-preload .nxl-navigation .nxl-item.nxl-hasmenu.nxl-trigger > .nxl-subm
   /* Nudge submenu arrows when the mini sidebar is hovered/expanded. */
   html.minimenu .nxl-navigation:hover .nxl-arrow {
     transform: translateX(6px);
+  }
+
+  /* Keep desktop content clear of expanded mini sidebar (matches unified behavior). */
+  html.minimenu .nxl-navigation:hover ~ .nxl-header,
+  html.minimenu .nxl-navigation:hover ~ .nxl-container .page-header {
+    left: 280px !important;
+  }
+
+  html.minimenu .nxl-navigation:hover ~ .nxl-container {
+    margin-left: 280px !important;
   }
 }

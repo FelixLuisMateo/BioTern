@@ -662,7 +662,6 @@ function calculateTotalHours($morning_in, $morning_out, $break_in, $break_out, $
         })();
     </script>
     <title>BioTern || Student Profile - <?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars($student['first_name'] . ' ' . $student['last_name']); ?></title>
     <link rel="icon" type="image/png" sizes="192x192" href="/BioTern/BioTern_unified/assets/images/logo-abbr.png?v=20260310">
     <link rel="icon" type="image/png" sizes="64x64" href="/BioTern/BioTern_unified/assets/images/favicon-rounded.png?v=20260310">
@@ -1097,17 +1096,20 @@ endif; ?>
                                 <ul class="list-unstyled mb-4">
                                     <li class="profile-contact-item mb-4">
                                         <span class="text-muted fw-medium hstack gap-3"><i class="feather-map-pin"></i>Location</span>
-                                        <span class="profile-contact-value"><?php
-echo htmlspecialchars($student['address'] ?? 'N/A'); ?></span>
+                                        <a href="javascript:void(0);" class="profile-contact-value"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($student['address'] ?? 'N/A'); ?></a>
                                     </li>
                                     <li class="profile-contact-item mb-4">
                                         <span class="text-muted fw-medium hstack gap-3"><i class="feather-phone"></i>Mobile Phone</span>
-                                        <span class="profile-contact-value"><?php
-echo htmlspecialchars($student['phone'] ?? 'N/A'); ?></span>
+                                        <a href="javascript:void(0);" class="profile-contact-value"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo htmlspecialchars($student['phone'] ?? 'N/A'); ?></a>
                                     </li>
                                     <li class="profile-contact-item mb-0">
                                         <span class="text-muted fw-medium hstack gap-3"><i class="feather-mail"></i>Email</span>
-                                        <a href="mailto:<?php echo rawurlencode((string)($student['email'] ?? '')); ?>" class="profile-contact-value"><?php
+                                        <a href="javascript:void(0);" class="profile-contact-value"><?php
+require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars($student['email']); ?></a>
                                     </li>
                                 </ul>
@@ -1356,11 +1358,13 @@ echo date('M d, Y', strtotime($activity['date'])); ?>
 echo formatDateTime($activity['created_at']); ?>]</span>
                                                             </span>
                                                             <span class="text">
-                                                                Morning: <span class="fw-bold text-primary"><?php
-echo formatTimeRange($activity['morning_time_in'], $activity['morning_time_out']); ?></span>
+                                                                Morning: <a href="javascript:void(0);" class="fw-bold text-primary"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo formatTimeRange($activity['morning_time_in'], $activity['morning_time_out']); ?></a>
                                                                 &nbsp;|&nbsp;
-                                                                Afternoon: <span class="fw-bold text-primary"><?php
-echo formatTimeRange($activity['afternoon_time_in'], $activity['afternoon_time_out']); ?></span>
+                                                                Afternoon: <a href="javascript:void(0);" class="fw-bold text-primary"><?php
+require_once dirname(__DIR__) . '/config/db.php';
+echo formatTimeRange($activity['afternoon_time_in'], $activity['afternoon_time_out']); ?></a>
                                                                 &nbsp;|&nbsp;
                                                                 Total: <strong><?php
 echo $total_hours; ?> hrs</strong>
@@ -1475,7 +1479,7 @@ echo $is_evaluation_unlocked ? 'Waiting for supervisor submission' : 'Waiting fo
         <!-- Footer -->
         <footer class="footer">
             <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
-                <span>Copyright �</span>
+                <span>Copyright ï¿½</span>
                 <script>
                     document.write(new Date().getFullYear());
                 </script>
@@ -1520,8 +1524,10 @@ echo $open_clock_in_time ? json_encode($open_clock_in_time) : 'null'; ?>;
             const storageKey = 'student_timer_state_' + String(studentId);
             const todayKey = <?php
 echo json_encode($today); ?>;
+            const zeroFinalizeKey = 'student_timer_zero_finalized_' + String(studentId) + '_' + String(todayKey);
             let lastSyncedHour = null;
             let syncInFlight = false;
+            let zeroFinalized = false;
 
             function formatHMS(totalSeconds) {
                 const safe = Math.max(0, Math.floor(totalSeconds));
@@ -1654,7 +1660,28 @@ echo json_encode($today); ?>;
                 if (isClockedIn && remainingSeconds > 0 && (remainingSeconds % 3600 === 0)) {
                     syncRemainingHourToDb();
                 }
+
+                // When timer reaches zero, persist immediately and refresh once
+                // so server-side evaluation/finalization state is recalculated.
+                if (isClockedIn && remainingSeconds === 0 && !zeroFinalized) {
+                    zeroFinalized = true;
+                    syncRemainingHourToDb();
+                    saveState();
+                    try {
+                        sessionStorage.setItem(zeroFinalizeKey, '1');
+                    } catch (e) {}
+                    setTimeout(function () {
+                        window.location.reload();
+                    }, 500);
+                }
             }
+
+            try {
+                if (sessionStorage.getItem(zeroFinalizeKey) === '1') {
+                    zeroFinalized = true;
+                    sessionStorage.removeItem(zeroFinalizeKey);
+                }
+            } catch (e) {}
 
             updateTimer();
             setInterval(updateTimer, 1000);

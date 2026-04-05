@@ -207,6 +207,8 @@ $map = [
   'fingerprint_mapping.php' => 'pages/fingerprint_mapping.php',
   'biometric-machine.php' => 'pages/biometric-machine.php',
   'biometric_machine_sync.php' => 'tools/biometric_machine_sync.php',
+  'import-sql.php' => 'tools/import-sql.php',
+  'import-students-excel.php' => 'tools/import-students-excel.php',
   'print_attendance.php' => 'pages/print_attendance.php',
 
   'document_application.php' => 'documents/document_application.php',
@@ -240,6 +242,9 @@ $map = [
   'apps-calendar.php' => 'apps/apps-calendar.php',
 
   'api-biometric-event.php' => 'api/api-biometric-event.php',
+  'f20h_ingest.php' => 'api/f20h_ingest.php',
+  'bridge_profile.php' => 'api/bridge_profile.php',
+  'bridge_users_sync.php' => 'api/bridge_users_sync.php',
   'get_clock_status.php' => 'api/get_clock_status.php',
   'process_attendance.php' => 'api/process_attendance.php',
   'register_fingerprint.php' => 'api/register_fingerprint.php',
@@ -316,6 +321,9 @@ set_include_path(implode(PATH_SEPARATOR, array_values(array_unique($router_norma
 // Global auth guard so all routed pages are tied to a logged-in account.
 $public_files = [
   'index.php',
+  'f20h_ingest.php',
+  'bridge_profile.php',
+  'bridge_users_sync.php',
   'auth-login-cover.php',
   'auth-register-creative.php',
   'auth-reset-cover.php',
@@ -422,7 +430,7 @@ if ($is_logged_in) {
   ];
   $system_files = [
     'auth-register-creative.php', 'users.php', 'create_admin.php',
-    'settings-support.php',
+    'settings-support.php', 'import-sql.php', 'import-students-excel.php',
   ];
 
   $deny = false;

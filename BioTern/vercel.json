@@ -44,6 +44,18 @@
       "dest": "/$1"
     },
     {
+      "src": "^/api/([^/]+\\.php)$",
+      "dest": "/legacy_router.php?file=$1"
+    },
+    {
+      "src": "^/f20h_ingest\\.php$",
+      "dest": "/legacy_router.php?file=f20h_ingest.php"
+    },
+    {
+      "src": "^/bridge_profile\\.php$",
+      "dest": "/legacy_router.php?file=bridge_profile.php"
+    },
+    {
       "handle": "filesystem"
     },
     {
