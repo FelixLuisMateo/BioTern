@@ -18,6 +18,17 @@ function h($value): string
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
 }
 
+function supervisor_office_value(array $row): string
+{
+    foreach (['office', 'specialization', 'office_location'] as $field) {
+        $value = trim((string)($row[$field] ?? ''));
+        if ($value !== '') {
+            return $value;
+        }
+    }
+    return '';
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delete') {
     $id = (int)($_POST['id'] ?? 0);
     if ($id > 0) {
@@ -89,6 +100,32 @@ $page_title = 'Supervisors';
 include 'includes/header.php';
 ?>
 <style>
+    .supervisors-shell .page-subtitle {
+        font-size: 12px;
+        color: #6c7a92;
+        margin: 0;
+        line-height: 1.45;
+        max-width: 72ch;
+    }
+    .supervisors-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 1rem 1.15rem;
+        margin-bottom: 1rem;
+        border: 1px solid #dfe8f5;
+        border-radius: 14px;
+        background: #ffffff;
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+    }
+    .supervisors-toolbar-actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
     .supervisor-actions {
         display: flex;
         align-items: center;
@@ -102,6 +139,45 @@ include 'includes/header.php';
     .supervisor-actions .btn {
         min-width: 70px;
     }
+    .supervisors-table-wrap table {
+        width: 100%;
+    }
+    .supervisors-table-wrap th,
+    .supervisors-table-wrap td {
+        vertical-align: middle;
+    }
+    .supervisors-table-wrap td:last-child {
+        white-space: nowrap;
+    }
+    .supervisors-table-wrap .contact-link {
+        color: inherit;
+        text-decoration: none;
+    }
+    .supervisors-table-wrap .contact-link:hover {
+        text-decoration: underline;
+    }
+    html.app-skin-dark .supervisors-toolbar,
+    html.app-skin-dark .supervisors-shell .card.stretch.stretch-full {
+        border-color: #253252;
+        background: #111a2e;
+        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+    }
+    html.app-skin-dark .supervisors-shell .page-subtitle {
+        color: #99abc8;
+    }
+    @media (max-width: 991.98px) {
+        .supervisors-toolbar {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .supervisors-toolbar-actions {
+            width: 100%;
+            justify-content: stretch;
+        }
+        .supervisors-toolbar-actions .btn {
+            width: 100%;
+        }
+    }
 </style>
 <div class="page-header">
     <div class="page-header-left d-flex align-items-center">
@@ -113,23 +189,28 @@ include 'includes/header.php';
             <li class="breadcrumb-item">Supervisors</li>
         </ul>
     </div>
-    <div class="page-header-right ms-auto">
-        <a href="supervisors-create.php" class="btn btn-primary">Create Supervisor</a>
-    </div>
 </div>
 
-<div class="main-content">
+<div class="main-content supervisors-shell">
     <?php if ($message !== ''): ?>
         <div class="alert alert-<?php echo h($message_type); ?> py-2"><?php echo h($message); ?></div>
     <?php endif; ?>
 
+    <div class="supervisors-toolbar">
+        <p class="page-subtitle">Manage supervisor accounts, department assignments, and active access status in one place.</p>
+        <div class="supervisors-toolbar-actions">
+            <span class="badge bg-primary text-white px-3 py-2" style="font-weight:600;"><?php echo count($rows); ?> total</span>
+            <a href="supervisors-create.php" class="btn btn-primary">Create Supervisor</a>
+        </div>
+    </div>
+
     <div class="card stretch stretch-full">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="card-title mb-0">All Supervisors</h5>
-            <span class="badge bg-primary text-white px-3 py-1" style="font-weight:600;"><?php echo count($rows); ?> total</span>
+            <span class="text-muted small">Directory and account status</span>
         </div>
         <div class="card-body p-0">
-            <div class="table-responsive">
+            <div class="table-responsive supervisors-table-wrap">
                 <table class="table table-hover mb-0">
                     <thead>
                         <tr>
@@ -153,10 +234,22 @@ include 'includes/header.php';
                                 <td><?php echo (int)$r['id']; ?></td>
                                 <td><?php echo h(trim(($r['first_name'] ?? '') . ' ' . ($r['middle_name'] ?? '') . ' ' . ($r['last_name'] ?? ''))); ?></td>
                                 <td><?php echo h($r['user_username'] ?? '-'); ?></td>
-                                <td><?php echo h($r['email'] ?? '-'); ?></td>
-                                <td><?php echo h($r['phone'] ?? '-'); ?></td>
+                                <td>
+                                    <?php if (!empty($r['email'])): ?>
+                                        <a class="contact-link" href="mailto:<?php echo h($r['email']); ?>"><?php echo h($r['email']); ?></a>
+                                    <?php else: ?>
+                                        -
+                                    <?php endif; ?>
+                                </td>
+                                <td>
+                                    <?php if (!empty($r['phone'])): ?>
+                                        <a class="contact-link" href="tel:<?php echo h($r['phone']); ?>"><?php echo h($r['phone']); ?></a>
+                                    <?php else: ?>
+                                        -
+                                    <?php endif; ?>
+                                </td>
                                 <td><?php echo h($r['department_name'] ?? '-'); ?></td>
-                                <td><?php echo h($r['office'] ?? '-'); ?></td>
+                                <td><?php echo h(supervisor_office_value($r) ?: '-'); ?></td>
                                 <td>
                                     <?php if ((int)($r['is_active'] ?? 0) === 1): ?>
                                         <span class="badge bg-success">Active</span>

@@ -155,9 +155,9 @@ if (!function_exists('nav_page_href')) {
                         <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'students.php'); ?>">Students List</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'applications-review.php'); ?>">Applications Review</a></li>
                         <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'attendance.php'); ?>">Attendance DTR</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="legacy_router.php?file=fingerprint_mapping.php">Fingerprint Mapping</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="legacy_router.php?file=biometric-machine.php">F20H Machine Manager</a></li>
-                        <li class="nxl-item"><a class="nxl-link" href="legacy_router.php?file=biometric_machine_sync.php">Sync Biometric Machine</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'fingerprint_mapping.php'); ?>">Fingerprint Mapping</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'biometric-machine.php'); ?>">F20H Machine Manager</a></li>
+                        <li class="nxl-item"><a class="nxl-link" href="<?php echo nav_page_href($nav_root, 'biometric_machine_sync.php'); ?>">Sync Biometric Machine</a></li>
                     </ul>
                 </li>
                 <li class="nxl-item nxl-hasmenu">

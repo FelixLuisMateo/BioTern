@@ -48,6 +48,9 @@ if (isset($_GET['logout']) && (string)$_GET['logout'] === '1') {
     if (ini_get('session.use_cookies')) {
         $params = session_get_cookie_params();
         setcookie(session_name(), '', time() - 42000, $params['path'], $params['domain'], $params['secure'], $params['httponly']);
+        // Clear common legacy/root session cookie paths too, so stale sessions do not bleed across accounts.
+        setcookie(session_name(), '', time() - 42000, '/', '', $params['secure'], $params['httponly']);
+        setcookie(session_name(), '', time() - 42000, biotern_session_cookie_path(), '', $params['secure'], $params['httponly']);
     }
     session_destroy();
     session_start();

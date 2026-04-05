@@ -912,11 +912,20 @@ include 'includes/header.php';
                                             trim((string)($supervised_student['course_name'] ?? '')),
                                             trim((string)($supervised_student['section_code'] ?? '')),
                                         ));
+                                        $supervised_student_id = (int)($supervised_student['id'] ?? 0);
                                     ?>
                                     <div class="supervisor-student-card">
-                                        <div>
+                                        <div class="supervisor-student-main">
                                             <strong><?php echo htmlspecialchars($student_name !== '' ? $student_name : 'Student', ENT_QUOTES, 'UTF-8'); ?></strong>
                                             <span><?php echo htmlspecialchars(!empty($student_meta) ? implode(' | ', $student_meta) : 'No academic details yet', ENT_QUOTES, 'UTF-8'); ?></span>
+                                            <div class="supervisor-student-actions">
+                                                <a href="students-view.php?id=<?php echo $supervised_student_id; ?>" class="supervisor-inline-link">
+                                                    <i class="feather-user me-1"></i> Open Student
+                                                </a>
+                                                <a href="attendance.php?student_id=<?php echo $supervised_student_id; ?>" class="supervisor-inline-link">
+                                                    <i class="feather-clock me-1"></i> Review DTR
+                                                </a>
+                                            </div>
                                         </div>
                                         <div class="supervisor-student-side">
                                             <small><?php echo htmlspecialchars(trim((string)($supervised_student['company_name'] ?? '')) !== '' ? (string)$supervised_student['company_name'] : 'No company assigned yet', ENT_QUOTES, 'UTF-8'); ?></small>
@@ -976,9 +985,14 @@ include 'includes/header.php';
                                     <?php foreach ($supervisor_dashboard['recent_attendance'] as $attendance_row): ?>
                                     <?php $attendance_student_name = trim((string)(($attendance_row['first_name'] ?? '') . ' ' . ($attendance_row['last_name'] ?? ''))); ?>
                                     <div class="supervisor-attendance-item">
-                                        <div>
+                                        <div class="supervisor-attendance-main">
                                             <strong><?php echo htmlspecialchars($attendance_student_name !== '' ? $attendance_student_name : 'Student', ENT_QUOTES, 'UTF-8'); ?></strong>
                                             <span><?php echo htmlspecialchars(date('F j, Y', strtotime((string)$attendance_row['attendance_date'])), ENT_QUOTES, 'UTF-8'); ?> | <?php echo htmlspecialchars(ucfirst((string)($attendance_row['status'] ?? 'pending')), ENT_QUOTES, 'UTF-8'); ?></span>
+                                            <div class="supervisor-attendance-actions">
+                                                <a href="students-view.php?id=<?php echo (int)($attendance_row['student_id'] ?? 0); ?>#activityTab" class="supervisor-inline-link">
+                                                    <i class="feather-eye me-1"></i> View Log
+                                                </a>
+                                            </div>
                                         </div>
                                         <b><?php echo number_format((float)($attendance_row['total_hours'] ?? 0), 2); ?> hrs</b>
                                     </div>
