@@ -133,9 +133,6 @@ function machine_probe_bridge_profile_endpoint(string $baseUrl, string $bridgeTo
             $responseHeaders = $headers;
         }
     }
-    if ($responseHeaders === [] && isset($http_response_header) && is_array($http_response_header)) {
-        $responseHeaders = $http_response_header;
-    }
 
     if ($responseHeaders !== []) {
         foreach ($responseHeaders as $line) {
@@ -238,6 +235,7 @@ function machine_ensure_bridge_profile_table(mysqli $conn): void
     $conn->query("CREATE TABLE IF NOT EXISTS biometric_bridge_profile (
         id INT UNSIGNED NOT NULL AUTO_INCREMENT,
         profile_name VARCHAR(100) NOT NULL DEFAULT 'default',
+        selected_bridge_preset VARCHAR(100) NOT NULL DEFAULT 'laptop_custom',
         bridge_enabled TINYINT(1) NOT NULL DEFAULT 1,
         bridge_token VARCHAR(255) NOT NULL DEFAULT '',
         cloud_base_url VARCHAR(255) NOT NULL DEFAULT '',
@@ -257,6 +255,8 @@ function machine_ensure_bridge_profile_table(mysqli $conn): void
         PRIMARY KEY (id),
         UNIQUE KEY uniq_profile_name (profile_name)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+    $conn->query("ALTER TABLE biometric_bridge_profile ADD COLUMN IF NOT EXISTS selected_bridge_preset VARCHAR(100) NOT NULL DEFAULT 'laptop_custom' AFTER profile_name");
 }
 
 function machine_fetch_bridge_profile(mysqli $conn): array
@@ -265,6 +265,7 @@ function machine_fetch_bridge_profile(mysqli $conn): array
 
     $defaults = [
         'profile_name' => 'default',
+        'selected_bridge_preset' => 'laptop_custom',
         'bridge_enabled' => 1,
         'bridge_token' => '',
         'cloud_base_url' => '',
@@ -298,9 +299,10 @@ function machine_save_bridge_profile(mysqli $conn, array $profile, int $updatedB
     machine_ensure_bridge_profile_table($conn);
 
     $stmt = $conn->prepare("INSERT INTO biometric_bridge_profile
-        (profile_name, bridge_enabled, bridge_token, cloud_base_url, ingest_path, ingest_api_token, poll_seconds, ip_address, gateway, mask, port, device_number, communication_password, output_path, updated_by)
-        VALUES ('default', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (profile_name, selected_bridge_preset, bridge_enabled, bridge_token, cloud_base_url, ingest_path, ingest_api_token, poll_seconds, ip_address, gateway, mask, port, device_number, communication_password, output_path, updated_by)
+        VALUES ('default', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
+            selected_bridge_preset = VALUES(selected_bridge_preset),
             bridge_enabled = VALUES(bridge_enabled),
             bridge_token = VALUES(bridge_token),
             cloud_base_url = VALUES(cloud_base_url),
@@ -319,6 +321,7 @@ function machine_save_bridge_profile(mysqli $conn, array $profile, int $updatedB
         throw new RuntimeException('Failed to prepare bridge profile save query.');
     }
 
+    $selectedBridgePreset = trim((string)($profile['selected_bridge_preset'] ?? 'laptop_custom'));
     $bridgeEnabled = !empty($profile['bridge_enabled']) ? 1 : 0;
     $bridgeToken = (string)($profile['bridge_token'] ?? '');
     $cloudBaseUrl = (string)($profile['cloud_base_url'] ?? '');
@@ -334,7 +337,8 @@ function machine_save_bridge_profile(mysqli $conn, array $profile, int $updatedB
     $outputPath = (string)($profile['output_path'] ?? '');
 
     $stmt->bind_param(
-        'issssisssiissi',
+        'sissssisssiissi',
+        $selectedBridgePreset,
         $bridgeEnabled,
         $bridgeToken,
         $cloudBaseUrl,
@@ -637,8 +641,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         $connectorBoundActions = [
-            'list_users',
-            'get_user',
             'save_user_json',
             'save_user_name',
             'save_list_user_name',
@@ -938,6 +940,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             case 'save_bridge_profile':
                 $bridgeEnabled = isset($_POST['bridge_enabled']);
+                $selectedBridgePreset = trim((string)($_POST['bridge_preset_preview'] ?? 'laptop_custom'));
+                $allowedBridgePresets = ['laptop_router_1', 'laptop_router_2', 'computer_router_2', 'laptop_custom'];
+                if (!in_array($selectedBridgePreset, $allowedBridgePresets, true)) {
+                    $selectedBridgePreset = 'laptop_custom';
+                }
                 $bridgeToken = trim((string)($_POST['bridge_token'] ?? ''));
                 $cloudBaseUrl = rtrim(trim((string)($_POST['cloud_base_url'] ?? '')), '/');
                 $ingestPath = trim((string)($_POST['ingest_path'] ?? '/api/f20h_ingest.php'));
@@ -986,6 +993,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 machine_save_bridge_profile($conn, [
+                    'selected_bridge_preset' => $selectedBridgePreset,
                     'bridge_enabled' => $bridgeEnabled ? 1 : 0,
                     'bridge_token' => $bridgeToken,
                     'cloud_base_url' => $cloudBaseUrl,
@@ -1027,6 +1035,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 machine_save_bridge_profile($conn, [
+                    'selected_bridge_preset' => 'computer_router_2',
                     'bridge_enabled' => 1,
                     'bridge_token' => $bridgeToken,
                     'cloud_base_url' => $cloudBaseUrl,
@@ -1053,10 +1062,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $probeBaseUrl = trim((string)($savedProfile['cloud_base_url'] ?? ''));
                 $probeToken = trim((string)($savedProfile['bridge_token'] ?? ''));
                 $probe = machine_probe_bridge_profile_endpoint($probeBaseUrl, $probeToken);
+                if (empty($probe['ok'])) {
+                    $fallbackToken = trim((string)($savedProfile['ingest_api_token'] ?? ''));
+                    if ($fallbackToken !== '' && !hash_equals($fallbackToken, $probeToken)) {
+                        $fallbackProbe = machine_probe_bridge_profile_endpoint($probeBaseUrl, $fallbackToken);
+                        if (!empty($fallbackProbe['ok'])) {
+                            $probe = $fallbackProbe;
+                            $probe['message'] = 'Bridge profile endpoint accepted ingest token fallback. Save Bridge Profile to sync bridge token.';
+                        }
+                    }
+                }
+
+                $message = ($probe['ok'] ? 'Bridge test passed. ' : 'Bridge test failed. ') . ($probe['message'] ?? '');
+                if (empty($probe['ok']) && (int)($probe['status'] ?? 0) === 401) {
+                    $message .= ' HTTP 401 means token mismatch between saved bridge token and live API expectation. Click Fill Shared Bridge (Router 2), then Save Bridge Profile, then test again.';
+                }
                 $_SESSION['machine_manager_flash'] = [
                     'type' => $probe['ok'] ? 'success' : 'warning',
-                    'message' => ($probe['ok'] ? 'Bridge test passed. ' : 'Bridge test failed. ')
-                        . ($probe['message'] ?? '')
+                    'message' => $message
                         . (($probe['url'] ?? '') !== '' ? (' Endpoint: ' . $probe['url']) : ''),
                 ];
                 machine_redirect_after_post([]);
@@ -1254,7 +1277,10 @@ $bridgeWorkerCommand = 'powershell -NoProfile -ExecutionPolicy Bypass -File ".\\
     . ' -WorkspaceRoot "."';
 
 $selectedBridgePreset = 'laptop_custom';
-if ($bridgeIpAddress === '192.168.100.201' && $bridgeGateway === '192.168.100.1') {
+$savedBridgePreset = trim((string)($bridgeProfile['selected_bridge_preset'] ?? ''));
+if (in_array($savedBridgePreset, ['laptop_router_1', 'laptop_router_2', 'computer_router_2', 'laptop_custom'], true)) {
+    $selectedBridgePreset = $savedBridgePreset;
+} elseif ($bridgeIpAddress === '192.168.100.201' && $bridgeGateway === '192.168.100.1') {
     $selectedBridgePreset = 'laptop_router_1';
 } elseif ($bridgeIpAddress === '192.168.110.201' && $bridgeGateway === '192.168.110.1') {
     $selectedBridgePreset = 'computer_router_2';
