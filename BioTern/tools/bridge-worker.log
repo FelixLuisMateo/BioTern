@@ -1382,3 +1382,125 @@
 [2026-04-06 01:27:02] Bridge loop error: The remote server returned an error: (401) Unauthorized.
 [2026-04-06 01:27:22] Bridge loop error: The remote server returned an error: (401) Unauthorized.
 [2026-04-06 01:27:43] Bridge loop error: The remote server returned an error: (401) Unauthorized.
+[2026-04-06 01:28:05] Bridge loop error: The remote server returned an error: (401) Unauthorized.
+[2026-04-06 01:28:26] Bridge loop error: The remote server returned an error: (401) Unauthorized.
+[2026-04-06 01:28:47] Bridge loop error: The remote server returned an error: (401) Unauthorized.
+[2026-04-06 01:29:07] Bridge loop error: The remote server returned an error: (401) Unauthorized.
+[2026-04-06 01:29:28] Bridge loop error: The remote server returned an error: (401) Unauthorized.
+[2026-04-06 01:29:48] Bridge loop error: The remote server returned an error: (401) Unauthorized.
+[2026-04-06 01:30:08] Bridge loop error: The remote server returned an error: (401) Unauthorized.
+[2026-04-06 01:30:29] Bridge loop error: The remote server returned an error: (401) Unauthorized.
+[2026-04-06 01:30:50] Bridge loop error: The remote server returned an error: (401) Unauthorized.
+[2026-04-06 01:31:11] Bridge loop error: The remote server returned an error: (401) Unauthorized.
+[2026-04-06 01:31:31] Bridge loop error: The remote server returned an error: (401) Unauthorized.
+[2026-04-06 01:31:51] Bridge loop error: The remote server returned an error: (401) Unauthorized.
+[2026-04-06 01:32:11] Bridge loop error: The remote server returned an error: (401) Unauthorized.
+[2026-04-06 01:32:32] Bridge loop error: The remote server returned an error: (401) Unauthorized.
+[2026-04-06 01:32:52] Bridge loop error: The remote server returned an error: (401) Unauthorized.
+[2026-04-06 01:33:14] Bridge loop error: The remote server returned an error: (401) Unauthorized.
+[2026-04-06 01:33:35] Bridge loop error: The remote server returned an error: (401) Unauthorized.
+[2026-04-06 01:33:56] Bridge loop error: The remote server returned an error: (401) Unauthorized.
+[2026-04-06 01:34:16] Bridge loop error: The remote server returned an error: (401) Unauthorized.
+[2026-04-06 01:34:36] Bridge loop error: The remote server returned an error: (401) Unauthorized.
+[2026-04-06 01:34:57] Bridge loop error: The remote server returned an error: (401) Unauthorized.
+[2026-04-06 01:35:20] Bridge worker started.
+[2026-04-06 01:35:25] Executing bridge command #12: rename_user
+[2026-04-06 01:35:31] Bridge command #12 completed.
+[2026-04-06 01:35:33] Executing bridge command #13: rename_user
+[2026-04-06 01:35:54] Bridge command #13 completed.
+[2026-04-06 01:35:56] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 57 Device disconnected.
+[2026-04-06 01:35:58] User cache sync success. Users=8
+[2026-04-06 01:36:01] Ingest success. Received=1 Inserted=1
+[2026-04-06 01:36:38] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-06 01:36:39] User cache sync success. Users=8
+[2026-04-06 01:36:39] No new F20H logs to upload.
+[2026-04-06 01:37:17] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-06 01:37:20] User cache sync success. Users=8
+[2026-04-06 01:37:20] No new F20H logs to upload.
+[2026-04-06 01:37:58] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-06 01:38:00] User cache sync success. Users=8
+[2026-04-06 01:38:00] No new F20H logs to upload.
+[2026-04-06 01:38:36] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-06 01:38:38] User cache sync success. Users=8
+[2026-04-06 01:38:38] No new F20H logs to upload.
+[2026-04-06 01:39:11] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-06 01:39:12] User cache sync success. Users=8
+[2026-04-06 01:39:12] No new F20H logs to upload.
+[2026-04-06 01:39:59] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 113 Device disconnected.
+[2026-04-06 01:40:02] User cache sync success. Users=8
+[2026-04-06 01:40:05] Ingest success. Received=2 Inserted=2
+[2026-04-06 01:40:39] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-06 01:40:41] User cache sync success. Users=8
+[2026-04-06 01:40:41] No new F20H logs to upload.
+[2026-04-06 01:41:14] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-06 01:41:15] User cache sync success. Users=8
+[2026-04-06 01:41:15] No new F20H logs to upload.
+[2026-04-06 01:41:49] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-06 01:41:50] User cache sync success. Users=8
+[2026-04-06 01:41:50] No new F20H logs to upload.
+[2026-04-06 01:42:23] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-06 01:42:25] User cache sync success. Users=8
+[2026-04-06 01:42:25] No new F20H logs to upload.
+[2026-04-06 01:43:00] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-06 01:43:03] User cache sync success. Users=8
+[2026-04-06 01:43:03] No new F20H logs to upload.
+[2026-04-06 01:43:36] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-06 01:43:39] User cache sync success. Users=8
+[2026-04-06 01:43:39] No new F20H logs to upload.
+[2026-04-06 01:44:11] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-06 01:44:13] User cache sync success. Users=8
+[2026-04-06 01:44:13] No new F20H logs to upload.
+[2026-04-06 01:44:47] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-06 01:44:49] User cache sync success. Users=8
+[2026-04-06 01:44:49] No new F20H logs to upload.
+[2026-04-06 01:45:22] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-06 01:45:24] User cache sync success. Users=8
+[2026-04-06 01:45:24] No new F20H logs to upload.
+[2026-04-06 01:45:58] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-06 01:46:00] User cache sync success. Users=8
+[2026-04-06 01:46:00] No new F20H logs to upload.
+[2026-04-06 01:46:58] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-06 01:47:03] User cache sync success. Users=8
+[2026-04-06 01:47:03] No new F20H logs to upload.
+[2026-04-06 01:47:37] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-06 01:47:39] User cache sync success. Users=8
+[2026-04-06 01:47:39] No new F20H logs to upload.
+[2026-04-06 01:48:13] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-06 01:48:15] User cache sync success. Users=8
+[2026-04-06 01:48:16] No new F20H logs to upload.
+[2026-04-06 01:48:49] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-06 01:48:51] User cache sync success. Users=8
+[2026-04-06 01:48:51] No new F20H logs to upload.
+[2026-04-06 01:49:25] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-06 01:49:27] User cache sync success. Users=8
+[2026-04-06 01:49:27] No new F20H logs to upload.
+[2026-04-06 01:50:00] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-06 01:50:02] User cache sync success. Users=8
+[2026-04-06 01:50:02] No new F20H logs to upload.
+[2026-04-06 01:50:36] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-06 01:50:38] User cache sync success. Users=8
+[2026-04-06 01:50:38] No new F20H logs to upload.
+[2026-04-06 01:51:11] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-06 01:51:12] User cache sync success. Users=8
+[2026-04-06 01:51:12] No new F20H logs to upload.
+[2026-04-06 01:51:48] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-06 01:51:49] User cache sync success. Users=8
+[2026-04-06 01:51:49] No new F20H logs to upload.
+[2026-04-06 01:52:22] Executing bridge command #14: rename_user
+[2026-04-06 01:52:24] Bridge command #14 completed.
+[2026-04-06 01:52:26] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-06 01:52:27] User cache sync success. Users=8
+[2026-04-06 01:52:28] No new F20H logs to upload.
+[2026-04-06 01:53:01] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 57 Device disconnected.
+[2026-04-06 01:53:02] User cache sync success. Users=8
+[2026-04-06 01:53:06] Ingest success. Received=1 Inserted=1
+[2026-04-06 01:53:40] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-06 01:53:42] User cache sync success. Users=8
+[2026-04-06 01:53:42] No new F20H logs to upload.
+[2026-04-06 01:54:25] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-06 01:54:29] User cache sync success. Users=8
+[2026-04-06 01:54:30] No new F20H logs to upload.
+[2026-04-06 01:55:13] Bridge loop error: Device connection failed.
+[2026-04-06 01:55:48] Bridge loop error: Device connection failed.
+[2026-04-06 01:56:24] Bridge loop error: Device connection failed.
+[2026-04-06 01:57:16] Bridge loop error: Device connection failed.

@@ -572,7 +572,85 @@ function machine_enqueue_bridge_command(mysqli $conn, string $commandName, array
     $commandId = (int)$stmt->insert_id;
     $stmt->close();
 
+    machine_queue_watch_add($commandId);
+
     return $commandId;
+}
+
+function machine_queue_watch_add(int $commandId): void
+{
+    if ($commandId <= 0) {
+        return;
+    }
+
+    $watchIds = [];
+    if (isset($_SESSION['machine_queue_watch_ids']) && is_array($_SESSION['machine_queue_watch_ids'])) {
+        $watchIds = array_values(array_filter(array_map('intval', $_SESSION['machine_queue_watch_ids']), static function (int $id): bool {
+            return $id > 0;
+        }));
+    }
+
+    if (!in_array($commandId, $watchIds, true)) {
+        $watchIds[] = $commandId;
+    }
+
+    if (count($watchIds) > 30) {
+        $watchIds = array_slice($watchIds, -30);
+    }
+
+    $_SESSION['machine_queue_watch_ids'] = $watchIds;
+}
+
+function machine_queue_watch_poll(mysqli $conn): array
+{
+    machine_ensure_bridge_command_queue_table($conn);
+
+    $watchIds = [];
+    if (isset($_SESSION['machine_queue_watch_ids']) && is_array($_SESSION['machine_queue_watch_ids'])) {
+        $watchIds = array_values(array_filter(array_map('intval', $_SESSION['machine_queue_watch_ids']), static function (int $id): bool {
+            return $id > 0;
+        }));
+    }
+
+    if ($watchIds === []) {
+        $_SESSION['machine_queue_watch_ids'] = [];
+        return ['watching' => [], 'completed' => []];
+    }
+
+    $placeholders = implode(',', array_map('intval', $watchIds));
+    $completed = [];
+    $stillWatching = [];
+
+    $res = $conn->query("SELECT id, command_name, status, completed_at, result_text FROM biometric_bridge_command_queue WHERE id IN ({$placeholders})");
+    if ($res instanceof mysqli_result) {
+        while ($row = $res->fetch_assoc()) {
+            $id = (int)($row['id'] ?? 0);
+            if ($id <= 0) {
+                continue;
+            }
+
+            $status = strtolower(trim((string)($row['status'] ?? 'queued')));
+            if (in_array($status, ['succeeded', 'failed'], true)) {
+                $completed[] = [
+                    'id' => $id,
+                    'command_name' => (string)($row['command_name'] ?? ''),
+                    'status' => $status,
+                    'completed_at' => (string)($row['completed_at'] ?? ''),
+                    'result_text' => (string)($row['result_text'] ?? ''),
+                ];
+            } else {
+                $stillWatching[] = $id;
+            }
+        }
+        $res->close();
+    }
+
+    $_SESSION['machine_queue_watch_ids'] = array_values(array_unique($stillWatching));
+
+    return [
+        'watching' => $_SESSION['machine_queue_watch_ids'],
+        'completed' => $completed,
+    ];
 }
 
 function machine_fetch_bridge_command_queue(mysqli $conn, int $limit = 20): array
@@ -842,6 +920,22 @@ if (isset($_SESSION['machine_manager_flash']) && is_array($_SESSION['machine_man
     $flashType = (string)($_SESSION['machine_manager_flash']['type'] ?? 'info');
     $flashMessage = (string)($_SESSION['machine_manager_flash']['message'] ?? '');
     unset($_SESSION['machine_manager_flash']);
+}
+
+if ((int)($_GET['queue_watch_status'] ?? 0) === 1) {
+    header('Content-Type: application/json; charset=utf-8');
+    try {
+        $payload = machine_queue_watch_poll($conn);
+        echo json_encode([
+            'success' => true,
+            'watching' => $payload['watching'] ?? [],
+            'completed' => $payload['completed'] ?? [],
+        ], JSON_UNESCAPED_SLASHES);
+    } catch (Throwable $e) {
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+    }
+    exit;
 }
 
 if ((int)($_GET['load_users'] ?? 0) === 1) {
@@ -1667,13 +1761,21 @@ if ($bridgeIngestApiToken === '') {
     }
 }
 
+$bridgeProfileBaseUrl = machine_bridge_default_cloud_base_url();
+if ($bridgeProfileBaseUrl === '') {
+    $bridgeProfileBaseUrl = $bridgeCloudBaseUrl;
+}
+if ($bridgeProfileBaseUrl === '') {
+    $bridgeProfileBaseUrl = 'https://your-app.vercel.app';
+}
+
 $bridgeWorkerCommand = 'powershell -NoProfile -ExecutionPolicy Bypass -File ".\\tools\\bridge-worker.ps1"'
-    . ' -SiteBaseUrl "' . str_replace('"', '\\"', $bridgeCloudBaseUrl !== '' ? $bridgeCloudBaseUrl : 'https://your-app.vercel.app') . '"'
+    . ' -SiteBaseUrl "' . str_replace('"', '\\"', $bridgeProfileBaseUrl) . '"'
     . ' -BridgeToken "' . str_replace('"', '\\"', $bridgeToken !== '' ? $bridgeToken : 'YOUR_BRIDGE_TOKEN') . '"'
     . ' -WorkspaceRoot "."';
 
 $bridgeTaskInstallCommand = 'powershell -NoProfile -ExecutionPolicy Bypass -File ".\\tools\\install-bridge-worker-task.ps1"'
-    . ' -SiteBaseUrl "' . str_replace('"', '\\"', $bridgeCloudBaseUrl !== '' ? $bridgeCloudBaseUrl : 'https://your-app.vercel.app') . '"'
+    . ' -SiteBaseUrl "' . str_replace('"', '\\"', $bridgeProfileBaseUrl) . '"'
     . ' -BridgeToken "' . str_replace('"', '\\"', $bridgeToken !== '' ? $bridgeToken : 'YOUR_BRIDGE_TOKEN') . '"'
     . ' -TaskName "BioTernBridgeWorker"';
 
@@ -2817,4 +2919,115 @@ include __DIR__ . '/../includes/header.php';
         </div>
 </div>
 </main>
+
+<div class="toast-container position-fixed top-0 end-0 p-3" id="machineQueueToastContainer" style="z-index: 1080;"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var toastContainer = document.getElementById('machineQueueToastContainer');
+    if (!toastContainer) {
+        return;
+    }
+
+    var seenCompletedIds = {};
+
+    function trimText(value) {
+        var text = (value || '').toString().trim();
+        if (text.length > 180) {
+            return text.slice(0, 180) + '...';
+        }
+        return text;
+    }
+
+    function escapeHtml(value) {
+        return (value || '').toString()
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function showQueueToast(item) {
+        var id = Number(item && item.id ? item.id : 0);
+        if (!id || seenCompletedIds[id]) {
+            return;
+        }
+        seenCompletedIds[id] = true;
+
+        var status = ((item && item.status) || '').toString().toLowerCase();
+        var commandName = ((item && item.command_name) || 'command').toString();
+        var resultText = trimText(item && item.result_text ? item.result_text : '');
+        var completedAt = ((item && item.completed_at) || '').toString();
+        var isSuccess = status === 'succeeded';
+
+        var title = isSuccess ? 'Queue Completed' : 'Queue Failed';
+        var tone = isSuccess ? 'success' : 'danger';
+        var body = '#' + id + ' ' + commandName + (isSuccess ? ' completed.' : ' failed.');
+
+        if (resultText !== '') {
+            body += ' ' + resultText;
+        }
+        if (completedAt !== '') {
+            body += ' (' + completedAt + ')';
+        }
+
+        var wrapper = document.createElement('div');
+        wrapper.className = 'toast align-items-center text-bg-' + tone + ' border-0 mb-2';
+        wrapper.setAttribute('role', 'alert');
+        wrapper.setAttribute('aria-live', 'assertive');
+        wrapper.setAttribute('aria-atomic', 'true');
+        wrapper.innerHTML = ''
+            + '<div class="d-flex">'
+            + '  <div class="toast-body">'
+            + '    <div class="fw-semibold mb-1">' + escapeHtml(title) + '</div>'
+            + '    <div>' + escapeHtml(body) + '</div>'
+            + '  </div>'
+            + '  <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>'
+            + '</div>';
+
+        toastContainer.appendChild(wrapper);
+
+        if (window.bootstrap && window.bootstrap.Toast) {
+            var toast = new window.bootstrap.Toast(wrapper, { delay: isSuccess ? 6000 : 9000 });
+            wrapper.addEventListener('hidden.bs.toast', function () {
+                wrapper.remove();
+            });
+            toast.show();
+        } else {
+            wrapper.className = 'alert alert-' + tone + ' mb-2 shadow-sm';
+            wrapper.innerHTML = '<div class="fw-semibold mb-1">' + escapeHtml(title) + '</div><div>' + escapeHtml(body) + '</div>';
+            window.setTimeout(function () {
+                wrapper.remove();
+            }, isSuccess ? 6000 : 9000);
+        }
+    }
+
+    async function pollQueueStatus() {
+        try {
+            var response = await fetch('biometric-machine.php?queue_watch_status=1&_ts=' + Date.now(), {
+                method: 'GET',
+                credentials: 'same-origin',
+                cache: 'no-store'
+            });
+            if (!response.ok) {
+                return;
+            }
+
+            var payload = await response.json();
+            if (!payload || !payload.success || !Array.isArray(payload.completed)) {
+                return;
+            }
+
+            payload.completed.forEach(showQueueToast);
+        } catch (error) {
+            // Keep polling silent if a transient network error occurs.
+        }
+    }
+
+    pollQueueStatus();
+    window.setInterval(pollQueueStatus, 4000);
+});
+</script>
+
 <?php include __DIR__ . '/../includes/footer.php'; ?>
