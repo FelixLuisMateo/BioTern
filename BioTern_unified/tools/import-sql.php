@@ -1142,7 +1142,33 @@ include dirname(__DIR__) . '/includes/header.php';
     }
 }
 </style>
-<div class="container-xxl py-4">
+<style>
+.tools-shell{display:grid;grid-template-columns:minmax(220px,280px) minmax(0,1fr);gap:24px}.tools-sidebar,.tools-panel{background:rgba(19,28,51,.92);border:1px solid rgba(138,155,188,.18);border-radius:18px}.tools-sidebar{padding:20px;align-self:start}.tools-nav-title{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--bs-secondary-color);margin-bottom:16px}.tools-nav{display:grid;gap:10px}.tools-nav a{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-radius:12px;text-decoration:none;color:inherit;border:1px solid rgba(138,155,188,.14);background:rgba(79,70,229,.06)}.tools-nav a.active{background:rgba(79,70,229,.14);border-color:rgba(79,70,229,.38);color:#fff}.tools-panel{padding:24px}.transfer-shell{max-width:none}.transfer-hero,.transfer-panel{background:rgba(19,28,51,.92);border-color:rgba(138,155,188,.18);box-shadow:none}.transfer-hero{color:inherit}.transfer-badge{background:rgba(79,70,229,.12);color:#7c9dff}.transfer-kpi,.transfer-mode,.transfer-step,.transfer-help{background:rgba(79,70,229,.04);border-color:rgba(138,155,188,.14)}.transfer-step-number{background:#4f46e5}.transfer-divider::before,.transfer-divider::after{background:rgba(138,155,188,.18)}.transfer-panel .form-control[type="file"]{padding:0;background:#131b33;color:#edf4fb}.transfer-panel .form-control[type="file"]::file-selector-button,.transfer-panel .form-control[type="file"]::-webkit-file-upload-button{margin:0 12px 0 0;padding:12px 16px;border:0;border-right:1px solid rgba(138,155,188,.24);background:#243244!important;color:#edf4fb!important;font-weight:600;-webkit-appearance:none;appearance:none}html:not(.app-skin-dark) .tools-sidebar,html:not(.app-skin-dark) .tools-panel,html:not(.app-skin-dark) .transfer-hero,html:not(.app-skin-dark) .transfer-panel{background:#fff;border-color:rgba(71,103,255,.12);color:#1f2937}html:not(.app-skin-dark) .tools-nav-title{color:#8a94a6}html:not(.app-skin-dark) .tools-nav a{background:#f7f9ff;border-color:rgba(71,103,255,.12);color:#334155}html:not(.app-skin-dark) .tools-nav a.active{background:rgba(82,109,254,.1);border-color:rgba(82,109,254,.3);color:#1d4ed8}html:not(.app-skin-dark) .transfer-badge{color:#4f46e5}html:not(.app-skin-dark) .transfer-kpi,html:not(.app-skin-dark) .transfer-mode,html:not(.app-skin-dark) .transfer-step,html:not(.app-skin-dark) .transfer-help{background:#f7f9ff;border-color:rgba(71,103,255,.12)}html:not(.app-skin-dark) .transfer-panel .form-control[type="file"]{background:#fff;color:#0f172a}html:not(.app-skin-dark) .transfer-panel .form-control[type="file"]::file-selector-button,html:not(.app-skin-dark) .transfer-panel .form-control[type="file"]::-webkit-file-upload-button{background:#eef2ff!important;border-right-color:rgba(148,163,184,.35);color:#1d4ed8!important}@media (max-width:991.98px){.tools-shell{grid-template-columns:1fr}}
+</style>
+<div class="nxl-content">
+    <div class="page-header">
+        <div class="page-header-left d-flex align-items-center">
+            <div class="page-header-title">
+                <h5 class="m-b-10">Data Transfer</h5>
+            </div>
+            <ul class="breadcrumb">
+                <li class="breadcrumb-item"><a href="../homepage.php">Home</a></li>
+                <li class="breadcrumb-item">Tools</li>
+                <li class="breadcrumb-item">Data Transfer</li>
+            </ul>
+        </div>
+    </div>
+    <div class="main-content">
+        <div class="tools-shell">
+            <aside class="tools-sidebar">
+                <div class="tools-nav-title">Tools</div>
+                <nav class="tools-nav">
+                    <a href="import-students-excel.php"><span>Excel Import</span><i class="feather-arrow-right"></i></a>
+                    <a href="import-sql.php" class="active"><span>Data Transfer</span><i class="feather-arrow-right"></i></a>
+                    <a href="../pages/theme-customizer.php"><span>Theme Customizer</span><i class="feather-arrow-right"></i></a>
+                </nav>
+            </aside>
+            <section class="tools-panel">
     <?php if ($statusType !== ''): ?>
         <div class="alert alert-<?php echo $statusType === 'success' ? 'success' : 'danger'; ?> alert-dismissible fade show mb-4" role="alert">
             <strong><?php echo $statusType === 'success' ? 'Success:' : 'Import error:'; ?></strong>
@@ -1176,8 +1202,8 @@ include dirname(__DIR__) . '/includes/header.php';
         <div class="card transfer-hero mb-4">
             <div class="card-body">
                 <span class="transfer-badge">Railway Database Transfer Center</span>
-                <h2 class="mt-3 mb-2 text-white">Move your data with a clearer step-by-step workflow</h2>
-                <p class="mb-0 text-white-50">This page helps you import SQL into the current database connection, update students from spreadsheet files, and understand which option is safest before you run anything.</p>
+                <h2 class="mt-3 mb-2">Move your data with a clearer step-by-step workflow</h2>
+                <p class="mb-0">This page helps you import SQL into the current database connection, update students from spreadsheet files, and understand which option is safest before you run anything.</p>
                 <div class="transfer-kpis">
                     <div class="transfer-kpi">
                         <span class="transfer-kpi-label">Connected Host</span>
@@ -1399,6 +1425,8 @@ include dirname(__DIR__) . '/includes/header.php';
                     </div>
                 </div>
             </div>
+        </div>
+            </section>
         </div>
     </div>
 </div>

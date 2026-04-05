@@ -42,7 +42,7 @@ include 'includes/header.php';
                             <li class="nav-item">
                                 <a class="nav-link" href="settings-ojt.php">
                                     <i class="feather-crosshair"></i>
-                                    <span>Leads</span>
+                                    <span>OJT Settings</span>
                                 </a>
                             </li>
                             <li class="nav-item">
