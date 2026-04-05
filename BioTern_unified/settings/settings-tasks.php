@@ -1,4 +1,6 @@
 <?php
+header('Location: settings-general.php');
+exit;
 require_once dirname(__DIR__) . '/config/db.php';
 $page_title = 'Tasks Settings';
 $page_styles = ['assets/css/settings-customizer-like.css'];

@@ -37,6 +37,22 @@ CREATE TABLE IF NOT EXISTS system_settings (
 SQL;
 
     $conn->query($sql);
+
+    $columns = [];
+    if ($result = $conn->query('SHOW COLUMNS FROM system_settings')) {
+        while ($row = $result->fetch_assoc()) {
+            $columns[(string)$row['Field']] = true;
+        }
+        $result->close();
+    }
+
+    if (!isset($columns['description'])) {
+        $conn->query('ALTER TABLE system_settings ADD COLUMN `description` VARCHAR(255) NULL AFTER `value`');
+    }
+
+    if (!isset($columns['category'])) {
+        $conn->query("ALTER TABLE system_settings ADD COLUMN `category` VARCHAR(100) NOT NULL DEFAULT 'general' AFTER `description`");
+    }
 }
 
 function so_fetch_settings(mysqli $conn, string $category): array

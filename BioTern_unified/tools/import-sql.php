@@ -1143,7 +1143,7 @@ include dirname(__DIR__) . '/includes/header.php';
 }
 </style>
 <style>
-.tools-shell{display:grid;grid-template-columns:minmax(220px,280px) minmax(0,1fr);gap:24px}.tools-sidebar,.tools-panel{background:rgba(19,28,51,.92);border:1px solid rgba(138,155,188,.18);border-radius:18px}.tools-sidebar{padding:20px;align-self:start}.tools-nav-title{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--bs-secondary-color);margin-bottom:16px}.tools-nav{display:grid;gap:10px}.tools-nav a{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-radius:12px;text-decoration:none;color:inherit;border:1px solid rgba(138,155,188,.14);background:rgba(79,70,229,.06)}.tools-nav a.active{background:rgba(79,70,229,.14);border-color:rgba(79,70,229,.38);color:#fff}.tools-panel{padding:24px}.transfer-shell{max-width:none}.transfer-hero,.transfer-panel{background:rgba(19,28,51,.92);border-color:rgba(138,155,188,.18);box-shadow:none}.transfer-hero{color:inherit}.transfer-badge{background:rgba(79,70,229,.12);color:#7c9dff}.transfer-kpi,.transfer-mode,.transfer-step,.transfer-help{background:rgba(79,70,229,.04);border-color:rgba(138,155,188,.14)}.transfer-step-number{background:#4f46e5}.transfer-divider::before,.transfer-divider::after{background:rgba(138,155,188,.18)}.transfer-panel .form-control[type="file"]{padding:0;background:#131b33;color:#edf4fb}.transfer-panel .form-control[type="file"]::file-selector-button,.transfer-panel .form-control[type="file"]::-webkit-file-upload-button{margin:0 12px 0 0;padding:12px 16px;border:0;border-right:1px solid rgba(138,155,188,.24);background:#243244!important;color:#edf4fb!important;font-weight:600;-webkit-appearance:none;appearance:none}html:not(.app-skin-dark) .tools-sidebar,html:not(.app-skin-dark) .tools-panel,html:not(.app-skin-dark) .transfer-hero,html:not(.app-skin-dark) .transfer-panel{background:#fff;border-color:rgba(71,103,255,.12);color:#1f2937}html:not(.app-skin-dark) .tools-nav-title{color:#8a94a6}html:not(.app-skin-dark) .tools-nav a{background:#f7f9ff;border-color:rgba(71,103,255,.12);color:#334155}html:not(.app-skin-dark) .tools-nav a.active{background:rgba(82,109,254,.1);border-color:rgba(82,109,254,.3);color:#1d4ed8}html:not(.app-skin-dark) .transfer-badge{color:#4f46e5}html:not(.app-skin-dark) .transfer-kpi,html:not(.app-skin-dark) .transfer-mode,html:not(.app-skin-dark) .transfer-step,html:not(.app-skin-dark) .transfer-help{background:#f7f9ff;border-color:rgba(71,103,255,.12)}html:not(.app-skin-dark) .transfer-panel .form-control[type="file"]{background:#fff;color:#0f172a}html:not(.app-skin-dark) .transfer-panel .form-control[type="file"]::file-selector-button,html:not(.app-skin-dark) .transfer-panel .form-control[type="file"]::-webkit-file-upload-button{background:#eef2ff!important;border-right-color:rgba(148,163,184,.35);color:#1d4ed8!important}@media (max-width:991.98px){.tools-shell{grid-template-columns:1fr}}
+.tools-shell{display:grid;grid-template-columns:minmax(220px,280px) minmax(0,1fr);gap:20px}.tools-sidebar,.tools-panel{background:rgba(19,28,51,.92);border:1px solid rgba(138,155,188,.18);border-radius:18px}.tools-sidebar{padding:18px;align-self:start}.tools-nav-title{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--bs-secondary-color);margin-bottom:14px}.tools-nav{display:grid;gap:8px}.tools-nav a{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 13px;border-radius:12px;text-decoration:none;color:inherit;border:1px solid rgba(138,155,188,.14);background:rgba(79,70,229,.06)}.tools-nav a.active{background:rgba(79,70,229,.14);border-color:rgba(79,70,229,.38);color:#fff}.tools-panel{padding:20px}.transfer-shell{max-width:none}.transfer-hero,.transfer-panel{background:rgba(19,28,51,.92);border-color:rgba(138,155,188,.18);box-shadow:none}.transfer-hero{color:inherit}.transfer-badge{background:rgba(79,70,229,.12);color:#7c9dff}.transfer-kpi,.transfer-mode,.transfer-step,.transfer-help{background:rgba(79,70,229,.04);border-color:rgba(138,155,188,.14)}.transfer-step-number{background:#4f46e5}.transfer-divider::before,.transfer-divider::after{background:rgba(138,155,188,.18)}.transfer-panel .form-control[type="file"]{padding:0;background:#131b33;color:#edf4fb}.transfer-panel .form-control[type="file"]::file-selector-button,.transfer-panel .form-control[type="file"]::-webkit-file-upload-button{margin:0 12px 0 0;padding:12px 16px;border:0;border-right:1px solid rgba(138,155,188,.24);background:#243244!important;color:#edf4fb!important;font-weight:600;-webkit-appearance:none;appearance:none}.compact-transfer-body{padding:20px!important}.compact-transfer-hero{padding:22px!important}.compact-transfer-toolbar{margin-bottom:12px!important}html:not(.app-skin-dark) .tools-sidebar,html:not(.app-skin-dark) .tools-panel,html:not(.app-skin-dark) .transfer-hero,html:not(.app-skin-dark) .transfer-panel{background:#fff;border-color:rgba(71,103,255,.12);color:#1f2937}html:not(.app-skin-dark) .tools-nav-title{color:#8a94a6}html:not(.app-skin-dark) .tools-nav a{background:#f7f9ff;border-color:rgba(71,103,255,.12);color:#334155}html:not(.app-skin-dark) .tools-nav a.active{background:rgba(82,109,254,.1);border-color:rgba(82,109,254,.3);color:#1d4ed8}html:not(.app-skin-dark) .transfer-badge{color:#4f46e5}html:not(.app-skin-dark) .transfer-kpi,html:not(.app-skin-dark) .transfer-mode,html:not(.app-skin-dark) .transfer-step,html:not(.app-skin-dark) .transfer-help{background:#f7f9ff;border-color:rgba(71,103,255,.12)}html:not(.app-skin-dark) .transfer-panel .form-control[type="file"]{background:#fff;color:#0f172a}html:not(.app-skin-dark) .transfer-panel .form-control[type="file"]::file-selector-button,html:not(.app-skin-dark) .transfer-panel .form-control[type="file"]::-webkit-file-upload-button{background:#eef2ff!important;border-right-color:rgba(148,163,184,.35);color:#1d4ed8!important}@media (max-width:991.98px){.tools-shell{grid-template-columns:1fr}}@media (max-width:767.98px){.tools-panel{padding:16px}.compact-transfer-body,.compact-transfer-hero{padding:18px!important}}
 </style>
 <div class="nxl-content">
     <div class="page-header">
@@ -1199,8 +1199,8 @@ include dirname(__DIR__) . '/includes/header.php';
     <?php endif; ?>
 
     <div class="transfer-shell">
-        <div class="card transfer-hero mb-4">
-            <div class="card-body">
+        <div class="card transfer-hero mb-3">
+            <div class="card-body compact-transfer-hero">
                 <span class="transfer-badge">Railway Database Transfer Center</span>
                 <h2 class="mt-3 mb-2">Move your data with a clearer step-by-step workflow</h2>
                 <p class="mb-0">This page helps you import SQL into the current database connection, update students from spreadsheet files, and understand which option is safest before you run anything.</p>
@@ -1224,8 +1224,8 @@ include dirname(__DIR__) . '/includes/header.php';
         <div class="transfer-grid">
             <div class="transfer-stack">
                 <div class="card transfer-panel">
-                    <div class="card-body">
-                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+                    <div class="card-body compact-transfer-body">
+                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 compact-transfer-toolbar">
                             <div>
                                 <span class="transfer-badge">Main Import</span>
                                 <h4 class="mt-3 mb-2">SQL import for Railway or other remote database updates</h4>
@@ -1337,9 +1337,9 @@ include dirname(__DIR__) . '/includes/header.php';
                     </div>
                 </div>
 
-                <div class="card transfer-panel">
-                    <div class="card-body">
-                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+                <div class="card transfer-panel mt-3">
+                    <div class="card-body compact-transfer-body">
+                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 compact-transfer-toolbar">
                             <div>
                                 <span class="transfer-badge">Table-Based Fallback</span>
                                 <h5 class="mt-3 mb-2">Students Excel / Word Import / Export</h5>
@@ -1373,8 +1373,8 @@ include dirname(__DIR__) . '/includes/header.php';
             </div>
 
             <div class="transfer-stack">
-                <div class="card transfer-panel transfer-help">
-                    <div class="card-body">
+                <div class="card transfer-panel transfer-help mt-3">
+                    <div class="card-body compact-transfer-body">
                         <span class="transfer-badge">User Guide</span>
                         <h5 class="mt-3 mb-3">What to do first</h5>
                         <div class="transfer-step">
@@ -1395,8 +1395,8 @@ include dirname(__DIR__) . '/includes/header.php';
                     </div>
                 </div>
 
-                <div class="card transfer-panel">
-                    <div class="card-body">
+                <div class="card transfer-panel mt-3">
+                    <div class="card-body compact-transfer-body">
                         <span class="transfer-badge">Checklist</span>
                         <h5 class="mt-3 mb-3">Before running an import</h5>
                         <ul class="transfer-checklist text-muted">
@@ -1408,8 +1408,8 @@ include dirname(__DIR__) . '/includes/header.php';
                     </div>
                 </div>
 
-                <div class="card transfer-panel">
-                    <div class="card-body">
+                <div class="card transfer-panel mt-3">
+                    <div class="card-body compact-transfer-body">
                         <span class="transfer-badge">Recommendations</span>
                         <h5 class="mt-3 mb-3">If the import still fails</h5>
                         <ul class="transfer-note-list text-muted">
