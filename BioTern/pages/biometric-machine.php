@@ -443,6 +443,103 @@ function machine_ensure_bridge_user_cache_table(mysqli $conn): void
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 }
 
+function machine_ensure_bridge_command_queue_table(mysqli $conn): void
+{
+    $conn->query("CREATE TABLE IF NOT EXISTS biometric_bridge_command_queue (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        command_name VARCHAR(80) NOT NULL,
+        command_payload LONGTEXT NULL,
+        status VARCHAR(32) NOT NULL DEFAULT 'queued',
+        requested_by INT NOT NULL DEFAULT 0,
+        source VARCHAR(80) NOT NULL DEFAULT 'machine_manager',
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        claimed_at TIMESTAMP NULL DEFAULT NULL,
+        claimed_by VARCHAR(120) NOT NULL DEFAULT '',
+        completed_at TIMESTAMP NULL DEFAULT NULL,
+        result_text TEXT NULL,
+        attempts INT NOT NULL DEFAULT 0,
+        PRIMARY KEY (id),
+        KEY idx_status_created (status, created_at),
+        KEY idx_claimed_by (claimed_by)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+}
+
+function machine_enqueue_bridge_command(mysqli $conn, string $commandName, array $payload, int $requestedBy): int
+{
+    machine_ensure_bridge_command_queue_table($conn);
+
+    $commandName = trim($commandName);
+    if ($commandName === '') {
+        throw new RuntimeException('Bridge command name is required.');
+    }
+
+    $payloadJson = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    if (!is_string($payloadJson)) {
+        throw new RuntimeException('Failed to encode bridge command payload.');
+    }
+
+    $stmt = $conn->prepare('INSERT INTO biometric_bridge_command_queue (command_name, command_payload, status, requested_by, source) VALUES (?, ?, \'queued\', ?, \'machine_manager\')');
+    if (!$stmt) {
+        throw new RuntimeException('Failed to prepare bridge command queue insert. DB error: ' . (string)$conn->error);
+    }
+
+    $stmt->bind_param('ssi', $commandName, $payloadJson, $requestedBy);
+    if (!$stmt->execute()) {
+        $error = (string)$stmt->error;
+        $stmt->close();
+        throw new RuntimeException('Failed to queue bridge command. DB error: ' . $error);
+    }
+
+    $commandId = (int)$stmt->insert_id;
+    $stmt->close();
+
+    return $commandId;
+}
+
+function machine_fetch_bridge_command_queue(mysqli $conn, int $limit = 20): array
+{
+    machine_ensure_bridge_command_queue_table($conn);
+
+    $limit = max(1, min(100, $limit));
+    $summary = [
+        'queued' => 0,
+        'claimed' => 0,
+        'succeeded' => 0,
+        'failed' => 0,
+    ];
+    $rows = [];
+
+    $summaryRes = $conn->query("SELECT status, COUNT(*) AS total
+        FROM biometric_bridge_command_queue
+        GROUP BY status");
+    if ($summaryRes instanceof mysqli_result) {
+        while ($row = $summaryRes->fetch_assoc()) {
+            $status = strtolower(trim((string)($row['status'] ?? '')));
+            $total = (int)($row['total'] ?? 0);
+            if (array_key_exists($status, $summary)) {
+                $summary[$status] = $total;
+            }
+        }
+        $summaryRes->close();
+    }
+
+    $rowsRes = $conn->query("SELECT id, command_name, status, requested_by, source, created_at, claimed_at, claimed_by, completed_at, result_text, attempts
+        FROM biometric_bridge_command_queue
+        ORDER BY id DESC
+        LIMIT {$limit}");
+    if ($rowsRes instanceof mysqli_result) {
+        while ($row = $rowsRes->fetch_assoc()) {
+            $rows[] = $row;
+        }
+        $rowsRes->close();
+    }
+
+    return [
+        'summary' => $summary,
+        'rows' => $rows,
+    ];
+}
+
 function machine_load_user_list_from_bridge_cache(mysqli $conn, &$userListRaw, &$userListDecoded): array
 {
     machine_ensure_bridge_user_cache_table($conn);
@@ -754,7 +851,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'restart',
             'save_device_identity',
         ];
-        if (machine_is_cloud_runtime() && in_array($action, $connectorBoundActions, true)) {
+        $cloudRelayActions = [
+            'save_user_name',
+            'save_list_user_name',
+            'delete_user',
+            'delete_fingerprint',
+            'set_time',
+            'clear_records',
+            'clear_users',
+            'clear_admin',
+            'restart',
+            'save_device_identity',
+        ];
+        if (machine_is_cloud_runtime() && in_array($action, $connectorBoundActions, true) && !in_array($action, $cloudRelayActions, true)) {
             throw new RuntimeException('Direct machine commands are disabled in cloud runtime. Use F20H direct ingest by posting events to /api/f20h_ingest.php, then run Sync Now to reconcile logs into attendance.');
         }
 
@@ -857,6 +966,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($newName === '' || $userDetailsRaw === '') {
                     throw new RuntimeException('Load a user and enter a name first.');
                 }
+                if (machine_is_cloud_runtime()) {
+                    if ($selectedUserId <= 0) {
+                        throw new RuntimeException('Load a valid machine user first.');
+                    }
+                    $queuedId = machine_enqueue_bridge_command(
+                        $conn,
+                        'rename_user',
+                        ['user_id' => $selectedUserId, 'new_name' => $newName],
+                        (int)($_SESSION['user_id'] ?? 0)
+                    );
+                    $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Rename command queued for bridge worker. Queue ID #' . $queuedId . '.'];
+                    machine_redirect_after_post(['selected_user_id' => $selectedUserId, 'load_users' => 1, 'load_user' => 1]);
+                }
                 $patchedJson = biometric_machine_patch_user_name($userDetailsRaw, $newName);
                 $tmp = tempnam(sys_get_temp_dir(), 'biotern_user_');
                 file_put_contents($tmp, $patchedJson);
@@ -874,6 +996,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $inlineUserId = (int)($_POST['inline_user_id'] ?? 0);
                 if ($newName === '' || $inlineUserId <= 0) {
                     throw new RuntimeException('Choose a machine user and enter a new name first.');
+                }
+                if (machine_is_cloud_runtime()) {
+                    $queuedId = machine_enqueue_bridge_command(
+                        $conn,
+                        'rename_user',
+                        ['user_id' => $inlineUserId, 'new_name' => $newName],
+                        (int)($_SESSION['user_id'] ?? 0)
+                    );
+                    $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Rename command queued for bridge worker. Queue ID #' . $queuedId . '.'];
+                    machine_redirect_after_post(['selected_user_id' => $inlineUserId, 'load_users' => 1, 'load_user' => 1]);
                 }
                 machine_load_user_details_into_state($inlineUserId, $userDetailsRaw, $userDetailsDecoded);
                 if ($userDetailsRaw === '') {
@@ -895,6 +1027,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($selectedUserId <= 0) {
                     throw new RuntimeException('Enter a valid user ID to delete.');
                 }
+                if (machine_is_cloud_runtime()) {
+                    $queuedId = machine_enqueue_bridge_command(
+                        $conn,
+                        'delete_user',
+                        ['user_id' => $selectedUserId],
+                        (int)($_SESSION['user_id'] ?? 0)
+                    );
+                    $_SESSION['machine_manager_flash'] = ['type' => 'warning', 'message' => 'Delete user command queued for bridge worker. Queue ID #' . $queuedId . '.'];
+                    machine_redirect_after_post(['load_users' => 1]);
+                }
                 $result = biometric_machine_run_command('delete-user', [(string)$selectedUserId]);
                 if (!$result['success']) {
                     throw new RuntimeException(trim(implode("\n", $result['output'] ?? [])));
@@ -906,6 +1048,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             case 'delete_fingerprint':
                 if ($selectedUserId <= 0) {
                     throw new RuntimeException('Enter a valid F20H user ID to delete.');
+                }
+                if (machine_is_cloud_runtime()) {
+                    $queuedId = machine_enqueue_bridge_command(
+                        $conn,
+                        'delete_user',
+                        ['user_id' => $selectedUserId],
+                        (int)($_SESSION['user_id'] ?? 0)
+                    );
+                    $_SESSION['machine_manager_flash'] = ['type' => 'warning', 'message' => 'Delete fingerprint command queued for bridge worker. Queue ID #' . $queuedId . '.'];
+                    machine_redirect_after_post(['load_users' => 1]);
                 }
                 $result = biometric_machine_run_command('delete-user', [(string)$selectedUserId]);
                 if (!$result['success']) {
@@ -976,6 +1128,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             case 'set_time':
                 $timeValue = trim((string)($_POST['time_value'] ?? ''));
+                if (machine_is_cloud_runtime()) {
+                    if ($timeValue === '') {
+                        throw new RuntimeException('Device time value is required.');
+                    }
+                    $queuedId = machine_enqueue_bridge_command(
+                        $conn,
+                        'set_time',
+                        ['time_value' => $timeValue],
+                        (int)($_SESSION['user_id'] ?? 0)
+                    );
+                    $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Set time command queued for bridge worker. Queue ID #' . $queuedId . '.'];
+                    machine_redirect_after_post([]);
+                }
                 $result = biometric_machine_run_command('set-time', [$timeValue]);
                 if (!$result['success']) {
                     throw new RuntimeException(trim(implode("\n", $result['output'] ?? [])));
@@ -1180,6 +1345,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 machine_redirect_after_post([]);
 
             case 'clear_records':
+                if (machine_is_cloud_runtime()) {
+                    $queuedId = machine_enqueue_bridge_command(
+                        $conn,
+                        'clear_records',
+                        [],
+                        (int)($_SESSION['user_id'] ?? 0)
+                    );
+                    $_SESSION['machine_manager_flash'] = ['type' => 'warning', 'message' => 'Clear records command queued for bridge worker. Queue ID #' . $queuedId . '.'];
+                    machine_redirect_after_post(['load_users' => 1]);
+                }
                 $result = biometric_machine_run_command('clear-records');
                 if (!$result['success']) {
                     throw new RuntimeException(trim(implode("\n", $result['output'] ?? [])));
@@ -1188,6 +1363,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 machine_redirect_after_post(['load_users' => 1]);
 
             case 'clear_users':
+                if (machine_is_cloud_runtime()) {
+                    $queuedId = machine_enqueue_bridge_command(
+                        $conn,
+                        'clear_users',
+                        [],
+                        (int)($_SESSION['user_id'] ?? 0)
+                    );
+                    $_SESSION['machine_manager_flash'] = ['type' => 'warning', 'message' => 'Clear users command queued for bridge worker. Queue ID #' . $queuedId . '.'];
+                    machine_redirect_after_post([]);
+                }
                 $result = biometric_machine_run_command('clear-users');
                 if (!$result['success']) {
                     throw new RuntimeException(trim(implode("\n", $result['output'] ?? [])));
@@ -1196,6 +1381,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 machine_redirect_after_post([]);
 
             case 'clear_admin':
+                if (machine_is_cloud_runtime()) {
+                    $queuedId = machine_enqueue_bridge_command(
+                        $conn,
+                        'clear_admin',
+                        [],
+                        (int)($_SESSION['user_id'] ?? 0)
+                    );
+                    $_SESSION['machine_manager_flash'] = ['type' => 'warning', 'message' => 'Clear admin command queued for bridge worker. Queue ID #' . $queuedId . '.'];
+                    machine_redirect_after_post([]);
+                }
                 $result = biometric_machine_run_command('clear-admin');
                 if (!$result['success']) {
                     throw new RuntimeException(trim(implode("\n", $result['output'] ?? [])));
@@ -1204,6 +1399,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 machine_redirect_after_post([]);
 
             case 'restart':
+                if (machine_is_cloud_runtime()) {
+                    $queuedId = machine_enqueue_bridge_command(
+                        $conn,
+                        'restart',
+                        [],
+                        (int)($_SESSION['user_id'] ?? 0)
+                    );
+                    $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Restart command queued for bridge worker. Queue ID #' . $queuedId . '.'];
+                    machine_redirect_after_post([]);
+                }
                 $result = biometric_machine_run_command('restart');
                 if (!$result['success']) {
                     throw new RuntimeException(trim(implode("\n", $result['output'] ?? [])));
@@ -1214,6 +1419,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             case 'save_device_identity':
                 $deviceNo = trim((string)($_POST['device_number'] ?? ''));
                 $password = trim((string)($_POST['communication_password'] ?? ''));
+                if (machine_is_cloud_runtime()) {
+                    if ($deviceNo === '' && $password === '') {
+                        throw new RuntimeException('Enter device number and/or communication password.');
+                    }
+                    $queuedId = machine_enqueue_bridge_command(
+                        $conn,
+                        'save_device_identity',
+                        ['device_number' => $deviceNo, 'communication_password' => $password],
+                        (int)($_SESSION['user_id'] ?? 0)
+                    );
+                    $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Device identity command queued for bridge worker. Queue ID #' . $queuedId . '.'];
+                    machine_redirect_after_post([]);
+                }
                 if ($deviceNo !== '') {
                     $deviceNoResult = biometric_machine_run_command('set-device-no', [$deviceNo]);
                     if (!$deviceNoResult['success']) {
@@ -1302,6 +1520,9 @@ if ($syncAttemptResult instanceof mysqli_result) {
 $ingestHealth = machine_fetch_ingest_health($conn);
 $ingestSummary = $ingestHealth['summary'] ?? [];
 $recentIngestEvents = $ingestHealth['recent'] ?? [];
+$bridgeQueueData = machine_fetch_bridge_command_queue($conn, 20);
+$bridgeQueueSummary = $bridgeQueueData['summary'] ?? ['queued' => 0, 'claimed' => 0, 'succeeded' => 0, 'failed' => 0];
+$bridgeQueueRows = $bridgeQueueData['rows'] ?? [];
 $bridgeProfile = machine_fetch_bridge_profile($conn);
 $connectorConfig = json_decode($machineConfigJson, true);
 $connectorIp = is_array($connectorConfig) ? (string)($connectorConfig['ipAddress'] ?? '') : '';
@@ -2223,6 +2444,95 @@ include __DIR__ . '/../includes/header.php';
                                                 <td><?php echo machine_h((string)($event['events_received'] ?? 0)); ?></td>
                                                 <td><?php echo machine_h((string)($event['events_accepted'] ?? 0)); ?></td>
                                                 <td><?php echo machine_h((string)($event['note'] ?? '')); ?></td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-12">
+                <div class="card stretch stretch-full">
+                    <div class="card-header d-flex justify-content-between align-items-center gap-2">
+                        <h6 class="card-title mb-0">Bridge Command Queue Monitor</h6>
+                        <button class="btn btn-sm btn-outline-secondary machine-section-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#machineBridgeQueueCollapse" aria-expanded="false" aria-controls="machineBridgeQueueCollapse">Toggle</button>
+                    </div>
+                    <div class="card-body collapse" id="machineBridgeQueueCollapse">
+                        <div class="row g-2 mb-3">
+                            <div class="col-sm-3">
+                                <div class="border rounded p-2">
+                                    <div class="text-muted fs-12">Queued</div>
+                                    <div class="fw-bold"><?php echo machine_h((string)($bridgeQueueSummary['queued'] ?? 0)); ?></div>
+                                </div>
+                            </div>
+                            <div class="col-sm-3">
+                                <div class="border rounded p-2">
+                                    <div class="text-muted fs-12">Claimed</div>
+                                    <div class="fw-bold"><?php echo machine_h((string)($bridgeQueueSummary['claimed'] ?? 0)); ?></div>
+                                </div>
+                            </div>
+                            <div class="col-sm-3">
+                                <div class="border rounded p-2">
+                                    <div class="text-muted fs-12">Succeeded</div>
+                                    <div class="fw-bold"><?php echo machine_h((string)($bridgeQueueSummary['succeeded'] ?? 0)); ?></div>
+                                </div>
+                            </div>
+                            <div class="col-sm-3">
+                                <div class="border rounded p-2">
+                                    <div class="text-muted fs-12">Failed</div>
+                                    <div class="fw-bold"><?php echo machine_h((string)($bridgeQueueSummary['failed'] ?? 0)); ?></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table table-sm mb-0 align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Command</th>
+                                        <th>Status</th>
+                                        <th>Requested</th>
+                                        <th>Claimed By</th>
+                                        <th>Completed</th>
+                                        <th>Attempts</th>
+                                        <th>Result</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php if (empty($bridgeQueueRows)): ?>
+                                        <tr><td colspan="8" class="text-center text-muted py-3">No bridge commands queued yet.</td></tr>
+                                    <?php else: ?>
+                                        <?php foreach ($bridgeQueueRows as $queueRow): ?>
+                                            <?php
+                                            $queueStatus = strtolower(trim((string)($queueRow['status'] ?? 'queued')));
+                                            $statusClass = 'secondary';
+                                            if ($queueStatus === 'queued') {
+                                                $statusClass = 'warning';
+                                            } elseif ($queueStatus === 'claimed') {
+                                                $statusClass = 'info';
+                                            } elseif ($queueStatus === 'succeeded') {
+                                                $statusClass = 'success';
+                                            } elseif ($queueStatus === 'failed') {
+                                                $statusClass = 'danger';
+                                            }
+                                            $resultText = trim((string)($queueRow['result_text'] ?? ''));
+                                            if ($resultText !== '' && strlen($resultText) > 110) {
+                                                $resultText = substr($resultText, 0, 110) . '...';
+                                            }
+                                            ?>
+                                            <tr>
+                                                <td><?php echo machine_h((string)($queueRow['id'] ?? 0)); ?></td>
+                                                <td><?php echo machine_h((string)($queueRow['command_name'] ?? '-')); ?></td>
+                                                <td><span class="badge bg-soft-<?php echo machine_h($statusClass); ?> text-<?php echo machine_h($statusClass); ?>"><?php echo machine_h((string)($queueRow['status'] ?? '-')); ?></span></td>
+                                                <td><?php echo machine_h((string)($queueRow['created_at'] ?? '-')); ?></td>
+                                                <td><?php echo machine_h((string)($queueRow['claimed_by'] ?? '-')); ?></td>
+                                                <td><?php echo machine_h((string)($queueRow['completed_at'] ?? '-')); ?></td>
+                                                <td><?php echo machine_h((string)($queueRow['attempts'] ?? 0)); ?></td>
+                                                <td><?php echo machine_h($resultText !== '' ? $resultText : '-'); ?></td>
                                             </tr>
                                         <?php endforeach; ?>
                                     <?php endif; ?>
