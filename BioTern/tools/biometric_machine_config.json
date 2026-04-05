@@ -1,18 +1,11 @@
-{
-    "ipAddress": "192.168.100.201",
-    "gateway": "192.168.100.1",
-    "mask": "255.255.255.0",
-    "port": 5001,
-    "deviceNumber": 1,
-    "communicationPassword": "0",
-    "outputPath": "C:\\xampp\\htdocs\\BioTern\\attendance.txt",
-    "attendanceWindowEnabled": false,
-    "attendanceStartTime": "08:00:00",
-    "attendanceEndTime": "20:00:00",
-    "duplicateGuardMinutes": 10,
-    "slotAdvanceMinimumMinutes": 10,
-    "selectedRouterPreset": "router_1",
-    "syncMode": "direct_ingest",
-    "ingestToken": "2e5d2dbb62db53bcc7761b3a0f37407077b2aa6f35b10f93",
-    "autoImportOnIngest": true
+﻿{
+    "autoImportOnIngest":  false,
+    "deviceNumber":  1,
+    "gateway":  "192.168.100.1",
+    "outputPath":  "C:\\BioTern\\attendance.txt",
+    "mask":  "255.255.255.0",
+    "communicationPassword":  "0",
+    "port":  5001,
+    "ipAddress":  "192.168.100.201",
+    "syncMode":  "connector_fallback"
 }

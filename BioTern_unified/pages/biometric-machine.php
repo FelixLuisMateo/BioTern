@@ -17,6 +17,7 @@ if (!in_array($role, ['admin', 'coordinator', 'supervisor'], true)) {
     exit;
 }
 $isAdmin = ($role === 'admin');
+$cloudRuntime = false;
 
 function machine_redirect_after_post(array $params = []): void
 {

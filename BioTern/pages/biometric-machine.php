@@ -256,7 +256,16 @@ function machine_ensure_bridge_profile_table(mysqli $conn): void
         UNIQUE KEY uniq_profile_name (profile_name)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
-    $conn->query("ALTER TABLE biometric_bridge_profile ADD COLUMN IF NOT EXISTS selected_bridge_preset VARCHAR(100) NOT NULL DEFAULT 'laptop_custom' AFTER profile_name");
+    $hasPresetColumn = false;
+    $colRes = $conn->query("SHOW COLUMNS FROM biometric_bridge_profile LIKE 'selected_bridge_preset'");
+    if ($colRes instanceof mysqli_result) {
+        $hasPresetColumn = $colRes->num_rows > 0;
+        $colRes->close();
+    }
+
+    if (!$hasPresetColumn) {
+        $conn->query("ALTER TABLE biometric_bridge_profile ADD COLUMN selected_bridge_preset VARCHAR(100) NOT NULL DEFAULT 'laptop_custom' AFTER profile_name");
+    }
 }
 
 function machine_fetch_bridge_profile(mysqli $conn): array
@@ -298,27 +307,11 @@ function machine_save_bridge_profile(mysqli $conn, array $profile, int $updatedB
 {
     machine_ensure_bridge_profile_table($conn);
 
-    $stmt = $conn->prepare("INSERT INTO biometric_bridge_profile
-        (profile_name, selected_bridge_preset, bridge_enabled, bridge_token, cloud_base_url, ingest_path, ingest_api_token, poll_seconds, ip_address, gateway, mask, port, device_number, communication_password, output_path, updated_by)
-        VALUES ('default', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ON DUPLICATE KEY UPDATE
-            selected_bridge_preset = VALUES(selected_bridge_preset),
-            bridge_enabled = VALUES(bridge_enabled),
-            bridge_token = VALUES(bridge_token),
-            cloud_base_url = VALUES(cloud_base_url),
-            ingest_path = VALUES(ingest_path),
-            ingest_api_token = VALUES(ingest_api_token),
-            poll_seconds = VALUES(poll_seconds),
-            ip_address = VALUES(ip_address),
-            gateway = VALUES(gateway),
-            mask = VALUES(mask),
-            port = VALUES(port),
-            device_number = VALUES(device_number),
-            communication_password = VALUES(communication_password),
-            output_path = VALUES(output_path),
-            updated_by = VALUES(updated_by)");
-    if (!$stmt) {
-        throw new RuntimeException('Failed to prepare bridge profile save query.');
+    $hasPresetColumn = false;
+    $colRes = $conn->query("SHOW COLUMNS FROM biometric_bridge_profile LIKE 'selected_bridge_preset'");
+    if ($colRes instanceof mysqli_result) {
+        $hasPresetColumn = $colRes->num_rows > 0;
+        $colRes->close();
     }
 
     $selectedBridgePreset = trim((string)($profile['selected_bridge_preset'] ?? 'laptop_custom'));
@@ -336,25 +329,103 @@ function machine_save_bridge_profile(mysqli $conn, array $profile, int $updatedB
     $communicationPassword = (string)($profile['communication_password'] ?? '0');
     $outputPath = (string)($profile['output_path'] ?? '');
 
-    $stmt->bind_param(
-        'sissssisssiissi',
-        $selectedBridgePreset,
-        $bridgeEnabled,
-        $bridgeToken,
-        $cloudBaseUrl,
-        $ingestPath,
-        $ingestApiToken,
-        $pollSeconds,
-        $ipAddress,
-        $gateway,
-        $mask,
-        $port,
-        $deviceNumber,
-        $communicationPassword,
-        $outputPath,
-        $updatedBy
-    );
-    $stmt->execute();
+    $stmt = null;
+    $lastPrepareError = '';
+
+    if ($hasPresetColumn) {
+        $stmt = $conn->prepare("INSERT INTO biometric_bridge_profile
+            (profile_name, selected_bridge_preset, bridge_enabled, bridge_token, cloud_base_url, ingest_path, ingest_api_token, poll_seconds, ip_address, gateway, mask, port, device_number, communication_password, output_path, updated_by)
+            VALUES ('default', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE
+                selected_bridge_preset = VALUES(selected_bridge_preset),
+                bridge_enabled = VALUES(bridge_enabled),
+                bridge_token = VALUES(bridge_token),
+                cloud_base_url = VALUES(cloud_base_url),
+                ingest_path = VALUES(ingest_path),
+                ingest_api_token = VALUES(ingest_api_token),
+                poll_seconds = VALUES(poll_seconds),
+                ip_address = VALUES(ip_address),
+                gateway = VALUES(gateway),
+                mask = VALUES(mask),
+                port = VALUES(port),
+                device_number = VALUES(device_number),
+                communication_password = VALUES(communication_password),
+                output_path = VALUES(output_path),
+                updated_by = VALUES(updated_by)");
+
+        if ($stmt) {
+            $stmt->bind_param(
+                'sissssisssiissi',
+                $selectedBridgePreset,
+                $bridgeEnabled,
+                $bridgeToken,
+                $cloudBaseUrl,
+                $ingestPath,
+                $ingestApiToken,
+                $pollSeconds,
+                $ipAddress,
+                $gateway,
+                $mask,
+                $port,
+                $deviceNumber,
+                $communicationPassword,
+                $outputPath,
+                $updatedBy
+            );
+        } else {
+            $lastPrepareError = (string)$conn->error;
+        }
+    }
+
+    if (!$stmt) {
+        $stmt = $conn->prepare("INSERT INTO biometric_bridge_profile
+            (profile_name, bridge_enabled, bridge_token, cloud_base_url, ingest_path, ingest_api_token, poll_seconds, ip_address, gateway, mask, port, device_number, communication_password, output_path, updated_by)
+            VALUES ('default', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE
+                bridge_enabled = VALUES(bridge_enabled),
+                bridge_token = VALUES(bridge_token),
+                cloud_base_url = VALUES(cloud_base_url),
+                ingest_path = VALUES(ingest_path),
+                ingest_api_token = VALUES(ingest_api_token),
+                poll_seconds = VALUES(poll_seconds),
+                ip_address = VALUES(ip_address),
+                gateway = VALUES(gateway),
+                mask = VALUES(mask),
+                port = VALUES(port),
+                device_number = VALUES(device_number),
+                communication_password = VALUES(communication_password),
+                output_path = VALUES(output_path),
+                updated_by = VALUES(updated_by)");
+
+        if ($stmt) {
+            $stmt->bind_param(
+                'issssisssiissi',
+                $bridgeEnabled,
+                $bridgeToken,
+                $cloudBaseUrl,
+                $ingestPath,
+                $ingestApiToken,
+                $pollSeconds,
+                $ipAddress,
+                $gateway,
+                $mask,
+                $port,
+                $deviceNumber,
+                $communicationPassword,
+                $outputPath,
+                $updatedBy
+            );
+        } else {
+            $lastPrepareError = trim($lastPrepareError . ' | ' . (string)$conn->error, ' |');
+            throw new RuntimeException('Failed to prepare bridge profile save query. DB error: ' . $lastPrepareError);
+        }
+    }
+
+    if (!$stmt->execute()) {
+        $executeError = (string)$stmt->error;
+        $stmt->close();
+        throw new RuntimeException('Failed to execute bridge profile save query. DB error: ' . $executeError);
+    }
     $stmt->close();
 }
 
