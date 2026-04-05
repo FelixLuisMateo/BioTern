@@ -6,10 +6,34 @@ param(
     [string]$BridgeToken,
     [string]$WorkspaceRoot = "",
     [int]$DefaultPollSeconds = 30,
-    [bool]$PreferLocalConnectorNetwork = $true
+    $PreferLocalConnectorNetwork = $true
 )
 
 $ErrorActionPreference = 'Stop'
+
+function Resolve-BridgeBool {
+    param($Value, [bool]$Default = $true)
+
+    if ($null -eq $Value) {
+        return $Default
+    }
+
+    if ($Value -is [bool]) {
+        return [bool]$Value
+    }
+
+    $text = ([string]$Value).Trim().ToLowerInvariant()
+    if ($text -in @('1', 'true', 'yes', 'on')) {
+        return $true
+    }
+    if ($text -in @('0', 'false', 'no', 'off')) {
+        return $false
+    }
+
+    return $Default
+}
+
+$PreferLocalConnectorNetwork = Resolve-BridgeBool -Value $PreferLocalConnectorNetwork -Default $true
 
 if ([string]::IsNullOrWhiteSpace($WorkspaceRoot)) {
     $WorkspaceRoot = Split-Path -Parent $PSScriptRoot

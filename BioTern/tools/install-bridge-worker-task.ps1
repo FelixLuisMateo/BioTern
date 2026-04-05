@@ -18,10 +18,25 @@ if (-not (Test-Path $scriptPath)) {
 }
 
 $pwsh = (Get-Command powershell.exe).Source
-$taskArguments = "-NoProfile -ExecutionPolicy Bypass -File `"$scriptPath`" -SiteBaseUrl `"$SiteBaseUrl`" -BridgeToken `"$BridgeToken`" -WorkspaceRoot `"$workspaceRoot`" -PreferLocalConnectorNetwork:$PreferLocalConnectorNetwork"
+$preferLocalNumeric = if ($PreferLocalConnectorNetwork) { 1 } else { 0 }
+$taskArguments = "-NoProfile -ExecutionPolicy Bypass -File `"$scriptPath`" -SiteBaseUrl `"$SiteBaseUrl`" -BridgeToken `"$BridgeToken`" -WorkspaceRoot `"$workspaceRoot`" -PreferLocalConnectorNetwork $preferLocalNumeric"
 
 $action = New-ScheduledTaskAction -Execute $pwsh -Argument $taskArguments
 $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1)
+
+function Remove-ExistingTaskIfPresent {
+    param($TaskName)
+
+    try {
+        $existing = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
+        if ($null -ne $existing) {
+            try { Stop-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue } catch {}
+            Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false -ErrorAction Stop
+        }
+    } catch {
+        # If removal fails, registration below will surface the real failure.
+    }
+}
 
 function Install-BridgeTaskElevated {
     param($TaskName, $Action, $Settings)
@@ -43,6 +58,8 @@ function Install-BridgeTaskUserOnly {
 }
 
 $installedMode = ''
+
+Remove-ExistingTaskIfPresent -TaskName $TaskName
 
 if ($ForceUserTask) {
     Install-BridgeTaskUserOnly -TaskName $TaskName -Action $action -Settings $settings
