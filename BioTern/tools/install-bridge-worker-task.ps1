@@ -4,7 +4,7 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$BridgeToken,
     [string]$TaskName = 'BioTernBridgeWorker',
-    [bool]$PreferLocalConnectorNetwork = $true,
+    $PreferLocalConnectorNetwork = $true,
     [switch]$ForceUserTask
 )
 
@@ -13,16 +13,40 @@ $ErrorActionPreference = 'Stop'
 $workspaceRoot = Split-Path -Parent $PSScriptRoot
 $scriptPath = Join-Path $workspaceRoot 'tools\bridge-worker-autostart.ps1'
 
+function Resolve-BridgeBool {
+    param($Value, [bool]$Default = $true)
+
+    if ($null -eq $Value) {
+        return $Default
+    }
+
+    if ($Value -is [bool]) {
+        return [bool]$Value
+    }
+
+    $text = ([string]$Value).Trim().ToLowerInvariant()
+    if ($text -in @('1', 'true', 'yes', 'on')) {
+        return $true
+    }
+    if ($text -in @('0', 'false', 'no', 'off')) {
+        return $false
+    }
+
+    return $Default
+}
+
+$PreferLocalConnectorNetwork = Resolve-BridgeBool -Value $PreferLocalConnectorNetwork -Default $true
+
 if (-not (Test-Path $scriptPath)) {
     throw "Bridge worker script not found at $scriptPath"
 }
 
 $pwsh = (Get-Command powershell.exe).Source
 $preferLocalNumeric = if ($PreferLocalConnectorNetwork) { 1 } else { 0 }
-$taskArguments = "-NoProfile -ExecutionPolicy Bypass -File `"$scriptPath`" -SiteBaseUrl `"$SiteBaseUrl`" -BridgeToken `"$BridgeToken`" -WorkspaceRoot `"$workspaceRoot`" -PreferLocalConnectorNetwork $preferLocalNumeric"
+$taskArguments = "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$scriptPath`" -SiteBaseUrl `"$SiteBaseUrl`" -BridgeToken `"$BridgeToken`" -WorkspaceRoot `"$workspaceRoot`" -PreferLocalConnectorNetwork $preferLocalNumeric"
 
 $action = New-ScheduledTaskAction -Execute $pwsh -Argument $taskArguments
-$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1)
+$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -MultipleInstances IgnoreNew -RestartCount 999 -RestartInterval (New-TimeSpan -Minutes 1)
 
 function Remove-ExistingTaskIfPresent {
     param($TaskName)
@@ -48,6 +72,15 @@ function Install-BridgeTaskElevated {
     Register-ScheduledTask -TaskName $TaskName -Action $Action -Trigger @($triggerStartup, $triggerLogon) -Principal $principal -Settings $Settings -Force | Out-Null
 }
 
+function Install-BridgeTaskSystemStartup {
+    param($TaskName, $Action, $Settings)
+
+    $triggerStartup = New-ScheduledTaskTrigger -AtStartup
+    $principal = New-ScheduledTaskPrincipal -UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest
+
+    Register-ScheduledTask -TaskName $TaskName -Action $Action -Trigger $triggerStartup -Principal $principal -Settings $Settings -Force | Out-Null
+}
+
 function Install-BridgeTaskUserOnly {
     param($TaskName, $Action, $Settings)
 
@@ -66,14 +99,25 @@ if ($ForceUserTask) {
     $installedMode = 'user-logon'
 } else {
     try {
-        Install-BridgeTaskElevated -TaskName $TaskName -Action $action -Settings $settings
-        $installedMode = 'elevated-startup-logon'
+        Install-BridgeTaskSystemStartup -TaskName $TaskName -Action $action -Settings $settings
+        $installedMode = 'system-startup'
     } catch {
         $message = [string]$_.Exception.Message
         if ($message -match 'Access is denied|0x80070005') {
-            Write-Host "No admin permission for elevated startup task. Falling back to user logon task..."
-            Install-BridgeTaskUserOnly -TaskName $TaskName -Action $action -Settings $settings
-            $installedMode = 'user-logon'
+            Write-Host "No admin permission for SYSTEM startup task. Trying elevated startup/logon task..."
+            try {
+                Install-BridgeTaskElevated -TaskName $TaskName -Action $action -Settings $settings
+                $installedMode = 'elevated-startup-logon'
+            } catch {
+                $message2 = [string]$_.Exception.Message
+                if ($message2 -match 'Access is denied|0x80070005') {
+                    Write-Host "No admin permission for elevated task. Falling back to user logon task..."
+                    Install-BridgeTaskUserOnly -TaskName $TaskName -Action $action -Settings $settings
+                    $installedMode = 'user-logon'
+                } else {
+                    throw
+                }
+            }
         } else {
             throw
         }

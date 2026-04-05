@@ -1,6 +1,7 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/section_schedule.php';
+require_once dirname(__DIR__) . '/tools/biometric_auto_import.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -155,6 +156,8 @@ $filter_school_year = isset($_GET['school_year']) ? trim((string)$_GET['school_y
 $filter_supervisor = isset($_GET['supervisor']) ? trim($_GET['supervisor']) : '';
 $filter_coordinator = isset($_GET['coordinator']) ? trim($_GET['coordinator']) : '';
 $filter_status = isset($_GET['status']) ? trim($_GET['status']) : '';
+$valid_approval_statuses = ['approved', 'pending', 'rejected'];
+$has_valid_approval_status_filter = in_array($filter_status, $valid_approval_statuses, true);
 
 $school_year_options = [];
 $school_year_start = 2005;
@@ -168,8 +171,26 @@ for ($year = $latest_school_year_start; $year >= $school_year_start; $year--) {
 }
 
 // default to local current date when no date filters provided
-if (empty($filter_date) && empty($start_date) && empty($end_date) && empty($filter_status)) {
+if (empty($filter_date) && empty($start_date) && empty($end_date) && !$has_valid_approval_status_filter) {
     $filter_date = $attendance_today_local;
+}
+
+// Safety net: process any pending raw biometric logs so Attendance stays current
+// even if ingest accepted events while auto-import was temporarily disabled.
+try {
+    $pendingRaw = 0;
+    $pendingRes = $conn->query('SELECT COUNT(*) AS pending_count FROM biometric_raw_logs WHERE processed = 0');
+    if ($pendingRes instanceof mysqli_result) {
+        $pendingRow = $pendingRes->fetch_assoc();
+        $pendingRaw = (int)($pendingRow['pending_count'] ?? 0);
+        $pendingRes->close();
+    }
+
+    if ($pendingRaw > 0) {
+        run_biometric_auto_import_stats();
+    }
+} catch (Throwable $ignored) {
+    // Keep attendance page load resilient if biometric sync tables are unavailable.
 }
 
 // Fetch dropdown lists
@@ -249,8 +270,7 @@ if (!empty($start_date) && !empty($end_date)) {
     $where[] = "a.attendance_date = '" . $conn->real_escape_string($filter_date) . "'";
 }
 if (!empty($filter_status)) {
-    $allowed = ['approved','pending','rejected'];
-    if (in_array($filter_status, $allowed)) {
+    if ($has_valid_approval_status_filter) {
         $where[] = "a.status = '" . $conn->real_escape_string($filter_status) . "'";
     }
 }

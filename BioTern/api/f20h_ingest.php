@@ -148,6 +148,15 @@ function f20h_auto_import_enabled(array $machineConfig): bool
         }
     }
 
+    $isCloudRuntime = (
+        getenv('VERCEL') !== false
+        || getenv('RAILWAY_ENVIRONMENT') !== false
+        || getenv('K_SERVICE') !== false
+    );
+    if ($isCloudRuntime) {
+        return true;
+    }
+
     return !isset($machineConfig['autoImportOnIngest']) || !empty($machineConfig['autoImportOnIngest']);
 }
 

@@ -1055,7 +1055,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         ['user_id' => $selectedUserId, 'new_name' => $newName],
                         (int)($_SESSION['user_id'] ?? 0)
                     );
-                    $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Rename command queued for bridge worker. Queue ID #' . $queuedId . '. Keep the bridge worker PowerShell running, then click Read All Users after a few seconds.'];
+                    $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Rename command queued for bridge worker. Queue ID #' . $queuedId . '. Bridge runs in background via Scheduled Task; keep the laptop logged in and connected to the same LAN, then click Read All Users after a few seconds.'];
                     machine_redirect_after_post(['selected_user_id' => $selectedUserId]);
                 }
                 $patchedJson = biometric_machine_patch_user_name($userDetailsRaw, $newName);
@@ -1083,7 +1083,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         ['user_id' => $inlineUserId, 'new_name' => $newName],
                         (int)($_SESSION['user_id'] ?? 0)
                     );
-                    $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Rename command queued for bridge worker. Queue ID #' . $queuedId . '. Keep the bridge worker PowerShell running, then click Read All Users after a few seconds.'];
+                    $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Rename command queued for bridge worker. Queue ID #' . $queuedId . '. Bridge runs in background via Scheduled Task; keep the laptop logged in and connected to the same LAN, then click Read All Users after a few seconds.'];
                     machine_redirect_after_post(['selected_user_id' => $inlineUserId]);
                 }
                 machine_load_user_details_into_state($inlineUserId, $userDetailsRaw, $userDetailsDecoded);
@@ -1796,6 +1796,7 @@ include __DIR__ . '/../includes/header.php';
                     </span>
                 </div>
                 <small class="text-muted d-block mt-1"><?php echo machine_h((string)($bridgeRuntimeStatus['detail'] ?? '')); ?></small>
+                <small class="text-muted d-block">Background mode: Scheduled Task (no open PowerShell needed). If installed without admin rights, it runs after Windows sign-in.</small>
             </div>
         </div>
 
