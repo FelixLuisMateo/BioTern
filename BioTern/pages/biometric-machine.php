@@ -320,7 +320,7 @@ function machine_save_bridge_profile(mysqli $conn, array $profile, int $updatedB
     $cloudBaseUrl = (string)($profile['cloud_base_url'] ?? '');
     $ingestPath = (string)($profile['ingest_path'] ?? '/api/f20h_ingest.php');
     $ingestApiToken = (string)($profile['ingest_api_token'] ?? '');
-    $pollSeconds = max(10, (int)($profile['poll_seconds'] ?? 30));
+    $pollSeconds = max(3, (int)($profile['poll_seconds'] ?? 30));
     $ipAddress = (string)($profile['ip_address'] ?? '');
     $gateway = (string)($profile['gateway'] ?? '');
     $mask = (string)($profile['mask'] ?? '255.255.255.0');
@@ -976,8 +976,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         ['user_id' => $selectedUserId, 'new_name' => $newName],
                         (int)($_SESSION['user_id'] ?? 0)
                     );
-                    $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Rename command queued for bridge worker. Queue ID #' . $queuedId . '.'];
-                    machine_redirect_after_post(['selected_user_id' => $selectedUserId, 'load_users' => 1, 'load_user' => 1]);
+                    $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Rename command queued for bridge worker. Queue ID #' . $queuedId . '. Keep the bridge worker PowerShell running, then click Read All Users after a few seconds.'];
+                    machine_redirect_after_post(['selected_user_id' => $selectedUserId]);
                 }
                 $patchedJson = biometric_machine_patch_user_name($userDetailsRaw, $newName);
                 $tmp = tempnam(sys_get_temp_dir(), 'biotern_user_');
@@ -1004,8 +1004,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         ['user_id' => $inlineUserId, 'new_name' => $newName],
                         (int)($_SESSION['user_id'] ?? 0)
                     );
-                    $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Rename command queued for bridge worker. Queue ID #' . $queuedId . '.'];
-                    machine_redirect_after_post(['selected_user_id' => $inlineUserId, 'load_users' => 1, 'load_user' => 1]);
+                    $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Rename command queued for bridge worker. Queue ID #' . $queuedId . '. Keep the bridge worker PowerShell running, then click Read All Users after a few seconds.'];
+                    machine_redirect_after_post(['selected_user_id' => $inlineUserId]);
                 }
                 machine_load_user_details_into_state($inlineUserId, $userDetailsRaw, $userDetailsDecoded);
                 if ($userDetailsRaw === '') {
@@ -1209,7 +1209,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $cloudBaseUrl = rtrim(trim((string)($_POST['cloud_base_url'] ?? '')), '/');
                 $ingestPath = trim((string)($_POST['ingest_path'] ?? '/api/f20h_ingest.php'));
                 $ingestApiToken = trim((string)($_POST['ingest_api_token'] ?? ''));
-                $pollSeconds = max(10, (int)($_POST['poll_seconds'] ?? 30));
+                $pollSeconds = max(3, (int)($_POST['poll_seconds'] ?? 30));
                 $bridgeIp = trim((string)($_POST['bridge_ip'] ?? ''));
                 $bridgeGateway = trim((string)($_POST['bridge_gateway'] ?? ''));
                 $bridgeMask = trim((string)($_POST['bridge_mask'] ?? '255.255.255.0'));
@@ -1301,7 +1301,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'cloud_base_url' => $cloudBaseUrl,
                     'ingest_path' => '/api/f20h_ingest.php',
                     'ingest_api_token' => $ingestApiToken,
-                    'poll_seconds' => 30,
+                    'poll_seconds' => 5,
                     'ip_address' => '192.168.110.201',
                     'gateway' => '192.168.110.1',
                     'mask' => '255.255.255.0',
@@ -1592,6 +1592,13 @@ $bridgeWorkerCommand = 'powershell -NoProfile -ExecutionPolicy Bypass -File ".\\
     . ' -BridgeToken "' . str_replace('"', '\\"', $bridgeToken !== '' ? $bridgeToken : 'YOUR_BRIDGE_TOKEN') . '"'
     . ' -WorkspaceRoot "."';
 
+$bridgeTaskInstallCommand = 'powershell -NoProfile -ExecutionPolicy Bypass -File ".\\tools\\install-bridge-worker-task.ps1"'
+    . ' -SiteBaseUrl "' . str_replace('"', '\\"', $bridgeCloudBaseUrl !== '' ? $bridgeCloudBaseUrl : 'https://your-app.vercel.app') . '"'
+    . ' -BridgeToken "' . str_replace('"', '\\"', $bridgeToken !== '' ? $bridgeToken : 'YOUR_BRIDGE_TOKEN') . '"'
+    . ' -TaskName "BioTernBridgeWorker"';
+
+$bridgeTaskStatusCommand = 'powershell -NoProfile -ExecutionPolicy Bypass -File ".\\tools\\manage-bridge-worker-task.ps1" -Action status -TaskName "BioTernBridgeWorker"';
+
 $selectedBridgePreset = 'laptop_custom';
 $savedBridgePreset = trim((string)($bridgeProfile['selected_bridge_preset'] ?? ''));
 if (in_array($savedBridgePreset, ['laptop_router_1', 'laptop_router_2', 'computer_router_2', 'laptop_custom'], true)) {
@@ -1865,8 +1872,11 @@ include __DIR__ . '/../includes/header.php';
 
             <div class="col-xl-8">
                 <div class="card stretch stretch-full machine-users-card">
-                    <div class="card-header"><h6 class="card-title mb-0">Users on Machine</h6></div>
-                    <div class="card-body">
+                    <div class="card-header d-flex justify-content-between align-items-center gap-2">
+                        <h6 class="card-title mb-0">Users on Machine</h6>
+                        <button class="btn btn-sm btn-outline-secondary machine-section-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#machineUsersCollapse" aria-expanded="true" aria-controls="machineUsersCollapse">Toggle Users</button>
+                    </div>
+                    <div class="card-body collapse show" id="machineUsersCollapse">
                         <?php if ($cloudRuntime): ?>
                             <div class="alert alert-warning">
                                 Direct LAN reads are not available in Vercel runtime. Use Read All Users (Bridge Cache) after bridge worker sync from Router 2.
@@ -2079,7 +2089,7 @@ include __DIR__ . '/../includes/header.php';
                                     </div>
                                     <div class="col-sm-6">
                                         <label class="form-label">Poll Seconds</label>
-                                        <input type="number" name="poll_seconds" id="bridgePollSecondsField" class="form-control" value="<?php echo machine_h((string)$bridgePollSeconds); ?>" min="10" max="300">
+                                        <input type="number" name="poll_seconds" id="bridgePollSecondsField" class="form-control" value="<?php echo machine_h((string)$bridgePollSeconds); ?>" min="3" max="300">
                                     </div>
                                     <div class="col-sm-6">
                                         <label class="form-label">F20H IP</label>
@@ -2110,12 +2120,26 @@ include __DIR__ . '/../includes/header.php';
                                         <input type="text" name="bridge_output_path" id="bridgeOutputPathField" class="form-control" value="<?php echo machine_h($bridgeOutputPath); ?>" placeholder="C:\\BioTern\\attendance.txt">
                                     </div>
                                     <div class="col-12">
-                                        <label class="form-label">Start Bridge Worker Command (run on bridge computer)</label>
+                                        <label class="form-label">Install Auto-Start Bridge Task (recommended)</label>
+                                        <div class="input-group mb-2">
+                                            <input type="text" class="form-control" id="bridgeTaskInstallCommandField" value="<?php echo machine_h($bridgeTaskInstallCommand); ?>" readonly>
+                                            <button type="button" class="btn btn-outline-secondary" id="copyBridgeTaskInstallCmdBtn">Copy</button>
+                                        </div>
+                                        <small class="text-muted d-block mb-2">Run this once on the laptop bridge computer. It installs and starts a background task at startup/logon.</small>
+
+                                        <label class="form-label">Check Bridge Task Status</label>
+                                        <div class="input-group mb-2">
+                                            <input type="text" class="form-control" id="bridgeTaskStatusCommandField" value="<?php echo machine_h($bridgeTaskStatusCommand); ?>" readonly>
+                                            <button type="button" class="btn btn-outline-secondary" id="copyBridgeTaskStatusCmdBtn">Copy</button>
+                                        </div>
+                                        <small class="text-muted d-block mb-2">Use this to verify the background bridge task state anytime.</small>
+
+                                        <label class="form-label">Manual Start Bridge Worker (fallback)</label>
                                         <div class="input-group">
                                             <input type="text" class="form-control" id="bridgeWorkerCommandField" value="<?php echo machine_h($bridgeWorkerCommand); ?>" readonly>
                                             <button type="button" class="btn btn-outline-secondary" id="copyBridgeWorkerCmdBtn">Copy</button>
                                         </div>
-                                        <small class="text-muted">Open PowerShell in your BioTern folder, paste this command, then press Enter.</small>
+                                        <small class="text-muted">Use manual start only if task install is unavailable.</small>
                                     </div>
                                     <div class="col-12 d-flex flex-wrap gap-2">
                                         <button type="submit" class="btn btn-secondary btn-sm">Save Laptop Bridge Profile</button>

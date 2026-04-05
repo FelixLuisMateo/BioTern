@@ -153,9 +153,10 @@ for ($year = $latest_school_year_start; $year >= $school_year_start; $year--) {
     $school_year_options[] = sprintf('%d-%d', $year, $year + 1);
 }
 
-// default to today when no date filters provided
+// default to recent window when no date filters provided
 if (empty($filter_date) && empty($start_date) && empty($end_date) && empty($filter_status)) {
-    $filter_date = date('Y-m-d');
+    $start_date = date('Y-m-d', strtotime('-7 days'));
+    $end_date = date('Y-m-d');
 }
 
 // Fetch dropdown lists
@@ -2132,10 +2133,20 @@ endif; ?>
             margin-top: 5px;
         }
 
-        /* Move bottom DataTable controls slightly lower for better spacing */
         .attendanceList_wrapper .row:last-child {
-            margin-top: 2220px;
+            margin-top: .5rem;
             padding-bottom: 6px;
+        }
+
+        @media (max-width: 991.98px) {
+            .attendance-table-card .table {
+                min-width: 980px;
+            }
+
+            .attendance-table-card th,
+            .attendance-table-card td {
+                white-space: nowrap;
+            }
         }
     </style>
     

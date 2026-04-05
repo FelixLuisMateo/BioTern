@@ -610,7 +610,7 @@ while ($true) {
         $bridgeConfig = $apiResult.PSObject.Properties['profile'].Value
         if (-not $bridgeConfig.bridge_enabled) {
             Write-BridgeLog 'Bridge disabled in cloud profile. Sleeping.'
-            Start-Sleep -Seconds ([Math]::Max(10, $DefaultPollSeconds))
+            Start-Sleep -Seconds ([Math]::Max(3, $DefaultPollSeconds))
             continue
         }
 
@@ -622,8 +622,8 @@ while ($true) {
         Publish-Ingest -BridgeConfig $bridgeConfig
 
         $pollSeconds = [int]($bridgeConfig.poll_seconds)
-        if ($pollSeconds -lt 10) {
-            $pollSeconds = 10
+        if ($pollSeconds -lt 3) {
+            $pollSeconds = 3
         }
         Start-Sleep -Seconds $pollSeconds
     }
