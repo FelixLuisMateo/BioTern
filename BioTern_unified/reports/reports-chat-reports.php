@@ -487,7 +487,7 @@ include 'includes/header.php';
 
     html.app-skin-dark .chatreports-hero {
         border-color: rgba(129, 153, 199, 0.25);
-        background: #0f172a;
+        background: #162033;
     }
 
     html.app-skin-dark .chatreports-kpi,
@@ -589,12 +589,25 @@ include 'includes/header.php';
     .breadcrumb-item a:hover { color: #3454d1; }
     .breadcrumb-item.active { color: #64748b; font-weight: 500; }
     .breadcrumb-item + .breadcrumb-item::before { color: #94a3b8; }
+    .page-header .page-header-title { border-right: 0 !important; padding-right: 0 !important; margin-right: 0 !important; display: flex; align-items: center; gap: 0.85rem; flex-wrap: wrap; }
+    .page-header-left { align-items: center !important; }
+    .page-header .page-header-title h5 { margin: 0; }
+    .page-header .breadcrumb { display: flex; align-items: center; flex-wrap: wrap; margin: 0; }
 </style>
 
-<div class="main-content">
-    <div class="page-header">
-        <nav class="breadcrumb-wrapper"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="index.php">Reports</a></li><li class="breadcrumb-item active">Reported Chats</li></ol></nav>
+<div class="page-header">
+    <div class="page-header-left d-flex align-items-center">
+        <div class="page-header-title">
+            <h5 class="m-b-10">Reported Chats</h5>
+            <ul class="breadcrumb">
+                <li class="breadcrumb-item"><a href="index.php">Reports</a></li>
+                <li class="breadcrumb-item">Reported Chats</li>
+            </ul>
+        </div>
     </div>
+</div>
+
+<div class="main-content pb-5">
 
     <div class="chatreports-hero">
         <h6 class="mb-1">Reported Chats</h6>

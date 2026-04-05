@@ -368,7 +368,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['queue_reminders'])) {
             $stmt_q->close();
         }
     }
-    header('Location: ojt.php?queued=1');
+    $redirectParams = array_filter([
+        'search' => $search,
+        'course' => $course_filter,
+        'section' => $section_filter,
+        'school_year' => $school_year_filter,
+        'semester' => $semester_filter,
+        'stage' => $status_filter,
+        'risk' => $risk_filter,
+        'queued' => 1
+    ], static function ($value) {
+        return $value !== '' && $value !== null;
+    });
+    header('Location: ojt.php' . ($redirectParams ? ('?' . http_build_query($redirectParams)) : ''));
     exit;
 }
 
@@ -414,12 +426,34 @@ if ($school_year_filter !== '') {
     $print_section_label .= ' / ' . $school_year_filter;
 }
 
-$page_title = 'BioTern || OJT Dashboard';
+$page_title = 'BioTern || OJT Monitor';
 $page_styles = array();
 include 'includes/header.php';
 ?>
 <style>
-        body { background: #f5f7fb; }
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            background: #f5f7fb;
+        }
+        main.nxl-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .nxl-content {
+            flex: 1;
+            padding-bottom: 18px;
+        }
+        footer.footer {
+            margin-top: auto;
+        }
         .nxl-content { padding-top: 12px; }
         .nxl-content > .page-header,
         .nxl-content > .alert,
@@ -428,23 +462,20 @@ include 'includes/header.php';
         .nxl-content > .stretch.stretch-full {
             margin-bottom: 14px !important;
         }
-        .page-header {
+        .ojt-toolbar {
             margin-bottom: 12px;
             padding: 14px 16px;
             border: 1px solid #e4ebf7;
             border-radius: 14px;
             background: #ffffff;
             box-shadow: 0 6px 18px rgba(15, 23, 42, 0.04);
-            display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
-            gap: 12px;
+            display: block;
         }
-        .page-header-left {
-            flex: 1 1 auto;
-            min-width: 220px;
+        .ojt-toolbar-left {
+            min-width: 0;
+            max-width: none;
         }
-        .page-header-right {
+        .ojt-toolbar-right {
             display: flex;
             justify-content: flex-end;
             align-items: center;
@@ -452,11 +483,12 @@ include 'includes/header.php';
             flex-wrap: wrap;
             row-gap: 6px;
             column-gap: 6px !important;
-            flex: 0 1 auto;
+            width: 100%;
+            margin-top: 12px;
         }
-        .page-header-right .btn,
-        .page-header-right a.btn,
-        .page-header-right form .btn {
+        .ojt-toolbar-right .btn,
+        .ojt-toolbar-right a.btn,
+        .ojt-toolbar-right form .btn {
             min-height: 32px;
             border-radius: 8px;
             font-size: 10.5px;
@@ -469,44 +501,46 @@ include 'includes/header.php';
             justify-content: center;
             white-space: nowrap;
         }
-        .page-header-right form {
+        .ojt-toolbar-right form {
             margin: 0;
             display: inline-flex;
         }
-        .page-header-right .btn i { font-size: 11px; }
-        .page-header-right .btn.btn-light,
-        .page-header-right .btn.btn-outline-secondary,
-        .page-header-right .btn.btn-outline-primary {
+        .ojt-toolbar-right .btn i { font-size: 11px; }
+        .ojt-toolbar-right .btn.btn-light,
+        .ojt-toolbar-right .btn.btn-outline-secondary,
+        .ojt-toolbar-right .btn.btn-outline-primary {
             border-color: #d5e0f2;
             background: #fdfefe;
         }
-        .page-header-right .btn.btn-light:hover,
-        .page-header-right .btn.btn-outline-secondary:hover,
-        .page-header-right .btn.btn-outline-primary:hover {
+        .ojt-toolbar-right .btn.btn-light:hover,
+        .ojt-toolbar-right .btn.btn-outline-secondary:hover,
+        .ojt-toolbar-right .btn.btn-outline-primary:hover {
             background: #f4f8ff;
             border-color: #bdd1ee;
         }
         .kpi-value { font-size: 1.5rem; font-weight: 700; }
-        .chip { border: 1px solid #dbe3f0; border-radius: 999px; padding: 3px 10px; font-size: 12px; display: inline-block; margin: 0; line-height: 1.2; }
+        .chip { border: 1px solid #dbe3f0; border-radius: 999px; padding: 3px 10px; font-size: 12px; display: inline-block; margin: 0; line-height: 1.2; max-width: 100%; white-space: normal; word-break: break-word; }
         .chip.ok { border-color: #198754; color: #198754; }
         .chip.miss { border-color: #dc3545; color: #dc3545; }
-        .risk-pill { background: #fff4e5; color: #996000; border: 1px solid #ffe3b3; border-radius: 999px; padding: 2px 8px; font-size: 11px; display: inline-block; margin: 0; line-height: 1.2; }
+        .risk-pill { background: #fff4e5; color: #996000; border: 1px solid #ffe3b3; border-radius: 999px; padding: 2px 8px; font-size: 11px; display: inline-block; margin: 0; line-height: 1.2; max-width: 100%; white-space: normal; word-break: break-word; }
         .doc-progress-wrap,
         .risk-wrap {
             display: flex;
             flex-wrap: wrap;
             align-content: flex-start;
-            gap: 4px;
+            gap: 6px;
             max-height: none;
             overflow: visible;
         }
-        #ojtListTable th:nth-child(4), #ojtListTable td:nth-child(4) { min-width: 210px; }
-        #ojtListTable th:nth-child(6), #ojtListTable td:nth-child(6) { min-width: 220px; }
+        #ojtListTable th:nth-child(4), #ojtListTable td:nth-child(4) { min-width: 180px; }
+        #ojtListTable th:nth-child(6), #ojtListTable td:nth-child(6) { min-width: 180px; }
         #ojtListTable td[data-label="Actions"] .d-flex {
             width: 100%;
+            flex-wrap: wrap;
+            gap: 6px !important;
         }
         #ojtListTable td[data-label="Actions"] .btn {
-            flex: 1 1 0;
+            flex: 1 1 96px;
             min-width: 0;
         }
         .filter-panel {
@@ -585,7 +619,7 @@ include 'includes/header.php';
             border-color: #8cb3ea;
             box-shadow: 0 0 0 0.14rem rgba(58, 120, 220, 0.16);
         }
-        .table td, .table th { vertical-align: middle; }
+        .table td, .table th { vertical-align: top; }
         .student-link { color: inherit; text-decoration: none; }
         .student-link:hover { color: inherit; text-decoration: none; opacity: 0.95; }
         .card {
@@ -597,12 +631,56 @@ include 'includes/header.php';
             border-color: #dfe8f5;
             box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
             overflow: hidden;
+            margin-bottom: 18px;
+            height: auto !important;
+            min-height: 0 !important;
+            flex: 0 0 auto !important;
         }
         .page-subtitle { font-size: 12px; color: #6c7a92; margin-top: -2px; }
+        .ojt-toolbar .page-subtitle {
+            margin-top: 0;
+            line-height: 1.4;
+            max-width: 72ch;
+        }
         #ojtListTable thead th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; color: #6c7a92; }
-        #ojtListTable { min-width: 980px; }
+        #ojtListTable { width: 100%; min-width: 900px; table-layout: auto; }
         #ojtListTable thead th { background: #f8fbff; }
         #ojtListTable tbody tr:hover { background: #fbfdff; }
+        #ojtListTable th,
+        #ojtListTable td {
+            white-space: normal;
+            word-break: break-word;
+            overflow-wrap: anywhere;
+        }
+        .student-link {
+            display: flex;
+            align-items: flex-start !important;
+            gap: 0.7rem;
+        }
+        .student-link > div {
+            min-width: 0;
+        }
+        .student-link .fw-semibold,
+        .student-link .text-muted,
+        .fs-12 {
+            white-space: normal;
+            overflow-wrap: anywhere;
+        }
+        #ojtListTable .badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            max-width: 100%;
+            white-space: normal;
+            text-align: center;
+        }
+        #ojtListTable .progress {
+            min-width: 0;
+            margin-top: 0.35rem;
+        }
+        #ojtListTable td[data-label="Risk Score"] .badge {
+            min-width: 44px;
+        }
         .app-skin-dark body { background: #0b1220; }
         .app-skin-dark .card,
         .app-skin-dark .filter-panel {
@@ -610,7 +688,7 @@ include 'includes/header.php';
             background: #111a2e;
             box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
         }
-        .app-skin-dark .page-header {
+        .app-skin-dark .ojt-toolbar {
             border-color: #253252;
             background: #111a2e;
             box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
@@ -623,16 +701,16 @@ include 'includes/header.php';
             background: #0f1a2e;
             border-color: #26324f;
         }
-        .app-skin-dark .page-header-right .btn.btn-light,
-        .app-skin-dark .page-header-right .btn.btn-outline-secondary,
-        .app-skin-dark .page-header-right .btn.btn-outline-primary {
+        .app-skin-dark .ojt-toolbar-right .btn.btn-light,
+        .app-skin-dark .ojt-toolbar-right .btn.btn-outline-secondary,
+        .app-skin-dark .ojt-toolbar-right .btn.btn-outline-primary {
             background: #0f1a2e;
             border-color: #2b3b5e;
             color: #d7e3f7;
         }
-        .app-skin-dark .page-header-right .btn.btn-light:hover,
-        .app-skin-dark .page-header-right .btn.btn-outline-secondary:hover,
-        .app-skin-dark .page-header-right .btn.btn-outline-primary:hover {
+        .app-skin-dark .ojt-toolbar-right .btn.btn-light:hover,
+        .app-skin-dark .ojt-toolbar-right .btn.btn-outline-secondary:hover,
+        .app-skin-dark .ojt-toolbar-right .btn.btn-outline-primary:hover {
             background: #12213a;
             border-color: #38507a;
         }
@@ -678,27 +756,51 @@ include 'includes/header.php';
         }
         .app-skin-dark .chip { border-color: #314c72; color: #d4e2f9; }
         .app-skin-dark .risk-pill { background: #3f2e12; border-color: #7d5c1d; color: #ffd793; }
-        @media (max-width: 991.98px) {
-            .page-header { display: block; }
-            .page-header-left { margin-bottom: 10px; }
-            .page-header-right { width: 100%; display: grid !important; grid-template-columns: 1fr 1fr; gap: 8px !important; }
-            .page-header-right .btn, .page-header-right form .btn { width: 100%; }
-            .filter-form { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
-            .nxl-content { padding-left: 10px; padding-right: 10px; }
+        .page-header .breadcrumb {
+            margin-bottom: 0;
         }
-        @media (max-width: 575.98px) {
-            .page-header-right { grid-template-columns: 1fr; }
-            .kpi-value { font-size: 1.25rem; }
-            .chip, .risk-pill { font-size: 10px; padding: 2px 8px; }
-            .student-link img { width: 36px !important; height: 36px !important; }
-            .table td, .table th { padding: 0.5rem 0.45rem; font-size: 12px; }
-            .header-right .nxl-h-item { display: none; }
-            .header-right .dark-light-theme { display: block !important; }
-            .filter-form { grid-template-columns: 1fr; }
+        .page-header .page-header-title {
+            border-right: 0 !important;
+            padding-right: 0 !important;
+            margin-right: 0 !important;
         }
-        @media (max-width: 767.98px) {
-            .nxl-content { padding-left: 8px; padding-right: 8px; }
-            .card { border-radius: 14px; }
+        .page-header-left {
+            align-items: center !important;
+        }
+        .page-header .page-header-title {
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+            flex-wrap: wrap;
+        }
+        .page-header .page-header-title h5 {
+            margin: 0;
+        }
+        .page-header .breadcrumb {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.15rem;
+        }
+        @media (max-width: 1279.98px) {
+            .ojt-toolbar-right {
+                display: flex !important;
+                flex-wrap: nowrap;
+                overflow-x: auto;
+                overflow-y: hidden;
+                gap: 8px !important;
+                padding-bottom: 2px;
+                scrollbar-width: thin;
+                justify-content: flex-start;
+            }
+            .ojt-toolbar-right .btn,
+            .ojt-toolbar-right a.btn,
+            .ojt-toolbar-right form {
+                flex: 0 0 auto;
+            }
+            .ojt-toolbar-right form .btn {
+                width: auto;
+            }
             #ojtListTable { min-width: 100%; }
             #ojtListTable thead { display: none; }
             #ojtListTable,
@@ -714,7 +816,7 @@ include 'includes/header.php';
                 border-radius: 14px;
                 background: #fff;
                 box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
-                padding: 10px;
+                padding: 12px;
             }
             .app-skin-dark #ojtListTable tbody tr {
                 background: #111a2e;
@@ -722,7 +824,7 @@ include 'includes/header.php';
             }
             #ojtListTable td {
                 border: 0;
-                padding: 0 0 8px 0;
+                padding: 0 0 10px 0;
             }
             #ojtListTable td::before {
                 content: attr(data-label);
@@ -743,10 +845,39 @@ include 'includes/header.php';
             #ojtListTable td[colspan]::before { display: none; }
             #ojtListTable td:last-child .d-flex {
                 display: grid !important;
-                grid-template-columns: 1fr 1fr 1fr;
-                gap: 6px !important;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 8px !important;
             }
             #ojtListTable td:last-child .btn { width: 100%; }
+        }
+        @media (max-width: 1199.98px) {
+            .ojt-toolbar .page-subtitle {
+                max-width: 100%;
+            }
+        }
+        @media (max-width: 991.98px) {
+            .ojt-toolbar-right { width: 100%; display: grid !important; grid-template-columns: 1fr 1fr; gap: 8px !important; overflow: visible; justify-content: stretch; }
+            .ojt-toolbar-right .btn, .ojt-toolbar-right form, .ojt-toolbar-right form .btn { width: 100%; }
+            .filter-form { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+            .nxl-content { padding-left: 10px; padding-right: 10px; }
+        }
+        @media (max-width: 575.98px) {
+            .ojt-toolbar-right { grid-template-columns: 1fr; }
+            .kpi-value { font-size: 1.25rem; }
+            .chip, .risk-pill { font-size: 10px; padding: 2px 8px; }
+            .student-link img { width: 36px !important; height: 36px !important; }
+            .table td, .table th { padding: 0.5rem 0.45rem; font-size: 12px; }
+            .header-right .nxl-h-item { display: none; }
+            .header-right .dark-light-theme { display: block !important; }
+            .filter-form { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 767.98px) {
+            .nxl-content { padding-left: 8px; padding-right: 8px; }
+            .card { border-radius: 14px; }
+            #ojtListTable tbody tr { margin: 8px; padding: 10px; }
+            #ojtListTable td:last-child .d-flex {
+                grid-template-columns: 1fr;
+            }
         }
 
         .ojt-print-sheet { display: none; }
@@ -916,30 +1047,40 @@ endif; ?>
         <div class="page-header">
             <div class="page-header-left d-flex align-items-center">
                 <div class="page-header-title">
-                    <h5 class="m-b-10">Biometric Internship Monitoring Dashboard</h5>
-                    <div class="page-subtitle">Clark College of Science and Technology</div>
+                    <h5 class="m-b-10">OJT Monitoring</h5>
+                    <ul class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
+                        <li class="breadcrumb-item">OJT</li>
+                        <li class="breadcrumb-item">Monitoring</li>
+                    </ul>
                 </div>
             </div>
-            <div class="page-header-right ms-auto d-flex gap-2">
+        </div>
+
+        <div class="ojt-toolbar">
+            <div class="ojt-toolbar-left">
+                <div class="page-subtitle">Review internship readiness, document progress, and risk alerts for every approved student.</div>
+            </div>
+            <div class="ojt-toolbar-right ms-auto d-flex gap-2">
                 <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#kpiPanel" aria-expanded="false" aria-controls="kpiPanel">
-                    <i class="feather-bar-chart-2 me-1"></i>Metrics Summary
+                    <i class="feather-bar-chart-2 me-1"></i>KPI Snapshot
                 </button>
                 <button class="btn filter-toggle-btn" type="button" data-bs-toggle="collapse" data-bs-target="#ojtFilterCollapse" aria-expanded="false" aria-controls="ojtFilterCollapse">
-                    <i class="feather-filter me-1"></i>Filters
+                    <i class="feather-filter me-1"></i>Filter List
                 </button>
                 <a href="ojt-workflow-board.php" class="btn btn-outline-primary"><i class="feather-kanban me-1"></i>Workflow Board</a>
                 <a href="ojt.php?<?php
-echo http_build_query(array_merge($_GET, ['export' => 'csv'])); ?>" class="btn btn-light"><i class="feather-download me-1"></i>Export CSV Report</a>
-                <button type="button" class="btn btn-light" id="ojtPrintBtn"><i class="feather-printer me-1"></i>Print List</button>
+echo http_build_query(array_merge($_GET, ['export' => 'csv'])); ?>" class="btn btn-light"><i class="feather-download me-1"></i>Export CSV</a>
+                <button type="button" class="btn btn-light" id="ojtPrintBtn"><i class="feather-printer me-1"></i>Print OJT List</button>
                 <form method="post" class="d-inline">
-                    <button type="submit" name="queue_reminders" value="1" class="btn btn-warning"><i class="feather-bell me-1"></i>Queue Risk Reminders</button>
+                    <button type="submit" name="queue_reminders" value="1" class="btn btn-warning"><i class="feather-bell me-1"></i>Queue Risk Alerts</button>
                 </form>
                 <a href="ojt-create.php" class="btn btn-primary"><i class="feather-plus me-1"></i>New OJT Assignment</a>
             </div>
         </div>
         <?php
 if (isset($_GET['queued'])): ?>
-            <div class="alert alert-success py-2">Reminders queued successfully for flagged students.</div>
+            <div class="alert alert-success py-2">Risk reminder queue updated successfully for the current filtered students.</div>
         <?php
 endif; ?>
 
@@ -975,9 +1116,9 @@ echo number_format($trend_avg_approval_hours, 2); ?>h</div></div></div>
                             <div>
                                 <div class="filter-panel-label">
                                     <i class="feather-sliders"></i>
-                                    <span>Filter OJT</span>
+                                    <span>OJT Filters</span>
                                 </div>
-                                <p class="filter-panel-sub">Narrow down results by student, course, section, school year, semester, stage, and risk level.</p>
+                                <p class="filter-panel-sub">Use these filters to narrow the OJT list by student, course, section, school year, semester, stage, or risk status.</p>
                             </div>
                             <div class="filter-panel-head-actions">
                                 <a href="ojt.php" class="btn btn-outline-secondary btn-sm px-3">Reset</a>
@@ -985,9 +1126,9 @@ echo number_format($trend_avg_approval_hours, 2); ?>h</div></div></div>
                         </div>
                         <form method="get" class="filter-form row g-2 align-items-end" id="ojtFilterForm">
                 <div class="col-md-3">
-                    <label class="form-label">Search Student</label>
+                    <label class="form-label">Search OJT Student</label>
                     <input type="text" name="search" id="ojtFilterSearch" class="form-control" value="<?php
-echo htmlspecialchars($search); ?>" placeholder="Name / Student ID / Course">
+echo htmlspecialchars($search); ?>" placeholder="Student name, ID, or course">
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">Course</label>
@@ -1078,8 +1219,8 @@ echo ($risk_filter === 'clean') ? 'selected' : ''; ?>>Clean</option>
                         <tr>
                             <th>Student</th>
                             <th>Section</th>
-                            <th>Pipeline</th>
-                            <th>Document Progress</th>
+                            <th>Stage</th>
+                            <th>Document Checklist</th>
                             <th>Hours</th>
                             <th>Risk</th>
                             <th>Risk Score</th>
@@ -1089,7 +1230,7 @@ echo ($risk_filter === 'clean') ? 'selected' : ''; ?>>Clean</option>
                         <tbody>
                         <?php
 if (!$rows): ?>
-                            <tr><td colspan="8" class="text-center py-4 text-muted">No records found.</td></tr>
+                            <tr><td colspan="8" class="text-center py-4 text-muted">No OJT students match the current filters.</td></tr>
                         <?php
 endif; ?>
                         <?php
@@ -1133,14 +1274,14 @@ if ($schoolYearLabel !== '' && $schoolYearLabel !== '-') {
     $sectionSemester .= ' / ' . $schoolYearLabel;
 }
 echo htmlspecialchars($sectionSemester); ?></td>
-                                <td data-label="Pipeline">
+                                <td data-label="Stage">
                                     <span class="badge <?php
 echo stage_badge_class($r['stage']); ?>"><?php
 echo htmlspecialchars($r['stage']); ?></span>
                                     <div class="text-muted fs-12 mt-1">Last biometric: <?php
-echo htmlspecialchars($r['last_attendance_date'] ?: 'none'); ?></div>
+echo htmlspecialchars($r['last_attendance_date'] ?: 'none yet'); ?></div>
                                 </td>
-                                <td data-label="Document Progress">
+                                <td data-label="Document Checklist">
                                     <div class="doc-progress-wrap">
                                     <span class="chip <?php
 echo !empty($r['has_application']) ? 'ok' : 'miss'; ?>">Application (<?php
@@ -1168,7 +1309,7 @@ echo (float)$r['progress_pct']; ?>%</div>
                                 <td data-label="Risk">
                                     <?php
 if (empty($r['risk_flags'])): ?>
-                                        <span class="text-success fs-12">No critical flags</span>
+                                        <span class="text-success fs-12">No active risk flags</span>
                                     <?php
 else: ?>
                                         <div class="risk-wrap"><?php
@@ -1185,13 +1326,13 @@ echo intval($r['risk_score'] ?? 0); ?></span></td>
                                         <a class="btn btn-sm btn-light" href="ojt-view.php?id=<?php
 echo (int)$r['id']; ?>&amp;school_year=<?php
 echo urlencode((string)($r['school_year'] ?? '')); ?>&amp;semester=<?php
-echo urlencode((string)($r['semester'] ?? '')); ?>">View</a>
+echo urlencode((string)($r['semester'] ?? '')); ?>">Open Record</a>
                                         <a class="btn btn-sm btn-outline-primary" href="ojt-edit.php?id=<?php
 echo (int)$r['id']; ?>&amp;school_year=<?php
 echo urlencode((string)($r['school_year'] ?? '')); ?>&amp;semester=<?php
-echo urlencode((string)($r['semester'] ?? '')); ?>">Edit</a>
+echo urlencode((string)($r['semester'] ?? '')); ?>">Update OJT</a>
                                         <a class="btn btn-sm btn-outline-success" href="students-dtr.php?id=<?php
-echo (int)$r['id']; ?>">DTR</a>
+echo (int)$r['id']; ?>">Open DTR</a>
                                     </div>
                                 </td>
                             </tr>
@@ -1204,6 +1345,7 @@ endforeach; ?>
         </div>
     </div>
 </main>
+<?php include 'includes/footer.php'; ?>
 <script src="assets/vendors/js/vendors.min.js"></script>
 <script src="assets/js/global-ui-helpers.js"></script>
 <script src="assets/js/common-init.min.js"></script>

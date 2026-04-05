@@ -976,9 +976,34 @@ function shouldPreferAttendanceRow(array $candidate, array $existing): bool {
         }
         div.nxl-content {
             flex: 1;
+            padding-top: 12px;
+            padding-bottom: 18px;
         }
         footer.footer {
             margin-top: auto;
+        }
+
+        .nxl-content > .page-header,
+        .nxl-content > .attendance-toolbar,
+        .nxl-content > .collapse,
+        .nxl-content > .main-content {
+            margin-bottom: 14px !important;
+        }
+
+        .main-content {
+            margin-top: 0 !important;
+            padding: 0 !important;
+        }
+
+        .main-content > .row {
+            --bs-gutter-x: 0;
+            margin-left: 0;
+            margin-right: 0;
+        }
+
+        .main-content > .row > [class*="col-"] {
+            padding-left: 0;
+            padding-right: 0;
         }
         
         /* Bulk toolbar adapts to theme */
@@ -1120,9 +1145,13 @@ function shouldPreferAttendanceRow(array $candidate, array $existing): bool {
 
         .filter-form {
             display: grid !important;
-            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-            gap: 0.65rem;
+            grid-template-columns: repeat(7, minmax(0, 1fr));
+            gap: 0.55rem;
             align-items: end;
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+            --bs-gutter-x: 0;
+            --bs-gutter-y: 0;
         }
 
         .filter-form > [class*="col-"] {
@@ -1130,6 +1159,8 @@ function shouldPreferAttendanceRow(array $candidate, array $existing): bool {
             max-width: 100%;
             padding-right: 0;
             padding-left: 0;
+            position: relative;
+            overflow: visible;
         }
 
         .filter-form .form-control,
@@ -1138,12 +1169,33 @@ function shouldPreferAttendanceRow(array $candidate, array $existing): bool {
             min-height: 42px;
         }
 
+        .filter-form .form-select,
+        .filter-form .select2-container--default .select2-selection--single {
+            display: flex;
+            align-items: center;
+        }
+
         .filter-panel {
             border: 1px solid #dfe7f3;
             border-radius: 14px;
-            padding: 1rem 1rem 0.4rem;
-            background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
-            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+            padding: 0.85rem 0.9rem 0.3rem;
+            background: #ffffff;
+            box-shadow: 0 6px 18px rgba(15, 23, 42, 0.04);
+            transition: padding-bottom 0.2s ease;
+            overflow: visible;
+        }
+        .filter-panel .datepicker-dropdown {
+            z-index: 30010 !important;
+        }
+        .filter-panel .datepicker-picker {
+            position: relative;
+            z-index: 30011 !important;
+        }
+        .filter-panel.attendance-datepicker-open {
+            padding-bottom: 16rem;
+        }
+        .filter-panel.attendance-select-open {
+            padding-bottom: 13rem;
         }
 
         .filter-panel-head {
@@ -1151,8 +1203,8 @@ function shouldPreferAttendanceRow(array $candidate, array $existing): bool {
             align-items: center;
             justify-content: space-between;
             gap: 0.75rem;
-            margin-bottom: 0.75rem;
-            padding-bottom: 0.6rem;
+            margin-bottom: 0.55rem;
+            padding-bottom: 0.5rem;
             border-bottom: 1px solid #e5edf7;
         }
 
@@ -1163,8 +1215,30 @@ function shouldPreferAttendanceRow(array $candidate, array $existing): bool {
             flex-shrink: 0;
         }
 
+        .page-header .page-header-title {
+            border-right: 0 !important;
+            padding-right: 0 !important;
+            margin-right: 0 !important;
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+            flex-wrap: wrap;
+        }
+
+        .page-header .page-header-title h5 {
+            margin: 0;
+        }
+
+        .page-header .breadcrumb {
+            margin-bottom: 0;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.15rem;
+        }
+
         .filter-panel-label {
-            font-size: 0.78rem;
+            font-size: 0.76rem;
             font-weight: 800;
             letter-spacing: 0.09em;
             text-transform: uppercase;
@@ -1176,7 +1250,7 @@ function shouldPreferAttendanceRow(array $candidate, array $existing): bool {
         }
 
         .filter-panel-sub {
-            font-size: 0.78rem;
+            font-size: 0.74rem;
             color: #64748b;
             margin: 0;
         }
@@ -1201,8 +1275,16 @@ function shouldPreferAttendanceRow(array $candidate, array $existing): bool {
 
         .filter-form .select2-container--default .select2-selection--single .select2-selection__rendered {
             text-align: left;
+            line-height: 40px;
             padding-left: 0.75rem;
             padding-right: 1.75rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .filter-form .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 40px;
         }
 
         /* Filter border styling to match header filter look */
@@ -1278,9 +1360,135 @@ function shouldPreferAttendanceRow(array $candidate, array $existing): bool {
             border-color: #475569;
         }
 
+        .attendance-toolbar {
+            margin-bottom: 12px;
+            padding: 12px 14px;
+            border: 1px solid #e4ebf7;
+            border-radius: 14px;
+            background: #ffffff;
+            box-shadow: 0 6px 18px rgba(15, 23, 42, 0.04);
+            display: block;
+        }
+
+        .attendance-toolbar-left {
+            min-width: 0;
+            max-width: none;
+        }
+
+        .attendance-toolbar .page-subtitle {
+            font-size: 12px;
+            color: #6c7a92;
+            line-height: 1.4;
+            margin: 0;
+            max-width: 72ch;
+        }
+
+        .attendance-toolbar-right {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            align-content: flex-end;
+            flex-wrap: wrap;
+            row-gap: 6px;
+            column-gap: 8px !important;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .attendance-toolbar-right .btn,
+        .attendance-toolbar-right a.btn,
+        .attendance-toolbar-right .dropdown {
+            flex: 0 0 auto;
+        }
+
+        .attendance-toolbar-right .btn,
+        .attendance-toolbar-right a.btn {
+            min-height: 32px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: .01em;
+            padding: 0.32rem 0.62rem;
+            line-height: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+        }
+
+        html.app-skin-dark .attendance-toolbar {
+            border-color: #253252;
+            background: #111a2e;
+            box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+        }
+
+        @media (max-width: 1599.98px) {
+            .filter-form {
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 1399.98px) {
+            .filter-form {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+
+            .page-header {
+                flex-wrap: wrap;
+                gap: 1rem;
+            }
+
+            .page-header-right {
+                width: 100%;
+                margin-left: 0 !important;
+            }
+
+            .page-header-right-items {
+                width: 100%;
+            }
+
+            .page-header-right-items-wrapper {
+                flex-wrap: wrap;
+                justify-content: flex-start;
+            }
+
+            .page-header-right-items-wrapper > .btn,
+            .page-header-right-items-wrapper > .dropdown {
+                flex: 0 0 auto;
+            }
+        }
+
+        @media (max-width: 1199.98px) {
+            .filter-form {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+            .attendance-toolbar-right {
+                display: grid !important;
+                grid-template-columns: 1fr 1fr;
+                gap: 8px !important;
+                justify-content: stretch;
+            }
+            .attendance-toolbar-right .btn,
+            .attendance-toolbar-right a.btn,
+            .attendance-toolbar-right .dropdown,
+            .attendance-toolbar-right .dropdown > .btn {
+                width: 100%;
+            }
+            .filter-panel.attendance-datepicker-open {
+                padding-bottom: 0.4rem;
+            }
+            .filter-panel.attendance-select-open {
+                padding-bottom: 0.4rem;
+            }
+        }
+
         @media (max-width: 767.98px) {
             .filter-form {
-                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                grid-template-columns: 1fr;
+            }
+
+            .attendance-toolbar-right {
+                grid-template-columns: 1fr;
             }
 
             .filter-panel {
@@ -1298,6 +1506,48 @@ function shouldPreferAttendanceRow(array $candidate, array $existing): bool {
 
             .filter-panel-head-actions .btn {
                 width: 100%;
+            }
+        }
+
+        @media (max-width: 1024px) {
+            .filter-form {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .filter-panel-head {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .filter-panel-head-actions {
+                width: 100%;
+            }
+
+            .filter-panel-head-actions .btn {
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 1366px) {
+            .nxl-navigation .nxl-navbar .nxl-item.nxl-hasmenu {
+                position: relative;
+            }
+
+            .nxl-navigation .nxl-navbar .nxl-item.nxl-hasmenu > .nxl-submenu {
+                position: static !important;
+                left: auto !important;
+                right: auto !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                box-shadow: none !important;
+                border: 0 !important;
+                margin-top: 0.25rem;
+                background: transparent !important;
+            }
+
+            .nxl-navigation .nxl-navbar .nxl-item.nxl-hasmenu > .nxl-submenu .nxl-link {
+                white-space: normal;
+                overflow-wrap: anywhere;
             }
         }
 
@@ -1497,99 +1747,90 @@ echo htmlspecialchars((string)($_SESSION['email'] ?? 'admin@biotern.local'), ENT
                 <div class="page-header-left d-flex align-items-center">
                     <div class="page-header-title">
                         <h5 class="m-b-10">Student Attendance DTR</h5>
+                        <ul class="breadcrumb">
+                            <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
+                            <li class="breadcrumb-item"><a href="students.php">Students</a></li>
+                            <li class="breadcrumb-item">Attendance DTR</li>
+                        </ul>
                     </div>
-                    <ul class="breadcrumb">
-                        <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
-                        <li class="breadcrumb-item"><a href="students.php">Students</a></li>
-                        <li class="breadcrumb-item">Attendance DTR</li>
-                    </ul>
                 </div>
-                <div class="page-header-right ms-auto">
-                    <div class="page-header-right-items">
-                        <div class="d-flex d-md-none">
-                            <a href="javascript:void(0)" class="page-header-right-close-toggle">
-                                <i class="feather-arrow-left me-2"></i>
-                                <span>Back</span>
+            </div>
+
+            <div class="attendance-toolbar">
+                <div class="attendance-toolbar-left">
+                    <div class="page-subtitle">Review student attendance records, machine sync activity, and approval status in one place.</div>
+                </div>
+                <div class="attendance-toolbar-right">
+                    <a href="javascript:void(0);" class="btn btn-icon btn-light-brand" data-bs-toggle="collapse" data-bs-target="#collapseAttendanceStats">
+                        <i class="feather-bar-chart"></i>
+                    </a>
+                    <button type="button" class="btn filter-toggle-btn" data-bs-toggle="collapse" data-bs-target="#attendanceFilterCollapse" aria-expanded="false" aria-controls="attendanceFilterCollapse">
+                        <i class="feather-filter me-2"></i>
+                        <span>Filters</span>
+                    </button>
+                    <a href="legacy_router.php?file=biometric-machine.php" class="btn btn-light-brand">
+                        <i class="feather-cpu me-2"></i>
+                        <span>Machine Manager</span>
+                    </a>
+                    <button type="button" class="btn btn-primary" id="manualSyncMachineButton">
+                        <i class="feather-refresh-cw me-2"></i>
+                        <span>Sync Machine</span>
+                    </button>
+                    <div class="dropdown">
+                        <a class="btn btn-icon btn-light-brand" data-bs-toggle="dropdown" data-bs-offset="0, 10" data-bs-auto-close="outside">
+                            <i class="feather-filter"></i>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-end">
+                            <a href="javascript:void(0);" class="dropdown-item attendance-filter" data-type="period" data-value="today">
+                                <i class="feather-calendar me-3"></i>
+                                <span>Today</span>
                             </a>
-                        </div>
-                        <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
-                            <a href="javascript:void(0);" class="btn btn-icon btn-light-brand" data-bs-toggle="collapse" data-bs-target="#collapseAttendanceStats">
-                                <i class="feather-bar-chart"></i>
+                            <a href="javascript:void(0);" class="dropdown-item attendance-filter" data-type="period" data-value="week">
+                                <i class="feather-calendar me-3"></i>
+                                <span>This Week</span>
                             </a>
-                            <button type="button" class="btn filter-toggle-btn" data-bs-toggle="collapse" data-bs-target="#attendanceFilterCollapse" aria-expanded="false" aria-controls="attendanceFilterCollapse">
-                                <i class="feather-filter me-2"></i>
-                                <span>Filters</span>
-                            </button>
-                            <a href="legacy_router.php?file=biometric-machine.php" class="btn btn-light-brand">
-                                <i class="feather-cpu me-2"></i>
-                                <span>Machine Manager</span>
+                            <a href="javascript:void(0);" class="dropdown-item attendance-filter" data-type="period" data-value="month">
+                                <i class="feather-calendar me-3"></i>
+                                <span>This Month</span>
                             </a>
-                            <button type="button" class="btn btn-primary" id="manualSyncMachineButton">
-                                <i class="feather-refresh-cw me-2"></i>
-                                <span>Sync Machine</span>
-                            </button>
-                            <div class="dropdown">
-                                <a class="btn btn-icon btn-light-brand" data-bs-toggle="dropdown" data-bs-offset="0, 10" data-bs-auto-close="outside">
-                                    <i class="feather-filter"></i>
-                                </a>
-                                <div class="dropdown-menu dropdown-menu-end">
-                                    <a href="javascript:void(0);" class="dropdown-item attendance-filter" data-type="period" data-value="today">
-                                        <i class="feather-calendar me-3"></i>
-                                        <span>Today</span>
-                                    </a>
-                                    <a href="javascript:void(0);" class="dropdown-item attendance-filter" data-type="period" data-value="week">
-                                        <i class="feather-calendar me-3"></i>
-                                        <span>This Week</span>
-                                    </a>
-                                    <a href="javascript:void(0);" class="dropdown-item attendance-filter" data-type="period" data-value="month">
-                                        <i class="feather-calendar me-3"></i>
-                                        <span>This Month</span>
-                                    </a>
-                                    <div class="dropdown-divider"></div>
-                                    <a href="javascript:void(0);" class="dropdown-item attendance-filter" data-type="status" data-value="approved">
-                                        <i class="feather-check-circle me-3"></i>
-                                        <span>Approved</span>
-                                    </a>
-                                    <a href="javascript:void(0);" class="dropdown-item attendance-filter" data-type="status" data-value="pending">
-                                        <i class="feather-clock me-3"></i>
-                                        <span>Pending</span>
-                                    </a>
-                                    <a href="javascript:void(0);" class="dropdown-item attendance-filter" data-type="status" data-value="rejected">
-                                        <i class="feather-x-circle me-3"></i>
-                                        <span>Rejected</span>
-                                    </a>
-                                </div>
-                            </div>
-                            <div class="dropdown">
-                                <a class="btn btn-icon btn-light-brand" data-bs-toggle="dropdown" data-bs-offset="0, 10" data-bs-auto-close="outside">
-                                    <i class="feather-paperclip"></i>
-                                </a>
-                                <div class="dropdown-menu dropdown-menu-end">
-                                    <a href="javascript:void(0);" class="dropdown-item">
-                                        <i class="bi bi-filetype-pdf me-3"></i>
-                                        <span>PDF</span>
-                                    </a>
-                                    <a href="javascript:void(0);" class="dropdown-item">
-                                        <i class="bi bi-filetype-csv me-3"></i>
-                                        <span>CSV</span>
-                                    </a>
-                                    <a href="javascript:void(0);" class="dropdown-item">
-                                        <i class="bi bi-filetype-xml me-3"></i>
-                                        <span>XML</span>
-                                    </a>
-                                    <div class="dropdown-divider"></div>
-                                    <a href="javascript:void(0);" class="dropdown-item">
-                                        <i class="bi bi-printer me-3"></i>
-                                        <span>Print</span>
-                                    </a>
-                                </div>
-                            </div>
+                            <div class="dropdown-divider"></div>
+                            <a href="javascript:void(0);" class="dropdown-item attendance-filter" data-type="status" data-value="approved">
+                                <i class="feather-check-circle me-3"></i>
+                                <span>Approved</span>
+                            </a>
+                            <a href="javascript:void(0);" class="dropdown-item attendance-filter" data-type="status" data-value="pending">
+                                <i class="feather-clock me-3"></i>
+                                <span>Pending</span>
+                            </a>
+                            <a href="javascript:void(0);" class="dropdown-item attendance-filter" data-type="status" data-value="rejected">
+                                <i class="feather-x-circle me-3"></i>
+                                <span>Rejected</span>
+                            </a>
                         </div>
                     </div>
-                    <div class="d-md-none d-flex align-items-center">
-                        <a href="javascript:void(0)" class="page-header-right-open-toggle">
-                            <i class="feather-align-right fs-20"></i>
+                    <div class="dropdown">
+                        <a class="btn btn-icon btn-light-brand" data-bs-toggle="dropdown" data-bs-offset="0, 10" data-bs-auto-close="outside">
+                            <i class="feather-paperclip"></i>
                         </a>
+                        <div class="dropdown-menu dropdown-menu-end">
+                            <a href="javascript:void(0);" class="dropdown-item">
+                                <i class="bi bi-filetype-pdf me-3"></i>
+                                <span>PDF</span>
+                            </a>
+                            <a href="javascript:void(0);" class="dropdown-item">
+                                <i class="bi bi-filetype-csv me-3"></i>
+                                <span>CSV</span>
+                            </a>
+                            <a href="javascript:void(0);" class="dropdown-item">
+                                <i class="bi bi-filetype-xml me-3"></i>
+                                <span>XML</span>
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <a href="javascript:void(0);" class="dropdown-item">
+                                <i class="bi bi-printer me-3"></i>
+                                <span>Print</span>
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1927,7 +2168,7 @@ echo $stats['total_count'] ?? 0; ?></span>
                                                 <th>Morning Out</th>
                                                 <th>Afternoon In</th>
                                                 <th>Afternoon Out</th>
-                                                <th>Total Hours</th>
+                                                <th>Total<br>Hours</th>
                                                 <th>Status</th>
                                                 <th>Source</th>
                                                 <th>Review</th>
@@ -2110,6 +2351,125 @@ endif; ?>
             overflow: visible !important;
         }
 
+        .attendance-table-card .table-responsive {
+            overflow-x: hidden !important;
+            overflow-y: visible !important;
+        }
+
+        #attendanceList {
+            width: 100%;
+            min-width: 100%;
+            table-layout: fixed;
+        }
+
+        #attendanceList th,
+        #attendanceList td {
+            white-space: nowrap;
+            word-break: normal;
+            overflow-wrap: normal;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            vertical-align: middle;
+        }
+
+        #attendanceList th {
+            white-space: normal;
+            word-break: normal;
+            overflow-wrap: normal;
+            line-height: 1.15;
+            text-overflow: clip;
+            text-align: center;
+            vertical-align: middle;
+            overflow: visible;
+            padding-right: 1.15rem !important;
+        }
+
+        #attendanceList th.text-end {
+            text-align: center !important;
+        }
+
+        #attendanceList thead th.sorting,
+        #attendanceList thead th.sorting_asc,
+        #attendanceList thead th.sorting_desc {
+            position: relative;
+            padding-right: 1.35rem !important;
+        }
+
+        #attendanceList th:first-child,
+        #attendanceList td:first-child {
+            width: 3%;
+            white-space: nowrap;
+        }
+
+        #attendanceList th:nth-child(2),
+        #attendanceList td:nth-child(2) {
+            width: 15%;
+        }
+
+        #attendanceList th:nth-child(3),
+        #attendanceList td:nth-child(3) {
+            width: 11%;
+        }
+
+        #attendanceList th:nth-child(4),
+        #attendanceList td:nth-child(4),
+        #attendanceList th:nth-child(5),
+        #attendanceList td:nth-child(5),
+        #attendanceList th:nth-child(6),
+        #attendanceList td:nth-child(6) {
+            width: 7%;
+        }
+
+        #attendanceList th:nth-child(7),
+        #attendanceList td:nth-child(7) {
+            width: 9%;
+        }
+
+        #attendanceList th:nth-child(8),
+        #attendanceList td:nth-child(8),
+        #attendanceList th:nth-child(9),
+        #attendanceList td:nth-child(9),
+        #attendanceList th:nth-child(10),
+        #attendanceList td:nth-child(10),
+        #attendanceList th:nth-child(11),
+        #attendanceList td:nth-child(11) {
+            width: 6.5%;
+            white-space: nowrap;
+        }
+
+        #attendanceList th:nth-child(8) {
+            padding-right: 1.7rem !important;
+        }
+
+        #attendanceList th:last-child,
+        #attendanceList td:last-child {
+            width: 9%;
+            white-space: nowrap;
+        }
+
+        @media (min-width: 1025px) and (max-width: 1399.98px) {
+            #attendanceList th,
+            #attendanceList td {
+                font-size: 10.5px;
+                padding: 0.48rem 0.32rem;
+            }
+        }
+
+        @media (min-width: 1025px) and (max-width: 1399.98px) {
+            html:not(.minimenu) #attendanceList th,
+            html:not(.minimenu) #attendanceList td,
+            html.minimenu .nxl-navigation:hover ~ .nxl-container #attendanceList th,
+            html.minimenu .nxl-navigation:hover ~ .nxl-container #attendanceList td {
+                font-size: 10px;
+                padding: 0.42rem 0.24rem;
+            }
+        }
+
+        #attendanceList td[colspan] {
+            text-align: center;
+            white-space: normal;
+        }
+
         .attendance-table-card .dropdown {
             position: relative !important;
         }
@@ -2126,15 +2486,67 @@ endif; ?>
     <script src="assets/vendors/js/datepicker.min.js"></script>
     <script src="assets/js/global-datepicker-init.js"></script>
     <!--! END: Vendors JS !-->
+    <script>
+        (function () {
+            document.addEventListener('DOMContentLoaded', function () {
+                var dateInput = document.getElementById('filter-date');
+                var filterPanel = document.querySelector('.filter-panel');
+                if (!dateInput || !filterPanel) {
+                    return;
+                }
+
+                function openPanelSpace() {
+                    filterPanel.classList.add('attendance-datepicker-open');
+                }
+
+                function closePanelSpace() {
+                    filterPanel.classList.remove('attendance-datepicker-open');
+                }
+
+                function openSelectSpace() {
+                    filterPanel.classList.add('attendance-select-open');
+                }
+
+                function closeSelectSpace() {
+                    filterPanel.classList.remove('attendance-select-open');
+                }
+
+                dateInput.addEventListener('focus', openPanelSpace);
+                dateInput.addEventListener('click', openPanelSpace);
+                dateInput.addEventListener('change', closePanelSpace);
+                dateInput.addEventListener('blur', function () {
+                    setTimeout(closePanelSpace, 200);
+                });
+
+                document.addEventListener('click', function (event) {
+                    if (event.target === dateInput) {
+                        return;
+                    }
+                    if (event.target.closest('.datepicker-dropdown')) {
+                        return;
+                    }
+                    closePanelSpace();
+                });
+
+                if (window.jQuery) {
+                    var $filterSelects = jQuery('#filter-course, #filter-department, #filter-section, #filter-school-year, #filter-supervisor, #filter-coordinator');
+                    if ($filterSelects.length) {
+                        $filterSelects.on('select2:open', openSelectSpace);
+                        $filterSelects.on('select2:close select2:select select2:clear', closeSelectSpace);
+                    }
+                }
+            });
+        })();
+    </script>
     
     <style>
         .attendance-table-card .dropdown-menu {
             margin-top: 5px;
         }
 
-        /* Move bottom DataTable controls slightly lower for better spacing */
+        /* Keep the DataTable footer controls aligned without forcing huge fake spacing */
         .attendanceList_wrapper .row:last-child {
-            margin-top: 2220px;
+            margin-top: 0;
             padding-bottom: 6px;
         }
     </style>
@@ -2252,27 +2664,73 @@ endif; ?>
 
         // Initialize DataTable
         $(document).ready(function() {
-            initAttendanceDataTable();
+            var attendanceTableInstance = initAttendanceDataTable();
+
+            function refreshAttendanceTableLayout() {
+                try {
+                    if ($.fn.DataTable.isDataTable('#attendanceList')) {
+                        $('#attendanceList').DataTable().columns.adjust().draw(false);
+                    }
+                } catch (error) {
+                    // Keep quiet; redraw fallback below still helps.
+                }
+
+                var wrapper = document.querySelector('.attendance-table-card .table-responsive');
+                if (wrapper) {
+                    wrapper.scrollLeft = 0;
+                }
+            }
+
+            function queueAttendanceTableRefresh() {
+                [0, 160, 320, 480].forEach(function(delay) {
+                    window.setTimeout(refreshAttendanceTableLayout, delay);
+                });
+            }
+
+            ['menu-mini-button', 'menu-expend-button', 'mobile-collapse'].forEach(function(id) {
+                var trigger = document.getElementById(id);
+                if (trigger) {
+                    trigger.addEventListener('click', queueAttendanceTableRefresh);
+                }
+            });
+
+            if (window.MutationObserver && document.documentElement) {
+                var attendanceSidebarObserver = new MutationObserver(function(mutations) {
+                    var shouldRefresh = mutations.some(function(mutation) {
+                        return mutation.type === 'attributes' && mutation.attributeName === 'class';
+                    });
+                    if (shouldRefresh) {
+                        queueAttendanceTableRefresh();
+                    }
+                });
+                attendanceSidebarObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+            }
+
+            queueAttendanceTableRefresh();
 
             var $attendanceFilterForm = $('#attendanceFilterForm');
             ['#filter-course', '#filter-department', '#filter-section', '#filter-school-year'].forEach(function (selector) {
                 if ($(selector).length) {
-                    $(selector).select2({
+                    var $el = $(selector);
+                    var $dropdownParent = $el.closest('[class*="col-"]');
+                    $el.select2({
                         width: '100%',
                         allowClear: false,
                         dropdownAutoWidth: false,
                         minimumResultsForSearch: Infinity,
-                        dropdownParent: $attendanceFilterForm
+                        dropdownParent: $dropdownParent.length ? $dropdownParent : $attendanceFilterForm
                     });
                 }
             });
             ['#filter-supervisor', '#filter-coordinator'].forEach(function (selector) {
                 if ($(selector).length) {
-                    $(selector).select2({
+                    var $el = $(selector);
+                    var $dropdownParent = $el.closest('[class*="col-"]');
+                    $el.select2({
                         width: '100%',
                         allowClear: false,
                         dropdownAutoWidth: false,
-                        dropdownParent: $attendanceFilterForm
+                        dropdownParent: $dropdownParent.length ? $dropdownParent : $attendanceFilterForm
                     });
                 }
             });

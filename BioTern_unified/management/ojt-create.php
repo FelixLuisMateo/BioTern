@@ -107,8 +107,10 @@ $studentQuery = "
     LEFT JOIN users u ON u.id = s.user_id
     LEFT JOIN courses c ON c.id = s.course_id
     LEFT JOIN sections sec ON sec.id = s.section_id
-    WHERE COALESCE(u.application_status, 'approved') = 'approved'
-      AND COALESCE(s.status, 1) = 1
+    WHERE (
+        COALESCE(u.application_status, '') = 'approved'
+        OR COALESCE(s.status, 0) = 1
+    )
     ORDER BY s.last_name ASC, s.first_name ASC
 ";
 $studentRes = $conn->query($studentQuery);
@@ -502,6 +504,146 @@ if ($recentRes) {
 $page_title = 'BioTern || OJT Create';
 include 'includes/header.php';
 ?>
+<style>
+    .ojt-create-shell .card {
+        border-radius: 14px;
+    }
+    .ojt-create-shell .recent-assignments-card {
+        overflow: visible;
+    }
+    .ojt-create-shell .card-header {
+        gap: 0.75rem;
+    }
+    .ojt-create-shell .table td,
+    .ojt-create-shell .table th {
+        vertical-align: top;
+    }
+    .ojt-create-shell .table td:last-child {
+        white-space: nowrap;
+    }
+    .ojt-create-shell .table-responsive {
+        overflow-x: auto;
+        overflow-y: hidden;
+    }
+    .ojt-create-shell .table-responsive table {
+        min-width: 680px;
+    }
+    @media (max-width: 1499.98px) {
+        .ojt-create-shell > .row {
+            row-gap: 1rem;
+        }
+    }
+    @media (max-width: 1399.98px) {
+        .ojt-create-shell .page-header-left {
+            align-items: center !important;
+        }
+        .ojt-create-shell .page-header .page-header-title {
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+            flex-wrap: wrap;
+        }
+        .ojt-create-shell .page-header .page-header-title h5 {
+            margin: 0;
+        }
+        .ojt-create-shell .page-header .breadcrumb {
+            margin-bottom: 0;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.15rem;
+        }
+        .ojt-create-shell > .row {
+            display: flex;
+            flex-wrap: nowrap;
+            align-items: flex-start;
+        }
+        .ojt-create-shell > .row > [class*="col-"]:first-child {
+            width: 42%;
+            max-width: 42%;
+            flex: 0 0 42%;
+        }
+        .ojt-create-shell > .row > [class*="col-"]:last-child {
+            width: 58%;
+            max-width: 58%;
+            flex: 0 0 58%;
+        }
+        .ojt-create-shell .table-responsive table {
+            min-width: 0;
+            width: 100%;
+            table-layout: fixed;
+        }
+        .ojt-create-shell .table {
+            font-size: 12px;
+        }
+        .ojt-create-shell .table th,
+        .ojt-create-shell .table td {
+            padding-left: 0.55rem;
+            padding-right: 0.55rem;
+        }
+        .ojt-create-shell .table th:nth-child(1),
+        .ojt-create-shell .table td:nth-child(1) { width: 6%; }
+        .ojt-create-shell .table th:nth-child(2),
+        .ojt-create-shell .table td:nth-child(2) { width: 35%; }
+        .ojt-create-shell .table th:nth-child(3),
+        .ojt-create-shell .table td:nth-child(3) { width: 13%; }
+        .ojt-create-shell .table th:nth-child(4),
+        .ojt-create-shell .table td:nth-child(4) { width: 13%; }
+        .ojt-create-shell .table th:nth-child(5),
+        .ojt-create-shell .table td:nth-child(5) { width: 17%; }
+        .ojt-create-shell .table th:nth-child(6),
+        .ojt-create-shell .table td:nth-child(6) { width: 8%; }
+        .ojt-create-shell .table th:nth-child(7),
+        .ojt-create-shell .table td:nth-child(7) { width: 12%; }
+        .ojt-create-shell .table td:nth-child(2),
+        .ojt-create-shell .table td:nth-child(5) {
+            overflow-wrap: anywhere;
+            word-break: break-word;
+        }
+        .ojt-create-shell .table td small {
+            line-height: 1.25;
+            display: block;
+        }
+        .ojt-create-shell .btn.btn-sm {
+            padding-left: 0.4rem;
+            padding-right: 0.4rem;
+            font-size: 10px;
+        }
+        .ojt-create-shell .table td:last-child {
+            width: 1%;
+            white-space: nowrap;
+        }
+        .ojt-create-shell .table td:last-child .btn {
+            min-width: 38px;
+            padding-left: 0.35rem;
+            padding-right: 0.35rem;
+        }
+    }
+    @media (max-width: 991.98px) {
+        .ojt-create-shell > .row {
+            display: flex;
+            flex-wrap: wrap;
+        }
+        .ojt-create-shell > .row > [class*="col-"] {
+            width: 100%;
+            max-width: 100%;
+            flex: 0 0 100%;
+        }
+        .ojt-create-shell .card-header {
+            flex-direction: column;
+            align-items: flex-start !important;
+        }
+        .ojt-create-shell .card-header .btn {
+            width: 100%;
+        }
+        .ojt-create-shell .d-flex.gap-2.mt-4 {
+            flex-direction: column;
+        }
+        .ojt-create-shell .d-flex.gap-2.mt-4 .btn {
+            width: 100%;
+        }
+    }
+</style>
 <div class="page-header">
     <div class="page-header-left d-flex align-items-center">
         <div class="page-header-title">
@@ -515,9 +657,9 @@ include 'includes/header.php';
     </div>
 </div>
 
-<div class="main-content">
+<div class="main-content ojt-create-shell">
     <div class="row">
-        <div class="col-lg-5">
+        <div class="col-12 col-xxl-5">
             <div class="card stretch stretch-full">
                 <div class="card-header">
                     <h5 class="card-title mb-0">New Assignment Form</h5>
@@ -678,8 +820,8 @@ include 'includes/header.php';
             </div>
         </div>
 
-        <div class="col-lg-7">
-            <div class="card stretch stretch-full">
+        <div class="col-12 col-xxl-7">
+            <div class="card stretch stretch-full recent-assignments-card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="card-title mb-0">Recent OJT Assignments</h5>
                     <a href="ojt.php" class="btn btn-sm btn-outline-primary">Open OJT List</a>

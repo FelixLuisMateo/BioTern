@@ -1,5 +1,4 @@
 <?php
-require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/ojt_masterlist.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -1537,11 +1536,11 @@ $session_profile_picture_url = $session_profile_picture !== '' ? $session_profil
                             </div>
                             <div class="d-flex justify-content-between align-items-center flex-column timesheets-body">
                                 <i class="feather-clock fs-1 mb-4"></i>
-                                <p class="text-muted">No started timers found yes!</p>
-                                <a href="javascript:void(0);" class="btn btn-sm btn-primary">Started Timer</a>
+                                <p class="text-muted">No active timers found.</p>
+                                <a href="attendance.php" class="btn btn-sm btn-primary">Open Attendance</a>
                             </div>
                             <div class="text-center timesheets-footer">
-                                <a href="javascript:void(0);" class="fs-13 fw-semibold text-dark">Alls Timesheets</a>
+                                <a href="students-dtr.php?id=<?php echo intval($selected_student_id); ?>" class="fs-13 fw-semibold text-dark">Student DTR</a>
                             </div>
                         </div>
                     </div>
@@ -1697,7 +1696,6 @@ $session_profile_picture_url = $session_profile_picture !== '' ? $session_profil
                             </div>
                         <?php else: ?>
                             <?php
-require_once dirname(__DIR__) . '/config/db.php';
                             $full_name = trim(($student['first_name'] ?? '') . ' ' . ($student['middle_name'] ?? '') . ' ' . ($student['last_name'] ?? ''));
                             $profile_picture = trim((string)($student['profile_picture'] ?? ''));
                                             $profile_img_src = $asset_base . '/images/avatar/1.png';
@@ -1912,7 +1910,7 @@ require_once dirname(__DIR__) . '/config/db.php';
                                         <button type="button" class="btn btn-sm btn-outline-secondary" id="toggleAllPrintDocs">Select All</button>
                                     </div>
                                     <?php if ($view_user_id <= 0): ?>
-                                        <div class="alert alert-warning mb-0">Select a student from OJT List first to print documents.</div>
+                                        <div class="alert alert-warning mb-0">Open this page from the OJT List with a student selected before printing documents.</div>
                                     <?php else: ?>
                                         <div class="row g-2 mb-3" id="printDocsSelection">
                                             <div class="col-md-3 col-sm-6">
@@ -1961,7 +1959,7 @@ require_once dirname(__DIR__) . '/config/db.php';
                                     <div class="card card-body h-100">
                                         <h6 class="fw-bold mb-3">Student Timeline</h6>
                                         <?php if (!$profile_timeline): ?>
-                                            <div class="text-muted">No timeline events.</div>
+                                            <div class="text-muted">No timeline activity yet.</div>
                                         <?php else: ?>
                                             <ul class="list-group">
                                                 <?php foreach ($profile_timeline as $evt): ?>
@@ -1978,7 +1976,7 @@ require_once dirname(__DIR__) . '/config/db.php';
                                     <div class="card card-body h-100">
                                         <h6 class="fw-bold mb-3">Edit Audit Trail</h6>
                                         <?php if (!$audit_trail): ?>
-                                            <div class="text-muted">No OJT edit audit entries.</div>
+                                            <div class="text-muted">No OJT edit history yet.</div>
                                         <?php else: ?>
                                             <ul class="list-group">
                                                 <?php foreach ($audit_trail as $audit): ?>
@@ -2000,7 +1998,7 @@ require_once dirname(__DIR__) . '/config/db.php';
                                     <div class="card card-body h-100">
                                         <h6 class="fw-bold mb-3">Attendance Event Audit (Latest 10)</h6>
                                         <?php if (!$attendance_audit_rows): ?>
-                                            <div class="text-muted">No attendance audit records.</div>
+                                            <div class="text-muted">No attendance audit history yet.</div>
                                         <?php else: ?>
                                             <div class="table-responsive">
                                                 <table class="table table-sm">
@@ -2038,7 +2036,7 @@ require_once dirname(__DIR__) . '/config/db.php';
                                             <button type="submit" class="btn btn-sm btn-outline-primary">Save Note</button>
                                         </form>
                                         <?php if (!$review_notes): ?>
-                                            <div class="text-muted">No review notes yet.</div>
+                                            <div class="text-muted">No supervisor review notes yet.</div>
                                         <?php else: ?>
                                             <?php foreach ($review_notes as $rv): ?>
                                                 <div class="border rounded p-2 mb-2">
@@ -2072,7 +2070,6 @@ require_once dirname(__DIR__) . '/config/db.php';
                                 <div class="mb-3">
                                     <strong>Student:</strong>
                                     <?php
-require_once dirname(__DIR__) . '/config/db.php';
                                     $student_name = $student ? trim(($student['first_name'] ?? '') . ' ' . ($student['middle_name'] ?? '') . ' ' . ($student['last_name'] ?? '')) : 'Unknown';
                                     echo htmlspecialchars($student_name);
                                     ?>
