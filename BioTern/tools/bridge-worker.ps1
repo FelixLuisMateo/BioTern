@@ -125,7 +125,7 @@ function Update-ConnectorConfig {
     param($BridgeConfig)
 
     $existingConfig = $null
-    if ($PreferLocalConnectorNetwork -and (Test-Path $connectorConfigPath)) {
+    if (Test-Path $connectorConfigPath) {
         try {
             $existingRaw = Get-Content -Path $connectorConfigPath -Raw
             if (-not [string]::IsNullOrWhiteSpace($existingRaw)) {
@@ -154,17 +154,22 @@ function Update-ConnectorConfig {
         if (-not [string]::IsNullOrWhiteSpace([string]$existingConfig.outputPath)) { $outputPath = [string]$existingConfig.outputPath }
     }
 
-    $cfg = @{
-        ipAddress = $ipAddress
-        gateway = $gateway
-        mask = $mask
-        port = $port
-        deviceNumber = $deviceNumber
-        communicationPassword = $communicationPassword
-        outputPath = $outputPath
-        syncMode = 'connector_fallback'
-        autoImportOnIngest = $false
+    $cfg = @{}
+    if ($existingConfig) {
+        foreach ($prop in $existingConfig.PSObject.Properties) {
+            $cfg[$prop.Name] = $prop.Value
+        }
     }
+
+    $cfg.ipAddress = $ipAddress
+    $cfg.gateway = $gateway
+    $cfg.mask = $mask
+    $cfg.port = $port
+    $cfg.deviceNumber = $deviceNumber
+    $cfg.communicationPassword = $communicationPassword
+    $cfg.outputPath = $outputPath
+    $cfg.syncMode = 'connector_fallback'
+    $cfg.autoImportOnIngest = $false
 
     $json = $cfg | ConvertTo-Json -Depth 5
     Set-Content -Path $connectorConfigPath -Value $json -Encoding UTF8
@@ -634,8 +639,8 @@ function Merge-BridgeEventsUnique {
 
 function Save-BridgePendingEvents {
     param(
-        [Parameter(Mandatory = $true)]
-        [object[]]$Events
+        [AllowEmptyCollection()]
+        [object[]]$Events = @()
     )
 
     if ($Events.Count -eq 0) {
