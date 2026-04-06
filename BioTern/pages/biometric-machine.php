@@ -55,6 +55,36 @@ function machine_connector_write_config(string $machineConfigPath, array $config
     machine_write_local_config_file($machineConfigPath, $json . PHP_EOL);
 }
 
+function machine_open_restart_bridge_shell(string $workspaceRoot): void
+{
+    if (stripos(PHP_OS_FAMILY, 'Windows') !== 0) {
+        throw new RuntimeException('Bridge worker restart shell launcher is only available on Windows hosts.');
+    }
+
+    $restartScript = $workspaceRoot . DIRECTORY_SEPARATOR . 'tools' . DIRECTORY_SEPARATOR . 'restart-bridge-worker.ps1';
+    if (!file_exists($restartScript)) {
+        throw new RuntimeException('Restart script not found. Expected: ' . $restartScript);
+    }
+
+    $workspaceArg = str_replace('"', '""', $workspaceRoot);
+    $scriptArg = str_replace('"', '""', $restartScript);
+
+    $launchCmd = 'start "BioTern Bridge Restart" powershell.exe -NoExit -ExecutionPolicy Bypass -Command "& \""' . $scriptArg . '"\" -WorkspaceRoot \""' . $workspaceArg . '"\""';
+    pclose(popen($launchCmd, 'r'));
+}
+
+function machine_open_bridge_log_tail_shell(string $workspaceRoot): void
+{
+    if (stripos(PHP_OS_FAMILY, 'Windows') !== 0) {
+        throw new RuntimeException('Bridge log tail launcher is only available on Windows hosts.');
+    }
+
+    $logPath = $workspaceRoot . DIRECTORY_SEPARATOR . 'tools' . DIRECTORY_SEPARATOR . 'bridge-worker.log';
+    $logArg = str_replace('"', '""', $logPath);
+    $launchCmd = 'start "BioTern Bridge Logs" powershell.exe -NoExit -ExecutionPolicy Bypass -Command "Get-Content -Path \""' . $logArg . '"\" -Tail 80 -Wait"';
+    pclose(popen($launchCmd, 'r'));
+}
+
 function machine_is_cloud_runtime(): bool
 {
     return getenv('VERCEL') !== false
@@ -230,6 +260,85 @@ function machine_fetch_ingest_health(mysqli $conn): array
     return ['summary' => $summary, 'recent' => $recent];
 }
 
+function machine_fetch_bridge_runtime_status(mysqli $conn, int $pollSeconds): array
+{
+    machine_ensure_bridge_user_cache_table($conn);
+    machine_ensure_ingest_events_table($conn);
+    machine_ensure_bridge_command_queue_table($conn);
+
+    $latestCacheAt = '';
+    $cacheRes = $conn->query("SELECT created_at FROM biometric_bridge_user_cache ORDER BY id DESC LIMIT 1");
+    if ($cacheRes instanceof mysqli_result) {
+        $row = $cacheRes->fetch_assoc() ?: [];
+        $latestCacheAt = (string)($row['created_at'] ?? '');
+        $cacheRes->close();
+    }
+
+    $latestIngestAt = '';
+    $ingestRes = $conn->query("SELECT received_at FROM biometric_ingest_events ORDER BY id DESC LIMIT 1");
+    if ($ingestRes instanceof mysqli_result) {
+        $row = $ingestRes->fetch_assoc() ?: [];
+        $latestIngestAt = (string)($row['received_at'] ?? '');
+        $ingestRes->close();
+    }
+
+    $latestCommandAt = '';
+    $commandRes = $conn->query("SELECT GREATEST(
+            COALESCE(MAX(claimed_at), '1970-01-01 00:00:00'),
+            COALESCE(MAX(completed_at), '1970-01-01 00:00:00'),
+            COALESCE(MAX(created_at), '1970-01-01 00:00:00')
+        ) AS latest_command_at
+        FROM biometric_bridge_command_queue");
+    if ($commandRes instanceof mysqli_result) {
+        $row = $commandRes->fetch_assoc() ?: [];
+        $latestCommandAt = (string)($row['latest_command_at'] ?? '');
+        $commandRes->close();
+    }
+
+    $candidates = array_values(array_filter([$latestCacheAt, $latestIngestAt, $latestCommandAt], static function ($value): bool {
+        return trim((string)$value) !== '' && trim((string)$value) !== '1970-01-01 00:00:00';
+    }));
+
+    $lastSeenAt = '';
+    $lastSeenTs = 0;
+    foreach ($candidates as $candidate) {
+        $ts = strtotime((string)$candidate);
+        if ($ts !== false && $ts > $lastSeenTs) {
+            $lastSeenTs = $ts;
+            $lastSeenAt = (string)$candidate;
+        }
+    }
+
+    $pollSeconds = max(3, $pollSeconds);
+    $onlineThreshold = max(45, $pollSeconds * 3);
+    $ageSeconds = null;
+    $isOnline = false;
+
+    if ($lastSeenTs > 0) {
+        $ageSeconds = max(0, time() - $lastSeenTs);
+        $isOnline = $ageSeconds <= $onlineThreshold;
+    }
+
+    if ($lastSeenTs <= 0) {
+        return [
+            'label' => 'Bridge Status Unknown',
+            'badge_class' => 'secondary',
+            'detail' => 'No bridge activity seen yet.',
+            'last_seen_at' => '',
+            'is_online' => false,
+        ];
+    }
+
+    return [
+        'label' => $isOnline ? 'Bridge Online' : 'Bridge Offline',
+        'badge_class' => $isOnline ? 'success' : 'danger',
+        'detail' => ($isOnline ? 'Last activity ' : 'Last activity stale: ') . $lastSeenAt
+            . ' (poll ' . $pollSeconds . 's, age ' . (int)$ageSeconds . 's).',
+        'last_seen_at' => $lastSeenAt,
+        'is_online' => $isOnline,
+    ];
+}
+
 function machine_ensure_bridge_profile_table(mysqli $conn): void
 {
     $conn->query("CREATE TABLE IF NOT EXISTS biometric_bridge_profile (
@@ -320,7 +429,7 @@ function machine_save_bridge_profile(mysqli $conn, array $profile, int $updatedB
     $cloudBaseUrl = (string)($profile['cloud_base_url'] ?? '');
     $ingestPath = (string)($profile['ingest_path'] ?? '/api/f20h_ingest.php');
     $ingestApiToken = (string)($profile['ingest_api_token'] ?? '');
-    $pollSeconds = max(10, (int)($profile['poll_seconds'] ?? 30));
+    $pollSeconds = max(3, (int)($profile['poll_seconds'] ?? 30));
     $ipAddress = (string)($profile['ip_address'] ?? '');
     $gateway = (string)($profile['gateway'] ?? '');
     $mask = (string)($profile['mask'] ?? '255.255.255.0');
@@ -441,6 +550,181 @@ function machine_ensure_bridge_user_cache_table(mysqli $conn): void
         KEY idx_created_at (created_at),
         KEY idx_source_node (source_node)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+}
+
+function machine_ensure_bridge_command_queue_table(mysqli $conn): void
+{
+    $conn->query("CREATE TABLE IF NOT EXISTS biometric_bridge_command_queue (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        command_name VARCHAR(80) NOT NULL,
+        command_payload LONGTEXT NULL,
+        status VARCHAR(32) NOT NULL DEFAULT 'queued',
+        requested_by INT NOT NULL DEFAULT 0,
+        source VARCHAR(80) NOT NULL DEFAULT 'machine_manager',
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        claimed_at TIMESTAMP NULL DEFAULT NULL,
+        claimed_by VARCHAR(120) NOT NULL DEFAULT '',
+        completed_at TIMESTAMP NULL DEFAULT NULL,
+        result_text TEXT NULL,
+        attempts INT NOT NULL DEFAULT 0,
+        PRIMARY KEY (id),
+        KEY idx_status_created (status, created_at),
+        KEY idx_claimed_by (claimed_by)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+}
+
+function machine_enqueue_bridge_command(mysqli $conn, string $commandName, array $payload, int $requestedBy): int
+{
+    machine_ensure_bridge_command_queue_table($conn);
+
+    $commandName = trim($commandName);
+    if ($commandName === '') {
+        throw new RuntimeException('Bridge command name is required.');
+    }
+
+    $payloadJson = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    if (!is_string($payloadJson)) {
+        throw new RuntimeException('Failed to encode bridge command payload.');
+    }
+
+    $stmt = $conn->prepare('INSERT INTO biometric_bridge_command_queue (command_name, command_payload, status, requested_by, source) VALUES (?, ?, \'queued\', ?, \'machine_manager\')');
+    if (!$stmt) {
+        throw new RuntimeException('Failed to prepare bridge command queue insert. DB error: ' . (string)$conn->error);
+    }
+
+    $stmt->bind_param('ssi', $commandName, $payloadJson, $requestedBy);
+    if (!$stmt->execute()) {
+        $error = (string)$stmt->error;
+        $stmt->close();
+        throw new RuntimeException('Failed to queue bridge command. DB error: ' . $error);
+    }
+
+    $commandId = (int)$stmt->insert_id;
+    $stmt->close();
+
+    machine_queue_watch_add($commandId);
+
+    return $commandId;
+}
+
+function machine_queue_watch_add(int $commandId): void
+{
+    if ($commandId <= 0) {
+        return;
+    }
+
+    $watchIds = [];
+    if (isset($_SESSION['machine_queue_watch_ids']) && is_array($_SESSION['machine_queue_watch_ids'])) {
+        $watchIds = array_values(array_filter(array_map('intval', $_SESSION['machine_queue_watch_ids']), static function (int $id): bool {
+            return $id > 0;
+        }));
+    }
+
+    if (!in_array($commandId, $watchIds, true)) {
+        $watchIds[] = $commandId;
+    }
+
+    if (count($watchIds) > 30) {
+        $watchIds = array_slice($watchIds, -30);
+    }
+
+    $_SESSION['machine_queue_watch_ids'] = $watchIds;
+}
+
+function machine_queue_watch_poll(mysqli $conn): array
+{
+    machine_ensure_bridge_command_queue_table($conn);
+
+    $watchIds = [];
+    if (isset($_SESSION['machine_queue_watch_ids']) && is_array($_SESSION['machine_queue_watch_ids'])) {
+        $watchIds = array_values(array_filter(array_map('intval', $_SESSION['machine_queue_watch_ids']), static function (int $id): bool {
+            return $id > 0;
+        }));
+    }
+
+    if ($watchIds === []) {
+        $_SESSION['machine_queue_watch_ids'] = [];
+        return ['watching' => [], 'completed' => []];
+    }
+
+    $placeholders = implode(',', array_map('intval', $watchIds));
+    $completed = [];
+    $stillWatching = [];
+
+    $res = $conn->query("SELECT id, command_name, status, completed_at, result_text FROM biometric_bridge_command_queue WHERE id IN ({$placeholders})");
+    if ($res instanceof mysqli_result) {
+        while ($row = $res->fetch_assoc()) {
+            $id = (int)($row['id'] ?? 0);
+            if ($id <= 0) {
+                continue;
+            }
+
+            $status = strtolower(trim((string)($row['status'] ?? 'queued')));
+            if (in_array($status, ['succeeded', 'failed'], true)) {
+                $completed[] = [
+                    'id' => $id,
+                    'command_name' => (string)($row['command_name'] ?? ''),
+                    'status' => $status,
+                    'completed_at' => (string)($row['completed_at'] ?? ''),
+                    'result_text' => (string)($row['result_text'] ?? ''),
+                ];
+            } else {
+                $stillWatching[] = $id;
+            }
+        }
+        $res->close();
+    }
+
+    $_SESSION['machine_queue_watch_ids'] = array_values(array_unique($stillWatching));
+
+    return [
+        'watching' => $_SESSION['machine_queue_watch_ids'],
+        'completed' => $completed,
+    ];
+}
+
+function machine_fetch_bridge_command_queue(mysqli $conn, int $limit = 20): array
+{
+    machine_ensure_bridge_command_queue_table($conn);
+
+    $limit = max(1, min(100, $limit));
+    $summary = [
+        'queued' => 0,
+        'claimed' => 0,
+        'succeeded' => 0,
+        'failed' => 0,
+    ];
+    $rows = [];
+
+    $summaryRes = $conn->query("SELECT status, COUNT(*) AS total
+        FROM biometric_bridge_command_queue
+        GROUP BY status");
+    if ($summaryRes instanceof mysqli_result) {
+        while ($row = $summaryRes->fetch_assoc()) {
+            $status = strtolower(trim((string)($row['status'] ?? '')));
+            $total = (int)($row['total'] ?? 0);
+            if (array_key_exists($status, $summary)) {
+                $summary[$status] = $total;
+            }
+        }
+        $summaryRes->close();
+    }
+
+    $rowsRes = $conn->query("SELECT id, command_name, status, requested_by, source, created_at, claimed_at, claimed_by, completed_at, result_text, attempts
+        FROM biometric_bridge_command_queue
+        ORDER BY id DESC
+        LIMIT {$limit}");
+    if ($rowsRes instanceof mysqli_result) {
+        while ($row = $rowsRes->fetch_assoc()) {
+            $rows[] = $row;
+        }
+        $rowsRes->close();
+    }
+
+    return [
+        'summary' => $summary,
+        'rows' => $rows,
+    ];
 }
 
 function machine_load_user_list_from_bridge_cache(mysqli $conn, &$userListRaw, &$userListDecoded): array
@@ -668,9 +952,29 @@ if (isset($_SESSION['machine_manager_flash']) && is_array($_SESSION['machine_man
     unset($_SESSION['machine_manager_flash']);
 }
 
+if ((int)($_GET['queue_watch_status'] ?? 0) === 1) {
+    header('Content-Type: application/json; charset=utf-8');
+    try {
+        $payload = machine_queue_watch_poll($conn);
+        echo json_encode([
+            'success' => true,
+            'watching' => $payload['watching'] ?? [],
+            'completed' => $payload['completed'] ?? [],
+        ], JSON_UNESCAPED_SLASHES);
+    } catch (Throwable $e) {
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+    }
+    exit;
+}
+
 if ((int)($_GET['load_users'] ?? 0) === 1) {
     try {
-        machine_load_user_list_into_state($userListRaw, $userListDecoded);
+        if (machine_is_cloud_runtime()) {
+            machine_load_user_list_from_bridge_cache($conn, $userListRaw, $userListDecoded);
+        } else {
+            machine_load_user_list_into_state($userListRaw, $userListDecoded);
+        }
     } catch (Throwable $e) {
         if ($flashMessage === '') {
             $flashType = 'danger';
@@ -681,7 +985,27 @@ if ((int)($_GET['load_users'] ?? 0) === 1) {
 
 if ($selectedUserId > 0 && (int)($_GET['load_user'] ?? 0) === 1) {
     try {
-        machine_load_user_details_into_state($selectedUserId, $userDetailsRaw, $userDetailsDecoded);
+        if (machine_is_cloud_runtime()) {
+            machine_load_user_list_from_bridge_cache($conn, $userListRaw, $userListDecoded);
+            $rows = machine_extract_rows($userListDecoded);
+            $matched = null;
+            foreach ($rows as $row) {
+                $rowUserId = (int)trim(machine_row_value($row, ['id', 'ID', 'user_id', 'userId', 'EnrollNumber']));
+                if ($rowUserId === $selectedUserId) {
+                    $matched = $row;
+                    break;
+                }
+            }
+
+            if (!is_array($matched)) {
+                throw new RuntimeException('User ID not found in latest bridge cache. Click Read All Users first to refresh cache.');
+            }
+
+            $userDetailsDecoded = $matched;
+            $userDetailsRaw = (string)json_encode($matched, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        } else {
+            machine_load_user_details_into_state($selectedUserId, $userDetailsRaw, $userDetailsDecoded);
+        }
     } catch (Throwable $e) {
         if ($flashMessage === '') {
             $flashType = 'danger';
@@ -701,6 +1025,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'save_connector_config',
             'save_bridge_profile',
             'quick_fill_bridge_router_2',
+            'open_restart_bridge_shell',
+            'open_bridge_log_tail_shell',
             'clear_records',
             'clear_users',
             'clear_admin',
@@ -730,11 +1056,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'restart',
             'save_device_identity',
         ];
-        if (machine_is_cloud_runtime() && in_array($action, $connectorBoundActions, true)) {
+        $cloudRelayActions = [
+            'save_user_name',
+            'save_list_user_name',
+            'delete_user',
+            'delete_fingerprint',
+            'set_time',
+            'clear_records',
+            'clear_users',
+            'clear_admin',
+            'restart',
+            'save_device_identity',
+        ];
+        if (machine_is_cloud_runtime() && in_array($action, $connectorBoundActions, true) && !in_array($action, $cloudRelayActions, true)) {
             throw new RuntimeException('Direct machine commands are disabled in cloud runtime. Use F20H direct ingest by posting events to /api/f20h_ingest.php, then run Sync Now to reconcile logs into attendance.');
         }
 
         switch ($action) {
+            case 'open_restart_bridge_shell':
+                machine_open_restart_bridge_shell(dirname(__DIR__));
+                $_SESSION['machine_manager_flash'] = [
+                    'type' => 'success',
+                    'message' => 'Opened PowerShell for bridge worker restart.',
+                ];
+                machine_redirect_after_post([]);
+
+            case 'open_bridge_log_tail_shell':
+                machine_open_bridge_log_tail_shell(dirname(__DIR__));
+                $_SESSION['machine_manager_flash'] = [
+                    'type' => 'success',
+                    'message' => 'Opened PowerShell bridge log tail.',
+                ];
+                machine_redirect_after_post([]);
+
             case 'sync':
                 $existingConfig = json_decode($machineConfigJson, true);
                 if (!is_array($existingConfig)) {
@@ -833,6 +1187,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($newName === '' || $userDetailsRaw === '') {
                     throw new RuntimeException('Load a user and enter a name first.');
                 }
+                if (machine_is_cloud_runtime()) {
+                    if ($selectedUserId <= 0) {
+                        throw new RuntimeException('Load a valid machine user first.');
+                    }
+                    $queuedId = machine_enqueue_bridge_command(
+                        $conn,
+                        'rename_user',
+                        ['user_id' => $selectedUserId, 'new_name' => $newName],
+                        (int)($_SESSION['user_id'] ?? 0)
+                    );
+                    $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Rename command queued for bridge worker. Queue ID #' . $queuedId . '. Bridge runs in background via Scheduled Task; keep the laptop logged in and connected to the same LAN, then click Read All Users after a few seconds.'];
+                    machine_redirect_after_post(['selected_user_id' => $selectedUserId]);
+                }
                 $patchedJson = biometric_machine_patch_user_name($userDetailsRaw, $newName);
                 $tmp = tempnam(sys_get_temp_dir(), 'biotern_user_');
                 file_put_contents($tmp, $patchedJson);
@@ -850,6 +1217,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $inlineUserId = (int)($_POST['inline_user_id'] ?? 0);
                 if ($newName === '' || $inlineUserId <= 0) {
                     throw new RuntimeException('Choose a machine user and enter a new name first.');
+                }
+                if (machine_is_cloud_runtime()) {
+                    $queuedId = machine_enqueue_bridge_command(
+                        $conn,
+                        'rename_user',
+                        ['user_id' => $inlineUserId, 'new_name' => $newName],
+                        (int)($_SESSION['user_id'] ?? 0)
+                    );
+                    $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Rename command queued for bridge worker. Queue ID #' . $queuedId . '. Bridge runs in background via Scheduled Task; keep the laptop logged in and connected to the same LAN, then click Read All Users after a few seconds.'];
+                    machine_redirect_after_post(['selected_user_id' => $inlineUserId]);
                 }
                 machine_load_user_details_into_state($inlineUserId, $userDetailsRaw, $userDetailsDecoded);
                 if ($userDetailsRaw === '') {
@@ -871,6 +1248,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($selectedUserId <= 0) {
                     throw new RuntimeException('Enter a valid user ID to delete.');
                 }
+                if (machine_is_cloud_runtime()) {
+                    $queuedId = machine_enqueue_bridge_command(
+                        $conn,
+                        'delete_user',
+                        ['user_id' => $selectedUserId],
+                        (int)($_SESSION['user_id'] ?? 0)
+                    );
+                    $_SESSION['machine_manager_flash'] = ['type' => 'warning', 'message' => 'Delete user command queued for bridge worker. Queue ID #' . $queuedId . '.'];
+                    machine_redirect_after_post(['load_users' => 1]);
+                }
                 $result = biometric_machine_run_command('delete-user', [(string)$selectedUserId]);
                 if (!$result['success']) {
                     throw new RuntimeException(trim(implode("\n", $result['output'] ?? [])));
@@ -882,6 +1269,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             case 'delete_fingerprint':
                 if ($selectedUserId <= 0) {
                     throw new RuntimeException('Enter a valid F20H user ID to delete.');
+                }
+                if (machine_is_cloud_runtime()) {
+                    $queuedId = machine_enqueue_bridge_command(
+                        $conn,
+                        'delete_user',
+                        ['user_id' => $selectedUserId],
+                        (int)($_SESSION['user_id'] ?? 0)
+                    );
+                    $_SESSION['machine_manager_flash'] = ['type' => 'warning', 'message' => 'Delete fingerprint command queued for bridge worker. Queue ID #' . $queuedId . '.'];
+                    machine_redirect_after_post(['load_users' => 1]);
                 }
                 $result = biometric_machine_run_command('delete-user', [(string)$selectedUserId]);
                 if (!$result['success']) {
@@ -952,6 +1349,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             case 'set_time':
                 $timeValue = trim((string)($_POST['time_value'] ?? ''));
+                if (machine_is_cloud_runtime()) {
+                    if ($timeValue === '') {
+                        throw new RuntimeException('Device time value is required.');
+                    }
+                    $queuedId = machine_enqueue_bridge_command(
+                        $conn,
+                        'set_time',
+                        ['time_value' => $timeValue],
+                        (int)($_SESSION['user_id'] ?? 0)
+                    );
+                    $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Set time command queued for bridge worker. Queue ID #' . $queuedId . '.'];
+                    machine_redirect_after_post([]);
+                }
                 $result = biometric_machine_run_command('set-time', [$timeValue]);
                 if (!$result['success']) {
                     throw new RuntimeException(trim(implode("\n", $result['output'] ?? [])));
@@ -1020,7 +1430,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $cloudBaseUrl = rtrim(trim((string)($_POST['cloud_base_url'] ?? '')), '/');
                 $ingestPath = trim((string)($_POST['ingest_path'] ?? '/api/f20h_ingest.php'));
                 $ingestApiToken = trim((string)($_POST['ingest_api_token'] ?? ''));
-                $pollSeconds = max(10, (int)($_POST['poll_seconds'] ?? 30));
+                $pollSeconds = max(3, (int)($_POST['poll_seconds'] ?? 30));
                 $bridgeIp = trim((string)($_POST['bridge_ip'] ?? ''));
                 $bridgeGateway = trim((string)($_POST['bridge_gateway'] ?? ''));
                 $bridgeMask = trim((string)($_POST['bridge_mask'] ?? '255.255.255.0'));
@@ -1112,7 +1522,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'cloud_base_url' => $cloudBaseUrl,
                     'ingest_path' => '/api/f20h_ingest.php',
                     'ingest_api_token' => $ingestApiToken,
-                    'poll_seconds' => 30,
+                    'poll_seconds' => 5,
                     'ip_address' => '192.168.110.201',
                     'gateway' => '192.168.110.1',
                     'mask' => '255.255.255.0',
@@ -1156,6 +1566,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 machine_redirect_after_post([]);
 
             case 'clear_records':
+                if (machine_is_cloud_runtime()) {
+                    $queuedId = machine_enqueue_bridge_command(
+                        $conn,
+                        'clear_records',
+                        [],
+                        (int)($_SESSION['user_id'] ?? 0)
+                    );
+                    $_SESSION['machine_manager_flash'] = ['type' => 'warning', 'message' => 'Clear records command queued for bridge worker. Queue ID #' . $queuedId . '.'];
+                    machine_redirect_after_post(['load_users' => 1]);
+                }
                 $result = biometric_machine_run_command('clear-records');
                 if (!$result['success']) {
                     throw new RuntimeException(trim(implode("\n", $result['output'] ?? [])));
@@ -1164,6 +1584,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 machine_redirect_after_post(['load_users' => 1]);
 
             case 'clear_users':
+                if (machine_is_cloud_runtime()) {
+                    $queuedId = machine_enqueue_bridge_command(
+                        $conn,
+                        'clear_users',
+                        [],
+                        (int)($_SESSION['user_id'] ?? 0)
+                    );
+                    $_SESSION['machine_manager_flash'] = ['type' => 'warning', 'message' => 'Clear users command queued for bridge worker. Queue ID #' . $queuedId . '.'];
+                    machine_redirect_after_post([]);
+                }
                 $result = biometric_machine_run_command('clear-users');
                 if (!$result['success']) {
                     throw new RuntimeException(trim(implode("\n", $result['output'] ?? [])));
@@ -1172,6 +1602,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 machine_redirect_after_post([]);
 
             case 'clear_admin':
+                if (machine_is_cloud_runtime()) {
+                    $queuedId = machine_enqueue_bridge_command(
+                        $conn,
+                        'clear_admin',
+                        [],
+                        (int)($_SESSION['user_id'] ?? 0)
+                    );
+                    $_SESSION['machine_manager_flash'] = ['type' => 'warning', 'message' => 'Clear admin command queued for bridge worker. Queue ID #' . $queuedId . '.'];
+                    machine_redirect_after_post([]);
+                }
                 $result = biometric_machine_run_command('clear-admin');
                 if (!$result['success']) {
                     throw new RuntimeException(trim(implode("\n", $result['output'] ?? [])));
@@ -1180,6 +1620,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 machine_redirect_after_post([]);
 
             case 'restart':
+                if (machine_is_cloud_runtime()) {
+                    $queuedId = machine_enqueue_bridge_command(
+                        $conn,
+                        'restart',
+                        [],
+                        (int)($_SESSION['user_id'] ?? 0)
+                    );
+                    $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Restart command queued for bridge worker. Queue ID #' . $queuedId . '.'];
+                    machine_redirect_after_post([]);
+                }
                 $result = biometric_machine_run_command('restart');
                 if (!$result['success']) {
                     throw new RuntimeException(trim(implode("\n", $result['output'] ?? [])));
@@ -1190,6 +1640,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             case 'save_device_identity':
                 $deviceNo = trim((string)($_POST['device_number'] ?? ''));
                 $password = trim((string)($_POST['communication_password'] ?? ''));
+                if (machine_is_cloud_runtime()) {
+                    if ($deviceNo === '' && $password === '') {
+                        throw new RuntimeException('Enter device number and/or communication password.');
+                    }
+                    $queuedId = machine_enqueue_bridge_command(
+                        $conn,
+                        'save_device_identity',
+                        ['device_number' => $deviceNo, 'communication_password' => $password],
+                        (int)($_SESSION['user_id'] ?? 0)
+                    );
+                    $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Device identity command queued for bridge worker. Queue ID #' . $queuedId . '.'];
+                    machine_redirect_after_post([]);
+                }
                 if ($deviceNo !== '') {
                     $deviceNoResult = biometric_machine_run_command('set-device-no', [$deviceNo]);
                     if (!$deviceNoResult['success']) {
@@ -1278,6 +1741,9 @@ if ($syncAttemptResult instanceof mysqli_result) {
 $ingestHealth = machine_fetch_ingest_health($conn);
 $ingestSummary = $ingestHealth['summary'] ?? [];
 $recentIngestEvents = $ingestHealth['recent'] ?? [];
+$bridgeQueueData = machine_fetch_bridge_command_queue($conn, 20);
+$bridgeQueueSummary = $bridgeQueueData['summary'] ?? ['queued' => 0, 'claimed' => 0, 'succeeded' => 0, 'failed' => 0];
+$bridgeQueueRows = $bridgeQueueData['rows'] ?? [];
 $bridgeProfile = machine_fetch_bridge_profile($conn);
 $connectorConfig = json_decode($machineConfigJson, true);
 $connectorIp = is_array($connectorConfig) ? (string)($connectorConfig['ipAddress'] ?? '') : '';
@@ -1312,6 +1778,7 @@ $bridgePort = (int)($bridgeProfile['port'] ?? ($connectorPort !== '' ? (int)$con
 $bridgeDeviceNumber = (int)($bridgeProfile['device_number'] ?? ($connectorDeviceNo !== '' ? (int)$connectorDeviceNo : 1));
 $bridgePassword = (string)($bridgeProfile['communication_password'] ?? $connectorPassword);
 $bridgeOutputPath = (string)($bridgeProfile['output_path'] ?? ($connectorOutputPath !== '' ? $connectorOutputPath : 'C:\\BioTern\\attendance.txt'));
+$bridgeRuntimeStatus = machine_fetch_bridge_runtime_status($conn, $bridgePollSeconds);
 
 if ($bridgeToken === '') {
     $bridgeTokenEnv = getenv('BIOTERN_BRIDGE_TOKEN');
@@ -1342,10 +1809,25 @@ if ($bridgeIngestApiToken === '') {
     }
 }
 
+$bridgeProfileBaseUrl = machine_bridge_default_cloud_base_url();
+if ($bridgeProfileBaseUrl === '') {
+    $bridgeProfileBaseUrl = $bridgeCloudBaseUrl;
+}
+if ($bridgeProfileBaseUrl === '') {
+    $bridgeProfileBaseUrl = 'https://your-app.vercel.app';
+}
+
 $bridgeWorkerCommand = 'powershell -NoProfile -ExecutionPolicy Bypass -File ".\\tools\\bridge-worker.ps1"'
-    . ' -SiteBaseUrl "' . str_replace('"', '\\"', $bridgeCloudBaseUrl !== '' ? $bridgeCloudBaseUrl : 'https://your-app.vercel.app') . '"'
+    . ' -SiteBaseUrl "' . str_replace('"', '\\"', $bridgeProfileBaseUrl) . '"'
     . ' -BridgeToken "' . str_replace('"', '\\"', $bridgeToken !== '' ? $bridgeToken : 'YOUR_BRIDGE_TOKEN') . '"'
     . ' -WorkspaceRoot "."';
+
+$bridgeTaskInstallCommand = 'powershell -NoProfile -ExecutionPolicy Bypass -File ".\\tools\\install-bridge-worker-task.ps1"'
+    . ' -SiteBaseUrl "' . str_replace('"', '\\"', $bridgeProfileBaseUrl) . '"'
+    . ' -BridgeToken "' . str_replace('"', '\\"', $bridgeToken !== '' ? $bridgeToken : 'YOUR_BRIDGE_TOKEN') . '"'
+    . ' -TaskName "BioTernBridgeWorker"';
+
+$bridgeTaskStatusCommand = 'powershell -NoProfile -ExecutionPolicy Bypass -File ".\\tools\\manage-bridge-worker-task.ps1" -Action status -TaskName "BioTernBridgeWorker"';
 
 $selectedBridgePreset = 'laptop_custom';
 $savedBridgePreset = trim((string)($bridgeProfile['selected_bridge_preset'] ?? ''));
@@ -1456,6 +1938,15 @@ include __DIR__ . '/../includes/header.php';
                     <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
                     <li class="breadcrumb-item">F20H Machine Manager</li>
                 </ul>
+            </div>
+            <div class="page-header-right ms-auto text-end">
+                <div>
+                    <span class="badge bg-soft-<?php echo machine_h((string)($bridgeRuntimeStatus['badge_class'] ?? 'secondary')); ?> text-<?php echo machine_h((string)($bridgeRuntimeStatus['badge_class'] ?? 'secondary')); ?>">
+                        <?php echo machine_h((string)($bridgeRuntimeStatus['label'] ?? 'Bridge Status Unknown')); ?>
+                    </span>
+                </div>
+                <small class="text-muted d-block mt-1"><?php echo machine_h((string)($bridgeRuntimeStatus['detail'] ?? '')); ?></small>
+                <small class="text-muted d-block">Background mode: Scheduled Task (no open PowerShell needed). If installed without admin rights, it runs after Windows sign-in.</small>
             </div>
         </div>
 
@@ -1573,6 +2064,16 @@ include __DIR__ . '/../includes/header.php';
                             <input type="hidden" name="machine_action" value="sync">
                             <button type="submit" class="btn btn-primary w-100"><?php echo $cloudRuntime || $syncMode === 'direct_ingest' ? 'Process Ingest Queue' : 'Sync Now'; ?></button>
                         </form>
+                        <?php if ($isAdmin): ?>
+                            <form method="post" class="mt-2">
+                                <input type="hidden" name="machine_action" value="open_restart_bridge_shell">
+                                <button type="submit" class="btn btn-outline-dark w-100">Open PowerShell: Restart Bridge Worker</button>
+                            </form>
+                            <form method="post" class="mt-2">
+                                <input type="hidden" name="machine_action" value="open_bridge_log_tail_shell">
+                                <button type="submit" class="btn btn-outline-secondary w-100">Open PowerShell: Bridge Log Tail</button>
+                            </form>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
@@ -1620,8 +2121,11 @@ include __DIR__ . '/../includes/header.php';
 
             <div class="col-xl-8">
                 <div class="card stretch stretch-full machine-users-card">
-                    <div class="card-header"><h6 class="card-title mb-0">Users on Machine</h6></div>
-                    <div class="card-body">
+                    <div class="card-header d-flex justify-content-between align-items-center gap-2">
+                        <h6 class="card-title mb-0">Users on Machine</h6>
+                        <button class="btn btn-sm btn-outline-secondary machine-section-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#machineUsersCollapse" aria-expanded="true" aria-controls="machineUsersCollapse">Toggle Users</button>
+                    </div>
+                    <div class="card-body collapse show" id="machineUsersCollapse">
                         <?php if ($cloudRuntime): ?>
                             <div class="alert alert-warning">
                                 Direct LAN reads are not available in Vercel runtime. Use Read All Users (Bridge Cache) after bridge worker sync from Router 2.
@@ -1834,7 +2338,7 @@ include __DIR__ . '/../includes/header.php';
                                     </div>
                                     <div class="col-sm-6">
                                         <label class="form-label">Poll Seconds</label>
-                                        <input type="number" name="poll_seconds" id="bridgePollSecondsField" class="form-control" value="<?php echo machine_h((string)$bridgePollSeconds); ?>" min="10" max="300">
+                                        <input type="number" name="poll_seconds" id="bridgePollSecondsField" class="form-control" value="<?php echo machine_h((string)$bridgePollSeconds); ?>" min="3" max="300">
                                     </div>
                                     <div class="col-sm-6">
                                         <label class="form-label">F20H IP</label>
@@ -1865,12 +2369,26 @@ include __DIR__ . '/../includes/header.php';
                                         <input type="text" name="bridge_output_path" id="bridgeOutputPathField" class="form-control" value="<?php echo machine_h($bridgeOutputPath); ?>" placeholder="C:\\BioTern\\attendance.txt">
                                     </div>
                                     <div class="col-12">
-                                        <label class="form-label">Start Bridge Worker Command (run on bridge computer)</label>
+                                        <label class="form-label">Install Auto-Start Bridge Task (recommended)</label>
+                                        <div class="input-group mb-2">
+                                            <input type="text" class="form-control" id="bridgeTaskInstallCommandField" value="<?php echo machine_h($bridgeTaskInstallCommand); ?>" readonly>
+                                            <button type="button" class="btn btn-outline-secondary" id="copyBridgeTaskInstallCmdBtn">Copy</button>
+                                        </div>
+                                        <small class="text-muted d-block mb-2">Run this once on the laptop bridge computer. It installs and starts a background task at startup/logon.</small>
+
+                                        <label class="form-label">Check Bridge Task Status</label>
+                                        <div class="input-group mb-2">
+                                            <input type="text" class="form-control" id="bridgeTaskStatusCommandField" value="<?php echo machine_h($bridgeTaskStatusCommand); ?>" readonly>
+                                            <button type="button" class="btn btn-outline-secondary" id="copyBridgeTaskStatusCmdBtn">Copy</button>
+                                        </div>
+                                        <small class="text-muted d-block mb-2">Use this to verify the background bridge task state anytime.</small>
+
+                                        <label class="form-label">Manual Start Bridge Worker (fallback)</label>
                                         <div class="input-group">
                                             <input type="text" class="form-control" id="bridgeWorkerCommandField" value="<?php echo machine_h($bridgeWorkerCommand); ?>" readonly>
                                             <button type="button" class="btn btn-outline-secondary" id="copyBridgeWorkerCmdBtn">Copy</button>
                                         </div>
-                                        <small class="text-muted">Open PowerShell in your BioTern folder, paste this command, then press Enter.</small>
+                                        <small class="text-muted">Use manual start only if task install is unavailable.</small>
                                     </div>
                                     <div class="col-12 d-flex flex-wrap gap-2">
                                         <button type="submit" class="btn btn-secondary btn-sm">Save Laptop Bridge Profile</button>
@@ -2209,6 +2727,95 @@ include __DIR__ . '/../includes/header.php';
                 </div>
             </div>
 
+            <div class="col-xl-12">
+                <div class="card stretch stretch-full">
+                    <div class="card-header d-flex justify-content-between align-items-center gap-2">
+                        <h6 class="card-title mb-0">Bridge Command Queue Monitor</h6>
+                        <button class="btn btn-sm btn-outline-secondary machine-section-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#machineBridgeQueueCollapse" aria-expanded="false" aria-controls="machineBridgeQueueCollapse">Toggle</button>
+                    </div>
+                    <div class="card-body collapse" id="machineBridgeQueueCollapse">
+                        <div class="row g-2 mb-3">
+                            <div class="col-sm-3">
+                                <div class="border rounded p-2">
+                                    <div class="text-muted fs-12">Queued</div>
+                                    <div class="fw-bold"><?php echo machine_h((string)($bridgeQueueSummary['queued'] ?? 0)); ?></div>
+                                </div>
+                            </div>
+                            <div class="col-sm-3">
+                                <div class="border rounded p-2">
+                                    <div class="text-muted fs-12">Claimed</div>
+                                    <div class="fw-bold"><?php echo machine_h((string)($bridgeQueueSummary['claimed'] ?? 0)); ?></div>
+                                </div>
+                            </div>
+                            <div class="col-sm-3">
+                                <div class="border rounded p-2">
+                                    <div class="text-muted fs-12">Succeeded</div>
+                                    <div class="fw-bold"><?php echo machine_h((string)($bridgeQueueSummary['succeeded'] ?? 0)); ?></div>
+                                </div>
+                            </div>
+                            <div class="col-sm-3">
+                                <div class="border rounded p-2">
+                                    <div class="text-muted fs-12">Failed</div>
+                                    <div class="fw-bold"><?php echo machine_h((string)($bridgeQueueSummary['failed'] ?? 0)); ?></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table table-sm mb-0 align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Command</th>
+                                        <th>Status</th>
+                                        <th>Requested</th>
+                                        <th>Claimed By</th>
+                                        <th>Completed</th>
+                                        <th>Attempts</th>
+                                        <th>Result</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php if (empty($bridgeQueueRows)): ?>
+                                        <tr><td colspan="8" class="text-center text-muted py-3">No bridge commands queued yet.</td></tr>
+                                    <?php else: ?>
+                                        <?php foreach ($bridgeQueueRows as $queueRow): ?>
+                                            <?php
+                                            $queueStatus = strtolower(trim((string)($queueRow['status'] ?? 'queued')));
+                                            $statusClass = 'secondary';
+                                            if ($queueStatus === 'queued') {
+                                                $statusClass = 'warning';
+                                            } elseif ($queueStatus === 'claimed') {
+                                                $statusClass = 'info';
+                                            } elseif ($queueStatus === 'succeeded') {
+                                                $statusClass = 'success';
+                                            } elseif ($queueStatus === 'failed') {
+                                                $statusClass = 'danger';
+                                            }
+                                            $resultText = trim((string)($queueRow['result_text'] ?? ''));
+                                            if ($resultText !== '' && strlen($resultText) > 110) {
+                                                $resultText = substr($resultText, 0, 110) . '...';
+                                            }
+                                            ?>
+                                            <tr>
+                                                <td><?php echo machine_h((string)($queueRow['id'] ?? 0)); ?></td>
+                                                <td><?php echo machine_h((string)($queueRow['command_name'] ?? '-')); ?></td>
+                                                <td><span class="badge bg-soft-<?php echo machine_h($statusClass); ?> text-<?php echo machine_h($statusClass); ?>"><?php echo machine_h((string)($queueRow['status'] ?? '-')); ?></span></td>
+                                                <td><?php echo machine_h((string)($queueRow['created_at'] ?? '-')); ?></td>
+                                                <td><?php echo machine_h((string)($queueRow['claimed_by'] ?? '-')); ?></td>
+                                                <td><?php echo machine_h((string)($queueRow['completed_at'] ?? '-')); ?></td>
+                                                <td><?php echo machine_h((string)($queueRow['attempts'] ?? 0)); ?></td>
+                                                <td><?php echo machine_h($resultText !== '' ? $resultText : '-'); ?></td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <?php if ($isAdmin): ?>
                 <div class="col-12 d-flex justify-content-end">
                     <button class="btn btn-sm btn-outline-secondary machine-section-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#machineAdminAdvancedPanels" aria-expanded="false" aria-controls="machineAdminAdvancedPanels">Toggle Admin Advanced Panels</button>
@@ -2370,4 +2977,115 @@ include __DIR__ . '/../includes/header.php';
         </div>
 </div>
 </main>
+
+<div class="toast-container position-fixed top-0 end-0 p-3" id="machineQueueToastContainer" style="z-index: 1080;"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var toastContainer = document.getElementById('machineQueueToastContainer');
+    if (!toastContainer) {
+        return;
+    }
+
+    var seenCompletedIds = {};
+
+    function trimText(value) {
+        var text = (value || '').toString().trim();
+        if (text.length > 180) {
+            return text.slice(0, 180) + '...';
+        }
+        return text;
+    }
+
+    function escapeHtml(value) {
+        return (value || '').toString()
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function showQueueToast(item) {
+        var id = Number(item && item.id ? item.id : 0);
+        if (!id || seenCompletedIds[id]) {
+            return;
+        }
+        seenCompletedIds[id] = true;
+
+        var status = ((item && item.status) || '').toString().toLowerCase();
+        var commandName = ((item && item.command_name) || 'command').toString();
+        var resultText = trimText(item && item.result_text ? item.result_text : '');
+        var completedAt = ((item && item.completed_at) || '').toString();
+        var isSuccess = status === 'succeeded';
+
+        var title = isSuccess ? 'Queue Completed' : 'Queue Failed';
+        var tone = isSuccess ? 'success' : 'danger';
+        var body = '#' + id + ' ' + commandName + (isSuccess ? ' completed.' : ' failed.');
+
+        if (resultText !== '') {
+            body += ' ' + resultText;
+        }
+        if (completedAt !== '') {
+            body += ' (' + completedAt + ')';
+        }
+
+        var wrapper = document.createElement('div');
+        wrapper.className = 'toast align-items-center text-bg-' + tone + ' border-0 mb-2';
+        wrapper.setAttribute('role', 'alert');
+        wrapper.setAttribute('aria-live', 'assertive');
+        wrapper.setAttribute('aria-atomic', 'true');
+        wrapper.innerHTML = ''
+            + '<div class="d-flex">'
+            + '  <div class="toast-body">'
+            + '    <div class="fw-semibold mb-1">' + escapeHtml(title) + '</div>'
+            + '    <div>' + escapeHtml(body) + '</div>'
+            + '  </div>'
+            + '  <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>'
+            + '</div>';
+
+        toastContainer.appendChild(wrapper);
+
+        if (window.bootstrap && window.bootstrap.Toast) {
+            var toast = new window.bootstrap.Toast(wrapper, { delay: isSuccess ? 6000 : 9000 });
+            wrapper.addEventListener('hidden.bs.toast', function () {
+                wrapper.remove();
+            });
+            toast.show();
+        } else {
+            wrapper.className = 'alert alert-' + tone + ' mb-2 shadow-sm';
+            wrapper.innerHTML = '<div class="fw-semibold mb-1">' + escapeHtml(title) + '</div><div>' + escapeHtml(body) + '</div>';
+            window.setTimeout(function () {
+                wrapper.remove();
+            }, isSuccess ? 6000 : 9000);
+        }
+    }
+
+    async function pollQueueStatus() {
+        try {
+            var response = await fetch('biometric-machine.php?queue_watch_status=1&_ts=' + Date.now(), {
+                method: 'GET',
+                credentials: 'same-origin',
+                cache: 'no-store'
+            });
+            if (!response.ok) {
+                return;
+            }
+
+            var payload = await response.json();
+            if (!payload || !payload.success || !Array.isArray(payload.completed)) {
+                return;
+            }
+
+            payload.completed.forEach(showQueueToast);
+        } catch (error) {
+            // Keep polling silent if a transient network error occurs.
+        }
+    }
+
+    pollQueueStatus();
+    window.setInterval(pollQueueStatus, 4000);
+});
+</script>
+
 <?php include __DIR__ . '/../includes/footer.php'; ?>

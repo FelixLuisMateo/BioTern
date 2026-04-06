@@ -1,6 +1,7 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/section_schedule.php';
+require_once dirname(__DIR__) . '/tools/biometric_auto_import.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -84,6 +85,19 @@ function attendance_redirect_self(): void
     exit;
 }
 
+function attendance_local_today(): string
+{
+    $tzName = trim((string)(getenv('APP_TIMEZONE') ?: 'Asia/Manila'));
+    try {
+        $tz = new DateTimeZone($tzName !== '' ? $tzName : 'Asia/Manila');
+    } catch (Throwable $e) {
+        $tz = new DateTimeZone('Asia/Manila');
+    }
+
+    $now = new DateTimeImmutable('now', $tz);
+    return $now->format('Y-m-d');
+}
+
 function attendance_school_hours_config(?array $machineConfig = null): array
 {
     $machineConfig = is_array($machineConfig) ? $machineConfig : attendance_load_machine_config();
@@ -142,20 +156,41 @@ $filter_school_year = isset($_GET['school_year']) ? trim((string)$_GET['school_y
 $filter_supervisor = isset($_GET['supervisor']) ? trim($_GET['supervisor']) : '';
 $filter_coordinator = isset($_GET['coordinator']) ? trim($_GET['coordinator']) : '';
 $filter_status = isset($_GET['status']) ? trim($_GET['status']) : '';
+$valid_approval_statuses = ['approved', 'pending', 'rejected'];
+$has_valid_approval_status_filter = in_array($filter_status, $valid_approval_statuses, true);
 
 $school_year_options = [];
 $school_year_start = 2005;
-$current_calendar_month = (int)date('n');
-$current_calendar_year = (int)date('Y');
+$attendance_today_local = attendance_local_today();
+$current_calendar_month = (int)date('n', strtotime($attendance_today_local));
+$current_calendar_year = (int)date('Y', strtotime($attendance_today_local));
 $current_school_year_start = $current_calendar_month >= 7 ? $current_calendar_year : ($current_calendar_year - 1);
 $latest_school_year_start = max(2025, $current_school_year_start);
 for ($year = $latest_school_year_start; $year >= $school_year_start; $year--) {
     $school_year_options[] = sprintf('%d-%d', $year, $year + 1);
 }
 
-// default to today when no date filters provided
-if (empty($filter_date) && empty($start_date) && empty($end_date) && empty($filter_status)) {
-    $filter_date = date('Y-m-d');
+// default to local current date when no date filters provided
+if (empty($filter_date) && empty($start_date) && empty($end_date) && !$has_valid_approval_status_filter) {
+    $filter_date = $attendance_today_local;
+}
+
+// Safety net: process any pending raw biometric logs so Attendance stays current
+// even if ingest accepted events while auto-import was temporarily disabled.
+try {
+    $pendingRaw = 0;
+    $pendingRes = $conn->query('SELECT COUNT(*) AS pending_count FROM biometric_raw_logs WHERE processed = 0');
+    if ($pendingRes instanceof mysqli_result) {
+        $pendingRow = $pendingRes->fetch_assoc();
+        $pendingRaw = (int)($pendingRow['pending_count'] ?? 0);
+        $pendingRes->close();
+    }
+
+    if ($pendingRaw > 0) {
+        run_biometric_auto_import_stats();
+    }
+} catch (Throwable $ignored) {
+    // Keep attendance page load resilient if biometric sync tables are unavailable.
 }
 
 // Fetch dropdown lists
@@ -235,8 +270,7 @@ if (!empty($start_date) && !empty($end_date)) {
     $where[] = "a.attendance_date = '" . $conn->real_escape_string($filter_date) . "'";
 }
 if (!empty($filter_status)) {
-    $allowed = ['approved','pending','rejected'];
-    if (in_array($filter_status, $allowed)) {
+    if ($has_valid_approval_status_filter) {
         $where[] = "a.status = '" . $conn->real_escape_string($filter_status) . "'";
     }
 }
@@ -550,19 +584,74 @@ function attendance_collect_punch_values(array $attendance): array {
     return $values;
 }
 
-function attendance_window_metrics(array $attendance): array {
+function attendance_schedule_bounds(array $attendance): array {
     $schedule = attendance_effective_schedule($attendance);
+
+    return [
+        'schedule' => $schedule,
+        'official_start' => section_schedule_normalize_time_input((string)($schedule['schedule_time_in'] ?? '')) ?: '08:00:00',
+        'official_end' => section_schedule_normalize_time_input((string)($schedule['schedule_time_out'] ?? '')) ?: '19:00:00',
+        'late_after' => section_schedule_normalize_time_input((string)($schedule['late_after_time'] ?? ''))
+            ?: (section_schedule_normalize_time_input((string)($schedule['schedule_time_in'] ?? '')) ?: '08:00:00'),
+    ];
+}
+
+function attendance_clamped_duration_seconds(?int $startTs, ?int $endTs, string $windowStart, string $windowEnd): int
+{
+    if ($startTs === null || $endTs === null || $endTs <= $startTs) {
+        return 0;
+    }
+
+    $windowStartTs = strtotime($windowStart);
+    $windowEndTs = strtotime($windowEnd);
+    if ($windowStartTs === false || $windowEndTs === false) {
+        return max(0, $endTs - $startTs);
+    }
+
+    $clampedStart = max($startTs, $windowStartTs);
+    $clampedEnd = min($endTs, $windowEndTs);
+    return max(0, $clampedEnd - $clampedStart);
+}
+
+function attendance_credited_seconds(array $attendance, ?array $bounds = null): int
+{
+    $bounds = is_array($bounds) ? $bounds : attendance_schedule_bounds($attendance);
+    $officialStart = (string)($bounds['official_start'] ?? '08:00:00');
+    $officialEnd = (string)($bounds['official_end'] ?? '19:00:00');
+
+    $totalSeconds = 0;
+    $pairs = [
+        ['morning_time_in', 'morning_time_out'],
+        ['afternoon_time_in', 'afternoon_time_out'],
+    ];
+
+    foreach ($pairs as $pair) {
+        $startTs = parseAttendanceTime($attendance[$pair[0]] ?? null);
+        $endTs = parseAttendanceTime($attendance[$pair[1]] ?? null);
+        $totalSeconds += attendance_clamped_duration_seconds($startTs, $endTs, $officialStart, $officialEnd);
+    }
+
+    $breakInTs = parseAttendanceTime($attendance['break_time_in'] ?? null);
+    $breakOutTs = parseAttendanceTime($attendance['break_time_out'] ?? null);
+    $totalSeconds -= attendance_clamped_duration_seconds($breakInTs, $breakOutTs, $officialStart, $officialEnd);
+
+    return max(0, $totalSeconds);
+}
+
+function attendance_window_metrics(array $attendance): array {
+    $bounds = attendance_schedule_bounds($attendance);
+    $schedule = $bounds['schedule'];
     $punches = attendance_collect_punch_values($attendance);
     $firstPunch = $punches[0] ?? null;
     $lastPunch = $punches !== [] ? $punches[count($punches) - 1] : null;
     $hasCompletedRange = $firstPunch !== null && $lastPunch !== null && strcmp($lastPunch, $firstPunch) > 0;
 
-    $officialStart = section_schedule_normalize_time_input((string)($schedule['schedule_time_in'] ?? '')) ?: '08:00:00';
-    $officialEnd = section_schedule_normalize_time_input((string)($schedule['schedule_time_out'] ?? '')) ?: '19:00:00';
-    $lateAfter = section_schedule_normalize_time_input((string)($schedule['late_after_time'] ?? '')) ?: $officialStart;
+    $officialStart = (string)$bounds['official_start'];
+    $officialEnd = (string)$bounds['official_end'];
+    $lateAfter = (string)$bounds['late_after'];
 
     $earlyHours = 0.0;
-    $officialHours = 0.0;
+    $officialHours = round(attendance_credited_seconds($attendance, $bounds) / 3600, 2);
     $overtimeHours = 0.0;
 
     if ($firstPunch !== null && strcmp($firstPunch, $officialStart) < 0) {
@@ -571,12 +660,6 @@ function attendance_window_metrics(array $attendance): array {
     }
 
     if ($hasCompletedRange) {
-        $rangeStart = max(strtotime($firstPunch), strtotime($officialStart));
-        $rangeEnd = min(strtotime($lastPunch), strtotime($officialEnd));
-        if ($rangeEnd > $rangeStart) {
-            $officialHours = round(($rangeEnd - $rangeStart) / 3600, 2);
-        }
-
         if (strcmp($lastPunch, $officialEnd) > 0) {
             $overtimeSeconds = max(0, strtotime($lastPunch) - strtotime($officialEnd));
             $overtimeHours = round($overtimeSeconds / 3600, 2);
@@ -655,33 +738,7 @@ function attendance_status_cell_html(array $attendance): string {
 }
 
 function calculateAttendanceRowHours(array $attendance): float {
-    $totalSeconds = 0;
-    $pairs = [
-        ['morning_time_in', 'morning_time_out'],
-        ['afternoon_time_in', 'afternoon_time_out'],
-    ];
-
-    foreach ($pairs as $pair) {
-        $startTs = parseAttendanceTime($attendance[$pair[0]] ?? null);
-        $endTs = parseAttendanceTime($attendance[$pair[1]] ?? null);
-        if ($startTs === null || $endTs === null || $endTs <= $startTs) {
-            continue;
-        }
-
-        $totalSeconds += ($endTs - $startTs);
-    }
-
-    $breakInTs = parseAttendanceTime($attendance['break_time_in'] ?? null);
-    $breakOutTs = parseAttendanceTime($attendance['break_time_out'] ?? null);
-    if ($breakInTs !== null && $breakOutTs !== null && $breakOutTs > $breakInTs) {
-        $totalSeconds -= ($breakOutTs - $breakInTs);
-    }
-
-    if ($totalSeconds < 0) {
-        $totalSeconds = 0;
-    }
-
-    return round($totalSeconds / 3600, 2);
+    return round(attendance_credited_seconds($attendance) / 3600, 2);
 }
 
 function synchronizeAttendanceProgress(mysqli $conn, array &$attendances): void {
@@ -2132,10 +2189,20 @@ endif; ?>
             margin-top: 5px;
         }
 
-        /* Move bottom DataTable controls slightly lower for better spacing */
         .attendanceList_wrapper .row:last-child {
-            margin-top: 2220px;
+            margin-top: .5rem;
             padding-bottom: 6px;
+        }
+
+        @media (max-width: 991.98px) {
+            .attendance-table-card .table {
+                min-width: 980px;
+            }
+
+            .attendance-table-card th,
+            .attendance-table-card td {
+                white-space: nowrap;
+            }
         }
     </style>
     
@@ -2168,6 +2235,9 @@ endif; ?>
 
         var biometricAutoSyncInFlight = false;
         var biometricAutoSyncIntervalMs = 60000;
+        var biometricAutoSyncRequest = null;
+        var biometricAutoSyncStartedAt = 0;
+        var biometricAutoSyncRequestTimeoutMs = 20000;
 
         function escapeHtml(value) {
             return String(value || '')
@@ -2211,18 +2281,42 @@ endif; ?>
             options = options || {};
             var manual = !!options.manual;
             var showToastOnError = !!options.showToastOnError;
-            if (biometricAutoSyncInFlight || document.hidden) {
+
+            // Allow manual sync even if the document is hidden.
+            if (!manual && document.hidden) {
+                return;
+            }
+
+            if (biometricAutoSyncInFlight && biometricAutoSyncRequest) {
+                var elapsed = Date.now() - biometricAutoSyncStartedAt;
+                if (elapsed > biometricAutoSyncRequestTimeoutMs) {
+                    try {
+                        biometricAutoSyncRequest.abort();
+                    } catch (e) {}
+                    biometricAutoSyncInFlight = false;
+                    biometricAutoSyncRequest = null;
+                }
+            }
+
+            if (biometricAutoSyncInFlight) {
                 return;
             }
 
             biometricAutoSyncInFlight = true;
+            biometricAutoSyncStartedAt = Date.now();
             if (manual) {
                 setManualSyncButtonBusy(true);
             }
-            $.ajax({
+
+            biometricAutoSyncRequest = $.ajax({
                 url: 'legacy_router.php?file=biometric_machine_sync.php&format=json',
                 type: 'GET',
-                dataType: 'json'
+                dataType: 'json',
+                cache: false,
+                timeout: biometricAutoSyncRequestTimeoutMs,
+                data: {
+                    _ts: Date.now()
+                }
             }).done(function(response) {
                 if (response && response.success) {
                     refreshAttendanceTable();
@@ -2244,6 +2338,7 @@ endif; ?>
                 }
             }).always(function() {
                 biometricAutoSyncInFlight = false;
+                biometricAutoSyncRequest = null;
                 if (manual) {
                     setManualSyncButtonBusy(false);
                 }
@@ -2406,6 +2501,17 @@ endif; ?>
                 if (!document.hidden) {
                     runBiometricAutoSync({ showToastOnError: false });
                 }
+            });
+
+            // Resume sync immediately when the device wakes or network returns.
+            window.addEventListener('focus', function() {
+                runBiometricAutoSync({ showToastOnError: false });
+            });
+            window.addEventListener('pageshow', function() {
+                runBiometricAutoSync({ showToastOnError: false });
+            });
+            window.addEventListener('online', function() {
+                runBiometricAutoSync({ showToastOnError: false });
             });
 
             $('#manualSyncMachineButton').on('click', function() {

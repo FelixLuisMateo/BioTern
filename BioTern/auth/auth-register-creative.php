@@ -1,11 +1,15 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
+$script_name = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
+$asset_prefix = (strpos($script_name, '/auth/') !== false) ? '../' : '';
+$route_prefix = $asset_prefix;
+$self_register_url = $route_prefix . 'auth-register-creative.php';
 // Handle submissions immediately to avoid rendering/query side effects before redirects.
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $requestedRole = strtolower(trim((string)($_POST['role'] ?? '')));
     if ($requestedRole !== 'student') {
         $msg = rawurlencode('Staff accounts are created by an admin. Please contact your administrator.');
-        header('Location: auth-register-creative.php?registered=error&msg=' . $msg);
+        header('Location: ' . $self_register_url . '?registered=error&msg=' . $msg);
         exit;
     }
     require_once dirname(__DIR__) . '/api/register_submit.php';
@@ -18,9 +22,6 @@ $sectionOptions = [];
 $coordinatorOptions = [];
 $supervisorOptions = [];
 $courseDepartmentMap = [];
-$script_name = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
-$asset_prefix = (strpos($script_name, '/auth/') !== false) ? '../' : '';
-$route_prefix = $asset_prefix;
 $departmentsConn = $conn;
 if ($departmentsConn && $departmentsConn->connect_errno === 0) {
     $departmentQuery = "SELECT id, code, name FROM departments ORDER BY name ASC";
@@ -283,11 +284,8 @@ if (isset($_GET['registered'])) {
                                     </div>
                                 </div>
                                 <div class="row g-3">
-                                    <div class="col-6 mb-2">
+                                    <div class="col-12 mb-2">
                                         <input type="text" name="address" class="form-control" placeholder="Full Home Address" autocomplete="street-address" required>
-                                    </div>
-                                    <div class="col-6 mb-2">
-                                        <input type="email" name="email" class="form-control" placeholder="Email Address" autocomplete="email" required>
                                     </div>
                                 </div>
                                 <div class="step-actions">

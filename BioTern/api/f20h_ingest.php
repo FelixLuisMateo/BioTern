@@ -135,6 +135,31 @@ function f20h_extract_events(array $payload): array
     return $isList ? $payload : [$payload];
 }
 
+function f20h_auto_import_enabled(array $machineConfig): bool
+{
+    $env = getenv('BIOTERN_AUTO_IMPORT_ON_INGEST');
+    if (is_string($env) && trim($env) !== '') {
+        $normalized = strtolower(trim($env));
+        if (in_array($normalized, ['0', 'false', 'off', 'no'], true)) {
+            return false;
+        }
+        if (in_array($normalized, ['1', 'true', 'on', 'yes'], true)) {
+            return true;
+        }
+    }
+
+    $isCloudRuntime = (
+        getenv('VERCEL') !== false
+        || getenv('RAILWAY_ENVIRONMENT') !== false
+        || getenv('K_SERVICE') !== false
+    );
+    if ($isCloudRuntime) {
+        return true;
+    }
+
+    return !isset($machineConfig['autoImportOnIngest']) || !empty($machineConfig['autoImportOnIngest']);
+}
+
 function f20h_normalize_event(array $event): ?array
 {
     $fingerId = isset($event['finger_id']) ? (int) $event['finger_id'] : (isset($event['id']) ? (int) $event['id'] : 0);
@@ -210,7 +235,7 @@ try {
     $inserted = biometricInsertRawLogEntries($db, $normalized, $machineConfig);
     $db->close();
 
-    $autoImport = !isset($machineConfig['autoImportOnIngest']) || !empty($machineConfig['autoImportOnIngest']);
+    $autoImport = f20h_auto_import_enabled($machineConfig);
     $stats = null;
     if ($autoImport) {
         $stats = run_biometric_auto_import_stats();

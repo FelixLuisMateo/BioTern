@@ -63,16 +63,7 @@ if (!function_exists('biotern_clear_auth_cookie')) {
     }
 }
 
-if (isset($_GET['logout']) && (string)$_GET['logout'] === '1') {
-    $_SESSION = [];
-    if (ini_get('session.use_cookies')) {
-        $params = session_get_cookie_params();
-        setcookie(session_name(), '', time() - 42000, $params['path'], $params['domain'], $params['secure'], $params['httponly']);
-    }
-    session_destroy();
-    session_start();
-    biotern_clear_auth_cookie();
-}
+$logoutRequested = isset($_GET['logout']) && (string)$_GET['logout'] === '1';
 
 $dbHost = defined('DB_HOST') ? DB_HOST : '127.0.0.1';
 $dbUser = defined('DB_USER') ? DB_USER : 'root';
@@ -136,10 +127,56 @@ function log_login_attempt($mysqli, $userId, $identifier, $role, $status, $reaso
     $stmt->close();
 }
 
+function biotern_auth_client_ip(): string
+{
+    $forwarded = trim((string)($_SERVER['HTTP_X_FORWARDED_FOR'] ?? ''));
+    if ($forwarded !== '') {
+        $parts = explode(',', $forwarded);
+        return trim((string)($parts[0] ?? ''));
+    }
+
+    return isset($_SERVER['REMOTE_ADDR']) ? (string)$_SERVER['REMOTE_ADDR'] : '';
+}
+
+if ($logoutRequested) {
+    $mysqli = $conn;
+    if ($mysqli instanceof mysqli && !$mysqli->connect_errno) {
+        $mysqli->query("CREATE TABLE IF NOT EXISTS login_logs (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NULL,
+            identifier VARCHAR(191) NULL,
+            role VARCHAR(50) NULL,
+            status VARCHAR(20) NOT NULL,
+            reason VARCHAR(100) NULL,
+            ip_address VARCHAR(45) NULL,
+            user_agent VARCHAR(255) NULL,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_login_logs_user_id (user_id),
+            INDEX idx_login_logs_status_created (status, created_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+        $logoutUserId = (int)($_SESSION['user_id'] ?? 0);
+        $logoutIdentifier = trim((string)($_SESSION['username'] ?? $_SESSION['email'] ?? ''));
+        $logoutRole = trim((string)($_SESSION['role'] ?? ''));
+        $logoutIp = biotern_auth_client_ip();
+        $logoutUserAgent = isset($_SERVER['HTTP_USER_AGENT']) ? substr((string)$_SERVER['HTTP_USER_AGENT'], 0, 255) : '';
+        log_login_attempt($mysqli, $logoutUserId, $logoutIdentifier, $logoutRole, 'success', 'logout_success', $logoutIp, $logoutUserAgent);
+    }
+
+    $_SESSION = [];
+    if (ini_get('session.use_cookies')) {
+        $params = session_get_cookie_params();
+        setcookie(session_name(), '', time() - 42000, $params['path'], $params['domain'], $params['secure'], $params['httponly']);
+    }
+    session_destroy();
+    session_start();
+    biotern_clear_auth_cookie();
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $identifier = isset($_POST['identifier']) ? trim((string)$_POST['identifier']) : '';
     $password = isset($_POST['password']) ? (string)$_POST['password'] : '';
-    $client_ip = isset($_SERVER['REMOTE_ADDR']) ? (string)$_SERVER['REMOTE_ADDR'] : '';
+    $client_ip = biotern_auth_client_ip();
     $client_user_agent = isset($_SERVER['HTTP_USER_AGENT']) ? substr((string)$_SERVER['HTTP_USER_AGENT'], 0, 255) : '';
     $posted_next = isset($_POST['next']) ? basename((string)$_POST['next']) : '';
     if ($posted_next !== '' && preg_match('/^[A-Za-z0-9_-]+\.php$/', $posted_next)) {

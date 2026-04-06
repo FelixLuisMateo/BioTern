@@ -38,7 +38,9 @@ function resolveDepartmentIdByCode($mysqli, $departmentCode) {
     if ($code === '') {
         return null;
     }
-    $stmt = $mysqli->prepare("SELECT id FROM departments WHERE code = ? AND deleted_at IS NULL LIMIT 1");
+    $conditions = ['code = ?'];
+    $conditions = array_merge($conditions, tableWhereActiveClause($mysqli, 'departments'));
+    $stmt = $mysqli->prepare("SELECT id FROM departments WHERE " . implode(' AND ', $conditions) . " LIMIT 1");
     if (!$stmt) {
         return null;
     }
@@ -60,13 +62,17 @@ function resolveSectionId($mysqli, $sectionValue, $courseId = 0) {
     }
 
     $courseId = (int)$courseId;
+    $sectionWhereActive = tableWhereActiveClause($mysqli, 'sections');
     if ($courseId > 0) {
-        $stmt = $mysqli->prepare("
+        $where = [
+            'course_id = ?',
+            '(code = ? OR name = ?)'
+        ];
+        $where = array_merge($where, $sectionWhereActive);
+        $stmt = $mysqli->prepare(" 
             SELECT id
             FROM sections
-            WHERE deleted_at IS NULL
-              AND course_id = ?
-              AND (code = ? OR name = ?)
+            WHERE " . implode(' AND ', $where) . "
             LIMIT 1
         ");
         if ($stmt) {
@@ -80,11 +86,12 @@ function resolveSectionId($mysqli, $sectionValue, $courseId = 0) {
         }
     }
 
-    $stmt = $mysqli->prepare("
+    $where = ['(code = ? OR name = ?)'];
+    $where = array_merge($where, $sectionWhereActive);
+    $stmt = $mysqli->prepare(" 
         SELECT id
         FROM sections
-        WHERE deleted_at IS NULL
-          AND (code = ? OR name = ?)
+        WHERE " . implode(' AND ', $where) . "
         LIMIT 1
     ");
     if ($stmt) {
@@ -125,6 +132,20 @@ function tableHasColumn($mysqli, $tableName, $columnName) {
     $has = ($res && $res->num_rows > 0);
     $stmt->close();
     return $has;
+}
+
+function tableWhereActiveClause($mysqli, $tableName, $alias = '') {
+    $prefix = trim((string)$alias) !== '' ? (rtrim((string)$alias, '.') . '.') : '';
+    $parts = [];
+
+    if (tableHasColumn($mysqli, $tableName, 'is_active')) {
+        $parts[] = $prefix . 'is_active = 1';
+    }
+    if (tableHasColumn($mysqli, $tableName, 'deleted_at')) {
+        $parts[] = $prefix . 'deleted_at IS NULL';
+    }
+
+    return $parts;
 }
 
 function sanitizeUsernameBase($value, $fallback = 'user') {
@@ -176,6 +197,24 @@ function generateUniqueUsername($mysqli, $primarySeed, $fallbackSeed = 'user') {
     }
 }
 
+function ensureUsersTable($mysqli) {
+    $mysqli->query("CREATE TABLE IF NOT EXISTS users (
+        id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+        name VARCHAR(255) NOT NULL DEFAULT '',
+        username VARCHAR(120) NOT NULL,
+        email VARCHAR(255) NOT NULL,
+        password VARCHAR(255) NOT NULL,
+        role VARCHAR(50) NOT NULL DEFAULT 'student',
+        is_active TINYINT(1) NOT NULL DEFAULT 1,
+        application_status VARCHAR(20) NOT NULL DEFAULT 'approved',
+        application_submitted_at DATETIME NULL,
+        created_at DATETIME NULL,
+        PRIMARY KEY (id),
+        UNIQUE KEY uq_users_username (username),
+        UNIQUE KEY uq_users_email (email)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+}
+
 $registerUserSchemaColumns = [
     'application_status' => "application_status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'approved'",
     'application_submitted_at' => "application_submitted_at DATETIME NULL",
@@ -195,7 +234,11 @@ if (!$role) {
 }
 
 // Create a user record if `users` table exists
-function createUser($mysqli, $username, $email, $password, $role) {
+function createUser($mysqli, $username, $email, $password, $role, &$errorCode = null, &$errorMessage = null) {
+    $errorCode = null;
+    $errorMessage = null;
+    ensureUsersTable($mysqli);
+
     // check users table
     $res = $mysqli->query("SHOW TABLES LIKE 'users'");
     $userId = null;
@@ -217,16 +260,38 @@ function createUser($mysqli, $username, $email, $password, $role) {
             $name = $username;
             $stmt->bind_param('sssss', $name, $username, $email, $pwdHash, $role);
             try {
-                $stmt->execute();
+                $executed = $stmt->execute();
+                if (!$executed) {
+                    $errorCode = (int)($stmt->errno ?: $mysqli->errno);
+                    $errorMessage = trim((string)$stmt->error);
+                    if ($errorMessage === '') {
+                        $errorMessage = trim((string)$mysqli->error);
+                    }
+                    if ($errorMessage === '') {
+                        $errorMessage = 'User insert failed during execute().';
+                    }
+                    $stmt->close();
+                    return null;
+                }
                 $userId = $mysqli->insert_id;
             } catch (mysqli_sql_exception $e) {
-                $code = $e->getCode();
+                $errorCode = (int)$e->getCode();
+                $errorMessage = (string)$e->getMessage();
                 $stmt->close();
                 // Duplicate entry (1062) or other SQL error - return null so callers can handle it
                 return null;
             }
             $stmt->close();
+        } else {
+            $errorCode = -1;
+            $errorMessage = (string)$mysqli->error;
+            return null;
         }
+    } else {
+        $errorCode = -2;
+        $errorMessage = $mysqli->error !== ''
+            ? ('Unable to access users table: ' . $mysqli->error)
+            : 'Unable to access users table.';
     }
     return $userId;
 }
@@ -296,6 +361,9 @@ if ($role === 'student') {
 
     // Use account_email if provided, otherwise use email
     $final_email = $account_email ?: $email;
+    if ($final_email === null || $final_email === '' || !filter_var($final_email, FILTER_VALIDATE_EMAIL)) {
+        studentApplicationRedirect('error', 'Please provide a valid account email address.');
+    }
     $username_seed = $student_id ?: ($final_email ?: ($first_name . '.' . $last_name));
     $username = generateUniqueUsername($mysqli, $username_seed, 'student');
     $course_id = (int)$course_id;
@@ -337,7 +405,9 @@ if ($role === 'student') {
         studentApplicationRedirect('error', 'Please choose a valid section before submitting your application.');
     }
 
-    $course_check = $mysqli->prepare("SELECT id FROM courses WHERE id = ? AND deleted_at IS NULL LIMIT 1");
+    $courseWhere = ['id = ?'];
+    $courseWhere = array_merge($courseWhere, tableWhereActiveClause($mysqli, 'courses'));
+    $course_check = $mysqli->prepare("SELECT id FROM courses WHERE " . implode(' AND ', $courseWhere) . " LIMIT 1");
     if (!$course_check) {
         studentApplicationRedirect('error', 'We could not validate your selected course right now. Please try again.');
     }
@@ -351,7 +421,9 @@ if ($role === 'student') {
 
     $department_id_int = !empty($department_id) ? (int)$department_id : 0;
     if ($department_id_int > 0) {
-        $dept_check = $mysqli->prepare("SELECT id FROM departments WHERE id = ? AND deleted_at IS NULL LIMIT 1");
+        $deptWhere = ['id = ?'];
+        $deptWhere = array_merge($deptWhere, tableWhereActiveClause($mysqli, 'departments'));
+        $dept_check = $mysqli->prepare("SELECT id FROM departments WHERE " . implode(' AND ', $deptWhere) . " LIMIT 1");
         if (!$dept_check) {
             studentApplicationRedirect('error', 'We could not validate your selected department right now. Please try again.');
         }
@@ -366,14 +438,16 @@ if ($role === 'student') {
 
     if ($section_id > 0) {
         if ($department_id_int > 0) {
-            $section_check = $mysqli->prepare("
+            $sectionWhere = [
+                'id = ?',
+                'course_id = ?',
+                'department_id = ?'
+            ];
+            $sectionWhere = array_merge($sectionWhere, tableWhereActiveClause($mysqli, 'sections'));
+            $section_check = $mysqli->prepare(" 
                 SELECT id
                 FROM sections
-                WHERE id = ?
-                  AND course_id = ?
-                  AND department_id = ?
-                  AND is_active = 1
-                  AND deleted_at IS NULL
+                WHERE " . implode(' AND ', $sectionWhere) . "
                 LIMIT 1
             ");
             if (!$section_check) {
@@ -387,13 +461,15 @@ if ($role === 'student') {
                 studentApplicationRedirect('error', 'The selected section does not match your chosen course and department.');
             }
         } else {
-            $section_check = $mysqli->prepare("
+            $sectionWhere = [
+                'id = ?',
+                'course_id = ?'
+            ];
+            $sectionWhere = array_merge($sectionWhere, tableWhereActiveClause($mysqli, 'sections'));
+            $section_check = $mysqli->prepare(" 
                 SELECT id, department_id
                 FROM sections
-                WHERE id = ?
-                  AND course_id = ?
-                  AND is_active = 1
-                  AND deleted_at IS NULL
+                WHERE " . implode(' AND ', $sectionWhere) . "
                 LIMIT 1
             ");
             if (!$section_check) {
@@ -414,13 +490,15 @@ if ($role === 'student') {
     }
 
     if (!empty($coordinator_id) && $department_id_int > 0) {
+        $coordWhere = [
+            'id = ?',
+            'department_id = ?'
+        ];
+        $coordWhere = array_merge($coordWhere, tableWhereActiveClause($mysqli, 'coordinators'));
         $coord_check = $mysqli->prepare(" 
             SELECT CONCAT(first_name, ' ', last_name) AS full_name
             FROM coordinators
-            WHERE id = ?
-              AND department_id = ?
-              AND is_active = 1
-              AND deleted_at IS NULL
+            WHERE " . implode(' AND ', $coordWhere) . "
             LIMIT 1
         ");
         if (!$coord_check) {
@@ -435,12 +513,12 @@ if ($role === 'student') {
         }
         $coordinator_name = isset($coord_row['full_name']) ? (string)$coord_row['full_name'] : null;
     } elseif (!empty($coordinator_id)) {
+        $coordWhere = ['id = ?'];
+        $coordWhere = array_merge($coordWhere, tableWhereActiveClause($mysqli, 'coordinators'));
         $coord_check = $mysqli->prepare(" 
             SELECT CONCAT(first_name, ' ', last_name) AS full_name
             FROM coordinators
-            WHERE id = ?
-              AND is_active = 1
-              AND deleted_at IS NULL
+            WHERE " . implode(' AND ', $coordWhere) . "
             LIMIT 1
         ");
         if (!$coord_check) {
@@ -457,13 +535,15 @@ if ($role === 'student') {
     }
 
     if (!empty($supervisor_id) && $department_id_int > 0) {
+        $supWhere = [
+            'id = ?',
+            'department_id = ?'
+        ];
+        $supWhere = array_merge($supWhere, tableWhereActiveClause($mysqli, 'supervisors'));
         $sup_check = $mysqli->prepare(" 
             SELECT CONCAT(first_name, ' ', last_name) AS full_name
             FROM supervisors
-            WHERE id = ?
-              AND department_id = ?
-              AND is_active = 1
-              AND deleted_at IS NULL
+            WHERE " . implode(' AND ', $supWhere) . "
             LIMIT 1
         ");
         if (!$sup_check) {
@@ -478,12 +558,12 @@ if ($role === 'student') {
         }
         $supervisor_name = isset($sup_row['full_name']) ? (string)$sup_row['full_name'] : null;
     } elseif (!empty($supervisor_id)) {
+        $supWhere = ['id = ?'];
+        $supWhere = array_merge($supWhere, tableWhereActiveClause($mysqli, 'supervisors'));
         $sup_check = $mysqli->prepare(" 
             SELECT CONCAT(first_name, ' ', last_name) AS full_name
             FROM supervisors
-            WHERE id = ?
-              AND is_active = 1
-              AND deleted_at IS NULL
+            WHERE " . implode(' AND ', $supWhere) . "
             LIMIT 1
         ");
         if (!$sup_check) {
@@ -503,39 +583,50 @@ if ($role === 'student') {
     $pwdHash = password_hash($password ?: bin2hex(random_bytes(4)), PASSWORD_DEFAULT);
 
     // Create a users record first (required for FK constraint)
-    $hasStudentAppStatus = tableHasColumn($mysqli, 'users', 'application_status');
-    $hasStudentSubmittedAt = tableHasColumn($mysqli, 'users', 'application_submitted_at');
-    if ($hasStudentAppStatus && $hasStudentSubmittedAt) {
-        $stmt_user = $mysqli->prepare("INSERT INTO users (name, username, email, password, role, is_active, application_status, application_submitted_at, created_at) VALUES (?, ?, ?, ?, 'student', 0, 'pending', NOW(), NOW())");
-    } elseif ($hasStudentAppStatus) {
-        $stmt_user = $mysqli->prepare("INSERT INTO users (name, username, email, password, role, is_active, application_status, created_at) VALUES (?, ?, ?, ?, 'student', 0, 'pending', NOW())");
-    } else {
-        $stmt_user = $mysqli->prepare("INSERT INTO users (name, username, email, password, role, is_active, created_at) VALUES (?, ?, ?, ?, 'student', 0, NOW())");
-    }
-    $user_id = null;
-    if ($stmt_user) {
-        $full_name = $first_name . ' ' . $last_name;
-        $stmt_user->bind_param('ssss', $full_name, $username, $final_email, $pwdHash);
-        try {
-            if ($stmt_user->execute()) {
-                $user_id = $mysqli->insert_id;
-            }
-        } catch (mysqli_sql_exception $e) {
-            $code = $e->getCode();
-            $msg = $e->getMessage();
-            $stmt_user->close();
-            // 1062 = duplicate entry
-            if ($code === 1062 || strpos($msg, 'Duplicate entry') !== false) {
-                studentApplicationRedirect('exists', 'An application or account already exists for that email address.');
-            }
-            studentApplicationRedirect('error', 'We could not submit your application right now. Please try again.');
+    $full_name = trim($first_name . ' ' . $last_name);
+    $createUserErrorCode = null;
+    $createUserErrorMessage = null;
+    $user_id = createUser(
+        $mysqli,
+        $username,
+        $final_email,
+        $password ?: bin2hex(random_bytes(4)),
+        'student',
+        $createUserErrorCode,
+        $createUserErrorMessage
+    );
+    if ($user_id) {
+        $updates = [];
+        if (tableHasColumn($mysqli, 'users', 'is_active')) {
+            $updates[] = 'is_active = 0';
         }
-        $stmt_user->close();
+        if (tableHasColumn($mysqli, 'users', 'application_status')) {
+            $updates[] = "application_status = 'pending'";
+        }
+        if (tableHasColumn($mysqli, 'users', 'application_submitted_at')) {
+            $updates[] = 'application_submitted_at = NOW()';
+        }
+        if ($updates !== []) {
+            $sql = 'UPDATE users SET ' . implode(', ', $updates) . ' WHERE id = ? LIMIT 1';
+            $u = $mysqli->prepare($sql);
+            if ($u) {
+                $u->bind_param('i', $user_id);
+                $u->execute();
+                $u->close();
+            }
+        }
     }
 
-    // Validate that user_id was created successfully
     if (!$user_id) {
-        studentApplicationRedirect('error', 'We could not finish your application submission. Please try again.');
+        if ((int)$createUserErrorCode === 1062) {
+            studentApplicationRedirect('exists', 'An application or account already exists for that email address.');
+        }
+
+        $genericMessage = 'We could not finish your application submission. Please try again.';
+        if (!empty($createUserErrorMessage)) {
+            $genericMessage .= ' ' . $createUserErrorMessage;
+        }
+        studentApplicationRedirect('error', $genericMessage);
     }
 
     // Now insert into students table using the user_id
@@ -645,11 +736,22 @@ if ($role === 'coordinator') {
 
     $final_email = $account_email ?: $email;
     $coordinator_username = generateUniqueUsername($mysqli, $final_email ?: ($first_name . '.' . $last_name), 'coordinator');
-    $userId = createUser($mysqli, $coordinator_username, $final_email, $password ?: bin2hex(random_bytes(4)), 'coordinator');
+    $createUserErrorCode = null;
+    $createUserErrorMessage = null;
+    $userId = createUser($mysqli, $coordinator_username, $final_email, $password ?: bin2hex(random_bytes(4)), 'coordinator', $createUserErrorCode, $createUserErrorMessage);
     
     // if createUser() returned null (possible duplicate/email exists), warn and stop
     if (!$userId) {
-        header('Location: auth-register-creative.php?registered=exists&msg=' . urlencode('An account with that email already exists'));
+        if ((int)$createUserErrorCode === 1062) {
+            header('Location: auth-register-creative.php?registered=exists&msg=' . urlencode('An account with that email already exists'));
+            exit;
+        }
+
+        $message = 'Failed to create user account.';
+        if (!empty($createUserErrorMessage)) {
+            $message .= ' ' . $createUserErrorMessage;
+        }
+        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode($message));
         exit;
     }
 
@@ -723,11 +825,22 @@ if ($role === 'supervisor') {
 
     $final_email = $account_email ?: $email;
     $supervisor_username = generateUniqueUsername($mysqli, $final_email ?: ($first_name . '.' . $last_name), 'supervisor');
-    $userId = createUser($mysqli, $supervisor_username, $final_email, $password ?: bin2hex(random_bytes(4)), 'supervisor');
+    $createUserErrorCode = null;
+    $createUserErrorMessage = null;
+    $userId = createUser($mysqli, $supervisor_username, $final_email, $password ?: bin2hex(random_bytes(4)), 'supervisor', $createUserErrorCode, $createUserErrorMessage);
     
     // if createUser() returned null (possible duplicate/email exists), warn and stop
     if (!$userId) {
-        header('Location: auth-register-creative.php?registered=exists&msg=' . urlencode('An account with that email already exists'));
+        if ((int)$createUserErrorCode === 1062) {
+            header('Location: auth-register-creative.php?registered=exists&msg=' . urlencode('An account with that email already exists'));
+            exit;
+        }
+
+        $message = 'Failed to create user account.';
+        if (!empty($createUserErrorMessage)) {
+            $message .= ' ' . $createUserErrorMessage;
+        }
+        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode($message));
         exit;
     }
 
@@ -809,11 +922,22 @@ if ($role === 'admin') {
 
     $final_email = $account_email ?: $email;
     $admin_username = generateUniqueUsername($mysqli, $final_email ?: ($first_name . '.' . $last_name), 'admin');
-    $userId = createUser($mysqli, $admin_username, $final_email, $password ?: bin2hex(random_bytes(4)), 'admin');
+    $createUserErrorCode = null;
+    $createUserErrorMessage = null;
+    $userId = createUser($mysqli, $admin_username, $final_email, $password ?: bin2hex(random_bytes(4)), 'admin', $createUserErrorCode, $createUserErrorMessage);
     
     // if createUser() returned null (possible duplicate/email exists), warn and stop
     if (!$userId) {
-        header('Location: auth-register-creative.php?registered=exists&msg=' . urlencode('An account with that email already exists'));
+        if ((int)$createUserErrorCode === 1062) {
+            header('Location: auth-register-creative.php?registered=exists&msg=' . urlencode('An account with that email already exists'));
+            exit;
+        }
+
+        $message = 'Failed to create user account.';
+        if (!empty($createUserErrorMessage)) {
+            $message .= ' ' . $createUserErrorMessage;
+        }
+        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode($message));
         exit;
     }
 

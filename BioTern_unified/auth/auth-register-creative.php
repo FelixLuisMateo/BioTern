@@ -642,11 +642,8 @@ if (isset($_GET['registered'])) {
                                     </div>
                                 </div>
                                 <div class="row g-3">
-                                    <div class="col-6 mb-2">
+                                    <div class="col-12 mb-2">
                                         <input type="text" name="address" class="form-control" placeholder="Full Home Address" autocomplete="street-address" required>
-                                    </div>
-                                    <div class="col-6 mb-2">
-                                        <input type="email" name="email" class="form-control" placeholder="Email Address" autocomplete="email" required>
                                     </div>
                                 </div>
                                 <div class="step-actions">

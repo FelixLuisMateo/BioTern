@@ -59,6 +59,12 @@ if (!function_exists('rebuild_biometric_attendance_for_date')) {
         $fingerprintMap = buildFingerprintStudentMap($conn);
         $fingerprintUserMap = buildFingerprintUserMap($conn);
         $studentScheduleMap = buildStudentAttendanceScheduleMap($conn);
+        $clockTypeColumns = [
+            1 => 'morning_time_in',
+            2 => 'morning_time_out',
+            3 => 'afternoon_time_in',
+            4 => 'afternoon_time_out',
+        ];
 
         $stmt = $conn->prepare("SELECT id, raw_data FROM biometric_raw_logs WHERE raw_data LIKE ? ORDER BY id ASC");
         $like = '%"time":"' . $targetDate . ' %';
@@ -102,7 +108,7 @@ if (!function_exists('rebuild_biometric_attendance_for_date')) {
                 'date' => $date,
                 'time' => $time,
                 'clock_type' => $clockType,
-                'hint_column' => null,
+                'hint_column' => $clockTypeColumns[$clockType] ?? null,
             ];
         }
         $stmt->close();

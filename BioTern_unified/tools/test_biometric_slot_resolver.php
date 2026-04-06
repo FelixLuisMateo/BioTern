@@ -78,4 +78,17 @@ assert_same(
     'Whole-day schedule should assign the next post-lunch punch to afternoon_time_in.'
 );
 
+$row = [
+    'attendance_date' => '2026-03-26',
+    'morning_time_in' => '08:05:00',
+    'morning_time_out' => '12:10:00',
+    'afternoon_time_in' => '',
+    'afternoon_time_out' => '',
+];
+assert_same(
+    'afternoon_time_in',
+    resolveAttendanceColumnForPunch($row, 1, null, '18:36:48', $machineConfig, $wholeDaySchedule),
+    'Whole-day schedule should not skip directly to afternoon_time_out when the first late punch arrives.'
+);
+
 echo "Biometric slot resolver tests passed.\n";

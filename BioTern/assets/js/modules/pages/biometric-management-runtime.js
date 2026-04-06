@@ -12,7 +12,11 @@ document.addEventListener('DOMContentLoaded', function () {
     var bridgePresetSelect = document.getElementById('bridgePresetSelect');
     var copyButton = document.getElementById('copyConnectorToMachineBtn');
     var bridgeWorkerCommandField = document.getElementById('bridgeWorkerCommandField');
+    var bridgeTaskInstallCommandField = document.getElementById('bridgeTaskInstallCommandField');
+    var bridgeTaskStatusCommandField = document.getElementById('bridgeTaskStatusCommandField');
     var copyBridgeWorkerCmdBtn = document.getElementById('copyBridgeWorkerCmdBtn');
+    var copyBridgeTaskInstallCmdBtn = document.getElementById('copyBridgeTaskInstallCmdBtn');
+    var copyBridgeTaskStatusCmdBtn = document.getElementById('copyBridgeTaskStatusCmdBtn');
     var connectorFields = {
         ip: document.getElementById('connectorIpField'),
         gateway: document.getElementById('connectorGatewayField'),
@@ -140,23 +144,50 @@ document.addEventListener('DOMContentLoaded', function () {
             + '" -WorkspaceRoot "."';
     }
 
+    function buildBridgeTaskInstallCommand() {
+        var siteBaseUrl = bridgeFields.cloudBaseUrl && bridgeFields.cloudBaseUrl.value
+            ? bridgeFields.cloudBaseUrl.value.trim()
+            : 'https://your-app.vercel.app';
+        var bridgeToken = bridgeFields && document.getElementById('bridgeTokenField')
+            ? document.getElementById('bridgeTokenField').value.trim()
+            : 'YOUR_BRIDGE_TOKEN';
+
+        if (!bridgeToken) {
+            bridgeToken = 'YOUR_BRIDGE_TOKEN';
+        }
+
+        return 'powershell -NoProfile -ExecutionPolicy Bypass -File ".\\tools\\install-bridge-worker-task.ps1" -SiteBaseUrl "'
+            + siteBaseUrl
+            + '" -BridgeToken "'
+            + bridgeToken
+            + '" -TaskName "BioTernBridgeWorker"';
+    }
+
     function refreshBridgeWorkerCommand() {
         if (!bridgeWorkerCommandField) {
             return;
         }
 
         bridgeWorkerCommandField.value = buildBridgeWorkerCommand();
+
+        if (bridgeTaskInstallCommandField) {
+            bridgeTaskInstallCommandField.value = buildBridgeTaskInstallCommand();
+        }
+
+        if (bridgeTaskStatusCommandField) {
+            bridgeTaskStatusCommandField.value = 'powershell -NoProfile -ExecutionPolicy Bypass -File ".\\tools\\manage-bridge-worker-task.ps1" -Action status -TaskName "BioTernBridgeWorker"';
+        }
     }
 
-    function copyBridgeWorkerCommand() {
-        if (!bridgeWorkerCommandField) {
+    function copyFieldValue(field) {
+        if (!field) {
             return;
         }
 
-        bridgeWorkerCommandField.focus();
-        bridgeWorkerCommandField.select();
+        field.focus();
+        field.select();
 
-        var value = bridgeWorkerCommandField.value;
+        var value = field.value;
         if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(value);
         } else {
@@ -186,7 +217,21 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     if (copyBridgeWorkerCmdBtn) {
-        copyBridgeWorkerCmdBtn.addEventListener('click', copyBridgeWorkerCommand);
+        copyBridgeWorkerCmdBtn.addEventListener('click', function () {
+            copyFieldValue(bridgeWorkerCommandField);
+        });
+    }
+
+    if (copyBridgeTaskInstallCmdBtn) {
+        copyBridgeTaskInstallCmdBtn.addEventListener('click', function () {
+            copyFieldValue(bridgeTaskInstallCommandField);
+        });
+    }
+
+    if (copyBridgeTaskStatusCmdBtn) {
+        copyBridgeTaskStatusCmdBtn.addEventListener('click', function () {
+            copyFieldValue(bridgeTaskStatusCommandField);
+        });
     }
 
     refreshBridgeWorkerCommand();

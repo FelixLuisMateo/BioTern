@@ -342,8 +342,28 @@ html.app-skin-dark .filter-toggle-btn:focus {
         /* Section: DataTable footer spacing */
         /* Used by pages/attendance.php: #attendanceList DataTable wrapper */
         .attendanceList_wrapper .row:last-child {
-            margin-top: 2220px;
+            margin-top: 0.5rem;
             padding-bottom: 6px;
+        }
+
+        .attendance-table-card .table-responsive,
+        .app-attendance-table-card .table-responsive {
+            overflow-x: auto !important;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        @media (max-width: 991.98px) {
+            .attendance-table-card .table,
+            .app-attendance-table-card .table {
+                min-width: 980px;
+            }
+
+            .attendance-table-card th,
+            .attendance-table-card td,
+            .app-attendance-table-card th,
+            .app-attendance-table-card td {
+                white-space: nowrap;
+            }
         }
 
         /* Used by pages/attendance.php: #bulkActionsToolbar visibility state */
