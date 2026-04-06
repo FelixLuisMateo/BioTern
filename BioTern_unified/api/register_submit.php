@@ -258,7 +258,11 @@ function createUser($mysqli, $username, $email, $password, $role) {
             $name = $username;
             $stmt->bind_param('sssss', $name, $username, $email, $pwdHash, $role);
             try {
-                $stmt->execute();
+                $executed = $stmt->execute();
+                if (!$executed) {
+                    $stmt->close();
+                    return null;
+                }
                 $userId = $mysqli->insert_id;
             } catch (mysqli_sql_exception $e) {
                 $code = $e->getCode();

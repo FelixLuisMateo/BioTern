@@ -413,7 +413,19 @@ function createUser($mysqli, $username, $email, $password, $role, $displayName =
         if ($stmt) {
             bindDynamicParams($stmt, $types, $values);
             try {
-                $stmt->execute();
+                $executed = $stmt->execute();
+                if (!$executed) {
+                    $errorCode = (int)($stmt->errno ?: $mysqli->errno);
+                    $errorMessage = trim((string)$stmt->error);
+                    if ($errorMessage === '') {
+                        $errorMessage = trim((string)$mysqli->error);
+                    }
+                    if ($errorMessage === '') {
+                        $errorMessage = 'User insert failed during execute().';
+                    }
+                    $stmt->close();
+                    return null;
+                }
                 if ($manualId) {
                     $userId = (int)$values[0];
                 } else {
