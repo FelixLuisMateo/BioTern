@@ -26,7 +26,9 @@ function resolveDepartmentIdByCode($mysqli, $departmentCode) {
     if ($code === '') {
         return null;
     }
-    $stmt = $mysqli->prepare("SELECT id FROM departments WHERE code = ? AND deleted_at IS NULL LIMIT 1");
+    $conditions = ['code = ?'];
+    $conditions = array_merge($conditions, tableWhereActiveClause($mysqli, 'departments'));
+    $stmt = $mysqli->prepare("SELECT id FROM departments WHERE " . implode(' AND ', $conditions) . " LIMIT 1");
     if (!$stmt) {
         return null;
     }
@@ -48,13 +50,17 @@ function resolveSectionId($mysqli, $sectionValue, $courseId = 0) {
     }
 
     $courseId = (int)$courseId;
+    $sectionWhereActive = tableWhereActiveClause($mysqli, 'sections');
     if ($courseId > 0) {
-        $stmt = $mysqli->prepare("
+        $where = [
+            'course_id = ?',
+            '(code = ? OR name = ?)'
+        ];
+        $where = array_merge($where, $sectionWhereActive);
+        $stmt = $mysqli->prepare(" 
             SELECT id
             FROM sections
-            WHERE deleted_at IS NULL
-              AND course_id = ?
-              AND (code = ? OR name = ?)
+            WHERE " . implode(' AND ', $where) . "
             LIMIT 1
         ");
         if ($stmt) {
@@ -68,11 +74,12 @@ function resolveSectionId($mysqli, $sectionValue, $courseId = 0) {
         }
     }
 
-    $stmt = $mysqli->prepare("
+    $where = ['(code = ? OR name = ?)'];
+    $where = array_merge($where, $sectionWhereActive);
+    $stmt = $mysqli->prepare(" 
         SELECT id
         FROM sections
-        WHERE deleted_at IS NULL
-          AND (code = ? OR name = ?)
+        WHERE " . implode(' AND ', $where) . "
         LIMIT 1
     ");
     if ($stmt) {
@@ -114,6 +121,87 @@ function tableHasColumn($mysqli, $tableName, $columnName) {
     $has = ($res && $res->num_rows > 0);
     $stmt->close();
     return $has;
+}
+
+function tableWhereActiveClause($mysqli, $tableName, $alias = '') {
+    $prefix = trim((string)$alias) !== '' ? (rtrim((string)$alias, '.') . '.') : '';
+    $parts = [];
+
+    if (tableHasColumn($mysqli, $tableName, 'is_active')) {
+        $parts[] = $prefix . 'is_active = 1';
+    }
+    if (tableHasColumn($mysqli, $tableName, 'deleted_at')) {
+        $parts[] = $prefix . 'deleted_at IS NULL';
+    }
+
+    return $parts;
+}
+
+function sanitizeUsernameBase($value, $fallback = 'user') {
+    $base = strtolower((string)$value);
+    if (strpos($base, '@') !== false) {
+        $base = explode('@', $base, 2)[0];
+    }
+    $base = preg_replace('/[^a-z0-9._-]+/', '.', $base);
+    $base = preg_replace('/[._-]{2,}/', '.', $base);
+    $base = trim((string)$base, '._-');
+    if ($base === '') {
+        $base = strtolower((string)$fallback);
+    }
+    if (strlen($base) < 4) {
+        $base = str_pad($base, 4, '0');
+    }
+    if (strlen($base) > 30) {
+        $base = substr($base, 0, 30);
+    }
+    return $base;
+}
+
+function generateUniqueUsername($mysqli, $primarySeed, $fallbackSeed = 'user') {
+    $base = sanitizeUsernameBase($primarySeed, $fallbackSeed);
+
+    $stmt = $mysqli->prepare('SELECT id FROM users WHERE username = ? LIMIT 1');
+    if (!$stmt) {
+        return $base;
+    }
+
+    $candidate = $base;
+    $suffix = 1;
+    while (true) {
+        $stmt->bind_param('s', $candidate);
+        $stmt->execute();
+        $exists = $stmt->get_result()->fetch_assoc();
+        if (!$exists) {
+            $stmt->close();
+            return $candidate;
+        }
+
+        $suffixText = (string)$suffix;
+        $maxBaseLen = 30 - strlen($suffixText);
+        if ($maxBaseLen < 1) {
+            $maxBaseLen = 1;
+        }
+        $candidate = substr($base, 0, $maxBaseLen) . $suffixText;
+        $suffix++;
+    }
+}
+
+function ensureUsersTable($mysqli) {
+    $mysqli->query("CREATE TABLE IF NOT EXISTS users (
+        id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+        name VARCHAR(255) NOT NULL DEFAULT '',
+        username VARCHAR(120) NOT NULL,
+        email VARCHAR(255) NOT NULL,
+        password VARCHAR(255) NOT NULL,
+        role VARCHAR(50) NOT NULL DEFAULT 'student',
+        is_active TINYINT(1) NOT NULL DEFAULT 1,
+        application_status VARCHAR(20) NOT NULL DEFAULT 'approved',
+        application_submitted_at DATETIME NULL,
+        created_at DATETIME NULL,
+        PRIMARY KEY (id),
+        UNIQUE KEY uq_users_username (username),
+        UNIQUE KEY uq_users_email (email)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 }
 
 function tableColumnIsAutoIncrement($mysqli, $tableName, $columnName) {
@@ -237,6 +325,8 @@ function createUser($mysqli, $username, $email, $password, $role, $displayName =
     $errorCode = null;
     $errorMessage = null;
 
+    ensureUsersTable($mysqli);
+
     // check users table
     $res = $mysqli->query("SHOW TABLES LIKE 'users'");
     $userId = null;
@@ -342,6 +432,11 @@ function createUser($mysqli, $username, $email, $password, $role, $displayName =
             $errorMessage = (string)$mysqli->error;
             return null;
         }
+    } else {
+        $errorCode = -2;
+        $errorMessage = $mysqli->error !== ''
+            ? ('Unable to access users table: ' . $mysqli->error)
+            : 'Unable to access users table.';
     }
     return $userId;
 }
@@ -395,6 +490,15 @@ if ($role === 'student') {
 
     // Use account_email if provided, otherwise use email
     $final_email = $account_email ?: $email;
+    if ($final_email === null || $final_email === '' || !filter_var($final_email, FILTER_VALIDATE_EMAIL)) {
+        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Please provide a valid account email address.'));
+        exit;
+    }
+
+    if ($username === null || trim((string)$username) === '') {
+        $username = generateUniqueUsername($mysqli, $student_id ?: $final_email, 'student');
+    }
+
     $course_id = (int)$course_id;
     $department_id = 0;
     if ($department_id_raw !== null && $department_id_raw !== '' && ctype_digit((string)$department_id_raw)) {
@@ -410,13 +514,15 @@ if ($role === 'student') {
         $section_id = ensureSectionId($mysqli, $section, $course_id, (int)$department_id);
     }
     if ($section_id > 0 && $department_id <= 0) {
-        $section_department_stmt = $mysqli->prepare("
+        $sectionDeptWhere = [
+            'id = ?',
+            'course_id = ?'
+        ];
+        $sectionDeptWhere = array_merge($sectionDeptWhere, tableWhereActiveClause($mysqli, 'sections'));
+        $section_department_stmt = $mysqli->prepare(" 
             SELECT department_id
             FROM sections
-            WHERE id = ?
-              AND course_id = ?
-              AND is_active = 1
-              AND deleted_at IS NULL
+            WHERE " . implode(' AND ', $sectionDeptWhere) . "
             LIMIT 1
         ");
         if ($section_department_stmt) {
@@ -450,7 +556,9 @@ if ($role === 'student') {
         exit;
     }
 
-    $course_check = $mysqli->prepare("SELECT id FROM courses WHERE id = ? AND deleted_at IS NULL LIMIT 1");
+    $courseWhere = ['id = ?'];
+    $courseWhere = array_merge($courseWhere, tableWhereActiveClause($mysqli, 'courses'));
+    $course_check = $mysqli->prepare("SELECT id FROM courses WHERE " . implode(' AND ', $courseWhere) . " LIMIT 1");
     if (!$course_check) {
         header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Unable to validate selected course.'));
         exit;
@@ -465,7 +573,9 @@ if ($role === 'student') {
     }
 
     $department_id_int = (int)$department_id;
-    $dept_check = $mysqli->prepare("SELECT id FROM departments WHERE id = ? AND deleted_at IS NULL LIMIT 1");
+    $deptWhere = ['id = ?'];
+    $deptWhere = array_merge($deptWhere, tableWhereActiveClause($mysqli, 'departments'));
+    $dept_check = $mysqli->prepare("SELECT id FROM departments WHERE " . implode(' AND ', $deptWhere) . " LIMIT 1");
     if (!$dept_check) {
         header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Unable to validate selected department.'));
         exit;
@@ -479,14 +589,16 @@ if ($role === 'student') {
         exit;
     }
 
-    $section_check = $mysqli->prepare("
+    $sectionWhere = [
+        'id = ?',
+        'course_id = ?',
+        'department_id = ?'
+    ];
+    $sectionWhere = array_merge($sectionWhere, tableWhereActiveClause($mysqli, 'sections'));
+    $section_check = $mysqli->prepare(" 
         SELECT id
         FROM sections
-        WHERE id = ?
-          AND course_id = ?
-          AND department_id = ?
-          AND is_active = 1
-          AND deleted_at IS NULL
+        WHERE " . implode(' AND ', $sectionWhere) . "
         LIMIT 1
     ");
     if (!$section_check) {
@@ -503,13 +615,15 @@ if ($role === 'student') {
     }
 
     if ($coordinator_id > 0) {
-        $coord_check = $mysqli->prepare("
+        $coordWhere = [
+            'id = ?',
+            'department_id = ?'
+        ];
+        $coordWhere = array_merge($coordWhere, tableWhereActiveClause($mysqli, 'coordinators'));
+        $coord_check = $mysqli->prepare(" 
             SELECT CONCAT(first_name, ' ', last_name) AS full_name
             FROM coordinators
-            WHERE id = ?
-              AND department_id = ?
-              AND is_active = 1
-              AND deleted_at IS NULL
+            WHERE " . implode(' AND ', $coordWhere) . "
             LIMIT 1
         ");
         if (!$coord_check) {
@@ -528,13 +642,15 @@ if ($role === 'student') {
     }
 
     if ($supervisor_id > 0) {
-        $sup_check = $mysqli->prepare("
+        $supWhere = [
+            'id = ?',
+            'department_id = ?'
+        ];
+        $supWhere = array_merge($supWhere, tableWhereActiveClause($mysqli, 'supervisors'));
+        $sup_check = $mysqli->prepare(" 
             SELECT CONCAT(first_name, ' ', last_name) AS full_name
             FROM supervisors
-            WHERE id = ?
-              AND department_id = ?
-              AND is_active = 1
-              AND deleted_at IS NULL
+            WHERE " . implode(' AND ', $supWhere) . "
             LIMIT 1
         ");
         if (!$sup_check) {

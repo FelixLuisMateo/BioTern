@@ -197,6 +197,24 @@ function generateUniqueUsername($mysqli, $primarySeed, $fallbackSeed = 'user') {
     }
 }
 
+function ensureUsersTable($mysqli) {
+    $mysqli->query("CREATE TABLE IF NOT EXISTS users (
+        id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+        name VARCHAR(255) NOT NULL DEFAULT '',
+        username VARCHAR(120) NOT NULL,
+        email VARCHAR(255) NOT NULL,
+        password VARCHAR(255) NOT NULL,
+        role VARCHAR(50) NOT NULL DEFAULT 'student',
+        is_active TINYINT(1) NOT NULL DEFAULT 1,
+        application_status VARCHAR(20) NOT NULL DEFAULT 'approved',
+        application_submitted_at DATETIME NULL,
+        created_at DATETIME NULL,
+        PRIMARY KEY (id),
+        UNIQUE KEY uq_users_username (username),
+        UNIQUE KEY uq_users_email (email)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+}
+
 $registerUserSchemaColumns = [
     'application_status' => "application_status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'approved'",
     'application_submitted_at' => "application_submitted_at DATETIME NULL",
@@ -217,6 +235,8 @@ if (!$role) {
 
 // Create a user record if `users` table exists
 function createUser($mysqli, $username, $email, $password, $role) {
+    ensureUsersTable($mysqli);
+
     // check users table
     $res = $mysqli->query("SHOW TABLES LIKE 'users'");
     $userId = null;
@@ -539,34 +559,38 @@ if ($role === 'student') {
     $pwdHash = password_hash($password ?: bin2hex(random_bytes(4)), PASSWORD_DEFAULT);
 
     // Create a users record first (required for FK constraint)
-    $hasStudentAppStatus = tableHasColumn($mysqli, 'users', 'application_status');
-    $hasStudentSubmittedAt = tableHasColumn($mysqli, 'users', 'application_submitted_at');
-    if ($hasStudentAppStatus && $hasStudentSubmittedAt) {
-        $stmt_user = $mysqli->prepare("INSERT INTO users (name, username, email, password, role, is_active, application_status, application_submitted_at, created_at) VALUES (?, ?, ?, ?, 'student', 0, 'pending', NOW(), NOW())");
-    } elseif ($hasStudentAppStatus) {
-        $stmt_user = $mysqli->prepare("INSERT INTO users (name, username, email, password, role, is_active, application_status, created_at) VALUES (?, ?, ?, ?, 'student', 0, 'pending', NOW())");
-    } else {
-        $stmt_user = $mysqli->prepare("INSERT INTO users (name, username, email, password, role, is_active, created_at) VALUES (?, ?, ?, ?, 'student', 0, NOW())");
-    }
-    $user_id = null;
-    if ($stmt_user) {
-        $full_name = $first_name . ' ' . $last_name;
-        $stmt_user->bind_param('ssss', $full_name, $username, $final_email, $pwdHash);
-        try {
-            if ($stmt_user->execute()) {
-                $user_id = $mysqli->insert_id;
-            }
-        } catch (mysqli_sql_exception $e) {
-            $code = $e->getCode();
-            $msg = $e->getMessage();
-            $stmt_user->close();
-            // 1062 = duplicate entry
-            if ($code === 1062 || strpos($msg, 'Duplicate entry') !== false) {
-                studentApplicationRedirect('exists', 'An application or account already exists for that email address.');
-            }
-            studentApplicationRedirect('error', 'We could not submit your application right now. Please try again.');
+    $full_name = trim($first_name . ' ' . $last_name);
+    $user_id = createUser(
+        $mysqli,
+        $username,
+        $final_email,
+        $password ?: bin2hex(random_bytes(4)),
+        'student'
+    );
+    if ($user_id) {
+        $updates = [];
+        if (tableHasColumn($mysqli, 'users', 'is_active')) {
+            $updates[] = 'is_active = 0';
         }
-        $stmt_user->close();
+        if (tableHasColumn($mysqli, 'users', 'application_status')) {
+            $updates[] = "application_status = 'pending'";
+        }
+        if (tableHasColumn($mysqli, 'users', 'application_submitted_at')) {
+            $updates[] = 'application_submitted_at = NOW()';
+        }
+        if ($updates !== []) {
+            $sql = 'UPDATE users SET ' . implode(', ', $updates) . ' WHERE id = ? LIMIT 1';
+            $u = $mysqli->prepare($sql);
+            if ($u) {
+                $u->bind_param('i', $user_id);
+                $u->execute();
+                $u->close();
+            }
+        }
+    }
+
+    if (!$user_id) {
+        studentApplicationRedirect('exists', 'An application or account already exists for that email address.');
     }
 
     // Validate that user_id was created successfully
