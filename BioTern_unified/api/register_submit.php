@@ -234,7 +234,9 @@ if (!$role) {
 }
 
 // Create a user record if `users` table exists
-function createUser($mysqli, $username, $email, $password, $role) {
+function createUser($mysqli, $username, $email, $password, $role, &$errorCode = null, &$errorMessage = null) {
+    $errorCode = null;
+    $errorMessage = null;
     ensureUsersTable($mysqli);
 
     // check users table
@@ -260,18 +262,36 @@ function createUser($mysqli, $username, $email, $password, $role) {
             try {
                 $executed = $stmt->execute();
                 if (!$executed) {
+                    $errorCode = (int)($stmt->errno ?: $mysqli->errno);
+                    $errorMessage = trim((string)$stmt->error);
+                    if ($errorMessage === '') {
+                        $errorMessage = trim((string)$mysqli->error);
+                    }
+                    if ($errorMessage === '') {
+                        $errorMessage = 'User insert failed during execute().';
+                    }
                     $stmt->close();
                     return null;
                 }
                 $userId = $mysqli->insert_id;
             } catch (mysqli_sql_exception $e) {
-                $code = $e->getCode();
+                $errorCode = (int)$e->getCode();
+                $errorMessage = (string)$e->getMessage();
                 $stmt->close();
                 // Duplicate entry (1062) or other SQL error - return null so callers can handle it
                 return null;
             }
             $stmt->close();
+        } else {
+            $errorCode = -1;
+            $errorMessage = (string)$mysqli->error;
+            return null;
         }
+    } else {
+        $errorCode = -2;
+        $errorMessage = $mysqli->error !== ''
+            ? ('Unable to access users table: ' . $mysqli->error)
+            : 'Unable to access users table.';
     }
     return $userId;
 }
@@ -564,12 +584,16 @@ if ($role === 'student') {
 
     // Create a users record first (required for FK constraint)
     $full_name = trim($first_name . ' ' . $last_name);
+    $createUserErrorCode = null;
+    $createUserErrorMessage = null;
     $user_id = createUser(
         $mysqli,
         $username,
         $final_email,
         $password ?: bin2hex(random_bytes(4)),
-        'student'
+        'student',
+        $createUserErrorCode,
+        $createUserErrorMessage
     );
     if ($user_id) {
         $updates = [];
@@ -594,12 +618,15 @@ if ($role === 'student') {
     }
 
     if (!$user_id) {
-        studentApplicationRedirect('exists', 'An application or account already exists for that email address.');
-    }
+        if ((int)$createUserErrorCode === 1062) {
+            studentApplicationRedirect('exists', 'An application or account already exists for that email address.');
+        }
 
-    // Validate that user_id was created successfully
-    if (!$user_id) {
-        studentApplicationRedirect('error', 'We could not finish your application submission. Please try again.');
+        $genericMessage = 'We could not finish your application submission. Please try again.';
+        if (!empty($createUserErrorMessage)) {
+            $genericMessage .= ' ' . $createUserErrorMessage;
+        }
+        studentApplicationRedirect('error', $genericMessage);
     }
 
     // Now insert into students table using the user_id
@@ -709,11 +736,22 @@ if ($role === 'coordinator') {
 
     $final_email = $account_email ?: $email;
     $coordinator_username = generateUniqueUsername($mysqli, $final_email ?: ($first_name . '.' . $last_name), 'coordinator');
-    $userId = createUser($mysqli, $coordinator_username, $final_email, $password ?: bin2hex(random_bytes(4)), 'coordinator');
+    $createUserErrorCode = null;
+    $createUserErrorMessage = null;
+    $userId = createUser($mysqli, $coordinator_username, $final_email, $password ?: bin2hex(random_bytes(4)), 'coordinator', $createUserErrorCode, $createUserErrorMessage);
     
     // if createUser() returned null (possible duplicate/email exists), warn and stop
     if (!$userId) {
-        header('Location: auth-register-creative.php?registered=exists&msg=' . urlencode('An account with that email already exists'));
+        if ((int)$createUserErrorCode === 1062) {
+            header('Location: auth-register-creative.php?registered=exists&msg=' . urlencode('An account with that email already exists'));
+            exit;
+        }
+
+        $message = 'Failed to create user account.';
+        if (!empty($createUserErrorMessage)) {
+            $message .= ' ' . $createUserErrorMessage;
+        }
+        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode($message));
         exit;
     }
 
@@ -787,11 +825,22 @@ if ($role === 'supervisor') {
 
     $final_email = $account_email ?: $email;
     $supervisor_username = generateUniqueUsername($mysqli, $final_email ?: ($first_name . '.' . $last_name), 'supervisor');
-    $userId = createUser($mysqli, $supervisor_username, $final_email, $password ?: bin2hex(random_bytes(4)), 'supervisor');
+    $createUserErrorCode = null;
+    $createUserErrorMessage = null;
+    $userId = createUser($mysqli, $supervisor_username, $final_email, $password ?: bin2hex(random_bytes(4)), 'supervisor', $createUserErrorCode, $createUserErrorMessage);
     
     // if createUser() returned null (possible duplicate/email exists), warn and stop
     if (!$userId) {
-        header('Location: auth-register-creative.php?registered=exists&msg=' . urlencode('An account with that email already exists'));
+        if ((int)$createUserErrorCode === 1062) {
+            header('Location: auth-register-creative.php?registered=exists&msg=' . urlencode('An account with that email already exists'));
+            exit;
+        }
+
+        $message = 'Failed to create user account.';
+        if (!empty($createUserErrorMessage)) {
+            $message .= ' ' . $createUserErrorMessage;
+        }
+        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode($message));
         exit;
     }
 
@@ -873,11 +922,22 @@ if ($role === 'admin') {
 
     $final_email = $account_email ?: $email;
     $admin_username = generateUniqueUsername($mysqli, $final_email ?: ($first_name . '.' . $last_name), 'admin');
-    $userId = createUser($mysqli, $admin_username, $final_email, $password ?: bin2hex(random_bytes(4)), 'admin');
+    $createUserErrorCode = null;
+    $createUserErrorMessage = null;
+    $userId = createUser($mysqli, $admin_username, $final_email, $password ?: bin2hex(random_bytes(4)), 'admin', $createUserErrorCode, $createUserErrorMessage);
     
     // if createUser() returned null (possible duplicate/email exists), warn and stop
     if (!$userId) {
-        header('Location: auth-register-creative.php?registered=exists&msg=' . urlencode('An account with that email already exists'));
+        if ((int)$createUserErrorCode === 1062) {
+            header('Location: auth-register-creative.php?registered=exists&msg=' . urlencode('An account with that email already exists'));
+            exit;
+        }
+
+        $message = 'Failed to create user account.';
+        if (!empty($createUserErrorMessage)) {
+            $message .= ' ' . $createUserErrorMessage;
+        }
+        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode($message));
         exit;
     }
 
