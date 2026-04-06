@@ -38,7 +38,9 @@ function resolveDepartmentIdByCode($mysqli, $departmentCode) {
     if ($code === '') {
         return null;
     }
-    $stmt = $mysqli->prepare("SELECT id FROM departments WHERE code = ? AND deleted_at IS NULL LIMIT 1");
+    $conditions = ['code = ?'];
+    $conditions = array_merge($conditions, tableWhereActiveClause($mysqli, 'departments'));
+    $stmt = $mysqli->prepare("SELECT id FROM departments WHERE " . implode(' AND ', $conditions) . " LIMIT 1");
     if (!$stmt) {
         return null;
     }
@@ -60,13 +62,17 @@ function resolveSectionId($mysqli, $sectionValue, $courseId = 0) {
     }
 
     $courseId = (int)$courseId;
+    $sectionWhereActive = tableWhereActiveClause($mysqli, 'sections');
     if ($courseId > 0) {
-        $stmt = $mysqli->prepare("
+        $where = [
+            'course_id = ?',
+            '(code = ? OR name = ?)'
+        ];
+        $where = array_merge($where, $sectionWhereActive);
+        $stmt = $mysqli->prepare(" 
             SELECT id
             FROM sections
-            WHERE deleted_at IS NULL
-              AND course_id = ?
-              AND (code = ? OR name = ?)
+            WHERE " . implode(' AND ', $where) . "
             LIMIT 1
         ");
         if ($stmt) {
@@ -80,11 +86,12 @@ function resolveSectionId($mysqli, $sectionValue, $courseId = 0) {
         }
     }
 
-    $stmt = $mysqli->prepare("
+    $where = ['(code = ? OR name = ?)'];
+    $where = array_merge($where, $sectionWhereActive);
+    $stmt = $mysqli->prepare(" 
         SELECT id
         FROM sections
-        WHERE deleted_at IS NULL
-          AND (code = ? OR name = ?)
+        WHERE " . implode(' AND ', $where) . "
         LIMIT 1
     ");
     if ($stmt) {
@@ -125,6 +132,20 @@ function tableHasColumn($mysqli, $tableName, $columnName) {
     $has = ($res && $res->num_rows > 0);
     $stmt->close();
     return $has;
+}
+
+function tableWhereActiveClause($mysqli, $tableName, $alias = '') {
+    $prefix = trim((string)$alias) !== '' ? (rtrim((string)$alias, '.') . '.') : '';
+    $parts = [];
+
+    if (tableHasColumn($mysqli, $tableName, 'is_active')) {
+        $parts[] = $prefix . 'is_active = 1';
+    }
+    if (tableHasColumn($mysqli, $tableName, 'deleted_at')) {
+        $parts[] = $prefix . 'deleted_at IS NULL';
+    }
+
+    return $parts;
 }
 
 function sanitizeUsernameBase($value, $fallback = 'user') {
@@ -296,6 +317,9 @@ if ($role === 'student') {
 
     // Use account_email if provided, otherwise use email
     $final_email = $account_email ?: $email;
+    if ($final_email === null || $final_email === '' || !filter_var($final_email, FILTER_VALIDATE_EMAIL)) {
+        studentApplicationRedirect('error', 'Please provide a valid account email address.');
+    }
     $username_seed = $student_id ?: ($final_email ?: ($first_name . '.' . $last_name));
     $username = generateUniqueUsername($mysqli, $username_seed, 'student');
     $course_id = (int)$course_id;
@@ -337,7 +361,9 @@ if ($role === 'student') {
         studentApplicationRedirect('error', 'Please choose a valid section before submitting your application.');
     }
 
-    $course_check = $mysqli->prepare("SELECT id FROM courses WHERE id = ? AND deleted_at IS NULL LIMIT 1");
+    $courseWhere = ['id = ?'];
+    $courseWhere = array_merge($courseWhere, tableWhereActiveClause($mysqli, 'courses'));
+    $course_check = $mysqli->prepare("SELECT id FROM courses WHERE " . implode(' AND ', $courseWhere) . " LIMIT 1");
     if (!$course_check) {
         studentApplicationRedirect('error', 'We could not validate your selected course right now. Please try again.');
     }
@@ -351,7 +377,9 @@ if ($role === 'student') {
 
     $department_id_int = !empty($department_id) ? (int)$department_id : 0;
     if ($department_id_int > 0) {
-        $dept_check = $mysqli->prepare("SELECT id FROM departments WHERE id = ? AND deleted_at IS NULL LIMIT 1");
+        $deptWhere = ['id = ?'];
+        $deptWhere = array_merge($deptWhere, tableWhereActiveClause($mysqli, 'departments'));
+        $dept_check = $mysqli->prepare("SELECT id FROM departments WHERE " . implode(' AND ', $deptWhere) . " LIMIT 1");
         if (!$dept_check) {
             studentApplicationRedirect('error', 'We could not validate your selected department right now. Please try again.');
         }
@@ -366,14 +394,16 @@ if ($role === 'student') {
 
     if ($section_id > 0) {
         if ($department_id_int > 0) {
-            $section_check = $mysqli->prepare("
+            $sectionWhere = [
+                'id = ?',
+                'course_id = ?',
+                'department_id = ?'
+            ];
+            $sectionWhere = array_merge($sectionWhere, tableWhereActiveClause($mysqli, 'sections'));
+            $section_check = $mysqli->prepare(" 
                 SELECT id
                 FROM sections
-                WHERE id = ?
-                  AND course_id = ?
-                  AND department_id = ?
-                  AND is_active = 1
-                  AND deleted_at IS NULL
+                WHERE " . implode(' AND ', $sectionWhere) . "
                 LIMIT 1
             ");
             if (!$section_check) {
@@ -387,13 +417,15 @@ if ($role === 'student') {
                 studentApplicationRedirect('error', 'The selected section does not match your chosen course and department.');
             }
         } else {
-            $section_check = $mysqli->prepare("
+            $sectionWhere = [
+                'id = ?',
+                'course_id = ?'
+            ];
+            $sectionWhere = array_merge($sectionWhere, tableWhereActiveClause($mysqli, 'sections'));
+            $section_check = $mysqli->prepare(" 
                 SELECT id, department_id
                 FROM sections
-                WHERE id = ?
-                  AND course_id = ?
-                  AND is_active = 1
-                  AND deleted_at IS NULL
+                WHERE " . implode(' AND ', $sectionWhere) . "
                 LIMIT 1
             ");
             if (!$section_check) {
@@ -414,13 +446,15 @@ if ($role === 'student') {
     }
 
     if (!empty($coordinator_id) && $department_id_int > 0) {
+        $coordWhere = [
+            'id = ?',
+            'department_id = ?'
+        ];
+        $coordWhere = array_merge($coordWhere, tableWhereActiveClause($mysqli, 'coordinators'));
         $coord_check = $mysqli->prepare(" 
             SELECT CONCAT(first_name, ' ', last_name) AS full_name
             FROM coordinators
-            WHERE id = ?
-              AND department_id = ?
-              AND is_active = 1
-              AND deleted_at IS NULL
+            WHERE " . implode(' AND ', $coordWhere) . "
             LIMIT 1
         ");
         if (!$coord_check) {
@@ -435,12 +469,12 @@ if ($role === 'student') {
         }
         $coordinator_name = isset($coord_row['full_name']) ? (string)$coord_row['full_name'] : null;
     } elseif (!empty($coordinator_id)) {
+        $coordWhere = ['id = ?'];
+        $coordWhere = array_merge($coordWhere, tableWhereActiveClause($mysqli, 'coordinators'));
         $coord_check = $mysqli->prepare(" 
             SELECT CONCAT(first_name, ' ', last_name) AS full_name
             FROM coordinators
-            WHERE id = ?
-              AND is_active = 1
-              AND deleted_at IS NULL
+            WHERE " . implode(' AND ', $coordWhere) . "
             LIMIT 1
         ");
         if (!$coord_check) {
@@ -457,13 +491,15 @@ if ($role === 'student') {
     }
 
     if (!empty($supervisor_id) && $department_id_int > 0) {
+        $supWhere = [
+            'id = ?',
+            'department_id = ?'
+        ];
+        $supWhere = array_merge($supWhere, tableWhereActiveClause($mysqli, 'supervisors'));
         $sup_check = $mysqli->prepare(" 
             SELECT CONCAT(first_name, ' ', last_name) AS full_name
             FROM supervisors
-            WHERE id = ?
-              AND department_id = ?
-              AND is_active = 1
-              AND deleted_at IS NULL
+            WHERE " . implode(' AND ', $supWhere) . "
             LIMIT 1
         ");
         if (!$sup_check) {
@@ -478,12 +514,12 @@ if ($role === 'student') {
         }
         $supervisor_name = isset($sup_row['full_name']) ? (string)$sup_row['full_name'] : null;
     } elseif (!empty($supervisor_id)) {
+        $supWhere = ['id = ?'];
+        $supWhere = array_merge($supWhere, tableWhereActiveClause($mysqli, 'supervisors'));
         $sup_check = $mysqli->prepare(" 
             SELECT CONCAT(first_name, ' ', last_name) AS full_name
             FROM supervisors
-            WHERE id = ?
-              AND is_active = 1
-              AND deleted_at IS NULL
+            WHERE " . implode(' AND ', $supWhere) . "
             LIMIT 1
         ");
         if (!$sup_check) {
