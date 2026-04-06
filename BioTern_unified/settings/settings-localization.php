@@ -1,10 +1,6 @@
 <?php
 header('Location: settings-general.php');
 exit;
-require_once dirname(__DIR__) . '/config/db.php';
-$page_title = 'Tasks Settings';
-$page_styles = ['assets/css/settings-customizer-like.css'];
-include 'includes/header.php';
 ?>
 
 <div class="main-content d-flex settings-theme-customizer">                <!-- [ Content Sidebar ] start -->

@@ -55,6 +55,241 @@ if (!function_exists('table_has_column')) {
     }
 }
 
+if (!function_exists('student_view_ensure_evaluations_table')) {
+    function student_view_ensure_evaluations_table(mysqli $conn): void
+    {
+        $conn->query(
+            "CREATE TABLE IF NOT EXISTS evaluations (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                internship_id INT NULL,
+                student_id INT NOT NULL,
+                supervisor_id INT NULL,
+                evaluator_name VARCHAR(255) NULL,
+                evaluation_date DATE NULL,
+                score DECIMAL(5,2) NULL,
+                punctuality_rating INT NULL,
+                quality_of_work_rating INT NULL,
+                teamwork_rating INT NULL,
+                communication_rating INT NULL,
+                professionalism_rating INT NULL,
+                average_rating DECIMAL(5,2) NULL,
+                strengths TEXT NULL,
+                areas_for_improvement TEXT NULL,
+                comments TEXT NULL,
+                feedback LONGTEXT NULL,
+                passed TINYINT(1) NOT NULL DEFAULT 0,
+                submitted_at DATETIME NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_student_id (student_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci"
+        );
+
+        $desiredColumns = [
+            'internship_id' => "ALTER TABLE evaluations ADD COLUMN internship_id INT NULL AFTER id",
+            'student_id' => "ALTER TABLE evaluations ADD COLUMN student_id INT NOT NULL AFTER internship_id",
+            'supervisor_id' => "ALTER TABLE evaluations ADD COLUMN supervisor_id INT NULL AFTER student_id",
+            'evaluator_name' => "ALTER TABLE evaluations ADD COLUMN evaluator_name VARCHAR(255) NULL AFTER supervisor_id",
+            'evaluation_date' => "ALTER TABLE evaluations ADD COLUMN evaluation_date DATE NULL AFTER evaluator_name",
+            'score' => "ALTER TABLE evaluations ADD COLUMN score DECIMAL(5,2) NULL AFTER evaluation_date",
+            'punctuality_rating' => "ALTER TABLE evaluations ADD COLUMN punctuality_rating INT NULL AFTER score",
+            'quality_of_work_rating' => "ALTER TABLE evaluations ADD COLUMN quality_of_work_rating INT NULL AFTER punctuality_rating",
+            'teamwork_rating' => "ALTER TABLE evaluations ADD COLUMN teamwork_rating INT NULL AFTER quality_of_work_rating",
+            'communication_rating' => "ALTER TABLE evaluations ADD COLUMN communication_rating INT NULL AFTER teamwork_rating",
+            'professionalism_rating' => "ALTER TABLE evaluations ADD COLUMN professionalism_rating INT NULL AFTER communication_rating",
+            'average_rating' => "ALTER TABLE evaluations ADD COLUMN average_rating DECIMAL(5,2) NULL AFTER professionalism_rating",
+            'strengths' => "ALTER TABLE evaluations ADD COLUMN strengths TEXT NULL AFTER average_rating",
+            'areas_for_improvement' => "ALTER TABLE evaluations ADD COLUMN areas_for_improvement TEXT NULL AFTER strengths",
+            'comments' => "ALTER TABLE evaluations ADD COLUMN comments TEXT NULL AFTER areas_for_improvement",
+            'feedback' => "ALTER TABLE evaluations ADD COLUMN feedback LONGTEXT NULL AFTER comments",
+            'passed' => "ALTER TABLE evaluations ADD COLUMN passed TINYINT(1) NOT NULL DEFAULT 0 AFTER feedback",
+            'submitted_at' => "ALTER TABLE evaluations ADD COLUMN submitted_at DATETIME NULL AFTER passed",
+            'created_at' => "ALTER TABLE evaluations ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP AFTER submitted_at",
+            'updated_at' => "ALTER TABLE evaluations ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER created_at",
+        ];
+
+        foreach ($desiredColumns as $column => $sql) {
+            if (!table_has_column($conn, 'evaluations', $column)) {
+                $conn->query($sql);
+            }
+        }
+    }
+}
+
+if (!function_exists('student_view_fetch_evaluation')) {
+    function student_view_fetch_evaluation(mysqli $conn, int $student_id): ?array
+    {
+        if ($student_id <= 0) {
+            return null;
+        }
+
+        student_view_ensure_evaluations_table($conn);
+
+        $orderColumn = 'id';
+        foreach (['submitted_at', 'evaluation_date', 'created_at', 'id'] as $candidate) {
+            if (table_has_column($conn, 'evaluations', $candidate)) {
+                $orderColumn = $candidate;
+                break;
+            }
+        }
+
+        $stmt = $conn->prepare("SELECT * FROM evaluations WHERE student_id = ? ORDER BY {$orderColumn} DESC, id DESC LIMIT 1");
+        if (!$stmt) {
+            return null;
+        }
+
+        $stmt->bind_param('i', $student_id);
+        $stmt->execute();
+        $row = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+
+        if (!$row) {
+            return null;
+        }
+
+        $score = null;
+        if (isset($row['average_rating']) && $row['average_rating'] !== null && $row['average_rating'] !== '') {
+            $score = (float)$row['average_rating'];
+        } elseif (isset($row['score']) && $row['score'] !== null && $row['score'] !== '') {
+            $score = (float)$row['score'];
+        }
+
+        $submittedAt = trim((string)($row['submitted_at'] ?? ''));
+        if ($submittedAt === '') {
+            $submittedAt = trim((string)($row['evaluation_date'] ?? ''));
+        }
+        if ($submittedAt === '') {
+            $submittedAt = trim((string)($row['created_at'] ?? ''));
+        }
+
+        return [
+            'id' => (int)($row['id'] ?? 0),
+            'score' => $score,
+            'passed' => (int)($row['passed'] ?? 0) === 1,
+            'strengths' => trim((string)($row['strengths'] ?? '')),
+            'areas_for_improvement' => trim((string)($row['areas_for_improvement'] ?? '')),
+            'comments' => trim((string)($row['comments'] ?? $row['feedback'] ?? '')),
+            'submitted_at' => $submittedAt,
+            'ratings' => [
+                'punctuality' => (int)($row['punctuality_rating'] ?? 0),
+                'quality_of_work' => (int)($row['quality_of_work_rating'] ?? 0),
+                'teamwork' => (int)($row['teamwork_rating'] ?? 0),
+                'communication' => (int)($row['communication_rating'] ?? 0),
+                'professionalism' => (int)($row['professionalism_rating'] ?? 0),
+            ],
+        ];
+    }
+}
+
+if (!function_exists('student_view_save_evaluation')) {
+    function student_view_save_evaluation(mysqli $conn, int $student_id, int $internship_id, int $supervisor_user_id, string $evaluator_name, array $payload): bool
+    {
+        student_view_ensure_evaluations_table($conn);
+
+        $existingId = 0;
+        $existingStmt = $conn->prepare('SELECT id FROM evaluations WHERE student_id = ? ORDER BY id DESC LIMIT 1');
+        if ($existingStmt) {
+            $existingStmt->bind_param('i', $student_id);
+            $existingStmt->execute();
+            $existingRow = $existingStmt->get_result()->fetch_assoc();
+            $existingId = (int)($existingRow['id'] ?? 0);
+            $existingStmt->close();
+        }
+
+        $average = (float)$payload['average_rating'];
+        $passed = (int)$payload['passed'];
+        $submittedAt = date('Y-m-d H:i:s');
+        $evaluationDate = date('Y-m-d');
+
+        $writes = [
+            'internship_id' => $internship_id > 0 ? $internship_id : null,
+            'student_id' => $student_id,
+            'supervisor_id' => $supervisor_user_id > 0 ? $supervisor_user_id : null,
+            'evaluator_name' => $evaluator_name,
+            'evaluation_date' => $evaluationDate,
+            'score' => $average,
+            'punctuality_rating' => $payload['punctuality_rating'],
+            'quality_of_work_rating' => $payload['quality_of_work_rating'],
+            'teamwork_rating' => $payload['teamwork_rating'],
+            'communication_rating' => $payload['communication_rating'],
+            'professionalism_rating' => $payload['professionalism_rating'],
+            'average_rating' => $average,
+            'strengths' => $payload['strengths'],
+            'areas_for_improvement' => $payload['areas_for_improvement'],
+            'comments' => $payload['comments'],
+            'feedback' => $payload['comments'],
+            'passed' => $passed,
+            'submitted_at' => $submittedAt,
+        ];
+
+        $availableWrites = [];
+        foreach ($writes as $column => $value) {
+            if (table_has_column($conn, 'evaluations', $column)) {
+                $availableWrites[$column] = $value;
+            }
+        }
+
+        if (empty($availableWrites)) {
+            return false;
+        }
+
+        if ($existingId > 0) {
+            $setParts = [];
+            $types = '';
+            $values = [];
+            foreach ($availableWrites as $column => $value) {
+                $setParts[] = "`{$column}` = ?";
+                if (is_int($value)) {
+                    $types .= 'i';
+                } elseif (is_float($value)) {
+                    $types .= 'd';
+                } else {
+                    $types .= 's';
+                }
+                $values[] = $value;
+            }
+            if (table_has_column($conn, 'evaluations', 'updated_at')) {
+                $setParts[] = 'updated_at = NOW()';
+            }
+            $sql = "UPDATE evaluations SET " . implode(', ', $setParts) . " WHERE id = ?";
+            $types .= 'i';
+            $values[] = $existingId;
+            $stmt = $conn->prepare($sql);
+            if (!$stmt) {
+                return false;
+            }
+            $stmt->bind_param($types, ...$values);
+            $ok = $stmt->execute();
+            $stmt->close();
+            return (bool)$ok;
+        }
+
+        $columns = array_keys($availableWrites);
+        $placeholders = implode(', ', array_fill(0, count($columns), '?'));
+        $types = '';
+        $values = [];
+        foreach ($availableWrites as $value) {
+            if (is_int($value)) {
+                $types .= 'i';
+            } elseif (is_float($value)) {
+                $types .= 'd';
+            } else {
+                $types .= 's';
+            }
+            $values[] = $value;
+        }
+        $sql = "INSERT INTO evaluations (`" . implode('`, `', $columns) . "`) VALUES ({$placeholders})";
+        $stmt = $conn->prepare($sql);
+        if (!$stmt) {
+            return false;
+        }
+        $stmt->bind_param($types, ...$values);
+        $ok = $stmt->execute();
+        $stmt->close();
+        return (bool)$ok;
+    }
+}
+
 function resolve_profile_image_url(string $profilePath): ?string {
     $clean = ltrim(str_replace('\\', '/', trim($profilePath)), '/');
     if ($clean === '') {
@@ -346,6 +581,79 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['eval_unlock_action'])
     }
 }
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_supervisor_evaluation'])) {
+    if ($current_user_role !== 'supervisor') {
+        $eval_flash_type = 'danger';
+        $eval_flash_message = 'Only assigned supervisors can submit evaluations.';
+    } else {
+        $post_student_id = isset($_POST['student_id']) ? (int)$_POST['student_id'] : 0;
+        if ($post_student_id !== $student_id) {
+            $eval_flash_type = 'danger';
+            $eval_flash_message = 'Invalid evaluation request.';
+        } else {
+            $evaluation_unlock_state = get_evaluation_unlock_state($conn, $student_id);
+            $is_evaluation_unlocked = (bool)($evaluation_unlock_state['is_unlocked'] ?? false);
+            if (!$is_evaluation_unlocked) {
+                $eval_flash_type = 'danger';
+                $eval_flash_message = 'Evaluation is still locked for this student.';
+            } else {
+                $ratingFields = [
+                    'punctuality_rating',
+                    'quality_of_work_rating',
+                    'teamwork_rating',
+                    'communication_rating',
+                    'professionalism_rating',
+                ];
+                $ratings = [];
+                foreach ($ratingFields as $field) {
+                    $ratings[$field] = max(1, min(5, (int)($_POST[$field] ?? 0)));
+                }
+                $strengths_input = trim((string)($_POST['strengths'] ?? ''));
+                $areas_input = trim((string)($_POST['areas_for_improvement'] ?? ''));
+                $comments_input = trim((string)($_POST['comments'] ?? ''));
+                $passed_flag = ((string)($_POST['recommendation'] ?? '') === 'pass') ? 1 : 0;
+
+                $hasInvalidRating = in_array(0, $ratings, true);
+                if ($hasInvalidRating) {
+                    $eval_flash_type = 'danger';
+                    $eval_flash_message = 'Please rate every evaluation category.';
+                } elseif ($comments_input === '') {
+                    $eval_flash_type = 'danger';
+                    $eval_flash_message = 'Please add a final supervisor comment.';
+                } else {
+                    $averageRating = array_sum($ratings) / count($ratings);
+                    $ok = student_view_save_evaluation(
+                        $conn,
+                        $student_id,
+                        (int)($student['internship_id'] ?? 0),
+                        $current_user_id,
+                        trim((string)($_SESSION['name'] ?? 'Supervisor')),
+                        [
+                            'punctuality_rating' => $ratings['punctuality_rating'],
+                            'quality_of_work_rating' => $ratings['quality_of_work_rating'],
+                            'teamwork_rating' => $ratings['teamwork_rating'],
+                            'communication_rating' => $ratings['communication_rating'],
+                            'professionalism_rating' => $ratings['professionalism_rating'],
+                            'average_rating' => round($averageRating, 2),
+                            'strengths' => $strengths_input,
+                            'areas_for_improvement' => $areas_input,
+                            'comments' => $comments_input,
+                            'passed' => $passed_flag,
+                        ]
+                    );
+                    if ($ok) {
+                        $eval_flash_type = 'success';
+                        $eval_flash_message = 'Supervisor evaluation saved successfully.';
+                    } else {
+                        $eval_flash_type = 'danger';
+                        $eval_flash_message = 'Unable to save the supervisor evaluation right now.';
+                    }
+                }
+            }
+        }
+    }
+}
+
 // Check if student has attendance today (any record for today's date).
 $today = date('Y-m-d');
 $active_today_query = "
@@ -538,6 +846,7 @@ if ($completion_percentage > 100) {
 $evaluation_gate_state = evaluate_and_finalize_student($conn, $student_id, 0);
 $evaluation_unlock_state = get_evaluation_unlock_state($conn, $student_id);
 $is_evaluation_unlocked = (bool)($evaluation_unlock_state['is_unlocked'] ?? false);
+$existing_evaluation = student_view_fetch_evaluation($conn, $student_id);
 
 // Fetch Attendance Records for activity
 $activity_query = "
@@ -1462,11 +1771,149 @@ endif; ?>
                                         <?php
 endif; ?>
 
-                                        <div class="text-center py-5">
-                                            <i class="feather-inbox fs-1 text-muted mb-3 d-block"></i>
-                                            <p class="text-muted"><?php
-echo $is_evaluation_unlocked ? 'Waiting for supervisor submission' : 'Waiting for unlock requirements'; ?></p>
-                                        </div>
+                                        <?php if ($existing_evaluation): ?>
+                                            <div class="border rounded p-3 p-md-4 mb-4">
+                                                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                                                    <div>
+                                                        <p class="fw-semibold mb-1">Latest Submitted Evaluation</p>
+                                                        <p class="fs-12 text-muted mb-0"><?php echo htmlspecialchars($existing_evaluation['submitted_at'] !== '' ? formatDateTime($existing_evaluation['submitted_at']) : 'Saved evaluation', ENT_QUOTES, 'UTF-8'); ?></p>
+                                                    </div>
+                                                    <span class="badge <?php echo $existing_evaluation['passed'] ? 'bg-soft-success text-success' : 'bg-soft-warning text-warning'; ?>">
+                                                        <?php echo $existing_evaluation['passed'] ? 'Recommended to Pass' : 'Needs Improvement'; ?>
+                                                    </span>
+                                                </div>
+                                                <div class="row g-3 mb-3">
+                                                    <div class="col-md-4">
+                                                        <div class="p-3 border rounded h-100">
+                                                            <div class="small text-muted mb-1">Average Rating</div>
+                                                            <div class="fw-bold fs-4"><?php echo $existing_evaluation['score'] !== null ? number_format((float)$existing_evaluation['score'], 2) . ' / 5' : 'N/A'; ?></div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-8">
+                                                        <div class="row g-2">
+                                                            <?php
+                                                            $evaluation_labels = [
+                                                                'punctuality' => 'Punctuality',
+                                                                'quality_of_work' => 'Quality of Work',
+                                                                'teamwork' => 'Teamwork',
+                                                                'communication' => 'Communication',
+                                                                'professionalism' => 'Professionalism',
+                                                            ];
+                                                            foreach ($evaluation_labels as $rating_key => $rating_label):
+                                                                $rating_value = (int)($existing_evaluation['ratings'][$rating_key] ?? 0);
+                                                            ?>
+                                                            <div class="col-sm-6 col-lg-4">
+                                                                <div class="p-3 border rounded h-100">
+                                                                    <div class="small text-muted mb-1"><?php echo htmlspecialchars($rating_label, ENT_QUOTES, 'UTF-8'); ?></div>
+                                                                    <div class="fw-semibold"><?php echo $rating_value > 0 ? ($rating_value . ' / 5') : 'N/A'; ?></div>
+                                                                </div>
+                                                            </div>
+                                                            <?php endforeach; ?>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="row g-3">
+                                                    <div class="col-md-6">
+                                                        <div class="p-3 border rounded h-100">
+                                                            <div class="small text-muted mb-1">Strengths</div>
+                                                            <div class="fw-semibold"><?php echo nl2br(htmlspecialchars($existing_evaluation['strengths'] !== '' ? $existing_evaluation['strengths'] : 'No strengths added.', ENT_QUOTES, 'UTF-8')); ?></div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <div class="p-3 border rounded h-100">
+                                                            <div class="small text-muted mb-1">Areas for Improvement</div>
+                                                            <div class="fw-semibold"><?php echo nl2br(htmlspecialchars($existing_evaluation['areas_for_improvement'] !== '' ? $existing_evaluation['areas_for_improvement'] : 'No improvement notes added.', ENT_QUOTES, 'UTF-8')); ?></div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-12">
+                                                        <div class="p-3 border rounded">
+                                                            <div class="small text-muted mb-1">Supervisor Comments</div>
+                                                            <div class="fw-semibold"><?php echo nl2br(htmlspecialchars($existing_evaluation['comments'] !== '' ? $existing_evaluation['comments'] : 'No final comments added.', ENT_QUOTES, 'UTF-8')); ?></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        <?php endif; ?>
+
+                                        <?php if ($current_user_role === 'supervisor' && $is_evaluation_unlocked): ?>
+                                            <div class="border rounded p-3 p-md-4">
+                                                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                                                    <div>
+                                                        <p class="fw-semibold mb-1"><?php echo $existing_evaluation ? 'Update Supervisor Evaluation' : 'Submit Supervisor Evaluation'; ?></p>
+                                                        <p class="fs-12 text-muted mb-0">Rate the student’s performance and leave your final assessment here.</p>
+                                                    </div>
+                                                    <span class="badge bg-soft-info text-info">Supervisor Form</span>
+                                                </div>
+                                                <form method="POST">
+                                                    <input type="hidden" name="student_id" value="<?php echo (int)$student_id; ?>">
+                                                    <div class="row g-3">
+                                                        <?php
+                                                        $form_ratings = [
+                                                            'punctuality_rating' => 'Punctuality',
+                                                            'quality_of_work_rating' => 'Quality of Work',
+                                                            'teamwork_rating' => 'Teamwork',
+                                                            'communication_rating' => 'Communication',
+                                                            'professionalism_rating' => 'Professionalism',
+                                                        ];
+                                                        foreach ($form_ratings as $rating_name => $rating_label):
+                                                            $existing_rating_value = 0;
+                                                            if ($existing_evaluation) {
+                                                                $existing_rating_value = match($rating_name) {
+                                                                    'punctuality_rating' => (int)($existing_evaluation['ratings']['punctuality'] ?? 0),
+                                                                    'quality_of_work_rating' => (int)($existing_evaluation['ratings']['quality_of_work'] ?? 0),
+                                                                    'teamwork_rating' => (int)($existing_evaluation['ratings']['teamwork'] ?? 0),
+                                                                    'communication_rating' => (int)($existing_evaluation['ratings']['communication'] ?? 0),
+                                                                    'professionalism_rating' => (int)($existing_evaluation['ratings']['professionalism'] ?? 0),
+                                                                    default => 0,
+                                                                };
+                                                            }
+                                                        ?>
+                                                        <div class="col-md-6 col-xl-4">
+                                                            <label class="form-label"><?php echo htmlspecialchars($rating_label, ENT_QUOTES, 'UTF-8'); ?></label>
+                                                            <select class="form-select" name="<?php echo htmlspecialchars($rating_name, ENT_QUOTES, 'UTF-8'); ?>" required>
+                                                                <option value="">Select rating</option>
+                                                                <?php for ($rate = 1; $rate <= 5; $rate++): ?>
+                                                                    <option value="<?php echo $rate; ?>" <?php echo ((string)($_POST[$rating_name] ?? $existing_rating_value) === (string)$rate) ? 'selected' : ''; ?>>
+                                                                        <?php echo $rate; ?> / 5
+                                                                    </option>
+                                                                <?php endfor; ?>
+                                                            </select>
+                                                        </div>
+                                                        <?php endforeach; ?>
+                                                        <div class="col-md-6">
+                                                            <label class="form-label">Recommendation</label>
+                                                            <select class="form-select" name="recommendation" required>
+                                                                <?php $current_recommendation = (string)($_POST['recommendation'] ?? (($existing_evaluation && $existing_evaluation['passed']) ? 'pass' : 'improve')); ?>
+                                                                <option value="pass" <?php echo $current_recommendation === 'pass' ? 'selected' : ''; ?>>Recommended to Pass</option>
+                                                                <option value="improve" <?php echo $current_recommendation === 'improve' ? 'selected' : ''; ?>>Needs Improvement</option>
+                                                            </select>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <label class="form-label">Strengths</label>
+                                                            <textarea class="form-control" name="strengths" rows="4" placeholder="What did the student do well?"><?php echo htmlspecialchars((string)($_POST['strengths'] ?? ($existing_evaluation['strengths'] ?? '')), ENT_QUOTES, 'UTF-8'); ?></textarea>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <label class="form-label">Areas for Improvement</label>
+                                                            <textarea class="form-control" name="areas_for_improvement" rows="4" placeholder="What should the student improve next?"><?php echo htmlspecialchars((string)($_POST['areas_for_improvement'] ?? ($existing_evaluation['areas_for_improvement'] ?? '')), ENT_QUOTES, 'UTF-8'); ?></textarea>
+                                                        </div>
+                                                        <div class="col-12">
+                                                            <label class="form-label">Final Comments</label>
+                                                            <textarea class="form-control" name="comments" rows="5" required placeholder="Summarize your final supervisor assessment."><?php echo htmlspecialchars((string)($_POST['comments'] ?? ($existing_evaluation['comments'] ?? '')), ENT_QUOTES, 'UTF-8'); ?></textarea>
+                                                        </div>
+                                                    </div>
+                                                    <div class="d-flex flex-wrap gap-2 justify-content-end mt-3">
+                                                        <button type="submit" name="submit_supervisor_evaluation" value="1" class="btn btn-primary">
+                                                            <i class="feather-save me-2"></i><?php echo $existing_evaluation ? 'Update Evaluation' : 'Submit Evaluation'; ?>
+                                                        </button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        <?php elseif (!$existing_evaluation): ?>
+                                            <div class="text-center py-5">
+                                                <i class="feather-inbox fs-1 text-muted mb-3 d-block"></i>
+                                                <p class="text-muted"><?php echo $is_evaluation_unlocked ? 'Waiting for supervisor submission' : 'Waiting for unlock requirements'; ?></p>
+                                            </div>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
                             </div>

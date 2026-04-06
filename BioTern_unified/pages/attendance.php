@@ -2835,6 +2835,25 @@ endif; ?>
                 }
             });
 
+            window.addEventListener('resize', queueAttendanceTableRefresh);
+
+            var attendanceNav = document.querySelector('.nxl-navigation');
+            if (attendanceNav) {
+                attendanceNav.addEventListener('mouseenter', function() {
+                    if (document.documentElement.classList.contains('minimenu')) {
+                        queueAttendanceTableRefresh();
+                    }
+                });
+                attendanceNav.addEventListener('mouseleave', function() {
+                    if (document.documentElement.classList.contains('minimenu')) {
+                        queueAttendanceTableRefresh();
+                    }
+                });
+                attendanceNav.addEventListener('transitionend', function() {
+                    queueAttendanceTableRefresh();
+                });
+            }
+
             if (window.MutationObserver && document.documentElement) {
                 var attendanceSidebarObserver = new MutationObserver(function(mutations) {
                     var shouldRefresh = mutations.some(function(mutation) {

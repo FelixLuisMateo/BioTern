@@ -1663,10 +1663,10 @@ echo htmlspecialchars($current_user_email, ENT_QUOTES, 'UTF-8'); ?></span>
             <div class="page-header">
                 <div class="page-header-left d-flex align-items-center">
                     <div class="page-header-title">
-                        <h5 class="m-b-10">Students</h5>
+                        <h5 class="m-b-10"><?php echo $is_supervisor_user ? 'Assigned Students' : 'Students'; ?></h5>
                         <ul class="breadcrumb">
                             <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
-                            <li class="breadcrumb-item">Students</li>
+                            <li class="breadcrumb-item"><?php echo $is_supervisor_user ? 'Assigned Students' : 'Students'; ?></li>
                         </ul>
                     </div>
                 </div>
@@ -1674,17 +1674,20 @@ echo htmlspecialchars($current_user_email, ENT_QUOTES, 'UTF-8'); ?></span>
 
             <div class="students-toolbar">
                 <div class="students-toolbar-left">
-                    <div class="page-subtitle">Review student records, monitor status, and manage account-level actions in one place.</div>
+                    <div class="page-subtitle"><?php echo $is_supervisor_user
+                        ? 'Monitor your assigned trainees, review status, and open their attendance or internship records quickly.'
+                        : 'Review student records, monitor status, and manage account-level actions in one place.'; ?></div>
                 </div>
                 <div class="students-toolbar-right">
                     <button type="button" class="btn btn-light-brand" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="false" aria-controls="collapseOne">
                         <i class="feather-bar-chart me-2"></i>
-                        <span>Statistics</span>
+                        <span><?php echo $is_supervisor_user ? 'My Stats' : 'Statistics'; ?></span>
                     </button>
                     <button type="button" class="btn filter-toggle-btn" data-bs-toggle="collapse" data-bs-target="#studentsFilterCollapse" aria-expanded="false" aria-controls="studentsFilterCollapse">
                         <i class="feather-filter me-2"></i>
                         <span>Filters</span>
                     </button>
+                    <?php if (!$is_supervisor_user): ?>
                     <div class="dropdown">
                         <a class="btn btn-light-brand" data-bs-toggle="dropdown" data-bs-offset="0, 10" data-bs-auto-close="outside" role="button" aria-label="Export options">
                             <i class="feather-paperclip me-2"></i>
@@ -1726,6 +1729,16 @@ echo htmlspecialchars($current_user_email, ENT_QUOTES, 'UTF-8'); ?></span>
                         <i class="feather-plus me-2"></i>
                         <span>Create Students</span>
                     </a>
+                    <?php else: ?>
+                    <a href="attendance.php" class="btn btn-light-brand">
+                        <i class="feather-clock me-2"></i>
+                        <span>Attendance Review</span>
+                    </a>
+                    <a href="ojt.php" class="btn btn-primary">
+                        <i class="feather-briefcase me-2"></i>
+                        <span>OJT Tracking</span>
+                    </a>
+                    <?php endif; ?>
                 </div>
             </div>
 
@@ -1738,9 +1751,11 @@ echo htmlspecialchars($current_user_email, ENT_QUOTES, 'UTF-8'); ?></span>
                                 <div>
                                     <div class="filter-panel-label">
                                         <i class="feather-sliders"></i>
-                                        <span>Filter Students</span>
+                                        <span><?php echo $is_supervisor_user ? 'Filter Assigned Students' : 'Filter Students'; ?></span>
                                     </div>
-                                    <p class="filter-panel-sub">Narrow down results by school year, semester, date, course, section, supervisor, and coordinator.</p>
+                                    <p class="filter-panel-sub"><?php echo $is_supervisor_user
+                                        ? 'Narrow your assigned student list by school year, semester, date, course, section, supervisor, and coordinator.'
+                                        : 'Narrow down results by school year, semester, date, course, section, supervisor, and coordinator.'; ?></p>
                                 </div>
                                 <div class="filter-panel-head-actions">
                                     <a href="students.php" class="btn btn-outline-secondary btn-sm px-3">Reset</a>
@@ -1866,7 +1881,7 @@ endforeach; ?>
                                                 <i class="feather-users"></i>
                                             </div>
                                             <a href="javascript:void(0);" class="fw-bold d-block">
-                                                <span class="text-truncate-1-line">Total Students</span>
+                                                <span class="text-truncate-1-line"><?php echo $is_supervisor_user ? 'Assigned Students' : 'Total Students'; ?></span>
                                                 <span class="fs-24 fw-bolder d-block"><?php
 echo $stats['total_students'] ? $stats['total_students'] : '0'; ?></span>
                                             </a>
@@ -1884,7 +1899,7 @@ echo $stats['total_students'] ? $stats['total_students'] : '0'; ?></span>
                                                 <i class="feather-user-check"></i>
                                             </div>
                                             <a href="javascript:void(0);" class="fw-bold d-block">
-                                                <span class="text-truncate-1-line">Active Students</span>
+                                                <span class="text-truncate-1-line"><?php echo $is_supervisor_user ? 'Active Assignments' : 'Active Students'; ?></span>
                                                 <span class="fs-24 fw-bolder d-block"><?php
 echo $stats['active_students'] ? $stats['active_students'] : '0'; ?></span>
                                             </a>
@@ -1902,7 +1917,7 @@ echo $stats['active_students'] ? $stats['active_students'] : '0'; ?></span>
                                                 <i class="feather-user-minus"></i>
                                             </div>
                                             <a href="javascript:void(0);" class="fw-bold d-block">
-                                                <span class="text-truncate-1-line">Inactive Students</span>
+                                                <span class="text-truncate-1-line"><?php echo $is_supervisor_user ? 'Inactive Assignments' : 'Inactive Students'; ?></span>
                                                 <span class="fs-24 fw-bolder d-block"><?php
 echo $stats['inactive_students'] ? $stats['inactive_students'] : '0'; ?></span>
                                             </a>
@@ -1920,7 +1935,7 @@ echo $stats['inactive_students'] ? $stats['inactive_students'] : '0'; ?></span>
                                                 <i class="feather-check-circle"></i>
                                             </div>
                                             <a href="javascript:void(0);" class="fw-bold d-block">
-                                                <span class="text-truncate-1-line">Biometric Registered</span>
+                                                <span class="text-truncate-1-line"><?php echo $is_supervisor_user ? 'Biometric Ready' : 'Biometric Registered'; ?></span>
                                                 <span class="fs-24 fw-bolder d-block"><?php
 echo $stats['biometric_registered'] ? $stats['biometric_registered'] : '0'; ?></span>
                                             </a>
@@ -2363,6 +2378,25 @@ endif; ?>
                     trigger.addEventListener('click', queueStudentsTableRefresh);
                 }
             });
+
+            window.addEventListener('resize', queueStudentsTableRefresh);
+
+            var navEl = document.querySelector('.nxl-navigation');
+            if (navEl) {
+                navEl.addEventListener('mouseenter', function () {
+                    if (document.documentElement.classList.contains('minimenu')) {
+                        queueStudentsTableRefresh();
+                    }
+                });
+                navEl.addEventListener('mouseleave', function () {
+                    if (document.documentElement.classList.contains('minimenu')) {
+                        queueStudentsTableRefresh();
+                    }
+                });
+                navEl.addEventListener('transitionend', function () {
+                    queueStudentsTableRefresh();
+                });
+            }
 
             var htmlEl = document.documentElement;
             if (window.MutationObserver && htmlEl) {

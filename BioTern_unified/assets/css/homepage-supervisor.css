@@ -134,6 +134,34 @@
     text-align: right;
 }
 
+.supervisor-student-main,
+.supervisor-attendance-main {
+    min-width: 0;
+}
+
+.supervisor-student-actions,
+.supervisor-attendance-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    margin-top: 0.6rem;
+}
+
+.supervisor-inline-link {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #b45309;
+    text-decoration: none;
+}
+
+.supervisor-inline-link:hover,
+.supervisor-inline-link:focus {
+    color: #c2410c;
+    text-decoration: underline;
+}
+
 .supervisor-quick-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -243,6 +271,15 @@ html.app-skin-dark .supervisor-shortcut-card i {
     color: #fdba74;
 }
 
+html.app-skin-dark .supervisor-inline-link {
+    color: #fdba74;
+}
+
+html.app-skin-dark .supervisor-inline-link:hover,
+html.app-skin-dark .supervisor-inline-link:focus {
+    color: #ffcf99;
+}
+
 @media (max-width: 991.98px) {
     .supervisor-home-hero__content {
         flex-direction: column;
@@ -251,5 +288,15 @@ html.app-skin-dark .supervisor-shortcut-card i {
 
     .supervisor-quick-grid {
         grid-template-columns: 1fr;
+    }
+
+    .supervisor-student-card,
+    .supervisor-attendance-item {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .supervisor-student-side {
+        text-align: left;
     }
 }

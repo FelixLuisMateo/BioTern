@@ -199,12 +199,15 @@ html.app-skin-dark .select2-container--default .select2-results__option--highlig
     margin-top: 10px !important;
     transform: none !important;
     width: min(320px, calc(100vw - 1.5rem));
+    max-height: min(78vh, calc(100vh - 96px));
     padding: 0;
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
     border-radius: 16px;
     border: 1px solid #dbe3ee;
     background: #ffffff;
     box-shadow: 0 24px 48px rgba(15, 23, 42, 0.16);
+    overscroll-behavior: contain;
 }
 
 .nxl-header .nxl-user-dropdown .user-dropdown-label {
@@ -322,6 +325,19 @@ html.app-skin-dark .nxl-header .nxl-user-dropdown .user-dropdown-value {
     color: #991b1b;
 }
 
+.nxl-header .dropdown-menu.nxl-user-dropdown::-webkit-scrollbar {
+    width: 8px;
+}
+
+.nxl-header .dropdown-menu.nxl-user-dropdown::-webkit-scrollbar-thumb {
+    background: rgba(100, 116, 139, 0.38);
+    border-radius: 999px;
+}
+
+.nxl-header .dropdown-menu.nxl-user-dropdown::-webkit-scrollbar-track {
+    background: transparent;
+}
+
 html.app-skin-dark .nxl-header .dropdown-menu.nxl-user-dropdown {
     border-color: #1b2436;
     background: #0f172a;
@@ -377,6 +393,73 @@ html.app-skin-dark .nxl-header .nxl-user-dropdown .user-dropdown-logout:focus {
     color: #fecdd3;
 }
 
+@media (max-height: 860px) {
+    .nxl-header .dropdown-menu.nxl-user-dropdown {
+        max-height: min(74vh, calc(100vh - 84px));
+    }
+
+    .nxl-header .nxl-user-dropdown .user-dropdown-hero {
+        padding: 14px 16px 12px;
+    }
+
+    .nxl-header .nxl-user-dropdown .user-dropdown-name {
+        font-size: 17px;
+    }
+
+    .nxl-header .nxl-user-dropdown .user-dropdown-section-title {
+        padding: 10px 16px 0;
+    }
+
+    .nxl-header .nxl-user-dropdown .user-dropdown-status-grid {
+        gap: 5px;
+        padding: 6px 10px 10px;
+    }
+
+    .nxl-header .nxl-user-dropdown .user-dropdown-status-item {
+        padding: 8px 10px;
+    }
+
+    .nxl-header .nxl-user-dropdown .user-dropdown-links {
+        padding: 6px 8px 10px;
+    }
+
+    .nxl-header .nxl-user-dropdown .dropdown-item {
+        padding: 9px 12px;
+    }
+}
+
+@media (max-height: 740px) {
+    .nxl-header .dropdown-menu.nxl-user-dropdown {
+        max-height: min(70vh, calc(100vh - 72px));
+    }
+
+    .nxl-header .nxl-user-dropdown .user-dropdown-hero {
+        padding: 12px 14px 10px;
+    }
+
+    .nxl-header .nxl-user-dropdown .user-dropdown-name {
+        font-size: 16px;
+    }
+
+    .nxl-header .nxl-user-dropdown .user-dropdown-identity {
+        margin-left: 10px;
+    }
+
+    .nxl-header .nxl-user-dropdown .user-dropdown-status-grid {
+        padding: 4px 8px 8px;
+    }
+
+    .nxl-header .nxl-user-dropdown .user-dropdown-status-item {
+        padding: 7px 9px;
+        border-radius: 10px;
+    }
+
+    .nxl-header .nxl-user-dropdown .dropdown-item {
+        padding: 8px 10px;
+        border-radius: 10px;
+    }
+}
+
 /* Keep notifications dropdown pinned directly under the bell icon. */
 .nxl-header .header-notification-dropdown {
     position: relative;
@@ -393,9 +476,10 @@ html.app-skin-dark .nxl-header .nxl-user-dropdown .user-dropdown-logout:focus {
     transform: none !important;
     z-index: 7000 !important;
     width: min(340px, calc(100vw - 2rem));
-    max-height: min(70vh, calc(100vh - 120px));
+    max-height: min(78vh, calc(100vh - 96px));
     overflow-y: auto;
     overflow-x: hidden;
+    overscroll-behavior: contain;
 }
 
 /* Keep header search dropdown anchored and above page content. */
@@ -434,9 +518,10 @@ html.app-skin-dark .nxl-header .nxl-user-dropdown .user-dropdown-logout:focus {
     transform: none !important;
     z-index: 7000 !important;
     width: min(340px, calc(100vw - 2rem));
-    max-height: min(70vh, calc(100vh - 120px));
+    max-height: min(78vh, calc(100vh - 96px));
     overflow-x: hidden;
     overflow-y: auto;
+    overscroll-behavior: contain;
 }
 
 .nxl-header .header-notification-dropdown .nxl-notifications-menu[data-bs-popper] {
@@ -452,6 +537,19 @@ html.app-skin-dark .nxl-header .nxl-user-dropdown .user-dropdown-logout:focus {
     border-radius: 14px;
     background: #ffffff;
     box-shadow: 0 20px 48px rgba(15, 23, 42, 0.18);
+}
+
+.nxl-header .header-notification-dropdown .nxl-notifications-menu::-webkit-scrollbar {
+    width: 8px;
+}
+
+.nxl-header .header-notification-dropdown .nxl-notifications-menu::-webkit-scrollbar-thumb {
+    background: rgba(100, 116, 139, 0.38);
+    border-radius: 999px;
+}
+
+.nxl-header .header-notification-dropdown .nxl-notifications-menu::-webkit-scrollbar-track {
+    background: transparent;
 }
 
 .nxl-header .header-notification-dropdown .header-notifications-head {
@@ -733,6 +831,78 @@ html.app-skin-dark .nxl-header .header-notification-dropdown .header-notificatio
     .nxl-header .header-notification-dropdown .header-notification-meta-row {
         flex-direction: column;
         gap: 0.18rem;
+    }
+}
+
+@media (max-height: 860px) {
+    .nxl-header .header-notification-dropdown > .nxl-notifications-menu,
+    .nxl-header .header-notification-dropdown > .nxl-notifications-menu[data-bs-popper],
+    .nxl-header .header-notification-dropdown > #header-notification-menu,
+    .nxl-header .header-notification-dropdown .nxl-notifications-menu {
+        max-height: min(74vh, calc(100vh - 88px));
+    }
+
+    .nxl-header .header-notification-dropdown .header-notifications-head {
+        padding: 0.85rem 0.9rem 0.75rem;
+    }
+
+    .nxl-header .header-notification-dropdown .header-notifications-toolbar {
+        min-width: 108px;
+    }
+
+    .nxl-header .header-notification-dropdown .header-notification-item {
+        padding: 0.72rem 0.9rem;
+        gap: 0.65rem;
+    }
+
+    .nxl-header .header-notification-dropdown .header-notification-badge {
+        width: 1.9rem;
+        height: 1.9rem;
+        border-radius: 9px;
+    }
+}
+
+@media (max-height: 740px) {
+    .nxl-header .header-notification-dropdown > .nxl-notifications-menu,
+    .nxl-header .header-notification-dropdown > .nxl-notifications-menu[data-bs-popper],
+    .nxl-header .header-notification-dropdown > #header-notification-menu,
+    .nxl-header .header-notification-dropdown .nxl-notifications-menu {
+        max-height: min(70vh, calc(100vh - 80px));
+    }
+
+    .nxl-header .header-notification-dropdown .header-notifications-head {
+        padding: 0.75rem 0.85rem 0.65rem;
+        gap: 0.7rem;
+    }
+
+    .nxl-header .header-notification-dropdown .header-notifications-kicker {
+        margin-bottom: 0.2rem;
+        font-size: 0.62rem;
+    }
+
+    .nxl-header .header-notification-dropdown .header-notifications-subtitle {
+        font-size: 0.7rem;
+        line-height: 1.35;
+    }
+
+    .nxl-header .header-notification-dropdown .header-notification-toolbar-btn {
+        padding: 0.34rem 0.58rem;
+        font-size: 0.68rem;
+    }
+
+    .nxl-header .header-notification-dropdown .header-notification-item {
+        padding: 0.68rem 0.85rem;
+        gap: 0.58rem;
+    }
+
+    .nxl-header .header-notification-dropdown .header-notification-title {
+        font-size: 0.76rem;
+    }
+
+    .nxl-header .header-notification-dropdown .header-notification-message,
+    .nxl-header .header-notification-dropdown .header-notification-time,
+    .nxl-header .header-notification-dropdown .header-notification-action-link {
+        font-size: 0.7rem;
     }
 }
 

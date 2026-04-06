@@ -31,6 +31,11 @@ function h($value): string
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
 }
 
+function old_value(string $key, string $default = ''): string
+{
+    return htmlspecialchars((string)($_POST[$key] ?? $default), ENT_QUOTES, 'UTF-8');
+}
+
 function is_valid_username(string $username): bool
 {
     return (bool)preg_match('/^[a-zA-Z0-9._-]{4,30}$/', $username);
@@ -64,6 +69,8 @@ if ($dept_res) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $user_email = trim((string)($_POST['user_email'] ?? ''));
     $username_input = trim((string)($_POST['username'] ?? ''));
+    $password_input = (string)($_POST['password'] ?? '');
+    $password_confirm = (string)($_POST['password_confirm'] ?? '');
     $first_name = trim((string)($_POST['first_name'] ?? ''));
     $last_name = trim((string)($_POST['last_name'] ?? ''));
     $middle_name = trim((string)($_POST['middle_name'] ?? ''));
@@ -100,6 +107,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($username_input === '') {
                     $message = 'Username is required when creating a new user account.';
                     $message_type = 'danger';
+                } elseif ($password_input === '') {
+                    $message = 'Password is required when creating a new user account.';
+                    $message_type = 'danger';
+                } elseif (strlen($password_input) < 8) {
+                    $message = 'Password must be at least 8 characters.';
+                    $message_type = 'danger';
+                } elseif ($password_input !== $password_confirm) {
+                    $message = 'Password confirmation does not match.';
+                    $message_type = 'danger';
                 } elseif (!is_valid_username($username_input)) {
                     $message = 'Username must be 4-30 characters and use only letters, numbers, dot, underscore, or hyphen.';
                     $message_type = 'danger';
@@ -128,8 +144,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     // Skip insert on username validation failures.
                 } else {
                 $name = trim($first_name . ' ' . $last_name);
-                $random_password = bin2hex(random_bytes(6));
-                $password_hash = password_hash($random_password, PASSWORD_BCRYPT);
+                $password_hash = password_hash($password_input, PASSWORD_BCRYPT);
                 $user_ins = $conn->prepare("INSERT INTO users (name, username, email, password, role, is_active, application_status, created_at) VALUES (?, ?, ?, ?, 'supervisor', 1, 'approved', NOW())");
                 if ($user_ins) {
                     $user_ins->bind_param('ssss', $name, $username_input, $lookup_email, $password_hash);
@@ -245,6 +260,32 @@ $page_title = 'Create Supervisor';
 include 'includes/header.php';
 ?>
 <style>
+    .supervisors-form-shell .page-subtitle {
+        font-size: 12px;
+        color: #6c7a92;
+        margin: 0;
+        line-height: 1.45;
+        max-width: 72ch;
+    }
+    .supervisors-form-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 1rem 1.15rem;
+        margin-bottom: 1rem;
+        border: 1px solid #dfe8f5;
+        border-radius: 14px;
+        background: #ffffff;
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+    }
+    .supervisors-form-toolbar-actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
     .create-form-actions {
         display: flex;
         gap: 0.5rem;
@@ -271,6 +312,27 @@ include 'includes/header.php';
         background: #1e293b !important;
         border: 1px solid #4a5568 !important;
     }
+    html.app-skin-dark .supervisors-form-toolbar,
+    html.app-skin-dark .supervisors-form-shell .card.stretch.stretch-full {
+        border-color: #253252;
+        background: #111a2e;
+        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+    }
+    html.app-skin-dark .supervisors-form-shell .page-subtitle {
+        color: #99abc8;
+    }
+    @media (max-width: 991.98px) {
+        .supervisors-form-toolbar {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .supervisors-form-toolbar-actions {
+            width: 100%;
+        }
+        .supervisors-form-toolbar-actions .btn {
+            width: 100%;
+        }
+    }
 </style>
 <div class="page-header">
     <div class="page-header-left d-flex align-items-center">
@@ -283,54 +345,52 @@ include 'includes/header.php';
     </div>
 </div>
 
-<div class="main-content">
+<div class="main-content supervisors-form-shell">
+    <div class="supervisors-form-toolbar">
+        <p class="page-subtitle">Create a supervisor profile, link it to a user account, and assign the correct department and office details.</p>
+        <div class="supervisors-form-toolbar-actions">
+            <a href="supervisors.php" class="btn btn-outline-secondary">Back to List</a>
+        </div>
+    </div>
     <div class="card stretch stretch-full">
         <div class="card-header"><h5 class="card-title mb-0">Supervisor Form</h5></div>
         <div class="card-body">
-            <?php
-require_once dirname(__DIR__) . '/config/db.php';
-if ($message !== ''): ?><div class="alert alert-<?php
-require_once dirname(__DIR__) . '/config/db.php';
-echo h($message_type); ?>"><?php
-require_once dirname(__DIR__) . '/config/db.php';
-echo h($message); ?></div><?php
-require_once dirname(__DIR__) . '/config/db.php';
-endif; ?>
+            <?php if ($message !== ''): ?><div class="alert alert-<?php echo h($message_type); ?>"><?php echo h($message); ?></div><?php endif; ?>
             <form method="post" enctype="multipart/form-data" class="row g-3">
                 <div class="col-md-4">
                     <label class="form-label">User Email</label>
-                    <input type="email" name="user_email" class="form-control" placeholder="">
+                    <input type="email" name="user_email" class="form-control" placeholder="Existing account email (optional)" value="<?php echo old_value('user_email'); ?>">
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Username</label>
-                    <input type="text" name="username" class="form-control">
+                    <input type="text" name="username" class="form-control" value="<?php echo old_value('username'); ?>">
                 </div>
-                <div class="col-md-4"><label class="form-label">First Name *</label><input type="text" name="first_name" class="form-control" required></div>
-                <div class="col-md-4"><label class="form-label">Last Name *</label><input type="text" name="last_name" class="form-control" required></div>
-                <div class="col-md-4"><label class="form-label">Middle Name</label><input type="text" name="middle_name" class="form-control"></div>
-                <div class="col-md-4"><label class="form-label">Email *</label><input type="email" name="email" class="form-control" required></div>
-                <div class="col-md-4"><label class="form-label">Phone</label><input type="text" name="phone" class="form-control"></div>
+                <div class="col-md-4">
+                    <label class="form-label">Password</label>
+                    <input type="password" name="password" class="form-control" placeholder="Required for new linked account">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Confirm Password</label>
+                    <input type="password" name="password_confirm" class="form-control" placeholder="Repeat password">
+                </div>
+                <div class="col-md-4"><label class="form-label">First Name *</label><input type="text" name="first_name" class="form-control" value="<?php echo old_value('first_name'); ?>" required></div>
+                <div class="col-md-4"><label class="form-label">Last Name *</label><input type="text" name="last_name" class="form-control" value="<?php echo old_value('last_name'); ?>" required></div>
+                <div class="col-md-4"><label class="form-label">Middle Name</label><input type="text" name="middle_name" class="form-control" value="<?php echo old_value('middle_name'); ?>"></div>
+                <div class="col-md-4"><label class="form-label">Email *</label><input type="email" name="email" class="form-control" value="<?php echo old_value('email'); ?>" required></div>
+                <div class="col-md-4"><label class="form-label">Phone</label><input type="text" name="phone" class="form-control" value="<?php echo old_value('phone'); ?>"></div>
                 <div class="col-md-4">
                     <label class="form-label">Department</label>
                     <select name="department_id" class="form-select">
                         <option value="">None</option>
-                        <?php
-require_once dirname(__DIR__) . '/config/db.php';
-foreach ($departments as $d): ?>
-                            <option value="<?php
-require_once dirname(__DIR__) . '/config/db.php';
-echo (int)$d['id']; ?>"><?php
-require_once dirname(__DIR__) . '/config/db.php';
-echo h($d['name']); ?></option>
-                        <?php
-require_once dirname(__DIR__) . '/config/db.php';
-endforeach; ?>
+                        <?php foreach ($departments as $d): ?>
+                            <option value="<?php echo (int)$d['id']; ?>" <?php echo ((string)($d['id'] ?? '') === (string)($_POST['department_id'] ?? '')) ? 'selected' : ''; ?>><?php echo h($d['name']); ?></option>
+                        <?php endforeach; ?>
                     </select>
                 </div>
-                <div class="col-md-4"><label class="form-label">Office</label><input type="text" name="office" class="form-control"></div>
+                <div class="col-md-4"><label class="form-label">Office</label><input type="text" name="office" class="form-control" value="<?php echo old_value('office'); ?>"></div>
                 <div class="col-md-4"><label class="form-label">Profile Picture</label><input type="file" name="profile_picture" class="form-control" accept="image/*"></div>
-                <div class="col-12"><label class="form-label">Bio</label><textarea name="bio" rows="2" class="form-control"></textarea></div>
-                <div class="col-12 form-check ms-1"><input class="form-check-input" type="checkbox" name="is_active" id="is_active_create" checked><label class="form-check-label" for="is_active_create">Active</label></div>
+                <div class="col-12"><label class="form-label">Bio</label><textarea name="bio" rows="2" class="form-control"><?php echo old_value('bio'); ?></textarea></div>
+                <div class="col-12 form-check ms-1"><input class="form-check-input" type="checkbox" name="is_active" id="is_active_create" <?php echo isset($_POST['is_active']) || $_SERVER['REQUEST_METHOD'] !== 'POST' ? 'checked' : ''; ?>><label class="form-check-label" for="is_active_create">Active</label></div>
                 <div class="col-12 create-form-actions">
                     <button type="submit" class="btn btn-primary">Save Supervisor</button>
                     <a href="supervisors.php" class="btn btn-outline-secondary">Back to List</a>
@@ -340,7 +400,6 @@ endforeach; ?>
     </div>
 </div>
 <?php
-require_once dirname(__DIR__) . '/config/db.php';
 include 'includes/footer.php'; $conn->close(); ?>
 
 

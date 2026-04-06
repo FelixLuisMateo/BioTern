@@ -33,6 +33,48 @@ if (!function_exists('biotern_app_timezone')) {
 
 date_default_timezone_set(biotern_app_timezone());
 
+if (!function_exists('biotern_session_cookie_path')) {
+    function biotern_session_cookie_path(): string
+    {
+        $scriptName = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
+        $requestUri = str_replace('\\', '/', (string)($_SERVER['REQUEST_URI'] ?? ''));
+        $marker = '/BioTern_unified/';
+
+        $pos = stripos($scriptName, $marker);
+        if ($pos === false) {
+            $pos = stripos($requestUri, $marker);
+            if ($pos !== false) {
+                $base = substr($requestUri, 0, $pos) . $marker;
+                return rtrim('/' . ltrim((string)$base, '/'), '/') . '/';
+            }
+        } else {
+            $base = substr($scriptName, 0, $pos) . $marker;
+            return rtrim('/' . ltrim((string)$base, '/'), '/') . '/';
+        }
+
+        $projectDir = '/' . basename(dirname(__DIR__)) . '/';
+        return preg_replace('#/+#', '/', $projectDir);
+    }
+}
+
+if (!function_exists('biotern_configure_session_cookie_params')) {
+    function biotern_configure_session_cookie_params(): void
+    {
+        if (session_status() !== PHP_SESSION_NONE || headers_sent()) {
+            return;
+        }
+
+        session_set_cookie_params([
+            'path' => biotern_session_cookie_path(),
+            'secure' => (!empty($_SERVER['HTTPS']) && strtolower((string)$_SERVER['HTTPS']) !== 'off'),
+            'httponly' => true,
+            'samesite' => 'Lax',
+        ]);
+    }
+}
+
+biotern_configure_session_cookie_params();
+
 // Database configuration
 if (!function_exists('biotern_env_first')) {
     function biotern_env_first(array $keys, $default = null)
