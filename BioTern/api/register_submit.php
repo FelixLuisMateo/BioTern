@@ -271,6 +271,93 @@ function bindDynamicParams($stmt, $types, &$values) {
     return call_user_func_array([$stmt, 'bind_param'], $bind);
 }
 
+function getTableRequiredColumns($mysqli, $tableName) {
+    $table = trim((string)$tableName);
+    if ($table === '') {
+        return [];
+    }
+
+    $sql = "
+        SELECT COLUMN_NAME, DATA_TYPE, COLUMN_TYPE, IS_NULLABLE, COLUMN_DEFAULT, EXTRA
+        FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = ?
+        ORDER BY ORDINAL_POSITION
+    ";
+    $stmt = $mysqli->prepare($sql);
+    if (!$stmt) {
+        return [];
+    }
+    $stmt->bind_param('s', $table);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    $required = [];
+    while ($row = $res->fetch_assoc()) {
+        $isNullable = strtoupper((string)($row['IS_NULLABLE'] ?? 'YES'));
+        $defaultVal = $row['COLUMN_DEFAULT'];
+        $extra = strtolower((string)($row['EXTRA'] ?? ''));
+        if ($isNullable === 'NO' && $defaultVal === null && strpos($extra, 'auto_increment') === false) {
+            $required[] = [
+                'name' => (string)$row['COLUMN_NAME'],
+                'data_type' => strtolower((string)($row['DATA_TYPE'] ?? '')),
+                'column_type' => (string)($row['COLUMN_TYPE'] ?? ''),
+            ];
+        }
+    }
+    $stmt->close();
+    return $required;
+}
+
+function fallbackValueForRequiredColumn($columnName, $dataType, $columnType) {
+    $name = strtolower((string)$columnName);
+    $type = strtolower((string)$dataType);
+    $colType = (string)$columnType;
+
+    if ($name === 'profile_picture' || $name === 'avatar' || $name === 'photo') {
+        return ['', 's'];
+    }
+
+    if ($type === 'enum' && preg_match("/enum\\((.+)\\)/i", $colType, $m)) {
+        $raw = (string)$m[1];
+        $parts = preg_split('/\s*,\s*/', $raw);
+        if (is_array($parts) && isset($parts[0])) {
+            $first = trim((string)$parts[0]);
+            $first = trim($first, "'\"");
+            return [$first, 's'];
+        }
+    }
+
+    if (in_array($type, ['tinyint', 'smallint', 'mediumint', 'int', 'integer', 'bigint', 'bit'], true)) {
+        return [0, 'i'];
+    }
+
+    if (in_array($type, ['decimal', 'float', 'double', 'real'], true)) {
+        return [0.0, 'd'];
+    }
+
+    if ($type === 'date') {
+        return [date('Y-m-d'), 's'];
+    }
+
+    if (in_array($type, ['datetime', 'timestamp'], true)) {
+        return [date('Y-m-d H:i:s'), 's'];
+    }
+
+    if ($type === 'time') {
+        return ['00:00:00', 's'];
+    }
+
+    if ($type === 'year') {
+        return [date('Y'), 's'];
+    }
+
+    if ($type === 'json') {
+        return ['{}', 's'];
+    }
+
+    return ['', 's'];
+}
+
 function ensureSectionId($mysqli, $sectionValue, $courseId, $departmentId) {
     $sectionRaw = trim((string)$sectionValue);
     $courseId = (int)$courseId;
@@ -406,6 +493,26 @@ function createUser($mysqli, $username, $email, $password, $role, $displayName =
             $values[] = date('Y-m-d H:i:s');
             $types .= 's';
             $placeholders[] = '?';
+        }
+
+        $requiredColumns = getTableRequiredColumns($mysqli, 'users');
+        $existingColumnsMap = array_fill_keys($columns, true);
+        foreach ($requiredColumns as $requiredColumn) {
+            $requiredName = (string)$requiredColumn['name'];
+            if (isset($existingColumnsMap[$requiredName])) {
+                continue;
+            }
+
+            list($fallbackValue, $fallbackType) = fallbackValueForRequiredColumn(
+                $requiredName,
+                (string)$requiredColumn['data_type'],
+                (string)$requiredColumn['column_type']
+            );
+            $columns[] = $requiredName;
+            $values[] = $fallbackValue;
+            $types .= $fallbackType;
+            $placeholders[] = '?';
+            $existingColumnsMap[$requiredName] = true;
         }
 
         $sql = "INSERT INTO users (" . implode(', ', $columns) . ") VALUES (" . implode(', ', $placeholders) . ")";
@@ -920,11 +1027,28 @@ if ($role === 'coordinator') {
     }
 
     $final_email = $account_email ?: $email;
-    $userId = createUser($mysqli, $username ?: ($first_name . ' ' . $last_name), $final_email, $password ?: bin2hex(random_bytes(4)), 'coordinator');
+    $createUserErrorCode = null;
+    $createUserErrorMessage = null;
+    $userId = createUser(
+        $mysqli,
+        $username ?: ($first_name . ' ' . $last_name),
+        $final_email,
+        $password ?: bin2hex(random_bytes(4)),
+        'coordinator',
+        null,
+        $createUserErrorCode,
+        $createUserErrorMessage
+    );
     
     // if createUser() returned null (possible duplicate/email exists), warn and stop
     if (!$userId) {
-        header('Location: auth-register-creative.php?registered=exists&msg=' . urlencode('An account with that email or username already exists'));
+        if ((int)$createUserErrorCode === 1062 || stripos((string)$createUserErrorMessage, 'Duplicate entry') !== false) {
+            header('Location: auth-register-creative.php?registered=exists&msg=' . urlencode('An account with that email or username already exists'));
+            exit;
+        }
+
+        $fallbackMessage = $createUserErrorMessage ? $createUserErrorMessage : 'Failed to create user account';
+        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode($fallbackMessage));
         exit;
     }
 
@@ -1003,11 +1127,28 @@ if ($role === 'supervisor') {
     $account_email = getPost('account_email');
 
     $final_email = $account_email ?: $email;
-    $userId = createUser($mysqli, $username ?: ($first_name . ' ' . $last_name), $final_email, $password ?: bin2hex(random_bytes(4)), 'supervisor');
+    $createUserErrorCode = null;
+    $createUserErrorMessage = null;
+    $userId = createUser(
+        $mysqli,
+        $username ?: ($first_name . ' ' . $last_name),
+        $final_email,
+        $password ?: bin2hex(random_bytes(4)),
+        'supervisor',
+        null,
+        $createUserErrorCode,
+        $createUserErrorMessage
+    );
     
     // if createUser() returned null (possible duplicate/email exists), warn and stop
     if (!$userId) {
-        header('Location: auth-register-creative.php?registered=exists&msg=' . urlencode('An account with that email or username already exists'));
+        if ((int)$createUserErrorCode === 1062 || stripos((string)$createUserErrorMessage, 'Duplicate entry') !== false) {
+            header('Location: auth-register-creative.php?registered=exists&msg=' . urlencode('An account with that email or username already exists'));
+            exit;
+        }
+
+        $fallbackMessage = $createUserErrorMessage ? $createUserErrorMessage : 'Failed to create user account';
+        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode($fallbackMessage));
         exit;
     }
 
@@ -1090,11 +1231,28 @@ if ($role === 'admin') {
 
     $final_email = $account_email ?: $email;
     $admin_username = $username ?: ($first_name . ' ' . $last_name);
-    $userId = createUser($mysqli, $admin_username, $final_email, $password ?: bin2hex(random_bytes(4)), 'admin');
+    $createUserErrorCode = null;
+    $createUserErrorMessage = null;
+    $userId = createUser(
+        $mysqli,
+        $admin_username,
+        $final_email,
+        $password ?: bin2hex(random_bytes(4)),
+        'admin',
+        null,
+        $createUserErrorCode,
+        $createUserErrorMessage
+    );
     
     // if createUser() returned null (possible duplicate/email exists), warn and stop
     if (!$userId) {
-        header('Location: auth-register-creative.php?registered=exists&msg=' . urlencode('An account with that email or username already exists'));
+        if ((int)$createUserErrorCode === 1062 || stripos((string)$createUserErrorMessage, 'Duplicate entry') !== false) {
+            header('Location: auth-register-creative.php?registered=exists&msg=' . urlencode('An account with that email or username already exists'));
+            exit;
+        }
+
+        $fallbackMessage = $createUserErrorMessage ? $createUserErrorMessage : 'Failed to create user account';
+        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode($fallbackMessage));
         exit;
     }
 
