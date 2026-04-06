@@ -1,6 +1,6 @@
 {
-    "ipAddress": "192.168.100.201",
-    "gateway": "192.168.100.1",
+    "ipAddress": "192.168.110.201",
+    "gateway": "192.168.110.1",
     "mask": "255.255.255.0",
     "port": 5001,
     "deviceNumber": 1,
@@ -13,5 +13,5 @@
     "maxLateDepartureMinutes": 180,
     "duplicateGuardMinutes": 10,
     "slotAdvanceMinimumMinutes": 10,
-    "selectedRouterPreset": "router_1"
+    "selectedRouterPreset": "router_2"
 }
