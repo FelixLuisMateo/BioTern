@@ -11,3 +11,2204 @@
 [2026-04-06 19:00:53] Starting bridge-worker.ps1
 [2026-04-06 22:24:31] Starting bridge-worker.ps1
 [2026-04-06 22:30:47] Starting bridge-worker.ps1
+[2026-04-07 04:56:02] Starting bridge-worker.ps1
+[2026-04-07 05:08:01] Starting bridge-worker.ps1
+[2026-04-07 05:08:01] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:08:06] Starting bridge-worker.ps1
+[2026-04-07 05:08:06] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:08:11] Starting bridge-worker.ps1
+[2026-04-07 05:08:11] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:08:16] Starting bridge-worker.ps1
+[2026-04-07 05:08:16] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:08:21] Starting bridge-worker.ps1
+[2026-04-07 05:08:21] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:08:26] Starting bridge-worker.ps1
+[2026-04-07 05:08:26] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:08:31] Starting bridge-worker.ps1
+[2026-04-07 05:08:31] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:08:36] Starting bridge-worker.ps1
+[2026-04-07 05:08:36] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:08:41] Starting bridge-worker.ps1
+[2026-04-07 05:08:41] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:08:46] Starting bridge-worker.ps1
+[2026-04-07 05:08:46] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:08:51] Starting bridge-worker.ps1
+[2026-04-07 05:08:51] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:08:56] Starting bridge-worker.ps1
+[2026-04-07 05:08:56] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:09:01] Starting bridge-worker.ps1
+[2026-04-07 05:09:01] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:09:06] Starting bridge-worker.ps1
+[2026-04-07 05:09:06] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:09:11] Starting bridge-worker.ps1
+[2026-04-07 05:09:11] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:09:16] Starting bridge-worker.ps1
+[2026-04-07 05:09:16] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:09:22] Starting bridge-worker.ps1
+[2026-04-07 05:09:22] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:09:27] Starting bridge-worker.ps1
+[2026-04-07 05:09:27] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:09:32] Starting bridge-worker.ps1
+[2026-04-07 05:09:32] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:09:37] Starting bridge-worker.ps1
+[2026-04-07 05:09:37] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:09:42] Starting bridge-worker.ps1
+[2026-04-07 05:09:42] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:09:47] Starting bridge-worker.ps1
+[2026-04-07 05:09:47] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:09:52] Starting bridge-worker.ps1
+[2026-04-07 05:09:52] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:09:57] Starting bridge-worker.ps1
+[2026-04-07 05:09:57] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:10:02] Starting bridge-worker.ps1
+[2026-04-07 05:10:02] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:10:07] Starting bridge-worker.ps1
+[2026-04-07 05:10:07] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:10:12] Starting bridge-worker.ps1
+[2026-04-07 05:10:12] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:10:17] Starting bridge-worker.ps1
+[2026-04-07 05:10:17] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:10:22] Starting bridge-worker.ps1
+[2026-04-07 05:10:22] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:10:27] Starting bridge-worker.ps1
+[2026-04-07 05:10:27] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:10:32] Starting bridge-worker.ps1
+[2026-04-07 05:10:32] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:10:37] Starting bridge-worker.ps1
+[2026-04-07 05:10:37] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:10:42] Starting bridge-worker.ps1
+[2026-04-07 05:10:42] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:10:47] Starting bridge-worker.ps1
+[2026-04-07 05:10:47] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:10:52] Starting bridge-worker.ps1
+[2026-04-07 05:10:52] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:10:57] Starting bridge-worker.ps1
+[2026-04-07 05:10:57] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:11:02] Starting bridge-worker.ps1
+[2026-04-07 05:11:02] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:11:07] Starting bridge-worker.ps1
+[2026-04-07 05:11:07] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:11:12] Starting bridge-worker.ps1
+[2026-04-07 05:11:12] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:11:17] Starting bridge-worker.ps1
+[2026-04-07 05:11:17] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:11:22] Starting bridge-worker.ps1
+[2026-04-07 05:11:22] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:11:27] Starting bridge-worker.ps1
+[2026-04-07 05:11:27] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:11:32] Starting bridge-worker.ps1
+[2026-04-07 05:11:32] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:11:37] Starting bridge-worker.ps1
+[2026-04-07 05:11:37] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:11:42] Starting bridge-worker.ps1
+[2026-04-07 05:11:42] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:11:47] Starting bridge-worker.ps1
+[2026-04-07 05:11:47] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:11:52] Starting bridge-worker.ps1
+[2026-04-07 05:11:52] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:11:57] Starting bridge-worker.ps1
+[2026-04-07 05:11:58] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:12:03] Starting bridge-worker.ps1
+[2026-04-07 05:12:03] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:12:08] Starting bridge-worker.ps1
+[2026-04-07 05:12:08] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:12:13] Starting bridge-worker.ps1
+[2026-04-07 05:12:13] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:12:18] Starting bridge-worker.ps1
+[2026-04-07 05:12:18] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:12:23] Starting bridge-worker.ps1
+[2026-04-07 05:12:23] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:12:28] Starting bridge-worker.ps1
+[2026-04-07 05:12:28] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:12:33] Starting bridge-worker.ps1
+[2026-04-07 05:12:33] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:12:38] Starting bridge-worker.ps1
+[2026-04-07 05:12:38] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:12:43] Starting bridge-worker.ps1
+[2026-04-07 05:12:43] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:12:48] Starting bridge-worker.ps1
+[2026-04-07 05:12:48] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:12:53] Starting bridge-worker.ps1
+[2026-04-07 05:12:53] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:12:58] Starting bridge-worker.ps1
+[2026-04-07 05:12:58] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:13:03] Starting bridge-worker.ps1
+[2026-04-07 05:13:03] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:13:08] Starting bridge-worker.ps1
+[2026-04-07 05:13:08] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:13:13] Starting bridge-worker.ps1
+[2026-04-07 05:13:13] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:13:18] Starting bridge-worker.ps1
+[2026-04-07 05:13:18] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:13:23] Starting bridge-worker.ps1
+[2026-04-07 05:13:23] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:13:28] Starting bridge-worker.ps1
+[2026-04-07 05:13:28] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:13:33] Starting bridge-worker.ps1
+[2026-04-07 05:13:33] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:13:38] Starting bridge-worker.ps1
+[2026-04-07 05:13:38] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:13:43] Starting bridge-worker.ps1
+[2026-04-07 05:13:43] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:13:48] Starting bridge-worker.ps1
+[2026-04-07 05:13:48] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:13:53] Starting bridge-worker.ps1
+[2026-04-07 05:13:53] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:13:58] Starting bridge-worker.ps1
+[2026-04-07 05:13:58] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:14:03] Starting bridge-worker.ps1
+[2026-04-07 05:14:03] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:14:08] Starting bridge-worker.ps1
+[2026-04-07 05:14:08] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:14:13] Starting bridge-worker.ps1
+[2026-04-07 05:14:13] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:14:18] Starting bridge-worker.ps1
+[2026-04-07 05:14:18] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:14:23] Starting bridge-worker.ps1
+[2026-04-07 05:14:23] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:14:28] Starting bridge-worker.ps1
+[2026-04-07 05:14:28] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:14:33] Starting bridge-worker.ps1
+[2026-04-07 05:14:33] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:14:38] Starting bridge-worker.ps1
+[2026-04-07 05:14:39] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:14:44] Starting bridge-worker.ps1
+[2026-04-07 05:14:44] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:14:49] Starting bridge-worker.ps1
+[2026-04-07 05:14:49] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:14:54] Starting bridge-worker.ps1
+[2026-04-07 05:14:54] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:14:59] Starting bridge-worker.ps1
+[2026-04-07 05:14:59] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:15:04] Starting bridge-worker.ps1
+[2026-04-07 05:15:04] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:15:09] Starting bridge-worker.ps1
+[2026-04-07 05:15:09] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:15:14] Starting bridge-worker.ps1
+[2026-04-07 05:15:14] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.
+[2026-04-07 05:15:19] Starting bridge-worker.ps1
+[2026-04-07 05:15:19] bridge-worker.ps1 crashed: At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:54
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                      ~~
+Unexpected token '??' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:53
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                     ~
+Missing closing ')' in expression.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:685 char:42
++ function Invoke-BridgeHistoricalBackfill {
++                                          ~
+Missing closing '}' in statement block or type definition.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:698 char:59
++     $lastScanText = [string]($state['last_scan_utc'] ?? '')
++                                                           ~
+Unexpected token ')' in expression or statement.
+
+At C:\xampp\htdocs\BioTern\BioTern\tools\bridge-worker.ps1:749 char:1
++ }
++ ~
+Unexpected token '}' in expression or statement.. Restarting in 5s.

@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "c:\\xampp\\htdocs\\BioTern\\BioTern_unified\\tools\\device_connector\\BioTernMachineConnector.csproj": {}
+    "C:\\xampp\\htdocs\\BioTern\\BioTern\\tools\\device_connector\\BioTernMachineConnector.csproj": {}
   },
   "projects": {
-    "c:\\xampp\\htdocs\\BioTern\\BioTern_unified\\tools\\device_connector\\BioTernMachineConnector.csproj": {
+    "C:\\xampp\\htdocs\\BioTern\\BioTern\\tools\\device_connector\\BioTernMachineConnector.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "c:\\xampp\\htdocs\\BioTern\\BioTern_unified\\tools\\device_connector\\BioTernMachineConnector.csproj",
+        "projectUniqueName": "C:\\xampp\\htdocs\\BioTern\\BioTern\\tools\\device_connector\\BioTernMachineConnector.csproj",
         "projectName": "BioTernMachineConnector",
-        "projectPath": "c:\\xampp\\htdocs\\BioTern\\BioTern_unified\\tools\\device_connector\\BioTernMachineConnector.csproj",
-        "packagesPath": "c:\\xampp\\htdocs\\BioTern\\.dotnet_cli\\.nuget\\packages\\",
-        "outputPath": "c:\\xampp\\htdocs\\BioTern\\BioTern_unified\\tools\\device_connector\\obj\\",
+        "projectPath": "C:\\xampp\\htdocs\\BioTern\\BioTern\\tools\\device_connector\\BioTernMachineConnector.csproj",
+        "packagesPath": "C:\\Users\\Admin\\.nuget\\packages\\",
+        "outputPath": "C:\\xampp\\htdocs\\BioTern\\BioTern\\tools\\device_connector\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

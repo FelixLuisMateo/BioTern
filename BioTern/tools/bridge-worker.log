@@ -3853,3 +3853,89 @@
 [2026-04-07 04:44:21] Bridge loop error: Device connection failed.
 [2026-04-07 04:44:49] Bridge loop error: Device connection failed.
 [2026-04-07 04:45:18] Bridge loop error: Device connection failed.
+[2026-04-07 04:45:46] Bridge loop error: Device connection failed.
+[2026-04-07 04:46:14] Bridge loop error: Device connection failed.
+[2026-04-07 04:46:44] Bridge loop error: Device connection failed.
+[2026-04-07 04:47:12] Bridge loop error: Device connection failed.
+[2026-04-07 04:47:41] Bridge loop error: Device connection failed.
+[2026-04-07 04:48:10] Bridge loop error: Device connection failed.
+[2026-04-07 04:48:38] Bridge loop error: Device connection failed.
+[2026-04-07 04:49:06] Bridge loop error: Device connection failed.
+[2026-04-07 04:49:35] Bridge loop error: Device connection failed.
+[2026-04-07 04:50:03] Bridge loop error: Device connection failed.
+[2026-04-07 04:50:31] Bridge loop error: Device connection failed.
+[2026-04-07 04:50:59] Bridge loop error: Device connection failed.
+[2026-04-07 04:51:27] Bridge loop error: Device connection failed.
+[2026-04-07 04:51:56] Bridge loop error: Device connection failed.
+[2026-04-07 04:52:25] Bridge loop error: Device connection failed.
+[2026-04-07 04:52:53] Bridge loop error: Device connection failed.
+[2026-04-07 04:53:21] Bridge loop error: Device connection failed.
+[2026-04-07 04:53:50] Bridge loop error: Device connection failed.
+[2026-04-07 04:54:18] Bridge loop error: Device connection failed.
+[2026-04-07 04:54:47] Bridge loop error: Device connection failed.
+[2026-04-07 04:55:15] Bridge loop error: Device connection failed.
+[2026-04-07 04:55:44] Bridge loop error: Device connection failed.
+[2026-04-07 04:56:02] Bridge worker started.
+[2026-04-07 04:56:05] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 113 Device disconnected.
+[2026-04-07 04:56:10] Ingest success. Uploaded=6 Received=6 Inserted=2
+[2026-04-07 04:56:12] User cache sync success. Users=9
+[2026-04-07 04:56:44] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-07 04:56:44] No new F20H logs to upload.
+[2026-04-07 04:56:46] User cache sync success. Users=9
+[2026-04-07 04:57:18] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-07 04:57:18] No new F20H logs to upload.
+[2026-04-07 04:57:20] User cache sync success. Users=9
+[2026-04-07 04:57:53] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-07 04:57:53] No new F20H logs to upload.
+[2026-04-07 04:57:54] User cache sync success. Users=9
+[2026-04-07 04:58:27] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-07 04:58:27] No new F20H logs to upload.
+[2026-04-07 04:58:28] User cache sync success. Users=9
+[2026-04-07 04:59:01] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-07 04:59:01] No new F20H logs to upload.
+[2026-04-07 04:59:03] User cache sync success. Users=9
+[2026-04-07 04:59:36] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-07 04:59:36] No new F20H logs to upload.
+[2026-04-07 04:59:38] User cache sync success. Users=9
+[2026-04-07 05:00:11] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-07 05:00:11] No new F20H logs to upload.
+[2026-04-07 05:00:12] User cache sync success. Users=9
+[2026-04-07 05:00:45] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-07 05:00:45] No new F20H logs to upload.
+[2026-04-07 05:00:47] User cache sync success. Users=9
+[2026-04-07 05:01:20] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-07 05:01:20] No new F20H logs to upload.
+[2026-04-07 05:01:21] User cache sync success. Users=9
+[2026-04-07 05:01:54] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-07 05:01:54] No new F20H logs to upload.
+[2026-04-07 05:01:56] User cache sync success. Users=9
+[2026-04-07 05:02:28] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-07 05:02:28] No new F20H logs to upload.
+[2026-04-07 05:02:30] User cache sync success. Users=9
+[2026-04-07 05:03:03] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-07 05:03:03] No new F20H logs to upload.
+[2026-04-07 05:03:04] User cache sync success. Users=9
+[2026-04-07 05:03:37] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-07 05:03:37] No new F20H logs to upload.
+[2026-04-07 05:03:39] User cache sync success. Users=9
+[2026-04-07 05:04:12] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-07 05:04:12] No new F20H logs to upload.
+[2026-04-07 05:04:13] User cache sync success. Users=9
+[2026-04-07 05:04:50] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-07 05:04:50] No new F20H logs to upload.
+[2026-04-07 05:04:52] User cache sync success. Users=9
+[2026-04-07 05:05:26] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-07 05:05:26] No new F20H logs to upload.
+[2026-04-07 05:05:27] User cache sync success. Users=9
+[2026-04-07 05:06:01] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-07 05:06:01] No new F20H logs to upload.
+[2026-04-07 05:06:02] User cache sync success. Users=9
+[2026-04-07 05:06:35] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-07 05:06:36] No new F20H logs to upload.
+[2026-04-07 05:06:37] User cache sync success. Users=9
+[2026-04-07 05:07:10] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-07 05:07:10] No new F20H logs to upload.
+[2026-04-07 05:07:12] User cache sync success. Users=9
+[2026-04-07 05:07:47] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-07 05:07:47] No new F20H logs to upload.
+[2026-04-07 05:07:49] User cache sync success. Users=9

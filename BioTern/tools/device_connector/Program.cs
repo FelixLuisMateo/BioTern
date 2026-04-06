@@ -57,6 +57,8 @@ try
     return command switch
     {
         "sync" => RunSync(handle, config),
+        "get-log-range" => RunGetLogRange(handle, cmdArgs),
+        "get-log" => RunGetLogRange(handle, cmdArgs),
         "get-user-list" => RunStringCommand(handle, DevCtrlApi.D_GetUserList),
         "get-device-info" => RunStringCommand(handle, DevCtrlApi.D_GetDevInfo),
         "get-config" => RunStringCommand(handle, DevCtrlApi.D_GetConfig),
@@ -119,6 +121,29 @@ static int RunSync(int handle, MachineConfig config)
     Console.WriteLine($"Connected to {config.IpAddress}:{config.Port}.");
     Console.WriteLine($"Logs saved to: {outputPath}");
     Console.WriteLine($"Payload length: {payload.Length}");
+    return 0;
+}
+
+static int RunGetLogRange(int handle, string[] cmdArgs)
+{
+    string beginTime = (cmdArgs.Length >= 1 && !string.IsNullOrWhiteSpace(cmdArgs[0]))
+        ? cmdArgs[0].Trim()
+        : "2000-01-01 00:00:00";
+    string endTime = (cmdArgs.Length >= 2 && !string.IsNullOrWhiteSpace(cmdArgs[1]))
+        ? cmdArgs[1].Trim()
+        : DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+
+    // Historical ranges can return much larger payloads than get-new-log.
+    var buffer = new StringBuilder(1024 * 1024 * 4);
+    bool ok = DevCtrlApi.D_GetLog(handle, beginTime, endTime, buffer);
+    if (!ok)
+    {
+        Console.Error.WriteLine("Failed to fetch log range from the biometric machine.");
+        return 1;
+    }
+
+    string payload = buffer.ToString().Trim();
+    Console.Write(string.IsNullOrWhiteSpace(payload) ? "[]" : payload);
     return 0;
 }
 
@@ -355,6 +380,9 @@ internal static class DevCtrlApi
 
     [DllImport("DevCtrl.dll", CharSet = CharSet.Ansi, CallingConvention = CallingConvention.StdCall)]
     public static extern bool D_GetNewLog(int handle, StringBuilder jsonData);
+
+    [DllImport("DevCtrl.dll", CharSet = CharSet.Ansi, CallingConvention = CallingConvention.StdCall)]
+    public static extern bool D_GetLog(int handle, string bTime, string eTime, StringBuilder jsonData);
 
     [DllImport("DevCtrl.dll", CharSet = CharSet.Ansi, CallingConvention = CallingConvention.StdCall)]
     public static extern bool D_ClearRecords(int handle);

@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("BioTernMachineConnector")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+14c30a76a08709555aedf9681cf06d52bdf3ed81")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+769b668bac742886cfe08958051de2a65e3475b8")]
 [assembly: System.Reflection.AssemblyProductAttribute("BioTernMachineConnector")]
 [assembly: System.Reflection.AssemblyTitleAttribute("BioTernMachineConnector")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

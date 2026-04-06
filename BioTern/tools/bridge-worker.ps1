@@ -44,6 +44,7 @@ $connectorExePath = Join-Path $WorkspaceRoot 'tools\device_connector\bin\Release
 $connectorDllPath = Join-Path $WorkspaceRoot 'tools\device_connector\bin\Release\net9.0-windows\BioTernMachineConnector.dll'
 $bridgeLogPath = Join-Path $WorkspaceRoot 'tools\bridge-worker.log'
 $bridgePendingIngestPath = Join-Path $WorkspaceRoot 'tools\bridge-pending-ingest.json'
+$bridgeBackfillStatePath = Join-Path $WorkspaceRoot 'tools\bridge-backfill-state.json'
 $bridgeNodeName = $env:COMPUTERNAME
 if ([string]::IsNullOrWhiteSpace($bridgeNodeName)) {
     $bridgeNodeName = [System.Net.Dns]::GetHostName()
@@ -262,6 +263,18 @@ function Extract-JsonPayloadFromRaw {
 function Get-UsersPayloadJson {
     $raw = Get-ConnectorUserListRaw
     return (Extract-JsonPayloadFromRaw -RawText $raw)
+}
+
+function Get-ConnectorHistoricalLogRaw {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$BeginTime,
+        [Parameter(Mandatory = $true)]
+        [string]$EndTime
+    )
+
+    $output = Invoke-ConnectorCommand -Command 'get-log-range' -Arguments @($BeginTime, $EndTime)
+    return ($output -join "`n")
 }
 
 function Invoke-BridgeCommandResultPublish {
@@ -606,6 +619,135 @@ function Read-BridgeEventsFromFile {
     return @($parsed)
 }
 
+function Convert-BridgeDecodedPayloadToEvents {
+    param($Decoded)
+
+    if ($null -eq $Decoded) {
+        return @()
+    }
+
+    if ($Decoded -is [System.Collections.IEnumerable] -and -not ($Decoded -is [string])) {
+        return @($Decoded)
+    }
+
+    foreach ($propName in @('events', 'logs', 'data', 'rows', 'items', 'list')) {
+        if ($Decoded.PSObject -and $Decoded.PSObject.Properties[$propName]) {
+            $candidate = $Decoded.PSObject.Properties[$propName].Value
+            if ($candidate -is [System.Collections.IEnumerable] -and -not ($candidate -is [string])) {
+                return @($candidate)
+            }
+        }
+    }
+
+    return @($Decoded)
+}
+
+function Read-BridgeBackfillState {
+    if (-not (Test-Path $bridgeBackfillStatePath)) {
+        return @{}
+    }
+
+    try {
+        $raw = Get-Content -Path $bridgeBackfillStatePath -Raw -ErrorAction Stop
+        if ([string]::IsNullOrWhiteSpace($raw)) {
+            return @{}
+        }
+
+        $parsed = $raw | ConvertFrom-Json -ErrorAction Stop
+        if ($null -eq $parsed) {
+            return @{}
+        }
+
+        $state = @{}
+        foreach ($prop in $parsed.PSObject.Properties) {
+            $state[$prop.Name] = $prop.Value
+        }
+        return $state
+    } catch {
+        return @{}
+    }
+}
+
+function Save-BridgeBackfillState {
+    param([hashtable]$State)
+
+    $payload = @{}
+    if ($State) {
+        foreach ($key in $State.Keys) {
+            $payload[$key] = $State[$key]
+        }
+    }
+
+    $json = $payload | ConvertTo-Json -Depth 8
+    Set-Content -Path $bridgeBackfillStatePath -Value $json -Encoding UTF8
+}
+
+function Invoke-BridgeHistoricalBackfill {
+    param($BridgeConfig)
+
+    $state = Read-BridgeBackfillState
+
+    $scanIntervalMinutes = 720
+    if ($BridgeConfig.PSObject -and $BridgeConfig.PSObject.Properties['backfill_scan_interval_minutes']) {
+        $scanIntervalMinutes = [int]$BridgeConfig.backfill_scan_interval_minutes
+    }
+    if ($scanIntervalMinutes -lt 5) {
+        $scanIntervalMinutes = 5
+    }
+
+    $lastScanText = [string]($state['last_scan_utc'] ?? '')
+    if (-not [string]::IsNullOrWhiteSpace($lastScanText)) {
+        try {
+            $lastScanUtc = [DateTime]::Parse($lastScanText, [System.Globalization.CultureInfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::AssumeUniversal)
+            $elapsedMinutes = ((Get-Date).ToUniversalTime() - $lastScanUtc.ToUniversalTime()).TotalMinutes
+            if ($elapsedMinutes -lt $scanIntervalMinutes) {
+                return
+            }
+        } catch {
+            # Invalid state timestamp should not block backfill.
+        }
+    }
+
+    $beginTime = '2000-01-01 00:00:00'
+    if ($BridgeConfig.PSObject -and $BridgeConfig.PSObject.Properties['backfill_start_time']) {
+        $candidateBegin = [string]$BridgeConfig.backfill_start_time
+        if (-not [string]::IsNullOrWhiteSpace($candidateBegin)) {
+            $beginTime = $candidateBegin.Trim()
+        }
+    }
+
+    $endTime = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss')
+
+    $rawHistory = Get-ConnectorHistoricalLogRaw -BeginTime $beginTime -EndTime $endTime
+    $historyJson = Extract-JsonPayloadFromRaw -RawText $rawHistory
+    $decodedHistory = $historyJson | ConvertFrom-Json -ErrorAction Stop
+    $historyEvents = Convert-BridgeDecodedPayloadToEvents -Decoded $decodedHistory
+
+    if ($historyEvents.Count -eq 0) {
+        $state['last_scan_utc'] = (Get-Date).ToUniversalTime().ToString('o')
+        $state['last_scan_count'] = 0
+        Save-BridgeBackfillState -State $state
+        return
+    }
+
+    $pendingEvents = @(Read-BridgeEventsFromFile -Path $bridgePendingIngestPath)
+    if ($null -eq $pendingEvents) {
+        $pendingEvents = @()
+    }
+
+    $beforeCount = $pendingEvents.Count
+    $mergedEvents = Merge-BridgeEventsUnique -First $pendingEvents -Second @($historyEvents)
+
+    Save-BridgePendingEvents -Events $mergedEvents
+
+    $state['last_scan_utc'] = (Get-Date).ToUniversalTime().ToString('o')
+    $state['last_scan_count'] = $historyEvents.Count
+    $state['last_scan_added'] = [Math]::Max(0, ($mergedEvents.Count - $beforeCount))
+    Save-BridgeBackfillState -State $state
+
+    Write-BridgeLog ("Historical backfill scan complete. SourceEvents={0} AddedToPending={1}" -f $historyEvents.Count, [Math]::Max(0, ($mergedEvents.Count - $beforeCount)))
+}
+
 function Merge-BridgeEventsUnique {
     param(
         [object[]]$First = @(),
@@ -810,6 +952,7 @@ while ($true) {
         $connectorOutput = Invoke-ConnectorSync
         Write-BridgeLog (($connectorOutput -join ' ') -replace '\s+', ' ')
         Save-BridgeRecoverySnapshot -BridgeConfig $bridgeConfig
+        Invoke-BridgeHistoricalBackfill -BridgeConfig $bridgeConfig
         Publish-Ingest -BridgeConfig $bridgeConfig
         Publish-UserCache -BridgeConfig $bridgeConfig
 
