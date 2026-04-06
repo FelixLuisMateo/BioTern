@@ -401,6 +401,13 @@ function ensureSectionId($mysqli, $sectionValue, $courseId, $departmentId) {
     return resolveSectionId($mysqli, $sectionRaw, $courseId);
 }
 
+function defaultSchoolYear() {
+    $year = (int)date('Y');
+    $month = (int)date('n');
+    $startYear = ($month >= 8) ? $year : ($year - 1);
+    return $startYear . '-' . ($startYear + 1);
+}
+
 $role = getPost('role');
 if (!$role) {
     header('Location: register_submit.php');
@@ -606,6 +613,20 @@ if ($role === 'student') {
     $finished_internal = strtolower((string)(getPost('finished_internal') ?: 'no'));
     $emergency_contact = getPost('emergency_contact');
     $emergency_contact_phone = getPost('emergency_contact_phone');
+    $semester = getPost('semester');
+    $school_year = getPost('school_year');
+
+    if ($school_year === null || trim((string)$school_year) === '') {
+        $school_year = defaultSchoolYear();
+    } else {
+        $school_year = trim((string)$school_year);
+    }
+
+    if ($semester === null || trim((string)$semester) === '') {
+        $semester = '1st Semester';
+    } else {
+        $semester = trim((string)$semester);
+    }
 
     // Use account_email if provided, otherwise use email
     $final_email = $account_email ?: $email;
@@ -904,6 +925,18 @@ if ($role === 'student') {
         $studentValues[] = (string)$emergency_contact_phone;
     }
 
+    if (tableHasColumn($mysqli, 'students', 'school_year')) {
+        $studentColumns[] = 'school_year';
+        $studentTypes .= 's';
+        $studentValues[] = (string)$school_year;
+    }
+
+    if (tableHasColumn($mysqli, 'students', 'semester')) {
+        $studentColumns[] = 'semester';
+        $studentTypes .= 's';
+        $studentValues[] = (string)$semester;
+    }
+
     $studentPlaceholders = array_fill(0, count($studentColumns), '?');
     if (tableHasColumn($mysqli, 'students', 'created_at')) {
         $studentColumns[] = 'created_at';
@@ -964,8 +997,10 @@ if ($role === 'student') {
 
         if ($intern_coordinator_user_id !== null && $intern_supervisor_user_id !== null) {
             $today = date('Y-m-d');
-            $year = (int)date('Y');
-            $school_year = $year . '-' . ($year + 1);
+            $internship_school_year = (string)$school_year;
+            if ($internship_school_year === '') {
+                $internship_school_year = defaultSchoolYear();
+            }
             $type = $assignment_track === 'external' ? 'external' : 'internal';
             $required_hours = $type === 'external' ? max(0, $external_total_hours) : max(0, $internal_total_hours);
             $rendered_hours = 0;
@@ -987,7 +1022,7 @@ if ($role === 'student') {
                     $intern_supervisor_user_id,
                     $type,
                     $today,
-                    $school_year,
+                    $internship_school_year,
                     $required_hours,
                     $rendered_hours,
                     $completion_pct

@@ -603,10 +603,8 @@ function Read-BridgeEventsFromFile {
 
 function Merge-BridgeEventsUnique {
     param(
-        [Parameter(Mandatory = $true)]
-        [object[]]$First,
-        [Parameter(Mandatory = $true)]
-        [object[]]$Second
+        [object[]]$First = @(),
+        [object[]]$Second = @()
     )
 
     $merged = @()
@@ -662,6 +660,41 @@ function Clear-BridgeOutputFile {
     }
 }
 
+function Save-BridgeRecoverySnapshot {
+    param($BridgeConfig)
+
+    $outputPath = [string]($BridgeConfig.output_path)
+    if ([string]::IsNullOrWhiteSpace($outputPath) -or -not (Test-Path $outputPath)) {
+        return
+    }
+
+    $raw = Get-Content -Path $outputPath -Raw -ErrorAction SilentlyContinue
+    if ([string]::IsNullOrWhiteSpace($raw)) {
+        return
+    }
+
+    $trimmed = $raw.Trim()
+    if ($trimmed -eq '[]') {
+        return
+    }
+
+    $recoveryDir = Join-Path $WorkspaceRoot 'tools\bridge-recovery'
+    if (-not (Test-Path $recoveryDir)) {
+        New-Item -Path $recoveryDir -ItemType Directory -Force | Out-Null
+    }
+
+    $stamp = Get-Date -Format 'yyyyMMdd-HHmmss-fff'
+    $snapshotPath = Join-Path $recoveryDir ("attendance-{0}.json" -f $stamp)
+    Set-Content -Path $snapshotPath -Value $trimmed -Encoding UTF8
+
+    # Keep recent snapshots only to avoid uncontrolled disk growth.
+    $snapshots = Get-ChildItem -Path $recoveryDir -Filter 'attendance-*.json' -File -ErrorAction SilentlyContinue |
+        Sort-Object LastWriteTime -Descending
+    if ($snapshots.Count -gt 200) {
+        $snapshots | Select-Object -Skip 200 | Remove-Item -Force -ErrorAction SilentlyContinue
+    }
+}
+
 function Publish-Ingest {
     param($BridgeConfig)
 
@@ -670,8 +703,16 @@ function Publish-Ingest {
         throw 'Bridge profile output_path is empty.'
     }
 
-    $pendingEvents = Read-BridgeEventsFromFile -Path $bridgePendingIngestPath
-    $newEvents = Read-BridgeEventsFromFile -Path $outputPath
+    $pendingEvents = @(Read-BridgeEventsFromFile -Path $bridgePendingIngestPath)
+    if ($null -eq $pendingEvents) {
+        $pendingEvents = @()
+    }
+
+    $newEvents = @(Read-BridgeEventsFromFile -Path $outputPath)
+    if ($null -eq $newEvents) {
+        $newEvents = @()
+    }
+
     $eventsToUpload = Merge-BridgeEventsUnique -First $pendingEvents -Second $newEvents
 
     if ($eventsToUpload.Count -eq 0) {
@@ -763,8 +804,9 @@ while ($true) {
         Process-BridgeCommandQueue -BridgeConfig $bridgeConfig
         $connectorOutput = Invoke-ConnectorSync
         Write-BridgeLog (($connectorOutput -join ' ') -replace '\s+', ' ')
-        Publish-UserCache -BridgeConfig $bridgeConfig
+        Save-BridgeRecoverySnapshot -BridgeConfig $bridgeConfig
         Publish-Ingest -BridgeConfig $bridgeConfig
+        Publish-UserCache -BridgeConfig $bridgeConfig
 
         $pollSeconds = [int]($bridgeConfig.poll_seconds)
         if ($pollSeconds -lt 3) {
