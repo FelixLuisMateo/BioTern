@@ -55,6 +55,36 @@ function machine_connector_write_config(string $machineConfigPath, array $config
     machine_write_local_config_file($machineConfigPath, $json . PHP_EOL);
 }
 
+function machine_open_restart_bridge_shell(string $workspaceRoot): void
+{
+    if (stripos(PHP_OS_FAMILY, 'Windows') !== 0) {
+        throw new RuntimeException('Bridge worker restart shell launcher is only available on Windows hosts.');
+    }
+
+    $restartScript = $workspaceRoot . DIRECTORY_SEPARATOR . 'tools' . DIRECTORY_SEPARATOR . 'restart-bridge-worker.ps1';
+    if (!file_exists($restartScript)) {
+        throw new RuntimeException('Restart script not found. Expected: ' . $restartScript);
+    }
+
+    $workspaceArg = str_replace('"', '""', $workspaceRoot);
+    $scriptArg = str_replace('"', '""', $restartScript);
+
+    $launchCmd = 'start "BioTern Bridge Restart" powershell.exe -NoExit -ExecutionPolicy Bypass -Command "& \""' . $scriptArg . '"\" -WorkspaceRoot \""' . $workspaceArg . '"\""';
+    pclose(popen($launchCmd, 'r'));
+}
+
+function machine_open_bridge_log_tail_shell(string $workspaceRoot): void
+{
+    if (stripos(PHP_OS_FAMILY, 'Windows') !== 0) {
+        throw new RuntimeException('Bridge log tail launcher is only available on Windows hosts.');
+    }
+
+    $logPath = $workspaceRoot . DIRECTORY_SEPARATOR . 'tools' . DIRECTORY_SEPARATOR . 'bridge-worker.log';
+    $logArg = str_replace('"', '""', $logPath);
+    $launchCmd = 'start "BioTern Bridge Logs" powershell.exe -NoExit -ExecutionPolicy Bypass -Command "Get-Content -Path \""' . $logArg . '"\" -Tail 80 -Wait"';
+    pclose(popen($launchCmd, 'r'));
+}
+
 function machine_is_cloud_runtime(): bool
 {
     return getenv('VERCEL') !== false
@@ -995,6 +1025,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'save_connector_config',
             'save_bridge_profile',
             'quick_fill_bridge_router_2',
+            'open_restart_bridge_shell',
+            'open_bridge_log_tail_shell',
             'clear_records',
             'clear_users',
             'clear_admin',
@@ -1041,6 +1073,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         switch ($action) {
+            case 'open_restart_bridge_shell':
+                machine_open_restart_bridge_shell(dirname(__DIR__));
+                $_SESSION['machine_manager_flash'] = [
+                    'type' => 'success',
+                    'message' => 'Opened PowerShell for bridge worker restart.',
+                ];
+                machine_redirect_after_post([]);
+
+            case 'open_bridge_log_tail_shell':
+                machine_open_bridge_log_tail_shell(dirname(__DIR__));
+                $_SESSION['machine_manager_flash'] = [
+                    'type' => 'success',
+                    'message' => 'Opened PowerShell bridge log tail.',
+                ];
+                machine_redirect_after_post([]);
+
             case 'sync':
                 $existingConfig = json_decode($machineConfigJson, true);
                 if (!is_array($existingConfig)) {
@@ -2016,6 +2064,16 @@ include __DIR__ . '/../includes/header.php';
                             <input type="hidden" name="machine_action" value="sync">
                             <button type="submit" class="btn btn-primary w-100"><?php echo $cloudRuntime || $syncMode === 'direct_ingest' ? 'Process Ingest Queue' : 'Sync Now'; ?></button>
                         </form>
+                        <?php if ($isAdmin): ?>
+                            <form method="post" class="mt-2">
+                                <input type="hidden" name="machine_action" value="open_restart_bridge_shell">
+                                <button type="submit" class="btn btn-outline-dark w-100">Open PowerShell: Restart Bridge Worker</button>
+                            </form>
+                            <form method="post" class="mt-2">
+                                <input type="hidden" name="machine_action" value="open_bridge_log_tail_shell">
+                                <button type="submit" class="btn btn-outline-secondary w-100">Open PowerShell: Bridge Log Tail</button>
+                            </form>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>

@@ -43,6 +43,7 @@ $connectorConfigPath = Join-Path $WorkspaceRoot 'tools\biometric_machine_config.
 $connectorExePath = Join-Path $WorkspaceRoot 'tools\device_connector\bin\Release\net9.0-windows\BioTernMachineConnector.exe'
 $connectorDllPath = Join-Path $WorkspaceRoot 'tools\device_connector\bin\Release\net9.0-windows\BioTernMachineConnector.dll'
 $bridgeLogPath = Join-Path $WorkspaceRoot 'tools\bridge-worker.log'
+$bridgePendingIngestPath = Join-Path $WorkspaceRoot 'tools\bridge-pending-ingest.json'
 $bridgeNodeName = $env:COMPUTERNAME
 if ([string]::IsNullOrWhiteSpace($bridgeNodeName)) {
     $bridgeNodeName = [System.Net.Dns]::GetHostName()
@@ -546,6 +547,121 @@ function Publish-UserCache {
     throw 'Unable to upload user cache to any known endpoint.'
 }
 
+function Get-BridgeEventKey {
+    param($Event)
+
+    if ($null -eq $Event) {
+        return ''
+    }
+
+    $fingerId = [string]($Event.finger_id)
+    if ([string]::IsNullOrWhiteSpace($fingerId)) {
+        $fingerId = [string]($Event.id)
+    }
+
+    $clockType = [string]($Event.type)
+    if ([string]::IsNullOrWhiteSpace($clockType)) {
+        $clockType = [string]($Event.clock_type)
+    }
+
+    $clockTime = [string]($Event.time)
+    if ([string]::IsNullOrWhiteSpace($clockTime)) {
+        $clockTime = [string]($Event.record_time)
+    }
+
+    return ('{0}|{1}|{2}' -f $fingerId, $clockType, $clockTime)
+}
+
+function Read-BridgeEventsFromFile {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path
+    )
+
+    if (-not (Test-Path $Path)) {
+        return @()
+    }
+
+    $raw = (Get-Content -Path $Path -Raw -ErrorAction SilentlyContinue)
+    if ([string]::IsNullOrWhiteSpace($raw)) {
+        return @()
+    }
+
+    try {
+        $parsed = $raw | ConvertFrom-Json -ErrorAction Stop
+    } catch {
+        Write-BridgeLog ("Pending ingest file is invalid JSON and will be ignored: {0}" -f $Path)
+        return @()
+    }
+
+    if ($parsed -is [System.Collections.IEnumerable] -and -not ($parsed -is [string])) {
+        return @($parsed)
+    }
+
+    return @($parsed)
+}
+
+function Merge-BridgeEventsUnique {
+    param(
+        [Parameter(Mandatory = $true)]
+        [object[]]$First,
+        [Parameter(Mandatory = $true)]
+        [object[]]$Second
+    )
+
+    $merged = @()
+    $seen = @{}
+
+    foreach ($event in @($First) + @($Second)) {
+        if ($null -eq $event) {
+            continue
+        }
+
+        $key = Get-BridgeEventKey -Event $event
+        if ([string]::IsNullOrWhiteSpace($key)) {
+            $merged += $event
+            continue
+        }
+
+        if ($seen.ContainsKey($key)) {
+            continue
+        }
+
+        $seen[$key] = $true
+        $merged += $event
+    }
+
+    return $merged
+}
+
+function Save-BridgePendingEvents {
+    param(
+        [Parameter(Mandatory = $true)]
+        [object[]]$Events
+    )
+
+    if ($Events.Count -eq 0) {
+        if (Test-Path $bridgePendingIngestPath) {
+            Remove-Item -Path $bridgePendingIngestPath -Force -ErrorAction SilentlyContinue
+        }
+        return
+    }
+
+    $json = $Events | ConvertTo-Json -Depth 20
+    Set-Content -Path $bridgePendingIngestPath -Value $json -Encoding UTF8
+}
+
+function Clear-BridgeOutputFile {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path
+    )
+
+    if (Test-Path $Path) {
+        Set-Content -Path $Path -Value '[]' -Encoding UTF8
+    }
+}
+
 function Publish-Ingest {
     param($BridgeConfig)
 
@@ -553,16 +669,19 @@ function Publish-Ingest {
     if ([string]::IsNullOrWhiteSpace($outputPath)) {
         throw 'Bridge profile output_path is empty.'
     }
-    if (-not (Test-Path $outputPath)) {
-        Write-BridgeLog "No output file yet: $outputPath"
-        return
-    }
 
-    $payload = (Get-Content -Path $outputPath -Raw).Trim()
-    if ([string]::IsNullOrWhiteSpace($payload) -or $payload -eq '[]') {
+    $pendingEvents = Read-BridgeEventsFromFile -Path $bridgePendingIngestPath
+    $newEvents = Read-BridgeEventsFromFile -Path $outputPath
+    $eventsToUpload = Merge-BridgeEventsUnique -First $pendingEvents -Second $newEvents
+
+    if ($eventsToUpload.Count -eq 0) {
         Write-BridgeLog 'No new F20H logs to upload.'
         return
     }
+
+    # Stage all unsent events to durable local storage before network upload.
+    Save-BridgePendingEvents -Events $eventsToUpload
+    Clear-BridgeOutputFile -Path $outputPath
 
     $ingestToken = [string]($BridgeConfig.ingest_api_token)
     if ([string]::IsNullOrWhiteSpace($ingestToken)) {
@@ -596,6 +715,8 @@ function Publish-Ingest {
         }
     }
 
+    $payload = $eventsToUpload | ConvertTo-Json -Depth 20 -Compress
+
     $lastError = $null
     $response = $null
     foreach ($candidateUri in $candidates) {
@@ -618,8 +739,8 @@ function Publish-Ingest {
         throw 'Ingest failed on all candidate endpoints.'
     }
 
-    Set-Content -Path $outputPath -Value '[]' -Encoding UTF8
-    Write-BridgeLog "Ingest success. Received=$($response.received) Inserted=$($response.inserted)"
+    Save-BridgePendingEvents -Events @()
+    Write-BridgeLog "Ingest success. Uploaded=$($eventsToUpload.Count) Received=$($response.received) Inserted=$($response.inserted)"
 }
 
 Write-BridgeLog 'Bridge worker started.'

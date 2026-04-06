@@ -2235,6 +2235,9 @@ endif; ?>
 
         var biometricAutoSyncInFlight = false;
         var biometricAutoSyncIntervalMs = 60000;
+        var biometricAutoSyncRequest = null;
+        var biometricAutoSyncStartedAt = 0;
+        var biometricAutoSyncRequestTimeoutMs = 20000;
 
         function escapeHtml(value) {
             return String(value || '')
@@ -2278,18 +2281,42 @@ endif; ?>
             options = options || {};
             var manual = !!options.manual;
             var showToastOnError = !!options.showToastOnError;
-            if (biometricAutoSyncInFlight || document.hidden) {
+
+            // Allow manual sync even if the document is hidden.
+            if (!manual && document.hidden) {
+                return;
+            }
+
+            if (biometricAutoSyncInFlight && biometricAutoSyncRequest) {
+                var elapsed = Date.now() - biometricAutoSyncStartedAt;
+                if (elapsed > biometricAutoSyncRequestTimeoutMs) {
+                    try {
+                        biometricAutoSyncRequest.abort();
+                    } catch (e) {}
+                    biometricAutoSyncInFlight = false;
+                    biometricAutoSyncRequest = null;
+                }
+            }
+
+            if (biometricAutoSyncInFlight) {
                 return;
             }
 
             biometricAutoSyncInFlight = true;
+            biometricAutoSyncStartedAt = Date.now();
             if (manual) {
                 setManualSyncButtonBusy(true);
             }
-            $.ajax({
+
+            biometricAutoSyncRequest = $.ajax({
                 url: 'legacy_router.php?file=biometric_machine_sync.php&format=json',
                 type: 'GET',
-                dataType: 'json'
+                dataType: 'json',
+                cache: false,
+                timeout: biometricAutoSyncRequestTimeoutMs,
+                data: {
+                    _ts: Date.now()
+                }
             }).done(function(response) {
                 if (response && response.success) {
                     refreshAttendanceTable();
@@ -2311,6 +2338,7 @@ endif; ?>
                 }
             }).always(function() {
                 biometricAutoSyncInFlight = false;
+                biometricAutoSyncRequest = null;
                 if (manual) {
                     setManualSyncButtonBusy(false);
                 }
@@ -2473,6 +2501,17 @@ endif; ?>
                 if (!document.hidden) {
                     runBiometricAutoSync({ showToastOnError: false });
                 }
+            });
+
+            // Resume sync immediately when the device wakes or network returns.
+            window.addEventListener('focus', function() {
+                runBiometricAutoSync({ showToastOnError: false });
+            });
+            window.addEventListener('pageshow', function() {
+                runBiometricAutoSync({ showToastOnError: false });
+            });
+            window.addEventListener('online', function() {
+                runBiometricAutoSync({ showToastOnError: false });
             });
 
             $('#manualSyncMachineButton').on('click', function() {
