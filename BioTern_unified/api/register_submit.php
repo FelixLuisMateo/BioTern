@@ -33,6 +33,56 @@ function studentApplicationRedirect(string $status, string $message): void {
     exit;
 }
 
+function ensureStudentApplicationsTable(mysqli $mysqli): bool {
+    $ok = $mysqli->query("CREATE TABLE IF NOT EXISTS student_applications (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        user_id INT UNSIGNED NULL,
+        username VARCHAR(120) NOT NULL,
+        email VARCHAR(255) NOT NULL,
+        password_hash VARCHAR(255) NOT NULL,
+        student_id VARCHAR(80) NULL,
+        first_name VARCHAR(120) NOT NULL,
+        middle_name VARCHAR(120) NULL,
+        last_name VARCHAR(120) NOT NULL,
+        course_id INT NULL,
+        department_id INT NULL,
+        section_id INT NULL,
+        section_code_snapshot VARCHAR(80) NULL,
+        section_name_snapshot VARCHAR(120) NULL,
+        semester VARCHAR(30) NULL,
+        school_year VARCHAR(16) NULL,
+        address VARCHAR(255) NULL,
+        phone VARCHAR(50) NULL,
+        date_of_birth DATE NULL,
+        gender VARCHAR(30) NULL,
+        supervisor_id INT NULL,
+        supervisor_name VARCHAR(255) NULL,
+        coordinator_id INT NULL,
+        coordinator_name VARCHAR(255) NULL,
+        internal_total_hours INT NULL,
+        external_total_hours INT NULL,
+        assignment_track VARCHAR(20) NOT NULL DEFAULT 'internal',
+        emergency_contact VARCHAR(255) NULL,
+        emergency_contact_phone VARCHAR(50) NULL,
+        status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending',
+        submitted_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        reviewed_at DATETIME NULL,
+        reviewed_by INT NULL,
+        approval_notes VARCHAR(255) NULL,
+        disciplinary_remark VARCHAR(255) NULL,
+        created_student_user_id INT NULL,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY uq_student_app_user_id (user_id),
+        UNIQUE KEY uq_student_app_email (email),
+        KEY idx_student_app_status (status),
+        KEY idx_student_app_submitted (submitted_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+    return (bool)$ok;
+}
+
 function resolveDepartmentIdByCode($mysqli, $departmentCode) {
     $code = trim((string)$departmentCode);
     if ($code === '') {
@@ -489,6 +539,22 @@ if ($role === 'student') {
         }
     }
 
+    $sectionCodeSnapshot = '';
+    $sectionNameSnapshot = '';
+    if ($section_id > 0) {
+        $sectionSnapshotStmt = $mysqli->prepare("SELECT code, name FROM sections WHERE id = ? LIMIT 1");
+        if ($sectionSnapshotStmt) {
+            $sectionSnapshotStmt->bind_param('i', $section_id);
+            $sectionSnapshotStmt->execute();
+            $sectionSnapshotRow = $sectionSnapshotStmt->get_result()->fetch_assoc();
+            $sectionSnapshotStmt->close();
+            if ($sectionSnapshotRow) {
+                $sectionCodeSnapshot = trim((string)($sectionSnapshotRow['code'] ?? ''));
+                $sectionNameSnapshot = trim((string)($sectionSnapshotRow['name'] ?? ''));
+            }
+        }
+    }
+
     if (!empty($coordinator_id) && $department_id_int > 0) {
         $coordWhere = [
             'id = ?',
@@ -629,84 +695,114 @@ if ($role === 'student') {
         studentApplicationRedirect('error', $genericMessage);
     }
 
-    // Now insert into students table using the user_id
-    // Note: If emergency_contact_phone column doesn't exist, store phone in emergency_contact or add the column
-    $stmt = $mysqli->prepare("INSERT INTO students (user_id, course_id, student_id, first_name, last_name, middle_name, password, email, department_id, section_id, semester, address, phone, date_of_birth, gender, supervisor_id, supervisor_name, coordinator_id, coordinator_name, internal_total_hours, internal_total_hours_remaining, external_total_hours, external_total_hours_remaining, assignment_track, emergency_contact, school_year, application_status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULLIF(?, 0), NULLIF(?, ''), ?, ?, ?, ?, NULLIF(?, 0), ?, NULLIF(?, 0), ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW())");
-    
-    if (!$stmt) {
-        studentApplicationRedirect('error', 'We could not prepare your student application record. Please try again.');
+    if (!ensureStudentApplicationsTable($mysqli)) {
+        studentApplicationRedirect('error', 'Unable to access the student applications table.');
     }
-    
-    // Combine emergency contact info for storage (Name: Phone format for display)
-    $emergency_contact_full = $emergency_contact;
-    if ($emergency_contact_phone) {
-        $emergency_contact_full = $emergency_contact . ' (' . $emergency_contact_phone . ')';
-    }
-    
-    // types: user_id(i), course_id(i), student_id(s), first_name(s), last_name(s), middle_name(s),
-    // password(s), email(s), department_id(s), section_id(i), semester(s), address(s), phone(s),
-    // date_of_birth(s), gender(s), supervisor_id(i), supervisor_name(s), coordinator_id(i),
-    // coordinator_name(s), internal_total_hours(i), internal_total_hours_remaining(i),
-    // external_total_hours(i), external_total_hours_remaining(i), assignment_track(s), emergency_contact(s), school_year(s)
-    $department_id_for_student = $department_id !== null ? (string)$department_id : null;
-    $section_id_for_insert = !empty($section_id) ? (int)$section_id : 0;
-    $supervisor_id_for_insert = !empty($supervisor_id) ? (int)$supervisor_id : 0;
-    $coordinator_id_for_insert = !empty($coordinator_id) ? (int)$coordinator_id : 0;
 
-    $stmt->bind_param(
-        'iisssssssisssssisisiiiisss',
+    $stageSql = "
+        INSERT INTO student_applications (
+            user_id, username, email, password_hash, student_id,
+            first_name, middle_name, last_name,
+            course_id, department_id, section_id, section_code_snapshot, section_name_snapshot, semester, school_year,
+            address, phone, date_of_birth, gender,
+            supervisor_id, supervisor_name, coordinator_id, coordinator_name,
+            internal_total_hours, external_total_hours, assignment_track,
+            emergency_contact, emergency_contact_phone,
+            status, submitted_at, reviewed_at, reviewed_by,
+            approval_notes, disciplinary_remark, created_student_user_id
+        ) VALUES (
+            ?, ?, ?, ?, ?,
+            ?, ?, ?,
+            ?, NULLIF(?, 0), NULLIF(?, 0), NULLIF(?, ''), NULLIF(?, ''), NULLIF(?, ''), NULLIF(?, ''),
+            NULLIF(?, ''), NULLIF(?, ''), NULLIF(?, ''), NULLIF(?, ''),
+            NULLIF(?, 0), NULLIF(?, ''), NULLIF(?, 0), NULLIF(?, ''),
+            ?, ?, ?,
+            NULLIF(?, ''), NULLIF(?, ''),
+            'pending', NOW(), NULL, NULL,
+            NULL, NULL, NULL
+        )
+        ON DUPLICATE KEY UPDATE
+            username = VALUES(username),
+            password_hash = VALUES(password_hash),
+            student_id = VALUES(student_id),
+            first_name = VALUES(first_name),
+            middle_name = VALUES(middle_name),
+            last_name = VALUES(last_name),
+            course_id = VALUES(course_id),
+            department_id = VALUES(department_id),
+            section_id = VALUES(section_id),
+            section_code_snapshot = VALUES(section_code_snapshot),
+            section_name_snapshot = VALUES(section_name_snapshot),
+            semester = VALUES(semester),
+            school_year = VALUES(school_year),
+            address = VALUES(address),
+            phone = VALUES(phone),
+            date_of_birth = VALUES(date_of_birth),
+            gender = VALUES(gender),
+            supervisor_id = VALUES(supervisor_id),
+            supervisor_name = VALUES(supervisor_name),
+            coordinator_id = VALUES(coordinator_id),
+            coordinator_name = VALUES(coordinator_name),
+            internal_total_hours = VALUES(internal_total_hours),
+            external_total_hours = VALUES(external_total_hours),
+            assignment_track = VALUES(assignment_track),
+            emergency_contact = VALUES(emergency_contact),
+            emergency_contact_phone = VALUES(emergency_contact_phone),
+            status = 'pending',
+            submitted_at = NOW(),
+            reviewed_at = NULL,
+            reviewed_by = NULL,
+            approval_notes = NULL,
+            disciplinary_remark = NULL,
+            created_student_user_id = NULL
+    ";
+
+    $stageStmt = $mysqli->prepare($stageSql);
+    if (!$stageStmt) {
+        studentApplicationRedirect('error', 'Unable to queue the student application for review.');
+    }
+
+    $departmentIdForApp = !empty($department_id) ? (int)$department_id : 0;
+    $sectionIdForApp = !empty($section_id) ? (int)$section_id : 0;
+    $supervisorIdForApp = !empty($supervisor_id) ? (int)$supervisor_id : 0;
+    $coordinatorIdForApp = !empty($coordinator_id) ? (int)$coordinator_id : 0;
+    $stageStmt->bind_param(
+        'isssssssiiisssssssisisiiisss',
         $user_id,
-        $course_id,
+        $username,
+        $final_email,
+        $pwdHash,
         $student_id,
         $first_name,
-        $last_name,
         $middle_name,
-        $pwdHash,
-        $final_email,
-        $department_id_for_student,
-        $section_id_for_insert,
+        $last_name,
+        $course_id,
+        $departmentIdForApp,
+        $sectionIdForApp,
+        $sectionCodeSnapshot,
+        $sectionNameSnapshot,
         $semester,
+        $school_year,
         $address,
         $phone,
         $date_of_birth,
         $gender,
-        $supervisor_id_for_insert,
+        $supervisorIdForApp,
         $supervisor_name,
-        $coordinator_id_for_insert,
+        $coordinatorIdForApp,
         $coordinator_name,
         $internal_total_hours,
-        $internal_total_hours_remaining,
         $external_total_hours,
-        $external_total_hours_remaining,
         $assignment_track,
-        $emergency_contact_full,
-        $school_year
+        $emergency_contact,
+        $emergency_contact_phone
     );
-    
-    try {
-        if (!$stmt->execute()) {
-            $error = $stmt->error;
-            $stmt->close();
-            studentApplicationRedirect('error', 'Your account was created, but the student application record could not be saved. Please contact the administrator.');
-        }
-    } catch (mysqli_sql_exception $e) {
-        $stmt->close();
-        studentApplicationRedirect('error', 'Your account was created, but the student application record could not be completed. Please contact the administrator.');
-    }
-    
-    $new_student_id = (int)$mysqli->insert_id;
-    $stmt->close();
 
-    if (tableHasColumn($mysqli, 'students', 'status')) {
-        $statusStmt = $mysqli->prepare("UPDATE students SET status = 0 WHERE id = ? LIMIT 1");
-        if ($statusStmt) {
-            $statusStmt->bind_param('i', $new_student_id);
-            $statusStmt->execute();
-            $statusStmt->close();
-        }
+    if (!$stageStmt->execute()) {
+        $stageStmt->close();
+        studentApplicationRedirect('error', 'Unable to queue the student application for review.');
     }
-
-    // Internship record is created only after the application is approved.
+    $stageStmt->close();
 
     studentApplicationRedirect('pending', 'Application received. Please wait for approval from an administrator, coordinator, or supervisor.');
 }

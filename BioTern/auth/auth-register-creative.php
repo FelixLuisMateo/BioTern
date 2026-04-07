@@ -22,6 +22,55 @@ $sectionOptions = [];
 $coordinatorOptions = [];
 $supervisorOptions = [];
 $courseDepartmentMap = [];
+
+if ($conn && $conn->connect_errno === 0) {
+    $conn->query("CREATE TABLE IF NOT EXISTS student_applications (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        user_id INT UNSIGNED NULL,
+        username VARCHAR(120) NOT NULL,
+        email VARCHAR(255) NOT NULL,
+        password_hash VARCHAR(255) NOT NULL,
+        student_id VARCHAR(80) NULL,
+        first_name VARCHAR(120) NOT NULL,
+        middle_name VARCHAR(120) NULL,
+        last_name VARCHAR(120) NOT NULL,
+        course_id INT NULL,
+        department_id INT NULL,
+        section_id INT NULL,
+        section_code_snapshot VARCHAR(80) NULL,
+        section_name_snapshot VARCHAR(120) NULL,
+        semester VARCHAR(30) NULL,
+        school_year VARCHAR(16) NULL,
+        address VARCHAR(255) NULL,
+        phone VARCHAR(50) NULL,
+        date_of_birth DATE NULL,
+        gender VARCHAR(30) NULL,
+        supervisor_id INT NULL,
+        supervisor_name VARCHAR(255) NULL,
+        coordinator_id INT NULL,
+        coordinator_name VARCHAR(255) NULL,
+        internal_total_hours INT NULL,
+        external_total_hours INT NULL,
+        assignment_track VARCHAR(20) NOT NULL DEFAULT 'internal',
+        emergency_contact VARCHAR(255) NULL,
+        emergency_contact_phone VARCHAR(50) NULL,
+        status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending',
+        submitted_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        reviewed_at DATETIME NULL,
+        reviewed_by INT NULL,
+        approval_notes VARCHAR(255) NULL,
+        disciplinary_remark VARCHAR(255) NULL,
+        created_student_user_id INT NULL,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY uq_student_app_user_id (user_id),
+        UNIQUE KEY uq_student_app_email (email),
+        KEY idx_student_app_status (status),
+        KEY idx_student_app_submitted (submitted_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+}
+
 $departmentsConn = $conn;
 if ($departmentsConn && $departmentsConn->connect_errno === 0) {
     $departmentQuery = "SELECT id, code, name FROM departments ORDER BY name ASC";
@@ -219,16 +268,26 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
         <div class="auth-minimal-inner">
             <div class="minimal-card-wrapper">
                 <div class="card register-auth-card mb-4 mt-5 mx-2 mx-sm-0 position-relative">
-                    <div class="wd-50 bg-white p-2 rounded-circle shadow-lg position-absolute translate-middle top-0 start-50">
-                        <img src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/logo-abbr.png" alt="" class="img-fluid">
+                    <div class="register-floating-logos position-absolute translate-middle top-0 start-50" aria-label="BioTern and school partnership logos">
+                        <div class="register-brand-partnership">
+                            <span class="register-logo-badge register-logo-badge--biotern">
+                                <img src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/logo-abbr.png" alt="BioTern logo" class="img-fluid">
+                            </span>
+                            <span class="register-partner-divider">x</span>
+                            <span class="register-logo-badge register-logo-badge--school">
+                                <img src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/ccstlogo.png" alt="School logo" class="img-fluid">
+                            </span>
+                        </div>
                     </div>
                     <div class="card-body p-sm-5">
-                        <h2 class="fs-20 fw-bolder mb-4">Apply</h2>
-                        <div class="mb-3">
-                            <a href="<?php echo htmlspecialchars($route_prefix, ENT_QUOTES, 'UTF-8'); ?>index.php" class="btn btn-sm btn-outline-primary">&#8592; Back to Home</a>
+                        <div class="register-hero">
+                            <h2 class="fs-20 fw-bolder mb-4">Apply</h2>
+                            <div class="mb-3">
+                                <a href="<?php echo htmlspecialchars($route_prefix, ENT_QUOTES, 'UTF-8'); ?>index.php" class="btn btn-sm btn-outline-primary">&#8592; Back to Home</a>
+                            </div>
+                            <h4 class="fs-13 fw-bold mb-2">Manage your Internship account in one place.</h4>
+                            <p class="fs-12 fw-medium text-muted">Let's get you all setup, so you can verify your personal account and begin setting up your profile.</p>
                         </div>
-                        <h4 class="fs-13 fw-bold mb-2">Manage your Internship account in one place.</h4>
-                        <p class="fs-12 fw-medium text-muted">Let's get you all setup, so you can verify your personal account and begin setting up your profile.</p>
                         <?php
 
 if (isset($_GET['registered'])) {
@@ -285,9 +344,30 @@ if (isset($_GET['registered'])) {
                                         <input type="text" name="last_name" class="form-control" placeholder="Last name" autocomplete="family-name" required>
                                     </div>
                                 </div>
+                                <div class="row g-3 student-location-row">
+                                    <div class="col-12 col-lg-4 col-md-6 mb-2">
+                                        <label class="form-label fs-12" for="studentProvinceSelect">Province</label>
+                                        <select id="studentProvinceSelect" class="form-control" required>
+                                            <option value="" selected disabled>Select Province</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-12 col-lg-4 col-md-6 mb-2">
+                                        <label class="form-label fs-12" for="studentCitySelect">City / Municipality</label>
+                                        <select id="studentCitySelect" class="form-control" required disabled>
+                                            <option value="" selected disabled>Select City / Municipality</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-12 col-lg-4 col-md-6 mb-2">
+                                        <label class="form-label fs-12" for="studentBarangaySelect">Barangay</label>
+                                        <select id="studentBarangaySelect" class="form-control" required disabled>
+                                            <option value="" selected disabled>Select Barangay</option>
+                                        </select>
+                                    </div>
+                                </div>
                                 <div class="row g-3">
                                     <div class="col-12 mb-2">
-                                        <input type="text" name="address" class="form-control" placeholder="Full Home Address" autocomplete="street-address" required>
+                                        <input type="text" id="studentStreetAddress" class="form-control" placeholder="Street / House No. (optional)" autocomplete="street-address">
+                                        <input type="hidden" name="address" id="studentAddress" required>
                                     </div>
                                 </div>
                                 <div class="step-actions">
@@ -300,7 +380,7 @@ if (isset($_GET['registered'])) {
                             <div class="mb-4 step-panel" data-step="2">
                                 <h5 class="fs-14 fw-bold mb-3">Academic Information</h5>
                                 <div class="row g-3">
-                                    <div class="col-4 mb-2">
+                                    <div class="col-12 col-lg-4 col-md-6 mb-2">
                                         <label class="form-label fs-12" for="studentCourseSelect">Course</label>
                                         <select name="course_id" id="studentCourseSelect" class="form-control dynamic-course-select" data-section-target="studentSectionSelect" required>
                                             <option value="" disabled selected>Select Course</option>
@@ -329,7 +409,7 @@ echo htmlspecialchars(
 endforeach; ?>
                                         </select>
                                     </div>
-                                    <div class="col-4 mb-2">
+                                    <div class="col-12 col-lg-4 col-md-6 mb-2">
                                         <label class="form-label fs-12" for="studentDepartmentSelect">Department</label>
                                         <select name="department_id" id="studentDepartmentSelect" class="form-control" required>
                                             <option value="" selected>Select Department</option>
@@ -359,14 +439,14 @@ echo htmlspecialchars(
 endforeach; ?>
                                         </select>
                                     </div>
-                                    <div class="col-4 mb-2">
+                                    <div class="col-12 col-lg-4 col-md-6 mb-2">
                                         <label class="form-label fs-12" for="studentSectionSelect">Section</label>
                                         <select name="section" id="studentSectionSelect" class="form-control" required>
                                         </select>
                                     </div>
                                 </div>
                                 <div class="row g-3">
-                                    <div class="col-4 mb-2">
+                                    <div class="col-12 col-md-4 mb-2">
                                         <label class="form-label fs-12" for="studentSchoolYear">School Year</label>
                                         <select name="school_year" id="studentSchoolYear" class="form-control" required>
                                             <?php
@@ -380,6 +460,15 @@ for ($y = $currentYear; $y >= $startYear; $y--):
                                                     <?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?>
                                                 </option>
                                             <?php endfor; ?>
+                                        </select>
+                                    </div>
+                                    <div class="col-12 col-md-4 mb-2">
+                                        <label class="form-label fs-12" for="studentSemester">Semester</label>
+                                        <select name="semester" id="studentSemester" class="form-control" required>
+                                            <option value="" disabled selected>Select Semester</option>
+                                            <option value="1st Semester">1st Semester</option>
+                                            <option value="2nd Semester">2nd Semester</option>
+                                            <option value="Summer">Summer</option>
                                         </select>
                                     </div>
                                 </div>
@@ -565,7 +654,7 @@ endforeach; ?>
                             </div>
                             <div class="step-actions">
                                 <button type="button" class="btn btn-outline-secondary" data-step-action="prev">Back</button>
-                                <button type="submit" class="btn btn-primary">Apply</button>
+                                <button type="submit" class="btn btn-primary" id="studentApplyBtn">Apply</button>
                             </div>
                             </div>
                         </form>
@@ -590,6 +679,22 @@ endforeach; ?>
                                     </div>
                                     <div class="modal-footer">
                                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="modal fade" id="studentReviewModal" tabindex="-1" aria-labelledby="studentReviewModalLabel" aria-hidden="true">
+                            <div class="modal-dialog modal-dialog-scrollable">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="studentReviewModalLabel">Final Review</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body" id="studentReviewContent"></div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Edit Details</button>
+                                        <button type="button" class="btn btn-primary" id="studentConfirmSubmitBtn">Confirm and Submit</button>
                                     </div>
                                 </div>
                             </div>

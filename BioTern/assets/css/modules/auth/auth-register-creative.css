@@ -112,18 +112,18 @@
     .form-stepper {
         display: flex;
         flex-direction: column;
-        gap: 8px;
-        margin: 8px 0 18px;
+        gap: 6px;
+        margin: 6px 0 14px;
     }
 
     .stepper-track {
         display: flex;
-        gap: 8px;
+        gap: 6px;
     }
 
     .step-dot {
         flex: 1 1 0;
-        height: 6px;
+        height: 5px;
         border-radius: 999px;
         background: rgba(148, 163, 184, 0.2);
         position: relative;
@@ -163,6 +163,17 @@
 
     .step-actions .btn {
         min-width: 140px;
+    }
+
+    .student-location-row .form-label {
+        display: block;
+        min-height: 30px;
+    }
+
+    @media (max-width: 767px) {
+        .student-location-row .form-label {
+            min-height: 0;
+        }
     }
 
     /* Role selector responsive/swipe styles */
@@ -288,17 +299,88 @@ body {
 }
 
 .register-auth-card {
-    width: min(100%, 1100px);
-    margin: 40px auto;
-    border-radius: 14px;
+    width: min(100%, 640px);
+    margin: 20px auto;
+    border-radius: 16px;
     border: 1px solid var(--biotern-border, #d1d5db);
     background: var(--biotern-surface, #ffffff);
     box-shadow: 0 20px 42px rgba(15, 23, 42, 0.2);
 }
 
 .register-auth-card .card-body {
-    padding: 50px !important;
+    padding: 50px 24px 22px !important;
     min-height: auto;
+}
+
+.register-floating-logos {
+    z-index: 4;
+}
+
+.auth-minimal-inner,
+.minimal-card-wrapper {
+    width: 100% !important;
+    max-width: 640px !important;
+}
+
+.register-brand-partnership {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: fit-content;
+    max-width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    gap: 10px;
+    margin-bottom: 0;
+}
+
+.register-logo-badge {
+    width: 54px;
+    height: 54px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    padding: 4px;
+    border: 0;
+    box-shadow: none;
+}
+
+.register-logo-badge img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.register-logo-badge--school {
+    width: 60px;
+    height: 60px;
+}
+
+.register-partner-divider {
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: #64748b;
+    text-transform: uppercase;
+}
+
+.register-hero {
+    max-width: 100%;
+}
+
+.form-stepper {
+    width: 100%;
+    max-width: 100%;
+}
+
+.student-location-row .col-12.col-lg-4.col-md-6 {
+    display: flex;
+    flex-direction: column;
+}
+
+.student-location-row .form-control {
+    width: 100%;
 }
 
 html.app-skin-dark .register-auth-card {
@@ -351,8 +433,13 @@ html.app-theme-gray .step-dot.done::after {
 }
 
 @media (max-width: 1199.98px) {
+    .auth-minimal-inner,
+    .minimal-card-wrapper {
+        max-width: 100% !important;
+    }
+
     .register-auth-card {
-        width: 100%;
+        width: min(100%, 620px);
         margin: 20px auto;
     }
 }
@@ -364,6 +451,27 @@ html.app-theme-gray .step-dot.done::after {
 
     .register-auth-card .card-body {
         padding: 1.2rem !important;
+    }
+
+    .register-logo-badge {
+        width: 48px;
+        height: 48px;
+        padding: 2px;
+    }
+
+    .register-logo-badge--school {
+        width: 52px;
+        height: 52px;
+    }
+
+    .register-brand-partnership {
+        gap: 8px;
+        margin-bottom: 10px;
+    }
+
+    .register-hero,
+    .form-stepper {
+        max-width: 100%;
     }
 
     .register-auth-card .row > [class*="col-"] {
