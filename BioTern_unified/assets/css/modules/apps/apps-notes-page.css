@@ -167,13 +167,13 @@
 .app-notes-filter-group {
     display: grid;
     gap: 0.65rem;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
 }
 
 .app-notes-filter-chip {
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
-    justify-content: space-between;
     gap: 0.65rem;
     min-height: 48px;
     padding: 0 1rem;
@@ -182,9 +182,19 @@
     background: rgba(15, 23, 42, 0.72);
     color: #cbd5e1;
     font-weight: 600;
+    min-width: 0;
+}
+
+.app-notes-filter-chip span {
+    min-width: 0;
+    white-space: nowrap;
 }
 
 .app-notes-filter-chip strong {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
     min-width: 30px;
     padding: 0.2rem 0.55rem;
     border-radius: 999px;
@@ -586,9 +596,6 @@
         min-height: 320px;
     }
 
-    .app-notes-filter-group {
-        grid-template-columns: 1fr;
-    }
 }
 
 @media (max-width: 575.98px) {
