@@ -1,4 +1,5 @@
 let currentRole = null;
+const STUDENT_ONLY_REGISTRATION = true;
 
 function parseJSONDataset(el, key, fallback) {
     if (!el) return fallback;
@@ -24,17 +25,15 @@ function escapeSelector(value) {
 }
 
         function selectRole(role) {
+            if (STUDENT_ONLY_REGISTRATION) {
+                role = 'student';
+            }
             currentRole = role;
             const roleSelection = document.getElementById('roleSelectionScreen');
             const loginLink = document.getElementById('loginLink');
             const loginLinkHidden = document.getElementById('loginLinkHidden');
 
-            const forms = {
-                'student': 'studentForm',
-                'coordinator': 'coordinatorForm',
-                'supervisor': 'supervisorForm',
-                'admin': 'adminForm'
-            };
+            const forms = { 'student': 'studentForm' };
 
             // Hide role selection and login hint (guarded)
             if (roleSelection) {
@@ -73,14 +72,15 @@ function escapeSelector(value) {
         }
 
         function backToRoles() {
+            if (STUDENT_ONLY_REGISTRATION) {
+                selectRole('student');
+                return;
+            }
             const roleSelection = document.getElementById('roleSelectionScreen');
             const loginLink = document.getElementById('loginLink');
             const loginLinkHidden = document.getElementById('loginLinkHidden');
             const forms = {
-                'student': 'studentForm',
-                'coordinator': 'coordinatorForm',
-                'supervisor': 'supervisorForm',
-                'admin': 'adminForm'
+                'student': 'studentForm'
             };
 
             // Hide forms
@@ -112,6 +112,15 @@ function escapeSelector(value) {
 
         window.selectRole = selectRole;
         window.backToRoles = backToRoles;
+
+        function enforceStudentOnlyForms() {
+            if (!STUDENT_ONLY_REGISTRATION) return;
+            const studentForm = document.getElementById('studentForm');
+            if (studentForm) {
+                studentForm.classList.add('show-form');
+                studentForm.classList.remove('hide-form');
+            }
+        }
 
         function initFormStepper(formId) {
             const form = document.getElementById(formId);
@@ -254,7 +263,7 @@ function escapeSelector(value) {
 
         // Attach validation to all forms when page loads
         document.addEventListener('DOMContentLoaded', function() {
-            const formIds = ['studentForm', 'coordinatorForm', 'supervisorForm', 'adminForm'];
+            const formIds = ['studentForm'];
             formIds.forEach(formId => {
                 const form = document.getElementById(formId);
                 if (form) {
@@ -270,9 +279,10 @@ function escapeSelector(value) {
             setupStudentDraftPersistence();
             setupStudentFinalReview();
             initFormStepper('studentForm');
-            initFormStepper('coordinatorForm');
-            initFormStepper('supervisorForm');
-            initFormStepper('adminForm');
+            enforceStudentOnlyForms();
+            if (STUDENT_ONLY_REGISTRATION) {
+                selectRole('student');
+            }
 
             const studentIdInput = document.querySelector('#studentForm input[name="student_id"]');
             if (studentIdInput) {
