@@ -628,16 +628,19 @@ include 'includes/header.php';
                 </ul>
             </div>
             <div class="page-header-right ms-auto app-applications-header-actions">
-                <div class="d-flex d-md-none align-items-center">
-                    <button type="button" class="btn btn-light-brand app-applications-actions-toggle" data-bs-toggle="collapse" data-bs-target="#applicationsReviewActionsCollapse" aria-expanded="false" aria-controls="applicationsReviewActionsCollapse">
-                        <i class="feather-align-right me-2"></i>
-                        <span>Actions</span>
-                    </button>
-                </div>
-                <div class="page-header-right-items collapse d-md-flex app-applications-actions-panel" id="applicationsReviewActionsCollapse">
-                    <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
-                        <button type="submit" form="applicationsReviewFilters" class="btn btn-sm btn-primary">Apply</button>
-                        <a href="applications-review.php" class="btn btn-sm btn-light-brand">Reset</a>
+                <button type="button" class="btn btn-sm btn-light-brand page-header-actions-toggle" aria-expanded="false" aria-controls="applicationsReviewActionsMenu">
+                    <i class="feather-grid me-1"></i>
+                    <span>Actions</span>
+                </button>
+                <div class="page-header-actions app-applications-actions-panel" id="applicationsReviewActionsMenu">
+                    <div class="dashboard-actions-panel">
+                        <div class="dashboard-actions-meta">
+                            <span class="text-muted fs-12">Quick Actions</span>
+                        </div>
+                        <div class="dashboard-actions-grid page-header-right-items-wrapper">
+                            <button type="submit" form="applicationsReviewFilters" class="btn btn-sm btn-primary">Apply</button>
+                            <a href="applications-review.php" class="btn btn-sm btn-light-brand">Reset</a>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -652,10 +655,10 @@ include 'includes/header.php';
 
             <div class="card apps-review-card">
                 <div class="card-body">
-                    <form method="get" id="applicationsReviewFilters" class="apps-review-toolbar">
+                    <form method="get" id="applicationsReviewFilters" class="apps-review-toolbar filter-form">
                         <div>
-                            <label class="form-label">Status</label>
-                            <select class="form-control" name="status">
+                            <label class="form-label" for="app-review-filter-status">Status</label>
+                            <select id="app-review-filter-status" class="form-control" name="status" data-ui-select="custom">
                                 <option value="pending" <?php echo $statusFilter === 'pending' ? 'selected' : ''; ?>>Pending</option>
                                 <option value="approved" <?php echo $statusFilter === 'approved' ? 'selected' : ''; ?>>Approved</option>
                                 <option value="rejected" <?php echo $statusFilter === 'rejected' ? 'selected' : ''; ?>>Rejected</option>
@@ -663,8 +666,8 @@ include 'includes/header.php';
                             </select>
                         </div>
                         <div>
-                            <label class="form-label">Course</label>
-                            <select class="form-control" name="course_id">
+                            <label class="form-label" for="app-review-filter-course">Course</label>
+                            <select id="app-review-filter-course" class="form-control" name="course_id" data-ui-select="custom">
                                 <option value="0">All Courses</option>
                                 <?php foreach ($courseOptions as $course): ?>
                                     <?php
@@ -678,8 +681,8 @@ include 'includes/header.php';
                             </select>
                         </div>
                         <div>
-                            <label class="form-label">Section</label>
-                            <select class="form-control" name="section_id">
+                            <label class="form-label" for="app-review-filter-section">Section</label>
+                            <select id="app-review-filter-section" class="form-control" name="section_id" data-ui-select="custom">
                                 <option value="0">All Sections</option>
                                 <?php foreach ($sectionOptions as $sec): ?>
                                     <?php
@@ -693,8 +696,8 @@ include 'includes/header.php';
                             </select>
                         </div>
                         <div>
-                            <label class="form-label">Coordinator</label>
-                            <select class="form-control" name="coordinator_id">
+                            <label class="form-label" for="app-review-filter-coordinator">Coordinator</label>
+                            <select id="app-review-filter-coordinator" class="form-control" name="coordinator_id" data-ui-select="custom">
                                 <option value="0">All Coordinators</option>
                                 <?php foreach ($coordinatorOptions as $coor): ?>
                                     <?php $coorId = (int)($coor['id'] ?? 0); ?>
@@ -703,8 +706,8 @@ include 'includes/header.php';
                             </select>
                         </div>
                         <div>
-                            <label class="form-label">Supervisor</label>
-                            <select class="form-control" name="supervisor_id">
+                            <label class="form-label" for="app-review-filter-supervisor">Supervisor</label>
+                            <select id="app-review-filter-supervisor" class="form-control" name="supervisor_id" data-ui-select="custom">
                                 <option value="0">All Supervisors</option>
                                 <?php foreach ($supervisorOptions as $sup): ?>
                                     <?php $supId = (int)($sup['id'] ?? 0); ?>

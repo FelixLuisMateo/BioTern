@@ -142,18 +142,21 @@ include 'includes/header.php';
         </ul>
     </div>
     <div class="page-header-right ms-auto app-ojt-workflow-header-actions">
-        <div class="d-flex d-md-none align-items-center">
-            <button type="button" class="btn btn-light-brand app-ojt-workflow-actions-toggle" data-bs-toggle="collapse" data-bs-target="#ojtWorkflowActionsCollapse" aria-expanded="false" aria-controls="ojtWorkflowActionsCollapse">
-                <i class="feather-align-right me-2"></i>
-                <span>Actions</span>
-            </button>
-        </div>
-        <div class="page-header-right-items collapse d-md-flex app-ojt-workflow-actions-panel" id="ojtWorkflowActionsCollapse">
-            <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
+        <button type="button" class="btn btn-sm btn-light-brand page-header-actions-toggle" aria-expanded="false" aria-controls="ojtWorkflowActionsMenu">
+            <i class="feather-grid me-1"></i>
+            <span>Actions</span>
+        </button>
+        <div class="page-header-actions app-ojt-workflow-actions-panel" id="ojtWorkflowActionsMenu">
+            <div class="dashboard-actions-panel">
+                <div class="dashboard-actions-meta">
+                    <span class="text-muted fs-12">Quick Actions</span>
+                </div>
+                <div class="dashboard-actions-grid page-header-right-items-wrapper">
                 <a href="ojt.php" class="btn btn-light-brand"><i class="feather-bar-chart-2 me-1"></i>Dashboard</a>
                 <a href="#workflowFilters" class="btn btn-outline-secondary"><i class="feather-filter me-1"></i>Filters</a>
                 <button type="button" class="btn btn-light" data-action="print-page"><i class="feather-printer me-1"></i>Print</button>
                 <a href="ojt-workflow-board.php" class="btn btn-outline-primary"><i class="feather-rotate-cw me-1"></i>Reset</a>
+                </div>
             </div>
         </div>
     </div>

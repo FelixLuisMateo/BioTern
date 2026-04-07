@@ -326,24 +326,25 @@ if (isset($_GET['registered'])) {
                                 </div>
                             </div>
                             <!-- Personal Information Section -->
-                            <div class="mb-4 step-panel" data-step="1">
+                            <div class="mb-4 step-panel register-identity-fields" data-step="1">
                                 <h5 class="fs-14 fw-bold mb-3">Personal Information</h5>
-                                <div class="row g-3">
+                                <div class="row g-3 register-field-grid register-field-grid-halves">
                                     <div class="col-6 mb-2">
-                                        <input type="text" name="student_id" class="form-control" placeholder="School ID Number" autocomplete="off" required pattern="^05-[0-9]{4,5}$" maxlength="8" title="Use format 05-1234 or 05-12345">
+                                        <input type="text" name="student_id" class="form-control register-field-input" placeholder="School ID Number" autocomplete="off" required pattern="^05-[0-9]{4,5}$" maxlength="8" title="Use format 05-1234 or 05-12345">
                                     </div>
                                     <div class="col-6 mb-2">
-                                        <input type="text" name="first_name" style="padding: 12px 16px;" class="form-control" placeholder="First name" autocomplete="given-name" required>
-                                    </div>
-                                </div>
-                                <div class="row g-3">
-                                    <div class="col-6 mb-2">
-                                        <input type="text" name="middle_name" class="form-control" placeholder="Middle name" autocomplete="additional-name">
-                                    </div>
-                                    <div class="col-6 mb-2">
-                                        <input type="text" name="last_name" class="form-control" placeholder="Last name" autocomplete="family-name" required>
+                                        <input type="text" name="first_name" class="form-control register-field-input" placeholder="First name" autocomplete="given-name" required>
                                     </div>
                                 </div>
+                                <div class="row g-3 register-field-grid register-field-grid-halves">
+                                    <div class="col-6 mb-2">
+                                        <input type="text" name="middle_name" class="form-control register-field-input" placeholder="Middle name" autocomplete="additional-name">
+                                    </div>
+                                    <div class="col-6 mb-2">
+                                        <input type="text" name="last_name" class="form-control register-field-input" placeholder="Last name" autocomplete="family-name" required>
+                                    </div>
+                                </div>
+<<<<<<< HEAD
                                 <div class="row g-3 student-location-row">
                                     <div class="col-12 col-lg-4 col-md-6 mb-2">
                                         <label class="form-label fs-12" for="studentProvinceSelect">Province</label>
@@ -368,6 +369,11 @@ if (isset($_GET['registered'])) {
                                     <div class="col-12 mb-2">
                                         <input type="text" id="studentStreetAddress" class="form-control" placeholder="Street / House No. (optional)" autocomplete="street-address">
                                         <input type="hidden" name="address" id="studentAddress" required>
+=======
+                                <div class="row g-3 register-field-grid register-field-grid-full">
+                                    <div class="col-12 mb-2">
+                                        <input type="text" name="address" class="form-control register-field-input" placeholder="Full Home Address" autocomplete="street-address" required>
+>>>>>>> da334da1e79643a51800e53ccb6076b4556fd729
                                     </div>
                                 </div>
                                 <div class="step-actions">

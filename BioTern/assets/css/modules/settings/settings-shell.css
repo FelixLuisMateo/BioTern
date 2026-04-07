@@ -148,6 +148,16 @@ html.app-skin-dark {
     color: var(--settings-accent-text);
 }
 
+.settings-menu-link.is-active small {
+    color: var(--settings-accent-text);
+    opacity: 0.82;
+}
+
+.settings-menu-link.is-active i,
+.settings-menu-link.is-active .feather-chevron-right {
+    color: var(--settings-accent-text);
+}
+
 .settings-page .form-control,
 .settings-page .form-select,
 .settings-page .input-group-text {

@@ -7,28 +7,6 @@
     flex-wrap: wrap;
 }
 
-.notifications-page .settings-sidebar-card {
-    padding: 18px;
-}
-
-.notifications-page .settings-panel-card .card-body {
-    padding: 18px;
-}
-
-.notifications-page .settings-menu-link.is-active {
-    color: var(--settings-accent-text);
-}
-
-.notifications-page .settings-menu-link.is-active small {
-    color: var(--settings-accent-text);
-    opacity: 0.82;
-}
-
-.notifications-page .settings-menu-link.is-active i,
-.notifications-page .settings-menu-link.is-active .feather-chevron-right {
-    color: var(--settings-accent-text);
-}
-
 .notifications-toolbar-copy strong {
     display: block;
     color: var(--settings-text);
@@ -113,15 +91,6 @@
     background: var(--settings-accent-bg);
     color: var(--settings-accent-text);
     font-size: 0.95rem;
-}
-
-.notifications-page .badge.bg-soft-danger,
-.notifications-page .badge.bg-soft-primary,
-.notifications-page .badge.bg-soft-warning,
-.notifications-page .badge.bg-soft-success {
-    background: var(--settings-accent-bg) !important;
-    color: var(--settings-accent-text) !important;
-    border: 1px solid var(--settings-accent-border);
 }
 
 .notification-meta {

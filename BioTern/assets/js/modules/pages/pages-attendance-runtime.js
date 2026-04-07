@@ -1,4 +1,10 @@
-function initAttendanceDataTable() {
+/*
+ * Class: module.pages.attendance-runtime
+ * Used by:
+ * - pages/attendance.php
+ */
+
+        function initAttendanceDataTable() {
             return $('#attendanceList').DataTable({
                 "pageLength": 10,
                 "ordering": true,
@@ -9,10 +15,122 @@ function initAttendanceDataTable() {
                 "autoWidth": false,
                 "order": [[2, "desc"]],
                 "columnDefs": [
-                    { "orderable": false, "targets": [0, 12] }
+                    { "orderable": false, "targets": [0, 11] }
                 ],
                 "language": {
                     "emptyTable": "No attendance records found"
+                }
+            });
+        }
+
+        var biometricAutoSyncInFlight = false;
+        var biometricAutoSyncIntervalMs = 60000;
+        var biometricAutoSyncRequest = null;
+        var biometricAutoSyncStartedAt = 0;
+        var biometricAutoSyncRequestTimeoutMs = 20000;
+
+        function escapeHtml(value) {
+            return String(value || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function showAttendanceSyncAlert(message, type) {
+            var host = document.getElementById('attendanceSyncAlertHost');
+            if (!host) {
+                return;
+            }
+
+            host.innerHTML = [
+                '<div class="alert alert-', escapeHtml(type || 'success'), ' alert-dismissible fade show" role="alert">',
+                escapeHtml(message || ''),
+                '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>',
+                '</div>'
+            ].join('');
+        }
+
+        function setManualSyncButtonBusy(isBusy) {
+            var button = document.getElementById('manualSyncMachineButton');
+            if (!button) {
+                return;
+            }
+
+            button.disabled = !!isBusy;
+            if (isBusy) {
+                button.dataset.originalHtml = button.dataset.originalHtml || button.innerHTML;
+                button.innerHTML = '<i class="feather-loader me-2"></i><span>Syncing...</span>';
+            } else if (button.dataset.originalHtml) {
+                button.innerHTML = button.dataset.originalHtml;
+            }
+        }
+
+        function runBiometricAutoSync(options) {
+            options = options || {};
+            var manual = !!options.manual;
+            var showToastOnError = !!options.showToastOnError;
+
+            // Allow manual sync even if the document is hidden.
+            if (!manual && document.hidden) {
+                return;
+            }
+
+            if (biometricAutoSyncInFlight && biometricAutoSyncRequest) {
+                var elapsed = Date.now() - biometricAutoSyncStartedAt;
+                if (elapsed > biometricAutoSyncRequestTimeoutMs) {
+                    try {
+                        biometricAutoSyncRequest.abort();
+                    } catch (e) {}
+                    biometricAutoSyncInFlight = false;
+                    biometricAutoSyncRequest = null;
+                }
+            }
+
+            if (biometricAutoSyncInFlight) {
+                return;
+            }
+
+            biometricAutoSyncInFlight = true;
+            biometricAutoSyncStartedAt = Date.now();
+            if (manual) {
+                setManualSyncButtonBusy(true);
+            }
+
+            biometricAutoSyncRequest = $.ajax({
+                url: 'legacy_router.php?file=biometric_machine_sync.php&format=json',
+                type: 'GET',
+                dataType: 'json',
+                cache: false,
+                timeout: biometricAutoSyncRequestTimeoutMs,
+                data: {
+                    _ts: Date.now()
+                }
+            }).done(function(response) {
+                if (response && response.success) {
+                    refreshAttendanceTable();
+                    if (manual) {
+                        showAttendanceSyncAlert('Machine sync complete.', 'success');
+                    }
+                } else if (showToastOnError) {
+                    showToast((response && response.message) ? response.message : 'Machine sync failed.', 'danger');
+                    if (manual) {
+                        showAttendanceSyncAlert((response && response.message) ? response.message : 'Machine sync failed.', 'danger');
+                    }
+                }
+            }).fail(function(xhr) {
+                if (showToastOnError) {
+                    showToast(manual ? 'Machine sync failed.' : 'Automatic machine sync failed.', 'danger');
+                }
+                if (manual) {
+                    showAttendanceSyncAlert('Machine sync failed.', 'danger');
+                }
+            }).always(function() {
+                biometricAutoSyncInFlight = false;
+                biometricAutoSyncRequest = null;
+                if (manual) {
+                    setManualSyncButtonBusy(false);
                 }
             });
         }
@@ -29,8 +147,7 @@ function initAttendanceDataTable() {
                         allowClear: false,
                         dropdownAutoWidth: false,
                         minimumResultsForSearch: Infinity,
-                        dropdownParent: $attendanceFilterForm,
-                        theme: 'bootstrap-5'
+                        dropdownParent: $attendanceFilterForm
                     });
                 }
             });
@@ -40,8 +157,7 @@ function initAttendanceDataTable() {
                         width: '100%',
                         allowClear: false,
                         dropdownAutoWidth: false,
-                        dropdownParent: $attendanceFilterForm,
-                        theme: 'bootstrap-5'
+                        dropdownParent: $attendanceFilterForm
                     });
                 }
             });
@@ -56,7 +172,7 @@ function initAttendanceDataTable() {
                 form.submit();
             }
 
-            $('#attendanceFilterForm').on('change', 'input[name="date"], select[name="course_id"], select[name="department_id"], select[name="section_id"], select[name="school_year"], select[name="supervisor"], select[name="coordinator"]', function() {
+            $('#attendanceFilterForm').on('change', 'input[name="date"], select[name="school_year"], select[name="course_id"], select[name="department_id"], select[name="section_id"], select[name="supervisor"], select[name="coordinator"]', function() {
                 submitAttendanceFilters();
             });
 
@@ -158,56 +274,41 @@ function initAttendanceDataTable() {
                 updateBulkActionsToolbar();
             });
 
-            // Delegate attendance row and bulk actions to avoid inline onclick handlers.
-            $(document).on('click', '[data-attendance-action]', function(e) {
-                var action = $(this).data('attendance-action');
-                if (!action) return;
-                e.preventDefault();
-
-                var attendanceId = parseInt($(this).data('attendance-id'), 10);
-                var studentId = parseInt($(this).data('student-id'), 10);
-                var bulkAction = $(this).data('bulk-action');
-
-                if (action === 'view-details') {
-                    viewDetails(studentId);
-                    return;
-                }
-                if (action === 'approve-individual') {
-                    approveAttendanceIndividual(attendanceId);
-                    return;
-                }
-                if (action === 'reject-individual') {
-                    rejectAttendanceIndividual(attendanceId);
-                    return;
-                }
-                if (action === 'edit-attendance') {
-                    editAttendance(attendanceId);
-                    return;
-                }
-                if (action === 'print-attendance') {
-                    printAttendance(attendanceId);
-                    return;
-                }
-                if (action === 'send-notification') {
-                    sendNotification(attendanceId);
-                    return;
-                }
-                if (action === 'delete-individual') {
-                    deleteAttendanceIndividual(attendanceId);
-                    return;
-                }
-                if (action === 'bulk-action') {
-                    performBulkAction(bulkAction);
-                    return;
-                }
-                if (action === 'clear-selection') {
-                    clearSelection();
-                }
-            });
-
             // Initialize tooltips
             $('[data-bs-toggle="tooltip"]').each(function() {
                 new bootstrap.Tooltip(this);
+            });
+
+            setTimeout(function() {
+                runBiometricAutoSync({ showToastOnError: false });
+            }, 1500);
+
+            setInterval(function() {
+                runBiometricAutoSync({ showToastOnError: false });
+            }, biometricAutoSyncIntervalMs);
+
+            document.addEventListener('visibilitychange', function() {
+                if (!document.hidden) {
+                    runBiometricAutoSync({ showToastOnError: false });
+                }
+            });
+
+            // Resume sync immediately when the device wakes or network returns.
+            window.addEventListener('focus', function() {
+                runBiometricAutoSync({ showToastOnError: false });
+            });
+            window.addEventListener('pageshow', function() {
+                runBiometricAutoSync({ showToastOnError: false });
+            });
+            window.addEventListener('online', function() {
+                runBiometricAutoSync({ showToastOnError: false });
+            });
+
+            $('#manualSyncMachineButton').on('click', function() {
+                runBiometricAutoSync({
+                    manual: true,
+                    showToastOnError: true
+                });
             });
         });
 
@@ -554,3 +655,50 @@ function initAttendanceDataTable() {
                 });
             }
         }
+
+        (function () {
+            document.addEventListener('DOMContentLoaded', function () {
+                var darkBtn = document.querySelector('.dark-button');
+                var lightBtn = document.querySelector('.light-button');
+
+                function setDark(isDark) {
+                    if (isDark) {
+                        document.documentElement.classList.add('app-skin-dark');
+                        try {
+                            localStorage.setItem('app-skin', 'app-skin-dark');
+                            localStorage.setItem('app_skin', 'app-skin-dark');
+                            localStorage.setItem('theme', 'dark');
+                            localStorage.setItem('app-skin-dark', 'app-skin-dark');
+                        } catch (e) {}
+                        if (darkBtn) darkBtn.style.display = 'none';
+                        if (lightBtn) lightBtn.style.display = '';
+                    } else {
+                        document.documentElement.classList.remove('app-skin-dark');
+                        try {
+                            localStorage.setItem('app-skin', '');
+                            localStorage.setItem('app_skin', '');
+                            localStorage.setItem('theme', 'light');
+                            localStorage.removeItem('app-skin-dark');
+                        } catch (e) {}
+                        if (darkBtn) darkBtn.style.display = '';
+                        if (lightBtn) lightBtn.style.display = 'none';
+                    }
+                }
+
+                var skin = '';
+                try {
+                    var appSkin = localStorage.getItem('app-skin');
+                    var appSkinAlt = localStorage.getItem('app_skin');
+                    var theme = localStorage.getItem('theme');
+                    var legacy = localStorage.getItem('app-skin-dark');
+                    if (appSkin !== null) skin = appSkin;
+                    else if (appSkinAlt !== null) skin = appSkinAlt;
+                    else if (theme !== null) skin = theme;
+                    else if (legacy !== null) skin = legacy;
+                } catch (e) {}
+                setDark((typeof skin === 'string' && skin.indexOf('dark') !== -1) || document.documentElement.classList.contains('app-skin-dark'));
+
+                if (darkBtn) darkBtn.addEventListener('click', function (e) { e.preventDefault(); setDark(true); });
+                if (lightBtn) lightBtn.addEventListener('click', function (e) { e.preventDefault(); setDark(false); });
+            });
+        })();

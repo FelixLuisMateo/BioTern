@@ -15,7 +15,7 @@ if (!function_exists('run_biometric_auto_import')) {
 if (!function_exists('run_biometric_auto_import_stats')) {
     function run_biometric_auto_import_stats(?string $attendanceFile = null): array
     {
-        $attendanceFile = $attendanceFile ?: (__DIR__ . '/../../attendance.txt');
+        $attendanceFile = $attendanceFile ?: (dirname(__DIR__) . '/attendance.txt');
         $machineConfig = loadBiometricMachineConfig();
         $conn = biometric_shared_db();
         section_schedule_ensure_columns($conn);

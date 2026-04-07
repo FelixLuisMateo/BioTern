@@ -229,6 +229,10 @@ $map = [
   'reports-chat-logs.php' => 'reports/reports-chat-logs.php',
   'reports-chat-reports.php' => 'reports/reports-chat-reports.php',
 
+  'settings-general.php' => 'settings/settings-general.php',
+  'settings-email.php' => 'settings/settings-email.php',
+  'settings-ojt.php' => 'settings/settings-ojt.php',
+  'settings-students.php' => 'settings/settings-students.php',
   'settings-support.php' => 'settings/settings-support.php',
   'account-settings.php' => 'settings/account-settings.php',
   'notifications.php' => 'pages/notifications.php',
@@ -253,7 +257,6 @@ $map = [
   'register_fingerprint.php' => 'api/register_fingerprint.php',
   'register_submit.php' => 'api/register_submit.php',
 
-  'help-knowledgebase.php' => 'public/help-knowledgebase.php',
   'create_admin.php' => 'auth/create_admin.php',
   'users.php' => 'auth/users.php',
   'idnotfound-404.php' => 'auth/idnotfound-404.php',
@@ -435,7 +438,11 @@ if ($is_logged_in) {
   ];
   $system_files = [
     'auth-register-creative.php', 'users.php', 'create_admin.php',
-    'settings-support.php', 'import-sql.php', 'import-students-excel.php',
+    'import-sql.php', 'import-students-excel.php',
+  ];
+  $settings_files = [
+    'settings-general.php', 'settings-email.php',
+    'settings-ojt.php', 'settings-students.php', 'settings-support.php',
   ];
 
   $deny = false;
@@ -449,6 +456,9 @@ if ($is_logged_in) {
     $deny = true;
   }
   if (in_array($file, $system_files, true) && $current_role !== 'admin') {
+    $deny = true;
+  }
+  if (in_array($file, $settings_files, true) && !in_array($current_role, ['admin', 'coordinator'], true)) {
     $deny = true;
   }
 

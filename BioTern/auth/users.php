@@ -250,236 +250,41 @@ if ($stats_res) {
     }
 }
 
-$page_title = 'Users Account';
+function format_users_datetime(?string $value): string
+{
+    $value = trim((string)$value);
+    if ($value === '' || $value === '0000-00-00 00:00:00') {
+        return '-';
+    }
+
+    $ts = strtotime($value);
+    if ($ts === false) {
+        return $value;
+    }
+
+    return date('M d, Y', $ts);
+}
+
+function users_role_label(string $role): string
+{
+    return ucwords(str_replace('_', ' ', trim($role)));
+}
+
+$page_title = 'BioTern || Users';
 $base_href = '';
+$page_body_class = 'app-page-users-admin';
+$page_styles = [
+    'assets/css/modules/management/management-filters.css',
+    'assets/css/modules/auth/page-users-admin.css',
+];
+$page_scripts = [
+    'assets/js/modules/auth/users-page.js',
+    'assets/js/theme-customizer-init.min.js',
+];
 include __DIR__ . '/../includes/header.php';
 ?>
 <main class="nxl-container">
     <div class="nxl-content">
-
-<style>
-    .users-admin-page .stat-card {
-        border: 1px solid rgba(15, 23, 42, 0.08);
-        border-radius: 14px;
-        box-shadow: 0 10px 24px rgba(2, 6, 23, 0.06);
-    }
-    .users-admin-page {
-        padding-top: 0.1rem;
-    }
-    .users-admin-page .stat-label {
-        font-size: 0.7rem;
-        letter-spacing: 0.03em;
-        text-transform: uppercase;
-        color: #6b7280;
-        margin-bottom: 0.05rem;
-    }
-    .users-admin-page .users-panel {
-        border: 1px solid rgba(15, 23, 42, 0.1);
-        border-radius: 16px;
-        overflow: hidden;
-        box-shadow: 0 12px 28px rgba(2, 6, 23, 0.06);
-        max-width: 100%;
-    }
-    .users-admin-page .users-panel .card-header {
-        background: linear-gradient(180deg, rgba(248, 250, 252, 0.95) 0%, rgba(241, 245, 249, 0.9) 100%);
-        border-bottom: 1px solid rgba(148, 163, 184, 0.25);
-        padding: 0.5rem 0.75rem;
-    }
-    .users-admin-page .users-panel .card-header .form-label {
-        margin-bottom: 0.2rem !important;
-        font-size: 0.78rem;
-    }
-    .users-admin-page .users-panel .card-header .form-control,
-    .users-admin-page .users-panel .card-header .form-select,
-    .users-admin-page .users-panel .card-header .btn {
-        height: 34px;
-        padding-top: 0.3rem;
-        padding-bottom: 0.3rem;
-    }
-    .users-admin-page .users-table {
-        width: max-content;
-        min-width: 100%;
-        table-layout: auto;
-    }
-    .users-admin-page .users-table thead th {
-        border-bottom-width: 1px;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-        font-size: 0.7rem;
-        color: #64748b;
-        background: rgba(248, 250, 252, 0.7);
-        white-space: nowrap;
-    }
-    .users-admin-page .users-table td {
-        white-space: nowrap;
-        vertical-align: middle;
-    }
-    .users-admin-page .users-table .user-cell {
-        min-width: 190px;
-    }
-    .users-admin-page .user-avatar {
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        object-fit: cover;
-        border: 1px solid rgba(148, 163, 184, 0.35);
-        background: #fff;
-    }
-    .users-admin-page .users-table .email-cell {
-        max-width: 220px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-    .users-admin-page .users-table .created-cell {
-        color: #64748b;
-        font-size: 0.84rem;
-    }
-    .users-admin-page .actions-group {
-        display: flex;
-        align-items: center;
-        flex-wrap: nowrap;
-        gap: 0.45rem;
-        min-width: 450px;
-    }
-    .users-admin-page .actions-group .role-form {
-        flex: 1 1 160px;
-        min-width: 140px;
-    }
-    .users-admin-page .actions-group form {
-        margin: 0;
-    }
-    .users-admin-page .actions-group .form-select,
-    .users-admin-page .actions-group .btn {
-        height: 32px;
-        font-size: 0.78rem;
-        border-radius: 8px;
-    }
-    .users-admin-page .actions-group .upload-form {
-        display: flex;
-        align-items: center;
-        gap: 0.35rem;
-        flex: 0 0 auto;
-    }
-    .users-admin-page .actions-group .upload-form .form-control {
-        width: 150px;
-        min-width: 130px;
-        height: 32px;
-        font-size: 0.75rem;
-        padding: 0.2rem 0.35rem;
-    }
-    .users-admin-page .actions-group .upload-form .btn {
-        white-space: nowrap;
-    }
-    .users-admin-page .actions-group .role-form .form-select {
-        width: 100%;
-        border-color: rgba(100, 116, 139, 0.25);
-        background-color: rgba(255, 255, 255, 0.88);
-        color: #1f2937 !important;
-        -webkit-text-fill-color: #1f2937 !important;
-        opacity: 1 !important;
-        font-weight: 600;
-        line-height: 1.25;
-        padding-top: 0.42rem;
-        padding-bottom: 0.42rem;
-    }
-    .users-admin-page .actions-group .role-form .form-select option {
-        color: #111827;
-    }
-    .users-admin-page .actions-group .btn {
-        padding: 0.35rem 0.7rem;
-        font-weight: 700;
-        letter-spacing: 0.01em;
-    }
-    .users-admin-page .actions-group .btn {
-        padding-left: 0.75rem;
-        padding-right: 0.75rem;
-    }
-    .users-admin-page .table-responsive {
-        max-width: 100%;
-        overflow-x: auto;
-        overflow-y: hidden;
-    }
-    @media (max-width: 1400px) {
-        .users-admin-page .actions-group {
-            min-width: 310px;
-        }
-        .users-admin-page .actions-group .btn,
-        .users-admin-page .actions-group .form-select {
-            width: auto;
-        }
-    }
-    @media (max-width: 1200px) {
-        .users-admin-page .users-table {
-            min-width: 1120px;
-        }
-    }
-    .app-skin-dark .users-admin-page .stat-card,
-    .app-skin-dark .users-admin-page .users-panel {
-        border-color: rgba(148, 163, 184, 0.18);
-        box-shadow: none;
-    }
-    .app-skin-dark .users-admin-page .users-panel .card-header,
-    .app-skin-dark .users-admin-page .users-table thead th {
-        background: rgba(15, 23, 42, 0.55);
-        color: #cbd5e1;
-    }
-    .app-skin-dark .users-admin-page .form-select {
-        background-color: rgba(15, 23, 42, 0.72) !important;
-        border-color: rgba(148, 163, 184, 0.28) !important;
-        color: #f8fafc !important;
-        -webkit-text-fill-color: #f8fafc !important;
-        opacity: 1 !important;
-    }
-    .app-skin-dark .users-admin-page .form-select:focus {
-        border-color: #3b82f6 !important;
-        box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.25) !important;
-    }
-    .app-skin-dark .users-admin-page .form-select option {
-        background-color: #0f172a !important;
-        color: #e2e8f0 !important;
-    }
-    .app-skin-dark .users-admin-page .actions-group .role-form .form-select {
-        background-color: rgba(15, 23, 42, 0.55);
-        border-color: rgba(148, 163, 184, 0.2);
-        color: #f8fafc !important;
-        -webkit-text-fill-color: #f8fafc !important;
-        opacity: 1 !important;
-    }
-    .app-skin-dark .users-admin-page .actions-group .role-form .form-select option {
-        color: #e2e8f0;
-        background-color: #0f172a;
-    }
-    .app-skin-dark .users-admin-page .actions-group .upload-form .form-control {
-        color: #f8fafc !important;
-        background-color: rgba(15, 23, 42, 0.72) !important;
-        border-color: rgba(148, 163, 184, 0.28) !important;
-    }
-    .app-skin-dark .users-admin-page .actions-group .upload-form .form-control::file-selector-button {
-        color: #f8fafc !important;
-        background: #1f2937 !important;
-        border: 1px solid rgba(148, 163, 184, 0.35) !important;
-    }
-    .app-skin-dark .users-admin-page .actions-group .upload-form .form-control::-webkit-file-upload-button {
-        color: #f8fafc !important;
-        background: #1f2937 !important;
-        border: 1px solid rgba(148, 163, 184, 0.35) !important;
-    }
-    .app-skin-dark .users-admin-page .actions-group .btn-action-toggle {
-        border-color: #f59e0b;
-        color: #fbbf24;
-        background-color: transparent;
-    }
-    .app-skin-dark .users-admin-page .actions-group .btn-action-delete {
-        border-color: #f43f5e;
-        color: #fb7185;
-        background-color: transparent;
-    }
-    .app-skin-dark .users-admin-page .stat-label,
-    .app-skin-dark .users-admin-page .users-table .created-cell {
-        color: #94a3b8;
-    }
-</style>
 
 <div class="page-header">
     <div class="page-header-left d-flex align-items-center">
@@ -503,7 +308,7 @@ include __DIR__ . '/../includes/header.php';
 
     <div class="row g-1 mb-1">
         <div class="col-md-3">
-            <div class="card stat-card">
+            <div class="card stat-card app-users-stat-card">
                 <div class="card-body py-1 px-3">
                     <div class="stat-label">Total Users</div>
                     <div class="h5 mb-0"><?php echo $stats['total']; ?></div>
@@ -511,7 +316,7 @@ include __DIR__ . '/../includes/header.php';
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card stat-card">
+            <div class="card stat-card app-users-stat-card">
                 <div class="card-body py-1 px-3">
                     <div class="stat-label">Active</div>
                     <div class="h5 mb-0 text-success"><?php echo $stats['active']; ?></div>
@@ -519,7 +324,7 @@ include __DIR__ . '/../includes/header.php';
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card stat-card">
+            <div class="card stat-card app-users-stat-card">
                 <div class="card-body py-1 px-3">
                     <div class="stat-label">Inactive</div>
                     <div class="h5 mb-0 text-danger"><?php echo $stats['inactive']; ?></div>
@@ -527,7 +332,7 @@ include __DIR__ . '/../includes/header.php';
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card stat-card">
+            <div class="card stat-card app-users-stat-card">
                 <div class="card-body py-1 px-3">
                     <div class="stat-label">Admins</div>
                     <div class="h5 mb-0"><?php echo $stats['admins']; ?></div>
@@ -536,16 +341,30 @@ include __DIR__ . '/../includes/header.php';
         </div>
     </div>
 
-    <div class="card stretch stretch-full users-panel">
-        <div class="card-header">
-            <form method="get" class="row g-2 align-items-end">
-                <div class="col-md-4">
-                    <label class="form-label mb-1" for="usersFilterSearch">Search</label>
+    <section class="app-users-filter-section">
+        <div class="filter-panel filter-card app-users-filter-card">
+            <div class="filter-panel-head app-users-filter-head">
+                <div>
+                    <div class="filter-panel-label app-users-filter-label">
+                        <i class="feather-users"></i>
+                        <span>Filter Users</span>
+                    </div>
+                    <p class="filter-panel-sub app-users-filter-sub">Search accounts by name, username, email, role, and active status.</p>
+                </div>
+                <div class="filter-panel-head-actions app-users-filter-actions">
+                    <?php $active_user_filter_count = ($search !== '' ? 1 : 0) + ($role_filter !== 'all' ? 1 : 0) + ($status_filter !== 'all' ? 1 : 0); ?>
+                    <span class="app-users-filter-status"><?php echo $active_user_filter_count; ?> active filter<?php echo $active_user_filter_count === 1 ? '' : 's'; ?></span>
+                    <a href="users.php" class="btn btn-outline-secondary btn-sm px-3">Reset</a>
+                </div>
+            </div>
+            <form method="get" class="filter-form row g-2 align-items-end app-users-filter-form" id="usersFilterForm">
+                <div class="col-xl-4 col-lg-5 col-md-6">
+                    <label class="form-label" for="usersFilterSearch">Search</label>
                     <input type="text" id="usersFilterSearch" name="q" class="form-control" value="<?php echo e($search); ?>" placeholder="Name, username, or email">
                 </div>
-                <div class="col-md-3">
-                    <label class="form-label mb-1" for="usersFilterRole">Role</label>
-                    <select id="usersFilterRole" name="role" class="form-select">
+                <div class="col-xl-3 col-lg-3 col-md-6">
+                    <label class="form-label" for="usersFilterRole">Role</label>
+                    <select id="usersFilterRole" name="role" class="form-control" data-ui-select="custom">
                         <option value="all" <?php echo $role_filter === 'all' ? 'selected' : ''; ?>>All Roles</option>
                         <option value="admin" <?php echo $role_filter === 'admin' ? 'selected' : ''; ?>>Admin</option>
                         <option value="coordinator" <?php echo $role_filter === 'coordinator' ? 'selected' : ''; ?>>Coordinator</option>
@@ -553,121 +372,165 @@ include __DIR__ . '/../includes/header.php';
                         <option value="student" <?php echo $role_filter === 'student' ? 'selected' : ''; ?>>Student</option>
                     </select>
                 </div>
-                <div class="col-md-3">
-                    <label class="form-label mb-1" for="usersFilterStatus">Status</label>
-                    <select id="usersFilterStatus" name="status" class="form-select">
+                <div class="col-xl-3 col-lg-3 col-md-6">
+                    <label class="form-label" for="usersFilterStatus">Status</label>
+                    <select id="usersFilterStatus" name="status" class="form-control" data-ui-select="custom">
                         <option value="all" <?php echo $status_filter === 'all' ? 'selected' : ''; ?>>All Status</option>
                         <option value="active" <?php echo $status_filter === 'active' ? 'selected' : ''; ?>>Active</option>
                         <option value="inactive" <?php echo $status_filter === 'inactive' ? 'selected' : ''; ?>>Inactive</option>
                     </select>
                 </div>
-                <div class="col-md-2 d-flex gap-2">
-                    <button type="submit" class="btn btn-primary w-100">Filter</button>
-                    <a href="users.php" class="btn btn-outline-secondary">Reset</a>
+                <div class="col-xl-2 col-lg-1 col-md-6 d-flex">
+                    <button type="submit" class="btn btn-primary w-100">Apply</button>
                 </div>
             </form>
         </div>
+    </section>
+
+    <div class="card stretch stretch-full app-users-table-card app-data-card app-data-toolbar">
         <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0 users-table">
+            <div class="table-responsive app-users-table-wrap app-data-table-wrap">
+                <table class="table table-hover align-middle mb-0 app-users-list-table app-data-table" id="usersListTable">
                     <thead>
                         <tr>
-                            <th>ID</th>
                             <th>User</th>
-                            <th>Email</th>
-                            <th>Role</th>
+                            <th>Account</th>
                             <th>Status</th>
-                            <th>Verified</th>
-                            <th>Created</th>
-                            <th>Actions</th>
+                            <th>Activity</th>
+                            <th class="text-end">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if (!$rows): ?>
                             <tr>
-                                <td colspan="8" class="text-center py-4 text-muted">No users found.</td>
+                                <td colspan="5" class="text-center py-4 text-muted">No users found.</td>
                             </tr>
                         <?php endif; ?>
-                        <?php foreach ($rows as $r): ?>
+                        <?php foreach ($rows as $index => $r): ?>
                             <?php
                                 $id = (int)$r['id'];
                                 $is_active = (int)($r['is_active'] ?? 0) === 1;
                                 $role = strtolower((string)($r['role'] ?? 'student'));
+                                $role_label = users_role_label($role);
                                 $pp = normalized_upload_path((string)($r['profile_picture'] ?? ''));
-                                $pp_url = '';
-                                if ($pp !== '' && file_exists(dirname(__DIR__) . '/' . $pp)) {
-                                    $mtime = @filemtime(dirname(__DIR__) . '/' . $pp);
-                                    $pp_url = $pp . ($mtime ? ('?v=' . $mtime) : '');
-                                }
+                                $pp_url = $pp !== '' ? header_resolve_avatar_href($pp, 'assets/images/avatar/' . (($index % 5) + 1) . '.png') : '';
+                                $display_name = trim((string)($r['name'] ?? ''));
+                                $username_label = (string)($r['username'] ?? '-');
+                                $email_label = (string)($r['email'] ?? '-');
+                                $created_label = format_users_datetime((string)($r['created_at'] ?? ''));
+                                $updated_label = format_users_datetime((string)($r['updated_at'] ?? ''));
+                                $verified = !empty($r['email_verified_at']);
+                                $verified_label = $verified ? 'Verified' : 'Not Verified';
                             ?>
-                            <tr>
-                                <td><?php echo $id; ?></td>
-                                <td class="user-cell">
-                                    <div class="d-flex align-items-center gap-2">
+                            <tr class="app-users-table-row">
+                                <td data-label="User">
+                                    <div class="app-users-student-block">
                                         <?php if ($pp_url !== ''): ?>
-                                            <img src="<?php echo e($pp_url); ?>" alt="avatar" class="user-avatar">
+                                            <img src="<?php echo e($pp_url); ?>" alt="avatar" class="app-users-avatar">
                                         <?php else: ?>
-                                            <img src="../assets/images/avatar/<?php echo ($id % 5) + 1; ?>.png" alt="avatar" class="user-avatar">
+                                            <img src="<?php echo e(header_asset_versioned_href('assets/images/avatar/' . (($index % 5) + 1) . '.png')); ?>" alt="avatar" class="app-users-avatar">
                                         <?php endif; ?>
-                                        <div>
-                                            <div class="fw-semibold"><?php echo e($r['name'] ?? '-'); ?></div>
-                                            <div class="text-muted small">@<?php echo e($r['username'] ?? '-'); ?></div>
+                                        <div class="app-users-student-copy">
+                                            <span class="app-users-student-name"><?php echo e($display_name !== '' ? $display_name : '-'); ?></span>
+                                            <span class="app-users-student-meta">@<?php echo e($username_label); ?></span>
+                                            <span class="app-users-student-submeta">ID <?php echo $id; ?></span>
+                                        </div>
+                                    </div>
+                                    <div class="collapse app-users-inline-collapse" id="userRowDetails<?php echo $id; ?>">
+                                        <div class="app-users-inline-details">
+                                            <div class="app-users-inline-detail-item">
+                                                <span class="app-users-inline-detail-label">Email</span>
+                                                <span class="app-users-inline-detail-value"><?php echo e($email_label); ?></span>
+                                            </div>
+                                            <div class="app-users-inline-detail-item app-users-inline-detail-item-stack">
+                                                <span class="app-users-inline-detail-label">Role</span>
+                                                <form method="post" class="app-users-inline-form">
+                                                    <input type="hidden" name="action" value="update_role">
+                                                    <input type="hidden" name="id" value="<?php echo $id; ?>">
+                                                    <select name="role" class="form-control app-users-inline-select" data-ui-select="custom" onchange="this.form.submit();">
+                                                        <option value="admin" <?php echo $role === 'admin' ? 'selected' : ''; ?>>Admin</option>
+                                                        <option value="coordinator" <?php echo $role === 'coordinator' ? 'selected' : ''; ?>>Coordinator</option>
+                                                        <option value="supervisor" <?php echo $role === 'supervisor' ? 'selected' : ''; ?>>Supervisor</option>
+                                                        <option value="student" <?php echo $role === 'student' ? 'selected' : ''; ?>>Student</option>
+                                                    </select>
+                                                </form>
+                                            </div>
+                                            <div class="app-users-inline-detail-item app-users-inline-detail-item-stack">
+                                                <span class="app-users-inline-detail-label">Profile Photo</span>
+                                                <form method="post" enctype="multipart/form-data" class="app-users-upload-form">
+                                                    <input type="hidden" name="action" value="upload_profile_picture">
+                                                    <input type="hidden" name="id" value="<?php echo $id; ?>">
+                                                    <input type="file" name="profile_picture" class="form-control" accept="image/*" required>
+                                                    <button type="submit" class="btn btn-sm btn-outline-primary">Upload</button>
+                                                </form>
+                                            </div>
                                         </div>
                                     </div>
                                 </td>
-                                <td class="email-cell"><?php echo e($r['email'] ?? '-'); ?></td>
-                                <td>
-                                    <span class="badge bg-soft-primary text-primary text-capitalize"><?php echo e($role); ?></span>
+                                <td data-label="Account">
+                                    <div class="app-users-cell-stack">
+                                        <span class="app-users-cell-title">Role</span>
+                                        <span class="app-users-role-pill is-<?php echo e($role); ?>"><?php echo e($role_label); ?></span>
+                                        <span class="app-users-cell-meta"><?php echo e($email_label); ?></span>
+                                    </div>
                                 </td>
-                                <td>
-                                    <?php if ($is_active): ?>
-                                        <span class="badge bg-success">Active</span>
-                                    <?php else: ?>
-                                        <span class="badge bg-secondary">Inactive</span>
-                                    <?php endif; ?>
+                                <td data-label="Status">
+                                    <div class="app-users-status-block">
+                                        <span class="app-users-status-pill <?php echo $is_active ? 'is-active' : 'is-inactive'; ?>">
+                                            <?php echo $is_active ? 'Active' : 'Inactive'; ?>
+                                        </span>
+                                        <span class="app-users-status-pill <?php echo $verified ? 'is-verified' : 'is-unverified'; ?>">
+                                            <?php echo e($verified_label); ?>
+                                        </span>
+                                    </div>
                                 </td>
-                                <td>
-                                    <?php if (!empty($r['email_verified_at'])): ?>
-                                        <span class="badge bg-soft-success text-success">Verified</span>
-                                    <?php else: ?>
-                                        <span class="badge bg-soft-warning text-warning">Not Verified</span>
-                                    <?php endif; ?>
+                                <td data-label="Activity">
+                                    <div class="app-users-cell-stack">
+                                        <span class="app-users-cell-title">Created</span>
+                                        <span class="app-users-cell-value"><?php echo e($created_label); ?></span>
+                                        <span class="app-users-cell-meta">Updated <?php echo e($updated_label); ?></span>
+                                    </div>
                                 </td>
-                                <td class="created-cell"><?php echo e($r['created_at'] ?? '-'); ?></td>
-                                <td>
-                                    <div class="actions-group">
-                                        <form method="post" class="role-form">
-                                            <input type="hidden" name="action" value="update_role">
-                                            <input type="hidden" name="id" value="<?php echo $id; ?>">
-                                            <select name="role" class="form-select form-select-sm" onchange="this.form.submit();">
-                                                <option value="admin" <?php echo $role === 'admin' ? 'selected' : ''; ?>>Admin</option>
-                                                <option value="coordinator" <?php echo $role === 'coordinator' ? 'selected' : ''; ?>>Coordinator</option>
-                                                <option value="supervisor" <?php echo $role === 'supervisor' ? 'selected' : ''; ?>>Supervisor</option>
-                                                <option value="student" <?php echo $role === 'student' ? 'selected' : ''; ?>>Student</option>
-                                            </select>
-                                        </form>
-
-                                        <form method="post">
-                                            <input type="hidden" name="action" value="toggle_status">
-                                            <input type="hidden" name="id" value="<?php echo $id; ?>">
-                                            <input type="hidden" name="next_status" value="<?php echo $is_active ? 0 : 1; ?>">
-                                            <button type="submit" class="btn btn-sm btn-action-toggle <?php echo $is_active ? 'btn-outline-warning' : 'btn-outline-success'; ?>">
-                                                <?php echo $is_active ? 'Deactivate' : 'Activate'; ?>
-                                            </button>
-                                        </form>
-
-                                        <form method="post" enctype="multipart/form-data" class="upload-form">
-                                            <input type="hidden" name="action" value="upload_profile_picture">
-                                            <input type="hidden" name="id" value="<?php echo $id; ?>">
-                                            <input type="file" name="profile_picture" class="form-control form-control-sm" accept="image/*" required>
-                                            <button type="submit" class="btn btn-sm btn-outline-primary">Upload</button>
-                                        </form>
-
-                                        <form method="post" onsubmit="return confirm('Delete this user account? This cannot be undone.');">
-                                            <input type="hidden" name="action" value="delete">
-                                            <input type="hidden" name="id" value="<?php echo $id; ?>">
-                                            <button type="submit" class="btn btn-sm btn-action-delete btn-outline-danger">Delete</button>
-                                        </form>
+                                <td data-label="Actions">
+                                    <div class="app-users-row-actions">
+                                        <button class="btn btn-sm btn-outline-secondary app-users-inline-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#userRowDetails<?php echo $id; ?>" aria-expanded="false" aria-controls="userRowDetails<?php echo $id; ?>">
+                                            Details
+                                        </button>
+                                        <div class="dropdown users-action-dropdown">
+                                            <a href="javascript:void(0)" class="btn btn-sm btn-light app-users-menu-toggle" data-bs-toggle="dropdown" data-bs-offset="0,21" aria-label="More actions">
+                                                <i class="feather feather-more-horizontal"></i>
+                                            </a>
+                                            <ul class="dropdown-menu">
+                                                <li>
+                                                    <form method="post" class="m-0">
+                                                        <input type="hidden" name="action" value="toggle_status">
+                                                        <input type="hidden" name="id" value="<?php echo $id; ?>">
+                                                        <input type="hidden" name="next_status" value="<?php echo $is_active ? 0 : 1; ?>">
+                                                        <button type="submit" class="dropdown-item">
+                                                            <i class="feather feather-power me-3"></i>
+                                                            <span><?php echo $is_active ? 'Deactivate' : 'Activate'; ?></span>
+                                                        </button>
+                                                    </form>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item" href="mailto:<?php echo rawurlencode($email_label); ?>">
+                                                        <i class="feather feather-mail me-3"></i>
+                                                        <span>Email User</span>
+                                                    </a>
+                                                </li>
+                                                <li class="dropdown-divider"></li>
+                                                <li>
+                                                    <form method="post" class="m-0" onsubmit="return confirm('Delete this user account? This cannot be undone.');">
+                                                        <input type="hidden" name="action" value="delete">
+                                                        <input type="hidden" name="id" value="<?php echo $id; ?>">
+                                                        <button type="submit" class="dropdown-item">
+                                                            <i class="feather feather-trash-2 me-3"></i>
+                                                            <span>Delete</span>
+                                                        </button>
+                                                    </form>
+                                                </li>
+                                            </ul>
+                                        </div>
                                     </div>
                                 </td>
                             </tr>

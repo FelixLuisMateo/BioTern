@@ -259,6 +259,34 @@ html.app-theme-gray .filter-toggle-btn {
   box-shadow: none !important;
 }
 
+html.app-theme-gray {
+  --biotern-data-card-bg: var(--biotern-surface);
+  --biotern-data-card-border: var(--biotern-border);
+  --biotern-data-head-bg: var(--biotern-surface-muted);
+  --biotern-data-head-text: #4b5563;
+  --biotern-data-cell-border: var(--biotern-border);
+  --biotern-data-row-hover: rgba(107, 114, 128, 0.06);
+  --biotern-data-muted: #6b7280;
+}
+
+html.app-theme-gray.app-skin-dark {
+  --biotern-data-card-bg: var(--biotern-surface);
+  --biotern-data-card-border: var(--biotern-border);
+  --biotern-data-head-bg: var(--biotern-surface-muted);
+  --biotern-data-head-text: #cfd5dc;
+  --biotern-data-cell-border: var(--biotern-border);
+  --biotern-data-row-hover: rgba(255, 255, 255, 0.03);
+  --biotern-data-muted: #9aa3b2;
+}
+
+html.app-theme-gray .biotern-select-wrap {
+  --biotern-select-menu-shadow: 0 14px 28px rgba(15, 23, 42, 0.1);
+}
+
+html.app-theme-gray.app-skin-dark .biotern-select-wrap {
+  --biotern-select-menu-shadow: 0 16px 30px rgba(0, 0, 0, 0.32);
+}
+
 html.app-theme-gray .page-header-right .btn:hover,
 html.app-theme-gray .app-ojt-page-header-right .btn:hover,
 html.app-theme-gray .filter-toggle-btn:hover,

@@ -30,14 +30,14 @@
   function findRightPanel(right) {
     return directChildMatch(
       right,
-      ".page-header-actions, .page-header-right-items, .app-students-actions-panel, .app-ojt-actions-panel, .app-applications-actions-panel"
+      ".page-header-actions, .page-header-right-items, .app-students-actions-panel, .app-ojt-actions-panel, .app-applications-actions-panel, [class*='actions-panel']"
     );
   }
 
   function findToggle(right) {
     return directChildMatch(
       right,
-      ".page-header-actions-toggle, .app-students-actions-toggle, .app-ojt-actions-toggle, .app-applications-actions-toggle, .page-header-right-open-toggle, .app-page-header-auto-toggle"
+      ".page-header-actions-toggle, .app-students-actions-toggle, .app-ojt-actions-toggle, .app-applications-actions-toggle, .app-ojt-workflow-actions-toggle, .page-header-right-open-toggle, .app-page-header-auto-toggle, [class*='actions-toggle']"
     );
   }
 
@@ -205,6 +205,180 @@
     return toggle;
   }
 
+  function revealToggleAcrossViewports(toggle, right) {
+    if (!toggle || !right) {
+      return;
+    }
+
+    var cursor = toggle.parentElement;
+    while (cursor && cursor !== right) {
+      if (cursor.classList) {
+        cursor.classList.remove("d-none");
+        cursor.classList.remove("d-md-none");
+        cursor.classList.remove("d-lg-none");
+      }
+      cursor = cursor.parentElement;
+    }
+  }
+
+  function normalizeTogglePresentation(toggle, right) {
+    if (!toggle) {
+      return;
+    }
+
+    revealToggleAcrossViewports(toggle, right);
+    toggle.classList.add("page-header-actions-toggle");
+    toggle.classList.add("btn");
+    toggle.classList.add("btn-sm");
+    toggle.classList.remove("app-students-actions-toggle");
+    toggle.classList.remove("app-ojt-actions-toggle");
+    toggle.classList.remove("app-applications-actions-toggle");
+    toggle.classList.remove("app-ojt-workflow-actions-toggle");
+    toggle.classList.remove("page-header-right-open-toggle");
+    toggle.setAttribute("aria-label", "Header actions");
+    toggle.setAttribute("type", "button");
+
+    // Keep one unified menu behavior instead of per-page bootstrap collapse wiring.
+    toggle.removeAttribute("data-bs-toggle");
+    toggle.removeAttribute("data-bs-target");
+
+    var icon = toggle.querySelector("i");
+    var text = toggle.querySelector("span");
+    if (!icon || !text || text.textContent.trim().toLowerCase() !== "actions") {
+      toggle.innerHTML = '<i class="feather-grid me-1"></i><span>Actions</span>';
+    }
+
+    // Preserve existing page color style; default to light-brand only when none is present.
+    var hasColorClass =
+      toggle.classList.contains("btn-primary") ||
+      toggle.classList.contains("btn-light-brand") ||
+      toggle.classList.contains("btn-outline-secondary") ||
+      toggle.classList.contains("btn-light") ||
+      toggle.classList.contains("btn-secondary");
+    if (!hasColorClass) {
+      toggle.classList.add("btn-light-brand");
+    }
+  }
+
+  function normalizePanelPresentation(panel, toggle) {
+    if (!panel) {
+      return;
+    }
+
+    panel.classList.add("page-header-actions");
+    panel.classList.remove("collapse");
+    panel.classList.remove("show");
+    panel.classList.remove("d-md-flex");
+    panel.classList.remove("d-lg-flex");
+    panel.classList.remove("d-xl-flex");
+
+    if (toggle && panel.id) {
+      toggle.setAttribute("aria-controls", panel.id);
+    }
+  }
+
+  function directChildButton(node) {
+    if (!node || !node.children) {
+      return null;
+    }
+    for (var i = 0; i < node.children.length; i += 1) {
+      var child = node.children[i];
+      if (child.matches("a.btn, button.btn")) {
+        return child;
+      }
+    }
+    return null;
+  }
+
+  function ensureActionTileClass(button) {
+    if (!button) {
+      return;
+    }
+
+    button.classList.add("action-tile");
+    button.classList.remove("btn-sm");
+    if (button.classList.contains("btn-primary")) {
+      button.classList.add("action-tile-primary");
+    }
+  }
+
+  function normalizeActionNode(node) {
+    if (!node) {
+      return;
+    }
+
+    if (node.matches("a.btn, button.btn")) {
+      ensureActionTileClass(node);
+      return;
+    }
+
+    if (node.matches(".dropdown")) {
+      var trigger = directChildButton(node);
+      ensureActionTileClass(trigger);
+      node.classList.add("app-page-action-dropdown");
+      return;
+    }
+
+    if (node.matches("form")) {
+      node.classList.add("app-page-action-form");
+      var formBtn = directChildButton(node);
+      ensureActionTileClass(formBtn);
+    }
+  }
+
+  function ensureHomepageActionsPanel(panel) {
+    if (!panel) {
+      return;
+    }
+
+    var wrapper = findActionsWrapper(panel);
+    if (!wrapper) {
+      return;
+    }
+
+    if (directChildMatch(panel, ".dashboard-actions-panel")) {
+      var existingTiles = panel.querySelectorAll(".dashboard-actions-grid > *");
+      for (var i = 0; i < existingTiles.length; i += 1) {
+        normalizeActionNode(existingTiles[i]);
+      }
+      return;
+    }
+
+    var existingChildren = [];
+    var children = Array.prototype.slice.call(wrapper.children || []);
+    for (var j = 0; j < children.length; j += 1) {
+      var child = children[j];
+      if (!isElement(child)) {
+        continue;
+      }
+      if (child.matches(".dashboard-actions-panel")) {
+        return;
+      }
+      existingChildren.push(child);
+    }
+
+    var actionsPanel = document.createElement("div");
+    actionsPanel.className = "dashboard-actions-panel app-page-actions-panel";
+
+    var meta = document.createElement("div");
+    meta.className = "dashboard-actions-meta";
+    meta.innerHTML = '<span class="text-muted fs-12">Quick Actions</span>';
+
+    var grid = document.createElement("div");
+    grid.className = "dashboard-actions-grid app-page-actions-grid";
+
+    for (var k = 0; k < existingChildren.length; k += 1) {
+      var node = existingChildren[k];
+      grid.appendChild(node);
+      normalizeActionNode(node);
+    }
+
+    actionsPanel.appendChild(meta);
+    actionsPanel.appendChild(grid);
+    wrapper.classList.add("app-page-actions-wrapper");
+    wrapper.appendChild(actionsPanel);
+  }
+
   function openState(panel) {
     if (!panel) {
       return false;
@@ -226,32 +400,17 @@
     }
     toggle.dataset.phcBound = "1";
 
-    var isBootstrapCollapse = toggle.getAttribute("data-bs-toggle") === "collapse" && panel.classList.contains("collapse");
-    if (!isBootstrapCollapse) {
-      toggle.addEventListener("click", function (event) {
-        event.preventDefault();
-        var next = !openState(panel);
-        setOpen(panel, toggle, next);
-      });
-    } else {
-      toggle.addEventListener("click", function () {
-        global.setTimeout(function () {
-          toggle.setAttribute("aria-expanded", panel.classList.contains("show") ? "true" : "false");
-        }, 10);
-      });
-    }
+    toggle.addEventListener("click", function (event) {
+      event.preventDefault();
+      var next = !openState(panel);
+      setOpen(panel, toggle, next);
+    });
 
     document.addEventListener("click", function (event) {
-      if (!isMobileViewport()) {
-        return;
-      }
       if (header.contains(event.target)) {
         return;
       }
       setOpen(panel, toggle, false);
-      if (isBootstrapCollapse && panel.classList.contains("show")) {
-        panel.classList.remove("show");
-      }
     });
   }
 
@@ -269,17 +428,19 @@
     var panel = findRightPanel(right);
     var toggle = findToggle(right);
 
-    if (panel) {
-      condenseHeaderActions(header, right, panel);
+    if (!panel || !toggle) {
+      return;
     }
 
-    if (!toggle && panel && panelHasActions(panel)) {
-      toggle = createAutoToggle(right);
+    // Preserve homepage action menu as-is.
+    if (panel.id === "dashboardPageActions") {
+      return;
     }
 
-    if (toggle && panel) {
-      bindPair(header, toggle, panel);
-    }
+    normalizePanelPresentation(panel, toggle);
+    ensureHomepageActionsPanel(panel);
+    normalizeTogglePresentation(toggle, right);
+    bindPair(header, toggle, panel);
   }
 
   function normalizeAll(root) {

@@ -1,0 +1,152 @@
+.appearance-settings-page .theme-customizer-page {
+    gap: 1.25rem;
+}
+
+.appearance-settings-page .nxl-content {
+    display: grid;
+    grid-template-rows: auto 1fr;
+    align-items: start;
+}
+
+.appearance-settings-page .settings-layout {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.appearance-settings-page .settings-main {
+    display: grid;
+    gap: 1rem;
+}
+
+.appearance-settings-page .appearance-hero {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+}
+
+.appearance-settings-page .appearance-hero-copy h3 {
+    margin: 0;
+    color: var(--settings-text);
+    font-size: 1.2rem;
+}
+
+.appearance-settings-page .appearance-hero-copy p {
+    margin: 6px 0 0;
+    color: var(--settings-muted);
+    max-width: 760px;
+}
+
+.appearance-settings-page .appearance-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.appearance-settings-page .appearance-card {
+    border: 1px solid var(--settings-card-border);
+    border-radius: 14px;
+    overflow: hidden;
+    background: var(--settings-card-bg);
+    box-shadow: var(--settings-card-shadow);
+    color: var(--settings-text);
+    height: 100%;
+}
+
+.appearance-settings-page .appearance-card .card-header {
+    border-bottom: 1px solid var(--settings-card-border);
+    padding: 14px 16px;
+    background: transparent;
+}
+
+.appearance-settings-page .appearance-card .card-body {
+    display: grid;
+    gap: 12px;
+    padding: 14px;
+}
+
+.appearance-settings-page .appearance-card .option-row {
+    border: 1px solid var(--settings-item-border);
+    border-radius: 12px;
+    background: var(--settings-item-bg);
+    padding: 12px;
+    margin-bottom: 0;
+}
+
+.appearance-settings-page .appearance-card .option-row .form-label {
+    font-weight: 700;
+}
+
+.appearance-settings-page .appearance-card .btn-check + .btn {
+    min-width: 92px;
+}
+
+.appearance-settings-page .appearance-card .btn-check:checked + .btn,
+.appearance-settings-page .appearance-card .btn-check:focus + .btn {
+    color: var(--biotern-primary-contrast);
+    background-color: var(--biotern-primary);
+    border-color: var(--biotern-primary);
+}
+
+.appearance-settings-page .appearance-select-wrap,
+.appearance-settings-page .appearance-select-wrap .biotern-select-wrap {
+    width: min(320px, 100%);
+}
+
+.appearance-settings-page .appearance-select-wrap .form-select,
+.appearance-settings-page .appearance-select-wrap .biotern-select-trigger {
+    min-height: 44px;
+}
+
+.appearance-settings-page .appearance-actions-inline {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.appearance-settings-page .appearance-note-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.appearance-settings-page .appearance-note-card {
+    border: 1px solid var(--settings-item-border);
+    border-radius: 12px;
+    background: var(--settings-item-bg);
+    padding: 12px;
+}
+
+.appearance-settings-page .appearance-note-card h6 {
+    color: var(--settings-text);
+}
+
+.appearance-settings-page .appearance-note-card p {
+    color: var(--settings-muted);
+    font-size: 0.82rem;
+}
+
+@media (max-width: 1199.98px) {
+    .appearance-settings-page .appearance-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .appearance-settings-page .appearance-hero {
+        flex-direction: column;
+    }
+
+    .appearance-settings-page .appearance-select-wrap,
+    .appearance-settings-page .appearance-select-wrap .biotern-select-wrap {
+        width: 100%;
+    }
+
+    .appearance-settings-page .appearance-actions-inline .btn {
+        flex: 1 1 auto;
+    }
+
+    .appearance-settings-page .appearance-note-grid {
+        grid-template-columns: 1fr;
+    }
+}

@@ -1,0 +1,304 @@
+/* SMACSS Module: shared list and table components */
+:root {
+  --biotern-data-card-bg: var(--biotern-surface, #ffffff);
+  --biotern-data-card-border: rgba(15, 23, 42, 0.08);
+  --biotern-data-card-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+  --biotern-data-head-bg: rgba(248, 250, 252, 0.98);
+  --biotern-data-head-text: #475569;
+  --biotern-data-cell-border: rgba(226, 232, 240, 0.95);
+  --biotern-data-row-hover: rgba(15, 23, 42, 0.025);
+  --biotern-data-muted: #64748b;
+  --biotern-data-scrollbar: rgba(148, 163, 184, 0.7);
+}
+
+html.app-skin-dark {
+  --biotern-data-card-bg: var(--biotern-surface, #151a21);
+  --biotern-data-card-border: rgba(129, 153, 199, 0.18);
+  --biotern-data-card-shadow: none;
+  --biotern-data-head-bg: rgba(21, 28, 40, 0.96);
+  --biotern-data-head-text: #d8e1ef;
+  --biotern-data-cell-border: rgba(129, 153, 199, 0.16);
+  --biotern-data-row-hover: rgba(255, 255, 255, 0.025);
+  --biotern-data-muted: #94a3b8;
+  --biotern-data-scrollbar: rgba(100, 116, 139, 0.8);
+}
+
+.app-data-card {
+  border: 1px solid var(--biotern-data-card-border);
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--biotern-data-card-bg);
+  box-shadow: var(--biotern-data-card-shadow);
+}
+
+.app-data-card > .card-body {
+  background: transparent;
+}
+
+.app-data-toolbar .dataTables_wrapper .row:first-child,
+.app-data-toolbar .dataTables_wrapper .row:last-child {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin: 0;
+  padding: 0 0.9rem 0.9rem;
+}
+
+.app-data-toolbar .dataTables_wrapper .row:first-child {
+  padding-top: 0.9rem;
+  justify-content: space-between;
+}
+
+.app-data-toolbar .dataTables_wrapper .row:first-child > div,
+.app-data-toolbar .dataTables_wrapper .row:last-child > div {
+  width: auto;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.app-data-toolbar .dataTables_wrapper .dataTables_length,
+.app-data-toolbar .dataTables_wrapper .dataTables_filter {
+  flex: 0 1 auto;
+  min-width: 0;
+  width: auto !important;
+  float: none !important;
+}
+
+.app-data-toolbar .dataTables_wrapper .dataTables_filter {
+  text-align: right;
+}
+
+.app-data-toolbar .dataTables_wrapper .dataTables_filter label,
+.app-data-toolbar .dataTables_wrapper .dataTables_length label {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 0.5rem;
+  margin: 0;
+  color: var(--biotern-data-muted);
+  font-size: 0.84rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.app-data-toolbar .dataTables_wrapper .dataTables_filter label {
+  flex-direction: row;
+  align-items: center;
+}
+
+.app-data-toolbar .dataTables_wrapper .dataTables_filter input,
+.app-data-toolbar .dataTables_wrapper .dataTables_length select {
+  width: auto !important;
+  max-width: none !important;
+  min-height: 36px;
+  border-radius: 10px;
+  border: 1px solid var(--biotern-data-cell-border);
+  background: var(--biotern-data-card-bg);
+  color: inherit;
+  box-shadow: none;
+}
+
+.app-data-toolbar .dataTables_wrapper .dataTables_length select {
+  min-width: 76px;
+  padding-right: 2rem;
+}
+
+.app-data-toolbar .dataTables_wrapper .dataTables_filter input {
+  min-width: 210px;
+}
+
+.app-data-toolbar .dataTables_wrapper .dataTables_info,
+.app-data-toolbar .dataTables_wrapper .dataTables_paginate {
+  color: var(--biotern-data-muted);
+  font-size: 0.84rem;
+}
+
+.app-data-table-wrap {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-gutter: stable both-edges;
+  scrollbar-width: auto;
+  scrollbar-color: var(--biotern-data-scrollbar) transparent;
+  padding-bottom: 1rem;
+}
+
+.app-data-table-wrap::-webkit-scrollbar {
+  height: 12px;
+}
+
+.app-data-table-wrap::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.app-data-table-wrap::-webkit-scrollbar-thumb {
+  background-color: var(--biotern-data-scrollbar);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+.app-data-table-wrap .table,
+.app-data-table-wrap .dataTables_wrapper {
+  min-width: 1080px;
+}
+
+.app-data-table th,
+.app-data-table td {
+  white-space: nowrap;
+}
+
+.app-data-table thead th {
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid var(--biotern-data-cell-border);
+  background: var(--biotern-data-head-bg);
+  color: var(--biotern-data-head-text);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
+.app-data-table tbody td {
+  padding: 0.95rem 1rem;
+  border-bottom: 1px solid var(--biotern-data-cell-border);
+  vertical-align: middle;
+}
+
+.app-data-table.table-hover > tbody > tr:hover > * {
+  background: var(--biotern-data-row-hover);
+}
+
+.app-data-empty {
+  padding: 2rem 1rem;
+  text-align: center;
+  color: var(--biotern-data-muted);
+}
+
+.app-mobile-list {
+  display: none;
+  gap: 0.85rem;
+  padding: 1rem;
+}
+
+.app-mobile-item {
+  border: 1px solid var(--biotern-data-cell-border);
+  border-radius: 16px;
+  background: var(--biotern-data-card-bg);
+  box-shadow: var(--biotern-data-card-shadow);
+  overflow: hidden;
+}
+
+.app-mobile-summary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.9rem 1rem;
+  cursor: pointer;
+}
+
+.app-mobile-summary::-webkit-details-marker {
+  display: none;
+}
+
+.app-mobile-summary::marker {
+  content: "";
+}
+
+.app-mobile-summary::after {
+  content: "\25BE";
+  font-size: 0.9rem;
+  color: var(--biotern-data-muted);
+  margin-left: auto;
+  transition: transform 0.18s ease;
+}
+
+.app-mobile-item[open] .app-mobile-summary::after {
+  transform: rotate(180deg);
+}
+
+.app-mobile-summary-main {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.app-mobile-summary-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.app-mobile-name {
+  color: inherit;
+  font-weight: 700;
+}
+
+.app-mobile-subtext {
+  color: var(--biotern-data-muted);
+  font-size: 0.82rem;
+}
+
+.app-mobile-details {
+  padding: 0 1rem 1rem;
+}
+
+.app-mobile-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.9rem;
+  padding-top: 0.8rem;
+}
+
+.app-mobile-row + .app-mobile-row {
+  border-top: 1px solid var(--biotern-data-cell-border);
+  margin-top: 0.8rem;
+}
+
+.app-mobile-row-stack {
+  flex-direction: column;
+}
+
+.app-mobile-label {
+  color: var(--biotern-data-muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.app-mobile-value {
+  color: inherit;
+  text-align: right;
+}
+
+@media (max-width: 991.98px) {
+  .app-data-toolbar .dataTables_wrapper .row:first-child > div,
+  .app-data-toolbar .dataTables_wrapper .row:last-child > div,
+  .app-data-toolbar .dataTables_wrapper .dataTables_length,
+  .app-data-toolbar .dataTables_wrapper .dataTables_filter,
+  .app-data-toolbar .dataTables_wrapper .dataTables_length label,
+  .app-data-toolbar .dataTables_wrapper .dataTables_filter label {
+    flex: 1 1 100%;
+    min-width: 100%;
+    width: 100% !important;
+  }
+
+  .app-data-toolbar .dataTables_wrapper .dataTables_filter {
+    text-align: left;
+  }
+
+  .app-data-toolbar .dataTables_wrapper .dataTables_filter input,
+  .app-data-toolbar .dataTables_wrapper .dataTables_length select {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0;
+  }
+}
+

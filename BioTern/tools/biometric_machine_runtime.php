@@ -9,7 +9,7 @@ if (!function_exists('biometric_machine_paths')) {
             'dll' => $base . '/device_connector/bin/Release/net9.0-windows/BioTernMachineConnector.dll',
             'exe' => $base . '/device_connector/bin/Release/net9.0-windows/BioTernMachineConnector.exe',
             'config' => $base . '/biometric_machine_config.json',
-            'dotnet_home' => dirname(__DIR__, 2) . '/.dotnet_cli',
+            'dotnet_home' => dirname(__DIR__) . '/.dotnet_cli',
         ];
     }
 }

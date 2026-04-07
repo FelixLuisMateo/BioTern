@@ -416,6 +416,7 @@ if ($header_db instanceof mysqli) {
     <!--! END: Early Skin Script -->
     <!--! BEGIN: Custom CSS-->
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars(header_asset_versioned_href('assets/css/smacss.css'), ENT_QUOTES, 'UTF-8'); ?>" />
+    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars(header_asset_versioned_href('assets/css/modules/app-ui-select-dropdown.css'), ENT_QUOTES, 'UTF-8'); ?>" />
     <?php if ($header_is_management_page): ?>
         <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars(header_asset_versioned_href('assets/css/modules/management/management-mobile.css'), ENT_QUOTES, 'UTF-8'); ?>" />
     <?php endif; ?>
@@ -427,6 +428,7 @@ if ($header_db instanceof mysqli) {
         <?php endforeach; ?>
     <?php endif; ?>
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars(header_asset_versioned_href('assets/css/state/page-header-consistency.css'), ENT_QUOTES, 'UTF-8'); ?>" />
+    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars(header_asset_versioned_href('assets/css/state/page-header-actions-scheme.css'), ENT_QUOTES, 'UTF-8'); ?>" />
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars(header_asset_versioned_href('assets/css/state/header-account-menu.css'), ENT_QUOTES, 'UTF-8'); ?>" />
 </head>
 

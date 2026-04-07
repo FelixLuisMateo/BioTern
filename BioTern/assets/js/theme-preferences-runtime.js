@@ -744,6 +744,22 @@
       if (headerDarkRadio) headerDarkRadio.checked = header === "dark";
       if (headerLightRadio) headerLightRadio.checked = header !== "dark";
       syncSurfaceControlsState();
+
+      try {
+        document.dispatchEvent(
+          new CustomEvent("biotern:theme-customizer-sync", {
+            detail: {
+              skin: skin,
+              menu: menu,
+              font: font,
+              scheme: scheme,
+              navigation: navigation,
+              header: header,
+              surfaces: surfaces,
+            },
+          })
+        );
+      } catch (e) {}
     }
 
     function bindCustomizerHeaderNavigationRadios() {

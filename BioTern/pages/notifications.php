@@ -211,9 +211,6 @@ if ($page > $totalPages) {
 }
 $items = array_slice($filteredItems, ($page - 1) * $perPage, $perPage);
 $unreadCount = biotern_notifications_count_unread($conn, $userId);
-$currentName = trim((string)($_SESSION['name'] ?? $_SESSION['username'] ?? 'BioTern User'));
-$currentEmail = trim((string)($_SESSION['email'] ?? ''));
-$avatarUrl = trim((string)($_SESSION['profile_picture'] ?? '')) !== '' ? (string)$_SESSION['profile_picture'] : 'assets/images/avatar/1.png';
 
 $page_title = 'BioTern || Notifications';
 $page_body_class = 'settings-page notifications-page';
@@ -239,32 +236,9 @@ include dirname(__DIR__) . '/includes/header.php';
         </div>
 
         <section class="settings-hub">
-            <div class="row g-4">
-                <div class="col-xl-4 col-xxl-3">
-                    <aside class="settings-sidebar-card">
-                        <div class="settings-persona">
-                            <div class="settings-avatar"><img src="<?php echo notifications_h($avatarUrl); ?>" alt="Profile avatar"></div>
-                            <div class="settings-persona-copy">
-                                <strong><?php echo notifications_h($currentName); ?></strong>
-                                <span><?php echo notifications_h($currentEmail !== '' ? $currentEmail : 'Manage your account area'); ?></span>
-                            </div>
-                        </div>
-                        <nav class="settings-menu">
-                            <a class="settings-menu-link" href="account-settings.php">
-                                <span><i class="feather-user"></i> Profile hub<small>Account details and security</small></span>
-                                <i class="feather-chevron-right"></i>
-                            </a>
-                            <a class="settings-menu-link is-active" href="notifications.php">
-                                <span><i class="feather-bell"></i> Notifications<small>Inbox, filters, and actions</small></span>
-                                <i class="feather-chevron-right"></i>
-                            </a>
-                        </nav>
-                    </aside>
-                </div>
-                <div class="col-xl-8 col-xxl-9">
-                    <div class="settings-stack">
-                        <section class="card settings-panel-card">
-                            <div class="card-body pt-4">
+            <div class="settings-stack">
+                <section class="card settings-panel-card">
+                    <div class="card-body pt-4">
                                 <div class="notifications-toolbar">
                                     <div class="notifications-toolbar-copy">
                                         <strong>Notification inbox</strong>
@@ -396,10 +370,8 @@ include dirname(__DIR__) . '/includes/header.php';
                                         </nav>
                                     <?php endif; ?>
                                 <?php endif; ?>
-                            </div>
-                        </section>
                     </div>
-                </div>
+                </section>
             </div>
         </section>
     </div>
