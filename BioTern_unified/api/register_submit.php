@@ -708,7 +708,7 @@ if ($role === 'student') {
 
     // Internship record is created only after the application is approved.
 
-    studentApplicationRedirect('pending', 'Application sent successfully. Please wait for approval from the admin, coordinator, or supervisor.');
+    studentApplicationRedirect('pending', 'Application received. Please wait for approval from an administrator, coordinator, or supervisor.');
 }
 
 if ($role === 'coordinator') {
