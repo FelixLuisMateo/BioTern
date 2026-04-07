@@ -25,6 +25,34 @@ $conn->query("CREATE TABLE IF NOT EXISTS login_logs (
     INDEX idx_login_logs_status_created (status, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
+function report_login_logs_has_column(mysqli $conn, string $column): bool
+{
+    $safeColumn = $conn->real_escape_string($column);
+    $result = $conn->query("SHOW COLUMNS FROM login_logs LIKE '{$safeColumn}'");
+    return $result && $result->num_rows > 0;
+}
+
+$requiredLoginLogColumns = [
+    'user_id' => "INT NULL",
+    'identifier' => "VARCHAR(191) NULL",
+    'role' => "VARCHAR(50) NULL",
+    'status' => "VARCHAR(20) NOT NULL DEFAULT 'failed'",
+    'reason' => "VARCHAR(100) NULL",
+    'ip_address' => "VARCHAR(45) NULL",
+    'user_agent' => "VARCHAR(255) NULL",
+    'created_at' => "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP",
+];
+
+foreach ($requiredLoginLogColumns as $column => $definition) {
+    if (!report_login_logs_has_column($conn, $column)) {
+        $safeColumn = str_replace('`', '``', $column);
+        $conn->query("ALTER TABLE login_logs ADD COLUMN `{$safeColumn}` {$definition}");
+    }
+}
+
+$conn->query("CREATE INDEX idx_login_logs_user_id ON login_logs (user_id)");
+$conn->query("CREATE INDEX idx_login_logs_status_created ON login_logs (status, created_at)");
+
 $status = strtolower(trim((string)($_GET['status'] ?? 'all')));
 if (!in_array($status, ['all', 'success', 'failed'], true)) {
     $status = 'all';

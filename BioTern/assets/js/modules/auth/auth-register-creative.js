@@ -181,6 +181,7 @@ function escapeSelector(value) {
                             for (let i = 0; i < requiredFields.length; i++) {
                                 const field = requiredFields[i];
                                 if (field.disabled || !field.required) continue;
+                                if (field.tagName === 'INPUT' && String(field.type || '').toLowerCase() === 'hidden') continue;
                                 if (!field.checkValidity()) {
                                     hasInvalid = true;
                                     let msg = 'Please check this field.';

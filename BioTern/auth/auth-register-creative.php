@@ -344,7 +344,6 @@ if (isset($_GET['registered'])) {
                                         <input type="text" name="last_name" class="form-control register-field-input" placeholder="Last name" autocomplete="family-name" required>
                                     </div>
                                 </div>
-<<<<<<< HEAD
                                 <div class="row g-3 student-location-row">
                                     <div class="col-12 col-lg-4 col-md-6 mb-2">
                                         <label class="form-label fs-12" for="studentProvinceSelect">Province</label>
@@ -368,12 +367,7 @@ if (isset($_GET['registered'])) {
                                 <div class="row g-3">
                                     <div class="col-12 mb-2">
                                         <input type="text" id="studentStreetAddress" class="form-control" placeholder="Street / House No. (optional)" autocomplete="street-address">
-                                        <input type="hidden" name="address" id="studentAddress" required>
-=======
-                                <div class="row g-3 register-field-grid register-field-grid-full">
-                                    <div class="col-12 mb-2">
-                                        <input type="text" name="address" class="form-control register-field-input" placeholder="Full Home Address" autocomplete="street-address" required>
->>>>>>> da334da1e79643a51800e53ccb6076b4556fd729
+                                        <input type="hidden" name="address" id="studentAddress">
                                     </div>
                                 </div>
                                 <div class="step-actions">

@@ -115,21 +115,82 @@ function log_login_attempt($mysqli, $userId, $identifier, $role, $status, $reaso
         return;
     }
 
+    if (!ensure_login_logs_schema($mysqli)) {
+        return;
+    }
+
     $stmt = $mysqli->prepare("INSERT INTO login_logs (user_id, identifier, role, status, reason, ip_address, user_agent, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())");
     if (!$stmt) {
         return;
     }
 
     $uid = $userId > 0 ? (int)$userId : null;
-    $identifier = (string)$identifier;
-    $role = (string)$role;
-    $status = (string)$status;
-    $reason = (string)$reason;
-    $ip = (string)$ip;
-    $userAgent = (string)$userAgent;
+    $identifier = substr((string)$identifier, 0, 191);
+    $role = substr((string)$role, 0, 50);
+    $status = substr((string)$status, 0, 20);
+    $reason = substr((string)$reason, 0, 100);
+    $ip = substr((string)$ip, 0, 45);
+    $userAgent = substr((string)$userAgent, 0, 255);
     $stmt->bind_param('issssss', $uid, $identifier, $role, $status, $reason, $ip, $userAgent);
     $stmt->execute();
     $stmt->close();
+}
+
+function login_logs_has_column(mysqli $mysqli, string $column): bool
+{
+    $safeColumn = $mysqli->real_escape_string($column);
+    $res = $mysqli->query("SHOW COLUMNS FROM login_logs LIKE '{$safeColumn}'");
+    return $res && $res->num_rows > 0;
+}
+
+function ensure_login_logs_schema(mysqli $mysqli): bool
+{
+    static $initialized = false;
+    if ($initialized) {
+        return true;
+    }
+
+    $created = $mysqli->query("CREATE TABLE IF NOT EXISTS login_logs (
+        id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NULL,
+        identifier VARCHAR(191) NULL,
+        role VARCHAR(50) NULL,
+        status VARCHAR(20) NOT NULL,
+        reason VARCHAR(100) NULL,
+        ip_address VARCHAR(45) NULL,
+        user_agent VARCHAR(255) NULL,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_login_logs_user_id (user_id),
+        INDEX idx_login_logs_status_created (status, created_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+    if (!$created) {
+        return false;
+    }
+
+    $columnDefinitions = [
+        'user_id' => "INT NULL",
+        'identifier' => "VARCHAR(191) NULL",
+        'role' => "VARCHAR(50) NULL",
+        'status' => "VARCHAR(20) NOT NULL DEFAULT 'failed'",
+        'reason' => "VARCHAR(100) NULL",
+        'ip_address' => "VARCHAR(45) NULL",
+        'user_agent' => "VARCHAR(255) NULL",
+        'created_at' => "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP",
+    ];
+
+    foreach ($columnDefinitions as $column => $definition) {
+        if (!login_logs_has_column($mysqli, $column)) {
+            $safeColumn = str_replace('`', '``', $column);
+            $mysqli->query("ALTER TABLE login_logs ADD COLUMN `{$safeColumn}` {$definition}");
+        }
+    }
+
+    $mysqli->query("CREATE INDEX idx_login_logs_user_id ON login_logs (user_id)");
+    $mysqli->query("CREATE INDEX idx_login_logs_status_created ON login_logs (status, created_at)");
+
+    $initialized = true;
+    return true;
 }
 
 function biotern_auth_client_ip(): string
@@ -146,19 +207,7 @@ function biotern_auth_client_ip(): string
 if ($logoutRequested) {
     $mysqli = $conn;
     if ($mysqli instanceof mysqli && !$mysqli->connect_errno) {
-        $mysqli->query("CREATE TABLE IF NOT EXISTS login_logs (
-            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-            user_id INT NULL,
-            identifier VARCHAR(191) NULL,
-            role VARCHAR(50) NULL,
-            status VARCHAR(20) NOT NULL,
-            reason VARCHAR(100) NULL,
-            ip_address VARCHAR(45) NULL,
-            user_agent VARCHAR(255) NULL,
-            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            INDEX idx_login_logs_user_id (user_id),
-            INDEX idx_login_logs_status_created (status, created_at)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        ensure_login_logs_schema($mysqli);
 
         $logoutUserId = (int)($_SESSION['user_id'] ?? 0);
         $logoutIdentifier = trim((string)($_SESSION['username'] ?? $_SESSION['email'] ?? ''));
@@ -295,19 +344,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $mysqli->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS rejected_at DATETIME NULL");
             $mysqli->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS approval_notes VARCHAR(255) NULL");
 
-            $mysqli->query("CREATE TABLE IF NOT EXISTS login_logs (
-                id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-                user_id INT NULL,
-                identifier VARCHAR(191) NULL,
-                role VARCHAR(50) NULL,
-                status VARCHAR(20) NOT NULL,
-                reason VARCHAR(100) NULL,
-                ip_address VARCHAR(45) NULL,
-                user_agent VARCHAR(255) NULL,
-                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                INDEX idx_login_logs_user_id (user_id),
-                INDEX idx_login_logs_status_created (status, created_at)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+            ensure_login_logs_schema($mysqli);
 
             $stmt = $mysqli->prepare("SELECT id, name, username, email, password, role, is_active, profile_picture, COALESCE(application_status, 'approved') AS application_status FROM users WHERE (username = ? OR email = ?) LIMIT 1");
 
