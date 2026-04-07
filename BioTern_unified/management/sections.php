@@ -32,6 +32,26 @@ function has_col(array $cols, string $name): bool {
     return in_array(strtolower($name), $cols, true);
 }
 
+function format_section_code_display(?string $code, ?string $name): string {
+    $code = trim((string)$code);
+    $name = strtoupper(trim((string)$name));
+    if ($code === '') {
+        return '';
+    }
+
+    if ($name !== '' && preg_match('/^\d+[A-Z]$/', $name)) {
+        $normalizedCode = strtoupper($code);
+        if (str_ends_with($normalizedCode, $name)) {
+            $base = substr($code, 0, -strlen($name));
+            if ($base !== false && trim($base) !== '') {
+                return trim($base);
+            }
+        }
+    }
+
+    return $code;
+}
+
 $sectionCols = get_table_columns($conn, 'sections');
 $courseCols = get_table_columns($conn, 'courses');
 $deptCols = get_table_columns($conn, 'departments');
@@ -400,7 +420,7 @@ include 'includes/header.php';
                         <option value="0">-- All Sections --</option>
                         <?php foreach ($sectionOptions as $secOpt): ?>
                             <?php
-                            $secCode = trim((string)($secOpt['code'] ?? ''));
+                            $secCode = format_section_code_display((string)($secOpt['code'] ?? ''), (string)($secOpt['name'] ?? ''));
                             $secName = trim((string)($secOpt['name'] ?? ''));
                             if ($secCode !== '' && $secName !== '') {
                                 $secLabel = $secCode . ' - ' . $secName;
@@ -462,7 +482,7 @@ include 'includes/header.php';
                                     <input type="checkbox" class="sections-row-checkbox" name="section_ids[]" value="<?php echo (int)$sec['id']; ?>">
                                 </td>
                                 <td><?php echo (int)$sec['id']; ?></td>
-                                <td><?php echo htmlspecialchars((string)($sec['code'] ?? '')); ?></td>
+                                <td><?php echo htmlspecialchars(format_section_code_display((string)($sec['code'] ?? ''), (string)($sec['name'] ?? ''))); ?></td>
                                 <td><?php echo htmlspecialchars((string)($sec['name'] ?? '')); ?></td>
                                 <td><?php echo htmlspecialchars((string)($sec['course_name'] ?? '-')); ?></td>
                                 <?php if ($hasSectionDepartment): ?><td><?php echo htmlspecialchars((string)($sec['department_name'] ?? '-')); ?></td><?php endif; ?>
