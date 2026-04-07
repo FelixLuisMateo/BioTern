@@ -42,6 +42,26 @@ $addStudentSectionId = (int)($_GET['add_section_id'] ?? 0);
 $authorizedRoles = ['admin', 'coordinator', 'supervisor'];
 $legacySelfLink = 'legacy_router.php?file=fingerprint_mapping.php';
 
+function formatSectionDisplayLabel($code, $name): string
+{
+    $code = trim((string)$code);
+    $name = trim((string)$name);
+    if ($code === '' && $name === '') {
+        return '';
+    }
+    if ($code !== '' && $name !== '') {
+        $compactName = strtoupper((string)preg_replace('/\s+/', '', $name));
+        if (
+            preg_match('/^([A-Za-z]+)\s*-?\s*([0-9]+[A-Za-z]?)$/', $code, $matches)
+            && strtoupper($matches[2]) === $compactName
+        ) {
+            return strtoupper($matches[1]) . ' - ' . $name;
+        }
+        return $code . ' - ' . $name;
+    }
+    return $code !== '' ? $code : $name;
+}
+
 if (isset($_SESSION['fingerprint_mapping_flash']) && is_array($_SESSION['fingerprint_mapping_flash'])) {
     $flashType = (string)($_SESSION['fingerprint_mapping_flash']['type'] ?? 'success');
     $msg = (string)($_SESSION['fingerprint_mapping_flash']['message'] ?? '');
@@ -167,9 +187,10 @@ if ($courseRes instanceof mysqli_result) {
 }
 
 $sections = [];
-$sectionRes = $conn->query("SELECT id, course_id, COALESCE(NULLIF(code, ''), name) AS section_label FROM sections ORDER BY section_label ASC");
+$sectionRes = $conn->query("SELECT id, course_id, code, name FROM sections ORDER BY code ASC, name ASC");
 if ($sectionRes instanceof mysqli_result) {
     while ($row = $sectionRes->fetch_assoc()) {
+        $row['section_label'] = formatSectionDisplayLabel($row['code'] ?? '', $row['name'] ?? '');
         $sections[] = $row;
     }
     $sectionRes->close();
@@ -190,7 +211,8 @@ $mappingSql = "
         s.course_id,
         s.section_id,
         c.name AS course_name,
-        COALESCE(NULLIF(sec.code, ''), sec.name) AS section_label,
+        sec.code AS section_code,
+        sec.name AS section_name,
         CONCAT(COALESCE(s.first_name, ''), ' ', COALESCE(s.last_name, '')) AS student_name
     FROM fingerprint_user_map m
     LEFT JOIN users u ON u.id = m.user_id
@@ -202,6 +224,7 @@ $mappingSql = "
 $mappingRes = $conn->query($mappingSql);
 if ($mappingRes instanceof mysqli_result) {
     while ($row = $mappingRes->fetch_assoc()) {
+        $row['section_label'] = formatSectionDisplayLabel($row['section_code'] ?? '', $row['section_name'] ?? '');
         $mappings[] = $row;
 
         if ($editFingerId > 0 && (int)($row['finger_id'] ?? 0) === $editFingerId) {
@@ -239,7 +262,8 @@ $availableStudentSql = "
         s.course_id,
         s.section_id,
         c.name AS course_name,
-        COALESCE(NULLIF(sec.code, ''), sec.name) AS section_label,
+        sec.code AS section_code,
+        sec.name AS section_name,
         CONCAT(COALESCE(s.first_name, ''), ' ', COALESCE(s.last_name, '')) AS student_name
     FROM users u
     INNER JOIN students s ON s.user_id = u.id
@@ -260,6 +284,7 @@ if ($availableStudentRes instanceof mysqli_result) {
         }
 
         if ($userId > 0 && (!in_array($userId, $mappedUserIds, true) || $userId === $editStudentUserId || $userId === $editPersonnelUserId)) {
+            $row['section_label'] = formatSectionDisplayLabel($row['section_code'] ?? '', $row['section_name'] ?? '');
             $availableStudentUsers[] = $row;
         }
     }

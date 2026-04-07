@@ -26,6 +26,26 @@ $is_supervisor_user = ($current_role === 'supervisor');
 $supervisor_scope_user_id = $is_supervisor_user ? $current_user_id : 0;
 $supervisor_scope_profile_id = 0;
 
+function formatSectionDisplayLabel($code, $name): string
+{
+    $code = trim((string)$code);
+    $name = trim((string)$name);
+    if ($code === '' && $name === '') {
+        return '';
+    }
+    if ($code !== '' && $name !== '') {
+        $compactName = strtoupper((string)preg_replace('/\s+/', '', $name));
+        if (
+            preg_match('/^([A-Za-z]+)\s*-?\s*([0-9]+[A-Za-z]?)$/', $code, $matches)
+            && strtoupper($matches[2]) === $compactName
+        ) {
+            return strtoupper($matches[1]) . ' - ' . $name;
+        }
+        return $code . ' - ' . $name;
+    }
+    return $code !== '' ? $code : $name;
+}
+
 if ($is_supervisor_user && $current_user_id > 0) {
     $supervisor_scope_stmt = $conn->prepare('SELECT id FROM supervisors WHERE user_id = ? LIMIT 1');
     if ($supervisor_scope_stmt) {
@@ -135,9 +155,12 @@ if ($dept_res && $dept_res->num_rows) {
 }
 
 $sections = [];
-$section_res = $conn->query("SELECT id, COALESCE(NULLIF(code, ''), name) AS section_label FROM sections ORDER BY section_label ASC");
+$section_res = $conn->query("SELECT id, code, name FROM sections ORDER BY code ASC, name ASC");
 if ($section_res && $section_res->num_rows) {
-    while ($r = $section_res->fetch_assoc()) $sections[] = $r;
+    while ($r = $section_res->fetch_assoc()) {
+        $r['section_label'] = formatSectionDisplayLabel($r['code'] ?? '', $r['name'] ?? '');
+        $sections[] = $r;
+    }
 }
 
 $supervisors = [];
