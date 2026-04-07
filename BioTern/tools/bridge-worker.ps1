@@ -695,7 +695,10 @@ function Invoke-BridgeHistoricalBackfill {
         $scanIntervalMinutes = 5
     }
 
-    $lastScanText = [string]($state['last_scan_utc'] ?? '')
+    $lastScanText = ''
+    if ($state -and $state.ContainsKey('last_scan_utc') -and $null -ne $state['last_scan_utc']) {
+        $lastScanText = [string]$state['last_scan_utc']
+    }
     if (-not [string]::IsNullOrWhiteSpace($lastScanText)) {
         try {
             $lastScanUtc = [DateTime]::Parse($lastScanText, [System.Globalization.CultureInfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::AssumeUniversal)
