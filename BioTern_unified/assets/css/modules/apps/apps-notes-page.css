@@ -228,6 +228,11 @@
     gap: 1rem;
 }
 
+.app-notes-editor-toolbar {
+    flex-wrap: wrap;
+    align-items: end;
+}
+
 .app-notes-list-tools {
     display: flex;
     align-items: center;
@@ -470,6 +475,7 @@
     display: grid;
     gap: 0.55rem;
     min-width: 0;
+    flex: 1 1 160px;
 }
 
 .app-notes-field > span,
@@ -502,6 +508,8 @@
     display: grid;
     justify-items: end;
     gap: 0.45rem;
+    flex: 0 0 auto;
+    min-width: 140px;
 }
 
 .app-notes-body-input {
@@ -574,6 +582,12 @@
     .app-notes-editor-empty,
     .app-notes-editor {
         min-height: 560px;
+    }
+
+    .app-notes-editor-state {
+        flex-basis: 100%;
+        justify-items: start;
+        align-items: start;
     }
 }
 
