@@ -425,10 +425,12 @@ if ($normalized_count > 0 && $flash_message === '') {
         background: #fff;
     }
     .users-admin-page .users-table .email-cell {
-        max-width: 220px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        min-width: 220px;
+        max-width: 320px;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+        line-height: 1.45;
     }
     .users-admin-page .avatar-diagnostic {
         font-size: 11px;
@@ -669,7 +671,7 @@ if ($normalized_count > 0 && $flash_message === '') {
                     </select>
                 </div>
                 <div class="col-md-2 d-flex gap-2">
-                    <button type="submit" class="btn btn-primary w-100">Filter</button>
+                    <button type="submit" class="btn btn-primary w-100">Apply</button>
                     <a href="users.php" class="btn btn-outline-secondary">Reset</a>
                 </div>
             </form>
@@ -697,7 +699,6 @@ if ($normalized_count > 0 && $flash_message === '') {
                         <?php endif; ?>
                         <?php foreach ($rows as $r): ?>
                             <?php
-require_once dirname(__DIR__) . '/config/db.php';
                                 $id = (int)$r['id'];
                                 $is_active = (int)($r['is_active'] ?? 0) === 1;
                                 $role = strtolower((string)($r['role'] ?? 'student'));
@@ -709,8 +710,6 @@ require_once dirname(__DIR__) . '/config/db.php';
                                     : biotern_avatar_default_path($id);
                                 $mtime = @filemtime(dirname(__DIR__) . '/' . $avatar_base_path);
                                 $pp_url = $avatar_base_path . ($mtime ? ('?v=' . $mtime) : '');
-                                $avatar_file_state = $resolved_profile_path !== '' ? 'found' : 'fallback';
-                                $avatar_diag_value = $normalized_profile_path !== '' ? $normalized_profile_path : '(empty)';
                             ?>
                             <tr>
                                 <td><?php echo $id; ?></td>
@@ -720,11 +719,10 @@ require_once dirname(__DIR__) . '/config/db.php';
                                         <div>
                                             <div class="fw-semibold"><?php echo e($r['name'] ?? '-'); ?></div>
                                             <div class="text-muted small">@<?php echo e($r['username'] ?? '-'); ?></div>
-                                            <div class="avatar-diagnostic">Path: <?php echo e($avatar_diag_value); ?> | File: <?php echo e($avatar_file_state); ?></div>
                                         </div>
                                     </div>
                                 </td>
-                                <td class="email-cell"><?php echo e($r['email'] ?? '-'); ?></td>
+                                <td class="email-cell" title="<?php echo e($r['email'] ?? '-'); ?>"><?php echo e($r['email'] ?? '-'); ?></td>
                                 <td>
                                     <span class="badge bg-soft-primary text-primary text-capitalize"><?php echo e($role); ?></span>
                                 </td>
