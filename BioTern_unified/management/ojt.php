@@ -89,6 +89,25 @@ function resolve_profile_image_url(string $profilePath): ?string {
     return $clean . ($mtime ? ('?v=' . $mtime) : '');
 }
 
+function formatSectionDisplayLabel($code, $name): string {
+    $code = trim((string)$code);
+    $name = trim((string)$name);
+    if ($code === '' && $name === '') {
+        return '';
+    }
+    if ($code !== '' && $name !== '') {
+        $compactName = strtoupper((string)preg_replace('/\s+/', '', $name));
+        if (
+            preg_match('/^([A-Za-z]+)\s*-?\s*([0-9]+[A-Za-z]?)$/', $code, $matches)
+            && strtoupper($matches[2]) === $compactName
+        ) {
+            return strtoupper($matches[1]) . ' - ' . $name;
+        }
+        return $code . ' - ' . $name;
+    }
+    return $code !== '' ? $code : $name;
+}
+
 function normalize_person_name(string $name): string {
     $clean = trim(preg_replace('/\s+/', ' ', $name));
     if ($clean === '') {
@@ -167,9 +186,10 @@ if ($cres) {
 }
 
 $sections = [];
-$sres = $conn->query("SELECT id, COALESCE(NULLIF(code, ''), name) AS section_label FROM sections ORDER BY section_label");
+$sres = $conn->query("SELECT id, code, name FROM sections ORDER BY code ASC, name ASC");
 if ($sres) {
     while ($s = $sres->fetch_assoc()) {
+        $s['section_label'] = formatSectionDisplayLabel($s['code'] ?? '', $s['name'] ?? '');
         $sections[] = $s;
     }
 }
