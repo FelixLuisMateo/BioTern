@@ -133,6 +133,7 @@
     display: flex;
     align-items: center;
     gap: 0.65rem;
+    width: 100%;
     min-height: 52px;
     padding: 0 1rem;
     border: 1px solid var(--notes-border);
@@ -155,6 +156,7 @@
 
 .app-notes-search input {
     width: 100%;
+    min-width: 0;
 }
 
 .app-notes-search input::placeholder,
@@ -171,12 +173,12 @@
 }
 
 .app-notes-filter-chip {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    display: flex;
     align-items: center;
-    gap: 0.65rem;
+    justify-content: center;
+    gap: 0.55rem;
     min-height: 48px;
-    padding: 0 1rem;
+    padding: 0 0.95rem;
     border: 1px solid var(--notes-border);
     border-radius: 15px;
     background: rgba(15, 23, 42, 0.72);
@@ -188,6 +190,7 @@
 .app-notes-filter-chip span {
     min-width: 0;
     white-space: nowrap;
+    text-align: center;
 }
 
 .app-notes-filter-chip strong {
