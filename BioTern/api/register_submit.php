@@ -840,6 +840,26 @@ if ($role === 'student') {
         exit;
     }
 
+    $studentUserUpdates = [];
+    if (tableHasColumn($mysqli, 'users', 'is_active')) {
+        $studentUserUpdates[] = 'is_active = 0';
+    }
+    if (tableHasColumn($mysqli, 'users', 'application_status')) {
+        $studentUserUpdates[] = "application_status = 'pending'";
+    }
+    if (tableHasColumn($mysqli, 'users', 'application_submitted_at')) {
+        $studentUserUpdates[] = 'application_submitted_at = NOW()';
+    }
+    if ($studentUserUpdates !== []) {
+        $studentUserSql = 'UPDATE users SET ' . implode(', ', $studentUserUpdates) . ' WHERE id = ? LIMIT 1';
+        $studentUserStmt = $mysqli->prepare($studentUserSql);
+        if ($studentUserStmt) {
+            $studentUserStmt->bind_param('i', $user_id);
+            $studentUserStmt->execute();
+            $studentUserStmt->close();
+        }
+    }
+
     // Now insert into students table using the user_id (schema-aware for unified DB variants).
     $studentColumns = [
         'user_id',
@@ -1033,7 +1053,7 @@ if ($role === 'student') {
         }
     }
 
-    header('Location: auth-register-creative.php?registered=student');
+    header('Location: auth-register-creative.php?registered=pending&msg=' . urlencode('Application received. Please wait for approval from an administrator, coordinator, or supervisor.'));
     exit;
 }
 

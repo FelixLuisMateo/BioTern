@@ -297,7 +297,14 @@ function machine_fetch_bridge_runtime_status(mysqli $conn, int $pollSeconds): ar
         $commandRes->close();
     }
 
-    $candidates = array_values(array_filter([$latestCacheAt, $latestIngestAt, $latestCommandAt], static function ($value): bool {
+    $workerHeartbeatAt = '';
+    $workerLogPath = dirname(__DIR__) . '/tools/bridge-worker.log';
+    $workerLogMtime = @filemtime($workerLogPath);
+    if ($workerLogMtime !== false && $workerLogMtime > 0) {
+        $workerHeartbeatAt = date('Y-m-d H:i:s', (int)$workerLogMtime);
+    }
+
+    $candidates = array_values(array_filter([$latestCacheAt, $latestIngestAt, $latestCommandAt, $workerHeartbeatAt], static function ($value): bool {
         return trim((string)$value) !== '' && trim((string)$value) !== '1970-01-01 00:00:00';
     }));
 

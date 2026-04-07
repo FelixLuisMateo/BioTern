@@ -38,7 +38,7 @@ include 'includes/header.php';
     data-student-mode="<?php echo $notes_is_student ? '1' : '0'; ?>"
 >
     <div class="row g-4 align-items-start">
-        <div class="col-12 col-xl-2">
+        <div class="col-12 col-xl-3 col-xxl-2">
             <section class="card app-notes-sidebar-card">
                 <div class="card-body">
                     <div class="app-notes-sidebar-head">
@@ -117,7 +117,7 @@ include 'includes/header.php';
             </section>
         </div>
 
-        <div class="col-12 col-xl-6">
+        <div class="col-12 col-xl-5 col-xxl-6">
             <section class="card app-notes-editor-card">
                 <div class="card-body">
                     <div class="app-notes-editor-empty" data-editor-empty>

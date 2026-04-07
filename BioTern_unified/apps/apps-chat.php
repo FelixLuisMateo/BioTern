@@ -119,12 +119,103 @@ function chat_avatar_path(string $profilePicture, int $userId = 0): string
 {
     $normalized = ltrim(str_replace('\\', '/', trim($profilePicture)), '/');
     if ($normalized !== '') {
-        return $normalized;
+        return chat_asset_url($normalized);
     }
 
     // No picture stored; use a numbered default avatar so different users look distinct.
     $num = $userId > 0 ? (($userId % 12) + 1) : 1;
-    return 'assets/images/avatar/' . $num . '.png';
+    return chat_asset_url('assets/images/avatar/' . $num . '.png');
+}
+
+function chat_asset_url(string $path): string
+{
+    $path = trim(str_replace('\\', '/', $path));
+    if ($path === '') {
+        return '';
+    }
+
+    if (preg_match('#^(?:https?:)?//#i', $path) || str_starts_with($path, 'data:')) {
+        return $path;
+    }
+
+    if (str_starts_with($path, '/')) {
+        return $path;
+    }
+
+    if (strpos($path, '/') === false && chat_media_kind_from_path($path) !== '') {
+        $path = 'uploads/chat_media/' . ltrim($path, '/');
+    }
+
+    static $baseHref = null;
+    if ($baseHref === null) {
+        if (function_exists('biotern_session_cookie_path')) {
+            $baseHref = (string) biotern_session_cookie_path();
+        } else {
+            $scriptName = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
+            $requestUri = str_replace('\\', '/', (string)($_SERVER['REQUEST_URI'] ?? ''));
+            $unifiedPos = stripos($scriptName, '/BioTern_unified/');
+            if ($unifiedPos === false) {
+                $unifiedPos = stripos($requestUri, '/BioTern_unified/');
+                $baseHref = $unifiedPos !== false
+                    ? substr($requestUri, 0, $unifiedPos) . '/BioTern_unified/'
+                    : '/BioTern_unified/';
+            } else {
+                $baseHref = substr($scriptName, 0, $unifiedPos) . '/BioTern_unified/';
+            }
+        }
+    }
+
+    return $baseHref . ltrim($path, '/');
+}
+
+function chat_local_media_relpath(string $path): string
+{
+    $path = trim(str_replace('\\', '/', $path));
+    if ($path === '' || preg_match('#^(?:https?:)?//#i', $path) || str_starts_with($path, 'data:') || str_starts_with($path, '/')) {
+        return '';
+    }
+
+    if (strpos($path, '/') === false && chat_media_kind_from_path($path) !== '') {
+        return 'uploads/chat_media/' . ltrim($path, '/');
+    }
+
+    return ltrim($path, '/');
+}
+
+function chat_media_exists(string $path): bool
+{
+    $relative = chat_local_media_relpath($path);
+    if ($relative === '') {
+        return true;
+    }
+
+    $fullPath = dirname(__DIR__) . '/' . $relative;
+    return is_file($fullPath);
+}
+
+function chat_attachment_placeholder(string $mediaType, string $messageText, string $rawMedia): string
+{
+    $text = trim($messageText);
+    $basename = $rawMedia !== '' ? basename($rawMedia) : '';
+
+    if ($mediaType === 'video') {
+        return '[Video unavailable]';
+    }
+
+    if ($mediaType === 'image') {
+        return '[Image unavailable]';
+    }
+
+    if ($basename !== '' && $text !== '' && strcasecmp($text, $basename) === 0) {
+        return '[Attachment unavailable]';
+    }
+
+    return $messageText;
+}
+
+function chat_media_message_url(int $messageId): string
+{
+    return chat_page_url(0, ['action' => 'media', 'mid' => $messageId]);
 }
 
 function chat_json_response(array $payload, int $statusCode = 200): void
@@ -146,7 +237,10 @@ function chat_page_url(int $userId = 0, array $extraQuery = []): string
         $query['user_id'] = $userId;
     }
 
-    $url = 'apps-chat.php';
+    $basePath = function_exists('biotern_session_cookie_path')
+        ? rtrim((string) biotern_session_cookie_path(), '/')
+        : '';
+    $url = ($basePath !== '' ? $basePath . '/' : '/') . 'apps-chat.php';
     if (!empty($query)) {
         $url .= '?' . http_build_query($query);
     }
@@ -213,6 +307,24 @@ function chat_media_kind_from_path(string $path): string
         return 'image';
     }
     if (in_array($ext, ['mp4', 'webm', 'ogg', 'mov'], true)) {
+        return 'video';
+    }
+
+    return '';
+}
+
+function chat_media_kind_from_mime(string $mime): string
+{
+    $mime = strtolower(trim($mime));
+    if ($mime === '') {
+        return '';
+    }
+
+    if (str_starts_with($mime, 'image/')) {
+        return 'image';
+    }
+
+    if (str_starts_with($mime, 'video/')) {
         return 'video';
     }
 
@@ -391,6 +503,7 @@ function chat_normalize_contact(array $contact, array $recentLoginUserIds): arra
     $avatarPath = chat_avatar_path($profilePicture, $userId);
     $lastMessage = trim((string)($contact['last_message'] ?? ''));
     $lastMediaPath = trim((string)($contact['last_media_path'] ?? ''));
+    $lastMediaMime = trim((string)($contact['last_media_mime'] ?? ''));
     $lastMessageAt = (string)($contact['last_message_at'] ?? '');
 
     if ($lastMessage === chat_unsent_marker()) {
@@ -401,6 +514,9 @@ function chat_normalize_contact(array $contact, array $recentLoginUserIds): arra
     $previewMediaKind = '';
     if ($lastMediaPath !== '') {
         $previewMediaKind = chat_media_kind_from_path($lastMediaPath);
+    }
+    if ($previewMediaKind === '' && $lastMediaMime !== '') {
+        $previewMediaKind = chat_media_kind_from_mime($lastMediaMime);
     }
     if ($previewMediaKind === '' && $lastMessage !== '') {
         $candidate = basename($lastMessage);
@@ -453,15 +569,35 @@ function chat_normalize_messages(array $messages, int $currentUserId): array
             ? (date('Y-m-d', $readTs) === $todayDate ? date('g:i A', $readTs) : date('M j, Y g:i A', $readTs))
             : '';
         $rawMedia = trim((string)($message['media_path'] ?? ''));
-        $mediaType = $rawMedia !== '' ? chat_media_kind_from_path($rawMedia) : '';
+        $mediaMime = trim((string)($message['media_mime'] ?? ''));
+        $mediaBlob = (string)($message['media_blob'] ?? '');
+        $hasMediaBlob = !empty($message['has_media_blob']) || $mediaBlob !== '';
+        $mediaType = $mediaMime !== '' ? chat_media_kind_from_mime($mediaMime) : ($rawMedia !== '' ? chat_media_kind_from_path($rawMedia) : '');
+        $resolvedMedia = '';
+        if ($hasMediaBlob && $mediaBlob !== '' && $mediaMime !== '' && $mediaType === 'image') {
+            $resolvedMedia = 'data:' . $mediaMime . ';base64,' . base64_encode($mediaBlob);
+        } elseif ($hasMediaBlob) {
+            $resolvedMedia = chat_media_message_url((int)($message['message_id'] ?? 0));
+        } elseif ($rawMedia !== '' && chat_media_exists($rawMedia)) {
+            $resolvedMedia = chat_asset_url($rawMedia);
+        }
+        if ($resolvedMedia === '') {
+            $mediaType = '';
+        }
         $messageTextRaw = (string)($message['message'] ?? '');
         $unsentAt = trim((string)($message['unsent_at'] ?? ''));
         $isOwn = (int)($message['sender_id'] ?? 0) === $currentUserId;
         $isUnsent = $unsentAt !== '' || trim($messageTextRaw) === chat_unsent_marker();
         $isPinned = (int)($message['is_pinned'] ?? 0) === 1;
+        $mediaMissing = ($rawMedia !== '' && $resolvedMedia === '');
+        if ($mediaMissing) {
+            $messageTextRaw = chat_attachment_placeholder($mediaType, $messageTextRaw, $rawMedia);
+        }
+
         if ($isUnsent) {
             $rawMedia = '';
             $mediaType = '';
+            $resolvedMedia = '';
             $isPinned = false;
         }
         $replyToId = (int)($message['reply_to_message_id'] ?? 0);
@@ -473,10 +609,12 @@ function chat_normalize_messages(array $messages, int $currentUserId): array
             $replyAuthor = ((int)($replyMessage['sender_id'] ?? 0) === $currentUserId) ? 'You' : 'Them';
             $replyText = trim((string)($replyMessage['message'] ?? ''));
             $replyMediaPath = trim((string)($replyMessage['media_path'] ?? ''));
+            $replyMediaMime = trim((string)($replyMessage['media_mime'] ?? ''));
+            $replyHasMediaBlob = !empty($replyMessage['has_media_blob']);
             if ($replyUnsentAt !== '') {
                 $replyText = '[Message unsent]';
-            } elseif ($replyMediaPath !== '' && ($replyText === '' || $replyText === basename($replyMediaPath))) {
-                $replyMediaType = chat_media_kind_from_path($replyMediaPath);
+            } elseif (($replyHasMediaBlob || $replyMediaPath !== '') && ($replyText === '' || ($replyMediaPath !== '' && $replyText === basename($replyMediaPath)))) {
+                $replyMediaType = $replyMediaMime !== '' ? chat_media_kind_from_mime($replyMediaMime) : chat_media_kind_from_path($replyMediaPath);
                 $replyText = $replyMediaType === 'video' ? '[Video]' : '[Image]';
             }
             $replyPreview = $replyText;
@@ -577,7 +715,7 @@ function chat_normalize_messages(array $messages, int $currentUserId): array
             'reaction_users' => $reactionUsers,
             'message' => $messageText,
             'subject' => (string)($message['subject'] ?? ''),
-            'media_path' => $rawMedia,
+            'media_path' => $resolvedMedia,
             'media_type' => $mediaType,
             'created_at' => $createdAt,
             'time_label' => chat_time_label($createdAt),
@@ -610,6 +748,9 @@ function chat_ensure_messages_table(mysqli $conn): void
             message LONGTEXT NOT NULL,
             reply_to_message_id BIGINT UNSIGNED NULL DEFAULT NULL,
             media_path VARCHAR(512) NULL DEFAULT NULL,
+            media_blob LONGBLOB NULL,
+            media_mime VARCHAR(100) NULL DEFAULT NULL,
+            media_original_name VARCHAR(255) NULL DEFAULT NULL,
             reaction_emoji VARCHAR(32) NULL DEFAULT NULL,
             reaction_by_user_id BIGINT UNSIGNED NULL DEFAULT NULL,
             is_read TINYINT(1) NOT NULL DEFAULT 0,
@@ -631,6 +772,15 @@ function chat_ensure_messages_table(mysqli $conn): void
     }
     if (!in_array('media_path', $cols, true)) {
         $conn->query("ALTER TABLE messages ADD COLUMN media_path VARCHAR(512) NULL DEFAULT NULL AFTER message");
+    }
+    if (!in_array('media_blob', $cols, true)) {
+        $conn->query("ALTER TABLE messages ADD COLUMN media_blob LONGBLOB NULL AFTER media_path");
+    }
+    if (!in_array('media_mime', $cols, true)) {
+        $conn->query("ALTER TABLE messages ADD COLUMN media_mime VARCHAR(100) NULL DEFAULT NULL AFTER media_blob");
+    }
+    if (!in_array('media_original_name', $cols, true)) {
+        $conn->query("ALTER TABLE messages ADD COLUMN media_original_name VARCHAR(255) NULL DEFAULT NULL AFTER media_mime");
     }
     if (!in_array('reply_to_message_id', $cols, true)) {
         $conn->query("ALTER TABLE messages ADD COLUMN reply_to_message_id BIGINT UNSIGNED NULL DEFAULT NULL AFTER message");
@@ -755,6 +905,9 @@ function chat_message_meta(mysqli $conn): array
         'message_type_col' => isset($columns['message_type']) ? 'message_type' : '',
         'reply_to_col' => isset($columns['reply_to_message_id']) ? 'reply_to_message_id' : '',
         'media_path_col' => isset($columns['media_path']) ? 'media_path' : '',
+        'media_blob_col' => isset($columns['media_blob']) ? 'media_blob' : '',
+        'media_mime_col' => isset($columns['media_mime']) ? 'media_mime' : '',
+        'media_original_name_col' => isset($columns['media_original_name']) ? 'media_original_name' : '',
         'reaction_emoji_col' => isset($columns['reaction_emoji']) ? 'reaction_emoji' : '',
         'reaction_by_col' => isset($columns['reaction_by_user_id']) ? 'reaction_by_user_id' : '',
         'is_read_col' => isset($columns['is_read']) ? 'is_read' : '',
@@ -879,6 +1032,62 @@ $requestMethod = (string)($_SERVER['REQUEST_METHOD'] ?? 'GET');
 $isAjaxRequest = ((string)($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'XMLHttpRequest') || ((string)($_REQUEST['ajax'] ?? '') === '1');
 
 $messageMeta = chat_message_meta($conn);
+
+if ($requestMethod === 'GET' && (string)($_GET['action'] ?? '') === 'media' && $messageMeta['ready']) {
+    $mediaMessageId = (int)($_GET['mid'] ?? 0);
+    if ($mediaMessageId <= 0 || $messageMeta['media_blob_col'] === '') {
+        http_response_code(404);
+        exit('Media not found.');
+    }
+
+    $mediaSql = 'SELECT
+            ' . $messageMeta['media_blob_col'] . ' AS media_blob,
+            ' . ($messageMeta['media_mime_col'] !== '' ? $messageMeta['media_mime_col'] : 'NULL') . ' AS media_mime,
+            ' . ($messageMeta['media_original_name_col'] !== '' ? $messageMeta['media_original_name_col'] : 'NULL') . ' AS media_original_name
+        FROM messages
+        WHERE ' . $messageMeta['id_col'] . ' = ?
+          AND ((' . $messageMeta['sender_col'] . ' = ?)
+            OR (' . $messageMeta['recipient_col'] . ' = ?))
+        LIMIT 1';
+    if ($messageMeta['deleted_at_col'] !== '') {
+        $mediaSql = str_replace('LIMIT 1', 'AND ' . $messageMeta['deleted_at_col'] . ' IS NULL LIMIT 1', $mediaSql);
+    }
+
+    $mediaStmt = $conn->prepare($mediaSql);
+    if (!$mediaStmt) {
+        http_response_code(500);
+        exit('Media unavailable.');
+    }
+
+    $mediaStmt->bind_param('iii', $mediaMessageId, $currentUserId, $currentUserId);
+    $mediaStmt->execute();
+    $mediaRow = $mediaStmt->get_result()->fetch_assoc() ?: null;
+    $mediaStmt->close();
+
+    $mediaBlob = is_array($mediaRow) ? (string)($mediaRow['media_blob'] ?? '') : '';
+    $mediaMime = is_array($mediaRow) ? trim((string)($mediaRow['media_mime'] ?? '')) : '';
+    $mediaName = is_array($mediaRow) ? trim((string)($mediaRow['media_original_name'] ?? '')) : '';
+    if ($mediaBlob === '') {
+        http_response_code(404);
+        exit('Media not found.');
+    }
+
+    if ($mediaMime === '') {
+        $mediaMime = 'application/octet-stream';
+    }
+
+    header('Content-Type: ' . $mediaMime);
+    header('Content-Length: ' . strlen($mediaBlob));
+    if ($mediaName !== '') {
+        $safeName = rawurlencode($mediaName);
+        header("Content-Disposition: inline; filename*=UTF-8''" . $safeName);
+    } else {
+        header('Content-Disposition: inline');
+    }
+    echo $mediaBlob;
+    exit;
+}
+
 $selectedUserId = isset($_POST['user_id']) ? (int)$_POST['user_id'] : (int)($_GET['user_id'] ?? 0);
 $draftMessage = '';
 $errorMessage = '';
@@ -945,10 +1154,13 @@ if ($requestMethod === 'POST' && (string)($_POST['action'] ?? '') === 'unsend-me
                   AND ' . $messageMeta['deleted_at_col'] . ' IS NULL';
         } else {
                         $unsetMediaSql = $messageMeta['media_path_col'] !== '' ? ', ' . $messageMeta['media_path_col'] . ' = NULL' : '';
+                        $unsetMediaBlobSql = $messageMeta['media_blob_col'] !== '' ? ', ' . $messageMeta['media_blob_col'] . ' = NULL' : '';
+                        $unsetMediaMimeSql = $messageMeta['media_mime_col'] !== '' ? ', ' . $messageMeta['media_mime_col'] . ' = NULL' : '';
+                        $unsetMediaNameSql = $messageMeta['media_original_name_col'] !== '' ? ', ' . $messageMeta['media_original_name_col'] . ' = NULL' : '';
                         $unsetReplySql = $messageMeta['reply_to_col'] !== '' ? ', ' . $messageMeta['reply_to_col'] . ' = NULL' : '';
                         $unsetSubjectSql = $messageMeta['subject_col'] !== '' ? ', ' . $messageMeta['subject_col'] . ' = NULL' : '';
                         $unsendSql = 'UPDATE messages
-                                SET message = ?' . $unsetMediaSql . $unsetReplySql . $unsetSubjectSql . ($messageMeta['updated_at_col'] !== '' ? ', ' . $messageMeta['updated_at_col'] . ' = NOW()' : '') . '
+                                SET message = ?' . $unsetMediaSql . $unsetMediaBlobSql . $unsetMediaMimeSql . $unsetMediaNameSql . $unsetReplySql . $unsetSubjectSql . ($messageMeta['updated_at_col'] !== '' ? ', ' . $messageMeta['updated_at_col'] . ' = NOW()' : '') . '
                                 WHERE ' . $messageMeta['id_col'] . ' = ?
                                     AND ' . $messageMeta['sender_col'] . ' = ?';
         }
@@ -1292,6 +1504,9 @@ if ($requestMethod === 'POST' && (string)($_POST['action'] ?? '') === 'send-mess
 
     // Handle optional media upload
     $uploadedMediaPath = '';
+    $uploadedMediaBlob = null;
+    $uploadedMediaMime = '';
+    $uploadedMediaOriginalName = '';
     $mediaUploadError = '';
     if (!empty($_FILES['chat_media']['name'])) {
         $file = $_FILES['chat_media'];
@@ -1331,24 +1546,14 @@ if ($requestMethod === 'POST' && (string)($_POST['action'] ?? '') === 'send-mess
                 } else {
                     $originalBase = substr($originalBase, 0, 90);
                 }
-                $destDir = dirname(__DIR__) . '/uploads/chat_media/';
-                if (!is_dir($destDir)) {
-                    mkdir($destDir, 0755, true);
-                }
-                $fileName = $originalBase . '.' . $safeExt;
-                $suffix = 1;
-                while (is_file($destDir . $fileName) && $suffix < 5000) {
-                    $fileName = $originalBase . '_' . $suffix . '.' . $safeExt;
-                    $suffix++;
-                }
-                $destPath = $destDir . $fileName;
-                if (move_uploaded_file($file['tmp_name'], $destPath)) {
-                    $uploadedMediaPath = 'uploads/chat_media/' . $fileName;
-                    if ($draftMessage === '') {
-                        $draftMessage = $fileName; // non-empty placeholder so NOT NULL constraint is satisfied
-                    }
-                } else {
+                $blobData = @file_get_contents($file['tmp_name']);
+                if ($blobData === false || $blobData === '') {
                     $mediaUploadError = 'Could not save the uploaded file.';
+                } else {
+                    $uploadedMediaBlob = $blobData;
+                    $uploadedMediaMime = $mime;
+                    $uploadedMediaOriginalName = $originalBase . '.' . $safeExt;
+                    $uploadedMediaPath = '';
                 }
             }
         }
@@ -1362,7 +1567,7 @@ if ($requestMethod === 'POST' && (string)($_POST['action'] ?? '') === 'send-mess
     } elseif ($messageModerationError !== '') {
         $errorMessage = $messageModerationError;
         $composeWarningMessage = $messageModerationError;
-    } elseif ($draftMessage === '' && $uploadedMediaPath === '') {
+    } elseif ($draftMessage === '' && $uploadedMediaPath === '' && $uploadedMediaBlob === null) {
         $errorMessage = 'Message cannot be empty.';
     } elseif ($errorMessage === '') {
         $recipientStmt = $conn->prepare("SELECT id, name, role FROM users WHERE id = ? AND (is_active = 1 OR is_active IS NULL) LIMIT 1");
@@ -1451,6 +1656,27 @@ if ($requestMethod === 'POST' && (string)($_POST['action'] ?? '') === 'send-mess
                 $bindValues[] = $uploadedMediaPath;
             }
 
+            if ($messageMeta['media_blob_col'] !== '' && $uploadedMediaBlob !== null) {
+                $insertColumns[] = $messageMeta['media_blob_col'];
+                $insertValues[] = '?';
+                $bindTypes .= 's';
+                $bindValues[] = $uploadedMediaBlob;
+            }
+
+            if ($messageMeta['media_mime_col'] !== '' && $uploadedMediaMime !== '') {
+                $insertColumns[] = $messageMeta['media_mime_col'];
+                $insertValues[] = '?';
+                $bindTypes .= 's';
+                $bindValues[] = $uploadedMediaMime;
+            }
+
+            if ($messageMeta['media_original_name_col'] !== '' && $uploadedMediaOriginalName !== '') {
+                $insertColumns[] = $messageMeta['media_original_name_col'];
+                $insertValues[] = '?';
+                $bindTypes .= 's';
+                $bindValues[] = $uploadedMediaOriginalName;
+            }
+
             if ($messageMeta['subject_col'] !== '') {
                 $insertColumns[] = $messageMeta['subject_col'];
                 $insertValues[] = '?';
@@ -1506,7 +1732,7 @@ if ($requestMethod === 'POST' && (string)($_POST['action'] ?? '') === 'send-mess
                         $senderDisplay = $currentUserName !== '' ? $currentUserName : 'A user';
                         $notificationPreview = preg_replace('/\s+/', ' ', strip_tags($draftMessage));
                         $notificationPreview = trim((string)$notificationPreview);
-                        if ($notificationPreview === '' && $uploadedMediaPath !== '') {
+                        if ($notificationPreview === '' && ($uploadedMediaPath !== '' || $uploadedMediaBlob !== null)) {
                             $notificationPreview = 'Sent an attachment.';
                         }
                         if ($notificationPreview === '') {
@@ -1544,6 +1770,7 @@ if ($currentUserId > 0 && $messageMeta['ready']) {
     $orderExpr = $messageMeta['created_at_col'] !== '' ? 'm.' . $messageMeta['created_at_col'] : 'm.' . $messageMeta['id_col'];
     $unreadSelect = '0 AS unread_count';
     $lastMediaSelect = "'' AS last_media_path";
+    $lastMediaMimeSelect = "'' AS last_media_mime";
     $contactTypes = 'iiiiii';
     $contactParams = [$currentUserId, $currentUserId, $currentUserId, $currentUserId, $currentUserId, $currentUserId];
 
@@ -1556,6 +1783,20 @@ if ($currentUserId > 0 && $messageMeta['ready']) {
                 ORDER BY ' . $orderExpr . ' DESC, m.' . $messageMeta['id_col'] . ' DESC
                 LIMIT 1
             ) AS last_media_path';
+        $contactTypes .= 'ii';
+        $contactParams[] = $currentUserId;
+        $contactParams[] = $currentUserId;
+    }
+
+    if ($messageMeta['media_mime_col'] !== '') {
+        $lastMediaMimeSelect = '(
+                SELECT m.' . $messageMeta['media_mime_col'] . '
+                FROM messages m
+                WHERE ((m.' . $messageMeta['sender_col'] . ' = ? AND m.' . $messageMeta['recipient_col'] . ' = u.id)
+                    OR (m.' . $messageMeta['sender_col'] . ' = u.id AND m.' . $messageMeta['recipient_col'] . ' = ?))' . $deletedMessageFilter . '
+                ORDER BY ' . $orderExpr . ' DESC, m.' . $messageMeta['id_col'] . ' DESC
+                LIMIT 1
+            ) AS last_media_mime';
         $contactTypes .= 'ii';
         $contactParams[] = $currentUserId;
         $contactParams[] = $currentUserId;
@@ -1629,6 +1870,7 @@ if ($currentUserId > 0 && $messageMeta['ready']) {
                     OR (m.' . $messageMeta['sender_col'] . ' = u.id AND m.' . $messageMeta['recipient_col'] . ' = ?))' . $deletedMessageFilter . '
             ) AS message_count,
             ' . $lastMediaSelect . ',
+            ' . $lastMediaMimeSelect . ',
             ' . $unreadSelect . '
         FROM users u
             WHERE (u.is_active = 1 OR u.is_active IS NULL)' . $studentScopeFilterSql . '
@@ -1651,6 +1893,7 @@ if ($currentUserId > 0 && $messageMeta['ready']) {
                 'profile_picture' => (string)($row['profile_picture'] ?? ''),
                 'last_message' => (string)($row['last_message'] ?? ''),
                 'last_media_path' => (string)($row['last_media_path'] ?? ''),
+                'last_media_mime' => (string)($row['last_media_mime'] ?? ''),
                 'last_message_at' => (string)($row['last_message_at'] ?? ''),
                 'message_count' => (int)($row['message_count'] ?? 0),
                 'unread_count' => (int)($row['unread_count'] ?? 0),
@@ -1794,6 +2037,10 @@ if ($selectedContact && $messageMeta['ready']) {
             ' . ($messageMeta['reply_to_col'] !== '' ? $messageMeta['reply_to_col'] : 'NULL') . ' AS reply_to_message_id,
             ' . ($messageMeta['subject_col'] !== '' ? $messageMeta['subject_col'] : 'NULL') . ' AS subject,
             ' . ($messageMeta['media_path_col'] !== '' ? $messageMeta['media_path_col'] : 'NULL') . ' AS media_path,
+            ' . ($messageMeta['media_blob_col'] !== '' ? $messageMeta['media_blob_col'] : 'NULL') . ' AS media_blob,
+            ' . ($messageMeta['media_mime_col'] !== '' ? $messageMeta['media_mime_col'] : 'NULL') . ' AS media_mime,
+            ' . ($messageMeta['media_original_name_col'] !== '' ? $messageMeta['media_original_name_col'] : 'NULL') . ' AS media_original_name,
+            ' . ($messageMeta['media_blob_col'] !== '' ? '(CASE WHEN ' . $messageMeta['media_blob_col'] . ' IS NULL THEN 0 ELSE 1 END)' : '0') . ' AS has_media_blob,
             ' . $reactionEmojiSelect . ' AS reaction_emoji,
             ' . $reactionBySelect . ' AS reaction_by_user_id,
             ' . $reactionCountSelect . ' AS reaction_count,
@@ -1822,6 +2069,10 @@ if ($selectedContact && $messageMeta['ready']) {
                 'message' => (string)($row['message'] ?? ''),
                 'subject' => (string)($row['subject'] ?? ''),
                 'media_path' => (string)($row['media_path'] ?? ''),
+                'media_blob' => (string)($row['media_blob'] ?? ''),
+                'media_mime' => (string)($row['media_mime'] ?? ''),
+                'media_original_name' => (string)($row['media_original_name'] ?? ''),
+                'has_media_blob' => (int)($row['has_media_blob'] ?? 0),
                 'reaction_emoji' => chat_normalize_reaction_emoji((string)($row['reaction_emoji'] ?? '')),
                 'reaction_by_user_id' => (int)($row['reaction_by_user_id'] ?? 0),
                 'reaction_count' => (int)($row['reaction_count'] ?? 0),

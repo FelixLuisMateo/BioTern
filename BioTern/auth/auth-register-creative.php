@@ -239,9 +239,11 @@ if (isset($_GET['registered'])) {
                             } elseif ($reg === 'error') {
                                 echo '<div class="alert alert-danger" role="alert">' . ($msg ?: 'An error occurred while registering.') . '</div>';
                             } elseif ($reg === 'pending') {
-                                echo '<div class="alert alert-info" role="alert">' . ($msg ?: 'Application submitted. Please wait for approval.') . '</div>';
-                            } elseif (in_array($reg, ['student','coordinator','supervisor','admin'])) {
-                                echo '<div class="alert alert-success" role="alert">Registration successful. You may now login.</div>';
+                                echo '<div class="alert alert-info" role="alert">' . ($msg ?: 'Application received. Please wait for approval from an administrator, coordinator, or supervisor.') . '</div>';
+                            } elseif ($reg === 'student') {
+                                echo '<div class="alert alert-info" role="alert">Application received. Please wait for approval from an administrator, coordinator, or supervisor.</div>';
+                            } elseif (in_array($reg, ['coordinator','supervisor','admin'], true)) {
+                                echo '<div class="alert alert-success" role="alert">Registration successful. You may now log in.</div>';
                             }
                         }
                         ?>

@@ -1,6 +1,111 @@
 <?php
+require_once __DIR__ . '/config/db.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
+}
+
+if (!function_exists('biotern_auth_cookie_key')) {
+    function biotern_auth_cookie_key()
+    {
+        $appKey = getenv('APP_KEY');
+        if ($appKey !== false && trim((string)$appKey) !== '') {
+            return (string)$appKey;
+        }
+
+        $dbPassKey = defined('DB_PASS') ? (string)DB_PASS : '';
+        if ($dbPassKey !== '') {
+            return $dbPassKey;
+        }
+
+        return 'biotern-fallback-auth-key';
+    }
+}
+
+if (!function_exists('biotern_parse_auth_cookie')) {
+    function biotern_parse_auth_cookie()
+    {
+        $raw = isset($_COOKIE['biotern_auth']) ? (string)$_COOKIE['biotern_auth'] : '';
+        if ($raw === '') {
+            return null;
+        }
+
+        $decoded = base64_decode($raw, true);
+        if (!is_string($decoded) || $decoded === '') {
+            return null;
+        }
+
+        $parts = explode('|', $decoded);
+        if (count($parts) !== 4) {
+            return null;
+        }
+
+        $userId = (int)$parts[0];
+        $issuedAt = (int)$parts[1];
+        $expiresAt = (int)$parts[2];
+        $signature = (string)$parts[3];
+
+        if ($userId <= 0 || $issuedAt <= 0 || $expiresAt <= 0 || $signature === '') {
+            return null;
+        }
+
+        if ($expiresAt < time()) {
+            return null;
+        }
+
+        $payload = $userId . '|' . $issuedAt . '|' . $expiresAt;
+        $expected = hash_hmac('sha256', $payload, biotern_auth_cookie_key());
+        if (!hash_equals($expected, $signature)) {
+            return null;
+        }
+
+        return ['user_id' => $userId];
+    }
+}
+
+if (!function_exists('biotern_restore_session_from_cookie')) {
+    function biotern_restore_session_from_cookie($conn)
+    {
+        if (!($conn instanceof mysqli) || $conn->connect_errno) {
+            return;
+        }
+
+        $parsed = biotern_parse_auth_cookie();
+        if (!is_array($parsed) || !isset($parsed['user_id'])) {
+            return;
+        }
+
+        $cookieUserId = (int)$parsed['user_id'];
+        if ($cookieUserId <= 0) {
+            return;
+        }
+
+        $stmt = $conn->prepare("SELECT id, name, username, email, role, is_active, profile_picture FROM users WHERE id = ? LIMIT 1");
+        if (!$stmt) {
+            return;
+        }
+
+        $stmt->bind_param('i', $cookieUserId);
+        $stmt->execute();
+        $user = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+
+        if (!$user || (int)($user['is_active'] ?? 0) !== 1) {
+            return;
+        }
+
+        session_regenerate_id(true);
+        $_SESSION['user_id'] = (int)$user['id'];
+        $_SESSION['name'] = (string)($user['name'] ?? '');
+        $_SESSION['username'] = (string)($user['username'] ?? '');
+        $_SESSION['email'] = (string)($user['email'] ?? '');
+        $_SESSION['role'] = (string)($user['role'] ?? '');
+        $_SESSION['profile_picture'] = (string)($user['profile_picture'] ?? '');
+        $_SESSION['logged_in'] = true;
+    }
+}
+
+if ((int)($_SESSION['user_id'] ?? 0) <= 0) {
+    biotern_restore_session_from_cookie(isset($conn) ? $conn : null);
 }
 
 $landing_user_id = (int)($_SESSION['user_id'] ?? 0);
@@ -39,7 +144,7 @@ $page_scripts = [
                             <i class="feather-sun"></i>
                         </a>
                     </div>
-                    <a href="document_application.php" class="btn btn-sm btn-light-brand">Apply</a>
+                    <a href="auth/auth-register-creative.php?role=student" class="btn btn-sm btn-light-brand">Apply</a>
                     <a href="<?php echo htmlspecialchars($landing_signin_href, ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-sm btn-primary"><?php echo htmlspecialchars($landing_signin_label, ENT_QUOTES, 'UTF-8'); ?></a>
                 </div>
             </div>
@@ -58,7 +163,7 @@ $page_scripts = [
                             <p class="hero-subtitle mb-4">Track attendance with biometric confidence, monitor internship progress, and generate key documents and reports without juggling multiple systems.</p>
                             <div class="hero-cta">
                                 <a href="<?php echo htmlspecialchars($landing_hero_href, ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-primary btn-lg"><?php echo htmlspecialchars($landing_hero_label, ENT_QUOTES, 'UTF-8'); ?></a>
-                                <a href="document_application.php" class="btn btn-light-brand btn-lg">Start Application</a>
+                                <a href="auth/auth-register-creative.php?role=student" class="btn btn-light-brand btn-lg">Start Application</a>
                             </div>
                         </div>  
                     </div>

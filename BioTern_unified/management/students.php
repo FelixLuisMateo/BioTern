@@ -26,6 +26,26 @@ $is_supervisor_user = ($current_role === 'supervisor');
 $supervisor_scope_user_id = $is_supervisor_user ? $current_user_id : 0;
 $supervisor_scope_profile_id = 0;
 
+function formatSectionDisplayLabel($code, $name): string
+{
+    $code = trim((string)$code);
+    $name = trim((string)$name);
+    if ($code === '' && $name === '') {
+        return '';
+    }
+    if ($code !== '' && $name !== '') {
+        $compactName = strtoupper((string)preg_replace('/\s+/', '', $name));
+        if (
+            preg_match('/^([A-Za-z]+)\s*-?\s*([0-9]+[A-Za-z]?)$/', $code, $matches)
+            && strtoupper($matches[2]) === $compactName
+        ) {
+            return strtoupper($matches[1]) . ' - ' . $name;
+        }
+        return $code . ' - ' . $name;
+    }
+    return $code !== '' ? $code : $name;
+}
+
 if ($is_supervisor_user && $current_user_id > 0) {
     $supervisor_scope_stmt = $conn->prepare('SELECT id FROM supervisors WHERE user_id = ? LIMIT 1');
     if ($supervisor_scope_stmt) {
@@ -135,9 +155,12 @@ if ($dept_res && $dept_res->num_rows) {
 }
 
 $sections = [];
-$section_res = $conn->query("SELECT id, COALESCE(NULLIF(code, ''), name) AS section_label FROM sections ORDER BY section_label ASC");
+$section_res = $conn->query("SELECT id, code, name FROM sections ORDER BY code ASC, name ASC");
 if ($section_res && $section_res->num_rows) {
-    while ($r = $section_res->fetch_assoc()) $sections[] = $r;
+    while ($r = $section_res->fetch_assoc()) {
+        $r['section_label'] = formatSectionDisplayLabel($r['code'] ?? '', $r['name'] ?? '');
+        $sections[] = $r;
+    }
 }
 
 $supervisors = [];
@@ -526,7 +549,7 @@ usort($print_students, function ($a, $b) {
         /* Filter row alignment */
         .filter-form {
             display: grid !important;
-            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+            grid-template-columns: repeat(4, minmax(0, 1fr));
             gap: 0.65rem;
             align-items: end;
         }
@@ -590,6 +613,11 @@ usort($print_students, function ($a, $b) {
             min-height: 42px;
             display: flex;
             align-items: center;
+        }
+
+        .filter-form .select2-container {
+            width: 100% !important;
+            min-width: 0;
         }
 
         .filter-form .select2-container--default .select2-selection--single .select2-selection__rendered {
@@ -715,13 +743,25 @@ usort($print_students, function ($a, $b) {
             color: #cbd5e1;
         }
 
+        @media (max-width: 1599.98px) {
+            .filter-form {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 1279.98px) {
+            .filter-form {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
         @media (max-width: 767.98px) {
             .filter-panel {
                 padding: 0.85rem 0.75rem 0.25rem;
             }
 
             .filter-form {
-                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                grid-template-columns: repeat(2, minmax(0, 1fr));
             }
 
             .filter-panel-head {

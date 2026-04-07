@@ -17,6 +17,26 @@ $current_role = strtolower(trim((string) (
 $can_edit_sensitive_hours = in_array($current_role, ['admin', 'coordinator', 'supervisor'], true);
 $can_edit_hours = true;
 
+function formatSectionDisplayLabel($code, $name): string
+{
+    $code = trim((string)$code);
+    $name = trim((string)$name);
+    if ($code === '' && $name === '') {
+        return '';
+    }
+    if ($code !== '' && $name !== '') {
+        $compactName = strtoupper((string)preg_replace('/\s+/', '', $name));
+        if (
+            preg_match('/^([A-Za-z]+)\s*-?\s*([0-9]+[A-Za-z]?)$/', $code, $matches)
+            && strtoupper($matches[2]) === $compactName
+        ) {
+            return strtoupper($matches[1]) . ' - ' . $name;
+        }
+        return $code . ' - ' . $name;
+    }
+    return $code !== '' ? $code : $name;
+}
+
 function biotern_student_edit_ensure_runtime_dir(string $path): bool
 {
     if (is_dir($path)) {
@@ -161,9 +181,10 @@ if ($departments_result && $departments_result->num_rows > 0) {
 
 // Fetch sections for dropdown
 $sections = [];
-$sections_result = $conn->query("SELECT id, name FROM sections ORDER BY name ASC");
+$sections_result = $conn->query("SELECT id, code, name FROM sections ORDER BY code ASC, name ASC");
 if ($sections_result && $sections_result->num_rows > 0) {
     while ($row = $sections_result->fetch_assoc()) {
+        $row['section_label'] = formatSectionDisplayLabel($row['code'] ?? '', $row['name'] ?? '');
         $sections[] = $row;
     }
 }
@@ -1535,7 +1556,7 @@ function resolve_profile_image_url(string $profilePath): ?string {
                                                     <?php foreach ($sections as $section): ?>
                                                         <option value="<?php echo (int)$section['id']; ?>"
                                                             <?php echo ((int)($student['section_id'] ?? 0) === (int)$section['id']) ? 'selected' : ''; ?>>
-                                                            <?php echo htmlspecialchars($section['name']); ?>
+                                                            <?php echo htmlspecialchars($section['section_label'] ?? ($section['name'] ?? '')); ?>
                                                         </option>
                                                     <?php endforeach; ?>
                                                 </select>
