@@ -71,8 +71,13 @@ $dbPass = defined('DB_PASS') ? DB_PASS : '';
 $dbName = defined('DB_NAME') ? DB_NAME : 'biotern_db';
 $dbPort = defined('DB_PORT') ? (int)DB_PORT : 3306;
 $script_name = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
-$asset_prefix = (strpos($script_name, '/auth/') !== false) ? '../' : '';
-$route_prefix = $asset_prefix;
+$project_root = '/';
+$project_pos = stripos($script_name, '/BioTern/BioTern/');
+if ($project_pos !== false) {
+    $project_root = substr($script_name, 0, $project_pos) . '/BioTern/BioTern/';
+}
+$asset_prefix = $project_root;
+$route_prefix = $project_root;
 $favicon_ico_path = dirname(__DIR__) . '/assets/images/favicon.ico';
 $favicon_png_path = dirname(__DIR__) . '/assets/images/favicon-rounded.png';
 $favicon_logo_path = dirname(__DIR__) . '/assets/images/logo-abbr.png';
@@ -171,6 +176,97 @@ if ($logoutRequested) {
     session_destroy();
     session_start();
     biotern_clear_auth_cookie();
+}
+
+if (!function_exists('biotern_parse_auth_cookie')) {
+    function biotern_parse_auth_cookie()
+    {
+        $raw = isset($_COOKIE['biotern_auth']) ? (string)$_COOKIE['biotern_auth'] : '';
+        if ($raw === '') {
+            return null;
+        }
+
+        $decoded = base64_decode($raw, true);
+        if (!is_string($decoded) || $decoded === '') {
+            return null;
+        }
+
+        $parts = explode('|', $decoded);
+        if (count($parts) !== 4) {
+            return null;
+        }
+
+        $userId = (int)$parts[0];
+        $issuedAt = (int)$parts[1];
+        $expiresAt = (int)$parts[2];
+        $signature = (string)$parts[3];
+        if ($userId <= 0 || $issuedAt <= 0 || $expiresAt <= 0 || $signature === '') {
+            return null;
+        }
+
+        if ($expiresAt < time()) {
+            return null;
+        }
+
+        $payload = $userId . '|' . $issuedAt . '|' . $expiresAt;
+        $expected = hash_hmac('sha256', $payload, biotern_auth_cookie_key());
+        if (!hash_equals($expected, $signature)) {
+            return null;
+        }
+
+        return ['user_id' => $userId];
+    }
+}
+
+if (!function_exists('biotern_restore_session_from_cookie')) {
+    function biotern_restore_session_from_cookie($conn)
+    {
+        if (!($conn instanceof mysqli) || $conn->connect_errno) {
+            return;
+        }
+
+        $parsed = biotern_parse_auth_cookie();
+        if (!is_array($parsed) || !isset($parsed['user_id'])) {
+            return;
+        }
+
+        $cookieUserId = (int)$parsed['user_id'];
+        if ($cookieUserId <= 0) {
+            return;
+        }
+
+        $stmt = $conn->prepare("SELECT id, name, username, email, role, is_active, profile_picture FROM users WHERE id = ? LIMIT 1");
+        if (!$stmt) {
+            return;
+        }
+
+        $stmt->bind_param('i', $cookieUserId);
+        $stmt->execute();
+        $user = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+
+        if (!$user || (int)($user['is_active'] ?? 0) !== 1) {
+            return;
+        }
+
+        session_regenerate_id(true);
+        $_SESSION['user_id'] = (int)$user['id'];
+        $_SESSION['name'] = (string)($user['name'] ?? '');
+        $_SESSION['username'] = (string)($user['username'] ?? '');
+        $_SESSION['email'] = (string)($user['email'] ?? '');
+        $_SESSION['role'] = (string)($user['role'] ?? '');
+        $_SESSION['profile_picture'] = (string)($user['profile_picture'] ?? '');
+        $_SESSION['logged_in'] = true;
+    }
+}
+
+if ((int)($_SESSION['user_id'] ?? 0) <= 0) {
+    biotern_restore_session_from_cookie($conn);
+}
+
+if ((int)($_SESSION['user_id'] ?? 0) > 0 && !$logoutRequested) {
+    header('Location: ' . $route_prefix . 'homepage.php');
+    exit;
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -320,7 +416,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <div class="alert alert-danger" role="alert"><?php echo htmlspecialchars($login_error); ?></div>
                     <?php endif; ?>
 
-                    <form action="auth-login-cover.php" method="post" class="w-100 mt-4 pt-2">
+                    <form action="<?php echo htmlspecialchars($route_prefix . 'auth/auth-login-cover.php', ENT_QUOTES, 'UTF-8'); ?>" method="post" class="w-100 mt-4 pt-2">
                         <input type="hidden" name="next" value="<?php echo htmlspecialchars($next, ENT_QUOTES, 'UTF-8'); ?>">
                         <div class="mb-4">
                             <input type="text" name="identifier" id="identifier" class="form-control" placeholder="Email or Username" value="<?php echo isset($_POST['identifier']) ? htmlspecialchars((string)$_POST['identifier']) : ''; ?>" required aria-required="true" aria-label="Email or Username" autofocus>
@@ -337,7 +433,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 </div>
                             </div>
                             <div>
-                                <a href="auth-reset-cover.php" class="fs-11 text-primary">Forget password?</a>
+                                <a href="<?php echo htmlspecialchars($route_prefix . 'auth/auth-reset-cover.php', ENT_QUOTES, 'UTF-8'); ?>" class="fs-11 text-primary">Forget password?</a>
                             </div>
                         </div>
                         <div class="mt-5">
@@ -346,7 +442,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </form>
 
                     <div class="text-center text-muted my-4">or</div>
-                    <a href="auth-register-creative.php?role=student" class="btn btn-lg btn-outline-primary w-100">Apply as Student</a>
+                    <a href="<?php echo htmlspecialchars($route_prefix . 'auth/auth-register-creative.php?role=student', ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-lg btn-outline-primary w-100">Apply as Student</a>
                     <div class="text-center text-muted fs-11 mt-2">Student applications only. Staff accounts are created by the school administrator.</div>
                 </div>
             </div>
